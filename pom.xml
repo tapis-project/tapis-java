@@ -1,0 +1,327 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>edu.utexas.tacc</groupId>
+	<artifactId>tapis-services</artifactId>
+	<version>0.01</version>
+	<packaging>pom</packaging>
+
+	<name>TACC API Parent POM</name>
+	<description>Super POM file for all TAPIS services</description>
+	<organization>
+		<name>TACC</name>
+		<url>http://tacc.utexas.edu</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<id>jstubbs</id>
+			<name>Joe Stubbs</name>
+			<email>jstubbs@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>manager</role>
+				<role>developer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>sterry1</id>
+			<name>Steve Terry</name>
+			<email>sterry1@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>rcardone</id>
+			<name>Richard Cardone</name>
+			<email>rcardone@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>ajamthe</id>
+			<name>Anagha Jamthe</name>
+			<email>ajamthe@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+        <developer>
+            <id>spadhy</id>
+            <name>Smruti Padhy</name>
+            <email>spadhy@tacc.utexas.edu</email>
+            <url>https://tacc-cloud.readthedocs.io</url>
+            <organization>TACC</organization>
+            <organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+		<developer>
+			<id>jmeiring</id>
+			<name>Joseph Meiring</name>
+			<email>jmeiring@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>scblack</id>
+			<name>Steven C. Black</name>
+			<email>scblack@tacc.utexas.edu</email>
+			<url>https://tacc-cloud.readthedocs.io</url>
+			<organization>TACC</organization>
+			<organizationUrl>https://www.tacc.utexas.edu</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:http://bitbucket.org/tacc-cic/aloe.git</connection>
+		<developerConnection>scm:git:ssh://git@bitbucket.org/tacc-cic/aloe.git</developerConnection>
+		<url>https://bitbucket.org/tacc-cic/aloe</url>
+	</scm>
+
+    <!-- Document what each non-TACC repository is used for  -->
+	<repositories>
+		<repository>
+			<!-- testng -->
+			<id>jcenter</id>
+			<name>Public testng repository</name>
+			<url>http://jcenter.bintray.com</url>
+		</repository>
+		<repository>
+		    <!-- org.everit.json.schema (schema validation) -->
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+        <repository>
+            <!-- irods jargon -->
+            <id>dice.repository</id>
+            <name>dice.repository</name>
+            <url>https://raw.github.com/DICE-UNC/DICE-Maven/master/releases</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+        </repository>   
+	</repositories>
+
+	<properties>
+		<!-- This build's label -->
+		<foundation.service.version>${project.version}-r${buildNumber}</foundation.service.version>
+
+		<!-- Source encoding -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- Java version -->
+		<java-source.version>1.12</java-source.version>
+		<java-target.version>1.12</java-target.version>
+		
+		<!-- Capture the UTC build time for filtering use in children poms -->
+		<!-- There's some goofy behavior that prevent the direct use of    -->
+		<!-- maven property, so we format and reassign it.                 -->
+		<build.timestamp>${maven.build.timestamp}</build.timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
+
+        <!-- Below are the version numbers for all software on which we explicitly depend. -->
+        <!-- If a library or plugin appears as a dependency in some pom file, then that    -->
+        <!-- artifact's version number should be in the lists below for easy managment and -->
+        <!-- access.  Version numbers are organized into 2 lists, one for plugins and the  -->
+        <!-- other for library dependencies.                                               -->
+        <!--                                                                               -->
+        <!-- Note that we specify the versions of the base maven plugins so that they      -->
+        <!-- don't change from underneath us.  This approach requires us to manually       -->
+        <!-- upgrade the plugins we use; a reasonable upgrade cycle would be every 6-12    -->
+        <!-- months.  See http://maven.apache.org/plugins/index.html for latest plugin     -->
+        <!-- listing.  Last upgrade occurred on 4/24/2017.                                 -->
+        <!--                                                                               -->
+        <!--                    PLEASE KEEP THESE LISTS ALPHABETIZED                       -->
+
+		<!-- PLUGIN Versions (in alphabetical order) -->
+		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
+		<maven-war-plugin.version>3.2.3</maven-war-plugin.version>
+        <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
+        
+		<!-- LIBRARY Versions (in alphabetical order) -->
+		<activemq-client.version>5.15.9</activemq-client.version>
+		<amqp-client.version>5.7.1</amqp-client.version>
+		<args4j.version>2.33</args4j.version>
+		<commons-codec.version>1.12</commons-codec.version>
+		<commons-lang3.version>3.9</commons-lang3.version>
+		<commons-io.version>2.6</commons-io.version>
+		<commons-math3.version>3.6.1</commons-math3.version>
+		<flywaydb.version>5.2.4</flywaydb.version>
+		<gsissh.version>0.12.1</gsissh.version>
+		<gson.version>2.8.5</gson.version>
+		<hikariCP.version>3.3.1</hikariCP.version>
+		<httpclient.version>4.5.8</httpclient.version>
+		<httpmime.version>4.5.8</httpmime.version>
+		<jargon-core.version>4.3.0.1-RELEASE</jargon-core.version>
+		<javax.mail.version>1.6.2</javax.mail.version>
+		<jakarta.servlet-api.version>4.0.2</jakarta.servlet-api.version>                <!-- jersey group -->
+		<jersey-container-servlet.version>2.28</jersey-container-servlet.version> <!-- jersey group -->
+		<jjwt-aloe.version>0.9.1</jjwt-aloe.version>
+		<logback-classic.version>1.2.3</logback-classic.version>  <!-- Logback supplies the proper version of sl4j -->
+		<metrics-core.version>3.2.3</metrics-core.version>
+		<org.everit.json.schema.version>1.11.1</org.everit.json.schema.version>
+		<org.json.version>20180130</org.json.version>
+		<rabbitmq.version>3.6.11</rabbitmq.version>
+		<slf4j-api.version>1.7.25</slf4j-api.version>
+		<statefulj.version>3.0</statefulj.version>
+		<testng.version>6.14.3</testng.version>
+		
+		<!-- A NOTE ABOUT INTERDEPENDCIES                                                    -->
+		<!--                                                                                 -->
+		<!-- When an above library version is followed by a comment for the form "XX group"  -->
+		<!-- it indicates that there are interdependencies between all libraries marked with -->
+		<!-- the same group.  This usually doesn't matter because most projects include the  -->
+		<!-- root library and it includes all its dependencies automatically.  Sometimes,    -->
+		<!-- however, another project may include one of the root library's dependencies     -->
+		<!-- without including the root library.  In this case, we usually prefer to use the -->
+		<!-- same version of the dependency library as the root library.  This is especially -->
+		<!-- true when the projects are ultimately packaged together in, for example, a WAR  -->
+		<!-- file.  The group comment in the above version list is used to signal that the   -->
+		<!-- libraries are interdependent and version changes in to members of the group     -->
+		<!-- should be coordinated.                                                          -->
+		
+	</properties>
+
+	<build>
+
+		<!-- Document what each plugin is used for -->
+		<pluginManagement>
+			<plugins>
+				<!-- This plugin is used to compile the project's sources.    -->
+				<!-- It also forces the IDE to use the specified Java version -->
+				<!-- when creating new projects.                              -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${maven-compiler-plugin.version}</version>
+					<configuration>
+						<source>${java-source.version}</source>
+						<target>${java-target.version}</target>
+					</configuration>
+				</plugin>
+				
+				<!-- This plugin is used to build war files. -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-war-plugin</artifactId>
+					<version>${maven-war-plugin.version}</version>
+					<configuration>
+						<warSourceDirectory>src/main/webapp</warSourceDirectory>
+					</configuration>
+				</plugin>
+
+				<!-- Capture the git commit hash and branch identifiers.  -->
+				<!-- We use the plugin only for git and depend on regular -->
+				<!-- maven filtering for timestamp and code version. We   -->
+				<!-- could use this plugin to update jar and war manifest -->
+				<!-- files, but we use separate resource file filtering   -->
+				<!-- instead. See the resources element below for         -->
+				<!-- filtering details.                                   -->
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>buildnumber-maven-plugin</artifactId>
+					<version>${buildnumber-maven-plugin.version}</version>
+					<executions>
+						<execution>
+							<phase>validate</phase>
+							<goals>
+								<goal>create</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<doCheck>false</doCheck>
+						<doUpdate>false</doUpdate>
+						<shortRevisionLength>8</shortRevisionLength>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
+		<resources>
+			<!-- Write the project version number to the specified file.  -->
+			<!-- Setting the targetPath puts the file into the jar at the -->
+			<!-- specified root-relative directory. The the modified      -->
+			<!-- aloe.version file is always copied to the target/classes -->
+			<!-- directory. Do the same for other data that we want to    -->
+			<!-- capture.  A jar and war file will contain these files    -->
+			<!-- as long as the templated files are in the configured     -->
+			<!-- directory in the child project.                          -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<targetPath>.</targetPath>
+				<filtering>true</filtering>
+				<includes>
+					<include>**/aloe.version</include>
+					<include>**/git.info</include>
+					<include>**/build.time</include>
+				</includes>
+			</resource>
+
+			<!-- For some reason, we have to tell maven, surefire or testng -->
+			<!-- that all main/resources need to be copied to some target   -->
+			<!-- directory. We also have to tell them to NOT undo filtering -->
+			<!-- for the files that we explicitly filter above. Good stuff. -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<includes>
+					<include>**/*</include>
+				</includes>
+				<excludes>
+					<exclude>**/aloe.version</exclude>
+					<exclude>**/git.info</exclude>
+					<exclude>**/build.time</exclude>
+				</excludes>
+			</resource>
+		</resources>
+	</build>
+	
+	<!-- Global Dependencies -->
+	<!--                     -->
+	<!-- Only add dependencies here that are used by EVERY submodule. -->
+	<dependencies>
+		<dependency>
+			<!-- There are only test dependencies on testng -->
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<version>${testng.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+    <modules>
+    </modules>
+
+</project>
+
