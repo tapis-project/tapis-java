@@ -3,8 +3,8 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>edu.utexas.tacc</groupId>
-	<artifactId>tapis-services</artifactId>
-	<version>0.01</version>
+	<artifactId>tapis</artifactId>
+	<version>0.0.1</version>
 	<packaging>pom</packaging>
 
 	<name>TACC API Parent POM</name>
@@ -269,20 +269,20 @@
 		</pluginManagement>
 
 		<resources>
-			<!-- Write the project version number to the specified file.  -->
-			<!-- Setting the targetPath puts the file into the jar at the -->
-			<!-- specified root-relative directory. The the modified      -->
-			<!-- aloe.version file is always copied to the target/classes -->
-			<!-- directory. Do the same for other data that we want to    -->
-			<!-- capture.  A jar and war file will contain these files    -->
-			<!-- as long as the templated files are in the configured     -->
-			<!-- directory in the child project.                          -->
+			<!-- Write the project version number to the specified file.   -->
+			<!-- Setting the targetPath puts the file into the jar at the  -->
+			<!-- specified root-relative directory. The the modified       -->
+			<!-- tapis.version file is always copied to the target/classes -->
+			<!-- directory. Do the same for other data that we want to     -->
+			<!-- capture.  A jar and war file will contain these files     -->
+			<!-- as long as the templated files are in the configured      -->
+			<!-- directory in the child project.                           -->
 			<resource>
 				<directory>src/main/resources</directory>
 				<targetPath>.</targetPath>
 				<filtering>true</filtering>
 				<includes>
-					<include>**/aloe.version</include>
+					<include>**/tapis.version</include>
 					<include>**/git.info</include>
 					<include>**/build.time</include>
 				</includes>
@@ -299,7 +299,7 @@
 					<include>**/*</include>
 				</includes>
 				<excludes>
-					<exclude>**/aloe.version</exclude>
+					<exclude>**/tapis.version</exclude>
 					<exclude>**/git.info</exclude>
 					<exclude>**/build.time</exclude>
 				</excludes>
@@ -321,6 +321,7 @@
 	</dependencies>
 
     <modules>
+        <module>tapis-authz</module>
     </modules>
 
 </project>
