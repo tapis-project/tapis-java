@@ -96,9 +96,8 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:http://bitbucket.org/tacc-cic/aloe.git</connection>
-		<developerConnection>scm:git:ssh://git@bitbucket.org/tacc-cic/aloe.git</developerConnection>
-		<url>https://bitbucket.org/tacc-cic/aloe</url>
+		<connection>scm:git:https://github.com/TACC-Cloud/tapis-services.git</connection>
+		<url>https://github.com/TACC-Cloud/tapis-services</url>
 	</scm>
 
     <!-- Document what each non-TACC repository is used for  -->
