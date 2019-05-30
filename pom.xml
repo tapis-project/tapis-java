@@ -141,6 +141,9 @@
 		<java-source.version>1.12</java-source.version>
 		<java-target.version>1.12</java-target.version>
 		
+		<!-- Maven compiler plugin Java release support -->
+		<maven-compiler-plugin-release>12</maven-compiler-plugin-release>
+		
 		<!-- Capture the UTC build time for filtering use in children poms -->
 		<!-- There's some goofy behavior that prevent the direct use of    -->
 		<!-- maven property, so we format and reassign it.                 -->
@@ -224,6 +227,9 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>${maven-compiler-plugin.version}</version>
 					<configuration>
+					    <!-- The release tells maven what version of -->
+					    <!-- the Java compiler to use internally.    --> 
+					    <release>${maven-compiler-plugin-release}</release>
 						<source>${java-source.version}</source>
 						<target>${java-target.version}</target>
 					</configuration>
@@ -320,7 +326,7 @@
 	</dependencies>
 
     <modules>
-        <module>tapis-authz</module>
+        <module>tapis-security</module>
     </modules>
 
 </project>

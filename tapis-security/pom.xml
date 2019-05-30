@@ -9,11 +9,11 @@
     </parent>
 
     <groupId>edu.utexas.tacc.tapis</groupId>
-    <artifactId>tapis-authz</artifactId>
+    <artifactId>tapis-security</artifactId>
     <packaging>war</packaging>
 
     <name>Tapis Authorization API</name>
-    <description>JAX-RS REST interface for Tapis Authorization service</description>
+    <description>JAX-RS REST interface for the Tapis Security Kernel</description>
     <url>http://maven.apache.org</url>
 
 	<dependencies>
@@ -42,7 +42,7 @@
             </plugin>
         </plugins>
 
-        <finalName>tapis-authz</finalName>
+        <finalName>tapis-security</finalName>
     </build>
 
 </project>
