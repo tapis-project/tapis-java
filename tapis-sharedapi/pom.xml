@@ -83,9 +83,9 @@
 			<scope>test</scope>
 		</dependency>
 
-        <!-- These dependences are required so that the jjwt library -->
-        <!-- can access javax.xml.bind.DatatypeConverter which is no -->
-        <!-- longer part of Java SE, but only as part of Java EE.    -->
+        <!-- These dependences are required so that the jjwt library  -->
+        <!-- can access javax.xml.bind.DatatypeConverter, which is no -->
+        <!-- longer part of Java SE, but only as part of Java EE.     -->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
