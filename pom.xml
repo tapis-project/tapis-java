@@ -327,6 +327,7 @@
 
     <modules>
         <module>tapis-security</module>
+		<module>tapis-files</module>
     </modules>
 
 </project>
