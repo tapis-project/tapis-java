@@ -123,7 +123,7 @@ public final class CreateKeyParameters
    * @throws JobException
    */
   private void validateParms()
-   throws Exception
+   throws IllegalArgumentException
   {
       // Minimal password testing.
       if ((password.length() < MIN_PASSWORD_LEN) || (password.length() > MAX_PASSWORD_LEN)) {

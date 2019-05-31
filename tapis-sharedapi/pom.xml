@@ -63,7 +63,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-aloe</artifactId>
+			<artifactId>jjwt-api</artifactId>
 			<version>${jjwt-aloe.version}</version>
 		</dependency>
 		<dependency>
