@@ -28,6 +28,11 @@
 			<artifactId>jersey-container-servlet</artifactId>
 			<version>${jersey-container-servlet.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-sharedapi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 	</dependencies>
 
     <build>

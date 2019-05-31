@@ -19,7 +19,7 @@ public class SecurityApplication
         // in any aloe class.  In particular, the filter classes in 
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
-		packages("edu.utexas.tacc.tapis");
+		packages("edu.utexas.tacc.tapis.security.api");
 		setApplicationName("security"); 
 	}
 }
