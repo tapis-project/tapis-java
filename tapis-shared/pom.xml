@@ -12,7 +12,7 @@
 	<artifactId>tapis-shared</artifactId>
 	<packaging>jar</packaging>
 
-	<name>Aloe Shared Library</name>
+	<name>Tapis Shared Library</name>
 	<description>Libraries used by multiple Tapis modules</description>
 
 	<dependencies>

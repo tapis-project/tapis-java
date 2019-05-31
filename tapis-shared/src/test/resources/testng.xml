@@ -9,7 +9,7 @@
     </groups>
 	<test name="shared">
 		<packages>
-		   <package name="edu.utexas.tacc.aloe.shared.*" /> 
+		   <package name="edu.utexas.tacc.tapis.shared.*" /> 
 		</packages>
 	</test>
 </suite>

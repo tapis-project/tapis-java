@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "description": "schema for testing parent/child schemas",
+    "type": "object",
+    "required": ["parent"],
+    "properties": {
+        "parent": {
+            "type": "string"
+        },
+        "child": {
+            "$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/twolevel/child.json"
+        }
+    }
+}
