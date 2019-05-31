@@ -32,7 +32,7 @@ public class SystemsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getSystemByID(@PathParam("systemId") int systemId) throws WebApplicationException {
 
-        return Response.ok("okey ").build();
+        return Response.ok(String.format("Looking at system: %s", systemId)).build();
     }
 
 }
