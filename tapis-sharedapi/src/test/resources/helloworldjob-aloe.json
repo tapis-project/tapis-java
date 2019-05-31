@@ -1,0 +1,9 @@
+{
+  "name":"Aloe-Test-Job-XXXXXX",
+  "appId":"Aloe-Test-sp-0.1.0",
+  "memoryPerNode":"1",
+  "archive":false,
+  "parameters": {
+         "command": ["ls -l"]
+    }
+}

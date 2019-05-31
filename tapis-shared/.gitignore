@@ -1,0 +1,39 @@
+# Binary targets
+target
+*~
+
+# test reports
+testreports
+test-output
+testrun.log
+
+# Intellij metadata files
+*.idea
+*.ids
+*.iml
+*.eml
+*.ids
+*.imp
+*.ipr
+*.iws
+
+# Eclipse metadata files
+.project
+.settings
+.classpath
+.externalToolBuilders
+
+# Apple system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+
