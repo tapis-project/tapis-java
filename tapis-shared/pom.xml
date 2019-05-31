@@ -12,7 +12,7 @@
 	<artifactId>tapis-shared</artifactId>
 	<packaging>jar</packaging>
 
-	<name>Aloe Shared Library</name>
+	<name>Tapis Shared Library</name>
 	<description>Libraries used by multiple Tapis modules</description>
 
 	<dependencies>
@@ -49,7 +49,6 @@
 			<artifactId>javax.mail</artifactId>
 			<version>${javax.mail.version}</version>
 		</dependency>
-		<!-- This library drags in guava v22 which is used in Aloe code -->
 		<dependency>
 			<groupId>com.github.everit-org.json-schema</groupId>
 			<artifactId>org.everit.json.schema</artifactId>

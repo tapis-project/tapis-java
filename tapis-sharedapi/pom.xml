@@ -12,7 +12,7 @@
 	<artifactId>tapis-sharedapi</artifactId>
 	<packaging>jar</packaging>
 	
-	<name>Aloe Shared Front-End Library</name>
+	<name>Tapis Shared Front-End Library</name>
 	<description>Shared library for front end Tapis code</description>
 
 	<dependencies>
@@ -49,11 +49,6 @@
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet</artifactId>
 			<version>${jersey-container-servlet.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-shared</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>

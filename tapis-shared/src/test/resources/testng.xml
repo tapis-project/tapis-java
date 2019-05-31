@@ -1,6 +1,6 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 
-<suite name="Aloe shared" verbose="1" parallel="none">
+<suite name="Tapis shared" verbose="1" parallel="none">
     <groups>
         <run>
             <exclude name="broken"/>
@@ -9,7 +9,7 @@
     </groups>
 	<test name="shared">
 		<packages>
-		   <package name="edu.utexas.tacc.aloe.shared.*" /> 
+		   <package name="edu.utexas.tacc.tapis.shared.*" /> 
 		</packages>
 	</test>
 </suite>
