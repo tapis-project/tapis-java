@@ -1,13 +1,14 @@
 package edu.utexas.tacc.tapis.files.api;
 
 import javax.ws.rs.ApplicationPath;
+import edu.utexas.tacc.tapis.files.api.resources.SystemsResource;
 
 import org.glassfish.jersey.server.ResourceConfig;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
 // container (command line) and in an IDE (eclipse). 
-@ApplicationPath("/")
+@ApplicationPath("files")
 public class FilesApplication extends ResourceConfig
 {
 	public FilesApplication()
@@ -18,7 +19,7 @@ public class FilesApplication extends ResourceConfig
         // in any aloe class.  In particular, the filter classes in 
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
-		packages("edu.utexas.tacc.tapis.files");
+		packages("edu.utexas.tacc.tapis.files.api.resources");
 		setApplicationName("files");
 	}
 }
