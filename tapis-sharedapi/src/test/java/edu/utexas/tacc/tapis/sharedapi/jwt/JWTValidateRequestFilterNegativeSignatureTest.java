@@ -34,14 +34,14 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 	private static final String TEST_INPUTFILE_NAME = "src/test/resources/testuser3Claims.json";
 
 	// Predefined test keystore file name.
-	private static final String TEST_STORE_FILE_NAME = ".AloeTestKeyStore.p12";
+	private static final String TEST_STORE_FILE_NAME = ".TapisTestKeyStore.p12";
 
 	// Predefined test keystore password
 	private static final String TEST_KEY_STORE_PASSWORD = "!akxK3CuHfqzI#97";
 
-	private static final String PATH_TO_JOB_FILE = "src/test/resources/helloworldjob-aloe.json";
+	private static final String PATH_TO_JOB_FILE = "src/test/resources/helloworldjob-tapis.json";
 
-	private static final String ALOE_HOST = "http://localhost:8080/jobs/v2?pretty=true";
+	private static final String TAPIS_HOST = "http://localhost:8080/jobs/v2?pretty=true";
 	
 	private static final String KEY_ALIAS = "jwt";
 
@@ -53,7 +53,7 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 	private String pathToJWTOutputFileWithIncorrectSignature = "";
 
 	// Temporary directory path
-	private Path newAloeTempDir = null;
+	private Path newTapisTempDir = null;
 
 	// Temporary file paths
 	private Path tmpFileWithIncorrectSignature = null;
@@ -76,16 +76,16 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 		String tmpdir = System.getProperty("java.io.tmpdir");
 
 		// Create a temporary directory inside the default temporary directory
-		newAloeTempDir = Files.createTempDirectory(Paths.get(tmpdir), "aloe-jwt");
+		newTapisTempDir = Files.createTempDirectory(Paths.get(tmpdir), "tapis-jwt");
 
 		// Create a temporary file for JWT to be written with a prefix and a suffix inside the newly created temporary directory
-		tmpFileWithIncorrectSignature = Files.createTempFile(newAloeTempDir, "testuser3Claims", ".jwt");
+		tmpFileWithIncorrectSignature = Files.createTempFile(newTapisTempDir, "testuser3Claims", ".jwt");
 
 		pathToJWTOutputFileWithIncorrectSignature = tmpFileWithIncorrectSignature.toAbsolutePath().toString();
 		System.out.println("Path to JwtOutputFile: " + pathToJWTOutputFileWithIncorrectSignature + "\n");
 
 		// Create a temporary error file
-		tmpErrorFileForIncorrectSignature = Files.createTempFile(newAloeTempDir, "errorIncorrectSignature", ".txt");
+		tmpErrorFileForIncorrectSignature = Files.createTempFile(newTapisTempDir, "errorIncorrectSignature", ".txt");
 
 		// Create a JWT with correct claim but signing it with Test key
 		String[] args = { "-i", TEST_INPUTFILE_NAME, "-k", TEST_STORE_FILE_NAME, "-p", TEST_KEY_STORE_PASSWORD, 
@@ -122,7 +122,7 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 		cmdList.add("Content-Type: application/json");
 		cmdList.add("-H");
 		cmdList.add("x-jwt-assertion-iplantc-org:" + jwtWithIncorrectSignature);
-		cmdList.add(ALOE_HOST);
+		cmdList.add(TAPIS_HOST);
 
 		// Create the process builder.
 		ProcessBuilder pb = new ProcessBuilder(cmdList);
@@ -143,7 +143,7 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 			while ((line = outputFile.readLine()) != null) {
 				lines.add(line);
 			}
-			String errorMsg = "ALOE_SECURITY_JWT_PARSE_ERROR Unable to parse JWT: ALOE_SECURITY_JWT_PARSE_ERROR Unable to parse JWT: JWT signature does not match locally computed signature. JWT validity cannot be asserted and should not be trusted.";
+			String errorMsg = "TAPIS_SECURITY_JWT_PARSE_ERROR Unable to parse JWT: TAPIS_SECURITY_JWT_PARSE_ERROR Unable to parse JWT: JWT signature does not match locally computed signature. JWT validity cannot be asserted and should not be trusted.";
 			Assert.assertTrue(lines.get(0).equals(errorMsg) || lines.get(2).equals("Code: 401"),
 					"Signature verification test failed");
 			outputFile.close();
@@ -158,6 +158,6 @@ public class JWTValidateRequestFilterNegativeSignatureTest {
 		Files.delete(tmpFileWithIncorrectSignature.toAbsolutePath());
 		Files.delete(tmpErrorFileForIncorrectSignature.toAbsolutePath());
 
-		Files.delete(newAloeTempDir);
+		Files.delete(newTapisTempDir);
 	}
 }

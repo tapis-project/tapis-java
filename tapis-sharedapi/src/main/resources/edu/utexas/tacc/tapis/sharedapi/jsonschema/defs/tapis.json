@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-06/schema#",
-  "description": "JSON schema for defining all Aloe inputs and outputs",
+  "description": "JSON schema for defining all Tapis inputs and outputs",
   "type": "object",
   "additionalProperties" : false,
   "definitions": {

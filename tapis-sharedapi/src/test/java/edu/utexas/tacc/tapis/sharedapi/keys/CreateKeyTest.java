@@ -31,7 +31,7 @@ public class CreateKeyTest {
 	/* **************************************************************************** */
 	/*                                   Constants                                  */
 	/* **************************************************************************** */
-	private static final String TEST_STORE_FILE_NAME = ".AloeCreateKeyTest.p12";
+	private static final String TEST_STORE_FILE_NAME = ".TapisCreateKeyTest.p12";
 	private static final String TEST_KEY_STORE_PASSWORD = "aloe!23tyu#xsre98";
 	private static final String TEST_ALIAS = "testkey";
 	private static final String STORE_TYPE = "PKCS12";
@@ -61,7 +61,7 @@ public class CreateKeyTest {
 	@Test(enabled = true)
 	public void createKeyTest() throws Exception {
 		String[] args = { "-a", TEST_ALIAS, "-k", TEST_STORE_FILE_NAME, "-p", TEST_KEY_STORE_PASSWORD, "-u",
-		"aloe agave" };
+		                  "aloe agave" };
 		CreateKeyParameters parms = new CreateKeyParameters(args);
 		CreateKey ck = new CreateKey(parms);
 		ck.exec();

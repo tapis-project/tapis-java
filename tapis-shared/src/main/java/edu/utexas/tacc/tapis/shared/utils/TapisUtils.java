@@ -32,17 +32,17 @@ import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.AloeRecoverableException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public class AloeUtils
+public class TapisUtils
 {
   /* **************************************************************************** */
   /*                                  Constants                                   */
   /* **************************************************************************** */
   // Local logger.
-  private static Logger _log = LoggerFactory.getLogger(AloeUtils.class);
+  private static Logger _log = LoggerFactory.getLogger(TapisUtils.class);
   
   // Set the display text for null references.
   public static final String NULL_STRING = "[null]";
@@ -53,9 +53,9 @@ public class AloeUtils
   public static final MultilineRecursiveToStringStyle multiRecursiveStyle = new MultilineRecursiveToStringStyle();
   public static final ComparableRecursiveToStringStyle recursiveStyle = new ComparableRecursiveToStringStyle();
   
-  // The aloe version resource path name. Maven 
+  // The tapis version resource path name. Maven 
   // fills in the version number at build time.
-  public static final String ALOE_VERSION_FILE = "/aloe.version";
+  public static final String TAPIS_VERSION_FILE = "/tapis.version";
   
   // Used to generate 3 bytes of randomness that fit into 2^24 - 1. 
   private static final int CEILING = 0x1000000;
@@ -63,8 +63,8 @@ public class AloeUtils
   /* **************************************************************************** */
   /*                                    Fields                                    */
   /* **************************************************************************** */
-  // The version string read in from the aloe version resource file.
-  private static String _aloeVersion;
+  // The version string read in from the tapis version resource file.
+  private static String _tapisVersion;
   
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -102,7 +102,7 @@ public class AloeUtils
    // that confuse the reflective code. We log problems and still return a string.
    try {s = ReflectionToStringBuilder.toString(obj, multiRecursiveStyle);}
        catch (Exception e) {
-           _log.warn(MsgUtils.getMsg("ALOE_INTROSPECTION_ERROR", obj.getClass().getName(), e.getMessage()), e);
+           _log.warn(MsgUtils.getMsg("TAPIS_INTROSPECTION_ERROR", obj.getClass().getName(), e.getMessage()), e);
            return obj.toString();
        }
    return s; // successful introspection
@@ -180,27 +180,27 @@ public class AloeUtils
   }
   
   /* ---------------------------------------------------------------------------- */
-  /* getAloeVersion:                                                              */
+  /* getTapisVersion:                                                             */
   /* ---------------------------------------------------------------------------- */
-  /** Read the Aloe version from the version file.  The version file contains only
+  /** Read the Tapis version from the version file.  The version file contains only
    * the version of this software as written by Maven during the build.  The value
    * is the value hardcoded into the POM file.
    * 
    * @return the current software's version
    */
-  public static String getAloeVersion()
+  public static String getTapisVersion()
   {
     // Assign the version string only on the first time through.
-    if (_aloeVersion == null) 
+    if (_tapisVersion == null) 
     {
-      try (InputStream ins = AloeUtils.class.getResourceAsStream(ALOE_VERSION_FILE)) {
-        _aloeVersion = IOUtils.toString(ins, StandardCharsets.UTF_8);
+      try (InputStream ins = TapisUtils.class.getResourceAsStream(TAPIS_VERSION_FILE)) {
+        _tapisVersion = IOUtils.toString(ins, StandardCharsets.UTF_8);
       }
       catch (Exception e) {
-        _log.error(MsgUtils.getMsg("ALOE_VERSION_FILE_ERROR", ALOE_VERSION_FILE));
+        _log.error(MsgUtils.getMsg("TAPIS_VERSION_FILE_ERROR", TAPIS_VERSION_FILE));
       }
     }
-    return _aloeVersion;
+    return _tapisVersion;
   }
   
   /* ---------------------------------------------------------------------------- */
@@ -312,7 +312,7 @@ public class AloeUtils
           try (Scanner s = new Scanner(Runtime.getRuntime().exec("hostname").getInputStream()).useDelimiter("\\A")) {
               hostname = s.hasNext() ? s.next() : "localhost";
           } catch (Exception e) {
-              _log.error(MsgUtils.getMsg("ALOE_LOCAL_HOSTNAME_ERROR", "localhost"));
+              _log.error(MsgUtils.getMsg("TAPIS_LOCAL_HOSTNAME_ERROR", "localhost"));
               hostname = "localhost"; // return something
           }
       }
@@ -354,7 +354,7 @@ public class AloeUtils
               }
           }
       } catch (Exception e) {
-          String msg = MsgUtils.getMsg("ALOE_GET_LOCAL_IP_ADDR");
+          String msg = MsgUtils.getMsg("TAPIS_GET_LOCAL_IP_ADDR");
           _log.error(msg, e);
           throw e;
       }
@@ -400,85 +400,85 @@ public class AloeUtils
   }
   
   /* ---------------------------------------------------------------------------- */
-  /* aloeify:                                                                     */
+  /* tapisify:                                                                    */
   /* ---------------------------------------------------------------------------- */
-  /** Wrap non-aloe exceptions in an AloeException keeping the same error message
+  /** Wrap non-tapis exceptions in an TapisException keeping the same error message
    * in the wrapped exception. 
    * 
-   * @param e any throwable that we might wrap in an aloe exception
-   * @return an AloeException
+   * @param e any throwable that we might wrap in an tapis exception
+   * @return a TapisException
    */
-  public static AloeException aloeify(Exception e){return aloeify(e, null);}
+  public static TapisException tapisify(Exception e){return tapisify(e, null);}
   
   /* ---------------------------------------------------------------------------- */
-  /* aloeify:                                                                     */
+  /* tapisify:                                                                    */
   /* ---------------------------------------------------------------------------- */
-  /** Wrap non-aloe exceptions in an AloeException.  If the msg parameter is non-null
-   * then force wrapping even for Aloe exceptions and insert the msg.  If the msg
+  /** Wrap non-tapis exceptions in an TapisException.  If the msg parameter is non-null
+   * then force wrapping even for Tapis exceptions and insert the msg.  If the msg
    * parameter is null then use the original exception's message in the wrapped
    * exception.  
    * 
-   * @param e any throwable that we might wrap in an aloe exception
+   * @param e any throwable that we might wrap in an tapis exception
    * @param msg the new message or null
-   * @return an AloeException
+   * @return a TapisException
    */
-  public static AloeException aloeify(Throwable e, String msg)
+  public static TapisException tapisify(Throwable e, String msg)
   {
       // Protect ourselves.
-      if (e == null) return new AloeException(msg);
+      if (e == null) return new TapisException(msg);
       
       // The result exception.
-      AloeException aloeException = null;
+      TapisException tapisException = null;
       
-      // -------- Null Message for AloeException
-      if ((msg == null) && (e instanceof AloeException)) {
+      // -------- Null Message for TapisException
+      if ((msg == null) && (e instanceof TapisException)) {
           // Use the exception as-is unless there's a new message.
-          aloeException = (AloeException) e;
+          tapisException = (TapisException) e;
       }
-      // -------- Wrapper for AloeRecoverableException
-      else if (e instanceof AloeRecoverableException) {
-          // Wrap the recoverable exception in a generic aloe exception.
+      // -------- Wrapper for TapisRecoverableException
+      else if (e instanceof TapisRecoverableException) {
+          // Wrap the recoverable exception in a generic tapis exception.
           // Recoverable exceptions are discovered by search the cause chain
           // using findInChain(), so there's no loss in burying them inside
           // another exception.
-          aloeException = new AloeException(msg, e);
+          tapisException = new TapisException(msg, e);
       }
-      // -------- Wrapper for AloeException
-      else if (e instanceof AloeException) 
+      // -------- Wrapper for TapisException
+      else if (e instanceof TapisException) 
       {
-          // Create a new instance of the same aloe exception type.
+          // Create a new instance of the same tapis exception type.
           Class<?> cls = e.getClass();
                 
           // Get the two argument (msg, cause) constructor that all 
-          // AloeException subtypes implement EXCEPT AloeRecoverableExceptions.
+          // TapisException subtypes implement EXCEPT TapisRecoverableExceptions.
           Class<?>[] parameterTypes = {String.class, Throwable.class};
           Constructor<?> cons = null;
           try {cons = cls.getConstructor(parameterTypes);}
                catch (Exception e2) {
-                  String msg2 = MsgUtils.getMsg("ALOE_REFLECTION_ERROR", cls.getName(), 
+                  String msg2 = MsgUtils.getMsg("TAPIS_REFLECTION_ERROR", cls.getName(), 
                                                 "getConstructor", e.getMessage());
                   _log.error(msg2, e2);
                }
                 
           // Use the constructor to assign the result variable.
           if (cons != null) 
-              try {aloeException = (AloeException) cons.newInstance(msg, e);}
+              try {tapisException = (TapisException) cons.newInstance(msg, e);}
                   catch (Exception e2) {
-                      String msg2 = MsgUtils.getMsg("ALOE_REFLECTION_ERROR", cls.getName(), 
+                      String msg2 = MsgUtils.getMsg("TAPIS_REFLECTION_ERROR", cls.getName(), 
                                                     "newInstance", e.getMessage());
                       _log.error(msg2, e2);
                   }
                 
-          // If nothing worked create a generic aloe exception wrapper.
-          if (aloeException == null) aloeException = new AloeException(msg, e);
+          // If nothing worked create a generic tapis exception wrapper.
+          if (tapisException == null) tapisException = new TapisException(msg, e);
       } 
-      // -------- Wrapper for Non-AloeException
+      // -------- Wrapper for Non-TapisException
       else {
-          // Wrap all non-AloeExceptions whether or not there's a new message. 
-          aloeException = new AloeException(msg == null ? e.getMessage() : msg, e);
+          // Wrap all non-TapisExceptions whether or not there's a new message. 
+          tapisException = new TapisException(msg == null ? e.getMessage() : msg, e);
       }
       
-      return aloeException;
+      return tapisException;
   }
 
   /* ---------------------------------------------------------------------------- */

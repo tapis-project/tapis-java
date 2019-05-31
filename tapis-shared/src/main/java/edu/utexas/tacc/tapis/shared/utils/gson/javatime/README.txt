@@ -1,6 +1,6 @@
 The code in this package was copied from the gson-javatime-serialisers project
 by Greg Kopff under the MIT license.  It was incorporated in this way to avoid
-dependency conflicts with Aloe code.  
+dependency conflicts with Tapis code.  
 
 Here's the source repository: 
 

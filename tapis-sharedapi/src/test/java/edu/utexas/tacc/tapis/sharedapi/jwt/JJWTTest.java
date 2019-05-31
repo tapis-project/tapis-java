@@ -21,7 +21,7 @@ import io.jsonwebtoken.impl.crypto.RsaProvider;
 /** This class tests a custom version of jjwt. That version of jjwt is modified in the 
  * following ways:
  * 
- *  1. jjwt customized for aloe is called jjwt-aloe and is available at
+ *  1. jjwt customized for tapis is called jjwt-aloe and is available at
  *     https://github.com/richcar58/jjwt-aloe.
  *  2. The main changes are to pom.xml and SignatureAlgorithm.java.
  *  3. The built artifacts (jar files) are available from our local nexus server at
@@ -30,7 +30,7 @@ import io.jsonwebtoken.impl.crypto.RsaProvider;
  * This program runs two tests.  The first (useKeyGen) uses jjwt facilities to generate
  * a key pair that is then used to sign and verify a JWT.  The second (useKeystore)
  * uses keys that pre-exist in a local keystore to sign and verify a JWT.  This latter
- * test simulates how Aloe will verify JWTs in develop, staging and production environments.     
+ * test simulates how Tapis will verify JWTs in develop, staging and production environments.     
  * 
  * NOTE: The pre-existing keys should be generated using the KeyManagerTest program. 
  * 
@@ -45,8 +45,8 @@ public class JJWTTest
     private static final String KEY_ALIAS = "jwt";
     
     // Predefined keystore file names.
-    private static final String TEST_STORE_FILE_NAME  = ".AloeTestKeyStore.p12";
-    private static final String PROD_STORE_FILE_NAME  = ".AloeKeyStore.p12"; 
+    private static final String TEST_STORE_FILE_NAME  = ".TapisTestKeyStore.p12";
+    private static final String PROD_STORE_FILE_NAME  = ".TapisKeyStore.p12"; 
 
     /* **************************************************************************** */
     /*                                    Enum                                      */

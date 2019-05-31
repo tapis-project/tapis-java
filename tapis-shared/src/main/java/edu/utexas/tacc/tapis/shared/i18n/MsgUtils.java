@@ -13,7 +13,7 @@ public class MsgUtils
   /*                                   Constants                                  */
   /* **************************************************************************** */
   // The message file base name.
-  private static final String MESSAGE_BUNDLE_NAME = "edu.utexas.tacc.tapis.shared.i18n.AloeMessages";
+  private static final String MESSAGE_BUNDLE_NAME = "edu.utexas.tacc.tapis.shared.i18n.TapisMessages";
   
   // Local logger.
   private static final Logger _log = LoggerFactory.getLogger(MsgUtils.class);

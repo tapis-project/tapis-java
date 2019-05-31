@@ -5,15 +5,15 @@ import java.io.FileNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.exceptions.AloeJDBCException;
-import edu.utexas.tacc.tapis.shared.exceptions.AloeJSONException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.AloeDBConnectionException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.AloeRuntimeException;
-import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 @Test(groups={"unit"})
-public class AloeUtilsTest 
+public class TapisUtilsTest 
 {
     /* **************************************************************************** */
     /*                                    Tests                                     */
@@ -24,7 +24,7 @@ public class AloeUtilsTest
     @Test(enabled=true)
     public void getLocalHostnameTest()
     {
-        String hostname = AloeUtils.getLocalHostname();
+        String hostname = TapisUtils.getLocalHostname();
         System.out.println("hostname: " + hostname);
         Assert.assertNotNull(hostname, "Expected non-null hostname.");
         Assert.assertNotEquals(hostname, "", "Expected non-empty hostname.");
@@ -32,39 +32,39 @@ public class AloeUtilsTest
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* aloeifyTest:                                                                 */
+    /* tapisifyTest:                                                                */
     /* ---------------------------------------------------------------------------- */
     @Test(enabled=true)
-    public void aloeifyTest()
+    public void tapisifyTest()
     {
         // Wrapped exception.
-        AloeException wrappedException;
+        TapisException wrappedException;
         String originalMsg = "original msg";
         
         // ========= null new msg =========
         // The new message is contained in the returned exception.
         String newMsg = "new msg";
         
-        // ----- AloeException
-        AloeException e = new AloeException(originalMsg);
-        wrappedException = AloeUtils.aloeify(e, newMsg);
+        // ----- TapisException
+        TapisException e = new TapisException(originalMsg);
+        wrappedException = TapisUtils.tapisify(e, newMsg);
         Assert.assertEquals(wrappedException.getClass(), e.getClass(), 
                             "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), newMsg,
                             "Unexpected message returned.");
         
-        // ----- AloeJDBCException
-        e = new AloeJDBCException(originalMsg);
-        wrappedException = AloeUtils.aloeify(e, newMsg);
+        // ----- TapisJDBCException
+        e = new TapisJDBCException(originalMsg);
+        wrappedException = TapisUtils.tapisify(e, newMsg);
         Assert.assertEquals(wrappedException.getClass(), e.getClass(), 
                             "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), newMsg,
                             "Unexpected message returned.");
         
-        // ----- AloeRuntimeException
-        AloeRuntimeException erun = new AloeRuntimeException(originalMsg);
-        wrappedException = AloeUtils.aloeify(erun, newMsg);
-        Assert.assertEquals(wrappedException.getClass(), AloeException.class, 
+        // ----- TapisRuntimeException
+        TapisRuntimeException erun = new TapisRuntimeException(originalMsg);
+        wrappedException = TapisUtils.tapisify(erun, newMsg);
+        Assert.assertEquals(wrappedException.getClass(), TapisException.class, 
                            "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), newMsg,
                             "Unexpected message returned.");
@@ -73,64 +73,64 @@ public class AloeUtilsTest
         // The original message is preserved in the returned exception.
         newMsg = null;
         
-        // ----- AloeException
-        e = new AloeException(originalMsg);
-        wrappedException = AloeUtils.aloeify(e, newMsg);
+        // ----- TapisException
+        e = new TapisException(originalMsg);
+        wrappedException = TapisUtils.tapisify(e, newMsg);
         Assert.assertEquals(wrappedException.getClass(), e.getClass(), 
                             "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), originalMsg,
                             "Unexpected message returned.");
         
-        // ----- AloeJDBCException
-        e = new AloeJDBCException(originalMsg);
-        wrappedException = AloeUtils.aloeify(e, newMsg);
+        // ----- TapisJDBCException
+        e = new TapisJDBCException(originalMsg);
+        wrappedException = TapisUtils.tapisify(e, newMsg);
         Assert.assertEquals(wrappedException.getClass(), e.getClass(), 
                             "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), originalMsg,
                             "Unexpected message returned.");
         
-        // ----- AloeRuntimeException
-        erun = new AloeRuntimeException(originalMsg);
-        wrappedException = AloeUtils.aloeify(erun, newMsg);
-        Assert.assertEquals(wrappedException.getClass(), AloeException.class, 
+        // ----- TapisRuntimeException
+        erun = new TapisRuntimeException(originalMsg);
+        wrappedException = TapisUtils.tapisify(erun, newMsg);
+        Assert.assertEquals(wrappedException.getClass(), TapisException.class, 
                            "Unexpected exception type returned: " + wrappedException.getClass().getSimpleName());
         Assert.assertEquals(wrappedException.getMessage(), originalMsg,
                             "Unexpected message returned.");
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* aloeifyTest:                                                                 */
+    /* findInChainTest:                                                             */
     /* ---------------------------------------------------------------------------- */
     @Test(enabled=true)
     public void findInChainTest()
     {
         // Create an exception chain.
         IllegalArgumentException illegalArgumentException = new IllegalArgumentException("x");
-        AloeDBConnectionException aloeDBConnectionException = new AloeDBConnectionException("x", illegalArgumentException);
-        AloeException aloeException = new AloeException("x", aloeDBConnectionException);
+        TapisDBConnectionException tapisDBConnectionException = new TapisDBConnectionException("x", illegalArgumentException);
+        TapisException tapisException = new TapisException("x", tapisDBConnectionException);
         
         // Inspect the chain using declared types.
-        Exception e = AloeUtils.findInChain(aloeException, AloeDBConnectionException.class);
-        Assert.assertNotNull(e, "AloeDBConnectionException not found!");
-        e = AloeUtils.findInChain(aloeException, AloeException.class);
-        Assert.assertNotNull(e, "AloeException not found!");
-        e = AloeUtils.findInChain(aloeException, IllegalArgumentException.class);
+        Exception e = TapisUtils.findInChain(tapisException, TapisDBConnectionException.class);
+        Assert.assertNotNull(e, "TapisDBConnectionException not found!");
+        e = TapisUtils.findInChain(tapisException, TapisException.class);
+        Assert.assertNotNull(e, "TapisException not found!");
+        e = TapisUtils.findInChain(tapisException, IllegalArgumentException.class);
         Assert.assertNotNull(e, "IllegalArgumentException not found!");
         
         // More inspection.
-        e = AloeUtils.findInChain(aloeException, Exception.class);
+        e = TapisUtils.findInChain(tapisException, Exception.class);
         Assert.assertNotNull(e, "Exception not found!");
-        e = AloeUtils.findInChain(aloeException, FileNotFoundException.class);
+        e = TapisUtils.findInChain(tapisException, FileNotFoundException.class);
         Assert.assertNull(e, "FileNotFoundException should not be found!");
-        e = AloeUtils.findInChain(aloeException, FileNotFoundException.class, IllegalArgumentException.class);
+        e = TapisUtils.findInChain(tapisException, FileNotFoundException.class, IllegalArgumentException.class);
         Assert.assertNotNull(e, "IllegalArgumentException not found!");
-        e = AloeUtils.findInChain(aloeException, AloeJSONException.class);
-        Assert.assertNull(e, "AloeJSONException should not be found!");
+        e = TapisUtils.findInChain(tapisException, TapisJSONException.class);
+        Assert.assertNull(e, "TapisJSONException should not be found!");
         
         // Start in middle of chain.
-        e = AloeUtils.findInChain(aloeDBConnectionException, AloeException.class);
-        Assert.assertNotNull(e, "AloeException not found!");
-        e = AloeUtils.findInChain(aloeDBConnectionException, IllegalArgumentException.class);
+        e = TapisUtils.findInChain(tapisDBConnectionException, TapisException.class);
+        Assert.assertNotNull(e, "TapisException not found!");
+        e = TapisUtils.findInChain(tapisDBConnectionException, IllegalArgumentException.class);
         Assert.assertNotNull(e, "IllegalArgumentException not found!");
    }
 }

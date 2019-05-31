@@ -15,8 +15,8 @@ import org.testng.annotations.Test;
 
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv.EnvVar;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
 import edu.utexas.tacc.tapis.sharedapi.utils.CreateJWT;
 import edu.utexas.tacc.tapis.sharedapi.utils.CreateJWTParameters;
 import io.jsonwebtoken.impl.Base64UrlCodec;
@@ -39,9 +39,9 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 	/*                                   Constants                                  */
 	/* **************************************************************************** */
 
-	private static final String PATH_TO_JOB_FILE = "src/test/resources/helloworldjob-aloe.json";
+	private static final String PATH_TO_JOB_FILE = "src/test/resources/helloworldjob-tapis.json";
 
-	private static final String ALOE_HOST = "http://localhost:8080/jobs/v2?pretty=true";
+	private static final String TAPIS_HOST = "http://localhost:8080/jobs/v2?pretty=true";
 
 	private static final String CORRECT_CLAIM_INPUTFILE_NAME  =  "src/test/resources/testuser3Claims.json";
 
@@ -56,7 +56,7 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 	private String pathToJWTOutputFileWithCorrectClaim = "";
 
 	// Temporary directory path
-	private Path newAloeTempDir = null;
+	private Path newTapisTempDir = null;
 
 	// Temporary file paths
 
@@ -70,7 +70,7 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 	private String jwtWithCorrectClaim = "";
 
 
-	private String passwordProdKeyStore = AloeEnv.get(EnvVar.ALOE_ENVONLY_KEYSTORE_PASSWORD);
+	private String passwordProdKeyStore = TapisEnv.get(EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD);
 
 	/* ********************************************************************** */
 	/*                            Set Up                                      */
@@ -87,15 +87,15 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 		String tmpdir = System.getProperty("java.io.tmpdir");
 
 		// Create a temporary directory inside the default temporary directory
-		newAloeTempDir = Files.createTempDirectory(Paths.get(tmpdir), "aloe-jwt");
+		newTapisTempDir = Files.createTempDirectory(Paths.get(tmpdir), "tapis-jwt");
 
 		/* ************************************************************************ */
 		/* Temporary files for negative claim test                                  */
 		/* ************************************************************************ */
 
-		tmpErrorFileForIncorrectClaim = Files.createTempFile(newAloeTempDir, "errorInCorrectClaim", ".txt");
+		tmpErrorFileForIncorrectClaim = Files.createTempFile(newTapisTempDir, "errorInCorrectClaim", ".txt");
 
-		tmpFileWithCorrectClaim = Files.createTempFile(newAloeTempDir, "testuser3CorrectClaims", ".jwt");
+		tmpFileWithCorrectClaim = Files.createTempFile(newTapisTempDir, "testuser3CorrectClaims", ".jwt");
 
 		pathToJWTOutputFileWithCorrectClaim = tmpFileWithCorrectClaim.toAbsolutePath().toString();
 
@@ -163,7 +163,7 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 		cmdList.add("Content-Type: application/json");
 		cmdList.add("-H");
 		cmdList.add("x-jwt-assertion-iplantc-org:" + jwtWithIncorrectClaim);
-		cmdList.add(ALOE_HOST);
+		cmdList.add(TAPIS_HOST);
 
 		// Create the process builder.
 		ProcessBuilder pb = new ProcessBuilder(cmdList);
@@ -185,7 +185,7 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 			while ((line = outputFile.readLine()) != null) {
 				lines.add(line);
 			}
-			String errorMsg = "ALOE_SECURITY_JWT_PARSE_ERROR";
+			String errorMsg = "TAPIS_SECURITY_JWT_PARSE_ERROR";
 			Assert.assertTrue(lines.get(0).contains(errorMsg) && lines.get(2).equals("Code: 401"),
 					"Claim verification test failed");
 			outputFile.close();
@@ -201,6 +201,6 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 		Files.delete(tmpFileWithCorrectClaim.toAbsolutePath());
 		Files.delete(tmpErrorFileForIncorrectClaim.toAbsolutePath());
 
-		Files.delete(newAloeTempDir);
+		Files.delete(newTapisTempDir);
 	}
 }

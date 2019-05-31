@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.shared.exceptions;
 
 public class PermissionException 
- extends AloeException
+ extends TapisException
 {
     private static final long serialVersionUID = 4079086572081851519L;
     

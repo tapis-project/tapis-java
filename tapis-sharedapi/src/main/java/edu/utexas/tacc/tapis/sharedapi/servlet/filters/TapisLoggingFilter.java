@@ -27,11 +27,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import edu.utexas.tacc.tapis.shared.AloeConstants;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** This servlet logging filter is configured for use by individual projects by
  * subclassing this class or by using this class directly.  The first level of 
@@ -41,7 +41,7 @@ import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
  *  
  * A second level of filtering takes place using an environment variable that 
  * lists the uri prefixes that are configured for logging. For example, if the 
- * environment variable EnvVar.ALOE_REQUEST_LOGGING_FILTER_PREFIXES contains 
+ * environment variable EnvVar.TAPIS_REQUEST_LOGGING_FILTER_PREFIXES contains 
  * "/jobs/v2" as an entry, then all requests whose uris begin with that string will 
  * be logged by this class.  This second level filtering is provided to allow 
  * dynamic control of logging without restarting the servlet.   
@@ -53,21 +53,21 @@ import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
  * @author rcardone
  *
  */
-@WebFilter(filterName = "AloeLoggingFilter", urlPatterns = "*")
-public class AloeLoggingFilter
+@WebFilter(filterName = "TapisLoggingFilter", urlPatterns = "*")
+public class TapisLoggingFilter
  implements Filter
 {
 	/* **************************************************************************** */
 	/*                                   Constants                                  */
 	/* **************************************************************************** */
 	// Local logger.
-	private static final Logger _log = LoggerFactory.getLogger(AloeLoggingFilter.class);
+	private static final Logger _log = LoggerFactory.getLogger(TapisLoggingFilter.class);
 	
 	// Initial buffer capacity.
 	private static final int BUF_LEN = 1024;
 	
 	// The MDC key name.
-	private static final String MDC_ID_KEY = AloeConstants.MDC_ID_KEY; 
+	private static final String MDC_ID_KEY = TapisConstants.MDC_ID_KEY; 
 	
 	// Request/response correlation. At any given moment
 	// this value represents the number of requests filtered.
@@ -83,7 +83,7 @@ public class AloeLoggingFilter
 	public void init(FilterConfig filterConfig) throws ServletException 
 	{
 		if (_log.isDebugEnabled()) 
-			_log.debug(MsgUtils.getMsg("ALOE_INITIALIZING_SERVLET_FILTER", this.getClass().getName()));
+			_log.debug(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVLET_FILTER", this.getClass().getName()));
 	}
 
 	/* ---------------------------------------------------------------------------- */
@@ -111,7 +111,7 @@ public class AloeLoggingFilter
 	        filterPath = request.getServletContext().getContextPath();
 	        
 	        // Assign a random thread local id.
-	        MDC.put(MDC_ID_KEY, AloeUtils.getRandomString());
+	        MDC.put(MDC_ID_KEY, TapisUtils.getRandomString());
 	    }
 	    else {
 	        // Use the possibly longer path.
@@ -120,11 +120,11 @@ public class AloeLoggingFilter
 	        // See if the caller set the unique id. If not, use a random one.
 	        final String requestId = httpRequest.getHeader(MDC_ID_KEY);
             if (StringUtils.isNotEmpty(requestId)) MDC.put(MDC_ID_KEY, requestId);
-              else MDC.put(MDC_ID_KEY, AloeUtils.getRandomString());
+              else MDC.put(MDC_ID_KEY, TapisUtils.getRandomString());
 	    }
 	  
 	    // Determine if we are filtering.
-	    if (!AloeEnv.inEnvVarListPrefix(EnvVar.ALOE_REQUEST_LOGGING_FILTER_PREFIXES, filterPath))
+	    if (!TapisEnv.inEnvVarListPrefix(EnvVar.TAPIS_REQUEST_LOGGING_FILTER_PREFIXES, filterPath))
 	    {
 	        chain.doFilter(request, response);
 	        return;
@@ -416,7 +416,7 @@ public class AloeLoggingFilter
       for (String headerName : headerList) {
         // Avoid logging security information unless the 
         // controlling environment variable is set to true.
-        if (!AloeEnv.getBoolean(EnvVar.ALOE_ENVONLY_LOG_SECURITY_INFO))
+        if (!TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_LOG_SECURITY_INFO))
           if (headerName.toLowerCase().startsWith("x-jwt-assertion")) continue;
         
         // Allow this header key/value pair.

@@ -9,7 +9,7 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.shared.utils.gson.javatime.Converters;
 
-public class AloeGsonUtils 
+public class TapisGsonUtils 
 {
 	/* **************************************************************************** */
 	/*                                Public Methods                                */

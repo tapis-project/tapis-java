@@ -1,6 +1,6 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 
-<suite name="Aloe sharedapi" verbose="1" parallel="none">
+<suite name="Tapis sharedapi" verbose="1" parallel="none">
     <groups>
         <run>
             <exclude name="broken"/>

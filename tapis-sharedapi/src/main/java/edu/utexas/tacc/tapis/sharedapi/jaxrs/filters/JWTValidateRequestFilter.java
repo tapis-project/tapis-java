@@ -18,13 +18,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeSecurityException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisSecurityException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
@@ -58,9 +58,6 @@ public class JWTValidateRequestFilter
     // Header key prefix for jwts.
     private static final String JWT_PREFIX = "x-jwt-assertion-";
     
-    // Unique url substrings for authentication exempt requests.
-    private static final String NO_AUTH_TRIGGER_REQUEST = "trigger/job/";
-    
     // The JWT key alias.  This is the key pair used to sign JWTs
     // and verify them.
     public static final String DEFAULT_KEY_ALIAS = "wso2";
@@ -68,6 +65,9 @@ public class JWTValidateRequestFilter
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
+    // List all of url substrings that identify authentication exempt requests.
+    private static final String[] _noAuthRequests = {};
+    
     // The public key used to check the JWT signature.  This cached copy is
     // used by all instances of this class.
     private static PublicKey _jwtPublicKey;
@@ -101,7 +101,7 @@ public class JWTValidateRequestFilter
                 // Get the tenant information encoded in the key
                 // and transform it to match tenant naming conventions.
                 headerTenantId = key.substring(JWT_PREFIX.length());
-                headerTenantId = AloeUtils.transformRawTenantId(headerTenantId);
+                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
                 
                 // Get the encoded jwt.
                 List<String> values = entry.getValue();
@@ -117,11 +117,11 @@ public class JWTValidateRequestFilter
         if (StringUtils.isBlank(encodedJWT) || StringUtils.isBlank(headerTenantId)) {
             // This is an error in production, but allowed when running in test mode.
             // We let the endpoint verify that all needed parameters have been supplied.
-            boolean jwtOptional = AloeEnv.getBoolean(EnvVar.ALOE_ENVONLY_JWT_OPTIONAL);
+            boolean jwtOptional = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL);
             if (jwtOptional) return;
             
             // We abort the request because we're missing required security information.
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_MISSING_JWT_INFO", requestContext.getMethod());
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_MISSING_JWT_INFO", requestContext.getMethod());
             _log.error(msg);
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
             return;
@@ -129,13 +129,13 @@ public class JWTValidateRequestFilter
         
         // Decode the JWT and optionally validate the JWT signature.
         Jwt jwt = null;
-        boolean skipJWTVerify = AloeEnv.getBoolean(EnvVar.ALOE_ENVONLY_SKIP_JWT_VERIFY);
+        boolean skipJWTVerify = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY);
         try {
             if (skipJWTVerify) jwt = decodeJwt(encodedJWT);
               else jwt = decodeAndVerifyJwt(encodedJWT);
         } 
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_JWT_DECODE_ERROR", encodedJWT, e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_DECODE_ERROR", encodedJWT, e.getMessage());
             _log.error(msg, e);
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
             return;
@@ -143,7 +143,7 @@ public class JWTValidateRequestFilter
         
         // Make sure we got a JWT. This shouldn't happen, but in case it does...
         if (jwt == null) {
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_JWT_DECODE_ERROR", encodedJWT,
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_DECODE_ERROR", encodedJWT,
                                          "Null JWT encountered in " + getClass().getSimpleName() + ".");
             _log.error(msg);
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
@@ -160,7 +160,7 @@ public class JWTValidateRequestFilter
         }
         
         // Assign JWT information to thread-local variables.
-        AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
         if (!StringUtils.isBlank(headerTenantId)) threadContext.setTenantId(headerTenantId);
         if (!StringUtils.isBlank(user)) threadContext.setUser(user);
         if (!StringUtils.isBlank(roles)) threadContext.setRoles(roles);
@@ -178,7 +178,7 @@ public class JWTValidateRequestFilter
      * @return the decoded but not verified jwt
      */
     private Jwt decodeJwt(String encodedJWT)
-     throws AloeSecurityException
+     throws TapisSecurityException
     {
         // Some defensive programming.
         if (encodedJWT == null) return null;
@@ -198,9 +198,9 @@ public class JWTValidateRequestFilter
         Jwt jwt = null;
         try {jwt = Jwts.parser().parse(remnant);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_JWT_PARSE_ERROR", e.getMessage());
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_PARSE_ERROR", e.getMessage());
                 _log.error(msg, e);
-                throw new AloeSecurityException(msg, e);
+                throw new TapisSecurityException(msg, e);
             }
         return jwt;
     }
@@ -215,7 +215,7 @@ public class JWTValidateRequestFilter
      * @return the decoded and verified jwt
      */
     private Jwt decodeAndVerifyJwt(String encodedJWT)
-     throws AloeSecurityException
+     throws TapisSecurityException
     {
         // Some defensive programming.
         if (encodedJWT == null) return null;
@@ -227,9 +227,9 @@ public class JWTValidateRequestFilter
         Jwt jwt = null; 
         try {jwt = Jwts.parser().setSigningKey(publicKey).parse(encodedJWT);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_JWT_PARSE_ERROR", e.getMessage());
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_PARSE_ERROR", e.getMessage());
                 _log.error(msg, e);
-                throw new AloeSecurityException(msg, e);
+                throw new TapisSecurityException(msg, e);
             }
         
         // We have a validated jwt.
@@ -245,7 +245,7 @@ public class JWTValidateRequestFilter
      * @return 
      */
     private PublicKey getJwtPublicKey()
-     throws AloeSecurityException
+     throws TapisSecurityException
      {
         // Use the cached copy if it has already been loaded.
         if (_jwtPublicKey != null) return _jwtPublicKey;
@@ -262,53 +262,53 @@ public class JWTValidateRequestFilter
             KeyManager km;
             try {km = new KeyManager();}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("ALOE_SECURITY_NO_KEYSTORE", e.getMessage());
+                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_KEYSTORE", e.getMessage());
                     _log.error(msg, e);
-                    throw new AloeSecurityException(msg, e);
+                    throw new TapisSecurityException(msg, e);
                 }
         
             // Get the keystore's password.
-            String password = AloeEnv.get(EnvVar.ALOE_ENVONLY_KEYSTORE_PASSWORD);
+            String password = TapisEnv.get(EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD);
             if (StringUtils.isBlank(password)) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_NO_KEYSTORE_PASSWORD");
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_KEYSTORE_PASSWORD");
                 _log.error(msg);
-                throw new AloeSecurityException(msg);
+                throw new TapisSecurityException(msg);
             }
         
             // Load the complete store.
             try {km.load(password);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_KEYSTORE_LOAD_ERROR", e.getMessage());
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_KEYSTORE_LOAD_ERROR", e.getMessage());
                 _log.error(msg, e);
-                throw new AloeSecurityException(msg, e);
+                throw new TapisSecurityException(msg, e);
             }
             
             // Get the certificate containing the public key.
             Certificate cert = null;
             try {cert = km.getCertificate(DEFAULT_KEY_ALIAS);}
               catch (KeyStoreException e) {
-                  String msg = MsgUtils.getMsg("ALOE_SECURITY_GET_CERTIFICATE", 
+                  String msg = MsgUtils.getMsg("TAPIS_SECURITY_GET_CERTIFICATE", 
                                                DEFAULT_KEY_ALIAS, e.getMessage());
                   _log.error(msg, e);
-                  throw new AloeSecurityException(msg, e);
+                  throw new TapisSecurityException(msg, e);
             }
             
             // Make sure we got a certificate.
             if (cert == null) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_CERTIFICATE_NOT_FOUND", 
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_CERTIFICATE_NOT_FOUND", 
                                              DEFAULT_KEY_ALIAS, km.getStorePath());
                 _log.error(msg);
-                throw new AloeSecurityException(msg);
+                throw new TapisSecurityException(msg);
             }
             
             // Get the public key from the certificate and verify the certificate.
             PublicKey publicKey = cert.getPublicKey();
             try {cert.verify(publicKey);} 
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("ALOE_SECURITY_CERTIFICATE_VERIFY", 
+                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_CERTIFICATE_VERIFY", 
                                                  DEFAULT_KEY_ALIAS, e.getMessage());
                     _log.error(msg, e);
-                    throw new AloeSecurityException(msg, e);
+                    throw new TapisSecurityException(msg, e);
                 } 
             
             // Success!
@@ -362,21 +362,25 @@ public class JWTValidateRequestFilter
      */
     private boolean isNoAuthRequest(ContainerRequestContext requestContext)
     {
-        // Skip JWT processing for non-authenticated requests. Requests that 
-        // don't require an authentication token don't have a JWT header and 
-        // should not rely on threadlocal values that originate from JWT 
-        // information.  We can tell from the url relative path whether this
-        // request is exempt from authentication.
-        String relativePath = requestContext.getUriInfo().getPath();
-        if (relativePath != null && relativePath.startsWith(NO_AUTH_TRIGGER_REQUEST)) {
-            if (_log.isInfoEnabled()) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_NO_AUTH_REQUEST", 
-                                             requestContext.getUriInfo().getAbsolutePath());
-                _log.info(msg);
-            }
+        // See if the request's relative path begins with a no-auth prefix.
+        for (String noAuthRequest : _noAuthRequests)
+        {
+            // Skip JWT processing for non-authenticated requests. Requests that 
+            // don't require an authentication token don't have a JWT header and 
+            // should not rely on threadlocal values that originate from JWT 
+            // information.  We can tell from the url relative path whether this
+            // request is exempt from authentication.
+            String relativePath = requestContext.getUriInfo().getPath();
+            if (relativePath != null && relativePath.startsWith(noAuthRequest)) {
+                if (_log.isInfoEnabled()) {
+                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_AUTH_REQUEST", 
+                                                 requestContext.getUriInfo().getAbsolutePath());
+                    _log.info(msg);
+                }
             
-            // No authication.
-            return true;
+                // No authication.
+                return true;
+            }
         }
         
         // Authentication required.

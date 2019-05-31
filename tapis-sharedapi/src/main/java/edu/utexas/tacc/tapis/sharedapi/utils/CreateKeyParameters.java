@@ -127,7 +127,7 @@ public final class CreateKeyParameters
   {
       // Minimal password testing.
       if ((password.length() < MIN_PASSWORD_LEN) || (password.length() > MAX_PASSWORD_LEN)) {
-          String msg = MsgUtils.getMsg("ALOE_INVALID_PARAMETER_LEN", "CreateKey", "password", 
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER_LEN", "CreateKey", "password", 
                                        MIN_PASSWORD_LEN, MAX_PASSWORD_LEN);
           _log.error(msg);
           throw new IllegalArgumentException(msg);

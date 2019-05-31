@@ -8,16 +8,16 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.AloeConstants;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadLocal;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 
-/** This jax-rs filter clears any aloe thread local remnant that may be 
+/** This jax-rs filter clears any tapis thread local remnant that may be 
  * hanging around from a previous request.
  * 
  * @author rcardone
  */
 @Provider
-@Priority(AloeConstants.JAXRS_FILTER_PRIORITY_BEFORE_AUTHENTICATION)
+@Priority(TapisConstants.JAXRS_FILTER_PRIORITY_BEFORE_AUTHENTICATION)
 public class ClearThreadLocalRequestFilter 
  implements ContainerRequestFilter
 {
@@ -40,7 +40,7 @@ public class ClearThreadLocalRequestFilter
         if (_log.isTraceEnabled())
             _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
         
-        // Remove any existing aloe threadlocal information.
-        AloeThreadLocal.aloeThreadContext.remove();
+        // Remove any existing tapis threadlocal information.
+        TapisThreadLocal.tapisThreadContext.remove();
     }
 }

@@ -1,5 +1,5 @@
 {
-    "$id": "http://aloe.tacc.utexas.edu/simple",
+    "$id": "http://tapis.tacc.utexas.edu/simple",
     "$schema": "http://json-schema.org/draft-06/schema#",
     "description": "schema for testing simple schemas",
     "type": "object",

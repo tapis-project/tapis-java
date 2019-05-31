@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientParameters;
-import edu.utexas.tacc.tapis.shared.utils.AloeGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 /**
  * Email client used for testing to write emails to log output rather than
@@ -31,7 +31,7 @@ public final class LoggingEmailClient
     
     @Override
     public void send(String recipientName, String recipientAddress, String subject, String body, String htmlBody)
-     throws AloeException 
+     throws TapisException 
     {   
         // Validate input.
         validateSendParms(recipientName, recipientAddress, subject, body, htmlBody);
@@ -41,30 +41,30 @@ public final class LoggingEmailClient
         
         // Create TO information.
         JsonObject to = new JsonObject();
-        AloeGsonUtils.addTo(to, "name", recipientName);
-        AloeGsonUtils.addTo(to, "address", recipientAddress);
+        TapisGsonUtils.addTo(to, "name", recipientName);
+        TapisGsonUtils.addTo(to, "address", recipientAddress);
         
         // Create FROM information.
         JsonObject from = new JsonObject();
-        AloeGsonUtils.addTo(from, "name", _parms.getEmailFromName());
-        AloeGsonUtils.addTo(from, "address", _parms.getEmailFromAddress());
+        TapisGsonUtils.addTo(from, "name", _parms.getEmailFromName());
+        TapisGsonUtils.addTo(from, "address", _parms.getEmailFromAddress());
         
         // Assemble the headers.
         JsonObject headers = new JsonObject();
         for (Entry<String,String> entry: getCustomHeaders().entrySet()) {
-            AloeGsonUtils.addTo(headers, entry.getKey(), entry.getValue());
+            TapisGsonUtils.addTo(headers, entry.getKey(), entry.getValue());
         }
         
         // Assemble the full message.
         message.add("headers", headers);
         message.add("to", to);
         message.add("from", from);
-        AloeGsonUtils.addTo(message, "subject", subject);
-        AloeGsonUtils.addTo(message, "body", body);
-        AloeGsonUtils.addTo(message, "htmlBody", htmlBody);
+        TapisGsonUtils.addTo(message, "subject", subject);
+        TapisGsonUtils.addTo(message, "body", body);
+        TapisGsonUtils.addTo(message, "htmlBody", htmlBody);
         
         // Pretty print the information.
-        Gson gson = AloeGsonUtils.getGson(true);
+        Gson gson = TapisGsonUtils.getGson(true);
         _log.info("\n" + gson.toJson(message));
     }
 }

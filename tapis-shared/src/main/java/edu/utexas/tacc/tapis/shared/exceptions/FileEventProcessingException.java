@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.shared.exceptions;
 
 public class FileEventProcessingException 
- extends AloeException
+ extends TapisException
 {
     private static final long serialVersionUID = -7467352287530703138L;
     

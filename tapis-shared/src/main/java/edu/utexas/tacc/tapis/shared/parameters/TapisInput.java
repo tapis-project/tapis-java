@@ -12,11 +12,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.AloeRuntimeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-/** This class collects input parameters for Aloe services at runtime.  Parameters
+/** This class collects input parameters for Tapis services at runtime.  Parameters
  * can be passed in using various, hierarchically-organized mechanisms.  The 
  * mechanisms listed here are arranged in increasing priority order so that a 
  * parameter value assigned by a later mechanism overrides any previous assignment
@@ -26,20 +26,20 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  *    2. OS environment variables
  *    3. JVM system properties
  * 
- * The AloeEnv.EnvVar enumeration defines all possible parameters that can be 
+ * The TapisEnv.EnvVar enumeration defines all possible parameters that can be 
  * passed to a service via environment variable or system property.  If this
  * approach becomes unwieldy we can change it, but for now it documents in one
  * place all parameters passed in contextually for all services. 
  * 
  * @author rcardone
  */
-public final class AloeInput 
+public final class TapisInput 
 {
   /* **************************************************************************** */
   /*                                  Constants                                   */
   /* **************************************************************************** */
   // Local logger.
-  private static final Logger _log = LoggerFactory.getLogger(AloeInput.class);
+  private static final Logger _log = LoggerFactory.getLogger(TapisInput.class);
   
   // Properties file name used by all services.
   public static final String SERVICE_PROPERTY_PREFIX = "edu/utexas/tacc/tapis/";
@@ -62,13 +62,13 @@ public final class AloeInput
   /* ---------------------------------------------------------------------------- */
   /* constructor:                                                                 */
   /* ---------------------------------------------------------------------------- */
-  public AloeInput(String serviceName)
+  public TapisInput(String serviceName)
   {
     // Validate input.
     if (StringUtils.isBlank(serviceName)) {
-      String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "AloeInput", "serviceName");
+      String msg = MsgUtils.getMsg("TAPIS__NULL_PARAMETER", "TapisInput", "serviceName");
       _log.error(msg);
-      throw new AloeRuntimeException(msg);
+      throw new TapisRuntimeException(msg);
     }
     
     // Use this value when searching for the service's default resource file.
@@ -81,7 +81,7 @@ public final class AloeInput
   /* ---------------------------------------------------------------------------- */
   /* getInputParameters:                                                          */
   /* ---------------------------------------------------------------------------- */
-  /** Assign Aloe input parameters from all sources.  The parameter sources from
+  /** Assign Tapis input parameters from all sources.  The parameter sources from
    * lowest to highest precedence are:
    * 
    *    1. Property file
@@ -89,12 +89,12 @@ public final class AloeInput
    *    2. JVM system properties
    *    3. Environment variables
    *    
-   * The universe of possible parameters are defined in the AloeEnv.EnvVar enum.
+   * The universe of possible parameters are defined in the TapisEnv.EnvVar enum.
    * 
    * @return a properties object with the effective parameter values
-   * @throws AloeException on I/O error
+   * @throws TapisException on I/O error
    */
-  public Properties getInputParameters() throws AloeException
+  public Properties getInputParameters() throws TapisException
   {
     // Find the service property file.
     File file = findServicePropertiesFile();
@@ -125,14 +125,14 @@ public final class AloeInput
   private File findServicePropertiesFile()
   {
     // Check the environment.
-    String filename = AloeEnv.get(AloeEnv.EnvVar.ALOE_SERVICE_PROPERTIES_PATHNAME);
+    String filename = TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PROPERTIES_PATHNAME);
     if (!StringUtils.isBlank(filename)) {
       return new File(filename);
     }
     
     // Check for a system parameter.
     filename = System.getProperty(
-                        AloeEnv.EnvVar.ALOE_SERVICE_PROPERTIES_PATHNAME.getEnvName());
+                        TapisEnv.EnvVar.TAPIS_SERVICE_PROPERTIES_PATHNAME.getEnvName());
     if (!StringUtils.isBlank(filename)) {
       return new File(filename);
     }
@@ -144,7 +144,7 @@ public final class AloeInput
   /* ---------------------------------------------------------------------------- */
   /* readServicePropertiesFile:                                                   */
   /* ---------------------------------------------------------------------------- */
-  private void readServicePropertiesFile(File file) throws AloeException
+  private void readServicePropertiesFile(File file) throws TapisException
   {
     // ---------------- Load Resource File
     // Null file indicates that the service's built-in properties file should be used.
@@ -156,13 +156,13 @@ public final class AloeInput
       // This class is loaded by the same classloader as the calling service and it
       // should be able to find the service.properties resource file defined for the
       // service.  To make sure 
-      InputStream ins = AloeInput.class.getClassLoader().getResourceAsStream(resourcePath);
+      InputStream ins = TapisInput.class.getClassLoader().getResourceAsStream(resourcePath);
       
       // Did we find our resource file?
       if (ins == null) {
-        String msg = MsgUtils.getMsg("ALOE_SERVICE_PROPERTIES_FILE_NOT_FOUND", resourcePath);
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PROPERTIES_FILE_NOT_FOUND", resourcePath);
         _log.error(msg);
-        throw new AloeException(msg);
+        throw new TapisException(msg);
       }
       
       // Read the property file and make sure it always gets closed.
@@ -170,9 +170,9 @@ public final class AloeInput
         _properties.load(ins2);
       }
       catch (Exception e) {
-        String msg = MsgUtils.getMsg("ALOE_SERVICE_PROPERTIES_FILE_LOAD_ERROR", resourcePath);
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PROPERTIES_FILE_LOAD_ERROR", resourcePath);
         _log.error(msg, e);
-        throw new AloeException(msg, e);
+        throw new TapisException(msg, e);
       }
     }
     // ---------------- Load User-Specified File
@@ -182,9 +182,9 @@ public final class AloeInput
           _properties.load(rdr);
       }
       catch (Exception e) {
-        String msg = MsgUtils.getMsg("ALOE_SERVICE_PROPERTIES_FILE_LOAD_ERROR", file.getAbsolutePath());
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PROPERTIES_FILE_LOAD_ERROR", file.getAbsolutePath());
         _log.error(msg, e);
-        throw new AloeException(msg, e);
+        throw new TapisException(msg, e);
       }
     }
     
@@ -195,8 +195,8 @@ public final class AloeInput
     Iterator<Object> it = _properties.keySet().iterator();
     while (it.hasNext()) {
       String key = (String) it.next();
-      if (key.startsWith(AloeEnv.ENVONLY_KEY_PREFIX)) {
-        String msg = MsgUtils.getMsg("ALOE_ENVONLY_INVALID_SOURCE", key, "property file");
+      if (key.startsWith(TapisEnv.ENVONLY_KEY_PREFIX)) {
+        String msg = MsgUtils.getMsg("TAPIS_ENVONLY_INVALID_SOURCE", key, "property file");
         _log.warn(msg);
         it.remove();
       }
@@ -212,9 +212,9 @@ public final class AloeInput
     Properties sysProps = System.getProperties();
     
     // Check for values for each possible variable that is not an environment-only variable.
-    for (AloeEnv.EnvVar envVar : AloeEnv.EnvVar.values()) {
+    for (TapisEnv.EnvVar envVar : TapisEnv.EnvVar.values()) {
       if (sysProps.containsKey(envVar.getEnvName()) &&
-          !envVar.getEnvName().startsWith(AloeEnv.ENVONLY_KEY_PREFIX))
+          !envVar.getEnvName().startsWith(TapisEnv.ENVONLY_KEY_PREFIX))
         _properties.setProperty(envVar.getEnvName(), sysProps.getProperty(envVar.getEnvName()));
     }
   }
@@ -225,7 +225,7 @@ public final class AloeInput
   /* OS env variables may be set to match EnvVar.getEnvName() or envVar.name()
    * Precedence is:
    *     EnvVar.getEnvName() - e.g. tapis.envonly.allow.test.query.parms
-   *     EnvVar.name()       - e.g. ALOE_ENVONLY_ALLOW_TEST_QUERY_PARMS
+   *     EnvVar.name()       - e.g. TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS
    */
   private void readEnv()
   {
@@ -233,7 +233,7 @@ public final class AloeInput
     Map<String,String> envMap = System.getenv();
     
     // Check for values for each possible environment variable.
-    for (AloeEnv.EnvVar envVar : AloeEnv.EnvVar.values()) {
+    for (TapisEnv.EnvVar envVar : TapisEnv.EnvVar.values()) {
       String propertyName = envVar.getEnvName();
       if (envMap.containsKey(propertyName))
         _properties.setProperty(propertyName, envMap.get(envVar.getEnvName()));

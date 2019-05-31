@@ -2,25 +2,25 @@ package edu.utexas.tacc.tapis.shared.threadlocal;
 
 import javax.sql.DataSource;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
-public interface AloeExecutionContext 
+public interface TapisExecutionContext 
 {
     /** Retrieve the tenant corresponding to the current tenant id.
-     * @return a edu.utexas.tacc.aloe.tenants.model.Tenant object
+     * @return a edu.utexas.tacc.tapis.tenants.model.Tenant object
      */
-    Object getTenant() throws AloeException;
+    Object getTenant() throws TapisException;
     
     /** Retrieve the tenant's base url without requiring the caller
      * to have access to the Tenant class.
      * @return the current tenant's base url as a string
      */
-    String getTenantBaseUrl() throws AloeException;
+    String getTenantBaseUrl() throws TapisException;
     
     /** Get the source for connections to our database.
      * @return the database connection source
      */
-    DataSource getDataSource() throws AloeException;
+    DataSource getDataSource() throws TapisException;
     
     // ------------------- Notifications -------------------
     /** Get the notifications queue type. */

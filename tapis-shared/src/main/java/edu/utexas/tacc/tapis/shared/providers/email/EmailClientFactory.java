@@ -3,8 +3,8 @@ package edu.utexas.tacc.tapis.shared.providers.email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.AloeRuntimeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.clients.LoggingEmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.clients.NoneEmailClient;
@@ -20,10 +20,10 @@ public class EmailClientFactory
      * 
      * @param parms parameters needed to instantiate any email client object
      * @return an EmailClient of the specified type
-     * @throws AloeRuntimeException if no client can be found.
+     * @throws TapisRuntimeException if no client can be found.
      */
     public static EmailClient getClient(EmailClientParameters parms)
-     throws AloeException
+     throws TapisException
     {
         EmailProviderType provider = parms.getEmailProviderType();
         switch (provider)
@@ -33,9 +33,9 @@ public class EmailClientFactory
             case NONE: return new NoneEmailClient(parms);
             
             default:
-                String msg = MsgUtils.getMsg("ALOE_MAIL_UNKNOWN_CLIENT", provider);
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_UNKNOWN_CLIENT", provider);
                 _log.error(msg);
-                throw new AloeRuntimeException(msg);
+                throw new TapisRuntimeException(msg);
         }
     }
 }

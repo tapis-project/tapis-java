@@ -34,7 +34,7 @@ public class KeyManager
     private static final Logger _log = LoggerFactory.getLogger(KeyManager.class);
     
     // Default store location.
-    public static final String STORE_FILE_NAME  = ".AloeKeyStore.p12";
+    public static final String STORE_FILE_NAME  = ".TapisKeyStore.p12";
     
     // Type of keystore used by this manager.
     private static final String STORE_TYPE = "PKCS12";
@@ -87,7 +87,7 @@ public class KeyManager
         // Get the key store instance.
         try {_keyStore = KeyStore.getInstance(STORE_TYPE);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_SECURITY_INSTANCE_FAILURE", STORE_TYPE);
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_INSTANCE_FAILURE", STORE_TYPE);
                 _log.error(msg, e);
                 throw e;
             }

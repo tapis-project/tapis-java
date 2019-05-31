@@ -7,7 +7,7 @@ import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.utils.AloeGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper.RESPONSE_STATUS;
 
@@ -60,7 +60,7 @@ public class RestUtils
   public static String createSuccessResponse(String message, boolean prettyPrint)
   {
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.success, message);
-    return AloeGsonUtils.getGson(prettyPrint).toJson(wrapper);
+    return TapisGsonUtils.getGson(prettyPrint).toJson(wrapper);
   }
   
   /* ---------------------------------------------------------------------------- */
@@ -93,7 +93,7 @@ public class RestUtils
   public static String createErrorResponse(String message, boolean prettyPrint)
   {
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.error, message);
-    return AloeGsonUtils.getGson(prettyPrint).toJson(wrapper);
+    return TapisGsonUtils.getGson(prettyPrint).toJson(wrapper);
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -157,9 +157,9 @@ public class RestUtils
    *  
    *  A) Carry the HTTP code in the exception.
    *      - Requires mix HTTP/REST notions in library code that is otherwise request
-   *        oblivious.  Doesn't handle non-Aloe exception well.
+   *        oblivious.  Doesn't handle non-Tapis exception well.
    *  B) Use exception type as map key.
-   *      - Requires putting all Aloe exceptions in the shared library.
+   *      - Requires putting all Tapis exceptions in the shared library.
    *  C) Compare strings using an IF or SWITCH statement in getStatus() rather than a map.
    *      - Same maintenance issue as current map approach except slower.
    *  D) Compare class objects (i.e., addresses) using IF or SWITCH in getStatus().
@@ -171,18 +171,18 @@ public class RestUtils
   {
     // Set the capacity to be about twice the number of entries to avoid rehashing.
     HashMap<String,Status> map = new HashMap<>(23);
-    map.put("edu.utexas.tacc.aloe.shared.exceptions.AloeException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.aloe.shared.exceptions.AloeRuntimeException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisRuntimeException", Status.INTERNAL_SERVER_ERROR);
     
-    map.put("edu.utexas.tacc.aloe.shared.exceptions.AloeJDBCException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.aloe.shared.exceptions.AloeJSONException", Status.BAD_REQUEST);
-    map.put("edu.utexas.tacc.aloe.shared.exceptions.AloeUUIDException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisUUIDException", Status.INTERNAL_SERVER_ERROR);
 
-    map.put("edu.utexas.tacc.aloe.jobs.exceptions.JobException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.aloe.jobs.exceptions.JobQueueException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.aloe.jobs.exceptions.JobQueueFilterException", Status.BAD_REQUEST);
-    map.put("edu.utexas.tacc.aloe.jobs.exceptions.JobQueuePriorityException", Status.BAD_REQUEST);
-    map.put("edu.utexas.tacc.aloe.jobs.exceptions.JobInputException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueueFilterException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueuePriorityException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobInputException", Status.BAD_REQUEST);
     
     return map;
   }

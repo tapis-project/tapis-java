@@ -1,11 +1,11 @@
 package edu.utexas.tacc.tapis.shared;
 
-/** This class is a repository for constants used throughout Aloe.
+/** This class is a repository for constants used throughout Tapis.
  * 
  * @author rcardone
  *
  */
-public class AloeConstants 
+public class TapisConstants 
 {
 	// Service names used to identify service code externally.
 	public static final String SERVICE_NAME_JOBS = "jobs";
@@ -38,15 +38,13 @@ public class AloeConstants
 	public static final String WORLD_USER_USERNAME  = "world";
 	
 	// ----------- URL Components -----------
-	public static final String API_VERSION = "v2";
-	public static final String APPS_SERVICE     = "apps/" + API_VERSION + "/";
-	public static final String JOBS_SERVICE     = "jobs/" + API_VERSION + "/";
-	public static final String FILES_SERVICE    = "files/" + API_VERSION + "/";
-	public static final String PROFILES_SERVICE = "profiles/" + API_VERSION + "/";
-    public static final String POSTIT_SERVICE  = "postits/" + API_VERSION + "/";
-	public static final String META_SERVICE     = "meta/" + API_VERSION + "/";
-    public static final String MONITORS_SERVICE = "monitors/" + API_VERSION + "/";
-	public static final String NOTIFICATIONS_SERVICE     = "notifications/" + API_VERSION + "/";
+	public static final String API_VERSION = "v3";
+	public static final String APPS_SERVICE          = "apps/" + API_VERSION + "/";
+	public static final String JOBS_SERVICE          = "jobs/" + API_VERSION + "/";
+	public static final String FILES_SERVICE         = "files/" + API_VERSION + "/";
+    public static final String POSTIT_SERVICE        = "postits/" + API_VERSION + "/";
+	public static final String META_SERVICE          = "meta/" + API_VERSION + "/";
+	public static final String NOTIFICATIONS_SERVICE = "notifications/" + API_VERSION + "/";
 
 	public static final String META_SCHEMA_SERVICE  = "schemas/";
 	public static final String SYSTEMS_SERVICE  = "systems/" + API_VERSION + "/";
@@ -57,16 +55,6 @@ public class AloeConstants
 	public static final String DUMMY_URL_PREFIX   = "none://dummy.nowhere/";
 	public static final String DUMMY_URL_JOBS     = DUMMY_URL_PREFIX + JOBS_SERVICE;
 	public static final String DUMMY_URL_FILES    = DUMMY_URL_PREFIX + FILES_SERVICE;
-	public static final String DUMMY_URL_PROFILES = DUMMY_URL_PREFIX + PROFILES_SERVICE;
 	public static final String DUMMY_URL_META     = DUMMY_URL_PREFIX + META_SERVICE;
 	public static final String DUMMY_URL_SYSTEMS  = DUMMY_URL_PREFIX + SYSTEMS_SERVICE;
-	
-	// ----------- Notifications ---------- 
-	public static final String DEFAULT_QUEUE_TYPE = "BEANSTALK";
-	public static final int    DEFAULT_QUEUE_PORT = 11300;
-	public static final String DEFAULT_QUEUE = "notifications.queue";
-	public static final String DEFAULT_RETRY_QUEUE = "retry.notifications.queue";
-	public static final String DEFAULT_TOPIC = "notifications.topic";
-
-
 }

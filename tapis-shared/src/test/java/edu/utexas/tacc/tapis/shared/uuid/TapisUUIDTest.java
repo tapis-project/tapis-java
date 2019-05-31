@@ -7,12 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import edu.utexas.tacc.tapis.shared.uuid.AloeUUID;
+import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 
 @Test(groups={"unit"})
-public class AgaveUUIDTest {
-	private static final Logger _log = LoggerFactory.getLogger(AgaveUUIDTest.class);
+public class TapisUUIDTest {
+	private static final Logger _log = LoggerFactory.getLogger(TapisUUIDTest.class);
     
     @Test
     public void getUniqueId() throws InterruptedException 
@@ -20,7 +20,7 @@ public class AgaveUUIDTest {
         int count = 200000;
         HashSet<String> uuids = new HashSet<String>();
         for (int i = 0; i < count; i++) {
-        	AloeUUID uuid = new AloeUUID(UUIDType.FILE);
+        	TapisUUID uuid = new TapisUUID(UUIDType.FILE);
             String suuid = uuid.toString();
             Assert.assertTrue(uuids.add(suuid), "Duplicate UUID " + suuid
                     + " was created.");

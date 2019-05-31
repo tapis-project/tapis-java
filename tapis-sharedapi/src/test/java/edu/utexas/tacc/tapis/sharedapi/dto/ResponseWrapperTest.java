@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.shared.utils.AloeGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper.RESPONSE_STATUS;
 
@@ -25,17 +25,17 @@ public class ResponseWrapperTest
   {
     // Get the wrapper tree.
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.success, "hi, this is a message");
-    JsonObject obj = (JsonObject) AloeGsonUtils.getGson().toJsonTree(wrapper);
+    JsonObject obj = (JsonObject) TapisGsonUtils.getGson().toJsonTree(wrapper);
     
     // Get the test dto tree.
     TestDTO dto = new TestDTO();
-    JsonObject dtoObj = (JsonObject) AloeGsonUtils.getGson().toJsonTree(dto);
+    JsonObject dtoObj = (JsonObject) TapisGsonUtils.getGson().toJsonTree(dto);
     
     // Add the dto to the wrapper as we would in a REST response.
     obj.add("result", dtoObj);
     System.out.println(obj.toString());
     
-    // Check for expected json string ignoring the aloe version number.
+    // Check for expected json string ignoring the tapis version number.
     Assert.assertTrue(obj.toString().startsWith("{\"status\":\"success\",\"message\":\"hi, this is a message\",\"version\":"), "Unexpected wrapped DTO start");
     Assert.assertTrue(obj.toString().endsWith(",\"result\":{\"string1\":\"xxx\",\"int1\":88,\"bool1\":true,\"map1\":{\"Four\":4,\"Two\":2},\"instanceArray\":[\"1970-01-01T00:00:00Z\",\"+1000000000-12-31T23:59:59.999999999Z\"]}}"), 
                       "Unexpected wrapped DTO end");
@@ -49,7 +49,7 @@ public class ResponseWrapperTest
   public void ResponseWrapperTest2()
   {
     // Create a single generator.
-    Gson gson = AloeGsonUtils.getGson();
+    Gson gson = TapisGsonUtils.getGson();
     
     // Get the wrapper tree.
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.success, "hi, this is a message");
@@ -63,7 +63,7 @@ public class ResponseWrapperTest
     obj.add("result", dtoObj);
     System.out.println(obj.toString());
     
-    // Check for expected json string ignoring the aloe version number.
+    // Check for expected json string ignoring the tapis version number.
     Assert.assertTrue(obj.toString().startsWith("{\"status\":\"success\",\"message\":\"hi, this is a message\",\"version\":"), "Unexpected wrapped DTO start");
     Assert.assertTrue(obj.toString().endsWith(",\"result\":{\"string1\":\"xxx\",\"int1\":88,\"bool1\":true,\"map1\":{\"Four\":4,\"Two\":2},\"instanceArray\":[\"1970-01-01T00:00:00Z\",\"+1000000000-12-31T23:59:59.999999999Z\"]}}"), 
                       "Unexpected wrapped DTO end");
@@ -82,7 +82,7 @@ public class ResponseWrapperTest
     String json = wrapper.addResult(new TestDTO(), false);
     System.out.println(json);
     
-    // Check for expected json string ignoring the aloe version number.
+    // Check for expected json string ignoring the tapis version number.
     Assert.assertTrue(json.startsWith("{\"status\":\"success\",\"message\":null,\"version\":"), "Unexpected wrapped DTO start");
     Assert.assertTrue(json.endsWith(",\"result\":{\"string1\":\"xxx\",\"int1\":88,\"bool1\":true,\"map1\":{\"Four\":4,\"Two\":2},\"instanceArray\":[\"1970-01-01T00:00:00Z\",\"+1000000000-12-31T23:59:59.999999999Z\"]}}"), 
                       "Unexpected wrapped DTO end");
@@ -120,7 +120,7 @@ public class ResponseWrapperTest
     String json = wrapper.addResult(new TestDTO(), true);
     System.out.println(json);
     
-    // Construct formatted result without aloe version.
+    // Construct formatted result without tapis version.
     String expectedStart = "{\n" + 
         "  \"status\": \"success\",\n" + 
         "  \"message\": \"hi, this is a message\",\n" + 
@@ -141,7 +141,7 @@ public class ResponseWrapperTest
             "  }\n" + 
             "}";
     
-    // Check for expected json string ignoring the aloe version number.
+    // Check for expected json string ignoring the tapis version number.
     Assert.assertTrue(json.startsWith(expectedStart), "Unexpected wrapped DTO start");
     Assert.assertTrue(json.endsWith(expectedEnd), "Unexpected wrapped DTO end");
   }

@@ -3,11 +3,11 @@ package edu.utexas.tacc.tapis.shared.threadlocal;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadLocal;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 
 @Test(groups={"unit"})
-public class AloeThreadLocalTest 
+public class TapisThreadLocalTest 
 {
 	/* **************************************************************************** */
 	/*                                    Tests                                     */
@@ -64,45 +64,45 @@ public class AloeThreadLocalTest
   public void test3() throws CloneNotSupportedException
   {
     // Get the original context.
-    AloeThreadContext context1 = AloeThreadLocal.aloeThreadContext.get();
+    TapisThreadContext context1 = TapisThreadLocal.tapisThreadContext.get();
     context1.setTenantId("tenant1");
-    AloeThreadContext context2 = AloeThreadLocal.push();
-    Assert.assertTrue(context2 == AloeThreadLocal.aloeThreadContext.get(),
+    TapisThreadContext context2 = TapisThreadLocal.push();
+    Assert.assertTrue(context2 == TapisThreadLocal.tapisThreadContext.get(),
                         "Expected current context to be the same object returned from push().");
     Assert.assertEquals(context2.getTenantId(), context1.getTenantId(), 
                         "Expected cloned context tenantId to match original.");
     
     // Change the current tenantId.
     context2.setTenantId("tenant2");
-    Assert.assertEquals(AloeThreadLocal.aloeThreadContext.get().getTenantId(), "tenant2", 
+    Assert.assertEquals(TapisThreadLocal.tapisThreadContext.get().getTenantId(), "tenant2", 
                         "Expected current context tenantId to have changed.");
     
     // Push the current context.
-    AloeThreadContext context3 = AloeThreadLocal.push();
-    Assert.assertTrue(context3 == AloeThreadLocal.aloeThreadContext.get(),
+    TapisThreadContext context3 = TapisThreadLocal.push();
+    Assert.assertTrue(context3 == TapisThreadLocal.tapisThreadContext.get(),
         "Expected current context to be the same object returned from push().");
     Assert.assertEquals(context3.getTenantId(), context2.getTenantId(), 
         "Expected cloned context tenantId to match second context.");
     
     // Change the current tenantId.
     context3.setTenantId("tenant3");
-    Assert.assertEquals(AloeThreadLocal.aloeThreadContext.get().getTenantId(), "tenant3", 
+    Assert.assertEquals(TapisThreadLocal.tapisThreadContext.get().getTenantId(), "tenant3", 
                         "Expected current context tenantId to have changed.");
     
     // Pop last context.
-    AloeThreadContext pop2 = AloeThreadLocal.pop();
+    TapisThreadContext pop2 = TapisThreadLocal.pop();
     Assert.assertTrue(context2 == pop2,
         "Expected popped context to be the last pushed context.");
-    Assert.assertTrue(pop2 == AloeThreadLocal.aloeThreadContext.get(),
+    Assert.assertTrue(pop2 == TapisThreadLocal.tapisThreadContext.get(),
         "Expected popped context to be the current context.");
     Assert.assertEquals(pop2.getTenantId(), "tenant2", 
         "Expected current context tenantId to the second tenantId.");
     
     // Pop last context.
-    AloeThreadContext pop1 = AloeThreadLocal.pop();
+    TapisThreadContext pop1 = TapisThreadLocal.pop();
     Assert.assertTrue(context1 == pop1,
         "Expected popped context to be the first pushed context.");
-    Assert.assertTrue(pop1 == AloeThreadLocal.aloeThreadContext.get(),
+    Assert.assertTrue(pop1 == TapisThreadLocal.tapisThreadContext.get(),
         "Expected popped context to be the current context.");
     Assert.assertEquals(pop1.getTenantId(), "tenant1", 
         "Expected current context tenantId to be the first tenantId.");
@@ -124,20 +124,20 @@ public class AloeThreadLocalTest
 		
         @Override
         public void run() {
-        	AloeThreadContext context = AloeThreadLocal.aloeThreadContext.get();
+        	TapisThreadContext context = TapisThreadLocal.tapisThreadContext.get();
         	if (tenantId != null) context.setTenantId(tenantId);
     
         	// Get the thread local tenant id.
         	Assert.assertEquals(context.getTenantId(), 
-        			            (tenantId == null) ? AloeThreadContext.INVALID_ID : tenantId,
+        			            (tenantId == null) ? TapisThreadContext.INVALID_ID : tenantId,
         	                    "Unexpected tenantId value on thread " + id);
             
         	// Removing the thread local context should cause it 
         	// to be reinitialized on the next get call.
-            AloeThreadLocal.aloeThreadContext.remove();
-            context = AloeThreadLocal.aloeThreadContext.get();
+            TapisThreadLocal.tapisThreadContext.remove();
+            context = TapisThreadLocal.tapisThreadContext.get();
         	Assert.assertEquals(context.getTenantId(), 
-		                        AloeThreadContext.INVALID_ID,
+		                        TapisThreadContext.INVALID_ID,
                                 "Expected the default tenantId value on thread: " + id);
         }
 		

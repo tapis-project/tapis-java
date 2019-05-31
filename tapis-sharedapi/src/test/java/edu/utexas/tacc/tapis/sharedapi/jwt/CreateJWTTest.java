@@ -42,7 +42,7 @@ public class CreateJWTTest
 	private static final String TEST_INPUTFILE_NAME = "src/test/resources/testuser2Claims.json";
 
 	// Predefined keystore file names.
-	private static final String TEST_STORE_FILE_NAME  = ".AloeTestKeyStore.p12";
+	private static final String TEST_STORE_FILE_NAME  = ".TapisTestKeyStore.p12";
 
 	// Predefined test keystore password
 	private static final String TEST_KEY_STORE_PASSWORD = "!akxK3CuHfqzI#97";
@@ -57,7 +57,7 @@ public class CreateJWTTest
 	private String pathToJWTOutputFile = "";
 
 	// Temporary directory path
-	private Path newAloeTempDir = null;
+	private Path newTapisTempDir = null;
 
 	//Temporary file path
 	private Path tmpFile = null;
@@ -75,10 +75,10 @@ public class CreateJWTTest
 		String tmpdir = System.getProperty("java.io.tmpdir");
 
 		//Create a temporary directory inside the default temporary directory
-		newAloeTempDir = Files.createTempDirectory(Paths.get(tmpdir), "aloe-jwt");
+		newTapisTempDir = Files.createTempDirectory(Paths.get(tmpdir), "tapis-jwt");
 
 		//Create a temporary file with a prefix and a suffix inside the newly created temporary directory 
-		tmpFile = Files.createTempFile(newAloeTempDir,"testuser2Claims", ".jwt");
+		tmpFile = Files.createTempFile(newTapisTempDir,"testuser2Claims", ".jwt");
 
 		pathToJWTOutputFile = tmpFile.toAbsolutePath().toString() ;
 		System.out.println("Path to JwtOutputFile: "+ pathToJWTOutputFile +"\n");
@@ -111,7 +111,7 @@ public class CreateJWTTest
 	public void cleanup() throws IOException {
 
 		Files.delete(tmpFile.toAbsolutePath());
-		Files.delete(newAloeTempDir);
+		Files.delete(newTapisTempDir);
 	}
 
 	/* **************************************************************************** */

@@ -2,7 +2,7 @@ package edu.utexas.tacc.tapis.shared.uuid;
 
 import org.apache.commons.lang3.StringUtils;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeUUIDException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisUUIDException;
 
 public enum UUIDType {
 	PROFILE("001"),
@@ -84,7 +84,7 @@ public enum UUIDType {
 		return code;
 	}
 
-	public static UUIDType getInstance(String val) throws AloeUUIDException
+	public static UUIDType getInstance(String val) throws TapisUUIDException
 	{
 		// Fetch by enum pneumonic.
 		try {
@@ -99,7 +99,7 @@ public enum UUIDType {
 			}
 		}
 
-		throw new AloeUUIDException("Invalid resource type. Valid types are: " +
+		throw new TapisUUIDException("Invalid resource type. Valid types are: " +
 				StringUtils.join(UUIDType.values(), ", "));
 	}
 }

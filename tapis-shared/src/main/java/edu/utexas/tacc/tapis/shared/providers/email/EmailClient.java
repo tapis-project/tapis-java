@@ -2,7 +2,7 @@ package edu.utexas.tacc.tapis.shared.providers.email;
 
 import java.util.Map;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 /**
  * @author dooley
@@ -17,9 +17,9 @@ public interface EmailClient {
      * @param recipientAddress email address of recipient
      * @param subject of the email
      * @param body of the email in plain text format.
-     * @throws AloeException
+     * @throws TapisException
      */
-    public void send(String recipientName, String recipientAddress, String subject, String body, String htmlBody) throws AloeException;
+    public void send(String recipientName, String recipientAddress, String subject, String body, String htmlBody) throws TapisException;
     
     
     /**

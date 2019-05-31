@@ -23,7 +23,7 @@ public class KeyManagerTest
     /* **************************************************************************** */
     private static final String KEY_STORE_PASSWORD = "!akxK3CuHfqzI#97";
     private static final String KEY_ALIAS = "jwt";
-    private static final String TEST_STORE_FILE_NAME  = ".AloeTestKeyStore.p12";
+    private static final String TEST_STORE_FILE_NAME  = ".TapisTestKeyStore.p12";
     
     /* **************************************************************************** */
     /*                                    Tests                                     */

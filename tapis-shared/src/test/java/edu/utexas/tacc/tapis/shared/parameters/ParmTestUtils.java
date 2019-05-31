@@ -42,12 +42,12 @@ class ParmTestUtils {
         }
     }
 
-    static void printAloeEnvVars()
+    static void printTapisEnvVars()
     {
-        System.out.println("Aloe environment variables:");
+        System.out.println("Tapis environment variables:");
         Map<String, String> env = System.getenv();
         for (String envName : env.keySet()) {
-            if (envName.toUpperCase().contains("ALOE")) {
+            if (envName.toUpperCase().contains("TAPIS")) {
                 System.out.format("%s=%s%n", envName, env.get(envName));
             }
         }

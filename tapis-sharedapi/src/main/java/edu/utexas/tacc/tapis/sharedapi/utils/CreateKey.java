@@ -53,7 +53,7 @@ public class CreateKey
     {
         // Parameters cannot be null.
         if (parms == null) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "CreateKey", "parms");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "CreateKey", "parms");
           _log.error(msg);
           throw new IllegalArgumentException(msg);
         }
@@ -100,7 +100,7 @@ public class CreateKey
         PrivateKey privk = km.getPrivateKey(_parms.alias, _parms.password);
         if (privk != null) {
             if (!confirmKeyReplace()) {
-                _log.info(MsgUtils.getMsg("ALOE_TERMINATE_NO_CHANGES", CreateKey.class.getSimpleName()));
+                _log.info(MsgUtils.getMsg("TAPIS_TERMINATE_NO_CHANGES", CreateKey.class.getSimpleName()));
                 return;
             }
         }
@@ -155,7 +155,7 @@ public class CreateKey
         
         // Make sure it worked.
         if (rc != 0) {
-            String msg = MsgUtils.getMsg("ALOE_EXTERNAL_PROCESS_FAILURE", "keytool", rc);
+            String msg = MsgUtils.getMsg("TAPIS_EXTERNAL_PROCESS_FAILURE", "keytool", rc);
             _log.error(msg);
             throw new RuntimeException(msg);
         }

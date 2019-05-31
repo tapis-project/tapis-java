@@ -49,7 +49,6 @@
 			<artifactId>javax.mail</artifactId>
 			<version>${javax.mail.version}</version>
 		</dependency>
-		<!-- This library drags in guava v22 which is used in Aloe code -->
 		<dependency>
 			<groupId>com.github.everit-org.json-schema</groupId>
 			<artifactId>org.everit.json.schema</artifactId>

@@ -11,11 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.AloeConstants;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadLocal;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 
 /** Determine if test parameter usage is enabled.  This filter runs after the
  * JWT authentication filter and can change some values set by that filter.
@@ -23,7 +23,7 @@ import edu.utexas.tacc.tapis.shared.threadlocal.AloeThreadLocal;
  * @author rcardone
  */
 @Provider
-@Priority(AloeConstants.JAXRS_FILTER_PRIORITY_AFTER_AUTHENTICATION)
+@Priority(TapisConstants.JAXRS_FILTER_PRIORITY_AFTER_AUTHENTICATION)
 public class TestParameterRequestFilter 
  implements ContainerRequestFilter
 {
@@ -51,7 +51,7 @@ public class TestParameterRequestFilter
             _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
         
         // Determine if we are ignoring or respecting test parameters.
-        if (!AloeEnv.getBoolean(EnvVar.ALOE_ENVONLY_ALLOW_TEST_QUERY_PARMS)) return;
+        if (!TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS)) return;
         
         // Initialize all test parameter values.
         String tenantId = null;
@@ -62,11 +62,11 @@ public class TestParameterRequestFilter
         if (uriInfo == null) return;
         MultivaluedMap<String,String> queryParms = uriInfo.getQueryParameters();
         if (queryParms == null || queryParms.isEmpty()) return;
-        tenantId = queryParms.getFirst(AloeConstants.QUERY_PARM_TEST_TENANT);
-        user = queryParms.getFirst(AloeConstants.QUERY_PARM_TEST_USER);
+        tenantId = queryParms.getFirst(TapisConstants.QUERY_PARM_TEST_TENANT);
+        user = queryParms.getFirst(TapisConstants.QUERY_PARM_TEST_USER);
         
         // Assign non-null test values to thread-local variables.
-        AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
         if (!StringUtils.isBlank(tenantId)) threadContext.setTenantId(tenantId);
         if (!StringUtils.isBlank(user)) threadContext.setUser(user);
     }

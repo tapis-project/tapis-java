@@ -51,7 +51,7 @@ public class ResourceSchemaClient
   {
     // Check input.
     if (url == null) {
-      _log.error(MsgUtils.getMsg("ALOE_NULL_PARAMETER", "ResourceSchemaClient", "get"));
+      _log.error(MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "ResourceSchemaClient", "get"));
       return null;
     }
     
@@ -61,7 +61,7 @@ public class ResourceSchemaClient
     // Return an input stream for the resource protocol.
     String resource = StringUtils.removeStart(url, RESOURCE_PROTOCOL);
     InputStream ins = getClass().getResourceAsStream(resource);
-    if (ins == null) _log.error(MsgUtils.getMsg("ALOE_RESOURCE_NOT_FOUND", resource));
+    if (ins == null) _log.error(MsgUtils.getMsg("TAPIS_RESOURCE_NOT_FOUND", resource));
     return ins;
   }
 }

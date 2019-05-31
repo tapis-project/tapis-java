@@ -12,17 +12,17 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import edu.utexas.tacc.tapis.shared.AloeConstants;
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.parameters.AloeEnv;
-import edu.utexas.tacc.tapis.shared.parameters.AloeInput;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
 
 
 @Test(groups={"unit"})
-public class AloeInputTest
+public class TapisInputTest
 {
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(AloeInputTest.class);
+    private static final Logger _log = LoggerFactory.getLogger(TapisInputTest.class);
     // Save copy of existing env for restoring later
     private Map<String, String> oldEnv = new HashMap<>(System.getenv());
 
@@ -35,17 +35,17 @@ public class AloeInputTest
         // Create new copy to modify
         Map<String, String> newEnv = new HashMap<>(oldEnv);
         // Add env vars to be used in testing
-        //   aloe.envonly.allow.test.query.parms=true
-        //   ALOE_ENVONLY_JWT_OPTIONAL=true
-        //   aloe.envonly.keystore.password=value1
-        //   ALOE_ENVONLY_KEYSTORE_PASSWORD=value2
-        newEnv.put(AloeEnv.EnvVar.ALOE_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName(), "true");
-        newEnv.put(AloeEnv.EnvVar.ALOE_ENVONLY_JWT_OPTIONAL.name(), "true");
-        newEnv.put(AloeEnv.EnvVar.ALOE_ENVONLY_KEYSTORE_PASSWORD.getEnvName(), "value1");
-        newEnv.put(AloeEnv.EnvVar.ALOE_ENVONLY_KEYSTORE_PASSWORD.name(), "value2");
+        //   tapis.envonly.allow.test.query.parms=true
+        //   TAPIS_ENVONLY_JWT_OPTIONAL=true
+        //   tapis.envonly.keystore.password=value1
+        //   TAPIS_ENVONLY_KEYSTORE_PASSWORD=value2
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName(), "true");
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL.name(), "true");
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.getEnvName(), "value1");
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.name(), "value2");
         // Update env
         ParmTestUtils.setEnv(newEnv);
-        ParmTestUtils.printAloeEnvVars();
+        ParmTestUtils.printTapisEnvVars();
     }
 
     @AfterClass
@@ -61,37 +61,37 @@ public class AloeInputTest
 
     /* ----------------------------------------------------------------------------
      * Check that properties are correctly set from env variables for:
-     *    env var of form aloe.envonly.allow.test.query.parms
-     *    env var of form ALOE_ENVONLY_JWT_OPTIONAL
-     *    env var of form aloe.envonly... has precedence over ALOE_ENVONLY...
+     *    env var of form tapis.envonly.allow.test.query.parms
+     *    env var of form TAPIS_ENVONLY_JWT_OPTIONAL
+     *    env var of form tapis.envonly... has precedence over TAPIS_ENVONLY...
      * ---------------------------------------------------------------------------- */
     @Test(enabled=true)
-    public void testGetInputParameters() throws AloeException
+    public void testGetInputParameters() throws TapisException
     {
         // Process the env variables
-        AloeInput aloeInput = new AloeInput(AloeConstants.SERVICE_NAME_JOBS);
-        Properties aloeProperties = aloeInput.getInputParameters();
+        TapisInput tapisInput = new TapisInput(TapisConstants.SERVICE_NAME_JOBS);
+        Properties tapisProperties = tapisInput.getInputParameters();
 
         // Check EnvVar.getEnvName
-        String propName = AloeEnv.EnvVar.ALOE_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName();
+        String propName = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName();
         String checkName = propName;
-        String propVal = aloeProperties.getProperty(propName);
+        String propVal = tapisProperties.getProperty(propName);
         Assert.assertNotNull(propVal, "Property from environment was null for: " + checkName);
         Assert.assertFalse(propVal.isEmpty(), "Property from environment was empty for: " + checkName);
         Assert.assertEquals(propVal, "true");
 
         // Check EnvVar.name
-        propName = AloeEnv.EnvVar.ALOE_ENVONLY_JWT_OPTIONAL.getEnvName();
-        checkName = AloeEnv.EnvVar.ALOE_ENVONLY_JWT_OPTIONAL.name();
-        propVal = aloeProperties.getProperty(propName);
+        propName = TapisEnv.EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL.getEnvName();
+        checkName = TapisEnv.EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL.name();
+        propVal = tapisProperties.getProperty(propName);
         Assert.assertNotNull(propVal, "Property from environment was null for: " + checkName);
         Assert.assertFalse(propVal.isEmpty(), "Property from environment was empty for: " + checkName);
         Assert.assertEquals(propVal, "true");
 
         // Check that EnvVar.getEnvName has precedence over EnvVar.name
-        propName = AloeEnv.EnvVar.ALOE_ENVONLY_KEYSTORE_PASSWORD.getEnvName();
+        propName = TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.getEnvName();
         checkName = propName;
-        propVal = aloeProperties.getProperty(propName);
+        propVal = tapisProperties.getProperty(propName);
         Assert.assertNotNull(propVal, "Property from environment was null for: " + checkName);
         Assert.assertFalse(propVal.isEmpty(), "Property from environment was null for: " + checkName);
         Assert.assertEquals(propVal, "value1");

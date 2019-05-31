@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-public final class AloeThreadContext 
+public final class TapisThreadContext 
  implements Cloneable
 {
 	/* **************************************************************************** */
@@ -30,15 +30,15 @@ public final class AloeThreadContext
     
 	// The execution context is set at a certain point in request processing, 
 	// usually well after processing has begun.
-	private AloeExecutionContext executionContext = null;
+	private TapisExecutionContext executionContext = null;
 	
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
 	@Override
-	public AloeThreadContext clone() throws CloneNotSupportedException 
+	public TapisThreadContext clone() throws CloneNotSupportedException 
 	{
-	    return (AloeThreadContext) super.clone();
+	    return (TapisThreadContext) super.clone();
 	}
 	
 	/** Validate the generic parameters required for most request processing.  This
@@ -83,8 +83,8 @@ public final class AloeThreadContext
     
     public List<String> getRoleList(){return roleList;}
     
-    public AloeExecutionContext getExecutionContext() {return executionContext;}
-    public void setExecutionContext(AloeExecutionContext executionContext) {
+    public TapisExecutionContext getExecutionContext() {return executionContext;}
+    public void setExecutionContext(TapisExecutionContext executionContext) {
         this.executionContext = executionContext;
     }
 }

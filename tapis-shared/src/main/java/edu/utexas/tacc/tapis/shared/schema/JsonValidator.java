@@ -12,11 +12,11 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeJSONException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** This class is a repository for the json schema objects that are used throughout
- * the Aloe services.  Each schema object is created when it is first requested and
+ * the Tapis services.  Each schema object is created when it is first requested and
  * cached for subsequent uses.
  * 
  * To add a new schema to this utility class, do the following:
@@ -57,7 +57,7 @@ public class JsonValidator
   /* ---------------------------------------------------------------------------- */
   /* validateJobSubmitRequest:                                                    */
   /* ---------------------------------------------------------------------------- */
-  public static void validateJobSubmitRequest(String json) throws AloeJSONException
+  public static void validateJobSubmitRequest(String json) throws TapisJSONException
   {
     Schema schema = getJobSubmitRequestSchema();
     try {schema.validate(new JSONObject(json));}
@@ -71,21 +71,21 @@ public class JsonValidator
             for (String s : messages) details += " #" + (i++) + s;
         
             // Log the exception details.
-            String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_FAILURE", e.getMessage(), details);
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_FAILURE", e.getMessage(), details);
             _log.error(msg, e);
-            throw new AloeJSONException(msg, e);
+            throw new TapisJSONException(msg, e);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
             _log.error(msg, e);
-            throw new AloeJSONException(msg, e);
+            throw new TapisJSONException(msg, e);
       }
   }
 
   /* ---------------------------------------------------------------------------- */
   /* validateJobQueueDefinitions:                                                 */
   /* ---------------------------------------------------------------------------- */
-  public static void validateJobQueueDefinitions(String json) throws AloeJSONException
+  public static void validateJobQueueDefinitions(String json) throws TapisJSONException
   {
     Schema schema = getJobQueueDefinitionsSchema();
     try {schema.validate(new JSONArray(json));}
@@ -99,14 +99,14 @@ public class JsonValidator
           for (String s : messages) details += " #" + (i++) + s;
           
           // Log the exception details.
-          String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_FAILURE", e.getMessage(), details);
+          String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_FAILURE", e.getMessage(), details);
           _log.error(msg, e);
-          throw new AloeJSONException(msg, e);
+          throw new TapisJSONException(msg, e);
       }
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
+          String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
           _log.error(msg, e);
-          throw new AloeJSONException(msg, e);
+          throw new TapisJSONException(msg, e);
       }
   }
 
@@ -116,7 +116,7 @@ public class JsonValidator
   /* ---------------------------------------------------------------------------- */
   /* getSchema:                                                                   */
   /* ---------------------------------------------------------------------------- */
-  private static Schema getSchema(String schemaFile) throws AloeJSONException 
+  private static Schema getSchema(String schemaFile) throws TapisJSONException 
   {
     // Load the schema as a resource.
     Schema schema = null;
@@ -125,9 +125,9 @@ public class JsonValidator
       schema = SchemaLoader.load(rawSchema, new ResourceSchemaClient());
     }
     catch (Exception e) {
-      String msg = MsgUtils.getMsg("ALOE_JSON_SCHEMA_LOAD_ERROR", schemaFile, e.getMessage());
+      String msg = MsgUtils.getMsg("TAPIS_JSON_SCHEMA_LOAD_ERROR", schemaFile, e.getMessage());
       _log.error(msg, e);
-      throw new AloeJSONException(msg, e);
+      throw new TapisJSONException(msg, e);
     }
 
     return schema;
@@ -139,7 +139,7 @@ public class JsonValidator
   /* ---------------------------------------------------------------------------- */
   /* getJobSubmitRequestSchema:                                                   */
   /* ---------------------------------------------------------------------------- */
-  private static Schema getJobSubmitRequestSchema() throws AloeJSONException 
+  private static Schema getJobSubmitRequestSchema() throws TapisJSONException 
   {
     if (_jobSubmitRequestSchema == null) 
       _jobSubmitRequestSchema = getSchema(FILE_JOB_SUBMIT_REQUEST);
@@ -149,7 +149,7 @@ public class JsonValidator
   /* ---------------------------------------------------------------------------- */
   /* getJobQueueDefinitionsSchema:                                                */
   /* ---------------------------------------------------------------------------- */
-  private static Schema getJobQueueDefinitionsSchema() throws AloeJSONException 
+  private static Schema getJobQueueDefinitionsSchema() throws TapisJSONException 
   {
     if (_jobQueueDefinitionsSchema == null) 
       _jobQueueDefinitionsSchema = getSchema(FILE_JOB_QUEUE_DEFS);

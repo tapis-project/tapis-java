@@ -3,8 +3,8 @@ package edu.utexas.tacc.tapis.sharedapi.dto;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.shared.utils.AloeGsonUtils;
-import edu.utexas.tacc.tapis.shared.utils.AloeUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** This class provides a wrapper for all REST responses.
  * The fields defined here are the first fields in a the
@@ -37,7 +37,7 @@ public class ResponseWrapper
   public ResponseWrapper()
   {
     // Get the version number captured at build time from the pom file.
-    this.version = AloeUtils.getAloeVersion();
+    this.version = TapisUtils.getTapisVersion();
   }
   
   /* ---------------------------------------------------------------------------- */
@@ -67,7 +67,7 @@ public class ResponseWrapper
   public String addResult(Object resultObject, boolean prettyPrint)
   {
     JsonObject obj = addResult(resultObject);
-    return AloeGsonUtils.getGson(prettyPrint).toJson(obj);
+    return TapisGsonUtils.getGson(prettyPrint).toJson(obj);
   }
   
   /* ---------------------------------------------------------------------------- */
@@ -82,7 +82,7 @@ public class ResponseWrapper
   public JsonObject addResult(Object resultObject)
   {
     // Get the gson generator.
-    Gson gson = AloeGsonUtils.getGson();
+    Gson gson = TapisGsonUtils.getGson();
     JsonObject obj = (JsonObject) gson.toJsonTree(this);
     
     // Add in the result object's json if it exists.

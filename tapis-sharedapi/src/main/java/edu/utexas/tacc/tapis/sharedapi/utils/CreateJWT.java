@@ -16,10 +16,10 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
-import edu.utexas.tacc.tapis.shared.exceptions.AloeSecurityException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisSecurityException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.utils.AloeGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -60,7 +60,7 @@ public class CreateJWT
     {
         // Parameters cannot be null.
         if (parms == null) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "CreateJWT", "parms");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "CreateJWT", "parms");
           _log.error(msg);
           throw new IllegalArgumentException(msg);
         }
@@ -85,10 +85,10 @@ public class CreateJWT
     /* ---------------------------------------------------------------------- */
     /** The main driver method.
      * 
-     * @throws AloeException on error
+     * @throws TapisException on error
      */
     public void exec() 
-     throws AloeException
+     throws TapisException
     {
         // Get the claims in there order of appearance in the input file.
         Map<String,Object> claimsMap = getClaims();
@@ -117,10 +117,10 @@ public class CreateJWT
      * map can be any valid json type.
      * 
      * @return the key/value pairs that define the claims for a JWT
-     * @throws AloeException on error
+     * @throws TapisException on error
      */
     private Map<String,Object> getClaims()
-     throws AloeException
+     throws TapisException
     {
         // Initialize the order-preserving result object.
         // The values can be any of the recognized json types.
@@ -128,16 +128,16 @@ public class CreateJWT
         
         // Use gson to parse the input file contents.  The contents
         // are expected to only contain JWT claims in json format.
-        Gson gson = AloeGsonUtils.getGson(true);
+        Gson gson = TapisGsonUtils.getGson(true);
         try (BufferedReader rdr = new BufferedReader(new FileReader(_parms.inFilename))) {
             Type typeOfT = new TypeToken<LinkedHashMap<String,Object>>(){}.getType();
             map = gson.fromJson(rdr, typeOfT);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_JSON_PARSE_ERROR", getClass().getSimpleName(),
+            String msg = MsgUtils.getMsg("TAPIS_JSON_PARSE_ERROR", getClass().getSimpleName(),
                                          _parms.inFilename, e.getMessage());
             _log.error(msg);
-            throw new AloeException(msg);
+            throw new TapisException(msg);
         }
         
         return map;
@@ -146,38 +146,38 @@ public class CreateJWT
     /* ---------------------------------------------------------------------- */
     /* getPrivateKey:                                                         */
     /* ---------------------------------------------------------------------- */
-    /** Get the private key from the default aloe keystore associated with an 
+    /** Get the private key from the default tapis keystore associated with an 
      * alias.  Thes alias is specified as an the input parameter.
      * 
      * @return the alias's private key  
-     * @throws AloeException on error
+     * @throws TapisException on error
      */
     private PrivateKey getPrivateKey()
-     throws AloeException
+     throws TapisException
     {
         // Load a new or existing key store.
         KeyManager km = null;
         try {km = new KeyManager(null,_parms.keyStorefile);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_NO_KEYSTORE", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_KEYSTORE", e.getMessage());
             _log.error(msg, e);
-            throw new AloeSecurityException(msg, e);
+            throw new TapisSecurityException(msg, e);
         }
         
         try {km.load(_parms.password);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_KEYSTORE_LOAD_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_KEYSTORE_LOAD_ERROR", e.getMessage());
             _log.error(msg, e);
-            throw new AloeSecurityException(msg, e);
+            throw new TapisSecurityException(msg, e);
         }
         
         // See if the key already exists.
         PrivateKey privk = null;
         try {privk = km.getPrivateKey(_parms.alias, _parms.password);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_SECURITY_GET_PRIVATE_KEY", _parms.alias, e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_GET_PRIVATE_KEY", _parms.alias, e.getMessage());
             _log.error(msg, e);
-            throw new AloeSecurityException(msg, e);
+            throw new TapisSecurityException(msg, e);
         }
         
         return privk;
@@ -190,10 +190,10 @@ public class CreateJWT
      * on user specification.
      * 
      * @param encodedJwt the complete JWT
-     * @throws AloeException on error
+     * @throws TapisException on error
      */
     private void outputJwt(String encodedJwt) 
-     throws AloeException
+     throws TapisException
     {
         // Write jwt as-is to stdout if no output file was specified.
         if (StringUtils.isBlank(_parms.outFilename)) {
@@ -206,9 +206,9 @@ public class CreateJWT
             wtr.write(encodedJwt);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("ALOE_IO_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_IO_ERROR", e.getMessage());
             _log.error(msg, e);
-            throw new AloeException(msg, e);
+            throw new TapisException(msg, e);
         }
     }
 }

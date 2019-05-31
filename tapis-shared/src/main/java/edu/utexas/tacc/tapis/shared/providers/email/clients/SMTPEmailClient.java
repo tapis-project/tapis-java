@@ -18,7 +18,7 @@ import javax.mail.internet.MimeMultipart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientParameters;
 
@@ -38,7 +38,7 @@ public final class SMTPEmailClient
     /** Send an email */
     @Override
     public void send(String recipientName, String recipientAddress, String subject, String body, String htmlBody)
-     throws AloeException 
+     throws TapisException 
     {
         // Validate input.
         validateSendParms(recipientName, recipientAddress, subject, body, htmlBody);
@@ -61,11 +61,11 @@ public final class SMTPEmailClient
         Transport transport = null;
         try {transport = mailSession.getTransport();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_MAIL_TRANSPORT_ERROR", "smtp",
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_TRANSPORT_ERROR", "smtp",
                                              _parms.getEmailHost(), _parms.getEmailPort(),
                                              _parms.isEmailAuth());
                 _log.error(msg, e);
-                throw new AloeException(msg, e);
+                throw new TapisException(msg, e);
             }
         
         // Assemble the message.
@@ -102,48 +102,48 @@ public final class SMTPEmailClient
                 new InternetAddress(recipientAddress, recipientName));
         } 
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_MAIL_MESSAGE_CREATE", "smtp",
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_MESSAGE_CREATE", "smtp",
                                              _parms.getEmailHost(), _parms.getEmailPort(),
                                              recipientName, recipientAddress,
                                              e.getMessage());
                 _log.error(msg, e);
-                throw new AloeException(msg, e);
+                throw new TapisException(msg, e);
             } 
             finally {try {transport.close();} catch (Exception e) {} } // try to clean up 
         
         // Make the connection.
         try {transport.connect();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_MAIL_CONNECT", "smtp",
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_CONNECT", "smtp",
                         _parms.getEmailHost(), _parms.getEmailPort(),
                         recipientName, recipientAddress,
                         e.getMessage());
                 _log.error(msg, e);
                 try {transport.close();} catch (Exception e1) {}  // try to clean up
-                throw new AloeException(msg, e);
+                throw new TapisException(msg, e);
             }
         
         // Send the mail.
         try {transport.sendMessage(message, message.getRecipients(Message.RecipientType.TO));}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_MAIL_SEND", "smtp",
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_SEND", "smtp",
                         _parms.getEmailHost(), _parms.getEmailPort(),
                         recipientName, recipientAddress,
                         e.getMessage());
                 _log.error(msg, e);
                 try {transport.close();} catch (Exception e1) {}  // try to clean up
-                throw new AloeException(msg, e);
+                throw new TapisException(msg, e);
             }
         
         // Close the transport.
         try {transport.close();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("ALOE_MAIL_CLOSE", "smtp",
+                String msg = MsgUtils.getMsg("TAPIS_MAIL_CLOSE", "smtp",
                         _parms.getEmailHost(), _parms.getEmailPort(),
                         recipientName, recipientAddress,
                         e.getMessage());
                 _log.error(msg, e);
-                throw new AloeException(msg, e);
+                throw new TapisException(msg, e);
             }
     }
 

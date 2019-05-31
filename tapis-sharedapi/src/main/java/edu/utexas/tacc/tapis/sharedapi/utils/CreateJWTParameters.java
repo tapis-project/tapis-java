@@ -11,7 +11,7 @@ import org.kohsuke.args4j.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 
 public final class CreateJWTParameters 
@@ -125,7 +125,7 @@ public final class CreateJWTParameters
    * @throws JobException
    */
   private void validateParms()
-   throws AloeException
+   throws TapisException
   {
      // Make sure we have a key name.
      if (StringUtils.isBlank(alias)) alias = JWTValidateRequestFilter.DEFAULT_KEY_ALIAS; 

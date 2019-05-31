@@ -2,7 +2,7 @@ package edu.utexas.tacc.tapis.shared.providers.email;
 
 import org.testng.annotations.Test;
 
-import edu.utexas.tacc.tapis.shared.exceptions.AloeException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientParameters;
 import edu.utexas.tacc.tapis.shared.providers.email.clients.LoggingEmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.clients.SMTPEmailClient;
@@ -24,7 +24,7 @@ public class EmailClientTest
     /* testSMTP:                                                                    */
     /* ---------------------------------------------------------------------------- */
     @Test(enabled=true)
-    public void testSMTP() throws AloeException
+    public void testSMTP() throws TapisException
     {
         // Get a client instance.
         SMTPEmailClient client = new SMTPEmailClient(new TestParameters());
@@ -37,7 +37,7 @@ public class EmailClientTest
     /* testLog:                                                                     */
     /* ---------------------------------------------------------------------------- */
     @Test(enabled=true)
-    public void testLog() throws AloeException
+    public void testLog() throws TapisException
     {
         // Get a client instance.
         LoggingEmailClient client = new LoggingEmailClient(new TestParameters());
@@ -85,7 +85,7 @@ public class EmailClientTest
 
         @Override
         public String getEmailFromName() {
-            return "Aloe Test";
+            return "Tapis Test";
         }
 
         @Override

@@ -39,10 +39,10 @@ public class MessageUtilsTest
 	public void testLogMsg()
 	{
 		// The output depends on the configuration logback.xml.
-		_log.info(MsgUtils.getMsg("ALOE_INITIALIZING_SERVICE", "banana"));
-		_log.warn(MsgUtils.getMsg("ALOE_INITIALIZING_SERVICE", "pear"));
-		_log.error(MsgUtils.getMsg("ALOE_INITIALIZING_SERVICE", "apple"));
-		_log.debug(MsgUtils.getMsg("ALOE_INITIALIZING_SERVICE", "cherry"));
-		_log.trace(MsgUtils.getMsg("ALOE_INITIALIZING_SERVICE", "peach"));
+		_log.info(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVICE", "banana"));
+		_log.warn(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVICE", "pear"));
+		_log.error(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVICE", "apple"));
+		_log.debug(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVICE", "cherry"));
+		_log.trace(MsgUtils.getMsg("TAPIS_INITIALIZING_SERVICE", "peach"));
 	}
 }
