@@ -14,6 +14,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
+import edu.utexas.tacc.tapis.shared.models.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.contexts.TapisSecurtiyContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +24,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisSecurityException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
 import io.jsonwebtoken.Claims;
@@ -66,7 +66,10 @@ public class JWTValidateRequestFilter
     /*                                Fields                                  */
     /* ********************************************************************** */
     // List all of url substrings that identify authentication exempt requests.
-    private static final String[] _noAuthRequests = {};
+    private static final String[] _noAuthRequests = {
+            "openapi.json",
+            "openapi.yml"
+    };
     
     // The public key used to check the JWT signature.  This cached copy is
     // used by all instances of this class.
@@ -81,6 +84,7 @@ public class JWTValidateRequestFilter
     @Override
     public void filter(ContainerRequestContext requestContext) 
     {
+
         // Tracing.
         if (_log.isTraceEnabled())
             _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
@@ -151,19 +155,17 @@ public class JWTValidateRequestFilter
         }
         
         // Retrieve the user name from the claims section.
-        String user  = null;
-        String roles = null;
+        String username;
+        String roles;
+        String tenantId;
         Claims claims = (Claims) jwt.getBody();
-        if (claims != null) {
-            user  = getUser(claims);
-            roles = getRoles(claims);
-        }
-        
+        username  = getUser(claims);
+        roles = getRoles(claims);
+        tenantId = getTenantId(claims);
+
+        AuthenticatedUser apiUser = new AuthenticatedUser(username, tenantId, roles, jwt);
         // Assign JWT information to thread-local variables.
-        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-        if (!StringUtils.isBlank(headerTenantId)) threadContext.setTenantId(headerTenantId);
-        if (!StringUtils.isBlank(user)) threadContext.setUser(user);
-        if (!StringUtils.isBlank(roles)) threadContext.setRoles(roles);
+        requestContext.setSecurityContext(new TapisSecurtiyContext(apiUser));
     }
 
     /* ********************************************************************** */
@@ -335,6 +337,19 @@ public class JWTValidateRequestFilter
         else if (s.contains("/")) return StringUtils.substringAfter(s, "/");
         else return s;
     }
+
+    /** Get the users tenantId or return null.
+     *
+     * @param claims the JWT claims object
+     * @return the tenantId or null
+     */
+    private String getTenantId(Claims claims)
+    {
+        // The enduser name may have extraneous information around it.
+        String s = (String)claims.get("http://wso2.org/claims/enduserTenantId");
+        if (StringUtils.isBlank(s)) return null;
+        else return s;
+    }
     
     /* ---------------------------------------------------------------------- */
     /* getRoles:                                                              */
@@ -378,7 +393,7 @@ public class JWTValidateRequestFilter
                     _log.info(msg);
                 }
             
-                // No authication.
+                // No authentication.
                 return true;
             }
         }

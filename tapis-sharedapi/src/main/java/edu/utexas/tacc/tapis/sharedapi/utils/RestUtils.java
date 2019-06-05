@@ -178,11 +178,11 @@ public class RestUtils
     map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException", Status.BAD_REQUEST);
     map.put("edu.utexas.tacc.tapis.shared.exceptions.TapisUUIDException", Status.INTERNAL_SERVER_ERROR);
 
-    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException", Status.INTERNAL_SERVER_ERROR);
-    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueueFilterException", Status.BAD_REQUEST);
-    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobQueuePriorityException", Status.BAD_REQUEST);
-    map.put("edu.utexas.tacc.tapis.jobs.exceptions.JobInputException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.db.migration.db.migration.jobs.exceptions.JobException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.db.migration.db.migration.jobs.exceptions.JobQueueException", Status.INTERNAL_SERVER_ERROR);
+    map.put("edu.utexas.tacc.tapis.db.migration.db.migration.jobs.exceptions.JobQueueFilterException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.db.migration.db.migration.jobs.exceptions.JobQueuePriorityException", Status.BAD_REQUEST);
+    map.put("edu.utexas.tacc.tapis.db.migration.db.migration.jobs.exceptions.JobInputException", Status.BAD_REQUEST);
     
     return map;
   }

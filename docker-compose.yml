@@ -1,0 +1,40 @@
+---
+version: "3"
+
+volumes:
+  pgdata:
+  miniodata:
+
+
+services:
+
+  minio:
+    image: minio/minio
+    ports:
+      - 9000:9000
+    environment:
+      - MINIO_ACCESS_KEY=user
+      - MINIO_SECRET_KEY=password
+    volumes:
+      - miniodata:/data
+    command: server /data
+
+
+  rabbitmq:
+    image: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=dev
+      - RABBITMQ_DEFAULT_PASS=dev
+      - RABBITMQ_DEFAULT_VHOST=dev
+
+  postgres:
+    image: postgres:11
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    container_name: tapis-files-postgres
+    environment:
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_USER=dev
+      - POSTGRES_DB=dev
