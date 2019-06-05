@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.files.api;
 import javax.ws.rs.ApplicationPath;
 import edu.utexas.tacc.tapis.files.api.resources.SystemsResource;
 
+import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 
 // The path here is appended to the context root and
@@ -20,6 +22,10 @@ public class FilesApplication extends ResourceConfig
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
 		packages("edu.utexas.tacc.tapis.files.api");
+		register(JacksonFeature.class);
+
+		OpenApiResource openApiResource = new OpenApiResource();
+		register(openApiResource);
 		setApplicationName("files");
 	}
 }
