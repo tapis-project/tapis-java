@@ -141,7 +141,7 @@ public class JJWTTest
         
         // Reusable codec.
         Base64UrlCodec b64Codec = new Base64UrlCodec();
-        
+
         // Print keys.
         System.out.println("**** Public Key Information");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());
@@ -209,7 +209,7 @@ public class JJWTTest
         
         // Reusable codec.
         Base64UrlCodec b64Codec = new Base64UrlCodec();
-        
+
         // Print keys.
         System.out.println("**** Public Key Information");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());

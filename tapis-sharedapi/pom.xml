@@ -67,6 +67,12 @@
 			<version>${jjwt-aloe.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>${jjwt-aloe.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
 			<groupId>args4j</groupId>
 			<artifactId>args4j</artifactId>
 			<version>${args4j.version}</version>
@@ -76,6 +82,11 @@
 			<artifactId>commons-codec</artifactId>
 			<version>${commons-codec.version}</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-json-jackson</artifactId>
+			<version>2.28</version>
 		</dependency>
 
         <!-- These dependences are required so that the jjwt library  -->
