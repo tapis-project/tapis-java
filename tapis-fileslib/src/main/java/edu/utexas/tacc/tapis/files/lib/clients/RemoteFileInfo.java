@@ -1,15 +1,18 @@
 package edu.utexas.tacc.tapis.files.lib.clients;
 
-import java.util.Date;
-import software.amazon.awssdk.services.s3.model.ListBucketsResponse;
+import java.time.Instant;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 public class RemoteFileInfo {
 
-    private Date lastModified;
+    private Instant lastModified;
     private String name;
     private Long size;
 
-    public RemoteFileInfo(ListBucketsResponse listing) {
+    public RemoteFileInfo(S3Object listing) {
+        this.name = listing.key();
+        this.lastModified = listing.lastModified();
+        this.size = listing.size();
 
     }
 }
