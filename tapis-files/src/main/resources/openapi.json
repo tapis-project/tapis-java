@@ -1,0 +1,130 @@
+{
+  "openapi" : "3.0.1",
+  "paths" : {
+    "/listing/{systemId}" : {
+      "get" : {
+        "operationId" : "listFiles",
+        "parameters" : [ {
+          "name" : "systemId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RemoteFileInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems" : {
+      "get" : {
+        "operationId" : "getSystems",
+        "responses" : {
+          "default" : {
+            "description" : "List of systems.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageSystem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems/{systemId}" : {
+      "get" : {
+        "operationId" : "getSystemByID",
+        "parameters" : [ {
+          "name" : "systemId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "RemoteFileInfo" : {
+        "type" : "object",
+        "properties" : {
+          "lastModified" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StorageSystem" : {
+        "type" : "object",
+        "properties" : {
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "baseDir" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "protocol" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -340,10 +340,9 @@
 
     <modules>
         <module>tapis-security</module>
-		<module>tapis-filesapi</module>
+		<module>tapis-files</module>
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
-		<module>tapis-fileslib</module>
 		<module>tapis-db</module>
 	</modules>
 
