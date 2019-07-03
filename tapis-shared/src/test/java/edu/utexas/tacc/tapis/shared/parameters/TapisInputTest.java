@@ -18,7 +18,7 @@ import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
 
 
-@Test(groups={"unit"})
+@Test(groups={"unit"}, enabled = false)
 public class TapisInputTest
 {
     // Local logger.
@@ -65,7 +65,7 @@ public class TapisInputTest
      *    env var of form TAPIS_ENVONLY_JWT_OPTIONAL
      *    env var of form tapis.envonly... has precedence over TAPIS_ENVONLY...
      * ---------------------------------------------------------------------------- */
-    @Test(enabled=true)
+    @Test(enabled=false)
     public void testGetInputParameters() throws TapisException
     {
         // Process the env variables

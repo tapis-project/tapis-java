@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -27,6 +28,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @Produces(MediaType.APPLICATION_JSON)
 public class SystemsResource {
 
+    @Inject
+    private StorageSystemsDAO systemsDAO;
+
     @GET
     @ApiResponse(
             description = "List of systems."
@@ -34,7 +38,6 @@ public class SystemsResource {
     public List<StorageSystem> getSystems(@Context SecurityContext sc) throws WebApplicationException, TapisException, SQLException {
         AuthenticatedUser user = (AuthenticatedUser) sc.getUserPrincipal();
         System.out.println(user.getUsername());
-        StorageSystemsDAO systemsDAO = new StorageSystemsDAO();
         List<StorageSystem> results = systemsDAO.listSystems(user.getUsername(), user.getTenantId());
         return results;
     }

@@ -7,7 +7,7 @@ import edu.utexas.tacc.tapis.files.lib.dao.StorageSystemsDAO;
 @Test
 public class TestStorageSystemDAO {
 
-    @Test
+    @Test(groups = {"unit"})
     public void testListSystems() {
         Assert.assertEquals(1,1);
     }

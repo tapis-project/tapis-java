@@ -219,6 +219,24 @@
 	</properties>
 
 	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.0.0-M3</version>
+				<configuration>
+					<groups>integration</groups>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 
 		<!-- Document what each plugin is used for -->
 		<pluginManagement>
@@ -257,6 +275,8 @@
 						<groups>unit</groups>
 					</configuration>
 				</plugin>
+
+
 
 				<!-- Capture the git commit hash and branch identifiers.  -->
 				<!-- We use the plugin only for git and depend on regular -->

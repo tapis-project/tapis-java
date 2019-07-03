@@ -2,9 +2,16 @@ package edu.utexas.tacc.tapis.files.api;
 
 import javax.ws.rs.ApplicationPath;
 
+import edu.utexas.tacc.tapis.files.api.resources.ListingsResource;
+import edu.utexas.tacc.tapis.files.api.resources.SystemsResource;
+import edu.utexas.tacc.tapis.files.lib.dao.StorageSystemsDAO;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import org.glassfish.jersey.internal.inject.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
+
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.contexts.TapisSecurtiyContext;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
@@ -20,12 +27,23 @@ public class FilesApplication extends ResourceConfig
         // in any aloe class.  In particular, the filter classes in 
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
-		packages("edu.utexas.tacc.tapis.files.api");
-		packages("edu.utexas.tacc.tapis.sharedapi");
+		register(SystemsResource.class);
+		register(ListingsResource.class);
+
 		register(JacksonFeature.class);
+		register(JWTValidateRequestFilter.class);
+		register(TapisSecurtiyContext.class);
 
 		OpenApiResource openApiResource = new OpenApiResource();
 		register(openApiResource);
 		setApplicationName("files");
+
+		register(new AbstractBinder() {
+			@Override
+			public void configure() {
+				bind(StorageSystemsDAO.class).to(StorageSystemsDAO.class);
+			}
+		});
+
 	}
 }

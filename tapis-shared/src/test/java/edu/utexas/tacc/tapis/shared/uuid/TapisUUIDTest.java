@@ -14,7 +14,7 @@ import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 public class TapisUUIDTest {
 	private static final Logger _log = LoggerFactory.getLogger(TapisUUIDTest.class);
     
-    @Test
+    @Test(enabled = false)
     public void getUniqueId() throws InterruptedException 
     {
         int count = 200000;

@@ -88,7 +88,7 @@ public class CreateJWTTest
 	/*                              Test                                      */
 	/* ********************************************************************** */  
 
-	@Test(enabled=true)
+	@Test(enabled=false)
 	public void createJWTTest() throws Exception
 	{
 

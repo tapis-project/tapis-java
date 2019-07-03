@@ -112,7 +112,7 @@ public class JJWTTestNGTest
 	 * 
 	 * @throws Exception on error
 	 */
-	@Test(dataProvider = "keyStoreFileCrendentials")
+	@Test(dataProvider = "keyStoreFileCrendentials", enabled = false)
 	private void useKeystore(String keystoreFilename, String alias, String password ) throws Exception
 	{
 		// ----- Load the keystore.
