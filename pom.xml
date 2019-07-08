@@ -132,7 +132,7 @@
 
 	<properties>
 		<!-- This build's label -->
-		<foundation.service.version>${project.version}-r${buildNumber}</foundation.service.version>
+		<foundation.service.version>${project.version}</foundation.service.version>
 
 		<!-- Source encoding -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -187,8 +187,8 @@
 		<jargon-core.version>4.3.0.1-RELEASE</jargon-core.version>
 		<javax.mail.version>1.6.2</javax.mail.version>
 		<javax.xml.bind.jaxb-api.version>2.3.1</javax.xml.bind.jaxb-api.version>
-		<javax.xml.bind.jaxb-core.version>2.3.0.1</javax.xml.bind.jaxb-core.version>
-		<javax.xml.bind.jaxb-impl.version>2.3.2</javax.xml.bind.jaxb-impl.version>
+		<javax.xml.bind.jaxb-core.version>2.3.1</javax.xml.bind.jaxb-core.version>
+		<javax.xml.bind.jaxb-impl.version>2.3.1</javax.xml.bind.jaxb-impl.version>
 		<javax.activation.activation.version>1.1.1</javax.activation.activation.version>
 		<jakarta.servlet-api.version>4.0.2</jakarta.servlet-api.version>                <!-- jersey group -->
 		<jersey-container-servlet.version>2.28</jersey-container-servlet.version> <!-- jersey group -->
@@ -278,31 +278,7 @@
 
 
 
-				<!-- Capture the git commit hash and branch identifiers.  -->
-				<!-- We use the plugin only for git and depend on regular -->
-				<!-- maven filtering for timestamp and code version. We   -->
-				<!-- could use this plugin to update jar and war manifest -->
-				<!-- files, but we use separate resource file filtering   -->
-				<!-- instead. See the resources element below for         -->
-				<!-- filtering details.                                   -->
-				<plugin>
-					<groupId>org.codehaus.mojo</groupId>
-					<artifactId>buildnumber-maven-plugin</artifactId>
-					<version>${buildnumber-maven-plugin.version}</version>
-					<executions>
-						<execution>
-							<phase>validate</phase>
-							<goals>
-								<goal>create</goal>
-							</goals>
-						</execution>
-					</executions>
-					<configuration>
-						<doCheck>false</doCheck>
-						<doUpdate>false</doUpdate>
-						<shortRevisionLength>8</shortRevisionLength>
-					</configuration>
-				</plugin>
+
 			</plugins>
 		</pluginManagement>
 

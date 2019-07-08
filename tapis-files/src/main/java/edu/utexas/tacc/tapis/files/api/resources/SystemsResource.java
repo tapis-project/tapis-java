@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.files.api.resources;
 
-import java.security.Principal;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +35,6 @@ public class SystemsResource {
     )
     public List<StorageSystem> getSystems(@Context SecurityContext sc) throws WebApplicationException, TapisException, SQLException {
         AuthenticatedUser user = (AuthenticatedUser) sc.getUserPrincipal();
-        System.out.println(user.getUsername());
         List<StorageSystem> results = systemsDAO.listSystems(user.getUsername(), user.getTenantId());
         return results;
     }

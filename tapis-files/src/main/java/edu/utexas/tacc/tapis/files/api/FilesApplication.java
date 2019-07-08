@@ -11,7 +11,6 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.contexts.TapisSecurtiyContext;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
@@ -32,12 +31,13 @@ public class FilesApplication extends ResourceConfig
 
 		register(JacksonFeature.class);
 		register(JWTValidateRequestFilter.class);
-		register(TapisSecurtiyContext.class);
 
 		OpenApiResource openApiResource = new OpenApiResource();
 		register(openApiResource);
 		setApplicationName("files");
 
+
+		// Needed for dependency injection to work in the Resource classes.
 		register(new AbstractBinder() {
 			@Override
 			public void configure() {

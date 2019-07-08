@@ -56,7 +56,7 @@ public class JWTValidateRequestFilter
     private static final Logger _log = LoggerFactory.getLogger(JWTValidateRequestFilter.class);
     
     // Header key prefix for jwts.
-    private static final String JWT_PREFIX = "x-jwt-assertion-";
+    private static final String JWT_PREFIX = "x-jwt";
     
     // The JWT key alias.  This is the key pair used to sign JWTs
     // and verify them.
@@ -93,32 +93,33 @@ public class JWTValidateRequestFilter
         if (isNoAuthRequest(requestContext)) return;   
         
         // Parse variables.
-        String headerTenantId = null;
+//        String headerTenantId = null;
         String encodedJWT     = null;
         
         // Extract the jwt header from the set of headers.
-        MultivaluedMap<String, String> headers = requestContext.getHeaders();
-        for (Entry<String, List<String>> entry : headers.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(JWT_PREFIX)) {
-                
-                // Get the tenant information encoded in the key
-                // and transform it to match tenant naming conventions.
-                headerTenantId = key.substring(JWT_PREFIX.length());
-                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
-                
-                // Get the encoded jwt.
-                List<String> values = entry.getValue();
-                if ((values != null) && !values.isEmpty())
-                    encodedJWT = values.get(0);
-                
-                // We're done.
-                break;
-            }
-        }
+        encodedJWT = requestContext.getHeaders().getFirst("x-jwt");
+//        MultivaluedMap<String, String> headers = requestContext.getHeaders();
+//        for (Entry<String, List<String>> entry : headers.entrySet()) {
+//            String key = entry.getKey();
+//            if (key.startsWith(JWT_PREFIX)) {
+//
+//                // Get the tenant information encoded in the key
+//                // and transform it to match tenant naming conventions.
+//                headerTenantId = key.substring(JWT_PREFIX.length());
+//                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
+//
+//                // Get the encoded jwt.
+//                List<String> values = entry.getValue();
+//                if ((values != null) && !values.isEmpty())
+//                    encodedJWT = values.get(0);
+//
+//                // We're done.
+//                break;
+//            }
+//        }
             
         // Make sure that a JWT was provided when it is required.
-        if (StringUtils.isBlank(encodedJWT) || StringUtils.isBlank(headerTenantId)) {
+        if (StringUtils.isBlank(encodedJWT)) {
             // This is an error in production, but allowed when running in test mode.
             // We let the endpoint verify that all needed parameters have been supplied.
             boolean jwtOptional = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL);

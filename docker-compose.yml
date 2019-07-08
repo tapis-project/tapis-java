@@ -3,22 +3,8 @@ version: "3"
 
 volumes:
   pgdata:
-  miniodata:
-
 
 services:
-
-  minio:
-    image: minio/minio
-    ports:
-      - 9000:9000
-    environment:
-      - MINIO_ACCESS_KEY=user
-      - MINIO_SECRET_KEY=password
-    volumes:
-      - miniodata:/data
-    command: server /data
-
 
   rabbitmq:
     image: rabbitmq

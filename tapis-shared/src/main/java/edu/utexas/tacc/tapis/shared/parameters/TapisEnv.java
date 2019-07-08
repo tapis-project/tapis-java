@@ -188,13 +188,13 @@ public class TapisEnv
 	  // Set this flag to true in test environments in which JWT values are assigned
 	  // using alternate methods.  Usually used in conjunction with the preceding setting.
 	  // Boolean value, the default is false.
-	  TAPIS_ENVONLY_JWT_OPTIONAL(ENVONLY_KEY_PREFIX + "jwt.optional"),
+	  TAPIS_ENVONLY_JWT_OPTIONAL("TAPIS_JWT_OPTIONAL"),
 	  
 	  // ENV-VARIABLE-ONLY: The flag that controls whether JWT signatures are used
 	  // to validate the integrity of the JWT data.  If set to true, the JWT data
 	  // is still accessed, but the signature verification step is skipped.
 	  // Boolean value, the default is false.
-	  TAPIS_ENVONLY_SKIP_JWT_VERIFY(ENVONLY_KEY_PREFIX + "skip.jwt.verify"),
+	  TAPIS_ENVONLY_SKIP_JWT_VERIFY("TAPIS_SKIP_JWT_VERIFY"),
 	  
 	  // ENV-VARIABLE-ONLY: The password to the tapis keystore.  This password is
 	  // required to access the JWT public key certificate used to verify the 

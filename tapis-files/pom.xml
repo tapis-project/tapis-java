@@ -10,12 +10,13 @@
 
     <groupId>edu.utexas.tacc.tapis</groupId>
     <artifactId>tapis-files</artifactId>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <name>Tapis Files API</name>
     <description>JAX-RS REST interface for the Tapis Files Service</description>
     <url>http://maven.apache.org</url>
 
+    <!--  IMPORTANT: CHANGE THE SCHEMA FOR ANY NEW SERVICE  -->
     <properties>
         <flyway.schemas>files</flyway.schemas>
     </properties>
@@ -32,12 +33,6 @@
         </dependencies>
     </dependencyManagement>
 	<dependencies>
-
-        <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-json-jackson</artifactId>
-            <version>2.28</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>tapis-shared</artifactId>
@@ -48,11 +43,7 @@
             <artifactId>tapis-sharedapi</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-fileslib</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-jaxrs2</artifactId>
@@ -69,13 +60,13 @@
             <version>0.27.0</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.6.5</version>
-        </dependency>
-        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
+            <version>2.29</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.test-framework</groupId>
@@ -91,14 +82,24 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/java</sourceDirectory>
-
         <plugins>
-            <!-- Capture the git commit hash and branch identifiers. -->
-            <!-- See parent pom for configuration details. -->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <version>3.2.1</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
+                <version>6.0.0-beta2</version>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -117,14 +118,6 @@
                     </resourcePackages>
                     <prettyPrint>true</prettyPrint>
                 </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>resolve</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
 
