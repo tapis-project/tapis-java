@@ -12,7 +12,7 @@ public class DBConnectionPool {
     private static HikariDataSource ds;
 
     static {
-        config.setJdbcUrl("jdbc:postgresql://localhost:5432/dev");
+        config.setJdbcUrl("jdbc:postgresql://postgres:5432/dev");
         config.setUsername("dev");
         config.setPassword("dev");
         config.setDriverClassName("org.postgresql.ds.PGSimpleDataSource");

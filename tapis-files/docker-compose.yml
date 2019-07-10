@@ -9,11 +9,17 @@ services:
     build:
       context: ..
       dockerfile: ./tapis-files/Dockerfile
+    image: tapis-files
+    volumes:
+      - .:/api
     environment:
       - TAPIS_DB_NAME=dev
       - TAPIS_DB_PASSWORD=dev
       - TAPIS_DB_URL=jdbc:postgresql://postgres/dev
-
+      - TAPIS_SKIP_JWT_VERIFY=true
+    ports:
+      - 8080:8080
+    command: ["java", "-jar", "/api/target/tapis-files.jar"]
 
   minio:
     image: minio/minio
