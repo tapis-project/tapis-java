@@ -1,16 +1,12 @@
 package edu.utexas.tacc.tapis.files.api;
 
-import edu.utexas.tacc.tapis.files.api.resources.SystemsResource;
-import org.glassfish.jersey.internal.inject.AbstractBinder;
-import org.glassfish.jersey.server.ResourceConfig;
+import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Response;
+
+import org.glassfish.jersey.test.JerseyTestNg;
 import org.glassfish.jersey.test.TestProperties;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import org.glassfish.jersey.test.JerseyTestNg;
-
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Response;
-import java.nio.file.Files;
 
 
 @Test(groups={"integration"})
