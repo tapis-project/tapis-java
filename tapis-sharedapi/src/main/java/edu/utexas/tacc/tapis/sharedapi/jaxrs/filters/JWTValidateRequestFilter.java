@@ -10,7 +10,6 @@ import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
@@ -24,7 +23,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisSecurityException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.shared.parameters.Settings;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
@@ -122,7 +121,7 @@ public class JWTValidateRequestFilter
         if (StringUtils.isBlank(encodedJWT)) {
             // This is an error in production, but allowed when running in test mode.
             // We let the endpoint verify that all needed parameters have been supplied.
-            boolean jwtOptional = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL);
+            boolean jwtOptional = Settings.getBoolean("TAPIS_JWT_OPTIONAL");
             if (jwtOptional) return;
             
             // We abort the request because we're missing required security information.
@@ -134,7 +133,7 @@ public class JWTValidateRequestFilter
         
         // Decode the JWT and optionally validate the JWT signature.
         Jwt jwt = null;
-        boolean skipJWTVerify = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY);
+        boolean skipJWTVerify = Settings.getBoolean("TAPIS_SKIP_JWT_VERIFY");
         try {
             if (skipJWTVerify) jwt = decodeJwt(encodedJWT);
               else jwt = decodeAndVerifyJwt(encodedJWT);

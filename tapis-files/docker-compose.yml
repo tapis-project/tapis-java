@@ -13,13 +13,14 @@ services:
     volumes:
       - .:/api
     environment:
-      - TAPIS_DB_NAME=dev
+      - TAPIS_DB_USERNAME=dev
       - TAPIS_DB_PASSWORD=dev
       - TAPIS_DB_URL=jdbc:postgresql://postgres/dev
       - TAPIS_SKIP_JWT_VERIFY=true
     ports:
       - 8080:8080
-    command: ["java", "-jar", "/api/target/tapis-files.jar"]
+      - 5005:5005
+    command: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar", "/api/target/tapis-files.jar"]
 
   minio:
     image: minio/minio
