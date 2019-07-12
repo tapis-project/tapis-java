@@ -22,19 +22,6 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<!-- Logback supplies the proper version of sl4j -->
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-			<version>${logback-classic.version}</version>
-		</dependency>
-		<dependency>
-			<!-- Logback supplies the proper version of sl4j -->
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>${slf4j-api.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>${commons-lang3.version}</version>
@@ -61,23 +48,11 @@
 			<artifactId>gson</artifactId>
 			<version>${gson.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-api</artifactId>
-			<version>${jjwt-aloe.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-impl</artifactId>
-			<version>${jjwt-aloe.version}</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-jackson</artifactId>
-			<version>${jjwt-aloe.version}</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-aloe</artifactId>
+            <version>${jjwt-aloe.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>args4j</groupId>
 			<artifactId>args4j</artifactId>
