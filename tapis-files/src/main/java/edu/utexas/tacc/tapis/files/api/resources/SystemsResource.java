@@ -16,9 +16,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
 import edu.utexas.tacc.tapis.files.lib.dao.StorageSystemsDAO;
+import edu.utexas.tacc.tapis.files.lib.models.AuthenticatedUser;
 import edu.utexas.tacc.tapis.files.lib.models.StorageSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.models.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 

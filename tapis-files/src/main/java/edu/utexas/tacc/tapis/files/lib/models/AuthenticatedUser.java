@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.shared.models;
+package edu.utexas.tacc.tapis.files.lib.models;
 
 import io.jsonwebtoken.Jwt;
 

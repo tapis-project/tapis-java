@@ -10,11 +10,10 @@ import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
-import edu.utexas.tacc.tapis.shared.models.AuthenticatedUser;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.contexts.TapisSecurtiyContext;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,9 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisSecurityException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
-import edu.utexas.tacc.tapis.shared.parameters.Settings;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
@@ -55,7 +56,7 @@ public class JWTValidateRequestFilter
     private static final Logger _log = LoggerFactory.getLogger(JWTValidateRequestFilter.class);
     
     // Header key prefix for jwts.
-    private static final String JWT_PREFIX = "x-jwt";
+    private static final String JWT_PREFIX = "x-jwt-assertion-";
     
     // The JWT key alias.  This is the key pair used to sign JWTs
     // and verify them.
@@ -65,10 +66,7 @@ public class JWTValidateRequestFilter
     /*                                Fields                                  */
     /* ********************************************************************** */
     // List all of url substrings that identify authentication exempt requests.
-    private static final String[] _noAuthRequests = {
-            "openapi.json",
-            "openapi.yml"
-    };
+    private static final String[] _noAuthRequests = {};
     
     // The public key used to check the JWT signature.  This cached copy is
     // used by all instances of this class.
@@ -83,7 +81,6 @@ public class JWTValidateRequestFilter
     @Override
     public void filter(ContainerRequestContext requestContext) 
     {
-
         // Tracing.
         if (_log.isTraceEnabled())
             _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
@@ -92,36 +89,35 @@ public class JWTValidateRequestFilter
         if (isNoAuthRequest(requestContext)) return;   
         
         // Parse variables.
-//        String headerTenantId = null;
+        String headerTenantId = null;
         String encodedJWT     = null;
         
         // Extract the jwt header from the set of headers.
-        encodedJWT = requestContext.getHeaders().getFirst("x-jwt");
-//        MultivaluedMap<String, String> headers = requestContext.getHeaders();
-//        for (Entry<String, List<String>> entry : headers.entrySet()) {
-//            String key = entry.getKey();
-//            if (key.startsWith(JWT_PREFIX)) {
-//
-//                // Get the tenant information encoded in the key
-//                // and transform it to match tenant naming conventions.
-//                headerTenantId = key.substring(JWT_PREFIX.length());
-//                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
-//
-//                // Get the encoded jwt.
-//                List<String> values = entry.getValue();
-//                if ((values != null) && !values.isEmpty())
-//                    encodedJWT = values.get(0);
-//
-//                // We're done.
-//                break;
-//            }
-//        }
+        MultivaluedMap<String, String> headers = requestContext.getHeaders();
+        for (Entry<String, List<String>> entry : headers.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(JWT_PREFIX)) {
+                
+                // Get the tenant information encoded in the key
+                // and transform it to match tenant naming conventions.
+                headerTenantId = key.substring(JWT_PREFIX.length());
+                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
+                
+                // Get the encoded jwt.
+                List<String> values = entry.getValue();
+                if ((values != null) && !values.isEmpty())
+                    encodedJWT = values.get(0);
+                
+                // We're done.
+                break;
+            }
+        }
             
         // Make sure that a JWT was provided when it is required.
-        if (StringUtils.isBlank(encodedJWT)) {
+        if (StringUtils.isBlank(encodedJWT) || StringUtils.isBlank(headerTenantId)) {
             // This is an error in production, but allowed when running in test mode.
             // We let the endpoint verify that all needed parameters have been supplied.
-            boolean jwtOptional = Settings.getBoolean("TAPIS_JWT_OPTIONAL");
+            boolean jwtOptional = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL);
             if (jwtOptional) return;
             
             // We abort the request because we're missing required security information.
@@ -133,7 +129,7 @@ public class JWTValidateRequestFilter
         
         // Decode the JWT and optionally validate the JWT signature.
         Jwt jwt = null;
-        boolean skipJWTVerify = Settings.getBoolean("TAPIS_SKIP_JWT_VERIFY");
+        boolean skipJWTVerify = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY);
         try {
             if (skipJWTVerify) jwt = decodeJwt(encodedJWT);
               else jwt = decodeAndVerifyJwt(encodedJWT);
@@ -155,17 +151,19 @@ public class JWTValidateRequestFilter
         }
         
         // Retrieve the user name from the claims section.
-        String username;
-        String roles;
-        String tenantId;
+        String user  = null;
+        String roles = null;
         Claims claims = (Claims) jwt.getBody();
-        username  = getUser(claims);
-        roles = getRoles(claims);
-        tenantId = getTenantId(claims);
-
-        AuthenticatedUser apiUser = new AuthenticatedUser(username, tenantId, roles, jwt);
+        if (claims != null) {
+            user  = getUser(claims);
+            roles = getRoles(claims);
+        }
+        
         // Assign JWT information to thread-local variables.
-        requestContext.setSecurityContext(new TapisSecurtiyContext(apiUser));
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+        if (!StringUtils.isBlank(headerTenantId)) threadContext.setTenantId(headerTenantId);
+        if (!StringUtils.isBlank(user)) threadContext.setUser(user);
+        if (!StringUtils.isBlank(roles)) threadContext.setRoles(roles);
     }
 
     /* ********************************************************************** */
@@ -337,19 +335,6 @@ public class JWTValidateRequestFilter
         else if (s.contains("/")) return StringUtils.substringAfter(s, "/");
         else return s;
     }
-
-    /** Get the users tenantId or return null.
-     *
-     * @param claims the JWT claims object
-     * @return the tenantId or null
-     */
-    private String getTenantId(Claims claims)
-    {
-        // The enduser name may have extraneous information around it.
-        String s = (String)claims.get("http://wso2.org/claims/enduserTenantId");
-        if (StringUtils.isBlank(s)) return null;
-        else return s;
-    }
     
     /* ---------------------------------------------------------------------- */
     /* getRoles:                                                              */
@@ -393,7 +378,7 @@ public class JWTValidateRequestFilter
                     _log.info(msg);
                 }
             
-                // No authentication.
+                // No authication.
                 return true;
             }
         }

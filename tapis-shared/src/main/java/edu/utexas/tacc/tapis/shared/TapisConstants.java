@@ -8,7 +8,7 @@ package edu.utexas.tacc.tapis.shared;
 public class TapisConstants 
 {
 	// Service names used to identify service code externally.
-	public static final String SERVICE_NAME_JOBS = "db.migration.db.migration.jobs";
+	public static final String SERVICE_NAME_JOBS = "jobs";
 	public static final String SERVICE_NAME_SAMPLE = "sample";
 	public static final String SERVICE_NAME_UUIDS = "uuid";
 
@@ -26,7 +26,7 @@ public class TapisConstants
 	
 	// This URL comes from Agave with no explanation and the host address does 
 	// not resolve using ping, dig or ssh.  Since this URL is hardcoded in
-	// db.migration.db.migration.jobs and systems, it is used in the develop and staging environments as
+	// jobs and systems, it is used in the develop and staging environments as
 	// well as in production.  We don't know why this exists.  
     public static final String MAGIC_TRANSFER_URL = "https://workers.prod.tacc.cloud/";
     
@@ -40,7 +40,7 @@ public class TapisConstants
 	// ----------- URL Components -----------
 	public static final String API_VERSION = "v3";
 	public static final String APPS_SERVICE          = "apps/" + API_VERSION + "/";
-	public static final String JOBS_SERVICE          = "db.migration.db.migration.jobs/" + API_VERSION + "/";
+	public static final String JOBS_SERVICE          = "jobs/" + API_VERSION + "/";
 	public static final String FILES_SERVICE         = "files/" + API_VERSION + "/";
     public static final String POSTIT_SERVICE        = "postits/" + API_VERSION + "/";
 	public static final String META_SERVICE          = "meta/" + API_VERSION + "/";

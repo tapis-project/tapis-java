@@ -1,0 +1,43 @@
+Tapis Sample Web Application Notes
+==================================
+
+Introduction
+-----------
+
+
+Usage
+-----
+http://localhost:8080/tapis-sampleapi 
+    - Shows index.html
+http://localhost:8080/tapis-sampleapi/v3/hello
+    - Runs GET on hello method
+
+
+Creating from Scratch in Eclipse
+--------------------------------
+There are many paths to creating a project in Eclipse, but only some of them work for a given
+application.  Our web application uses JAX-RS, so the ordering of actions during creation is 
+critical.  Here's one recipe that works.
+
+1. Create a new maven project with no archetype.
+    - Edit pom.xml to make it look like the one in tapis-sampleapi.
+2. Right click the project name in the Navigator.
+    - Select Properties->Project Facets
+    - Click the "convert to a facets project" link.
+    - Select the JavaScript, Dynamic Web Module, JAX-RS facets in addition to the Java
+        - Java -> version 12 or higher
+        - Dynamic Web Module -> version 4.0 or higher
+        - JAX-RS -> version 2.1 or higher 
+    - Save
+3. Right click the project name in the Navigator.
+    - Select Properties->Deployment Assembly
+    - Press Add
+    - Select Maven Dependencies
+    - Save
+4. Make sure the web.xml in WebContent/WEB-INF references the Jersey servlet.
+5. Create an index.html file in WebContent directory.
+6. The context root will be tapis-sampleapi by default.  Change the by right clicking the
+   project name, then Properties->Web Context Settings and setting the Context Root.
+    - Making the context root and the war file name (finalName in pom) the same will 
+      probably make life easier. 
+ 

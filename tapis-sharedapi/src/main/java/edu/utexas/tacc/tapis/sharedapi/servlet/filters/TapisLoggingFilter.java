@@ -42,7 +42,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
  * A second level of filtering takes place using an environment variable that 
  * lists the uri prefixes that are configured for logging. For example, if the 
  * environment variable EnvVar.TAPIS_REQUEST_LOGGING_FILTER_PREFIXES contains 
- * "/db.migration.db.migration.jobs/v2" as an entry, then all requests whose uris begin with that string will
+ * "/jobs/v2" as an entry, then all requests whose uris begin with that string will 
  * be logged by this class.  This second level filtering is provided to allow 
  * dynamic control of logging without restarting the servlet.   
  * 
@@ -98,7 +98,7 @@ public class TapisLoggingFilter
 	    // comparing the request path to path prefixes that have been specified
 	    // in the uri filter environment variable.  The URI begins with a /,
 	    // so / can be used as the wildcard prefix that turns on logging for
-	    // all requests.  To log all job requests, specify /db.migration.db.migration.jobs/v2.
+	    // all requests.  To log all job requests, specify /jobs/v2. 
 	    HttpServletRequest httpRequest = null;
 	    if (request instanceof HttpServletRequest)
 	        httpRequest = (HttpServletRequest) request;

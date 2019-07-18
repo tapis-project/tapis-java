@@ -21,9 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
-import io.jsonwebtoken.io.Encoders;
-import io.jsonwebtoken.io.Encoder;
-
+import io.jsonwebtoken.impl.Base64UrlCodec;
 
 /** This class creates a public/private key pair and stores them in the default
  * keystore as defined in KeyManager.  If the key pair exists, the user will be
@@ -182,8 +180,8 @@ public class CreateKey
         KeyPair keyPair = new KeyPair(publicKey, privateKey);
         
         // Reusable codec.
-//        Base64UrlCodec b64Codec = new Base64UrlCodec();
-        Encoder<byte[], String> b64Codec = Encoders.BASE64URL;
+        Base64UrlCodec b64Codec = new Base64UrlCodec();
+        
         // Print keys.
         System.out.println("**** Public Key Information (base64url encoded)");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());

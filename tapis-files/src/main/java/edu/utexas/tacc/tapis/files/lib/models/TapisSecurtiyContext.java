@@ -1,9 +1,8 @@
-package edu.utexas.tacc.tapis.sharedapi.jaxrs.contexts;
+package edu.utexas.tacc.tapis.files.lib.models;
 
-import edu.utexas.tacc.tapis.shared.models.AuthenticatedUser;
+import java.security.Principal;
 
 import javax.ws.rs.core.SecurityContext;
-import java.security.Principal;
 
 public class TapisSecurtiyContext implements SecurityContext {
 

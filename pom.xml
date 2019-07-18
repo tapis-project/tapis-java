@@ -190,14 +190,15 @@
 		<flywaydb.version>5.2.4</flywaydb.version>
 		<gsissh.version>0.12.1</gsissh.version>
 		<gson.version>2.8.5</gson.version>
+		<guava.version>28.0-jre</guava.version>
 		<hikariCP.version>3.3.1</hikariCP.version>
 		<httpclient.version>4.5.8</httpclient.version>
 		<httpmime.version>4.5.8</httpmime.version>
 		<jargon-core.version>4.3.0.1-RELEASE</jargon-core.version>
 		<javax.mail.version>1.6.2</javax.mail.version>
-		<javax.xml.bind.jaxb-api.version>2.3.1</javax.xml.bind.jaxb-api.version>
-		<javax.xml.bind.jaxb-core.version>2.3.1</javax.xml.bind.jaxb-core.version>
-		<javax.xml.bind.jaxb-impl.version>2.3.1</javax.xml.bind.jaxb-impl.version>
+		<javax.xml.bind.jaxb-api.version>2.1</javax.xml.bind.jaxb-api.version>
+		<javax.xml.bind.jaxb-core.version>2.3.0.1</javax.xml.bind.jaxb-core.version>
+		<javax.xml.bind.jaxb-impl.version>2.3.2</javax.xml.bind.jaxb-impl.version>
 		<javax.activation.activation.version>1.1.1</javax.activation.activation.version>
 		<jakarta.servlet-api.version>4.0.2</jakarta.servlet-api.version>                <!-- jersey group -->
 		<jersey-container-servlet.version>2.29</jersey-container-servlet.version> <!-- jersey group -->
@@ -207,6 +208,7 @@
 		<metrics-core.version>3.2.3</metrics-core.version>
 		<org.everit.json.schema.version>1.11.1</org.everit.json.schema.version>
 		<org.json.version>20180130</org.json.version>
+		<postgresql.version>42.2.5</postgresql.version>
 		<rabbitmq.version>3.6.11</rabbitmq.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
 		<software.amazon.awssdk.version>2.5.56</software.amazon.awssdk.version>
@@ -266,7 +268,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0-M3</version>
+					<version>${maven-surefire-plugin.version}</version>
 					<configuration>
 						<groups>unit</groups>
 					</configuration>
@@ -351,6 +353,7 @@
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
 		<module>tapis-db</module>
+		<module>tapis-sampleapi</module>
 	</modules>
 
 </project>

@@ -127,6 +127,7 @@
                 </executions>
             </plugin>
 
+            <!-- Generate the openapi documentation from the code -->
             <plugin>
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
