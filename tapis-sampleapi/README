@@ -11,6 +11,7 @@ The prototype has the following characteristics:
     3. Uses logback logging. 
     4. Captures compile-time information in resource files.
     5. The build generates a war file (likely to change soon).
+    6. Uses both JAR-RS and servlet filters in tapis-sharedapi.
 
 
 Server Usage
