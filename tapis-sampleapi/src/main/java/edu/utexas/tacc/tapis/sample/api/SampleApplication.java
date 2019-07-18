@@ -29,7 +29,7 @@ public class SampleApplication
         // in any aloe class.  In particular, the filter classes in 
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
-        packages("edu.utexas.tacc.tapis.sample.api.resources");
+        packages("edu.utexas.tacc.tapis");
         setApplicationName("tapis-sampleapi"); 
     }
 }

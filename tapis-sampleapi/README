@@ -5,8 +5,28 @@ Introduction
 -----------
 
 
-Usage
------
+Server Usage
+------------
+
+Web applications can be controlled using these environment variables:
+
+tapis.envonly.allow.test.query.parms - allow test-only values sent as query parameters
+tapis.envonly.jwt.optional - set to true to skip jwt processing
+tapis.envonly.keystore.password - password to unlock jwt private signing key
+tapis.envonly.skip.jwt.verify - set to true to skip jwt signature verification
+tapis.request.logging.filter.prefixes - set url prefixes that log each request
+
+See the TapisEnv class for an explanation of how to use these parameters and for the
+complete listing of all possible Tapis parameters.  For example, to not require a jwt
+in a request and to log all requests, tapis.envonly.jwt.optional = true and
+tapis.request.logging.filter.prefixes = /tapis-sampleapi/v3.  Note that if jwt content
+is required to execute requests, that information can be passed in query parameters
+when tapis.envonly.allow.test.query.parms = true.
+
+Client Usage
+------------
+From Browser, enter these urls:
+
 http://localhost:8080/tapis-sampleapi 
     - Shows index.html
 http://localhost:8080/tapis-sampleapi/v3/hello

@@ -188,13 +188,13 @@ public class TapisEnv
 	  // Set this flag to true in test environments in which JWT values are assigned
 	  // using alternate methods.  Usually used in conjunction with the preceding setting.
 	  // Boolean value, the default is false.
-	  TAPIS_ENVONLY_JWT_OPTIONAL("TAPIS_JWT_OPTIONAL"),
+	  TAPIS_ENVONLY_JWT_OPTIONAL(ENVONLY_KEY_PREFIX + "jwt.optional"),
 	  
 	  // ENV-VARIABLE-ONLY: The flag that controls whether JWT signatures are used
 	  // to validate the integrity of the JWT data.  If set to true, the JWT data
 	  // is still accessed, but the signature verification step is skipped.
 	  // Boolean value, the default is false.
-	  TAPIS_ENVONLY_SKIP_JWT_VERIFY("TAPIS_SKIP_JWT_VERIFY"),
+	  TAPIS_ENVONLY_SKIP_JWT_VERIFY(ENVONLY_KEY_PREFIX + "skip.jwt.verify"),
 	  
 	  // ENV-VARIABLE-ONLY: The password to the tapis keystore.  This password is
 	  // required to access the JWT public key certificate used to verify the 
@@ -352,14 +352,14 @@ public class TapisEnv
 	 * is a valid list.
 	 * 
 	 * @param envVar the environment variable key
-	 * @param name the string used to match prefixes of the list of values assigned 
-	 * 		to the environment variable
+	 * @param name the url string used to match against prefixes assigned in 
+	 *           the environment variable
 	 * @return true if an element in the list begins with prefix string, false otherwise
 	 */
-	public static boolean inEnvVarListPrefix(EnvVar envVar, String prefix)
+	public static boolean inEnvVarListPrefix(EnvVar envVar, String name)
 	{
 		// Garbage in, garbage out.
-		if ((envVar == null) || (prefix == null)) return false;
+		if ((envVar == null) || (name == null)) return false;
 		
 		// Get the list of environment values.
 		String values = get(envVar);
@@ -367,7 +367,7 @@ public class TapisEnv
 		
 		// Tokenize the non-empty list.
 		String[] tokens = _namePattern.split(values);
-		for (String name : tokens)
+		for (String prefix : tokens)
 			if (name.startsWith(prefix)) return true;
 		
 		return false;

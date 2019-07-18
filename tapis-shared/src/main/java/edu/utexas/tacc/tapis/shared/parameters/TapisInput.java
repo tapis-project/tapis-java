@@ -52,8 +52,8 @@ public final class TapisInput
   private Properties _properties = new Properties();
   
   // Calling service identity that is used when searching for the default resource  
-  // file on the classpath.  For example, if "db.migration.db.migration.jobs" is passed in, the calling service
-  // should have a resources/db.migration.db.migration.jobs/SERVICE_PROPERTY_FILE defined.
+  // file on the classpath.  For example, if "jobs" is passed in, the calling service  
+  // should have a resources/jobs/SERVICE_PROPERTY_FILE defined. 
   private String _serviceName;
   
   /* **************************************************************************** */
@@ -175,7 +175,7 @@ public final class TapisInput
         throw new TapisException(msg, e);
       }
     }
-    // ---------------- Load AuthenticatedUser-Specified File
+    // ---------------- Load User-Specified File
     else {
         // Open, read and close the properties file.
         try (BufferedReader rdr = new BufferedReader(new FileReader(file))) {

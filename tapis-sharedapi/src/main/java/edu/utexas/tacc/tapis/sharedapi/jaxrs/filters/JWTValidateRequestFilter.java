@@ -378,7 +378,7 @@ public class JWTValidateRequestFilter
                     _log.info(msg);
                 }
             
-                // No authication.
+                // No authentication.
                 return true;
             }
         }
