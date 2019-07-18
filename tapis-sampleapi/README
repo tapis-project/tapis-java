@@ -3,11 +3,18 @@ Tapis Sample Web Application Notes
 
 Introduction
 -----------
+This sample web application can be used as a skeleton or prototype for actual Tapis web services.
+The prototype has the following characteristics:
+
+    1. Uses JAX-RS to implement endpoints.
+    2. Uses swagger to dyamically provide openapi json and yaml.
+    3. Uses logback logging. 
+    4. Captures compile-time information in resource files.
+    5. The build generates a war file (likely to change soon).
 
 
 Server Usage
 ------------
-
 Web applications can be controlled using these environment variables:
 
 tapis.envonly.allow.test.query.parms - allow test-only values sent as query parameters
@@ -23,14 +30,22 @@ tapis.request.logging.filter.prefixes = /tapis-sampleapi/v3.  Note that if jwt c
 is required to execute requests, that information can be passed in query parameters
 when tapis.envonly.allow.test.query.parms = true.
 
+Start the web application standalone or in an IDE setting any environment variables that
+you need.
+
 Client Usage
 ------------
-From Browser, enter these urls:
+From Browser, enter these urls to execute application endpoints:
 
 http://localhost:8080/tapis-sampleapi 
     - Shows index.html
 http://localhost:8080/tapis-sampleapi/v3/hello
     - Runs GET on hello method
+    
+From Browser, enter these urls to generate the openapi definition of the sample interface:
+
+http://localhost:8080/tapis-sampleapi/v3/openapi.json
+http://localhost:8080/tapis-sampleapi/v3/openapi.yaml
 
 
 Creating from Scratch in Eclipse
