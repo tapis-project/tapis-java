@@ -146,17 +146,19 @@ public class TapisEnvTest
         Assert.assertFalse(TapisEnv.inEnvVarList(envVar, "a"));
     }
 
-    @Test
+    @Test(enabled=true)
     public void testInEnvVarListPrefix()
     {
         TapisEnv.EnvVar envVar = TapisEnv.EnvVar.TAPIS_REQUEST_LOGGING_FILTER_PREFIXES;
-        String prefix = "/g";
+        String name = "/g";
         // Check that false is returned if either parameter is null
         Assert.assertFalse(TapisEnv.inEnvVarListPrefix(null,null));
         Assert.assertFalse(TapisEnv.inEnvVarListPrefix(envVar,null));
-        Assert.assertFalse(TapisEnv.inEnvVarListPrefix(null,prefix));
+        Assert.assertFalse(TapisEnv.inEnvVarListPrefix(null,name));
         // Check that true is returned if value is a prefix in the list
-        Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, prefix));
+        Assert.assertFalse(TapisEnv.inEnvVarListPrefix(envVar, name));
+        // Check that true is returned if value is a prefix in the list
+        Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, "/g/h/i/j/k"));
         // Check that false is returned if value is not in list
         Assert.assertFalse(TapisEnv.inEnvVarListPrefix(envVar, "/zzz"));
         // Check that false is returned if env var value is empty
