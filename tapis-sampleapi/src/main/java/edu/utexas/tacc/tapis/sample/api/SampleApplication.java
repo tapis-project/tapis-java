@@ -16,7 +16,8 @@ public class SampleApplication
 {
     public SampleApplication()
     {
-        System.out.println("I'm in SampleApplication!");
+        // Log our existence.
+        System.out.println("**** Starting tapis-sampleapi ****");
         
         // Register the swagger resources that allow the 
         // documentation endpoints to be automatically generated.

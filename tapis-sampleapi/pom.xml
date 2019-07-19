@@ -63,16 +63,19 @@
                 <version>${swagger-maven-plugin.version}</version>
                 <configuration>
                     <outputFileName>openapi</outputFileName>
-                    <outputPath>${project.build.directory}/generated-sources</outputPath>
+                    <outputPath>${project.basedir}/src/main/resources</outputPath>
                     <outputFormat>JSONANDYAML</outputFormat>
                     <resourcePackages>
-                        <package>edu.utexas.tacc.tapis.sample.api</package>
+                        <package>edu.utexas.tacc.tapis.sample.api.resources</package>
                     </resourcePackages>
                     <prettyPrint>true</prettyPrint>
                 </configuration>
                 <executions>
                     <execution>
                         <phase>compile</phase>
+                        <goals>
+                            <goal>resolve</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
