@@ -159,6 +159,12 @@ public class TapisEnvTest
         Assert.assertFalse(TapisEnv.inEnvVarListPrefix(envVar, name));
         // Check that true is returned if value is a prefix in the list
         Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, "/g/h/i/j/k"));
+        // Check that true is returned if value is a prefix in the list
+        Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, "a33"));
+        // Check that true is returned if value is a prefix in the list
+        Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, "bc/y"));
+        // Check that true is returned if value is a prefix in the list
+        Assert.assertTrue(TapisEnv.inEnvVarListPrefix(envVar, "def"));
         // Check that false is returned if value is not in list
         Assert.assertFalse(TapisEnv.inEnvVarListPrefix(envVar, "/zzz"));
         // Check that false is returned if env var value is empty
