@@ -208,7 +208,7 @@
 		<metrics-core.version>3.2.3</metrics-core.version>
 		<org.everit.json.schema.version>1.11.1</org.everit.json.schema.version>
 		<org.json.version>20180130</org.json.version>
-		<postgresql.version>42.2.5</postgresql.version>
+		<postgresql.version>42.2.6</postgresql.version>
 		<rabbitmq.version>3.6.11</rabbitmq.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
 		<software.amazon.awssdk.version>2.5.56</software.amazon.awssdk.version>
@@ -352,6 +352,7 @@
 		<module>tapis-files</module>
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
+        <module>tapis-shareddb</module>
 		<module>tapis-db</module>
 		<module>tapis-sampleapi</module>
 	</modules>
