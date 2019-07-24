@@ -348,11 +348,10 @@
 	</dependencies>
 
     <modules>
-        <module>tapis-security</module>
-		<module>tapis-files</module>
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
         <module>tapis-shareddb</module>
+        <module>tapis-files</module>
 		<module>tapis-db</module>
 		<module>tapis-sampleapi</module>
 	</modules>
