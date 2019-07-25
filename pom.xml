@@ -351,6 +351,7 @@
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
         <module>tapis-shareddb</module>
+        <module>tapis-migrate</module>
         <module>tapis-files</module>
 		<module>tapis-db</module>
 		<module>tapis-sampleapi</module>

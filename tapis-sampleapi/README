@@ -11,7 +11,7 @@ The prototype has the following characteristics:
     3. Uses logback logging. 
     4. Captures compile-time information in resource files.
     5. The build generates a war file (likely to change soon).
-    6. Uses both JAR-RS and servlet filters in tapis-sharedapi.
+    6. Uses both JAR-RS and servlet filters from tapis-sharedapi.
 
 
 Server Usage
@@ -26,27 +26,32 @@ tapis.request.logging.filter.prefixes - set url prefixes that log each request
 
 See the TapisEnv class for an explanation of how to use these parameters and for the
 complete listing of all possible Tapis parameters.  For example, to not require a jwt
-in a request and to log all requests, tapis.envonly.jwt.optional = true and
-tapis.request.logging.filter.prefixes = /tapis-sampleapi/v3.  Note that if jwt content
-is required to execute requests, that information can be passed in query parameters
-when tapis.envonly.allow.test.query.parms = true.
+in a request and to log all requests, set the following parameters when starting the 
+server:
+ 
+        tapis.envonly.jwt.optional = true
+        tapis.request.logging.filter.prefixes = /tapis-sampleapi/v3.  
+        
+Note that if jwt content is required to execute requests, that information can be passed 
+in request query parameters when tapis.envonly.allow.test.query.parms = true.
 
 Start the web application standalone or in an IDE setting any environment variables that
 you need.
+
 
 Client Usage
 ------------
 From Browser, enter these urls to execute application endpoints:
 
-http://localhost:8080/tapis-sampleapi 
+http://localhost:8080/sample 
     - Shows index.html
-http://localhost:8080/tapis-sampleapi/v3/hello
+http://localhost:8080/sample/v3/hello
     - Runs GET on hello method
     
 From Browser, enter these urls to generate the openapi definition of the sample interface:
 
-http://localhost:8080/tapis-sampleapi/v3/openapi.json
-http://localhost:8080/tapis-sampleapi/v3/openapi.yaml
+http://localhost:8080/sample/v3/openapi.json
+http://localhost:8080/sample/v3/openapi.yaml
 
 
 Creating from Scratch in Eclipse

@@ -98,6 +98,6 @@ public class SampleResource
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the sample application.")).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the Tapis Sample application.")).build();
   }
 }

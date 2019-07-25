@@ -56,6 +56,17 @@
                 <artifactId>buildnumber-maven-plugin</artifactId>
             </plugin>
             
+            <plugin>
+                <!-- The version is set in the parent pom -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                </configuration>
+            </plugin>
+
             <!-- Generate the openapi documentation from the code -->
             <plugin>
                 <groupId>io.swagger.core.v3</groupId>
@@ -81,7 +92,7 @@
             </plugin>
         </plugins>
 
-        <finalName>tapis-sampleapi</finalName>
+        <finalName>sample</finalName>
     </build>
 
 </project>

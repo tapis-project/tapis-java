@@ -31,6 +31,6 @@ public class SampleApplication
         // tapis-sharedapi will be discovered whenever that project is
         // included as a maven dependency.
         packages("edu.utexas.tacc.tapis");
-        setApplicationName("tapis-sampleapi"); 
+        setApplicationName("sample"); 
     }
 }

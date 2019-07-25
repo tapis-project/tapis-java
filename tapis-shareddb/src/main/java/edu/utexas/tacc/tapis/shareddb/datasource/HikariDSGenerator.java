@@ -45,7 +45,7 @@ public class HikariDSGenerator
   private static final Logger _log = LoggerFactory.getLogger(HikariDSGenerator.class);
     
   // Aloe defaults.
-  public static final String  ALOE_DB_NAME = "tapisdb";
+  public static final String  TAPIS_DB_NAME = "tapisdb";
   public static final String  DEFAULT_DBMS_NAME = "postgresql";
   public static final String  DEFAULT_DRIVER_CLASS_NAME = "org.postgresql.Driver";
   public static final boolean DEFAULT_AUTO_COMMIT = false;
