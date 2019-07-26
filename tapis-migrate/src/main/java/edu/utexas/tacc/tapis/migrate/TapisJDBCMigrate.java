@@ -206,9 +206,9 @@ public final class TapisJDBCMigrate
        stmt = conn.createStatement();
        
        // Drop the tapisdb database if it exists.
-       String sql = "DROP DATABASE IF EXISTS `" + TAPIS_DB_NAME + "`";
+       String sql = "DROP DATABASE IF EXISTS " + TAPIS_DB_NAME;
+       conn.setAutoCommit(true);
        stmt.executeUpdate(sql);
-       conn.commit();
        if (_log.isInfoEnabled())
          _log.info(MsgUtils.getMsg("MIGRATE_DB_DROPPED", TAPIS_DB_NAME));
       }
@@ -231,6 +231,14 @@ public final class TapisJDBCMigrate
              _log.error(msg, e);
             }
          
+       // Always try to reset the connection setting.
+       try {conn.setAutoCommit(false);}
+           catch (SQLException e) {
+               // Log and discard.
+               String msg = MsgUtils.getMsg("MIGRATE_SET_AUTOCOMMIT_FAILED", ADMIN_DB_NAME);
+               _log.error(msg, e);
+           }
+       
        // Close the connection to the administrative database.
        if (conn != null)
           try {conn.close();} 
@@ -321,7 +329,6 @@ public final class TapisJDBCMigrate
       stmt = conn.createStatement();
       stmt.execute(sql);
       stmt.close();
-      conn.setAutoCommit(false);
       
       if (_log.isInfoEnabled())
           _log.info(MsgUtils.getMsg("MIGRATE_DB_CREATED", TAPIS_DB_NAME));
@@ -335,6 +342,14 @@ public final class TapisJDBCMigrate
      }
     finally 
      {
+      // Always try to reset the connection setting.
+      try {conn.setAutoCommit(false);}
+          catch (SQLException e) {
+              // Log and discard.
+              String msg = MsgUtils.getMsg("MIGRATE_SET_AUTOCOMMIT_FAILED", ADMIN_DB_NAME);
+              _log.error(msg, e);
+          }
+        
       // Always close connection to admin db.
       // This also closes any open statement.
       if (conn != null)
