@@ -50,7 +50,7 @@ public class TapisJDBCMigrateParms
 
   @Option(name = "-schema", required = false, 
       metaVar = "<name>", usage = "database schema name")
-  public String schema = HikariDSGenerator.TAPIS_DB_NAME;
+  public String schema = HikariDSGenerator.TAPIS_SCHEMA_NAME;
 
   @Option(name = "-C", required = false, aliases = {"-CLEANDB"}, 
       usage = "Clean but don't drop the existing database, causing a full redeployment",

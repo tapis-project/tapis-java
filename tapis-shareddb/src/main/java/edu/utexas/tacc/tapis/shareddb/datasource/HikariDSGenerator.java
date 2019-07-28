@@ -46,6 +46,7 @@ public class HikariDSGenerator
     
   // Aloe defaults.
   public static final String  TAPIS_DB_NAME = "tapisdb";
+  public static final String  TAPIS_SCHEMA_NAME = "public";
   public static final String  DEFAULT_DBMS_NAME = "postgresql";
   public static final String  DEFAULT_DRIVER_CLASS_NAME = "org.postgresql.Driver";
   public static final boolean DEFAULT_AUTO_COMMIT = false;

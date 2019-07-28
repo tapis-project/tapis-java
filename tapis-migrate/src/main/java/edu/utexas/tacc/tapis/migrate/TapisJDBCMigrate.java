@@ -40,6 +40,10 @@ public final class TapisJDBCMigrate
   // The tapis database and user that services use.
   private static final String TAPIS_DB_NAME = HikariDSGenerator.TAPIS_DB_NAME;
   private static final String TAPIS_USER = "tapis"; 
+  private static final String DFT_TAPIS_USER_PASSWORD = "password"; // change on 1st use
+  
+  // The schema search path for the tapis user and database.
+  private static final String SEARCH_PATH = "public";
   
   // The administrative database name used to query metadata.
   private static final String ADMIN_DB_NAME = "postgres";
@@ -306,15 +310,10 @@ public final class TapisJDBCMigrate
           // create the user here, but that would require passing in two
           // sets of credentials to this program.  For now, we leave the
           // user account creation as an off-line process.
-          if (!hasFirst) {
-        	  String msg = MsgUtils.getMsg("MIGRATE_ABORT_NO_USER", TAPIS_DB_NAME, TAPIS_USER);
-        	  _log.error(msg);
-        	  throw new TapisJDBCException(msg);
-          }
-          else {
+          if (!hasFirst) createTapisUser(conn);
+            else 
               if (_log.isInfoEnabled())
                   _log.info(MsgUtils.getMsg("MIGRATE_FOUND_USER", TAPIS_USER));
-          }
       }
       
       // ------------------------- Create DB -------------------------
@@ -329,9 +328,21 @@ public final class TapisJDBCMigrate
       stmt = conn.createStatement();
       stmt.execute(sql);
       stmt.close();
+      conn.setAutoCommit(false);
       
       if (_log.isInfoEnabled())
           _log.info(MsgUtils.getMsg("MIGRATE_DB_CREATED", TAPIS_DB_NAME));
+      
+      // ---------------------- Configure DB -------------------------
+      // Limit the search to the public schema in the new database.
+      sql = "ALTER DATABASE " + TAPIS_DB_NAME + " SET search_path TO " + SEARCH_PATH; 
+      stmt = conn.createStatement();
+      stmt.execute(sql);
+      stmt.close();
+      conn.commit();      
+
+      if (_log.isInfoEnabled())
+          _log.info(MsgUtils.getMsg("MIGRATE_DB_SCHEMA_SEARCH", TAPIS_DB_NAME, SEARCH_PATH));
     }
     catch (Exception e)
     {
@@ -342,8 +353,9 @@ public final class TapisJDBCMigrate
      }
     finally 
      {
-      // Always try to reset the connection setting.
-      try {conn.setAutoCommit(false);}
+      if (conn != null) {
+          // Always try to reset the connection setting.
+          try {conn.setAutoCommit(false);}
           catch (SQLException e) {
               // Log and discard.
               String msg = MsgUtils.getMsg("MIGRATE_SET_AUTOCOMMIT_FAILED", ADMIN_DB_NAME);
@@ -352,7 +364,6 @@ public final class TapisJDBCMigrate
         
       // Always close connection to admin db.
       // This also closes any open statement.
-      if (conn != null)
          try {conn.close();} 
           catch (SQLException e) 
            {
@@ -360,7 +371,42 @@ public final class TapisJDBCMigrate
             String msg = MsgUtils.getMsg("MIGRATE_CONN_FAILED", ADMIN_DB_NAME);
             _log.error(msg, e);
            }   
+      }
      }
+  }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* createTapisUser:                                                             */
+  /* ---------------------------------------------------------------------------- */
+  /** Create and configure the tapis user.  We want the user to use the public 
+   * schema by default.  
+   * 
+   * @param conn
+   * @throws SQLException 
+   */
+  private void createTapisUser(Connection conn) throws SQLException
+  {
+      // Create the tapis user.
+      String sql = "CREATE USER " + TAPIS_USER + " PASSWORD '" + 
+                   DFT_TAPIS_USER_PASSWORD + "'";
+      Statement stmt = conn.createStatement();
+      stmt.execute(sql);
+      stmt.close();
+      conn.commit();
+      
+      if (_log.isInfoEnabled())
+          _log.info(MsgUtils.getMsg("MIGRATE_CREATED_USER", TAPIS_USER));
+      
+      // Customize the user's search path so that the public schema is used.
+      // This affect the user's search path in all databases.
+      sql = "ALTER ROLE " + TAPIS_USER + " SET search_path TO " + SEARCH_PATH; 
+      stmt = conn.createStatement();
+      stmt.execute(sql);
+      stmt.close();
+      conn.commit();      
+      
+      if (_log.isInfoEnabled())
+          _log.info(MsgUtils.getMsg("MIGRATE_USER_SCHEMA_SEARCH", TAPIS_USER, SEARCH_PATH));
   }
   
   /* ---------------------------------------------------------------------------- */
