@@ -1,9 +1,13 @@
 package edu.utexas.tacc.tapis.sample.api.resources;
 
+import java.io.InputStream;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -99,5 +103,27 @@ public class SampleResource
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the Tapis Sample application.")).build();
+  }
+
+  /* ---------------------------------------------------------------------------- */
+  /* insertRecord:                                                                */
+  /* ---------------------------------------------------------------------------- */
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response insertRecord(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                            InputStream payloadStream)
+  {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "insertRecord", 
+                                   "  " + _request.getRequestURL());
+      _log.trace(msg);
+    }
+    
+    // ---------------------------- Success ------------------------------- 
+    // Success means we found the job. 
+    return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+        MsgUtils.getMsg("TAPIS_FOUND", "insertRecord"), prettyPrint, "Inserted record into database")).build();
   }
 }

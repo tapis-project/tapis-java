@@ -8,9 +8,9 @@ package edu.utexas.tacc.tapis.shared;
 public class TapisConstants 
 {
 	// Service names used to identify service code externally.
-	public static final String SERVICE_NAME_JOBS = "jobs";
+	public static final String SERVICE_NAME_JOBS   = "jobs";
 	public static final String SERVICE_NAME_SAMPLE = "sample";
-	public static final String SERVICE_NAME_UUIDS = "uuid";
+	public static final String SERVICE_NAME_UUIDS  = "uuid";
 
 	// Thread local logging identifier.
 	public static final String MDC_ID_KEY = "UNIQUE_ID";
@@ -24,12 +24,6 @@ public class TapisConstants
 	public static final int JAXRS_FILTER_PRIORITY_AFTER_AUTHENTICATION   = 1100;
 	public static final int JAXRS_FILTER_PRIORITY_AFTER_AUTHENTICATION_2 = 1200;
 	
-	// This URL comes from Agave with no explanation and the host address does 
-	// not resolve using ping, dig or ssh.  Since this URL is hardcoded in
-	// jobs and systems, it is used in the develop and staging environments as
-	// well as in production.  We don't know why this exists.  
-    public static final String MAGIC_TRANSFER_URL = "https://workers.prod.tacc.cloud/";
-    
 	// Convenience definition.
 	public static final String EMPTY_JSON = "{}";
 	

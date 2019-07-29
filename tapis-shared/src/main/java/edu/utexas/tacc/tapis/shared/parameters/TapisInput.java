@@ -131,8 +131,7 @@ public final class TapisInput
     }
     
     // Check for a system parameter.
-    filename = System.getProperty(
-                        TapisEnv.EnvVar.TAPIS_SERVICE_PROPERTIES_PATHNAME.getEnvName());
+    filename = System.getProperty(TapisEnv.EnvVar.TAPIS_SERVICE_PROPERTIES_PATHNAME.getEnvName());
     if (!StringUtils.isBlank(filename)) {
       return new File(filename);
     }

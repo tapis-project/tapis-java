@@ -355,6 +355,7 @@
         <module>tapis-files</module>
 		<module>tapis-db</module>
 		<module>tapis-sampleapi</module>
+		<module>tapis-samplelib</module>
 	</modules>
 
 </project>
