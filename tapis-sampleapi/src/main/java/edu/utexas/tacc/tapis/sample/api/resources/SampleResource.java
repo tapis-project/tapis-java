@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -34,7 +33,9 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.sample.dao.SampleDao;
 import edu.utexas.tacc.tapis.sample.model.Sample;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -143,23 +144,19 @@ public class SampleResource
                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
     
+    // Make sure the json conforms to the expected schema.
+    try {JsonValidator.validateSampleCreateRequest(json);}
+      catch (TapisJSONException e) {
+        String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+        _log.error(msg, e);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+  
     // Extract the text value.
     String text = null;
-    Gson gson = TapisGsonUtils.getGson();
-    JsonElement elem = gson.fromJson(json, JsonElement.class);
-    if (elem == null) {
-        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", "No payload.");
-        _log.error(msg);
-        return Response.status(Status.BAD_REQUEST).
-                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-    } else if (!elem.isJsonObject()) {
-        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", "Not a json object.");
-        _log.error(msg);
-        return Response.status(Status.BAD_REQUEST).
-                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-    } else {
-        text = ((JsonObject)elem).get("text").getAsString();
-    }
+    JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
+    text = obj.get("text").getAsString(); // validated to be a non-empty string 
     
     // Check text.
     if (StringUtils.isBlank(text)) {

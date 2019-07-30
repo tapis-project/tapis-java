@@ -6,7 +6,6 @@ import java.util.List;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
@@ -44,22 +43,22 @@ public class JsonValidator
   private static final Logger _log = LoggerFactory.getLogger(JsonValidator.class);
   
   // -------- Schema resource file URIs.
-  private static String FILE_JOB_SUBMIT_REQUEST = "/edu/utexas/tacc/tapis/jobs/api/jsonschema/JobSubmitRequest.json";
-  private static String FILE_JOB_QUEUE_DEFS     = "/edu/utexas/tacc/tapis/jobs/jsonschema/JobQueueDefinitions.json";
+  private static String FILE_SAMPLE_CREATE_REQUEST = "/edu/utexas/tacc/tapis/sample/api/jsonschema/SampleCreateRequest.json";
   
   // -------- Demand-loaded schema objects. 
-  private static Schema _jobSubmitRequestSchema;
-  private static Schema _jobQueueDefinitionsSchema;
+  private static Schema _sampleCreateRequestSchema;
   
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
+  /* Add a new validate method for each schema. */
+  
   /* ---------------------------------------------------------------------------- */
-  /* validateJobSubmitRequest:                                                    */
+  /* validateSampleCreateRequest:                                                 */
   /* ---------------------------------------------------------------------------- */
-  public static void validateJobSubmitRequest(String json) throws TapisJSONException
+  public static void validateSampleCreateRequest(String json) throws TapisJSONException
   {
-    Schema schema = getJobSubmitRequestSchema();
+    Schema schema = getSampleCreateRequestSchema();
     try {schema.validate(new JSONObject(json));}
         catch (ValidationException e) {
             // Get the detailed list of parse failures. 
@@ -79,34 +78,6 @@ public class JsonValidator
             String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
             _log.error(msg, e);
             throw new TapisJSONException(msg, e);
-      }
-  }
-
-  /* ---------------------------------------------------------------------------- */
-  /* validateJobQueueDefinitions:                                                 */
-  /* ---------------------------------------------------------------------------- */
-  public static void validateJobQueueDefinitions(String json) throws TapisJSONException
-  {
-    Schema schema = getJobQueueDefinitionsSchema();
-    try {schema.validate(new JSONArray(json));}
-      catch (ValidationException e) {
-          // Get the detailed list of parse failures. 
-          // The returned list is never empty.
-          ValidationException e1 = (ValidationException)e;
-          List<String> messages = e1.getAllMessages();
-          String details = "";
-          int i = 1;
-          for (String s : messages) details += " #" + (i++) + s;
-          
-          // Log the exception details.
-          String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_FAILURE", e.getMessage(), details);
-          _log.error(msg, e);
-          throw new TapisJSONException(msg, e);
-      }
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
-          _log.error(msg, e);
-          throw new TapisJSONException(msg, e);
       }
   }
 
@@ -136,23 +107,15 @@ public class JsonValidator
   /* **************************************************************************** */
   /*                            Schema Loading Methods                            */
   /* **************************************************************************** */
+  /* Add a new load method for each schema. */
+  
   /* ---------------------------------------------------------------------------- */
-  /* getJobSubmitRequestSchema:                                                   */
+  /* getSampleCreateRequestSchema:                                                */
   /* ---------------------------------------------------------------------------- */
-  private static Schema getJobSubmitRequestSchema() throws TapisJSONException 
+  private static Schema getSampleCreateRequestSchema() throws TapisJSONException 
   {
-    if (_jobSubmitRequestSchema == null) 
-      _jobSubmitRequestSchema = getSchema(FILE_JOB_SUBMIT_REQUEST);
-    return _jobSubmitRequestSchema;
-  }
-
-  /* ---------------------------------------------------------------------------- */
-  /* getJobQueueDefinitionsSchema:                                                */
-  /* ---------------------------------------------------------------------------- */
-  private static Schema getJobQueueDefinitionsSchema() throws TapisJSONException 
-  {
-    if (_jobQueueDefinitionsSchema == null) 
-      _jobQueueDefinitionsSchema = getSchema(FILE_JOB_QUEUE_DEFS);
-    return _jobQueueDefinitionsSchema;
+    if (_sampleCreateRequestSchema == null) 
+      _sampleCreateRequestSchema = getSchema(FILE_SAMPLE_CREATE_REQUEST);
+    return _sampleCreateRequestSchema;
   }
 }
