@@ -1,9 +1,9 @@
-package edu.utexas.tacc.tapis.shared.db;
+package edu.utexas.tacc.tapis.files.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import edu.utexas.tacc.tapis.shared.parameters.Settings;
 
+import edu.utexas.tacc.tapis.parameters.Settings;
 
 import java.sql.Connection;
 import java.sql.SQLException;

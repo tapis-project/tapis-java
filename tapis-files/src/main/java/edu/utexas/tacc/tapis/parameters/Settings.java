@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.shared.parameters;
+package edu.utexas.tacc.tapis.parameters;
 
 import java.util.Map;
 import java.util.Properties;

@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.files.lib.dao;
 
+import edu.utexas.tacc.tapis.files.db.DBConnectionPool;
 import edu.utexas.tacc.tapis.files.lib.models.StorageSystem;
-import edu.utexas.tacc.tapis.shared.db.DBConnectionPool;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 import java.sql.Connection;
