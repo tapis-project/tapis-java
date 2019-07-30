@@ -264,6 +264,32 @@
 					</configuration>
 				</plugin>
 				
+                <!-- Capture the git commit hash and branch identifiers.  -->
+                <!-- We use the plugin only for git and depend on regular -->
+                <!-- maven filtering for timestamp and code version. We   -->
+                <!-- could use this plugin to update jar and war manifest -->
+                <!-- files, but we use separate resource file filtering   -->
+                <!-- instead. See the resources element below for         -->
+                <!-- filtering details.                                   -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>${buildnumber-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>create</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <doCheck>false</doCheck>
+                        <doUpdate>false</doUpdate>
+                        <shortRevisionLength>8</shortRevisionLength>
+                    </configuration>
+                </plugin>
+                
 				<!-- Unit tester -->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
