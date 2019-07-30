@@ -21,24 +21,4 @@ public interface TapisExecutionContext
      * @return the database connection source
      */
     DataSource getDataSource() throws TapisException;
-    
-    // ------------------- Notifications -------------------
-    /** Get the notifications queue type. */
-    String getNotifType();
-    
-    /** Get the notification queue. */
-    String getNotifQueue();
-    
-    /** Get the notification host. */
-    String getNotifHost();
-    
-    /** Get the notification port. */
-    int getNotifPort();
-    
-    /** Get the notification retry queue. */
-    String getNotifRetryQueue();
-    
-    /** Get the notification topic. */
-    String getNotifTopic();
-    
 }

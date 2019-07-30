@@ -152,27 +152,27 @@ public class CreateDatabaseParameters
     {
       // Make sure we have some non-empty value for the database parms.
       if (StringUtils.isBlank(adminDB)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateParms", "adminDB");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateParms", "adminDB");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(tapisDB)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateParms", "tapisDB");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateParms", "tapisDB");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(dbUser)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateParms", "dbUser");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateParms", "dbUser");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(dbPwd)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateParms", "dbPwd");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateParms", "dbPwd");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(dbHost)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateParms", "dbHost");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateParms", "dbHost");
           _log.error(msg);
           throw new TapisException(msg);
       }

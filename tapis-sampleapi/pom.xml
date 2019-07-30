@@ -43,6 +43,16 @@
 			<artifactId>tapis-sharedapi</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shareddb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-samplelib</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 	</dependencies>
 
     <build>

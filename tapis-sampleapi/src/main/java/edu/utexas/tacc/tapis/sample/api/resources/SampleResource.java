@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.sample.api.resources;
 
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -9,6 +11,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -20,10 +23,19 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import edu.utexas.tacc.tapis.sample.dao.SampleDao;
+import edu.utexas.tacc.tapis.sample.model.Sample;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
@@ -106,24 +118,148 @@ public class SampleResource
   }
 
   /* ---------------------------------------------------------------------------- */
-  /* insertRecord:                                                                */
+  /* sample:                                                                      */
   /* ---------------------------------------------------------------------------- */
   @POST
-  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  public Response insertRecord(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                            InputStream payloadStream)
+  public Response sample(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                         InputStream payloadStream)
   {
     // Trace this request.
     if (_log.isTraceEnabled()) {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "insertRecord", 
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "post sample", 
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
+    }
+    
+    // ------------------------- Validate Payload -------------------------
+    // Read the payload into a string.
+    String json = null;
+    try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+      catch (Exception e) {
+        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", e.getMessage());
+        _log.error(msg, e);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+    
+    // Extract the text value.
+    String text = null;
+    Gson gson = TapisGsonUtils.getGson();
+    JsonElement elem = gson.fromJson(json, JsonElement.class);
+    if (elem == null) {
+        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", "No payload.");
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    } else if (!elem.isJsonObject()) {
+        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", "Not a json object.");
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    } else {
+        text = ((JsonObject)elem).get("text").getAsString();
+    }
+    
+    // Check text.
+    if (StringUtils.isBlank(text)) {
+        String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post sample", "Null or empty text.");
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    
+    // ------------------------- Create Sample Record ---------------------
+    try {
+        SampleDao dao = new SampleDao();
+        dao.createSample(text);
+    }
+    catch (Exception e) {
+        String msg = MsgUtils.getMsg("SAMPLE_INSERT_TEXT_ERROR", e.getMessage());
+        _log.error(msg, e);
+        return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     
     // ---------------------------- Success ------------------------------- 
     // Success means we found the job. 
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "insertRecord"), prettyPrint, "Inserted record into database")).build();
+        MsgUtils.getMsg("SAMPLE_CREATED", text), prettyPrint, "Inserted record into database")).build();
+  }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* getSampleById:                                                               */
+  /* ---------------------------------------------------------------------------- */
+  @GET
+  @Path("/{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getSampleById(@PathParam("id") int id,
+                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  {
+      // Trace this request.
+      if (_log.isTraceEnabled()) {
+          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSample", 
+                                       "  " + _request.getRequestURL());
+        _log.trace(msg);
+      }
+      
+      // ------------------------- Retrieve Job -----------------------------
+      // Retrieve the specified job if it exists.
+      SampleDao dao = new SampleDao();
+      Sample sample = null;
+      try {sample = dao.getSampleById(id);}
+          catch (Exception e) {
+              String msg = MsgUtils.getMsg("SAMPLE_SELECT_ID_ERROR", id, 
+                                           e.getMessage());
+              _log.error(msg, e);
+              return Response.status(RestUtils.getStatus(e)).
+                  entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+          }
+      
+      // The specified job was not found for the tenant.
+      if (sample == null) {
+          String msg = MsgUtils.getMsg("SAMPLE_NOT_FOUND", id);
+          _log.warn(msg);
+          return Response.status(Status.NOT_FOUND).
+                  entity(RestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "Sample", id), 
+                         prettyPrint)).build();
+      }
+      
+      // ---------------------------- Success ------------------------------- 
+      // Success means we found the job. 
+      return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_FOUND", "Sample"), prettyPrint, sample)).build();
+  }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* getSamples:                                                                  */
+  /* ---------------------------------------------------------------------------- */
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getSamples(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  {
+      // Trace this request.
+      if (_log.isTraceEnabled()) {
+          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSample", 
+                                       "  " + _request.getRequestURL());
+        _log.trace(msg);
+      }
+      
+      // ------------------------- Retrieve Job -----------------------------
+      // Retrieve the specified job if it exists.
+      SampleDao dao = new SampleDao();
+      List<Sample> samples = null;
+      try {samples = dao.getSamples();}
+          catch (Exception e) {
+              String msg = MsgUtils.getMsg("SAMPLE_SELECT_ERROR", e.getMessage());
+              _log.error(msg, e);
+              return Response.status(RestUtils.getStatus(e)).
+                  entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+          }
+      
+      // ---------------------------- Success ------------------------------- 
+      // Success means we found the job. 
+      return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_FOUND", "Samples"), prettyPrint, samples)).build();
   }
 }
