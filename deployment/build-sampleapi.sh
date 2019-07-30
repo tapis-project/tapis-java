@@ -21,17 +21,23 @@ export BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC_API}"
 export BUILD_FILE="$BUILD_DIR/Dockerfile"
 export GIT_COMMIT=${GIT_COMMIT}
 
+# See if we can determine the git commit if it's not already set.
+# Basically, we take the second word in the git.info file.
+if [ -z "${GIT_COMMIT}" ]
+then 
+    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${SRVC}/WEB-INF/classes/git.info)" 
+fi
 
-echo "VER :$VER"
-echo "TAPIS_ENV :$TAPIS_ENV"
-echo "SRVC:$SRVC"
-echo "SRVC_API:$SRVC_API"
-echo "TAPIS_ROOT:$TAPIS_ROOT"
-echo "SRVC_DIR:$SRVC_DIR"
-echo "TAG:$TAG"
-echo "BUILD_DIR :$BUILD_DIR"
-echo "BUILD_FILE:$BUILD_FILE"
-echo "GIT_COMMIT:$GIT_COMMIT"
+echo "VER: $VER"
+echo "TAPIS_ENV: $TAPIS_ENV"
+echo "SRVC: $SRVC"
+echo "SRVC_API: $SRVC_API"
+echo "TAPIS_ROOT: $TAPIS_ROOT"
+echo "SRVC_DIR: $SRVC_DIR"
+echo "TAG: $TAG"
+echo "BUILD_DIR: $BUILD_DIR"
+echo "BUILD_FILE: $BUILD_FILE"
+echo "GIT_COMMIT: $GIT_COMMIT"
 echo ""
 
 echo "    removing any old service war files from Docker build context"
