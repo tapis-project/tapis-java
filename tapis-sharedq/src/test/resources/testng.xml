@@ -1,0 +1,15 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+<suite name="Aloe sharedq" verbose="1" parallel="none">
+    <groups>
+        <run>
+            <exclude name="broken"/>
+            <exclude name="notReady"/>
+        </run>
+    </groups>
+	<test name="sharedq">
+		<packages>
+		  <package name="edu.utexas.tacc.tapis.sharedq.*" /> 
+		</packages>
+	</test>
+</suite>

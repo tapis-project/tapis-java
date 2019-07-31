@@ -181,7 +181,7 @@
         
 		<!-- LIBRARY Versions (in alphabetical order) -->
 		<activemq-client.version>5.15.9</activemq-client.version>
-		<amqp-client.version>5.7.1</amqp-client.version>
+		<amqp-client.version>5.7.3</amqp-client.version>
 		<args4j.version>2.33</args4j.version>
 		<commons-codec.version>1.12</commons-codec.version>
 		<commons-lang3.version>3.9</commons-lang3.version>
@@ -377,6 +377,7 @@
         <module>tapis-shared</module>
         <module>tapis-sharedapi</module>
         <module>tapis-shareddb</module>
+        <module>tapis-sharedq</module>
         <module>tapis-migrate</module>
         <module>tapis-files</module>
 		<module>tapis-db</module>
