@@ -5,9 +5,11 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.p6spy.engine.spy.P6DataSource;
 import com.zaxxer.hikari.HikariDataSource;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator.MetricReporterType;
 
@@ -33,7 +35,7 @@ public final class TapisDataSource
     /*                                 Fields                                 */
     /* ********************************************************************** */
     // The single datasource used by this service.
-    private static HikariDataSource _ds;
+    private static P6DataSource _ds;           // log enabled data source
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -69,15 +71,15 @@ public final class TapisDataSource
     		try {
     			// Generate a data source.
     			HikariDSGenerator dsgen = new HikariDSGenerator();
-    			HikariDataSource ds = dsgen.getDataSource(appName, poolName, jdbcUrl, 
-    				                                      user, password, maxPoolSize);
+    			HikariDataSource hikariDS = dsgen.getDataSource(appName, poolName, jdbcUrl, 
+    				                                            user, password, maxPoolSize);
     			
     			// Customize connections.
-    			dsgen.setReliabilityOptions(ds);
-    			dsgen.setMetricRegistry(ds, meterMinutes, MetricReporterType.SL4J);
+    			dsgen.setReliabilityOptions(hikariDS);
+    			dsgen.setMetricRegistry(hikariDS, meterMinutes, MetricReporterType.SL4J);
         
     			// Assign as the service's only datasource.
-    			_ds = ds;
+    			_ds = new P6DataSource(hikariDS);
     		} 
     		catch (Exception e) {
     		  String msg = MsgUtils.getMsg("DB_FAILED_DATASOURCE_CREATE", poolName, maxPoolSize, user, jdbcUrl);
@@ -113,7 +115,7 @@ public final class TapisDataSource
      */
     public void setAssumeMinServerVersion(String version)
     {
-        _ds.addDataSourceProperty("assumeMinServerVersion", version);
+        getHikariDataSource().addDataSourceProperty("assumeMinServerVersion", version);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -123,8 +125,35 @@ public final class TapisDataSource
     public static synchronized void close()
     {
     	if (_ds != null) {
-    		_ds.close();
+    	    getHikariDataSource().close();
     		_ds = null;
     	}
+    }
+    
+    /* ********************************************************************** */
+    /*                             Private Methods                            */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* getHikariDataSource:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Get the underlying HikariDataSource wrapped by the p6spy datasource.
+     * Since we don't need to go directly to the real Hikari datasource much
+     * it's ok to call unwrap() with its reflective code.  If we need to bypass
+     * the wrapper and go to Hikari often, we should consider caching the 
+     * Hikari datasource ourselves. 
+     * 
+     * @return the real datasource
+     * @throws TapisRuntimeException on error
+     */
+    private static HikariDataSource getHikariDataSource()
+     throws TapisRuntimeException
+    {
+        // This should never fail on an initialized datasource.
+        try {return _ds.unwrap(HikariDataSource.class);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_UNWRAP_DATASOURCE_ERROR", e.getMessage());
+                _log.error(msg, e);
+                throw new TapisRuntimeException(msg, e);
+            }
     }
 }

@@ -208,6 +208,7 @@
 		<metrics-core.version>3.2.3</metrics-core.version>
 		<org.everit.json.schema.version>1.11.1</org.everit.json.schema.version>
 		<org.json.version>20180130</org.json.version>
+        <p6spy.version>3.8.3</p6spy.version>
 		<postgresql.version>42.2.6</postgresql.version>
 		<rabbitmq.version>3.6.11</rabbitmq.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
