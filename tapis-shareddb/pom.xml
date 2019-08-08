@@ -46,6 +46,11 @@
             <artifactId>args4j</artifactId>
             <version>${args4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>p6spy</groupId>
+            <artifactId>p6spy</artifactId>
+            <version>${p6spy.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
