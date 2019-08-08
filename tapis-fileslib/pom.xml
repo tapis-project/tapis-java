@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>edu.utexas.tacc</groupId>
+        <artifactId>tapis</artifactId>
+        <version>0.0.1</version>
+    </parent>
+
+    <groupId>edu.utexas.tacc.tapis</groupId>
+    <artifactId>tapis-fileslib</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Tapis Files Lib</name>
+    <description>JAX-RS REST interface for the Tapis Files Service</description>
+    <url>http://maven.apache.org</url>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+	<dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+            <version>${amqp-client.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.hierynomus</groupId>-->
+<!--            <artifactId>sshj</artifactId>-->
+<!--            <version>${sshj.version}</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <!-- Version is managed from above in dependencyManagement -->
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <!-- Unit test plugin uses local testng.xml configuration -->
+            <plugin>
+                <!-- Version is managed by the plugin definition in parent pom -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+
+                </configuration>
+            </plugin>
+
+            <!-- Capture the git commit hash and branch identifiers. -->
+            <!-- See parent pom for configuration details.           -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>${buildnumber-maven-plugin.version}</version>
+            </plugin>
+        </plugins>
+
+        <finalName>tapis-fileslib</finalName>
+    </build>
+
+</project>

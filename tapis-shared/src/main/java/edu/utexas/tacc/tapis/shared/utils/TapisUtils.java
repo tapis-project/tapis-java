@@ -154,20 +154,20 @@ public class TapisUtils
   /* ---------------------------------------------------------------------------- */
   /* getUTCTimestamp:                                                             */
   /* ---------------------------------------------------------------------------- */
-  /** Get the current instant's timestamp in UTC.  
-   * 
-   * @return a sql UTC timestamp object ready for persisting in the database.
-   */
-  public static Timestamp getUTCTimestamp()
-  {
+
+  /* ---------------------------------------------------------------------------- */  /** Get the current instant's timestamp in UTC.
+ *
+ * @return a sql UTC timestamp object ready for persisting in the database.
+ */
+public static Timestamp getUTCTimestamp()
+{
     // Return the current UTC timestamp for database operations.
     // Maybe there's a simpler way to do this, but just getting the current time
-    // in milliseconds causes jvm local time to be saved to the database.  
+    // in milliseconds causes jvm local time to be saved to the database.
     return Timestamp.valueOf(LocalDateTime.now(ZoneId.of(ZoneOffset.UTC.getId())));
-  }
+}
 
-  /* ---------------------------------------------------------------------------- */
-  /* getInstantFromSqlTimestamp:                                                  */
+    /* getInstantFromSqlTimestamp:                                                  */
   /* ---------------------------------------------------------------------------- */
   /** Get the instant representation of a UTC timestamp retrieved the database.
    * 

@@ -307,6 +307,9 @@
 					<version>${maven-failsafe-plugin.version}</version>
 					<configuration>
 						<groups>integration</groups>
+						<includes>
+							<include>**/*Test*.java</include>
+						</includes>
 					</configuration>
 					<executions>
 						<execution>
@@ -378,7 +381,8 @@
         <module>tapis-sharedapi</module>
         <module>tapis-shareddb</module>
         <module>tapis-migrate</module>
-        <module>tapis-files</module>
+        <module>tapis-fileslib</module>
+		<module>tapis-filesapi</module>
 		<module>tapis-db</module>
 		<module>tapis-sampleapi</module>
 		<module>tapis-samplelib</module>
