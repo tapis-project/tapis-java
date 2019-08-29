@@ -10,11 +10,11 @@
 	</parent>
 	
 	<groupId>edu.utexas.tacc.tapis</groupId>
-	<artifactId>tapis-sampleapi</artifactId>
+	<artifactId>tapis-securityapi</artifactId>
 	<packaging>war</packaging>
 	
-	<name>Tapis Sample API</name>
-	<description>Prototypical Tapis web application</description>
+	<name>Tapis Security API</name>
+	<description>Tapis Security Kernel web application</description>
 
 	<dependencies>
         <dependency>
@@ -55,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-samplelib</artifactId>
+            <artifactId>tapis-securitylib</artifactId>
             <version>${project.version}</version>
         </dependency>
 	</dependencies>
@@ -107,7 +107,7 @@
             </plugin>
         </plugins>
 
-        <finalName>sample</finalName>
+        <finalName>security</finalName>
     </build>
 
 </project>
