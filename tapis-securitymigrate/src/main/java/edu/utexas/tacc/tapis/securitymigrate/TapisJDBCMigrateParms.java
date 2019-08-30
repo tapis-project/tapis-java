@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.migrate;
+package edu.utexas.tacc.tapis.securitymigrate;
 
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
@@ -34,7 +34,7 @@ public class TapisJDBCMigrateParms
 
   @Option(name = "-cmddir", required = false, aliases = {"-cmddirectory"}, 
 	  metaVar = "<string>", usage = "Directory of SQL command files as specifiedy by Flyway")
-  public String cmdDirectory = "edu/utexas/tacc/tapis/migrate/sql,classpath:edu/utexas/tacc/tapis/migrate/scripts";
+  public String cmdDirectory = "edu/utexas/tacc/tapis/securitymigrate/sql,classpath:edu/utexas/tacc/tapis/securitymigrate/scripts";
   
   @Option(name = "-dbmsname", required = false,
 	  metaVar = "<name>", usage = "db management system name (ex: postgresql)")

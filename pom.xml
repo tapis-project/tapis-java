@@ -389,6 +389,7 @@
 		<module>tapis-db</module>
 		<module>tapis-securityapi</module>
         <module>tapis-securitylib</module>
+        <module>tapis-securitymigrate</module>
 		<module>tapis-sampleapi</module>
 		<module>tapis-samplelib</module>
 	</modules>
