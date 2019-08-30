@@ -101,7 +101,7 @@ public class TapisJDBCMigrateParms
  /* initializeParms:                                                             */
  /* ---------------------------------------------------------------------------- */
  /** Parse the input arguments. */
- private void initializeParms(String[] args)
+ protected void initializeParms(String[] args)
      throws TapisJDBCException
  {
   // Get a command line parser to verify input.
@@ -148,5 +148,4 @@ public class TapisJDBCMigrateParms
      System.exit(0);
     }
  }
-  
 }

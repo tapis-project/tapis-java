@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +33,13 @@ import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;
  * @author rcardone
  *
  */
-public final class TapisJDBCMigrate
+public class TapisJDBCMigrate
 {
   /* **************************************************************************** */
   /*                                  Constants                                   */
   /* **************************************************************************** */
   // The tapis database and user that services use.
-  private static final String TAPIS_DB_NAME = HikariDSGenerator.TAPIS_DB_NAME;
+  private final String TAPIS_DB_NAME;
   private static final String TAPIS_USER = "tapis"; 
   private static final String DFT_TAPIS_USER_PASSWORD = "password"; // change on 1st use
   
@@ -64,6 +65,25 @@ public final class TapisJDBCMigrate
   private HikariDataSource _dataSource;
 
   /* **************************************************************************** */
+  /*                                 Constructors                                 */
+  /* **************************************************************************** */
+  /* ---------------------------------------------------------------------------- */
+  /* constructor:                                                                 */
+  /* ---------------------------------------------------------------------------- */
+  protected TapisJDBCMigrate(String dbName) throws TapisJDBCException
+  {
+      // Make sure we have a reasonable database name.
+      if (StringUtils.isBlank(ADMIN_DB_NAME)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "TapisJDBCMigrate", "dbName");
+          _log.error(msg);
+          throw new TapisJDBCException(msg);
+      }
+      
+      // Assign the name.
+      TAPIS_DB_NAME = dbName;
+  }
+  
+  /* **************************************************************************** */
   /*                                 Public Methods                               */
   /* **************************************************************************** */
   /* ---------------------------------------------------------------------------- */
@@ -78,7 +98,7 @@ public final class TapisJDBCMigrate
   {
     // Initial log message.
     _log.info(MsgUtils.getMsg("MIGRATE_STARTING"));
-    TapisJDBCMigrate migrate = new TapisJDBCMigrate();
+    TapisJDBCMigrate migrate = new TapisJDBCMigrate(HikariDSGenerator.TAPIS_DB_NAME);
     migrate.execute(args);
     _log.info(MsgUtils.getMsg("MIGRATE_STOPPING"));
   }
@@ -103,7 +123,7 @@ public final class TapisJDBCMigrate
   {
     // ------------------------ Initialization ----------------------
     // Parse and validate the command line parameters.
-    _parms = new TapisJDBCMigrateParms(args);
+    _parms = getParms(args);
     
     // Create the connection pool.  We exit from here if
     // an exception is thrown.
@@ -144,6 +164,23 @@ public final class TapisJDBCMigrate
     // Close all connections.
     _dataSource.close();
   }
+  
+  /* **************************************************************************** */
+  /*                             Protected Methods                                */
+  /* **************************************************************************** */
+  /* ---------------------------------------------------------------------------- */
+  /* getParms:                                                                    */
+  /* ---------------------------------------------------------------------------- */
+  /** Allow subclasses to substitute their own parameter processing in place of 
+   * this package's parameter processing.
+   * 
+   * @param args command line arguments
+   * @return the parsed and validated parameters
+   * @throws TapisJDBCException
+   */
+  protected TapisJDBCMigrateParms getParms(String[] args) 
+    throws TapisJDBCException 
+  {return new TapisJDBCMigrateParms(args);}
   
   /* **************************************************************************** */
   /*                               Private Methods                                */
