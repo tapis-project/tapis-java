@@ -22,8 +22,9 @@ CREATE TYPE change_type AS ENUM ('insert', 'update', 'delete');
 -- User table
 CREATE TABLE sk_user
 (
-  id serial4 PRIMARY KEY,                             
-  name character varying(60) UNIQUE NOT NULL,         
+  id serial4 PRIMARY KEY, 
+  tenant character varying(24) NOT NULL,
+  name character varying(60) NOT NULL,         
   description character varying(2048) NOT NULL,
   logon_enabled boolean NOT NULL,
   hashed_password character varying(8192) NOT NULL,   
@@ -37,8 +38,10 @@ CREATE TABLE sk_user
 ALTER TABLE sk_user OWNER TO tapis;
 ALTER SEQUENCE sk_user_id_seq RESTART WITH 100;
 CREATE INDEX sk_user_active_idx ON sk_user (active_start, active_end);
+CREATE UNIQUE INDEX sk_user_tenant_name_idx ON sk_user (tenant, name);
 
 COMMENT ON COLUMN sk_user.id IS 'Unique user id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_user.name IS 'Unique user name';
 COMMENT ON COLUMN sk_user.description IS 'User description';
 COMMENT ON COLUMN sk_user.logon_enabled IS 'Whether this account can be used for logon';
@@ -83,8 +86,9 @@ COMMENT ON COLUMN sk_user_audit.changedby IS 'User that changed associated table
 -- Role table
 CREATE TABLE sk_role
 (
-  id serial4 PRIMARY KEY,                             
-  name character varying(60) UNIQUE NOT NULL,         
+  id serial4 PRIMARY KEY,
+  tenant character varying(24) NOT NULL,
+  name character varying(60) NOT NULL,         
   description character varying(2048) NOT NULL,       
   created timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby character varying(60) NOT NULL DEFAULT current_user,           
@@ -93,8 +97,10 @@ CREATE TABLE sk_role
 );
 ALTER TABLE sk_role OWNER TO tapis;
 ALTER SEQUENCE sk_role_id_seq RESTART WITH 100;
+CREATE UNIQUE INDEX sk_role_tenant_name_idx ON sk_user (tenant, name);
 
 COMMENT ON COLUMN sk_role.id IS 'Unique role id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_role.name IS 'Unique role name';
 COMMENT ON COLUMN sk_role.description IS 'Role description';
 COMMENT ON COLUMN sk_role.created IS 'UTC time record was inserted';
@@ -135,7 +141,8 @@ COMMENT ON COLUMN sk_role_audit.changedby IS 'User that changed associated table
 -- User_Role table
 CREATE TABLE sk_user_role
 (
-  id serial4 PRIMARY KEY,   
+  id serial4 PRIMARY KEY, 
+  tenant character varying(24) NOT NULL,
   user_id integer NOT NULL,   
   role_id integer NOT NULL,                           
   created timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
@@ -152,6 +159,7 @@ CREATE UNIQUE INDEX sk_user_role_u_r_idx ON sk_user_role (user_id, role_id);
 CREATE UNIQUE INDEX sk_user_role_r_u_idx ON sk_user_role (role_id, user_id);
 
 COMMENT ON COLUMN sk_user_role.id IS 'Unique role/permission mapping id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_user_role.user_id IS 'User id';
 COMMENT ON COLUMN sk_user_role.role_id IS 'Role id';
 COMMENT ON COLUMN sk_user_role.created IS 'UTC time record was inserted';
@@ -192,8 +200,9 @@ COMMENT ON COLUMN sk_user_role_audit.changedby IS 'User that changed associated 
 -- Permission table
 CREATE TABLE sk_permission
 (
-  id serial4 PRIMARY KEY,                             
-  name character varying(60) UNIQUE NOT NULL,         
+  id serial4 PRIMARY KEY,
+  tenant character varying(24) NOT NULL,
+  name character varying(60) NOT NULL,         
   description character varying(2048) NOT NULL,       
   created timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby character varying(60) NOT NULL DEFAULT current_user,           
@@ -202,8 +211,10 @@ CREATE TABLE sk_permission
 );
 ALTER TABLE sk_permission OWNER TO tapis;
 ALTER SEQUENCE sk_permission_id_seq RESTART WITH 100;
+CREATE UNIQUE INDEX sk_permission_tenant_name_idx ON sk_user (tenant, name);
 
 COMMENT ON COLUMN sk_permission.id IS 'Unique permission id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_permission.name IS 'Unique permission name';
 COMMENT ON COLUMN sk_permission.description IS 'Permission description';
 COMMENT ON COLUMN sk_permission.created IS 'UTC time record was inserted';
@@ -244,7 +255,8 @@ COMMENT ON COLUMN sk_permission_audit.changedby IS 'User that changed associated
 -- Role_Permission table
 CREATE TABLE sk_role_permission
 (
-  id serial4 PRIMARY KEY,                             
+  id serial4 PRIMARY KEY, 
+  tenant character varying(24) NOT NULL,
   role_id integer NOT NULL,                           
   permission_id integer NOT NULL,                     
   created timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
@@ -261,6 +273,7 @@ CREATE UNIQUE INDEX sk_role_permission_r_p_idx ON sk_role_permission (role_id, p
 CREATE UNIQUE INDEX sk_role_permission_p_r_idx ON sk_role_permission (permission_id, role_id);
 
 COMMENT ON COLUMN sk_role_permission.id IS 'Unique role/permission mapping id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_role_permission.role_id IS 'Role id';
 COMMENT ON COLUMN sk_role_permission.permission_id IS 'Permission id';
 COMMENT ON COLUMN sk_role_permission.created IS 'UTC time record was inserted';
@@ -301,7 +314,8 @@ COMMENT ON COLUMN sk_role_permission_audit.changedby IS 'User that changed assoc
 -- Role table
 CREATE TABLE sk_role_tree
 (
-  id serial4 PRIMARY KEY,                             
+  id serial4 PRIMARY KEY, 
+  tenant character varying(24) NOT NULL,
   parent_role_id integer NOT NULL,                    
   child_role_id integer NOT NULL,                     
   created timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
@@ -319,6 +333,7 @@ CREATE UNIQUE INDEX sk_role_tree_p_c_idx ON sk_role_tree (parent_role_id, child_
 CREATE UNIQUE INDEX sk_role_tree_c_p_idx ON sk_role_tree (child_role_id, parent_role_id);
 
 COMMENT ON COLUMN sk_role_tree.id IS 'Unique role relationship id';
+COMMENT ON COLUMN sk_user.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_role_tree.parent_role_id IS 'Role that includes the child role';
 COMMENT ON COLUMN sk_role_tree.child_role_id IS 'Role included in the parent role';
 COMMENT ON COLUMN sk_role_tree.created IS 'UTC time record was inserted';
@@ -377,6 +392,10 @@ CREATE OR REPLACE FUNCTION audit_sk_user() RETURNS TRIGGER AS $$
             IF OLD.id != NEW.id THEN
                 INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, OLD.name, 'id', 'update', OLD.id::text, NEW.id::text);
+            END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.name != NEW.name THEN
                 INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
@@ -471,6 +490,10 @@ CREATE OR REPLACE FUNCTION audit_sk_role() RETURNS TRIGGER AS $$
                 INSERT INTO sk_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, OLD.name, 'id', 'update', OLD.id::text, NEW.id::text);
             END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+            END IF;
             IF OLD.name != NEW.name THEN
                 INSERT INTO sk_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, OLD.name, 'name', 'update', OLD.name, NEW.name);
@@ -539,6 +562,10 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
                 INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, 'id', 'update', OLD.id::text, NEW.id::text);
             END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+            END IF;
             IF OLD.user_id != NEW.user_id THEN
                 INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, 'user_id', 'update', OLD.user_id::text, NEW.user_id::text);
@@ -601,6 +628,10 @@ CREATE OR REPLACE FUNCTION audit_sk_permission() RETURNS TRIGGER AS $$
             IF OLD.id != NEW.id THEN
                 INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, OLD.name, 'id', 'update', OLD.id::text, NEW.id::text);
+            END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.name != NEW.name THEN
                 INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
@@ -670,6 +701,10 @@ CREATE OR REPLACE FUNCTION audit_sk_role_permission() RETURNS TRIGGER AS $$
                 INSERT INTO sk_role_permission_audit (refid, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, 'id', 'update', OLD.id::text, NEW.id::text);
             END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+            END IF;
             IF OLD.role_id != NEW.role_id THEN
                 INSERT INTO sk_role_permission_audit (refid, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, 'role_id', 'update', OLD.role_id::text, NEW.role_id::text);
@@ -731,6 +766,10 @@ CREATE OR REPLACE FUNCTION audit_sk_role_tree() RETURNS TRIGGER AS $$
             IF OLD.id != NEW.id THEN
                 INSERT INTO sk_role_tree_audit (refid, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, 'id', 'update', OLD.id::text, NEW.id::text);
+            END IF;
+            IF OLD.tenant != NEW.tenant THEN
+                INSERT INTO sk_user_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.parent_role_id != NEW.parent_role_id THEN
                 INSERT INTO sk_role_tree_audit (refid, refcol, change, oldvalue, newvalue) 

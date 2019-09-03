@@ -212,6 +212,7 @@
         <p6spy.version>3.8.3</p6spy.version>
 		<postgresql.version>42.2.6</postgresql.version>
 		<rabbitmq.version>3.6.11</rabbitmq.version>
+		<shiro.version>1.4.1</shiro.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
 		<software.amazon.awssdk.version>2.5.56</software.amazon.awssdk.version>
 		<sshj.version>0.27.0</sshj.version>

@@ -14,19 +14,24 @@
 	
 	<name>Tapis Security Library</name>
 	<description>Tapis Security Kernel backend library</description>
-	
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shared</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shareddb</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>tapis-shared</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>tapis-shareddb</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.shiro</groupId>
+			<artifactId>shiro-core</artifactId>
+			<version>${shiro.version}</version>
+		</dependency>
+	</dependencies>
 	
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
