@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.security.dao.sql;
+package edu.utexas.tacc.tapis.security.shiro.dao.sql;
 
 /** This class centralizes most if not all SQL statements used in the Tapis Security 
  * Kernel for authorization.  The statements returned are ready for preparation and, 
