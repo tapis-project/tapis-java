@@ -231,19 +231,29 @@ public final class Sql2JavaUtils
     private static HashMap<String,String>initNonNullDbTypeMap()
     {
         // Assign the db to java type conversions when the db field cannot be null.
-        HashMap<String,String> map = new HashMap<String,String>(15);
+        HashMap<String,String> map = new HashMap<String,String>(29);
         
         // We always assume tinyints are booleans.
         // DB types not list here are assumed to
         // convert to Java String, including char, 
         // varchar, text and enum.
-        map.put("bigint", "long");
-        map.put("bit", "boolean");
+        map.put("timestamp", "Instant");
         map.put("datetime", "Instant");
         map.put("double", "double");
         map.put("float", "float");
+        map.put("bigint", "long");
+        map.put("bigserial", "long");
+        map.put("int8", "long");
         map.put("int", "int");
-        map.put("timestamp", "Instant");
+        map.put("int4", "int");
+        map.put("serial", "int");
+        map.put("serial4", "int");
+        map.put("smallint", "short");
+        map.put("smallserial", "short");
+        map.put("int2", "short");
+        map.put("int1", "byte");
+        map.put("boolean", "boolean");
+        map.put("bit", "boolean");
         map.put("tinyint", "boolean");
         
         return map;
@@ -260,20 +270,30 @@ public final class Sql2JavaUtils
     private static HashMap<String,String>initNullDbTypeMap()
     {
         // Assign the db to java type conversions when the db field cannot be null.
-        HashMap<String,String> map = new HashMap<String,String>(15);
+        HashMap<String,String> map = new HashMap<String,String>(29);
         
         // We always assume tinyints are booleans.
         // DB types not list here are assumed to
         // convert to Java String, including char, 
         // varchar, text and enum.
-        map.put("bigint", "Long");
-        map.put("bit", "boolean");
+        map.put("timestamp", "Instant");
         map.put("datetime", "Instant");
         map.put("double", "Double");
         map.put("float", "Float");
+        map.put("bigint", "Long");
+        map.put("bigserial", "Long");
+        map.put("int8", "Long");
         map.put("int", "Integer");
-        map.put("timestamp", "Instant");
-        map.put("tinyint", "boolean");
+        map.put("int4", "Integer");
+        map.put("serial", "Integer");
+        map.put("serial4", "Integer");
+        map.put("smallint", "Short");
+        map.put("smallserial", "Short");
+        map.put("int2", "Short");
+        map.put("int1", "Byte");
+        map.put("boolean", "Boolean");
+        map.put("bit", "Boolean");
+        map.put("tinyint", "Boolean");
         
         return map;
     }

@@ -1,21 +1,21 @@
-package {%PkgName};
+package edu.utexas.tacc.tapis.security.authz.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
+import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
+import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -24,13 +24,13 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * configure and use its own datasource.  See Jobs for an example on
  * how to do this.
  */
-public final class {%ClassName}Dao
+public final class SkRoleDao
 {
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger({%ClassName}Dao.class);
+  private static final Logger _log = LoggerFactory.getLogger(SkRoleDao.class);
   
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -49,10 +49,10 @@ public final class {%ClassName}Dao
    * 
    * @param dataSource the non-null datasource 
    */
-  public {%ClassName}Dao(DataSource dataSource)
+  public SkRoleDao(DataSource dataSource)
   {
     if (dataSource == null) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "{%ClassName}Dao", "dataSource");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "SkRoleDao", "dataSource");
       _log.error(msg);
       throw new TapisRuntimeException(msg);
     }
@@ -63,13 +63,13 @@ public final class {%ClassName}Dao
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* get{%ClassName}:                                                       */
+  /* getSkRole:                                                       */
   /* ---------------------------------------------------------------------- */
-  public List<{%ClassName}> get{%ClassName}() 
+  public List<SkRole> getSkRole() 
     throws TapisException
   {
       // Initialize result.
-      ArrayList<{%ClassName}> list = new ArrayList<>();
+      ArrayList<SkRole> list = new ArrayList<>();
 
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
@@ -79,17 +79,17 @@ public final class {%ClassName}Dao
           conn = getConnection();
           
           // Get the select command.
-          String sql = SqlStatements.SELECT_{%UpperClassName};
+          String sql = SqlStatements.SELECT_SKROLE;
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
                       
           // Issue the call for the 1 row result set.
           ResultSet rs = pstmt.executeQuery();
-          {%ClassName} obj = populate{%ClassName}(rs);
+          SkRole obj = populateSkRole(rs);
           while (obj != null) {
             list.add(obj);
-            obj = populate{%ClassName}(rs);
+            obj = populateSkRole(rs);
           }
           
           // Close the result and statement.
@@ -105,7 +105,7 @@ public final class {%ClassName}Dao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "{%ClassName}", "allUUIDs", e.getMessage());
+          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkRole", "allUUIDs", e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -124,7 +124,7 @@ public final class {%ClassName}Dao
       return list;
   }
 
-{%DaoUuidFragment}
+
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
@@ -147,12 +147,12 @@ public final class {%ClassName}Dao
   }
 
   /* ---------------------------------------------------------------------- */
-  /* populate{%ClassName}:                                                  */
+  /* populateSkRole:                                                  */
   /* ---------------------------------------------------------------------- */
-  /** Populate a new {%ClassName} object with a record retrieved from the 
+  /** Populate a new SkRole object with a record retrieved from the 
    * database.  The result set's cursor will be advanced to the next
    * position and, if a row exists, its data will be marshalled into a 
-   * {%ClassName} object.  The result set is not closed by this method.
+   * SkRole object.  The result set is not closed by this method.
    * 
    * NOTE: This method assumes all fields are returned table definition order.
    * 
@@ -162,7 +162,7 @@ public final class {%ClassName}Dao
    * @return a new model object or null if the result set is null or empty
    * @throws AloeJDBCException on SQL access or conversion errors
    */
-  private {%ClassName} populate{%ClassName}(ResultSet rs)
+  private SkRole populateSkRole(ResultSet rs)
    throws TapisJDBCException
   {
     // Quick check.
@@ -179,11 +179,18 @@ public final class {%ClassName}Dao
       throw new TapisJDBCException(msg, e);
     }
     
-    // Populate the {%ClassName} object using table definition field order,
+    // Populate the SkRole object using table definition field order,
     // which is the order specified in all calling methods.
-    {%ClassName} obj = new {%ClassName}();
+    SkRole obj = new SkRole();
     try {
-{%FieldAssignments}
+        obj.setId(rs.getInt(1));
+        obj.setTenant(rs.getString(2));
+        obj.setName(rs.getString(3));
+        obj.setDescription(rs.getString(4));
+        obj.setCreated(rs.getTimestamp(5).toInstant());
+        obj.setCreatedby(rs.getString(6));
+        obj.setUpdated(rs.getTimestamp(7).toInstant());
+        obj.setUpdatedby(rs.getString(8));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

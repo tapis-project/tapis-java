@@ -76,7 +76,7 @@ public final class Sql2Java
     
     // Schema selection statement components.
     private static final String SCHEMA_SELECT_PREFIX = 
-       "SELECT table_name, ordinal_position, column_name, data_type, is_nullable " + 
+       "SELECT table_name, ordinal_position, column_name, udt_name, is_nullable " + 
        "FROM information_schema.columns " +
        "WHERE table_schema = 'public' ";
             

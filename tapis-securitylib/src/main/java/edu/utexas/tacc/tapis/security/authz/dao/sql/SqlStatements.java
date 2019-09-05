@@ -9,15 +9,22 @@ package edu.utexas.tacc.tapis.security.authz.dao.sql;
  */
 public class SqlStatements
 {
-  // Permission statements.
+  /* ---------------------------------------------------------------------- */
+  /* sk_permission:                                                         */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKPERMISSION =
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+      + " FROM sk_permission";
+    
   public static final String PERMISSION_SELECT_BY_NAME = 
-      "SELECT id, name, description FROM sk_permission where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, description FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_SELECT_BY_ID = 
-      "SELECT id, name, description FROM sk_permission where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description FROM sk_permission where tenant = ? AND id = ?";
   public static final String PERMISSION_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
   public static final String PERMISSION_INSERT = 
       "INSERT INTO sk_permission (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
   public static final String PERMISSION_SELECT_ID_BY_NAME =
@@ -29,15 +36,23 @@ public class SqlStatements
   public static final String PERMISSION_UPDATE = 
       "UPDATE sk_permission SET name = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
 
+  /* ---------------------------------------------------------------------- */
+  /* sk_role:                                                               */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKROLE =
+          "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+          + " FROM sk_role";
+  
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
-      "SELECT id, name, description FROM sk_role where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_BY_ID = 
-      "SELECT id, name, description FROM sk_role where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_INSERT = 
       "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
   public static final String ROLE_SELECT_ID_BY_NAME =
@@ -48,6 +63,14 @@ public class SqlStatements
       "DELETE FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_UPDATE = 
       "UPDATE sk_role SET name = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
+  
+  /* ---------------------------------------------------------------------- */
+  /* sk_role_permission:                                                    */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKROLEPERMISSION =
+      "SELECT id, tenant, role_id, permission_id, created, createdby, updated, updatedby"
+      + " FROM sk_role_permission";
   
   // The following select statement only grabs the permission id and tenant from the 
   // sk_permission table, but returns the role id, createdby and updatedby constants passed 
@@ -79,6 +102,14 @@ public class SqlStatements
       "SELECT sk_role.name FROM children, sk_role " +
         "WHERE sk_role.id = children.child_role_id " +
         "ORDER BY sk_role.name"; 
+  
+  /* ---------------------------------------------------------------------- */
+  /* sk_role_tree:                                                          */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKROLETREE =
+      "SELECT id, tenant, parent_role_id, child_role_id, created, createdby, updated, updatedby"
+      + " FROM sk_role_tree";
   
   // The following select statement only grabs the permission id and tenant from the 
   // sk_role table, but returns the role id, createdby and updatedby constants passed 
@@ -159,5 +190,13 @@ public class SqlStatements
         "WHERE rp2.role_id = ? " +
         "AND rp2.permission_id = p2.id " +
       "ORDER BY outname";
+
+  /* ---------------------------------------------------------------------- */
+  /* sk_user_role:                                                          */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKUSERROLE =
+      "SELECT id, tenant, user_name, role_id, created, createdby, updated, updatedby"
+      + " FROM sk_user_role";
 
 }
