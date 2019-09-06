@@ -49,6 +49,17 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
         </dependency>
+        <dependency>
+   		 <groupId>com.jcraft</groupId>
+   		 <artifactId>jsch</artifactId>
+   		 <version>${jcraft.version}</version>
+	</dependency>
+	<dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
+        
     </dependencies>
 
     <build>

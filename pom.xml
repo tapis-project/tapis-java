@@ -201,6 +201,7 @@
 		<javax.xml.bind.jaxb-impl.version>2.3.2</javax.xml.bind.jaxb-impl.version>
 		<javax.activation.activation.version>1.1.1</javax.activation.activation.version>
 		<jakarta.servlet-api.version>4.0.2</jakarta.servlet-api.version>                <!-- jersey group -->
+		<jcraft.version>0.1.54</jcraft.version>
 		<jersey-container-servlet.version>2.29</jersey-container-servlet.version> <!-- jersey group -->
 		<jjwt-aloe.version>0.9.1</jjwt-aloe.version>
 		<jetty-server.version>9.4.0.M1</jetty-server.version>
