@@ -10,6 +10,7 @@ public class TapisConstants
 	// Service names used to identify service code externally.
 	public static final String SERVICE_NAME_JOBS   = "jobs";
 	public static final String SERVICE_NAME_SAMPLE = "sample";
+	public static final String SERVICE_NAME_SECURITY = "security";
 	public static final String SERVICE_NAME_UUIDS  = "uuid";
 
 	// Thread local logging identifier.

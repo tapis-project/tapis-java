@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.sample.config;
+package edu.utexas.tacc.tapis.security.config;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -59,7 +59,7 @@ public final class RuntimeParameters
     // Email defaults.
     private static final String DEFAULT_EMAIL_PROVIDER = "LOG";
     private static final int    DEFAULT_EMAIL_PORT = 25;
-    private static final String DEFAULT_EMAIL_FROM_NAME = "Tapis Sample Service";
+    private static final String DEFAULT_EMAIL_FROM_NAME = "Tapis Security Service";
     private static final String DEFAULT_EMAIL_FROM_ADDRESS = "no-reply@nowhere.com";
     
     // Support defaults.
@@ -138,7 +138,7 @@ public final class RuntimeParameters
 	  setDbConnectionPoolName(TapisConstants.SERVICE_NAME_SECURITY + "Pool");
     
 	  // --------------------- General Parameters -----------------------
-	  // The name of this instance of the sample library that has meaning to
+	  // The name of this instance of the security library that has meaning to
 	  // humans, distinguishes this instance of the job service, and is 
 	  // short enough to use to name runtime artifacts.
 	  String parm = inputProperties.getProperty(EnvVar.TAPIS_INSTANCE_NAME.getEnvName());

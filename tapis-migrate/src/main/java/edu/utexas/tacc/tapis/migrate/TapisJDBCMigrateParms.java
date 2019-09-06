@@ -101,7 +101,7 @@ public class TapisJDBCMigrateParms
  /* initializeParms:                                                             */
  /* ---------------------------------------------------------------------------- */
  /** Parse the input arguments. */
- private void initializeParms(String[] args)
+ protected void initializeParms(String[] args)
      throws TapisJDBCException
  {
   // Get a command line parser to verify input.
@@ -141,12 +141,11 @@ public class TapisJDBCMigrateParms
   // Display help and exit program.
   if (help)
     {
-     String s = "\nTapissJDBCMigrate creates and/or migrates databases.";
+     String s = "\nTapisJDBCMigrate creates and/or migrates databases.";
      System.out.println(s);
      System.out.println("\nTapisJDBCMigrate [options...] tablename\n");
      parser.printUsage(System.out);
      System.exit(0);
     }
  }
-  
 }

@@ -177,7 +177,7 @@
 		<maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
 		<maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
 		<maven-war-plugin.version>3.2.3</maven-war-plugin.version>
-        <swagger-maven-plugin.version>2.0.8</swagger-maven-plugin.version>
+        <swagger-maven-plugin.version>2.0.9</swagger-maven-plugin.version>
         
 		<!-- LIBRARY Versions (in alphabetical order) -->
 		<activemq-client.version>5.15.9</activemq-client.version>
@@ -196,6 +196,7 @@
 		<httpmime.version>4.5.8</httpmime.version>
 		<jargon-core.version>4.3.0.1-RELEASE</jargon-core.version>
 		<javax.mail.version>1.6.2</javax.mail.version>
+		<javax.ws.rs-api.version>2.1</javax.ws.rs-api.version>
 		<javax.xml.bind.jaxb-api.version>2.1</javax.xml.bind.jaxb-api.version>
 		<javax.xml.bind.jaxb-core.version>2.3.0.1</javax.xml.bind.jaxb-core.version>
 		<javax.xml.bind.jaxb-impl.version>2.3.2</javax.xml.bind.jaxb-impl.version>
@@ -212,11 +213,12 @@
         <p6spy.version>3.8.3</p6spy.version>
 		<postgresql.version>42.2.6</postgresql.version>
 		<rabbitmq.version>3.6.11</rabbitmq.version>
+		<shiro.version>1.4.1</shiro.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
 		<software.amazon.awssdk.version>2.5.56</software.amazon.awssdk.version>
 		<sshj.version>0.27.0</sshj.version>
 		<statefulj.version>3.0</statefulj.version>
-		<swagger-jaxrs2.version>2.0.8</swagger-jaxrs2.version>
+		<swagger-jaxrs2.version>2.0.9</swagger-jaxrs2.version>
 		<testng.version>6.14.3</testng.version>
 		
 		<!-- A NOTE ABOUT INTERDEPENDCIES                                                    -->
@@ -387,6 +389,9 @@
         <module>tapis-fileslib</module>
 		<module>tapis-filesapi</module>
 		<module>tapis-db</module>
+		<module>tapis-securityapi</module>
+        <module>tapis-securitylib</module>
+        <module>tapis-securitymigrate</module>
 		<module>tapis-sampleapi</module>
 		<module>tapis-samplelib</module>
 	</modules>

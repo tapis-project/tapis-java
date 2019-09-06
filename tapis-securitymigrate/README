@@ -1,0 +1,14 @@
+Tapis Migrate
+=============
+
+Tapis Migrate uses flyway to migrate Tapis's Security Kernel postgres database schema, which is separate from the migration facility for Tapis's services database.  
+
+sql scripts must reside in the main/resources/edu/utexas/tacc/tapis/securitymigrate/sql directory.
+
+jdbc scripts must reside in the main/java/edu/utexas/tacc/tapis/securitymigrate/scripts directory.
+
+
+Usage
+-----
+The TapisJDBCMigrate program invokes flyway to update the schema when new scripts are 
+deployed.  The "tapis" user should be created before migration.  The "tapissecdb" will be created if necessary.   
