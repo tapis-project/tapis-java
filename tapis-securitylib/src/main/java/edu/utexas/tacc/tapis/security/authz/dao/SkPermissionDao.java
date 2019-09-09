@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,6 @@ import edu.utexas.tacc.tapis.security.authz.model.SkPermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
@@ -36,7 +36,7 @@ public final class SkPermissionDao
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // The database datasource provided by clients.
-  private DataSource _ds;
+  private final DataSource _ds;
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -48,24 +48,20 @@ public final class SkPermissionDao
    * db connections since this code in not part of a free-standing service.
    * 
    * @param dataSource the non-null datasource 
+ * @throws TapisException 
    */
-  public SkPermissionDao(DataSource dataSource)
+  public SkPermissionDao() throws TapisException
   {
-    if (dataSource == null) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "SkPermissionDao", "dataSource");
-      _log.error(msg);
-      throw new TapisRuntimeException(msg);
-    }
-    _ds = dataSource;
+    _ds = SkDaoUtils.getDataSource();
   }
   
   /* ********************************************************************** */
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* getSkPermission:                                                       */
+  /* getPermissions:                                                        */
   /* ---------------------------------------------------------------------- */
-  public List<SkPermission> getSkPermission() 
+  public List<SkPermission> getPermissions() 
     throws TapisException
   {
       // Initialize result.
@@ -105,7 +101,7 @@ public final class SkPermissionDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkPermission", "allUUIDs", e.getMessage());
+          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkPermissions", "all", e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -124,7 +120,179 @@ public final class SkPermissionDao
       return list;
   }
 
+  /* ---------------------------------------------------------------------- */
+  /* createPermission:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Create a new permission.
+   * 
+   * If the record already exists in the database, this method becomes a no-op
+   * and the number of rows returned is 0. 
+   * 
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param name permission name
+   * @param description permission description
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException if the roles is not created for any reason
+   */
+  public int createPermission(String tenant, String user, String name, String description) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(name)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "name");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(description)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "description");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
 
+          // Set the sql command.
+          String sql = SqlStatements.PERMISSION_INSERT;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, name);
+          pstmt.setString(3, description);
+          pstmt.setString(4, user);
+          pstmt.setString(5, user);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_role");
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* deletePermission:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Delete a permission.  If the permission doesn't exist this method has 
+   * no effect.
+   * 
+   * @param tenant the permission's tenant
+   * @param name the permission name
+   * @return number of rows affected by the delete
+   * @throws TapisException on error
+   */
+  public int deletePermission(String tenant, String name) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deletePermission", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(name)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deletePermission", "name");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.PERMISSION_DELETE_BY_NAME;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, name);
+
+          // Issue the call.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_permission");
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      // Return the number of rows affected.
+      return rows;
+  }
+  
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */

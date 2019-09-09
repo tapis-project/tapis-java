@@ -10,6 +10,6 @@ public class DBLoginTest
     @Test
     public void connectTest() throws TapisException
     {
-        TapisAuthzDao.getConnection();
+        SkDaoUtils.getConnection();
     }
 }

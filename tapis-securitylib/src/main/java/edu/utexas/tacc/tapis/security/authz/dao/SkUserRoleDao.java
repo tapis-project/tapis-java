@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +17,8 @@ import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
  * database.  If this subproject becomes its own service, then it will
@@ -36,7 +37,7 @@ public final class SkUserRoleDao
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // The database datasource provided by clients.
-  private DataSource _ds;
+  private final DataSource _ds;
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -48,24 +49,20 @@ public final class SkUserRoleDao
    * db connections since this code in not part of a free-standing service.
    * 
    * @param dataSource the non-null datasource 
+ * @throws TapisException 
    */
-  public SkUserRoleDao(DataSource dataSource)
+  public SkUserRoleDao() throws TapisException
   {
-    if (dataSource == null) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "SkUserRoleDao", "dataSource");
-      _log.error(msg);
-      throw new TapisRuntimeException(msg);
-    }
-    _ds = dataSource;
+      _ds = SkDaoUtils.getDataSource();
   }
   
   /* ********************************************************************** */
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* getSkUserRole:                                                       */
+  /* getUserRoles:                                                          */
   /* ---------------------------------------------------------------------- */
-  public List<SkUserRole> getSkUserRole() 
+  public List<SkUserRole> getUserRoles() 
     throws TapisException
   {
       // Initialize result.
@@ -105,7 +102,7 @@ public final class SkUserRoleDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkUserRole", "allUUIDs", e.getMessage());
+          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkUserRoles", "all", e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -123,8 +120,107 @@ public final class SkUserRoleDao
       
       return list;
   }
+  
+  /* ---------------------------------------------------------------------- */
+  /* assignRole:                                                            */
+  /* ---------------------------------------------------------------------- */
+  /** Assign a named child role to the parent role with the specified id. It
+   * is expected that all information other than the childRoleName was extracted
+   * from the parent role populated from the database. Otherwise, it is possible
+   * to attempt assigning a child role from one tenant to a parent in another.
+   * The query will filter out such attempts and an exception will be thrown
+   * because no records will be inserted into the sk_role_tree table.
+   * 
+   * If the record already exists in the database, this method becomes a no-op
+   * and the number of rows returned is 0. 
+   * 
+   * @param tenant the tenant
+   * @param assigner the creating user
+   * @param roleId the role to which the permission will be assigned
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException if a single row is not inserted
+   */
+  public int assignRole(String tenant, String assigner, String assignee, int roleId) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(assigner)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assigner");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(assignee)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assignee");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (roleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignRole", "roleId", roleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
 
+          // Set the sql command.
+          String sql = SqlStatements.USER_ADD_ROLE_BY_ID;
 
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, assignee);
+          pstmt.setInt(2, roleId);
+          pstmt.setString(3, assigner);
+          pstmt.setString(4, assigner);
+          pstmt.setString(5, tenant);
+          pstmt.setInt(6, roleId);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_user_role");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */

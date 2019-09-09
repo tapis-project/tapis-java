@@ -13,13 +13,13 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionExce
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
 
-public abstract class AbstractDao 
+public final class SkDaoUtils 
 {
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger(AbstractDao.class);
+  private static final Logger _log = LoggerFactory.getLogger(SkDaoUtils.class);
   
   /* ---------------------------------------------------------------------- */
   /* getConnection:                                                         */
@@ -30,7 +30,7 @@ public abstract class AbstractDao
    * @return a database connection
    * @throws AloeException on error
    */
-  protected static synchronized Connection getConnection() 
+  public static synchronized Connection getConnection() 
    throws TapisException
   {
     // Use the existing datasource. 
@@ -51,7 +51,7 @@ public abstract class AbstractDao
   /* ---------------------------------------------------------------------- */
   /* getDataSource:                                                         */
   /* ---------------------------------------------------------------------- */
-  protected static DataSource getDataSource() 
+  public static DataSource getDataSource() 
    throws TapisException
   {
     // Use the existing datasource. 

@@ -26,7 +26,7 @@ public class SqlStatements
   public static final String PERMISSION_SELECT_EXTENDED_BY_ID = 
       "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
   public static final String PERMISSION_INSERT = 
-      "INSERT INTO sk_permission (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO sk_permission (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String PERMISSION_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_DELETE_BY_ID =
@@ -54,7 +54,7 @@ public class SqlStatements
   public static final String ROLE_SELECT_EXTENDED_BY_ID = 
       "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_INSERT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String ROLE_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_DELETE_BY_ID =
@@ -73,11 +73,14 @@ public class SqlStatements
       + " FROM sk_role_permission";
   
   // The following select statement only grabs the permission id and tenant from the 
-  // sk_permission table, but returns the role id, createdby and updatedby constants passed 
-  // in from the caller.
+  // sk_permission table, but returns the role id, createdby and updatedby constants  
+  // passed in from the caller. The role and permission tenants are guaranteed to match
+  // because the last clause matches the role's tenant.
   public static final String ROLE_ADD_PERMISSION_BY_NAME =
       "INSERT INTO sk_role_permission (tenant, role_id, permission_id, createdby, updatedby) " +
-      "select p.tenant, ?, p.id, ?, ? from sk_permission p where p.tenant = ? and p.name = ?";
+      "select p.tenant, ?, p.id, ?, ? from sk_permission p where p.tenant = ? and p.name = ? " +
+      "and p.tenant = (select tenant from sk_role where id = ?) " + // enforce tenant conformance
+      "ON CONFLICT DO NOTHING";
   public static final String ROLE_REMOVE_PERMISSION_BY_NAME =
       "DELETE FROM sk_role_permission where tenant = ? and role_id = ? and " +
       "permission_id = (select p.id from sk_permission p where p.tenant = ? and p.name = ?)";
@@ -111,12 +114,15 @@ public class SqlStatements
       "SELECT id, tenant, parent_role_id, child_role_id, created, createdby, updated, updatedby"
       + " FROM sk_role_tree";
   
-  // The following select statement only grabs the permission id and tenant from the 
-  // sk_role table, but returns the role id, createdby and updatedby constants passed 
-  // in from the caller.
+  // The following select statement only grabs the tenant and child role id from the 
+  // sk_role table, but uses the parent role id, createdby and updatedby constants 
+  // passed in from the caller. The parent and child tenants are guaranteed to match
+  // because the last clause matches the parent role's tenant.
   public static final String ROLE_ADD_CHILD_ROLE_BY_NAME =
       "INSERT INTO sk_role_tree (tenant, parent_role_id, child_role_id, createdby, updatedby) " +
-      "select r.tenant, ?, r.id, ?, ? from sk_role r where r.tenant = ? and r.name = ?";
+      "select r.tenant, ?, r.id, ?, ? from sk_role r where r.tenant = ? and r.name = ? " +
+      "and r.tenant = (select tenant from sk_role where id = ?) " + // enforce tenant conformance
+      "ON CONFLICT DO NOTHING";
   public static final String ROLE_REMOVE_CHILD_ROLE_BY_NAME =
       "DELETE FROM sk_role_tree where tenant = ? and parent_role_id = ? and " +
       "child_role_id = (select r.id from sk_role r where r.tenant = ? and r.name = ?)";
@@ -198,5 +204,11 @@ public class SqlStatements
   public static final String SELECT_SKUSERROLE =
       "SELECT id, tenant, user_name, role_id, created, createdby, updated, updatedby"
       + " FROM sk_user_role";
+
+  // If the role's tenant does not match the passed in tenant, the insert will fail.
+  public static final String USER_ADD_ROLE_BY_ID =
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
+      "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
+      "ON CONFLICT DO NOTHING";
 
 }
