@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 
 import edu.utexas.tacc.tapis.security.authz.dao.SkPermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
@@ -64,15 +65,16 @@ public class NestedRoleTest
         assignUserRoles();
         
         // Query user roles.
+        checkUserRoles();
         
         // Query user permissions.
-        
+        checkUserPermissions();
         
         // Delete permissions created by prior runs of this test.
-        // deletePermissions();
+        deletePermissions();
         
         // Delete roles created by prior runs of this test.
-        // deleteRoles();
+        deleteRoles();
     }
 
     /* ********************************************************************** */
@@ -145,13 +147,13 @@ public class NestedRoleTest
         // Get the descendants of each role.
         System.out.println();
         List<String> children1 = role1.getDescendantRoleNames();
-        System.out.println("role1 contains roles: " + Arrays.toString(children1.toArray()));
+        System.out.println(" **** role1 contains roles: " + Arrays.toString(children1.toArray()));
         List<String> children2 = role2.getDescendantRoleNames();
-        System.out.println("role2 contains roles: " + Arrays.toString(children2.toArray()));
+        System.out.println(" **** role2 contains roles: " + Arrays.toString(children2.toArray()));
         List<String> children3 = role3.getDescendantRoleNames();
-        System.out.println("role3 contains roles: " + Arrays.toString(children3.toArray()));
+        System.out.println(" **** role3 contains roles: " + Arrays.toString(children3.toArray()));
         List<String> children4 = role4.getDescendantRoleNames();
-        System.out.println("role4 contains roles: " + Arrays.toString(children4.toArray()));
+        System.out.println(" **** role4 contains roles: " + Arrays.toString(children4.toArray()));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -169,13 +171,13 @@ public class NestedRoleTest
         // Get the descendants of each role.
         System.out.println();
         List<String> ancestor1 = role1.getAncestorRoleNames();
-        System.out.println("role1 ancestor roles: " + Arrays.toString(ancestor1.toArray()));
+        System.out.println(" **** role1 ancestor roles: " + Arrays.toString(ancestor1.toArray()));
         List<String> ancestor2 = role2.getAncestorRoleNames();
-        System.out.println("role2 ancestor roles: " + Arrays.toString(ancestor2.toArray()));
+        System.out.println(" **** role2 ancestor roles: " + Arrays.toString(ancestor2.toArray()));
         List<String> ancestor3 = role3.getAncestorRoleNames();
-        System.out.println("role3 ancestor roles: " + Arrays.toString(ancestor3.toArray()));
+        System.out.println(" **** role3 ancestor roles: " + Arrays.toString(ancestor3.toArray()));
         List<String> ancestor4 = role4.getAncestorRoleNames();
-        System.out.println("role4 ancestor roles: " + Arrays.toString(ancestor4.toArray()));
+        System.out.println(" **** role4 ancestor roles: " + Arrays.toString(ancestor4.toArray()));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -221,13 +223,13 @@ public class NestedRoleTest
         // Get the descendants of each role.
         System.out.println();
         List<String> perms1 = role1.getTransitivePermissionNames();
-        System.out.println("role1 permissions: " + Arrays.toString(perms1.toArray()));
+        System.out.println(" **** role1 permissions: " + Arrays.toString(perms1.toArray()));
         List<String> perms2 = role2.getTransitivePermissionNames();
-        System.out.println("role2 permissions: " + Arrays.toString(perms2.toArray()));
+        System.out.println(" **** role2 permissions: " + Arrays.toString(perms2.toArray()));
         List<String> perms3 = role3.getTransitivePermissionNames();
-        System.out.println("role3 permissions: " + Arrays.toString(perms3.toArray()));
+        System.out.println(" **** role3 permissions: " + Arrays.toString(perms3.toArray()));
         List<String> perms4 = role4.getTransitivePermissionNames();
-        System.out.println("role4 permissions: " + Arrays.toString(perms4.toArray()));
+        System.out.println(" **** role4 permissions: " + Arrays.toString(perms4.toArray()));
     }
 
     /* ---------------------------------------------------------------------- */
@@ -244,5 +246,37 @@ public class NestedRoleTest
         role3.addUser(user, user3);
         SkRole role4 = dao.getRole(tenant, "NestedTestRole4");
         role4.addUser(user, user4);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* assignUserRoles:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private void checkUserRoles() throws TapisException
+    {
+       SkUserRoleDao dao = new SkUserRoleDao();
+       List<String> roles1 = dao.getUserRoleNames(tenant, user1);
+       System.out.println(" **** user1 roles: " + Arrays.toString(roles1.toArray()));
+       List<String> roles2 = dao.getUserRoleNames(tenant, user2);
+       System.out.println(" **** user2 roles: " + Arrays.toString(roles2.toArray()));
+       List<String> roles3 = dao.getUserRoleNames(tenant, user3);
+       System.out.println(" **** user3 roles: " + Arrays.toString(roles3.toArray()));
+       List<String> roles4 = dao.getUserRoleNames(tenant, user4);
+       System.out.println(" **** user4 roles: " + Arrays.toString(roles4.toArray()));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* checkUserPermissions:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private void checkUserPermissions() throws TapisException
+    {
+        SkUserRoleDao dao = new SkUserRoleDao();
+        List<String> perms1 = dao.getUserPermissionNames(tenant, user1);
+        System.out.println(" **** user1 perms: " + Arrays.toString(perms1.toArray()));
+        List<String> perms2 = dao.getUserPermissionNames(tenant, user2);
+        System.out.println(" **** user2 perms: " + Arrays.toString(perms2.toArray()));
+        List<String> perms3 = dao.getUserPermissionNames(tenant, user3);
+        System.out.println(" **** user3 perms: " + Arrays.toString(perms3.toArray()));
+        List<String> perms4 = dao.getUserPermissionNames(tenant, user4);
+        System.out.println(" **** user4 perms: " + Arrays.toString(perms4.toArray()));
     }
 }

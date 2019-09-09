@@ -5,10 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,6 +223,202 @@ public final class SkUserRoleDao
       return rows;
   }
   
+  /* ---------------------------------------------------------------------- */
+  /* getUserRoleNames:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Get the names of all roles assigned to this user including those assigned
+   * transitively.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null list of all roles assigned to user
+   * @throws TapisException on error
+   */
+  public List<String> getUserRoleNames(String tenant, String user) throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Initialize final result and intermediate result.
+      ArrayList<String> roleNames = new ArrayList<>();
+      ArrayList<Pair<Integer, String>> roleRecs  = new ArrayList<>();
+
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.USER_SELECT_ROLE_IDS_AND_NAMES;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, user);
+                      
+          // Issue the call the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) {
+              Pair<Integer,String> pair = Pair.of(rs.getInt(1), rs.getString(2));
+              roleRecs.add(pair);
+          }
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkUserRole", user, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      // Maybe we are done.
+      if (roleRecs.isEmpty()) return roleNames;
+      
+      // Now populate an ordered set with all role names, including
+      // transitive roles, assigned to this user. A set is used to
+      // ignore duplicates.
+      TreeSet<String> roleSet = new TreeSet<String>();
+      SkRoleDao dao = new SkRoleDao();
+      for (Pair<Integer, String> pair : roleRecs) {
+          roleSet.add(pair.getRight());
+          List<String> list = dao.getDescendantRoleNames(pair.getLeft());
+          if (!list.isEmpty()) roleSet.addAll(list);
+      }
+      
+      // Populate the list from the ordered set.
+      roleNames.addAll(roleSet);
+      return roleNames;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUserPermissionNames:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** Get the names of all roles assigned to this user including those assigned
+   * transitively.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null list of all roles assigned to user
+   * @throws TapisException on error
+   */
+  public List<String> getUserPermissionNames(String tenant, String user) throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Initialize final result and intermediate result.
+      ArrayList<String>  permNames = new ArrayList<>();
+      ArrayList<Integer> roleIds   = new ArrayList<>();
+
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.USER_SELECT_ROLE_IDS_AND_NAMES;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, user);
+                      
+          // Issue the call the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) roleIds.add(rs.getInt(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkUserRole", user, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      // Maybe we are done.
+      if (roleIds.isEmpty()) return permNames;
+      
+      // Now populate an ordered set with all permission names, including
+      // those from transitive roles, assigned to this user. A set is used 
+      // to ignore duplicates.
+      TreeSet<String> roleSet = new TreeSet<String>();
+      SkRoleDao dao = new SkRoleDao();
+      for (int roleId : roleIds) {
+          List<String> list = dao.getTransitivePermissionNames(roleId);
+          if (!list.isEmpty()) roleSet.addAll(list);
+      }
+      
+      // Populate the list from the ordered set.
+      permNames.addAll(roleSet);
+      return permNames;
+  }
+  
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
@@ -296,5 +494,4 @@ public final class SkUserRoleDao
       
     return obj;
   }
-  
 }

@@ -211,4 +211,13 @@ public class SqlStatements
       "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";
 
+  // Get the role ids assigned to user.
+  public static final String USER_SELECT_ROLE_IDS =
+      "SELECT role_id FROM sk_user_role WHERE tenant = ? and user_name = ?";
+  
+  // Get the role ids and the role names assigned to user.
+  public static final String USER_SELECT_ROLE_IDS_AND_NAMES =
+      "SELECT ur.role_id, r.name FROM sk_user_role ur, sk_role r " +
+      "WHERE ur.role_id = r.id and ur.tenant = ? and ur.user_name = ?";
+
 }

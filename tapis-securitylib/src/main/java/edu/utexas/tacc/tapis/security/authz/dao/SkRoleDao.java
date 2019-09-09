@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.security.authz.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -180,7 +179,7 @@ public final class SkRoleDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "SkRole", "allUUIDs", e.getMessage());
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkRole", name, e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
