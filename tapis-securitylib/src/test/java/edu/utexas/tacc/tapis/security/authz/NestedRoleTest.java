@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.security.authz;
 import java.util.Arrays;
 import java.util.List;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import edu.utexas.tacc.tapis.security.authz.dao.SkPermissionDao;
@@ -148,12 +149,22 @@ public class NestedRoleTest
         System.out.println();
         List<String> children1 = role1.getDescendantRoleNames();
         System.out.println(" **** role1 contains roles: " + Arrays.toString(children1.toArray()));
+        Assert.assertEquals(children1.contains("NestedTestRole2"), true);
+        Assert.assertEquals(children1.contains("NestedTestRole3"), true);
+        Assert.assertEquals(children1.contains("NestedTestRole4"), true);
+        
         List<String> children2 = role2.getDescendantRoleNames();
         System.out.println(" **** role2 contains roles: " + Arrays.toString(children2.toArray()));
+        Assert.assertEquals(children2.contains("NestedTestRole3"), true);
+        Assert.assertEquals(children2.contains("NestedTestRole4"), true);
+        
         List<String> children3 = role3.getDescendantRoleNames();
         System.out.println(" **** role3 contains roles: " + Arrays.toString(children3.toArray()));
+        Assert.assertEquals(children3.isEmpty(), true);
+        
         List<String> children4 = role4.getDescendantRoleNames();
         System.out.println(" **** role4 contains roles: " + Arrays.toString(children4.toArray()));
+        Assert.assertEquals(children4.isEmpty(), true);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -172,12 +183,21 @@ public class NestedRoleTest
         System.out.println();
         List<String> ancestor1 = role1.getAncestorRoleNames();
         System.out.println(" **** role1 ancestor roles: " + Arrays.toString(ancestor1.toArray()));
+        Assert.assertEquals(ancestor1.isEmpty(), true);
+        
         List<String> ancestor2 = role2.getAncestorRoleNames();
         System.out.println(" **** role2 ancestor roles: " + Arrays.toString(ancestor2.toArray()));
+        Assert.assertEquals(ancestor2.contains("NestedTestRole1"), true);
+        
         List<String> ancestor3 = role3.getAncestorRoleNames();
         System.out.println(" **** role3 ancestor roles: " + Arrays.toString(ancestor3.toArray()));
+        Assert.assertEquals(ancestor3.contains("NestedTestRole1"), true);
+        Assert.assertEquals(ancestor3.contains("NestedTestRole2"), true);
+        
         List<String> ancestor4 = role4.getAncestorRoleNames();
         System.out.println(" **** role4 ancestor roles: " + Arrays.toString(ancestor4.toArray()));
+        Assert.assertEquals(ancestor4.contains("NestedTestRole1"), true);
+        Assert.assertEquals(ancestor4.contains("NestedTestRole2"), true);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -224,12 +244,24 @@ public class NestedRoleTest
         System.out.println();
         List<String> perms1 = role1.getTransitivePermissionNames();
         System.out.println(" **** role1 permissions: " + Arrays.toString(perms1.toArray()));
+        Assert.assertEquals(perms1.contains("NestedTestPerm1"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm2"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm4"), true);
+        
         List<String> perms2 = role2.getTransitivePermissionNames();
         System.out.println(" **** role2 permissions: " + Arrays.toString(perms2.toArray()));
+        Assert.assertEquals(perms2.contains("NestedTestPerm2"), true);
+        Assert.assertEquals(perms2.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms2.contains("NestedTestPerm4"), true);
+        
         List<String> perms3 = role3.getTransitivePermissionNames();
         System.out.println(" **** role3 permissions: " + Arrays.toString(perms3.toArray()));
+        Assert.assertEquals(perms3.contains("NestedTestPerm3"), true);
+       
         List<String> perms4 = role4.getTransitivePermissionNames();
         System.out.println(" **** role4 permissions: " + Arrays.toString(perms4.toArray()));
+        Assert.assertEquals(perms4.contains("NestedTestPerm4"), true);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -249,19 +281,31 @@ public class NestedRoleTest
     }
     
     /* ---------------------------------------------------------------------- */
-    /* assignUserRoles:                                                       */
+    /* checkUserRoles:                                                        */
     /* ---------------------------------------------------------------------- */
     private void checkUserRoles() throws TapisException
     {
        SkUserRoleDao dao = new SkUserRoleDao();
        List<String> roles1 = dao.getUserRoleNames(tenant, user1);
        System.out.println(" **** user1 roles: " + Arrays.toString(roles1.toArray()));
+       Assert.assertEquals(roles1.contains("NestedTestRole1"), true);
+       Assert.assertEquals(roles1.contains("NestedTestRole2"), true);
+       Assert.assertEquals(roles1.contains("NestedTestRole3"), true);
+       Assert.assertEquals(roles1.contains("NestedTestRole4"), true);
+       
        List<String> roles2 = dao.getUserRoleNames(tenant, user2);
        System.out.println(" **** user2 roles: " + Arrays.toString(roles2.toArray()));
+       Assert.assertEquals(roles2.contains("NestedTestRole2"), true);
+       Assert.assertEquals(roles2.contains("NestedTestRole3"), true);
+       Assert.assertEquals(roles2.contains("NestedTestRole4"), true);
+      
        List<String> roles3 = dao.getUserRoleNames(tenant, user3);
        System.out.println(" **** user3 roles: " + Arrays.toString(roles3.toArray()));
+       Assert.assertEquals(roles3.contains("NestedTestRole3"), true);
+       
        List<String> roles4 = dao.getUserRoleNames(tenant, user4);
        System.out.println(" **** user4 roles: " + Arrays.toString(roles4.toArray()));
+       Assert.assertEquals(roles4.contains("NestedTestRole4"), true);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -272,11 +316,23 @@ public class NestedRoleTest
         SkUserRoleDao dao = new SkUserRoleDao();
         List<String> perms1 = dao.getUserPermissionNames(tenant, user1);
         System.out.println(" **** user1 perms: " + Arrays.toString(perms1.toArray()));
+        Assert.assertEquals(perms1.contains("NestedTestPerm1"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm2"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms1.contains("NestedTestPerm4"), true);
+       
         List<String> perms2 = dao.getUserPermissionNames(tenant, user2);
         System.out.println(" **** user2 perms: " + Arrays.toString(perms2.toArray()));
+        Assert.assertEquals(perms2.contains("NestedTestPerm2"), true);
+        Assert.assertEquals(perms2.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms2.contains("NestedTestPerm4"), true);
+        
         List<String> perms3 = dao.getUserPermissionNames(tenant, user3);
         System.out.println(" **** user3 perms: " + Arrays.toString(perms3.toArray()));
+        Assert.assertEquals(perms3.contains("NestedTestPerm3"), true);
+        
         List<String> perms4 = dao.getUserPermissionNames(tenant, user4);
         System.out.println(" **** user4 perms: " + Arrays.toString(perms4.toArray()));
+        Assert.assertEquals(perms4.contains("NestedTestPerm4"), true);
     }
 }
