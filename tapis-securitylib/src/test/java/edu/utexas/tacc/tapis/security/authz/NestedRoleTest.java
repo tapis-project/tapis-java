@@ -152,11 +152,13 @@ public class NestedRoleTest
         Assert.assertEquals(children1.contains("NestedTestRole2"), true);
         Assert.assertEquals(children1.contains("NestedTestRole3"), true);
         Assert.assertEquals(children1.contains("NestedTestRole4"), true);
+        Assert.assertEquals(children1.size(), 3);
         
         List<String> children2 = role2.getDescendantRoleNames();
         System.out.println(" **** role2 contains roles: " + Arrays.toString(children2.toArray()));
         Assert.assertEquals(children2.contains("NestedTestRole3"), true);
         Assert.assertEquals(children2.contains("NestedTestRole4"), true);
+        Assert.assertEquals(children2.size(), 2);
         
         List<String> children3 = role3.getDescendantRoleNames();
         System.out.println(" **** role3 contains roles: " + Arrays.toString(children3.toArray()));
@@ -188,16 +190,19 @@ public class NestedRoleTest
         List<String> ancestor2 = role2.getAncestorRoleNames();
         System.out.println(" **** role2 ancestor roles: " + Arrays.toString(ancestor2.toArray()));
         Assert.assertEquals(ancestor2.contains("NestedTestRole1"), true);
+        Assert.assertEquals(ancestor2.size(), 1);
         
         List<String> ancestor3 = role3.getAncestorRoleNames();
         System.out.println(" **** role3 ancestor roles: " + Arrays.toString(ancestor3.toArray()));
         Assert.assertEquals(ancestor3.contains("NestedTestRole1"), true);
         Assert.assertEquals(ancestor3.contains("NestedTestRole2"), true);
+        Assert.assertEquals(ancestor3.size(), 2);
         
         List<String> ancestor4 = role4.getAncestorRoleNames();
         System.out.println(" **** role4 ancestor roles: " + Arrays.toString(ancestor4.toArray()));
         Assert.assertEquals(ancestor4.contains("NestedTestRole1"), true);
         Assert.assertEquals(ancestor4.contains("NestedTestRole2"), true);
+        Assert.assertEquals(ancestor4.size(), 2);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -248,20 +253,24 @@ public class NestedRoleTest
         Assert.assertEquals(perms1.contains("NestedTestPerm2"), true);
         Assert.assertEquals(perms1.contains("NestedTestPerm3"), true);
         Assert.assertEquals(perms1.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms1.size(), 4);
         
         List<String> perms2 = role2.getTransitivePermissionNames();
         System.out.println(" **** role2 permissions: " + Arrays.toString(perms2.toArray()));
         Assert.assertEquals(perms2.contains("NestedTestPerm2"), true);
         Assert.assertEquals(perms2.contains("NestedTestPerm3"), true);
         Assert.assertEquals(perms2.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms2.size(), 3);
         
         List<String> perms3 = role3.getTransitivePermissionNames();
         System.out.println(" **** role3 permissions: " + Arrays.toString(perms3.toArray()));
         Assert.assertEquals(perms3.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms3.size(), 1);
        
         List<String> perms4 = role4.getTransitivePermissionNames();
         System.out.println(" **** role4 permissions: " + Arrays.toString(perms4.toArray()));
         Assert.assertEquals(perms4.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms4.size(), 1);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -292,20 +301,24 @@ public class NestedRoleTest
        Assert.assertEquals(roles1.contains("NestedTestRole2"), true);
        Assert.assertEquals(roles1.contains("NestedTestRole3"), true);
        Assert.assertEquals(roles1.contains("NestedTestRole4"), true);
+       Assert.assertEquals(roles1.size(), 4);
        
        List<String> roles2 = dao.getUserRoleNames(tenant, user2);
        System.out.println(" **** user2 roles: " + Arrays.toString(roles2.toArray()));
        Assert.assertEquals(roles2.contains("NestedTestRole2"), true);
        Assert.assertEquals(roles2.contains("NestedTestRole3"), true);
        Assert.assertEquals(roles2.contains("NestedTestRole4"), true);
+       Assert.assertEquals(roles2.size(), 3);
       
        List<String> roles3 = dao.getUserRoleNames(tenant, user3);
        System.out.println(" **** user3 roles: " + Arrays.toString(roles3.toArray()));
        Assert.assertEquals(roles3.contains("NestedTestRole3"), true);
+       Assert.assertEquals(roles3.size(), 1);
        
        List<String> roles4 = dao.getUserRoleNames(tenant, user4);
        System.out.println(" **** user4 roles: " + Arrays.toString(roles4.toArray()));
        Assert.assertEquals(roles4.contains("NestedTestRole4"), true);
+       Assert.assertEquals(roles4.size(), 1);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -320,19 +333,23 @@ public class NestedRoleTest
         Assert.assertEquals(perms1.contains("NestedTestPerm2"), true);
         Assert.assertEquals(perms1.contains("NestedTestPerm3"), true);
         Assert.assertEquals(perms1.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms1.size(), 4);
        
         List<String> perms2 = dao.getUserPermissionNames(tenant, user2);
         System.out.println(" **** user2 perms: " + Arrays.toString(perms2.toArray()));
         Assert.assertEquals(perms2.contains("NestedTestPerm2"), true);
         Assert.assertEquals(perms2.contains("NestedTestPerm3"), true);
         Assert.assertEquals(perms2.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms2.size(), 3);
         
         List<String> perms3 = dao.getUserPermissionNames(tenant, user3);
         System.out.println(" **** user3 perms: " + Arrays.toString(perms3.toArray()));
         Assert.assertEquals(perms3.contains("NestedTestPerm3"), true);
+        Assert.assertEquals(perms3.size(), 1);
         
         List<String> perms4 = dao.getUserPermissionNames(tenant, user4);
         System.out.println(" **** user4 perms: " + Arrays.toString(perms4.toArray()));
         Assert.assertEquals(perms4.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms4.size(), 1);
     }
 }
