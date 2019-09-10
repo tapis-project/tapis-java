@@ -138,7 +138,8 @@ CREATE TABLE sk_permission
 (
   id          serial4 PRIMARY KEY,
   tenant      character varying(24) NOT NULL,
-  name        character varying(60) NOT NULL,         
+  name        character varying(60) NOT NULL,
+  perm        character varying(1024) NOT NULL,
   description character varying(2048) NOT NULL,       
   created     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby   character varying(60) NOT NULL DEFAULT current_user,           
@@ -152,6 +153,7 @@ CREATE UNIQUE INDEX sk_permission_tenant_name_idx ON sk_permission (tenant, name
 COMMENT ON COLUMN sk_permission.id IS 'Unique permission id';
 COMMENT ON COLUMN sk_permission.tenant IS 'User tenant name';
 COMMENT ON COLUMN sk_permission.name IS 'Unique permission name';
+COMMENT ON COLUMN sk_permission.perm IS 'Permission constraint value';
 COMMENT ON COLUMN sk_permission.description IS 'Permission description';
 COMMENT ON COLUMN sk_permission.created IS 'UTC time record was inserted';
 COMMENT ON COLUMN sk_permission.createdby IS 'User that inserted record';
@@ -331,7 +333,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role() RETURNS TRIGGER AS $$
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.name != NEW.name THEN
                 INSERT INTO sk_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
@@ -403,7 +405,7 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.user_name != NEW.user_name THEN
                 INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
@@ -470,11 +472,15 @@ CREATE OR REPLACE FUNCTION audit_sk_permission() RETURNS TRIGGER AS $$
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.name != NEW.name THEN
                 INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
                     VALUES (OLD.id, OLD.name, 'name', 'update', OLD.name, NEW.name);
+            END IF;
+            IF OLD.perm != NEW.perm THEN
+                INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.name, 'perm', 'update', OLD.perm, NEW.perm);
             END IF;
             IF OLD.description != NEW.description THEN
                 INSERT INTO sk_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
@@ -542,7 +548,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_permission() RETURNS TRIGGER AS $$
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_role_permission_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.role_id != NEW.role_id THEN
                 INSERT INTO sk_role_permission_audit (refid, refcol, change, oldvalue, newvalue) 
@@ -608,7 +614,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_tree() RETURNS TRIGGER AS $$
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_role_tree_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'name', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.parent_role_id != NEW.parent_role_id THEN
                 INSERT INTO sk_role_tree_audit (refid, refcol, change, oldvalue, newvalue) 

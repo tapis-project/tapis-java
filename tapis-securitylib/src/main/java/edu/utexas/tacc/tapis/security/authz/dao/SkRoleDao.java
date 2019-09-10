@@ -529,7 +529,76 @@ public final class SkRoleDao
           conn = getConnection();
           
           // Get the select command.
-          String sql = SqlStatements.ROLE_GET_TRANSITIVE_PERMISSIONS;
+          String sql = SqlStatements.ROLE_GET_TRANSITIVE_PERMISSION_NAMES;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setInt(1, roleId);
+          pstmt.setInt(2, roleId);
+                      
+          // Issue the call for the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) list.add(rs.getString(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("SK_SELECT_TRANSITIVE_PERMISSIONS_ERROR", roleId, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return list;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getTransitivePermissions:                                              */
+  /* ---------------------------------------------------------------------- */
+  /** Get all the permission values transitively associated with the 
+   * specified role id.
+   * 
+   * Note: Without modules or reorganizing packages, users from one tenant can
+   *       see role information from another.
+   * 
+   * @param roleId the role id whose permissions are requested
+   * @return a non-null list of permission names
+   * @throws TapisException on error
+   */
+  public List<String> getTransitivePermissions(int roleId) throws TapisException
+  {
+      // Initialize result list.
+      ArrayList<String> list = new ArrayList<>();
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.ROLE_GET_TRANSITIVE_PERMISSION_VALUES;
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);

@@ -14,19 +14,19 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKPERMISSION =
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby"
       + " FROM sk_permission";
     
   public static final String PERMISSION_SELECT_BY_NAME = 
-      "SELECT id, tenant, name, description FROM sk_permission where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, perm, description FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_SELECT_BY_ID = 
-      "SELECT id, tenant, name, description FROM sk_permission where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, perm, description FROM sk_permission where tenant = ? AND id = ?";
   public static final String PERMISSION_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
   public static final String PERMISSION_INSERT = 
-      "INSERT INTO sk_permission (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+      "INSERT INTO sk_permission (tenant, name, perm, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String PERMISSION_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_DELETE_BY_ID =
@@ -34,7 +34,7 @@ public class SqlStatements
   public static final String PERMISSION_DELETE_BY_NAME =
       "DELETE FROM sk_permission where tenant = ? AND name = ?";
   public static final String PERMISSION_UPDATE = 
-      "UPDATE sk_permission SET name = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
+      "UPDATE sk_permission SET name = ?, perm = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
 
   /* ---------------------------------------------------------------------- */
   /* sk_role:                                                               */
@@ -179,7 +179,7 @@ public class SqlStatements
   // descendant roles discovered in the preceding recursive calls.  
   // The second part of the UNION retrieves the permission names
   // assigned to the parent role.
-  public static final String ROLE_GET_TRANSITIVE_PERMISSIONS =
+  public static final String ROLE_GET_TRANSITIVE_PERMISSION_NAMES =
       "WITH RECURSIVE children AS ( " +
       "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
       "UNION DISTINCT " +
@@ -196,6 +196,32 @@ public class SqlStatements
         "WHERE rp2.role_id = ? " +
         "AND rp2.permission_id = p2.id " +
       "ORDER BY outname";
+
+  // Given a role, find all permissions assigned to that role
+  // and the transitive closure of all its descendants.  The 
+  // WITH statement retrieves all the descendant role ids.  The
+  // query that follows the WITH is a UNION.  The first part of 
+  // this UNION calculates the permission values assigned to the 
+  // descendant roles discovered in the preceding recursive calls.  
+  // The second part of the UNION retrieves the permission values
+  // assigned to the parent role.
+  public static final String ROLE_GET_TRANSITIVE_PERMISSION_VALUES =
+      "WITH RECURSIVE children AS ( " +
+      "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
+      "UNION DISTINCT " +
+      "SELECT a.child_role_id FROM sk_role_tree a, children b " +
+        "where a.parent_role_id = b.child_role_id " +
+      ") " +
+      "SELECT DISTINCT p1.perm AS outperm " +
+        "FROM children, sk_role_permission rp1, sk_permission p1 " +
+        "WHERE rp1.role_id = children.child_role_id " +
+        "AND rp1.permission_id = p1.id " +
+      "UNION DISTINCT " +
+      "SELECT DISTINCT p2.perm AS outperm " +
+        "FROM sk_role_permission rp2, sk_permission p2 " +
+        "WHERE rp2.role_id = ? " +
+        "AND rp2.permission_id = p2.id " +
+      "ORDER BY outperm";
 
   /* ---------------------------------------------------------------------- */
   /* sk_user_role:                                                          */

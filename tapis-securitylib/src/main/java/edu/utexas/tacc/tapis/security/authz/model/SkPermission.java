@@ -9,6 +9,7 @@ public final class SkPermission
     private int     id;
     private String  tenant;
     private String  name;
+    private String  perm;
     private String  description;
     private Instant created;
     private String  createdby;
@@ -45,6 +46,14 @@ public final class SkPermission
         this.name = name;
     }
 
+    public String getPerm() {
+        return perm;
+    }
+
+    public void setPerm(String perm) {
+        this.perm = perm;
+    }
+    
     public String getDescription() {
         return description;
     }

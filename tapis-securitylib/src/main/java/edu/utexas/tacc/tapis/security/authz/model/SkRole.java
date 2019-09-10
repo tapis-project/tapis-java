@@ -151,6 +151,28 @@ public final class SkRole
         return list;
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* getTransitivePermissions:                                              */
+    /* ---------------------------------------------------------------------- */
+    /** Get this list of permission values (i.e. constraints) assigned to this 
+     * role and all of its descendants. 
+     * 
+     * @return list of permissions associated with this role transitively
+     * @throws TapisException
+     */
+    public List<String> getTransitivePermissions() throws TapisException
+    {
+        List<String> list = null;
+        try {
+            SkRoleDao dao = new SkRoleDao();
+            list = dao.getTransitivePermissions(id);
+        } catch (Exception e) {
+            _log.error(e.getMessage()); // details already logged
+            throw e;
+        }
+        return list;
+    }
+    
     /* ********************************************************************** */
     /*                               Accessors                                */
     /* ********************************************************************** */

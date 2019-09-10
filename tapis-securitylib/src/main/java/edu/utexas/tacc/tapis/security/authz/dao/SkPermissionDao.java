@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkPermission;
-import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
@@ -136,7 +135,7 @@ public final class SkPermissionDao
    * @return number of rows affected (0 or 1)
    * @throws TapisException if the roles is not created for any reason
    */
-  public int createPermission(String tenant, String user, String name, String description) 
+  public int createPermission(String tenant, String user, String name, String perm, String description) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -153,6 +152,11 @@ public final class SkPermissionDao
       }
       if (StringUtils.isBlank(name)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "name");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(perm)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "perm");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -177,9 +181,10 @@ public final class SkPermissionDao
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenant);
           pstmt.setString(2, name);
-          pstmt.setString(3, description);
-          pstmt.setString(4, user);
+          pstmt.setString(3, perm);
+          pstmt.setString(4, description);
           pstmt.setString(5, user);
+          pstmt.setString(6, user);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -433,11 +438,12 @@ public final class SkPermissionDao
         obj.setId(rs.getInt(1));
         obj.setTenant(rs.getString(2));
         obj.setName(rs.getString(3));
-        obj.setDescription(rs.getString(4));
-        obj.setCreated(rs.getTimestamp(5).toInstant());
-        obj.setCreatedby(rs.getString(6));
-        obj.setUpdated(rs.getTimestamp(7).toInstant());
-        obj.setUpdatedby(rs.getString(8));
+        obj.setPerm(rs.getString(4));
+        obj.setDescription(rs.getString(5));
+        obj.setCreated(rs.getTimestamp(6).toInstant());
+        obj.setCreatedby(rs.getString(7));
+        obj.setUpdated(rs.getTimestamp(8).toInstant());
+        obj.setUpdatedby(rs.getString(9));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
