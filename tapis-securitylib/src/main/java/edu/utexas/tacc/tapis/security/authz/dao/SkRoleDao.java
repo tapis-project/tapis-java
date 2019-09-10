@@ -6,8 +6,6 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.sql.DataSource;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
@@ -25,6 +22,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * how to do this.
  */
 public final class SkRoleDao
+ extends SkAbstractDao
 {
   /* ********************************************************************** */
   /*                               Constants                                */
@@ -33,27 +31,16 @@ public final class SkRoleDao
   private static final Logger _log = LoggerFactory.getLogger(SkRoleDao.class);
   
   /* ********************************************************************** */
-  /*                                 Fields                                 */
-  /* ********************************************************************** */
-  // The database datasource provided by clients.
-  private final DataSource _ds;
-  
-  /* ********************************************************************** */
   /*                              Constructors                              */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
   /* constructor:                                                           */
   /* ---------------------------------------------------------------------- */
-  /** This class depends on the calling code to provide a datasource for
-   * db connections since this code in not part of a free-standing service.
+  /** The superclass initializes the datasource.
    * 
-   * @param dataSource the non-null datasource 
-   * @throws TapisException 
+   * @throws TapisException on database errors
    */
-  public SkRoleDao() throws TapisException
-  {
-    _ds = SkDaoUtils.getDataSource();
-  }
+  public SkRoleDao() throws TapisException {}
   
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -644,24 +631,6 @@ public final class SkRoleDao
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
-  /* ---------------------------------------------------------------------- */
-  /* getConnection:                                                         */
-  /* ---------------------------------------------------------------------- */
-  private Connection getConnection()
-    throws TapisException
-  {
-    // Get the connection.
-    Connection conn = null;
-    try {conn = _ds.getConnection();}
-      catch (Exception e) {
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION");
-        _log.error(msg, e);
-        throw new TapisDBConnectionException(msg, e);
-      }
-    
-    return conn;
-  }
-
   /* ---------------------------------------------------------------------- */
   /* populateSkRole:                                                        */
   /* ---------------------------------------------------------------------- */
