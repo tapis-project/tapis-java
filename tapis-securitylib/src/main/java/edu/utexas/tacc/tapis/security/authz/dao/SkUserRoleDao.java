@@ -227,14 +227,133 @@ public final class SkUserRoleDao
   /* getUserRoleNames:                                                      */
   /* ---------------------------------------------------------------------- */
   /** Get the names of all roles assigned to this user including those assigned
-   * transitively.
+   * transitively.  The role names are returned in alphabetic order.
    * 
    * @param tenant the user's tenant
    * @param user the user name
-   * @return a non-null list of all roles assigned to user
+   * @return a non-null, ordered list of all roles assigned to user
    * @throws TapisException on error
    */
   public List<String> getUserRoleNames(String tenant, String user) throws TapisException
+  {
+      // Get the <role id, role name> tuples assigned to this user.
+      // Input checking done here.
+      List<Pair<Integer, String>> roleRecs = getUserRoleIdsAndNames(tenant, user);
+      
+      // Final result list.
+      ArrayList<String> roleNames = new ArrayList<>();
+      
+      // Maybe we are done.
+      if (roleRecs.isEmpty()) return roleNames;
+      
+      // Now populate an ordered set with all role names, including
+      // transitive roles, assigned to this user. A set is used to
+      // ignore duplicates.
+      TreeSet<String> roleSet = new TreeSet<String>();
+      SkRoleDao dao = new SkRoleDao();
+      for (Pair<Integer, String> pair : roleRecs) {
+          roleSet.add(pair.getRight());  // save parent role name
+          List<String> list = dao.getDescendantRoleNames(pair.getLeft());
+          if (!list.isEmpty()) roleSet.addAll(list);
+      }
+      
+      // Populate the list from the ordered set.
+      roleNames.addAll(roleSet);
+      return roleNames;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUserPermissionNames:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** Get the names of all permissions assigned to this user including those 
+   * assigned transitively.  The permission names are returned in alphabetic 
+   * order.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null, ordered list of all permission names assigned to user
+   * @throws TapisException on error
+   */
+  public List<String> getUserPermissionNames(String tenant, String user) throws TapisException
+  {
+      // Get the role ids of roles explicitly assigned to the user.
+      // Input checking done here.
+      List<Integer> roleIds = getUserRoleIds(tenant, user);
+
+      // Final result list.
+      ArrayList<String>  permNames = new ArrayList<>();
+      
+      // Maybe we are done.
+      if (roleIds.isEmpty()) return permNames;
+      
+      // Now populate an ordered set with all permission names, including
+      // those from transitive roles, assigned to this user. A set is used 
+      // to ignore duplicates.
+      TreeSet<String> roleSet = new TreeSet<String>();
+      SkRoleDao dao = new SkRoleDao();
+      for (int roleId : roleIds) {
+          List<String> list = dao.getTransitivePermissionNames(roleId);
+          if (!list.isEmpty()) roleSet.addAll(list);
+      }
+      
+      // Populate the list from the ordered set.
+      permNames.addAll(roleSet);
+      return permNames;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUserPermissions:                                                    */
+  /* ---------------------------------------------------------------------- */
+  /** Get the permission values (i.e., constraint strings) assigned to this 
+   * user including those assigned transitively.  The permission names are 
+   * returned in alphabetic order.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null, ordered list of all permission values assigned to user
+   * @throws TapisException on error
+   */
+  public List<String> getUserPermissions(String tenant, String user) throws TapisException
+  {
+      // Get the role ids of roles explicitly assigned to the user.
+      // Input checking done here.
+      List<Integer> roleIds = getUserRoleIds(tenant, user);
+
+      // Final result list.
+      ArrayList<String>  permNames = new ArrayList<>();
+      
+      // Maybe we are done.
+      if (roleIds.isEmpty()) return permNames;
+      
+      // Now populate an ordered set with all permission values, including
+      // those from transitive roles, assigned to this user. A set is used 
+      // to ignore duplicates.
+      TreeSet<String> roleSet = new TreeSet<String>();
+      SkRoleDao dao = new SkRoleDao();
+      for (int roleId : roleIds) {
+          List<String> list = dao.getTransitivePermissions(roleId);
+          if (!list.isEmpty()) roleSet.addAll(list);
+      }
+      
+      // Populate the list from the ordered set.
+      permNames.addAll(roleSet);
+      return permNames;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUserRoleIdsAndNames:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** Get the id and names of all roles assigned to this user including those 
+   * assigned transitively.  The result is a list of tuples <role id, role name>
+   * assigned to the user.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null list of all roles ids and names assigned to user
+   * @throws TapisException on error
+   */
+  public List<Pair<Integer,String>> getUserRoleIdsAndNames(String tenant, String user) 
+   throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
@@ -249,9 +368,8 @@ public final class SkUserRoleDao
           throw new TapisException(msg);
       }
       
-      // Initialize final result and intermediate result.
-      ArrayList<String> roleNames = new ArrayList<>();
-      ArrayList<Pair<Integer, String>> roleRecs  = new ArrayList<>();
+      // Initialize intermediate result.
+      ArrayList<Pair<Integer,String>> roleRecs = new ArrayList<>();
 
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
@@ -304,29 +422,13 @@ public final class SkUserRoleDao
             }
       }
       
-      // Maybe we are done.
-      if (roleRecs.isEmpty()) return roleNames;
-      
-      // Now populate an ordered set with all role names, including
-      // transitive roles, assigned to this user. A set is used to
-      // ignore duplicates.
-      TreeSet<String> roleSet = new TreeSet<String>();
-      SkRoleDao dao = new SkRoleDao();
-      for (Pair<Integer, String> pair : roleRecs) {
-          roleSet.add(pair.getRight());
-          List<String> list = dao.getDescendantRoleNames(pair.getLeft());
-          if (!list.isEmpty()) roleSet.addAll(list);
-      }
-      
-      // Populate the list from the ordered set.
-      roleNames.addAll(roleSet);
-      return roleNames;
+      return roleRecs;
   }
   
   /* ---------------------------------------------------------------------- */
-  /* getUserPermissionNames:                                                */
+  /* getUserRoleIds:                                                        */
   /* ---------------------------------------------------------------------- */
-  /** Get the names of all roles assigned to this user including those assigned
+  /** Get the role ids assigned to this user including those assigned
    * transitively.
    * 
    * @param tenant the user's tenant
@@ -334,7 +436,7 @@ public final class SkUserRoleDao
    * @return a non-null list of all roles assigned to user
    * @throws TapisException on error
    */
-  public List<String> getUserPermissionNames(String tenant, String user) throws TapisException
+  public List<Integer> getUserRoleIds(String tenant, String user) throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
@@ -349,9 +451,8 @@ public final class SkUserRoleDao
           throw new TapisException(msg);
       }
       
-      // Initialize final result and intermediate result.
-      ArrayList<String>  permNames = new ArrayList<>();
-      ArrayList<Integer> roleIds   = new ArrayList<>();
+      // Initialize intermediate result.
+      ArrayList<Integer> roleIds = new ArrayList<>();
 
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
@@ -361,7 +462,7 @@ public final class SkUserRoleDao
           conn = getConnection();
           
           // Get the select command.
-          String sql = SqlStatements.USER_SELECT_ROLE_IDS_AND_NAMES;
+          String sql = SqlStatements.USER_SELECT_ROLE_IDS;
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -401,22 +502,7 @@ public final class SkUserRoleDao
             }
       }
       
-      // Maybe we are done.
-      if (roleIds.isEmpty()) return permNames;
-      
-      // Now populate an ordered set with all permission names, including
-      // those from transitive roles, assigned to this user. A set is used 
-      // to ignore duplicates.
-      TreeSet<String> roleSet = new TreeSet<String>();
-      SkRoleDao dao = new SkRoleDao();
-      for (int roleId : roleIds) {
-          List<String> list = dao.getTransitivePermissionNames(roleId);
-          if (!list.isEmpty()) roleSet.addAll(list);
-      }
-      
-      // Populate the list from the ordered set.
-      permNames.addAll(roleSet);
-      return permNames;
+      return roleIds;
   }
   
   /* ********************************************************************** */

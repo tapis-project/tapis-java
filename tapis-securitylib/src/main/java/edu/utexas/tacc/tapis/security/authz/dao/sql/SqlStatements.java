@@ -184,7 +184,7 @@ public class SqlStatements
       "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
       "UNION DISTINCT " +
       "SELECT a.child_role_id FROM sk_role_tree a, children b " +
-        "where a.parent_role_id = b.child_role_id " +
+        "WHERE a.parent_role_id = b.child_role_id " +
       ") " +
       "SELECT DISTINCT p1.name AS outname " +
         "FROM children, sk_role_permission rp1, sk_permission p1 " +
@@ -210,7 +210,7 @@ public class SqlStatements
       "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
       "UNION DISTINCT " +
       "SELECT a.child_role_id FROM sk_role_tree a, children b " +
-        "where a.parent_role_id = b.child_role_id " +
+        "WHERE a.parent_role_id = b.child_role_id " +
       ") " +
       "SELECT DISTINCT p1.perm AS outperm " +
         "FROM children, sk_role_permission rp1, sk_permission p1 " +

@@ -513,7 +513,7 @@ public final class SkRoleDao
    *       see role information from another.
    * 
    * @param roleId the role id whose permissions are requested
-   * @return a non-null list of permission names
+   * @return a non-null, ordered list of permission names
    * @throws TapisException on error
    */
   public List<String> getTransitivePermissionNames(int roleId) throws TapisException
@@ -582,7 +582,7 @@ public final class SkRoleDao
    *       see role information from another.
    * 
    * @param roleId the role id whose permissions are requested
-   * @return a non-null list of permission names
+   * @return a non-null, ordered list of permission names
    * @throws TapisException on error
    */
   public List<String> getTransitivePermissions(int roleId) throws TapisException

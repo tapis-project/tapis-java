@@ -149,6 +149,7 @@ CREATE TABLE sk_permission
 ALTER TABLE sk_permission OWNER TO tapis;
 ALTER SEQUENCE sk_permission_id_seq RESTART WITH 1;
 CREATE UNIQUE INDEX sk_permission_tenant_name_idx ON sk_permission (tenant, name);
+CREATE UNIQUE INDEX sk_permission_id_perm_idx ON sk_permission (id, perm);
 
 COMMENT ON COLUMN sk_permission.id IS 'Unique permission id';
 COMMENT ON COLUMN sk_permission.tenant IS 'User tenant name';

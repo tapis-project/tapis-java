@@ -133,9 +133,10 @@ public final class SkRole
     /* getTransitivePermissionNames:                                          */
     /* ---------------------------------------------------------------------- */
     /** Get this list of permission names assigned to this role and all of its
-     * descendants. 
+     * descendants. The permission names are returned in alphabetic order.
      * 
-     * @return list of permissions names associated with this role transitively
+     * @return non-null, ordered list of permissions names associated with 
+     *         this role directly and transitively
      * @throws TapisException
      */
     public List<String> getTransitivePermissionNames() throws TapisException
@@ -154,10 +155,12 @@ public final class SkRole
     /* ---------------------------------------------------------------------- */
     /* getTransitivePermissions:                                              */
     /* ---------------------------------------------------------------------- */
-    /** Get this list of permission values (i.e. constraints) assigned to this 
-     * role and all of its descendants. 
+    /** Get this list of permission values (i.e. constraint strings) assigned 
+     * to this role and all of its descendants. The permission values are 
+     * returned in alphabetic order. 
      * 
-     * @return list of permissions associated with this role transitively
+     * @return non-null, ordered list of permissions associated with this role 
+     *         directly and transitively
      * @throws TapisException
      */
     public List<String> getTransitivePermissions() throws TapisException

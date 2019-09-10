@@ -12,6 +12,14 @@ import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
+/** This test exercises the main capabilities of the security kernel's
+ * authorization management.  Four of each of roles, permissions and users are
+ * defined.  The role2 is a child of role1; role3 and role4 are both children
+ * of role2.  The test checks that this hierarchical relationship between roles
+ * is correctly implemented. 
+ * 
+ * @author rcardone
+ */
 @Test(groups={"integration"})
 public class NestedRoleTest 
 {
@@ -71,7 +79,10 @@ public class NestedRoleTest
         // Query user roles.
         checkUserRoles();
         
-        // Query user permissions.
+        // Query user permission names.
+        checkUserPermissionNames();
+        
+        // Query user permission names.
         checkUserPermissions();
         
         // Delete permissions created by prior runs of this test.
@@ -365,9 +376,9 @@ public class NestedRoleTest
     }
     
     /* ---------------------------------------------------------------------- */
-    /* checkUserPermissions:                                                  */
+    /* checkUserPermissionNames:                                              */
     /* ---------------------------------------------------------------------- */
-    private void checkUserPermissions() throws TapisException
+    private void checkUserPermissionNames() throws TapisException
     {
         SkUserRoleDao dao = new SkUserRoleDao();
         List<String> perms1 = dao.getUserPermissionNames(tenant, user1);
@@ -393,6 +404,38 @@ public class NestedRoleTest
         List<String> perms4 = dao.getUserPermissionNames(tenant, user4);
         System.out.println(" **** user4 perms: " + Arrays.toString(perms4.toArray()));
         Assert.assertEquals(perms4.contains("NestedTestPerm4"), true);
+        Assert.assertEquals(perms4.size(), 1);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* checkUserPermissions:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private void checkUserPermissions() throws TapisException
+    {
+        SkUserRoleDao dao = new SkUserRoleDao();
+        List<String> perms1 = dao.getUserPermissions(tenant, user1);
+        System.out.println(" **** user1 perms: " + Arrays.toString(perms1.toArray()));
+        Assert.assertEquals(perms1.contains("fake:*:read"), true);
+        Assert.assertEquals(perms1.contains("fake:a:read"), true);
+        Assert.assertEquals(perms1.contains("fake:b:read"), true);
+        Assert.assertEquals(perms1.contains("fake:c:read"), true);
+        Assert.assertEquals(perms1.size(), 4);
+       
+        List<String> perms2 = dao.getUserPermissions(tenant, user2);
+        System.out.println(" **** user2 perms: " + Arrays.toString(perms2.toArray()));
+        Assert.assertEquals(perms2.contains("fake:a:read"), true);
+        Assert.assertEquals(perms2.contains("fake:b:read"), true);
+        Assert.assertEquals(perms2.contains("fake:c:read"), true);
+        Assert.assertEquals(perms2.size(), 3);
+        
+        List<String> perms3 = dao.getUserPermissions(tenant, user3);
+        System.out.println(" **** user3 perms: " + Arrays.toString(perms3.toArray()));
+        Assert.assertEquals(perms3.contains("fake:b:read"), true);
+        Assert.assertEquals(perms3.size(), 1);
+        
+        List<String> perms4 = dao.getUserPermissions(tenant, user4);
+        System.out.println(" **** user4 perms: " + Arrays.toString(perms4.toArray()));
+        Assert.assertEquals(perms4.contains("fake:c:read"), true);
         Assert.assertEquals(perms4.size(), 1);
     }
 }
