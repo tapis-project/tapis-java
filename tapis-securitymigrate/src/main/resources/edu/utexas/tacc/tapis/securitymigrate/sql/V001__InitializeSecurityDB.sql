@@ -393,7 +393,7 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
         IF (TG_OP = 'DELETE') THEN
             INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue) 
                 VALUES (OLD.id, 'ALL', 'delete', 
-                        OLD.user_name || ' -> ' || OLD.role_id::text);
+                        'delete user ' || OLD.user_name || ' <- role ' || OLD.role_id::text);
             RETURN OLD;
         ELSIF (TG_OP = 'UPDATE') THEN
             -- We always use the OLD id and, when applicable, OLD name in update audit records, 
@@ -436,7 +436,7 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
         ELSIF (TG_OP = 'INSERT') THEN
             INSERT INTO sk_user_role_audit (refid, refcol, change, newvalue) 
                 VALUES (NEW.id, 'ALL', 'insert', 
-                        NEW.user_name || ' -> ' || NEW.role_id::text);
+                        'insert user ' || NEW.user_name || ' <- role ' || NEW.role_id::text);
             RETURN NEW;
         END IF;
         RETURN NULL; -- result is ignored since this is an AFTER trigger
@@ -536,7 +536,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_permission() RETURNS TRIGGER AS $$
         IF (TG_OP = 'DELETE') THEN
             INSERT INTO sk_role_permission_audit (refid, refcol, change, oldvalue) 
                 VALUES (OLD.id, 'ALL', 'delete', 
-                        OLD.role_id::text || ' -> ' || OLD.permission_id::text);
+                        'delete role ' || OLD.role_id::text || ' <- perm ' || OLD.permission_id::text);
             RETURN OLD;
         ELSIF (TG_OP = 'UPDATE') THEN
             -- We always use the OLD id and, when applicable, OLD name in update audit records, 
@@ -579,7 +579,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_permission() RETURNS TRIGGER AS $$
         ELSIF (TG_OP = 'INSERT') THEN
             INSERT INTO sk_role_permission_audit (refid, refcol, change, newvalue) 
                 VALUES (NEW.id, 'ALL', 'insert', 
-                        NEW.role_id::text || ' -> ' || NEW.permission_id::text);
+                        'insert role ' || NEW.role_id::text || ' <- perm ' || NEW.permission_id::text);
             RETURN NEW;
         END IF;
         RETURN NULL; -- result is ignored since this is an AFTER trigger
@@ -602,7 +602,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_tree() RETURNS TRIGGER AS $$
         IF (TG_OP = 'DELETE') THEN
             INSERT INTO sk_role_tree_audit (refid, refcol, change, oldvalue) 
                 VALUES (OLD.id, 'ALL', 'delete', 
-                        OLD.parent_role_id::text || ' -> ' || OLD.child_role_id::text);
+                        'delete parent role ' || OLD.parent_role_id::text || ' <- child role ' || OLD.child_role_id::text);
             RETURN OLD;
         ELSIF (TG_OP = 'UPDATE') THEN
             -- We always use the OLD id and, when applicable, OLD name in update audit records, 
@@ -645,7 +645,7 @@ CREATE OR REPLACE FUNCTION audit_sk_role_tree() RETURNS TRIGGER AS $$
         ELSIF (TG_OP = 'INSERT') THEN
             INSERT INTO sk_role_tree_audit (refid, refcol, change, newvalue) 
                 VALUES (NEW.id, 'ALL', 'insert', 
-                        NEW.parent_role_id::text || ' -> ' || NEW.child_role_id::text);
+                        'insert parent role ' || NEW.parent_role_id::text || ' <- child role ' || NEW.child_role_id::text);
             RETURN NEW;
         END IF;
         RETURN NULL; -- result is ignored since this is an AFTER trigger
