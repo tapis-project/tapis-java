@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public final class SkRole
 {
@@ -95,6 +96,7 @@ public final class SkRole
      * @return list of children role names
      * @throws TapisException
      */
+    @Schema(hidden = true)
     public List<String> getDescendantRoleNames() throws TapisException
     {
         List<String> list = null;
@@ -116,6 +118,7 @@ public final class SkRole
      * @return list of ancestor role names
      * @throws TapisException
      */
+    @Schema(hidden = true)
     public List<String> getAncestorRoleNames() throws TapisException
     {
         List<String> list = null;
@@ -139,6 +142,7 @@ public final class SkRole
      *         this role directly and transitively
      * @throws TapisException
      */
+    @Schema(hidden = true)
     public List<String> getTransitivePermissionNames() throws TapisException
     {
         List<String> list = null;
@@ -163,6 +167,7 @@ public final class SkRole
      *         directly and transitively
      * @throws TapisException
      */
+    @Schema(hidden = true)
     public List<String> getTransitivePermissions() throws TapisException
     {
         List<String> list = null;
@@ -211,6 +216,7 @@ public final class SkRole
         this.description = description;
     }
 
+    @Schema(type = "string")
     public Instant getCreated() {
         return created;
     }
@@ -227,6 +233,7 @@ public final class SkRole
         this.createdby = createdby;
     }
 
+    @Schema(type = "string")
     public Instant getUpdated() {
         return updated;
     }

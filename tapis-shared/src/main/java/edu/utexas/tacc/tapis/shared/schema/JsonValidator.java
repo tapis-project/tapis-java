@@ -44,9 +44,11 @@ public class JsonValidator
   
   // -------- Schema resource file URIs.
   private static String FILE_SAMPLE_CREATE_REQUEST = "/edu/utexas/tacc/tapis/sample/api/jsonschema/SampleCreateRequest.json";
+  private static String FILE_SK_CREATE_ROLE_REQUEST = "/edu/utexas/tacc/tapis/security/api/jsonschema/CreateRoleRequest.json";
   
   // -------- Demand-loaded schema objects. 
   private static Schema _sampleCreateRequestSchema;
+  private static Schema _skCreateRoleRequestSchema;
   
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -59,6 +61,34 @@ public class JsonValidator
   public static void validateSampleCreateRequest(String json) throws TapisJSONException
   {
     Schema schema = getSampleCreateRequestSchema();
+    try {schema.validate(new JSONObject(json));}
+        catch (ValidationException e) {
+            // Get the detailed list of parse failures. 
+            // The returned list is never empty.
+            ValidationException e1 = (ValidationException)e;
+            List<String> messages = e1.getAllMessages();
+            String details = "";
+            int i = 1;
+            for (String s : messages) details += " #" + (i++) + s;
+        
+            // Log the exception details.
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_FAILURE", e.getMessage(), details);
+            _log.error(msg, e);
+            throw new TapisJSONException(msg, e);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+            _log.error(msg, e);
+            throw new TapisJSONException(msg, e);
+      }
+  }
+
+  /* ---------------------------------------------------------------------------- */
+  /* validateSkCreateRoleRequest:                                                 */
+  /* ---------------------------------------------------------------------------- */
+  public static void validateSkCreateRoleRequest(String json) throws TapisJSONException
+  {
+    Schema schema = getSkCreateRoleRequestSchema();
     try {schema.validate(new JSONObject(json));}
         catch (ValidationException e) {
             // Get the detailed list of parse failures. 
@@ -118,4 +148,15 @@ public class JsonValidator
       _sampleCreateRequestSchema = getSchema(FILE_SAMPLE_CREATE_REQUEST);
     return _sampleCreateRequestSchema;
   }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* getSkCreateRoleRequestSchema:                                                */
+  /* ---------------------------------------------------------------------------- */
+  private static Schema getSkCreateRoleRequestSchema() throws TapisJSONException 
+  {
+    if (_skCreateRoleRequestSchema == null) 
+        _skCreateRoleRequestSchema = getSchema(FILE_SK_CREATE_ROLE_REQUEST);
+    return _skCreateRoleRequestSchema;
+  }
+
 }

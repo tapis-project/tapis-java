@@ -391,8 +391,8 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
         -- Note that the name field in the audit table is never assigned and defaults to null.
         --
         IF (TG_OP = 'DELETE') THEN
-            INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue) 
-                VALUES (OLD.id, 'ALL', 'delete', 
+            INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue) 
+                VALUES (OLD.id, OLD.user_name, 'ALL', 'delete', 
                         'delete user ' || OLD.user_name || ' <- role ' || OLD.role_id::text);
             RETURN OLD;
         ELSIF (TG_OP = 'UPDATE') THEN
@@ -401,41 +401,41 @@ CREATE OR REPLACE FUNCTION audit_sk_user_role() RETURNS TRIGGER AS $$
             -- any field will cause an audit record to be written.  Since the updated timestamp 
             -- always changes, updates typically cause 2 or more new audit records.   
             IF OLD.id != NEW.id THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'id', 'update', OLD.id::text, NEW.id::text);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name'id', 'update', OLD.id::text, NEW.id::text);
             END IF;
             IF OLD.tenant != NEW.tenant THEN
                 INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, OLD.name, 'tenant', 'update', OLD.tenant, NEW.tenant);
+                    VALUES (OLD.id, OLD.user_name, 'tenant', 'update', OLD.tenant, NEW.tenant);
             END IF;
             IF OLD.user_name != NEW.user_name THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'user_name', 'update', OLD.user_name, NEW.user_name);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'user_name', 'update', OLD.user_name, NEW.user_name);
             END IF;
             IF OLD.role_id != NEW.role_id THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'role_id', 'update', OLD.role_id::text, NEW.role_id::text);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'role_id', 'update', OLD.role_id::text, NEW.role_id::text);
             END IF;
             IF OLD.createdby != NEW.createdby THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'createdby', 'update', OLD.createdby, NEW.createdby);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'createdby', 'update', OLD.createdby, NEW.createdby);
             END IF;
             IF OLD.updatedby != NEW.updatedby THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'updatedby', 'update', OLD.updatedby, NEW.updatedby);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'updatedby', 'update', OLD.updatedby, NEW.updatedby);
             END IF;
             IF OLD.created != NEW.created THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'created', 'update', OLD.created::text, NEW.created::text);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'created', 'update', OLD.created::text, NEW.created::text);
             END IF;
             IF OLD.updated != NEW.updated THEN
-                INSERT INTO sk_user_role_audit (refid, refcol, change, oldvalue, newvalue) 
-                    VALUES (OLD.id, 'updated', 'update', OLD.updated::text, NEW.updated::text);
+                INSERT INTO sk_user_role_audit (refid, refname, refcol, change, oldvalue, newvalue) 
+                    VALUES (OLD.id, OLD.user_name, 'updated', 'update', OLD.updated::text, NEW.updated::text);
             END IF;
             RETURN NEW;
         ELSIF (TG_OP = 'INSERT') THEN
-            INSERT INTO sk_user_role_audit (refid, refcol, change, newvalue) 
-                VALUES (NEW.id, 'ALL', 'insert', 
+            INSERT INTO sk_user_role_audit (refid, refname, refcol, change, newvalue) 
+                VALUES (NEW.id, NEW.user_name,'ALL', 'insert', 
                         'insert user ' || NEW.user_name || ' <- role ' || NEW.role_id::text);
             RETURN NEW;
         END IF;

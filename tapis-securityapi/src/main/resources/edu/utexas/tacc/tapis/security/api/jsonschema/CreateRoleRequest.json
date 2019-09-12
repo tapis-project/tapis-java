@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/CreateRoleRequest",
+    "description": "Top-level schema for a sample create request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "roleName",
+        "description"
+    ]
+}
+
+

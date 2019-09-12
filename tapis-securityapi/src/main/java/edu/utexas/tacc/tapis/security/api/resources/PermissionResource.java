@@ -21,30 +21,16 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
-@OpenAPIDefinition(
-        security = {@SecurityRequirement(name = "Tapis JWT")},
-        info = @Info(description = "The Tapis Security API allows access to the " +
-                     "Tapis Security Kernel authorization and secrets facilities.",
-                     contact = @Contact(name = "CICSupport", 
-                                        email = "cicsupport@tacc.utexas.edu")),
-        externalDocs = @ExternalDocumentation(description = "Tapis Home",
-                                              url = "https://tacc-cloud.readthedocs.io/projects/agave")
-)
-@Path("/")
-public class SecurityResource 
+@Path("/perm")
+public class PermissionResource 
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(SecurityResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(PermissionResource.class);
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -94,17 +80,16 @@ public class SecurityResource
   /*                                Public Methods                                */
   /* **************************************************************************** */
   /* ---------------------------------------------------------------------------- */
-  /* hello:                                                                       */
+  /* getList:                                                                     */
   /* ---------------------------------------------------------------------------- */
   @GET
-  @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
-  @ApiResponse(description = "A greeting")
-  public Response getDummy(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  @ApiResponse(description = "Get the list of tenant permission names")
+  public Response getList(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
   {
       // Trace this request.
       if (_log.isTraceEnabled()) {
-          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hello", 
+          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "permissions", 
                                      "  " + _request.getRequestURL());
           _log.trace(msg);
       }
@@ -112,7 +97,7 @@ public class SecurityResource
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the Tapis Security Kernel.")).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "permissions"), prettyPrint, "Permission list.")).build();
   }
 
 }

@@ -38,6 +38,11 @@
 			<artifactId>swagger-jaxrs2</artifactId>
 			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger-jaxrs2.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2-servlet-initializer</artifactId>

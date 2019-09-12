@@ -104,12 +104,21 @@
 			<artifactId>activation</artifactId>
 			<version>${javax.activation.activation.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-core</artifactId>
+            <version>${swagger-jaxrs2.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2</artifactId>
 			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
-		
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger-jaxrs2.version}</version>
+        </dependency>
 	</dependencies>
     
     <build>
