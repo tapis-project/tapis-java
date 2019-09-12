@@ -32,6 +32,7 @@ import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,6 +50,10 @@ public class RoleResource
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(RoleResource.class);
     
+    // Json schema resource files.
+    private static final String FILE_SK_CREATE_ROLE_REQUEST = 
+        "/edu/utexas/tacc/tapis/security/api/jsonschema/CreateRoleRequest.json";
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -216,8 +221,11 @@ public class RoleResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
                }
              
+             // Create validator specification.
+             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_CREATE_ROLE_REQUEST);
+             
              // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validateSkCreateRoleRequest(json);}
+             try {JsonValidator.validate(spec);}
                catch (TapisJSONException e) {
                  String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
                  _log.error(msg, e);

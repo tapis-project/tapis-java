@@ -34,6 +34,7 @@ import edu.utexas.tacc.tapis.sample.model.Sample;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -46,6 +47,10 @@ public class SampleResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SampleResource.class);
+    
+    // Json schema resource files.
+    private static final String FILE_SAMPLE_CREATE_REQUEST = 
+        "/edu/utexas/tacc/tapis/sample/api/jsonschema/SampleCreateRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -142,8 +147,11 @@ public class SampleResource
                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
     
+    // Create validator specification.
+    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SAMPLE_CREATE_REQUEST);
+    
     // Make sure the json conforms to the expected schema.
-    try {JsonValidator.validateSampleCreateRequest(json);}
+    try {JsonValidator.validate(spec);}
       catch (TapisJSONException e) {
         String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
         _log.error(msg, e);
