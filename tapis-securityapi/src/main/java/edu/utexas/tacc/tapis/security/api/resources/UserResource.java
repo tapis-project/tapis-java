@@ -19,6 +19,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.responseBody.Names;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -93,11 +94,16 @@ public class UserResource
                                      "  " + _request.getRequestURL());
           _log.trace(msg);
       }
-         
+        
+      // ***** DUMMY TEST Response Data
+      Names names = new Names();
+      names.names = new String[0];
+      
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
+      int cnt = names == null ? 0 : names.names.length;
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "users"), prettyPrint, "User list")).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "users", cnt + " items"), prettyPrint, "User list")).build();
   }
 
 }

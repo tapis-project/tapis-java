@@ -6,6 +6,7 @@ import java.time.Instant;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -27,7 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.CreateRole;
+import edu.utexas.tacc.tapis.security.api.responseBody.Count;
 import edu.utexas.tacc.tapis.security.api.responseBody.Names;
+import edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -131,9 +134,10 @@ public class RoleResource
          names.names[1] = "yyy";
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we found the job. 
+         // Success means we found the job.
+         int cnt = names == null ? 0 : names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "roles"), prettyPrint, names)).build();
+             MsgUtils.getMsg("TAPIS_FOUND", "Roles", cnt + " items"), prettyPrint, names)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -176,7 +180,7 @@ public class RoleResource
          // ---------------------------- Success ------------------------------- 
          // Success means we found the job. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "role"), prettyPrint, role)).build();
+             MsgUtils.getMsg("TAPIS_FOUND", "Role", roleName), prettyPrint, role)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -191,7 +195,8 @@ public class RoleResource
                      required = false,
                      content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.requestBody.CreateRole.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Role created."),
+                 {@ApiResponse(responseCode = "201", description = "Role created.",
+                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -208,7 +213,6 @@ public class RoleResource
              _log.trace(msg);
          }
          
-         // ***** DUMMY TEST Code
          // Either query parameters are used or payload, but not a mixture.
          if (roleName == null || description == null) {
              // There better be a payload.
@@ -247,13 +251,57 @@ public class RoleResource
              description = createRolePayload.description;
          }
          
+         // ***** DUMMY TEST Code
          System.out.println("***** roleName    = " + roleName);
          System.out.println("***** description = " + description);
          // ***** END DUMMY TEST Code
          
+         // ***** DUMMY RESPONSE Code
+         // NOTE: We need to assign a location header as well.
+         //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
+         ResourceUrl getUrl = new ResourceUrl();
+         getUrl.url = _request.getRequestURL().toString() + "/" + roleName;
+         // ***** END DUMMY RESPONSE Code
+         
          // ---------------------------- Success ------------------------------- 
          // Success means we found the job. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_CREATED", "Role"), prettyPrint, "Create role")).build();
+             MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, getUrl)).build();
      }
+
+     /* ---------------------------------------------------------------------------- */
+     /* deleteRoleByName:                                                            */
+     /* ---------------------------------------------------------------------------- */
+     @DELETE
+     @Path("/{roleName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+         description = "Get the named role's definition.",
+         responses = 
+             {@ApiResponse(responseCode = "200", description = "Role deleted.",
+                 content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.Count.class))),
+              @ApiResponse(responseCode = "400", description = "Input error."),
+              @ApiResponse(responseCode = "401", description = "Not authorized."),
+              @ApiResponse(responseCode = "500", description = "Server error.")}
+     )
+     public Response deleteRoleByName(@PathParam("roleName") String roleName,
+                                      @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getRoleByName", 
+                                          "  " + _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         Count count = new Count();
+         count.count = 1;
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the job. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_DELETED", "Role", roleName), prettyPrint, count)).build();
+     }
+
 }

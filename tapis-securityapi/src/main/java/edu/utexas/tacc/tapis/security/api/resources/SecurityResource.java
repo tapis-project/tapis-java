@@ -112,7 +112,7 @@ public class SecurityResource
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the Tapis Security Kernel.")).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, "Hello from the Tapis Security Kernel.")).build();
   }
 
 }

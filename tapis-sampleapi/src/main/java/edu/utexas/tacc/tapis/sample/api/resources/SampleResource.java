@@ -118,7 +118,7 @@ public class SampleResource
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello"), prettyPrint, "Hello from the Tapis Sample application.")).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Sample application.")).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -231,7 +231,7 @@ public class SampleResource
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "Sample"), prettyPrint, sample)).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "Sample", id), prettyPrint, sample)).build();
   }
   
   /* ---------------------------------------------------------------------------- */
@@ -261,8 +261,9 @@ public class SampleResource
           }
       
       // ---------------------------- Success ------------------------------- 
-      // Success means we found the job. 
+      // Success means we found the job.
+      int cnt = samples == null ? 0 : samples.size();
       return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "Samples"), prettyPrint, samples)).build();
+          MsgUtils.getMsg("TAPIS_FOUND", "Samples",  cnt + " items"), prettyPrint, samples)).build();
   }
 }
