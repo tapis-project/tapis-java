@@ -1,11 +1,14 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://tapis.tacc.utexas.edu/UpdateRoleRequest",
-    "description": "Top-level schema for a role update request",
+    "description": "Top-level schema for a permission update request",
     "additionalProperties": false,
     "type": "object",
         "properties": {
-          "roleName": {
+          "permName": {
+            "type": "string"
+          },
+          "permValue": {
             "type": "string"
           },
           "description": {
@@ -14,7 +17,9 @@
         },
     "anyOf": [
         { "required":
-            [ "roleName" ] },
+            [ "permName" ] },
+        { "required":
+            [ "permValue" ] },
         { "required":
             [ "description" ] }
     ]

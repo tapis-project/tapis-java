@@ -116,7 +116,8 @@ public class RoleResource
              description = "Get the names of all roles in the tenant.",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.NameArray.class))),
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.NameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -126,7 +127,7 @@ public class RoleResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "getRoleNames", "  " + _request.getRequestURL());
+                                          "getRoleNames", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -153,7 +154,8 @@ public class RoleResource
          description = "Get the named role's definition.",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
-               content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.authz.model.SkRole.class))),
+               content = @Content(schema = @Schema(
+                   implementation = edu.utexas.tacc.tapis.security.authz.model.SkRole.class))),
               @ApiResponse(responseCode = "400", description = "Input error."),
               @ApiResponse(responseCode = "401", description = "Not authorized."),
               @ApiResponse(responseCode = "404", description = "Named role not found."),
@@ -164,8 +166,8 @@ public class RoleResource
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getRoleByName", 
-                                          "  " + _request.getRequestURL());
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getRoleByName", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -196,10 +198,12 @@ public class RoleResource
              requestBody = 
                  @RequestBody(
                      required = false,
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.requestBody.CreateRole.class))),
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.CreateRole.class))),
              responses = 
                  {@ApiResponse(responseCode = "201", description = "Role created.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl.class))),
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -211,8 +215,8 @@ public class RoleResource
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createRole", 
-                                          "  " + _request.getRequestURL());
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "createRole", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -222,7 +226,7 @@ public class RoleResource
              String json = null;
              try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
                catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
+                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -262,14 +266,14 @@ public class RoleResource
          // ***** DUMMY RESPONSE Code
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
-         ResourceUrl getUrl = new ResourceUrl();
-         getUrl.url = _request.getRequestURL().toString() + "/" + roleName;
+         ResourceUrl requestUrl = new ResourceUrl();
+         requestUrl.url = _request.getRequestURL().toString() + "/" + roleName;
          // ***** END DUMMY RESPONSE Code
          
          // ---------------------------- Success ------------------------------- 
          // Success means we created the role. 
          return Response.status(Status.CREATED).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, getUrl)).build();
+             MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, requestUrl)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -282,7 +286,8 @@ public class RoleResource
          description = "Delete named role.",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
-                 content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                 content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
               @ApiResponse(responseCode = "400", description = "Input error."),
               @ApiResponse(responseCode = "401", description = "Not authorized."),
               @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -292,8 +297,8 @@ public class RoleResource
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "deleteRoleByName", 
-                                          "  " + _request.getRequestURL());
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "deleteRoleByName", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -319,10 +324,12 @@ public class RoleResource
              requestBody = 
                  @RequestBody(
                      required = false,
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.requestBody.UpdateRole.class))),
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.UpdateRole.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role updated.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -334,8 +341,8 @@ public class RoleResource
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createRole", 
-                                          "  " + _request.getRequestURL());
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "updateRole", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -345,7 +352,7 @@ public class RoleResource
              String json = null;
              try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
                catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
+                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -388,7 +395,7 @@ public class RoleResource
          // ***** END DUMMY RESPONSE Code
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we found the job. 
+         // Success means we found the role. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
      }
