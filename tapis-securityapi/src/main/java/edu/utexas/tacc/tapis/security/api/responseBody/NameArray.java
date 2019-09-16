@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.responseBody;
 
-public class Count 
+public final class NameArray 
 {
-    public int count;
+    public String[] names;
 }

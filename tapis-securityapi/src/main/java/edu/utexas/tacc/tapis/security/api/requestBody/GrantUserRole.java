@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public class GrantUserRole 
+public final class GrantUserRole 
 {
     public String tenant;
     public String user;

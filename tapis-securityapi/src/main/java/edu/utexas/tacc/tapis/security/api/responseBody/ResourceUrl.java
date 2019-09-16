@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.responseBody;
 
-public class ResourceUrl 
+public final class ResourceUrl 
 {
     public String url;
 }

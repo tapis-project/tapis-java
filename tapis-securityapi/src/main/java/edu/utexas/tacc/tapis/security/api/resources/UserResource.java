@@ -19,7 +19,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.responseBody.Names;
+import edu.utexas.tacc.tapis.security.api.responseBody.NameArray;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -96,7 +96,7 @@ public class UserResource
       }
         
       // ***** DUMMY TEST Response Data
-      Names names = new Names();
+      NameArray names = new NameArray();
       names.names = new String[0];
       
       // ---------------------------- Success ------------------------------- 
