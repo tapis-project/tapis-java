@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.time.Instant;
 
 import javax.servlet.ServletContext;
@@ -23,7 +22,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +33,7 @@ import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -48,7 +42,8 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/role")
-public class RoleResource 
+public final class RoleResource 
+ extends AbstractResource
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
@@ -226,42 +221,35 @@ public class RoleResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (roleName == null || description == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(roleName, description)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (roleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqCreateRole payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_CREATE_ROLE_REQUEST, 
+                                       ReqCreateRole.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "createRole", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_CREATE_ROLE_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqCreateRole createRolePayload = null;
-             try {createRolePayload = TapisGsonUtils.getGson().fromJson(json, ReqCreateRole.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             roleName = createRolePayload.roleName;
-             description = createRolePayload.description;
+             roleName = payload.roleName;
+             description = payload.description;
          }
          
          // ***** DUMMY TEST Code
@@ -352,42 +340,35 @@ public class RoleResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (roleName == null && description == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(roleName, description)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (roleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqUpdateRole payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+                                       ReqUpdateRole.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "createRole", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_UPDATE_ROLE_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqUpdateRole updateRolePayload = null;
-             try {updateRolePayload = TapisGsonUtils.getGson().fromJson(json, ReqUpdateRole.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             roleName = updateRolePayload.roleName;
-             description = updateRolePayload.description;
+             roleName = payload.roleName;
+             description = payload.description;
          }
          
          // ***** DUMMY TEST Code
@@ -441,42 +422,35 @@ public class RoleResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (roleName == null && permName == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(roleName, permName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (roleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqAddRolePermission payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_ADD_ROLE_PERM_REQUEST, 
+                                       ReqAddRolePermission.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "addRolePermission", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_ADD_ROLE_PERM_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqAddRolePermission addRolePermission = null;
-             try {addRolePermission = TapisGsonUtils.getGson().fromJson(json, ReqAddRolePermission.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             roleName = addRolePermission.roleName;
-             permName = addRolePermission.permName;
+             roleName = payload.roleName;
+             permName = payload.permName;
          }
          
          // ***** DUMMY TEST Code
@@ -530,42 +504,35 @@ public class RoleResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (parentRoleName == null && childRoleName == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(parentRoleName, childRoleName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (parentRoleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqAddChildRole payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_ADD_CHILD_ROLE_REQUEST, 
+                                       ReqAddChildRole.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "createRole", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_ADD_CHILD_ROLE_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqAddChildRole addRolePermission = null;
-             try {addRolePermission = TapisGsonUtils.getGson().fromJson(json, ReqAddChildRole.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             parentRoleName = addRolePermission.parentRoleName;
-             childRoleName = addRolePermission.childRoleName;
+             parentRoleName = payload.parentRoleName;
+             childRoleName = payload.childRoleName;
          }
          
          // ***** DUMMY TEST Code

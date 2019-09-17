@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/GrantUserRoleRequest",
+    "description": "Top-level schema for a request to a user a role.",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "user", 
+        "roleName"
+    ]
+}
+
+
