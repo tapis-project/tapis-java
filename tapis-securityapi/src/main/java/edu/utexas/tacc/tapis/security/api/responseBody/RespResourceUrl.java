@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.responseBody;
 
-public final class ChangeCount 
+public final class RespResourceUrl 
 {
-    public int changes;
+    public String url;
 }

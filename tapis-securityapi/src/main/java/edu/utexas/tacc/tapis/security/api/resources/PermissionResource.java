@@ -27,11 +27,11 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.requestBody.CreatePermission;
-import edu.utexas.tacc.tapis.security.api.requestBody.UpdatePermission;
-import edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount;
-import edu.utexas.tacc.tapis.security.api.responseBody.NameArray;
-import edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreatePermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdatePermission;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkPermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -116,7 +116,7 @@ public class PermissionResource
              description = "Get the names of all permissions in the tenant.",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permission names returned.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.NameArray.class))),
+                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -131,7 +131,7 @@ public class PermissionResource
          }
          
          // ***** DUMMY TEST Response Data
-         NameArray names = new NameArray();
+         RespNameArray names = new RespNameArray();
          names.names = new String[2];
          names.names[0] = "aaa";
          names.names[1] = "bbb";
@@ -200,10 +200,10 @@ public class PermissionResource
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.CreatePermission.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqCreatePermission.class))),
              responses = 
                  {@ApiResponse(responseCode = "201", description = "Permission created.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl.class))),
+                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -245,8 +245,8 @@ public class PermissionResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
                }
 
-             CreatePermission createPermissionPayload = null;
-             try {createPermissionPayload = TapisGsonUtils.getGson().fromJson(json, CreatePermission.class);}
+             ReqCreatePermission createPermissionPayload = null;
+             try {createPermissionPayload = TapisGsonUtils.getGson().fromJson(json, ReqCreatePermission.class);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
                      _log.error(msg, e);
@@ -269,7 +269,7 @@ public class PermissionResource
          // ***** DUMMY RESPONSE Code
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
-         ResourceUrl requestUrl = new ResourceUrl();
+         RespResourceUrl requestUrl = new RespResourceUrl();
          requestUrl.url = _request.getRequestURL().toString() + "/" + permName;
          // ***** END DUMMY RESPONSE Code
          
@@ -290,7 +290,7 @@ public class PermissionResource
          responses = 
              {@ApiResponse(responseCode = "200", description = "Permission deleted.",
                  content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
               @ApiResponse(responseCode = "400", description = "Input error."),
               @ApiResponse(responseCode = "401", description = "Not authorized."),
               @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -306,7 +306,7 @@ public class PermissionResource
          }
          
          // ***** DUMMY TEST Response Data
-         ChangeCount count = new ChangeCount();
+         RespChangeCount count = new RespChangeCount();
          count.changes = 1;
          
          // ---------------------------- Success ------------------------------- 
@@ -328,10 +328,10 @@ public class PermissionResource
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.UpdatePermission.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdatePermission.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Permission updated.",
-                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                     content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -373,8 +373,8 @@ public class PermissionResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
                }
 
-             UpdatePermission updatePermPayload = null;
-             try {updatePermPayload = TapisGsonUtils.getGson().fromJson(json, UpdatePermission.class);}
+             ReqUpdatePermission updatePermPayload = null;
+             try {updatePermPayload = TapisGsonUtils.getGson().fromJson(json, ReqUpdatePermission.class);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
                      _log.error(msg, e);
@@ -395,7 +395,7 @@ public class PermissionResource
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
-         ChangeCount count = new ChangeCount();
+         RespChangeCount count = new RespChangeCount();
          count.changes = 3;
          // ***** END DUMMY RESPONSE Code
          

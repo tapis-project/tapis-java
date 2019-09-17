@@ -1,7 +1,8 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public class CreateRole 
+public final class ReqGrantUserRole 
 {
+    public String tenant;
+    public String user;
     public String roleName;
-    public String description;
 }

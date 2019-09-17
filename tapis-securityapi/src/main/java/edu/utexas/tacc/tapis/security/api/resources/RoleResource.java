@@ -27,11 +27,13 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.requestBody.CreateRole;
-import edu.utexas.tacc.tapis.security.api.requestBody.UpdateRole;
-import edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount;
-import edu.utexas.tacc.tapis.security.api.responseBody.NameArray;
-import edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -59,6 +61,10 @@ public class RoleResource
         "/edu/utexas/tacc/tapis/security/api/jsonschema/CreateRoleRequest.json";
     private static final String FILE_SK_UPDATE_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleRequest.json";
+    private static final String FILE_SK_ADD_ROLE_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/AddRolePermissionRequest.json";
+    private static final String FILE_SK_ADD_CHILD_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/AddChildRoleRequest.json";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -117,7 +123,7 @@ public class RoleResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.NameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -132,7 +138,7 @@ public class RoleResource
          }
          
          // ***** DUMMY TEST Response Data
-         NameArray names = new NameArray();
+         RespNameArray names = new RespNameArray();
          names.names = new String[2];
          names.names[0] = "xxx";
          names.names[1] = "yyy";
@@ -199,11 +205,11 @@ public class RoleResource
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.CreateRole.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole.class))),
              responses = 
                  {@ApiResponse(responseCode = "201", description = "Role created.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.ResourceUrl.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -244,8 +250,8 @@ public class RoleResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
                }
 
-             CreateRole createRolePayload = null;
-             try {createRolePayload = TapisGsonUtils.getGson().fromJson(json, CreateRole.class);}
+             ReqCreateRole createRolePayload = null;
+             try {createRolePayload = TapisGsonUtils.getGson().fromJson(json, ReqCreateRole.class);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
                      _log.error(msg, e);
@@ -266,7 +272,7 @@ public class RoleResource
          // ***** DUMMY RESPONSE Code
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
-         ResourceUrl requestUrl = new ResourceUrl();
+         RespResourceUrl requestUrl = new RespResourceUrl();
          requestUrl.url = _request.getRequestURL().toString() + "/" + roleName;
          // ***** END DUMMY RESPONSE Code
          
@@ -287,7 +293,7 @@ public class RoleResource
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
                  content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
               @ApiResponse(responseCode = "400", description = "Input error."),
               @ApiResponse(responseCode = "401", description = "Not authorized."),
               @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -303,7 +309,7 @@ public class RoleResource
          }
          
          // ***** DUMMY TEST Response Data
-         ChangeCount count = new ChangeCount();
+         RespChangeCount count = new RespChangeCount();
          count.changes = 1;
          
          // ---------------------------- Success ------------------------------- 
@@ -325,11 +331,11 @@ public class RoleResource
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.UpdateRole.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role updated.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.ChangeCount.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
@@ -370,8 +376,8 @@ public class RoleResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
                }
 
-             UpdateRole updateRolePayload = null;
-             try {updateRolePayload = TapisGsonUtils.getGson().fromJson(json, UpdateRole.class);}
+             ReqUpdateRole updateRolePayload = null;
+             try {updateRolePayload = TapisGsonUtils.getGson().fromJson(json, ReqUpdateRole.class);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
                      _log.error(msg, e);
@@ -390,7 +396,7 @@ public class RoleResource
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
-         ChangeCount count = new ChangeCount();
+         RespChangeCount count = new RespChangeCount();
          count.changes = 2;
          // ***** END DUMMY RESPONSE Code
          
@@ -398,5 +404,183 @@ public class RoleResource
          // Success means we found the role. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* addRolePermission:                                                           */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/addPerm")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Add a permission to an existing role using either a request body "
+                         + "or query parameters, but not both.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Permission assigned to role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response addRolePermission(@QueryParam("roleName") String roleName,
+                                       @QueryParam("permName") String permName,
+                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                       InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "updateRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Either query parameters are used or payload, but not a mixture.
+         if (roleName == null && permName == null) {
+             // There better be a payload.
+             String json = null;
+             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+               catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               }
+             
+             // Create validator specification.
+             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_ADD_ROLE_PERM_REQUEST);
+             
+             // Make sure the json conforms to the expected schema.
+             try {JsonValidator.validate(spec);}
+               catch (TapisJSONException e) {
+                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               }
+
+             ReqAddRolePermission addRolePermission = null;
+             try {addRolePermission = TapisGsonUtils.getGson().fromJson(json, ReqAddRolePermission.class);}
+                 catch (Exception e) {
+                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
+                     _log.error(msg, e);
+                     return Response.status(Status.BAD_REQUEST).
+                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 }
+             
+             // Fill in the parameter fields.
+             roleName = addRolePermission.roleName;
+             permName = addRolePermission.permName;
+         }
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** roleName = " + roleName);
+         System.out.println("***** permName = " + permName);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 2;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* addChildRole:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/addChild")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Add a child role to another role using either a request body "
+                         + "or query parameters, but not both.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Child assigned to parent role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response addChildRole(@QueryParam("parentRoleName") String parentRoleName,
+                                  @QueryParam("childRoleName") String childRoleName,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                  InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "updateRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Either query parameters are used or payload, but not a mixture.
+         if (parentRoleName == null && childRoleName == null) {
+             // There better be a payload.
+             String json = null;
+             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+               catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create role", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               }
+             
+             // Create validator specification.
+             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_ADD_CHILD_ROLE_REQUEST);
+             
+             // Make sure the json conforms to the expected schema.
+             try {JsonValidator.validate(spec);}
+               catch (TapisJSONException e) {
+                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               }
+
+             ReqAddChildRole addRolePermission = null;
+             try {addRolePermission = TapisGsonUtils.getGson().fromJson(json, ReqAddChildRole.class);}
+                 catch (Exception e) {
+                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
+                     _log.error(msg, e);
+                     return Response.status(Status.BAD_REQUEST).
+                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 }
+             
+             // Fill in the parameter fields.
+             parentRoleName = addRolePermission.parentRoleName;
+             childRoleName = addRolePermission.childRoleName;
+         }
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** parentRoleName = " + parentRoleName);
+         System.out.println("***** childRoleName = " + childRoleName);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 2;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", parentRoleName), prettyPrint, count)).build();
      }
 }

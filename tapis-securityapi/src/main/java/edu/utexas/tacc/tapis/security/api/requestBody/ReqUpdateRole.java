@@ -1,5 +1,5 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public final class UpdateRole 
- extends CreateRole
+public final class ReqUpdateRole 
+ extends ReqCreateRole
 {}

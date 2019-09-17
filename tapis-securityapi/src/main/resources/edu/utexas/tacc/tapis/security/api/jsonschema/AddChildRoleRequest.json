@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/AddChildRoleRequest",
+    "description": "Top-level schema for a request to add a child role to another role",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "parentRoleName": {
+            "type": "string"
+          },
+          "childRoleName": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "parentRoleName", 
+        "childRoleName"
+    ]
+}
+
+

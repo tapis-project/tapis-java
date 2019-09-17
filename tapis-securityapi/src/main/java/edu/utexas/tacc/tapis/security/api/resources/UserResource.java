@@ -19,9 +19,12 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.responseBody.NameArray;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/user")
@@ -77,33 +80,45 @@ public class UserResource
      @Context
      private HttpServletRequest _request;
     
-  /* **************************************************************************** */
-  /*                                Public Methods                                */
-  /* **************************************************************************** */
-  /* ---------------------------------------------------------------------------- */
-  /* getList:                                                                     */
-  /* ---------------------------------------------------------------------------- */
-  @GET
-  @Produces(MediaType.APPLICATION_JSON)
-  @ApiResponse(description = "Get the list of tenant users granted some permission")
-  public Response getList(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
-  {
-      // Trace this request.
-      if (_log.isTraceEnabled()) {
-          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "users", 
-                                     "  " + _request.getRequestURL());
-          _log.trace(msg);
-      }
-        
-      // ***** DUMMY TEST Response Data
-      NameArray names = new NameArray();
-      names.names = new String[0];
-      
-      // ---------------------------- Success ------------------------------- 
-      // Success means we found the job. 
-      int cnt = names == null ? 0 : names.names.length;
-      return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "users", cnt + " items"), prettyPrint, "User list")).build();
-  }
+     /* **************************************************************************** */
+     /*                                Public Methods                                */
+     /* **************************************************************************** */
+     /* ---------------------------------------------------------------------------- */
+     /* getUserNames:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get the names of all users in the tenant that "
+                           + "have been granted a permission.",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "List of user names returned.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response getUserNames(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getRoleNames", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         RespNameArray names = new RespNameArray();
+         names.names = new String[2];
+         names.names[0] = "bud";
+         names.names[1] = "harry";
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+     }
 
 }

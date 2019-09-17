@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public class CreatePermission 
+public class ReqCreatePermission 
 {
     public String permName;
     public String permValue;
