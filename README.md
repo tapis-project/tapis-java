@@ -1,4 +1,4 @@
-# tapis-services
+# tapis-java
 Texas Advanced Computing Center APIs
 
 
