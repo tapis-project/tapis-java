@@ -341,18 +341,8 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, description)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // If all parameters are null, we need to use the payload.
-         if (roleName == null) {
+         // If all query parameters are null, we need to use the payload.
+         if (allNull(roleName, description)) {
              // Parse and validate the json in the request payload, which must exist.
              ReqUpdateRole payload = null;
              try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
@@ -360,7 +350,7 @@ public final class RoleResource
              } 
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "createRole", e.getMessage());
+                                              "updateRole", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                    entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -369,6 +359,14 @@ public final class RoleResource
              // Fill in the parameter fields.
              roleName = payload.roleName;
              description = payload.description;
+         }
+         
+         // By this point there should be at least one non-null parameter.
+         if (allNull(roleName, description)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "roleName, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ***** DUMMY TEST Code
@@ -509,7 +507,7 @@ public final class RoleResource
          // of the two.  Query parameters take precedence if all are assigned; it's an
          // error to supply only some query parameters.
          if (!allNullOrNot(parentRoleName, childRoleName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "parentRoleName, childRoleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -524,7 +522,7 @@ public final class RoleResource
              } 
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "createRole", e.getMessage());
+                                              "addChildRole", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                    entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();

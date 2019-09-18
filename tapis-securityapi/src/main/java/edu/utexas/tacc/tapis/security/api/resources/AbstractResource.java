@@ -90,4 +90,52 @@ class AbstractResource
         return false;
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* allNullOrNot:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    /** Return true if either all parameters are null or all are not null.
+     * Otherwise, return false.
+     * 
+     * @param o1 any object
+     * @param o2 any other object
+     * @param o3 yet another object
+     * @return true if all parameters have the same nullity, false otherwise
+     */
+    protected boolean allNullOrNot(Object o1, Object o2, Object o3)
+    {
+        if (o1 == null && o2 == null && o3 == null) return true;
+        if (o1 != null && o2 != null && o3 != null) return true;
+        return false;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* allNull:                                                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** Return true if both parameters are null. Otherwise, return false.
+     * 
+     * @param o1 any object
+     * @param o2 any other object
+     * @return true if both parameters are null, false otherwise
+     */
+    protected boolean allNull(Object o1, Object o2)
+    {
+        if (o1 == null && o2 == null) return true;
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* allNull:                                                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** Return true if all parameters are null. Otherwise, return false.
+     * 
+     * @param o1 any object
+     * @param o2 any other object
+     * @param o3 yet another object
+     * @return true if all parameters are null, false otherwise
+     */
+    protected boolean allNull(Object o1, Object o2, Object o3)
+    {
+        if (o1 == null && o2 == null && o3 == null) return true;
+        return false;
+    }
 }

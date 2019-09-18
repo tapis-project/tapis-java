@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.time.Instant;
 
 import javax.servlet.ServletContext;
@@ -23,7 +22,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +31,7 @@ import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkPermission;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,7 +40,8 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/perm")
-public class PermissionResource 
+public final class PermissionResource 
+ extends AbstractResource
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
@@ -221,43 +216,36 @@ public class PermissionResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (permName == null || permValue == null || description == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "create permission", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(permName, permValue, description)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "permName, permValue, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (permName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqCreatePermission payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_CREATE_PERM_REQUEST, 
+                                       ReqCreatePermission.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "createPermission", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_CREATE_PERM_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqCreatePermission createPermissionPayload = null;
-             try {createPermissionPayload = TapisGsonUtils.getGson().fromJson(json, ReqCreatePermission.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             permName = createPermissionPayload.permName;
-             permValue = createPermissionPayload.permValue;
-             description = createPermissionPayload.description;
+             permName = payload.permName;
+             permValue = payload.permValue;
+             description = payload.description;
          }
          
          // ***** DUMMY TEST Code
@@ -349,43 +337,34 @@ public class PermissionResource
              _log.trace(msg);
          }
          
-         // Either query parameters are used or payload, but not a mixture.
-         if (permName == null && permValue == null && description == null) {
-             // There better be a payload.
-             String json = null;
-             try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
-               catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "update permission", e.getMessage());
+         // ------------------------- Input Processing -------------------------
+         // If all query parameters are null, we need to use the payload.
+         if (allNull(permName, permValue, description)) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqUpdatePermission payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_UPDATE_PERM_REQUEST, 
+                                       ReqUpdatePermission.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "updatePermission", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-             
-             // Create validator specification.
-             JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SK_UPDATE_PERM_REQUEST);
-             
-             // Make sure the json conforms to the expected schema.
-             try {JsonValidator.validate(spec);}
-               catch (TapisJSONException e) {
-                 String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-               }
-
-             ReqUpdatePermission updatePermPayload = null;
-             try {updatePermPayload = TapisGsonUtils.getGson().fromJson(json, ReqUpdatePermission.class);}
-                 catch (Exception e) {
-                     String msg = MsgUtils.getMsg("ALOE_JSON_VALIDATION_ERROR", e.getMessage());            
-                     _log.error(msg, e);
-                     return Response.status(Status.BAD_REQUEST).
-                             entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-                 }
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
              
              // Fill in the parameter fields.
-             permName = updatePermPayload.permName;
-             permValue = updatePermPayload.permValue;
-             description = updatePermPayload.description;
+             permName = payload.permName;
+             permValue = payload.permValue;
+             description = payload.description;
+         }
+         
+         // By this point there should be at least one non-null parameter.
+         if (allNull(permName, permValue, description)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "permName, permValue, description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ***** DUMMY TEST Code

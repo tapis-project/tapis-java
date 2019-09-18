@@ -38,7 +38,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
                                               url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
 @Path("/")
-public class SecurityResource 
+public final class SecurityResource
+ extends AbstractResource
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
