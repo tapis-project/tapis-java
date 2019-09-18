@@ -416,7 +416,7 @@ public final class RoleResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "updateRole", _request.getRequestURL());
+                                          "addRolePermission", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -498,7 +498,7 @@ public final class RoleResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "updateRole", _request.getRequestURL());
+                                          "addChildRole", _request.getRequestURL());
              _log.trace(msg);
          }
          

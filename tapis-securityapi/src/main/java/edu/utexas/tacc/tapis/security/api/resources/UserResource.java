@@ -391,7 +391,7 @@ public final class UserResource
      /* isPermitted:                                                                 */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/idPermitted")
+     @Path("/isPermitted")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user has been assigned the specified role "
