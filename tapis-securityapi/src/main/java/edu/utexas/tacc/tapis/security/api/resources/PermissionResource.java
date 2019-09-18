@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -248,6 +249,28 @@ public final class PermissionResource
              description = payload.description;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(permName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permValue)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "permValue");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(description)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createPermission", "description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** permName    = " + permName);
          System.out.println("***** permValue   = " + permValue);
@@ -359,13 +382,27 @@ public final class PermissionResource
              description = payload.description;
          }
          
-         // By this point there should be at least one non-null parameter.
-         if (allNull(permName, permValue, description)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "permName, permValue, description");
+         // Final checks.
+         if (StringUtils.isBlank(permName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updatePermission", "permName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+         if (StringUtils.isBlank(permValue)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updatePermission", "permValue");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(description)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updatePermission", "description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
          
          // ***** DUMMY TEST Code
          System.out.println("***** permName    = " + permName);

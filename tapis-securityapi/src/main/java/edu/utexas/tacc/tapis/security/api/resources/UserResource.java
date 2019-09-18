@@ -19,11 +19,13 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized;
@@ -52,6 +54,8 @@ public final class UserResource
         "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleRequest.json";
     private static final String FILE_SK_GRANT_USER_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserPermRequest.json";
+    private static final String FILE_SK_REMOVE_USER_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserRoleRequest.json";
     private static final String FILE_SK_USER_HAS_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserHasRoleRequest.json";
     private static final String FILE_SK_USER_IS_PERMITTED_REQUEST = 
@@ -208,6 +212,120 @@ public final class UserResource
              roleName = payload.roleName;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** user = " + user);
+         System.out.println("***** roleName = " + roleName);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 1;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", user), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* removeRole:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/removeRole")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Remove a previously granted role from a user using either a request body "
+                         + "or query parameters, but not both.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Role removed from user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response removeRole(@QueryParam("user") String user,
+                                @QueryParam("roleName") String roleName,
+                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "removeRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(user, roleName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "user, roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (user == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqRemoveUserRole payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_REMOVE_USER_ROLE_REQUEST, 
+                                       ReqRemoveUserRole.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "removeRole", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+             // Fill in the parameter fields.
+             user = payload.user;
+             roleName = payload.roleName;
+         }
+         
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);
          System.out.println("***** roleName = " + roleName);
@@ -290,6 +408,22 @@ public final class UserResource
              permName = payload.permName;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);
          System.out.println("***** roleName = " + permName);
@@ -371,6 +505,22 @@ public final class UserResource
              roleName = payload.roleName;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRole", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);
          System.out.println("***** roleName = " + roleName);
@@ -451,6 +601,22 @@ public final class UserResource
              user = payload.user;
              permSpec = payload.permSpec;
          }
+         
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "permSpec");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
          
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);

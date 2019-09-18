@@ -22,12 +22,14 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
@@ -60,6 +62,8 @@ public final class RoleResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/AddRolePermissionRequest.json";
     private static final String FILE_SK_ADD_CHILD_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/AddChildRoleRequest.json";
+    private static final String FILE_SK_REMOVE_ROLE_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveRolePermissionRequest.json";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -252,6 +256,23 @@ public final class RoleResource
              description = payload.description;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(description)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         
          // ***** DUMMY TEST Code
          System.out.println("***** roleName    = " + roleName);
          System.out.println("***** description = " + description);
@@ -369,6 +390,22 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(description)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRole", "description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** roleName    = " + roleName);
          System.out.println("***** description = " + description);
@@ -451,6 +488,22 @@ public final class RoleResource
              permName = payload.permName;
          }
          
+         // Final checks.
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
          // ***** DUMMY TEST Code
          System.out.println("***** roleName = " + roleName);
          System.out.println("***** permName = " + permName);
@@ -459,6 +512,104 @@ public final class RoleResource
          // ***** DUMMY RESPONSE Code
          RespChangeCount count = new RespChangeCount();
          count.changes = 2;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* removeRolePermission:                                                        */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/removePerm")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Remove a permission from a role using either a request body "
+                         + "or query parameters, but not both.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Permission removed from role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response removeRolePermission(@QueryParam("roleName") String roleName,
+                                          @QueryParam("permName") String permName,
+                                          @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                          InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "removeRolePermission", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(roleName, permName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (roleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqRemoveRolePermission payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_REMOVE_ROLE_PERM_REQUEST, 
+                                       ReqRemoveRolePermission.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "removeRolePermission", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+             // Fill in the parameter fields.
+             roleName = payload.roleName;
+             permName = payload.permName;
+         }
+         
+         // Final checks.
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** roleName = " + roleName);
+         System.out.println("***** permName = " + permName);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 1;
          // ***** END DUMMY RESPONSE Code
          
          // ---------------------------- Success ------------------------------- 
@@ -532,6 +683,22 @@ public final class RoleResource
              parentRoleName = payload.parentRoleName;
              childRoleName = payload.childRoleName;
          }
+         
+         // Final checks.
+         if (StringUtils.isBlank(parentRoleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "parentRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(childRoleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "childRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
          
          // ***** DUMMY TEST Code
          System.out.println("***** parentRoleName = " + parentRoleName);

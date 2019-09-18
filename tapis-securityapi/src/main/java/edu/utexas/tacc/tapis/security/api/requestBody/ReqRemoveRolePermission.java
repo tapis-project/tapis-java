@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public class ReqGrantUserRole 
+public final class ReqRemoveRolePermission 
 {
-    public String user;
     public String roleName;
+    public String permName;
 }
