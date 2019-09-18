@@ -199,7 +199,8 @@ public final class RoleResource
      @POST
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Create a role using either a request body or query parameters, but not both.",
+             description = "Create a role using either a request body or query parameters, "
+                           + "but not both.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -298,7 +299,7 @@ public final class RoleResource
      @Path("/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-         description = "Delete named role.",
+         description = "Delete the named role.",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
                  content = @Content(schema = @Schema(
@@ -347,6 +348,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRole(@QueryParam("roleName") String roleName,

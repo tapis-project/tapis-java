@@ -1,20 +1,21 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/UserIsPermittedsRequest",
-    "description": "Top-level schema for a request to check a user's permission.",
+    "$id": "http://tapis.tacc.utexas.edu/UserHasRoleMultiRequest",
+    "description": "Top-level schema for a request to check a user's role or roles.",
     "additionalProperties": false,
     "type": "object",
         "properties": {
           "user": {
             "type": "string"
           },
-          "permSpec": {
-            "type": "string"
+          "roleNames": {
+            "type": "array",
+            "items": {"type": "string"}
           }
         },
     "required": [
         "user", 
-        "permSpec"
+        "roleNames"
     ]
 }
 

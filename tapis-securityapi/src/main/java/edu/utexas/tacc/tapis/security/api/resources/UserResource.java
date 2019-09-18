@@ -27,7 +27,9 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
@@ -60,6 +62,16 @@ public final class UserResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserHasRoleRequest.json";
     private static final String FILE_SK_USER_IS_PERMITTED_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserIsPermittedRequest.json";
+    private static final String FILE_SK_USER_HAS_ROLE_MULTI_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UserHasRoleMultiRequest.json";
+    private static final String FILE_SK_USER_IS_PERMITTED_MULTI_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UserIsPermittedMultiRequest.json";
+    
+    /* **************************************************************************** */
+    /*                                     Enums                                    */
+    /* **************************************************************************** */
+    // Logical operations applied during authentication.
+    private enum AuthOperation {ANY, ALL}
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -264,7 +276,6 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeRole(@QueryParam("user") String user,
@@ -350,7 +361,10 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the specified permission using either a request body "
-                         + "or query parameters, but not both.",
+                         + "or query parameters, but not both.  The permission will be added "
+                         + "to a uniquely named role that is automatically created if it doesn't "
+                         + "already exist.  That role will then be granted to the user if "
+                         + "it currently isn't.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -443,7 +457,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      /* hasRole:                                                                     */
      /* ---------------------------------------------------------------------------- */
-     @GET
+     @POST
      @Path("/hasRole")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -540,7 +554,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      /* isPermitted:                                                                 */
      /* ---------------------------------------------------------------------------- */
-     @GET
+     @POST
      @Path("/isPermitted")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -634,4 +648,254 @@ public final class UserResource
              MsgUtils.getMsg("TAPIS_AUTHORIZED", "User", user), prettyPrint, authResp)).build();
      }
 
+     /* ---------------------------------------------------------------------------- */
+     /* hasRoleAny:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/hasRoleAny")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user has been assigned any of the roles "
+                           + "specified in the request body.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response hasRoleAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "hasRoleAny", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* hasRoleAll:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/hasRoleAll")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user has been assigned all of the roles "
+                           + "specified in the request body.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response hasRoleAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "hasRoleAny", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ALL);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* isPermittedAny:                                                              */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/isPermittedAny")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user's permissions satisfy any of the "
+                           + "permission specifications contained in the request body.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response isPermittedAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "isPermittedAny", _request.getRequestURL());
+             _log.trace(msg);
+         }
+
+         // Call the real method.
+         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ANY);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* isPermittedAll:                                                              */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/isPermittedAll")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user's permissions satisfy all of the "
+                           + "permission specifications contained in the request body.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response isPermittedAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "isPermittedAll", _request.getRequestURL());
+             _log.trace(msg);
+         }
+
+         // Call the real method.
+         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ALL);
+     }
+     
+     /* **************************************************************************** */
+     /*                                Public Methods                                */
+     /* **************************************************************************** */
+     /* ---------------------------------------------------------------------------- */
+     /* hasRoleMulti:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     private Response hasRoleMulti(InputStream payloadStream, boolean prettyPrint, 
+                                   AuthOperation op)
+     {
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUserHasRoleMulti payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_USER_HAS_ROLE_MULTI_REQUEST, 
+                                   ReqUserHasRoleMulti.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "hasRoleMulti", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Final checks.
+         if (StringUtils.isBlank(payload.user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRoleMulti", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (payload.roleNames == null || (payload.roleNames.length == 0)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRoleMulti", "roleNames");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+
+         // ***** DUMMY TEST Code
+         System.out.println("***** user = " + payload.user);
+         System.out.println("***** roleNames = " + StringUtils.join(payload.roleNames, ", "));
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespAuthorized authResp = new RespAuthorized();
+         authResp.isAuthorized = true;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_AUTHORIZED", "User", payload.user), prettyPrint, authResp)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* isPermittedMulti:                                                            */
+     /* ---------------------------------------------------------------------------- */
+     private Response isPermittedMulti(InputStream payloadStream, boolean prettyPrint, 
+                                       AuthOperation op)
+     {
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUserIsPermittedMulti payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_USER_IS_PERMITTED_MULTI_REQUEST, 
+                                   ReqUserIsPermittedMulti.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "isPermittedMulti", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Final checks.
+         if (StringUtils.isBlank(payload.user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermittedMulti", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (payload.permSpecs == null || (payload.permSpecs.length == 0)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermittedMulti", "permSpecs");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+
+         // ***** DUMMY TEST Code
+         System.out.println("***** user = " + payload.user);
+         System.out.println("***** permSpecs = " + StringUtils.join(payload.permSpecs, ", "));
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespAuthorized authResp = new RespAuthorized();
+         authResp.isAuthorized = true;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_AUTHORIZED", "User", payload.user), prettyPrint, authResp)).build();
+     }
 }
