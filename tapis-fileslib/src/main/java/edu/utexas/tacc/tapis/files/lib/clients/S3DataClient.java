@@ -48,7 +48,43 @@ public class S3DataClient implements IRemoteDataClient {
     }
 
     @Override
-    public Boolean move(String srcSystem, String srcPath, String destSystem, String destPath) {
-        return true;
+    public void move(String srcSystem, String srcPath, String destSystem, String destPath) {
+
     }
+
+    @Override
+    public void rename() {
+
+    }
+
+    @Override
+    public void copy() {
+
+    }
+
+    @Override
+    public void delete() {
+
+    }
+
+    @Override
+    public void getStream() {
+
+    }
+
+    @Override
+    public void download() {
+
+    }
+
+    @Override
+    public void connect() {
+
+    }
+
+    @Override
+    public void disconnect() {
+
+    }
+
 }
