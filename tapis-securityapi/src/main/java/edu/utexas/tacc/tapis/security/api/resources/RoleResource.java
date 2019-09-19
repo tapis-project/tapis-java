@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
@@ -64,6 +65,8 @@ public final class RoleResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/AddChildRoleRequest.json";
     private static final String FILE_SK_REMOVE_ROLE_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveRolePermissionRequest.json";
+    private static final String FILE_SK_REMOVE_CHILD_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveChildRoleRequest.json";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -200,7 +203,11 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create a role using either a request body or query parameters, "
-                           + "but not both.",
+                           + "but not both.  Role names are case sensitive, alpha-numeric "
+                           + "strings that can also contain underscores.  Role names must "
+                           + "start with an alphbetic character and can be no more than 60 "
+                           + "characters in length.  The desciption can be no more than "
+                           + "2048 characters long.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -336,7 +343,10 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
-                           + "but not both.",
+                           + "but not both.  Role names are case sensitive, alphanumeric strings "
+                           + "that can contain underscores but must begin with an alphabetic "
+                           + "character.  The limit on role name is 60 characters.  The limit "
+                           + "on description is 2048 characters.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -710,6 +720,104 @@ public final class RoleResource
          // ***** DUMMY RESPONSE Code
          RespChangeCount count = new RespChangeCount();
          count.changes = 2;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", parentRoleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* addChildRole:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/removeChild")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Remove a child role from a parent role using either a request body "
+                         + "or query parameters, but not both.",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Child removed from parent role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response removeChildRole(@QueryParam("parentRoleName") String parentRoleName,
+                                     @QueryParam("childRoleName") String childRoleName,
+                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                     InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "removeChildRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some query parameters.
+         if (!allNullOrNot(parentRoleName, childRoleName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "parentRoleName, childRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (parentRoleName == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqRemoveChildRole payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_REMOVE_CHILD_ROLE_REQUEST, 
+                                       ReqRemoveChildRole.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "removeChildRole", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+             // Fill in the parameter fields.
+             parentRoleName = payload.parentRoleName;
+             childRoleName = payload.childRoleName;
+         }
+         
+         // Final checks.
+         if (StringUtils.isBlank(parentRoleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "parentRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(childRoleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "childRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** parentRoleName = " + parentRoleName);
+         System.out.println("***** childRoleName = " + childRoleName);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 1;
          // ***** END DUMMY RESPONSE Code
          
          // ---------------------------- Success ------------------------------- 

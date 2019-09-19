@@ -191,7 +191,13 @@ public final class PermissionResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create a permission using either a request body or query parameters, "
-                           + "but not both.",
+                           + "but not both.  Permission names are case sensitive, alpha-numeric "
+                           + "strings that can also contain underscores.  Permission names must "
+                           + "start with an alphbetic character and can be no more than 60 "
+                           + "characters in length.  The desciption can be no more than "
+                           + "2048 characters long.  The permission value is a colon (:) separated "
+                           + "tuple in which the asterisk (*) and comma (,) are reserved characters.  "
+                           + "Permission values have a limit of 1024 characters.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -334,7 +340,13 @@ public final class PermissionResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing permission using either a request body or query parameters, "
-                           + "but not both.",
+                           + "but not both.  Permission names are case sensitive, alpha-numeric "
+                           + "strings that can also contain underscores.  Permission names must "
+                           + "start with an alphbetic character and can be no more than 60 "
+                           + "characters in length.  The desciption can be no more than "
+                           + "2048 characters long.  The permission value is a colon (:) separated "
+                           + "tuple in which the asterisk (*) and comma (,) are reserved characters.  "
+                           + "Permission values have a limit of 1024 characters.",
              requestBody = 
                  @RequestBody(
                      required = false,
