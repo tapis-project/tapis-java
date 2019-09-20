@@ -40,6 +40,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
+/** This class and all related database artifacts are about to be deprecated.
+ * 
+ * @author rcardone
+ */
 @Path("/perm")
 public final class PermissionResource 
  extends AbstractResource
