@@ -1,24 +1,24 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/CreatePermissionRequest",
-    "description": "Top-level schema for a permission create request",
+    "$id": "http://tapis.tacc.utexas.edu/GrantUserRoleWithPermRequest",
+    "description": "Assign a permission to a role and then the role to a user.",
     "additionalProperties": false,
     "type": "object",
         "properties": {
+          "user": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
           "permName": {
-            "type": "string"
-          },
-          "permValue": {
-            "type": "string"
-          },
-          "description": {
             "type": "string"
           }
         },
     "required": [
-        "permName",
-        "permValue",
-        "description"
+        "user",
+        "roleName", 
+        "permName"
     ]
 }
 

@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/ReplacePathPrefixRequest",
+    "description": "Replace the prefix of permission with a path extended attribute",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "schema": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "oldSystemId": {
+            "type": "string"
+          },
+          "newSystemId": {
+            "type": "string"
+          },
+          "oldPrefix": {
+            "type": "string"
+          },
+          "newPrefix": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "schema", 
+        "oldSystemId",
+        "newSystemId",
+        "oldPrefix",
+        "newPrefix"
+    ]
+}
+
+

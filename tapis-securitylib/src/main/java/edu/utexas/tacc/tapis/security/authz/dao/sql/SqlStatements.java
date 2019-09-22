@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.security.authz.dao.sql;
 
-/** This class centralizes most if not all SQL statements used in the Tapis Security 
- * Kernel for authorization.  The statements returned are ready for preparation and, 
+/** This class centralizes all SQL statements used in the Tapis Security Kernel 
+ * for authorization.  The statements returned are ready for preparation and, 
  * when all placeholders are properly bound, execution.
  * 
  * @author rich
@@ -9,33 +9,6 @@ package edu.utexas.tacc.tapis.security.authz.dao.sql;
  */
 public class SqlStatements
 {
-  /* ---------------------------------------------------------------------- */
-  /* sk_permission:                                                         */
-  /* ---------------------------------------------------------------------- */
-  // Get all rows.
-  public static final String SELECT_SKPERMISSION =
-      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby"
-      + " FROM sk_permission";
-    
-  public static final String PERMISSION_SELECT_BY_NAME = 
-      "SELECT id, tenant, name, perm, description FROM sk_permission where tenant = ? AND name = ?";
-  public static final String PERMISSION_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND name = ?";
-  public static final String PERMISSION_SELECT_BY_ID = 
-      "SELECT id, tenant, name, perm, description FROM sk_permission where tenant = ? AND id = ?";
-  public static final String PERMISSION_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, tenant, name, perm, description, created, createdby, updated, updatedby FROM sk_permission where tenant = ? AND id = ?";
-  public static final String PERMISSION_INSERT = 
-      "INSERT INTO sk_permission (tenant, name, perm, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
-  public static final String PERMISSION_SELECT_ID_BY_NAME =
-      "SELECT id FROM sk_permission where tenant = ? AND name = ?";
-  public static final String PERMISSION_DELETE_BY_ID =
-      "DELETE FROM sk_permission where tenant = ? AND id = ?";
-  public static final String PERMISSION_DELETE_BY_NAME =
-      "DELETE FROM sk_permission where tenant = ? AND name = ?";
-  public static final String PERMISSION_UPDATE = 
-      "UPDATE sk_permission SET name = ?, perm = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
-
   /* ---------------------------------------------------------------------- */
   /* sk_role:                                                               */
   /* ---------------------------------------------------------------------- */
@@ -69,43 +42,19 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLEPERMISSION =
-      "SELECT id, tenant, role_id, permission_id, created, createdby, updated, updatedby"
+      "SELECT id, tenant, role_id, permission, created, createdby, updated, updatedby"
       + " FROM sk_role_permission";
   
-  // The following select statement only grabs the permission id and tenant from the 
-  // sk_permission table, but returns the role id, createdby and updatedby constants  
-  // passed in from the caller. The role and permission tenants are guaranteed to match
-  // because the last clause matches the role's tenant.
-  public static final String ROLE_ADD_PERMISSION_BY_NAME =
-      "INSERT INTO sk_role_permission (tenant, role_id, permission_id, createdby, updatedby) " +
-      "select p.tenant, ?, p.id, ?, ? from sk_permission p where p.tenant = ? and p.name = ? " +
-      "and p.tenant = (select tenant from sk_role where id = ?) " + // enforce tenant conformance
-      "ON CONFLICT DO NOTHING";
-  public static final String ROLE_REMOVE_PERMISSION_BY_NAME =
-      "DELETE FROM sk_role_permission where tenant = ? and role_id = ? and " +
-      "permission_id = (select p.id from sk_permission p where p.tenant = ? and p.name = ?)";
+  // The following select statement grabs the role id from the sk_role table after 
+  // guaranteeing that the role's tenant is the expected one.    
+  public static final String ROLE_ADD_PERMISSION =
+      "INSERT INTO sk_role_permission (tenant, role_id, permission, createdby, updatedby) " +
+      "select ?, r.id, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
+      "ON CONFLICT DO NOTHING";        
+  
+  public static final String ROLE_REMOVE_PERMISSION =
+      "DELETE FROM sk_role_permission where tenant = ? and role_id = ? and permission = ?";
 
-  // Permission retrieval statements.
-  public static final String ROLE_GET_ASSIGNED_PERMISSIONS_BY_NAME =
-      "SELECT p.name from sk_permission p, sk_role_permission rp " +
-      "where p.id = rp.permission_id and rp.tenant = ? and rp.role_id = ? " +
-      "order by p.name";
-  
-  // This recursive query retrieves all permissions effectively assigned to 
-  // a role.  Specifically, the query an alphabetized set of permission names
-  // assigned to the named role id and transitively to all of its descendant
-  // roles.
-  public static final String ROLE_GET_PERMISSIONS_BY_NAME =
-      "WITH RECURSIVE children AS ( " +
-      "SELECT permission_id FROM sk_role_permission WHERE role_id = ? " +
-      "UNION DISTINCT " +
-      "SELECT a.child_role_id FROM sk_role_tree a, children b " +
-        "WHERE a.parent_role_id = b.child_role_id " +
-      ") " +
-      "SELECT sk_role.name FROM children, sk_role " +
-        "WHERE sk_role.id = children.child_role_id " +
-        "ORDER BY sk_role.name"; 
-  
   /* ---------------------------------------------------------------------- */
   /* sk_role_tree:                                                          */
   /* ---------------------------------------------------------------------- */
@@ -175,52 +124,24 @@ public class SqlStatements
   // and the transitive closure of all its descendants.  The 
   // WITH statement retrieves all the descendant role ids.  The
   // query that follows the WITH is a UNION.  The first part of 
-  // this UNION calculates the permission names assigned to the 
-  // descendant roles discovered in the preceding recursive calls.  
-  // The second part of the UNION retrieves the permission names
-  // assigned to the parent role.
-  public static final String ROLE_GET_TRANSITIVE_PERMISSION_NAMES =
-      "WITH RECURSIVE children AS ( " +
-      "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
-      "UNION DISTINCT " +
-      "SELECT a.child_role_id FROM sk_role_tree a, children b " +
-        "WHERE a.parent_role_id = b.child_role_id " +
-      ") " +
-      "SELECT DISTINCT p1.name AS outname " +
-        "FROM children, sk_role_permission rp1, sk_permission p1 " +
-        "WHERE rp1.role_id = children.child_role_id " +
-        "AND rp1.permission_id = p1.id " +
-      "UNION DISTINCT " +
-      "SELECT DISTINCT p2.name AS outname " +
-        "FROM sk_role_permission rp2, sk_permission p2 " +
-        "WHERE rp2.role_id = ? " +
-        "AND rp2.permission_id = p2.id " +
-      "ORDER BY outname";
-
-  // Given a role, find all permissions assigned to that role
-  // and the transitive closure of all its descendants.  The 
-  // WITH statement retrieves all the descendant role ids.  The
-  // query that follows the WITH is a UNION.  The first part of 
   // this UNION calculates the permission values assigned to the 
   // descendant roles discovered in the preceding recursive calls.  
   // The second part of the UNION retrieves the permission values
   // assigned to the parent role.
-  public static final String ROLE_GET_TRANSITIVE_PERMISSION_VALUES =
+  public static final String ROLE_GET_TRANSITIVE_PERMISSIONS =
       "WITH RECURSIVE children AS ( " +
       "SELECT child_role_id FROM sk_role_tree WHERE parent_role_id = ? " +
       "UNION DISTINCT " +
       "SELECT a.child_role_id FROM sk_role_tree a, children b " +
         "WHERE a.parent_role_id = b.child_role_id " +
       ") " +
-      "SELECT DISTINCT p1.perm AS outperm " +
-        "FROM children, sk_role_permission rp1, sk_permission p1 " +
+      "SELECT DISTINCT rp1.permission AS outperm " +
+        "FROM children, sk_role_permission rp1 " +
         "WHERE rp1.role_id = children.child_role_id " +
-        "AND rp1.permission_id = p1.id " +
       "UNION DISTINCT " +
-      "SELECT DISTINCT p2.perm AS outperm " +
-        "FROM sk_role_permission rp2, sk_permission p2 " +
+      "SELECT DISTINCT rp2.permission AS outperm " +
+        "FROM sk_role_permission rp2 " +
         "WHERE rp2.role_id = ? " +
-        "AND rp2.permission_id = p2.id " +
       "ORDER BY outperm";
 
   /* ---------------------------------------------------------------------- */

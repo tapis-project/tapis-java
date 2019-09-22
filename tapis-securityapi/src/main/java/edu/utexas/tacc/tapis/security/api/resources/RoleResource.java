@@ -31,6 +31,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
@@ -67,6 +68,8 @@ public final class RoleResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveRolePermissionRequest.json";
     private static final String FILE_SK_REMOVE_CHILD_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveChildRoleRequest.json";
+    private static final String FILE_SK_REPLACE_PATH_PREFIX_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/ReplacePathPrefixRequest.json";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -207,14 +210,18 @@ public final class RoleResource
                            + "strings that can also contain underscores.  Role names must "
                            + "start with an alphbetic character and can be no more than 60 "
                            + "characters in length.  The desciption can be no more than "
-                           + "2048 characters long.",
+                           + "2048 characters long.  If the role already exists, this "
+                           + "request has no effect.",
              requestBody = 
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole.class))),
              responses = 
-                 {@ApiResponse(responseCode = "201", description = "Role created.",
+                 {@ApiResponse(responseCode = "200", description = "Role existed.",
+                         content = @Content(schema = @Schema(
+                                 implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl.class))),
+                  @ApiResponse(responseCode = "201", description = "Role created.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
@@ -442,7 +449,9 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Add a permission to an existing role using either a request body "
-                         + "or query parameters, but not both.",
+                         + "or query parameters, but not both.  If the permission already exists, "
+                         + "then the request has no effect and the change count returned is "
+                         + "zero. Otherwise, the permission is added and the change count is one.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -638,7 +647,9 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Add a child role to another role using either a request body "
-                         + "or query parameters, but not both.",
+                         + "or query parameters, but not both.  If the child already exists, "
+                         + "then the request has no effect and the change count returned is "
+                         + "zero. Otherwise, the child is added and the change count is one.",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -729,7 +740,7 @@ public final class RoleResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* addChildRole:                                                                */
+     /* removeChildRole:                                                             */
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/removeChild")
@@ -824,5 +835,159 @@ public final class RoleResource
          // Success means we found the role. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Role", parentRoleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* replacePathPrefix:                                                           */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/replacePathPrefix")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Replace text in a permission specification whose schema defines an extended "
+                         + "path attribute as its last component.  Extended path attributes "
+                         + "enhance the standard Shiro matching algorithm with one that treats "
+                         + "designated components in a permission specification as a path name, "
+                         + "such as a posix file or directory path name.  This request is useful "
+                         + "when files or directories have been renamed or moved and their "
+                         + "authorizations need to be adjusted.  Consider, for example, "
+                         + "permissions that conform to the following specification:\n\n"
+                         + ""
+                         + "  store:tenantId:op:systemId:path\n\n"
+                         + ""
+                         + "The last component is an extended path attribute whose content "
+                         + "can be changed by replacePathPrefix requests.  Specifically, paths "
+                         + "that begin with the oldPrefix will have that prefix replaced with "
+                         + "the newPrefix value.  Replacement only occurs on permissions "
+                         + "that also match the schema and oldSystemId parameter values.  The systemId "
+                         + "is required to be the next to last attribute and immediately preceding "
+                         + "the path attribute.  The oldSystemId is replaced with the newSystemId "
+                         + "when a match is found.  If a roleName is provided, then replacement is "
+                         + "limited to permissions defined only in that role.  Otherwise, permissions "
+                         + "in all roles that meet the other matching criteria will be considered.\n\n"
+                         + ""
+                         + "Either a request body or query parameters can be used on this request, "
+                         + "but not both.  The response indicates the number of changed permission "
+                         + "specifications. ",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Child assigned to parent role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response replacePathPrefix(@QueryParam("schema")   String schema,
+                                       @QueryParam("roleName") String roleName,  // can be null
+                                       @QueryParam("oldSystemId") String oldSystemId,
+                                       @QueryParam("newSystemId") String newSystemId,
+                                       @QueryParam("oldPrefix") String oldPrefix,
+                                       @QueryParam("newPrefix") String newPrefix,
+                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                       InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "replacePathPrefix", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Either query parameters are used or the payload is used, but not a mixture
+         // of the two.  Query parameters take precedence if all are assigned; it's an
+         // error to supply only some of the required query parameters.
+         if (!allNullOrNot(schema, oldSystemId, newSystemId) && 
+             !allNullOrNot(newSystemId, oldPrefix, newPrefix)) 
+         {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", 
+                                         "schema, oldSystemId, newSystemId, oldPrefix, newPrefix");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // If all parameters are null, we need to use the payload.
+         if (schema == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqReplacePathPrefix payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_REPLACE_PATH_PREFIX_REQUEST, 
+                                       ReqReplacePathPrefix.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "replacePathPrefix", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+             // Fill in the parameter fields.
+             schema = payload.schema;
+             roleName = payload.roleName;
+             oldSystemId = payload.oldSystemId;
+             newSystemId = payload.newSystemId;
+             oldPrefix = payload.oldPrefix;
+             newPrefix = payload.newPrefix;
+         }
+         
+         // Final checks for required parameters.
+         if (StringUtils.isBlank(schema)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "schema");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(oldSystemId)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "oldSystemId");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(newSystemId)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "newSystemId");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(oldPrefix)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "oldPrefix");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(newPrefix)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "newPrefix");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** schema = " + schema);
+         System.out.println("***** roleName = " + roleName);
+         System.out.println("***** oldSystemId = " + oldSystemId);
+         System.out.println("***** newSystemId = " + newSystemId);
+         System.out.println("***** oldPrefix = " + oldPrefix);
+         System.out.println("***** newPrefix = " + newPrefix);
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 2;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Permission", oldPrefix), prettyPrint, count)).build();
      }
 }

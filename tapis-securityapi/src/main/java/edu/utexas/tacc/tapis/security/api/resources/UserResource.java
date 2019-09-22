@@ -23,7 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
@@ -54,8 +54,8 @@ public final class UserResource
     // Json schema resource files.
     private static final String FILE_SK_GRANT_USER_ROLE_REQUEST = 
         "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleRequest.json";
-    private static final String FILE_SK_GRANT_USER_PERM_REQUEST = 
-            "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserPermRequest.json";
+    private static final String FILE_SK_GRANT_USER_ROLE_WITH_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleWithPermRequest.json";
     private static final String FILE_SK_REMOVE_USER_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserRoleRequest.json";
     private static final String FILE_SK_USER_HAS_ROLE_REQUEST = 
@@ -354,22 +354,23 @@ public final class UserResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* grantPerm:                                                                   */
+     /* grantRoleWithPermission:                                                     */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/grantPerm")
+     @Path("/grantRoleWithPerm")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Grant a user the specified permission using either a request body "
-                         + "or query parameters, but not both.  The permission will be added "
-                         + "to a uniquely named role that is automatically created if it doesn't "
-                         + "already exist.  That role will then be granted to the user if "
-                         + "it currently isn't.",
+             description = "Grant a user the specified role containing the specified permission "
+                         + "using either a request body or query parameters, but not both.  This "
+                         + "compound request first adds the permission to the role it is not "
+                         + "already a member of the role, and then the request assigns the role "
+                         + "to the user.  The change count returned can range from zero to two "
+                         + "depending on how many insertions were actually required.",
              requestBody = 
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
                      content = @Content(schema = @Schema(
@@ -379,15 +380,16 @@ public final class UserResource
                   @ApiResponse(responseCode = "404", description = "Named resource not found."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response grantPermission(@QueryParam("user") String user,
-                                     @QueryParam("roleName") String permName,
-                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                     InputStream payloadStream)
+     public Response grantRoleWithPermission(@QueryParam("user") String user,
+                                             @QueryParam("roleName") String roleName,
+                                             @QueryParam("permName") String permName,
+                                             @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                             InputStream payloadStream)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "grantPermission", _request.getRequestURL());
+                                          "grantRoleWithPermission", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -395,8 +397,8 @@ public final class UserResource
          // Either query parameters are used or the payload is used, but not a mixture
          // of the two.  Query parameters take precedence if all are assigned; it's an
          // error to supply only some query parameters.
-         if (!allNullOrNot(user, permName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "user, permName");
+         if (!allNullOrNot(user, roleName, permName)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "user, roleName, permName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -405,13 +407,13 @@ public final class UserResource
          // If all parameters are null, we need to use the payload.
          if (user == null) {
              // Parse and validate the json in the request payload, which must exist.
-             ReqGrantUserPermission payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_GRANT_USER_PERM_REQUEST, 
-                                       ReqGrantUserPermission.class);
+             ReqGrantUserRoleWithPermission payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_GRANT_USER_ROLE_WITH_PERM_REQUEST, 
+                                       ReqGrantUserRoleWithPermission.class);
              } 
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "grantPermission", e.getMessage());
+                                              "grantRoleWithPermission", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                    entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -419,12 +421,19 @@ public final class UserResource
              
              // Fill in the parameter fields.
              user = payload.user;
+             roleName = payload.roleName;
              permName = payload.permName;
          }
          
          // Final checks.
          if (StringUtils.isBlank(user)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -440,6 +449,7 @@ public final class UserResource
          
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);
+         System.out.println("***** roleName = " + roleName);
          System.out.println("***** roleName = " + permName);
          // ***** END DUMMY TEST Code
          

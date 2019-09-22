@@ -37,55 +37,88 @@ public final class SkRole
     /* ---------------------------------------------------------------------- */
     /* addChildRole:                                                          */
     /* ---------------------------------------------------------------------- */
-    public void addChildRole(String user, String childRoleName) throws TapisException
+    /** Add a child role to this role.  Return 0 if the child role was already 
+     * assigned to this role, 1 if this is a new child assignment to this role.
+     * 
+     * @param user
+     * @param childRoleName
+     * @return
+     * @throws TapisException
+     */
+    public int addChildRole(String user, String childRoleName) throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
         // attempting to put cross-tenant junk into the database. The dao method 
         // guards against that possibility.
+        int rows;
         try {
             SkRoleTreeDao dao = new SkRoleTreeDao();
-            dao.assignChildRole(tenant, user, id, childRoleName);
+            rows = dao.assignChildRole(tenant, user, id, childRoleName);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
         }
+        
+        return rows;
     }
     
     /* ---------------------------------------------------------------------- */
     /* addPermission:                                                         */
     /* ---------------------------------------------------------------------- */
-    public void addPermission(String user, String permissionName) throws TapisException
+    /** Assign a permission to this role.  Return 0 if the permission was already 
+     * assigned to the role, 1 if this is a new permission assignment to the role.
+     * 
+     * @param user the user assigning the permission
+     * @param permission the permission specification being assigned
+     * @return the number of rows affected (0 or 1)
+     * @throws TapisException
+     */
+    public int addPermission(String user, String permission) throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
         // attempting to put cross-tenant junk into the database. The dao method 
         // guards against that possibility.
+        int rows;
         try {
             SkRolePermissionDao dao = new SkRolePermissionDao();
-            dao.assignPermission(tenant, user, id, permissionName);
+            rows = dao.assignPermission(tenant, user, id, permission);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
         }
+        
+        return rows;
     }
     
     /* ---------------------------------------------------------------------- */
     /* addUser:                                                               */
     /* ---------------------------------------------------------------------- */
-    public void addUser(String assigner, String assignee) throws TapisException
+    /** Add this role to a user.  Return 0 if the user was already assigned the
+     * role, 1 if this is a new role assignment to the user.
+     * 
+     * @param assigner the user assigning the role
+     * @param assignee the user being assigned the role
+     * @return the number of rows affected (0 or 1)
+     * @throws TapisException
+     */
+    public int addUser(String assigner, String assignee) throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
         // attempting to put cross-tenant junk into the database. The dao method 
         // guards against that possibility.
+        int rows;
         try {
             SkUserRoleDao dao = new SkUserRoleDao();
-            dao.assignRole(tenant, assigner, assignee, id);
+            rows = dao.assignRole(tenant, assigner, assignee, id);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
         }
+        
+        return rows;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -125,30 +158,6 @@ public final class SkRole
         try {
             SkRoleDao dao = new SkRoleDao();
             list = dao.getAncestorRoleNames(id);
-        } catch (Exception e) {
-            _log.error(e.getMessage()); // details already logged
-            throw e;
-        }
-        return list;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getTransitivePermissionNames:                                          */
-    /* ---------------------------------------------------------------------- */
-    /** Get this list of permission names assigned to this role and all of its
-     * descendants. The permission names are returned in alphabetic order.
-     * 
-     * @return non-null, ordered list of permissions names associated with 
-     *         this role directly and transitively
-     * @throws TapisException
-     */
-    @Schema(hidden = true)
-    public List<String> getTransitivePermissionNames() throws TapisException
-    {
-        List<String> list = null;
-        try {
-            SkRoleDao dao = new SkRoleDao();
-            list = dao.getTransitivePermissionNames(id);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;

@@ -9,7 +9,7 @@ public final class SkRolePermission
     private int     id;
     private String  tenant;
     private int     roleId;
-    private int     permissionId;
+    private String  permission;
     private Instant created;
     private String  createdby;
     private Instant updated;
@@ -45,12 +45,12 @@ public final class SkRolePermission
         this.roleId = roleId;
     }
 
-    public int getPermissionId() {
-        return permissionId;
+    public String getPermission() {
+        return permission;
     }
 
-    public void setPermissionId(int permissionId) {
-        this.permissionId = permissionId;
+    public void setPermission(String permission) {
+        this.permission = permission;
     }
 
     public Instant getCreated() {

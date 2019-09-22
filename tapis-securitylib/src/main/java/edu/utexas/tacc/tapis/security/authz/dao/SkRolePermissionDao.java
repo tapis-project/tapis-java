@@ -111,25 +111,20 @@ public final class SkRolePermissionDao
   /* ---------------------------------------------------------------------- */
   /* assignPermission:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Assign a named child role to the parent role with the specified id. It
-   * is expected that all information other than the childRoleName was extracted
-   * from the parent role populated from the database. Otherwise, it is possible
-   * to attempt assigning a child role from one tenant to a parent in another.
-   * The query will filter out such attempts and an exception will be thrown
-   * because no records will be inserted into the sk_role_tree table.
+  /** Assign a named child role to the parent role with the specified id.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0.  
    * 
    * @param tenant the tenant
    * @param user the creating user
-   * @param roleId the role to which the permission will be assigned
-   * @param permissionName the name of the permission to be assigned to the role
+   * @param roleName the role to which the permission will be assigned
+   * @param permission the permission specification to be assigned to the role
    * @return number of rows affected (0 or 1)
    * @throws TapisException if a single row is not inserted
    */
   public int assignPermission(String tenant, String user, int roleId, 
-                              String permissionName) 
+                              String permission) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -144,13 +139,13 @@ public final class SkRolePermissionDao
           _log.error(msg);
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(permissionName)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "permissionName");
+      if (StringUtils.isBlank(permission)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "permission");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (roleId <= 0) {
-          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignPermission", "roleId", roleId);
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "roleId");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -164,15 +159,15 @@ public final class SkRolePermissionDao
           conn = getConnection();
 
           // Set the sql command.
-          String sql = SqlStatements.ROLE_ADD_PERMISSION_BY_NAME;
+          String sql = SqlStatements.ROLE_ADD_PERMISSION;
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setInt(1, roleId);
-          pstmt.setString(2, user);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, permission);
           pstmt.setString(3, user);
-          pstmt.setString(4, tenant);
-          pstmt.setString(5, permissionName);
+          pstmt.setString(4, user);
+          pstmt.setString(5, tenant);
           pstmt.setInt(6, roleId);
 
           // Issue the call. 0 rows will be returned when a duplicate
@@ -253,7 +248,7 @@ public final class SkRolePermissionDao
         obj.setId(rs.getInt(1));
         obj.setTenant(rs.getString(2));
         obj.setRoleId(rs.getInt(3));
-        obj.setPermissionId(rs.getInt(4));
+        obj.setPermission(rs.getString(4));
         obj.setCreated(rs.getTimestamp(5).toInstant());
         obj.setCreatedby(rs.getString(6));
         obj.setUpdated(rs.getTimestamp(7).toInstant());

@@ -250,50 +250,10 @@ public final class SkUserRoleDao
   }
   
   /* ---------------------------------------------------------------------- */
-  /* getUserPermissionNames:                                                */
-  /* ---------------------------------------------------------------------- */
-  /** Get the names of all permissions assigned to this user including those 
-   * assigned transitively.  The permission names are returned in alphabetic 
-   * order.
-   * 
-   * @param tenant the user's tenant
-   * @param user the user name
-   * @return a non-null, ordered list of all permission names assigned to user
-   * @throws TapisException on error
-   */
-  public List<String> getUserPermissionNames(String tenant, String user) throws TapisException
-  {
-      // Get the role ids of roles explicitly assigned to the user.
-      // Input checking done here.
-      List<Integer> roleIds = getUserRoleIds(tenant, user);
-
-      // Final result list.
-      ArrayList<String>  permNames = new ArrayList<>();
-      
-      // Maybe we are done.
-      if (roleIds.isEmpty()) return permNames;
-      
-      // Now populate an ordered set with all permission names, including
-      // those from transitive roles, assigned to this user. A set is used 
-      // to ignore duplicates.
-      TreeSet<String> roleSet = new TreeSet<String>();
-      SkRoleDao dao = new SkRoleDao();
-      for (int roleId : roleIds) {
-          List<String> list = dao.getTransitivePermissionNames(roleId);
-          if (!list.isEmpty()) roleSet.addAll(list);
-      }
-      
-      // Populate the list from the ordered set.
-      permNames.addAll(roleSet);
-      return permNames;
-  }
-  
-  /* ---------------------------------------------------------------------- */
   /* getUserPermissions:                                                    */
   /* ---------------------------------------------------------------------- */
   /** Get the permission values (i.e., constraint strings) assigned to this 
-   * user including those assigned transitively.  The permission names are 
-   * returned in alphabetic order.
+   * user including those assigned transitively.  
    * 
    * @param tenant the user's tenant
    * @param user the user name
