@@ -868,14 +868,14 @@ public final class RoleResource
                          + ""
                          + "Either a request body or query parameters can be used on this request, "
                          + "but not both.  The response indicates the number of changed permission "
-                         + "specifications. ",
+                         + "specifications.",
              requestBody = 
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Child assigned to parent role.",
+                 {@ApiResponse(responseCode = "200", description = "Path prefixes replaced.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
