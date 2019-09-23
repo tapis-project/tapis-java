@@ -267,10 +267,10 @@ public final class SkUserRoleDao
       List<Integer> roleIds = getUserRoleIds(tenant, user);
 
       // Final result list.
-      ArrayList<String>  permNames = new ArrayList<>();
+      ArrayList<String>  permSpecs = new ArrayList<>();
       
       // Maybe we are done.
-      if (roleIds.isEmpty()) return permNames;
+      if (roleIds.isEmpty()) return permSpecs;
       
       // Now populate an ordered set with all permission values, including
       // those from transitive roles, assigned to this user. A set is used 
@@ -283,8 +283,8 @@ public final class SkUserRoleDao
       }
       
       // Populate the list from the ordered set.
-      permNames.addAll(roleSet);
-      return permNames;
+      permSpecs.addAll(roleSet);
+      return permSpecs;
   }
   
   /* ---------------------------------------------------------------------- */

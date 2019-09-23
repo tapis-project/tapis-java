@@ -125,6 +125,7 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get the names of all roles in the tenant.",
+             tags = "role",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
                      content = @Content(schema = @Schema(
@@ -163,6 +164,7 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
          description = "Get the named role's definition.",
+         tags = "role",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
                content = @Content(schema = @Schema(
@@ -212,6 +214,7 @@ public final class RoleResource
                            + "characters in length.  The desciption can be no more than "
                            + "2048 characters long.  If the role already exists, this "
                            + "request has no effect.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -314,6 +317,7 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
          description = "Delete the named role.",
+         tags = "role",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
                  content = @Content(schema = @Schema(
@@ -354,6 +358,7 @@ public final class RoleResource
                            + "that can contain underscores but must begin with an alphabetic "
                            + "character.  The limit on role name is 60 characters.  The limit "
                            + "on description is 2048 characters.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -368,7 +373,8 @@ public final class RoleResource
                   @ApiResponse(responseCode = "404", description = "Named role not found."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response updateRole(@QueryParam("roleName") String roleName,
+     public Response updateRole(@PathParam("roleName") String roleName,
+                                @QueryParam("newRoleName") String newRoleName,
                                 @QueryParam("description") String description,
                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
@@ -382,7 +388,7 @@ public final class RoleResource
          
          // ------------------------- Input Processing -------------------------
          // If all query parameters are null, we need to use the payload.
-         if (allNull(roleName, description)) {
+         if (allNull(newRoleName, description)) {
              // Parse and validate the json in the request payload, which must exist.
              ReqUpdateRole payload = null;
              try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
@@ -397,12 +403,12 @@ public final class RoleResource
              }
              
              // Fill in the parameter fields.
-             roleName = payload.roleName;
+             newRoleName = payload.newRoleName;
              description = payload.description;
          }
          
          // By this point there should be at least one non-null parameter.
-         if (allNull(roleName, description)) {
+         if (allNull(newRoleName, description)) {
              String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "roleName, description");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
@@ -410,7 +416,7 @@ public final class RoleResource
          }
          
          // Final checks.
-         if (StringUtils.isBlank(roleName)) {
+         if (StringUtils.isBlank(newRoleName)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
@@ -427,6 +433,7 @@ public final class RoleResource
          
          // ***** DUMMY TEST Code
          System.out.println("***** roleName    = " + roleName);
+         System.out.println("***** newRoleName    = " + newRoleName);
          System.out.println("***** description = " + description);
          // ***** END DUMMY TEST Code
          
@@ -452,6 +459,7 @@ public final class RoleResource
                          + "or query parameters, but not both.  If the permission already exists, "
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the permission is added and the change count is one.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -467,7 +475,7 @@ public final class RoleResource
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response addRolePermission(@QueryParam("roleName") String roleName,
-                                       @QueryParam("permName") String permName,
+                                       @QueryParam("permSpec") String permSpec,
                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        InputStream payloadStream)
      {
@@ -482,8 +490,8 @@ public final class RoleResource
          // Either query parameters are used or the payload is used, but not a mixture
          // of the two.  Query parameters take precedence if all are assigned; it's an
          // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, permName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permName");
+         if (!allNullOrNot(roleName, permSpec)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -506,7 +514,7 @@ public final class RoleResource
              
              // Fill in the parameter fields.
              roleName = payload.roleName;
-             permName = payload.permName;
+             permSpec = payload.permSpec;
          }
          
          // Final checks.
@@ -516,8 +524,8 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         if (StringUtils.isBlank(permName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permName");
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -527,7 +535,7 @@ public final class RoleResource
          
          // ***** DUMMY TEST Code
          System.out.println("***** roleName = " + roleName);
-         System.out.println("***** permName = " + permName);
+         System.out.println("***** permSpec = " + permSpec);
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
@@ -550,6 +558,7 @@ public final class RoleResource
      @Operation(
              description = "Remove a permission from a role using either a request body "
                          + "or query parameters, but not both.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -565,7 +574,7 @@ public final class RoleResource
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeRolePermission(@QueryParam("roleName") String roleName,
-                                          @QueryParam("permName") String permName,
+                                          @QueryParam("permSpec") String permSpec,
                                           @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                           InputStream payloadStream)
      {
@@ -580,8 +589,8 @@ public final class RoleResource
          // Either query parameters are used or the payload is used, but not a mixture
          // of the two.  Query parameters take precedence if all are assigned; it's an
          // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, permName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permName");
+         if (!allNullOrNot(roleName, permSpec)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -604,7 +613,7 @@ public final class RoleResource
              
              // Fill in the parameter fields.
              roleName = payload.roleName;
-             permName = payload.permName;
+             permSpec = payload.permSpec;
          }
          
          // Final checks.
@@ -614,8 +623,8 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         if (StringUtils.isBlank(permName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permName");
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -625,7 +634,7 @@ public final class RoleResource
          
          // ***** DUMMY TEST Code
          System.out.println("***** roleName = " + roleName);
-         System.out.println("***** permName = " + permName);
+         System.out.println("***** permSpec = " + permSpec);
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
@@ -650,6 +659,7 @@ public final class RoleResource
                          + "or query parameters, but not both.  If the child already exists, "
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the child is added and the change count is one.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -748,6 +758,7 @@ public final class RoleResource
      @Operation(
              description = "Remove a child role from a parent role using either a request body "
                          + "or query parameters, but not both.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -844,8 +855,8 @@ public final class RoleResource
      @Path("/replacePathPrefix")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Replace text in a permission specification whose schema defines an extended "
-                         + "path attribute as its last component.  Extended path attributes "
+             description = "Replace the text in a permission specification when its last component "
+                         + "defines an *extended path attribute*.  Extended path attributes "
                          + "enhance the standard Shiro matching algorithm with one that treats "
                          + "designated components in a permission specification as a path name, "
                          + "such as a posix file or directory path name.  This request is useful "
@@ -853,10 +864,10 @@ public final class RoleResource
                          + "authorizations need to be adjusted.  Consider, for example, "
                          + "permissions that conform to the following specification:\n\n"
                          + ""
-                         + "  store:tenantId:op:systemId:path\n\n"
+                         + "      store:tenantId:op:systemId:path\n\n"
                          + ""
-                         + "The last component is an extended path attribute whose content "
-                         + "can be changed by replacePathPrefix requests.  Specifically, paths "
+                         + "By convention, the last component is an extended path attribute whose "
+                         + "content can be changed by replacePathPrefix requests.  Specifically, paths "
                          + "that begin with the oldPrefix will have that prefix replaced with "
                          + "the newPrefix value.  Replacement only occurs on permissions "
                          + "that also match the schema and oldSystemId parameter values.  The systemId "
@@ -869,6 +880,7 @@ public final class RoleResource
                          + "Either a request body or query parameters can be used on this request, "
                          + "but not both.  The response indicates the number of changed permission "
                          + "specifications.",
+             tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,

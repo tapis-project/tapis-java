@@ -4,5 +4,5 @@ public final class ReqGrantUserRoleWithPermission
 {
     public String user;
     public String roleName;
-    public String permName;
+    public String permSpec;
 }

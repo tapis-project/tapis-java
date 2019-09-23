@@ -128,6 +128,7 @@ public final class UserResource
      @Operation(
              description = "Get the names of all users in the tenant that "
                            + "have been granted a permission.",
+             tags = "user",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of user names returned.",
                      content = @Content(schema = @Schema(
@@ -167,6 +168,7 @@ public final class UserResource
      @Operation(
              description = "Grant a user the specified role using either a request body "
                          + "or query parameters, but not both.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -265,6 +267,7 @@ public final class UserResource
      @Operation(
              description = "Remove a previously granted role from a user using either a request body "
                          + "or query parameters, but not both.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -366,6 +369,7 @@ public final class UserResource
                          + "already a member of the role, and then the request assigns the role "
                          + "to the user.  The change count returned can range from zero to two "
                          + "depending on how many insertions were actually required.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -382,7 +386,7 @@ public final class UserResource
          )
      public Response grantRoleWithPermission(@QueryParam("user") String user,
                                              @QueryParam("roleName") String roleName,
-                                             @QueryParam("permName") String permName,
+                                             @QueryParam("permSpec") String permSpec,
                                              @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                              InputStream payloadStream)
      {
@@ -397,8 +401,8 @@ public final class UserResource
          // Either query parameters are used or the payload is used, but not a mixture
          // of the two.  Query parameters take precedence if all are assigned; it's an
          // error to supply only some query parameters.
-         if (!allNullOrNot(user, roleName, permName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "user, roleName, permName");
+         if (!allNullOrNot(user, roleName, permSpec)) {
+             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "user, roleName, permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -422,7 +426,7 @@ public final class UserResource
              // Fill in the parameter fields.
              user = payload.user;
              roleName = payload.roleName;
-             permName = payload.permName;
+             permSpec = payload.permSpec;
          }
          
          // Final checks.
@@ -438,8 +442,8 @@ public final class UserResource
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         if (StringUtils.isBlank(permName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "permName");
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -450,7 +454,7 @@ public final class UserResource
          // ***** DUMMY TEST Code
          System.out.println("***** user = " + user);
          System.out.println("***** roleName = " + roleName);
-         System.out.println("***** roleName = " + permName);
+         System.out.println("***** roleName = " + permSpec);
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
@@ -473,6 +477,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user has been assigned the specified role "
                            + "using either a request body or query parameters, but not both.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -570,6 +575,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user has been assigned the specified role "
                            + "using either a request body or query parameters, but not both.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -667,6 +673,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user has been assigned any of the roles "
                            + "specified in the request body.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -703,6 +710,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user has been assigned all of the roles "
                            + "specified in the request body.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -739,6 +747,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user's permissions satisfy any of the "
                            + "permission specifications contained in the request body.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,
@@ -775,6 +784,7 @@ public final class UserResource
      @Operation(
              description = "Check whether a user's permissions satisfy all of the "
                            + "permission specifications contained in the request body.",
+             tags = "user",
              requestBody = 
                  @RequestBody(
                      required = false,

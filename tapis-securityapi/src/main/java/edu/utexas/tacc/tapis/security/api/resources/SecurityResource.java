@@ -23,17 +23,28 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @OpenAPIDefinition(
         security = {@SecurityRequirement(name = "Tapis JWT")},
-        info = @Info(description = "The Tapis Security API allows access to the " +
+        info = @Info(title = "Tapis Security API",
+                     version = "0.1",
+                     description = "The Tapis Security API provides access to the " +
                      "Tapis Security Kernel authorization and secrets facilities.",
+                     license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
                      contact = @Contact(name = "CICSupport", 
                                         email = "cicsupport@tacc.utexas.edu")),
+        tags = {@Tag(name = "role", description = "manage roles and permissions"),
+                @Tag(name = "user", description = "assign roles and permissions to users"),
+                @Tag(name = "general", description = "informational endpoints")},
+        servers = {@Server(url = "http://localhost:8080", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
                                               url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
@@ -100,7 +111,14 @@ public final class SecurityResource
   @GET
   @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
-  @ApiResponse(description = "A greeting")
+  @Operation(
+          description = "Connectivity test.",
+          tags = "general",
+          responses = 
+              {@ApiResponse(responseCode = "200", description = "Message received."),
+               @ApiResponse(responseCode = "401", description = "Not authorized."),
+               @ApiResponse(responseCode = "500", description = "Server error.")}
+      )
   public Response getDummy(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
   {
       // Trace this request.
