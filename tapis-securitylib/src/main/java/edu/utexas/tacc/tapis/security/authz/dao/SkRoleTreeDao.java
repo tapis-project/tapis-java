@@ -111,6 +111,49 @@ public final class SkRoleTreeDao
   /* ---------------------------------------------------------------------- */
   /* assignChildRole:                                                       */
   /* ---------------------------------------------------------------------- */
+  /** Assign a named child role to the parent role. This method guarentees that
+   * the parent and child come from the same tenant.
+   * 
+   * If the record already exists in the database, this method becomes a no-op
+   * and the number of rows returned is 0. 
+   * 
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param parentRoleName the role name to which the child role will be assigned
+   * @param childRoleName the name of the role to be assigned to the parent
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException if a single row is not inserted
+   */
+  public int assignChildRole(String tenant, String user, String parentRoleName, 
+                             String childRoleName) 
+   throws TapisException
+  {
+      // Inputs are all checked in the called routines.
+      SkRoleDao dao = new SkRoleDao();
+      
+      // The parent must exist in the tenant.
+      Integer parentRoleId = dao.getRoleId(tenant, parentRoleName);
+      if (parentRoleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, parentRoleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // The child must exist in the tenant.
+      Integer childRoleId = dao.getRoleId(tenant, childRoleName);
+      if (childRoleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, childRoleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Assign the child.
+      return assignChildRole(tenant, user, parentRoleId, childRoleId);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* assignChildRole:                                                       */
+  /* ---------------------------------------------------------------------- */
   /** Assign a named child role to the parent role with the specified id. It
    * is expected that all information other than the childRoleName was extracted
    * from the parent role populated from the database. Otherwise, it is possible
@@ -135,22 +178,22 @@ public final class SkRoleTreeDao
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
       if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "tenant");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "tenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "user");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "user");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(childRoleName)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "childRoleName");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "childRoleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (parentRoleId <= 0) {
-          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignRole", "parentRoleId", parentRoleId);
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignChildRole", "parentRoleId", parentRoleId);
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -191,6 +234,135 @@ public final class SkRoleTreeDao
           
           // Log the exception.
           String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_role_tree");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* removeChildRole:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Remove the child role from the parent role.  Both roles must exist, but
+   * if the child is not actually a child of the parent, this method becomes a 
+   * no-op and the number of rows returned is 0. 
+   * 
+   * @param tenant the tenant
+   * @param parentRoleName the role name from which the child role will be deleted
+   * @param childRoleName the name of the role to be deleted from the parent
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int removeChildRole(String tenant, String parentRoleName, String childRoleName) 
+   throws TapisException
+  {
+      // Inputs are all checked in the called routines.
+      SkRoleDao dao = new SkRoleDao();
+      
+      // The parent must exist in the tenant.
+      Integer parentRoleId = dao.getRoleId(tenant, parentRoleName);
+      if (parentRoleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, parentRoleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // The child must exist in the tenant.
+      Integer childRoleId = dao.getRoleId(tenant, childRoleName);
+      if (childRoleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, childRoleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Assign the child.
+      return removeChildRole(tenant, parentRoleId, childRoleId);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* removeChildRole:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Remove the child role from the parent role.  Both roles must exist, but
+   * if the child is not actually a child of the parent, this method becomes a 
+   * no-op and the number of rows returned is 0.
+   * 
+   * Note that as long as there's no way for records with parent and child 
+   * from different to be inserted into the table, this method will have no
+   * effect if the parent and child id used here are from different tenants.
+   * 
+   * @param tenant the tenant
+   * @param parentRoleId the role id from which the child role id will be deleted
+   * @param childRoleId the role id to be deleted from the parent role id
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException if a single row is not inserted
+   */
+  public int removeChildRole(String tenant, int parentRoleId, int childRoleId) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (parentRoleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "removeChildRole", "parentRoleId", parentRoleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (childRoleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "removeChildRole", "childRoleId", childRoleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_REMOVE_CHILD_ROLE_BY_ID;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setInt(2, parentRoleId);
+          pstmt.setInt(3, childRoleId);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_role_tree");
           _log.error(msg, e);
           throw TapisUtils.tapisify(e);
       }
@@ -266,6 +438,104 @@ public final class SkRoleTreeDao
     }
       
     return obj;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* assignChildRole:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Assign a child role id to the parent role id. This call should only be
+   * made when there's NO CHANCE for child and parent roles to be from different
+   * tenants.
+   * 
+   * If the record already exists in the database, this method becomes a no-op
+   * and the number of rows returned is 0. 
+   * 
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param parentRoleId the role to which the child role will be assigned
+   * @param childRoleId the id of the role to be assigned to the parent
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException if a single row is not inserted
+   */
+  private int assignChildRole(String tenant, String user, int parentRoleId, 
+                              int childRoleId) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (parentRoleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignChildRole", "parentRoleId", parentRoleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (childRoleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignChildRole", "childRoleId", childRoleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_ADD_CHILD_ROLE_BY_ID;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setInt(2, parentRoleId);
+          pstmt.setInt(3, childRoleId);
+          pstmt.setString(4, user);
+          pstmt.setString(5, user);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_role_tree");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
   }
   
 }

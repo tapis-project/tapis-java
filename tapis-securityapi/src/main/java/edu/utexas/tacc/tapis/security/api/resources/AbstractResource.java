@@ -11,13 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
@@ -33,7 +34,9 @@ class AbstractResource
     /*                                    Fields                                    */
     /* **************************************************************************** */
     // We share all dao's among all instances of this class.
-    private static SkRoleDao _roleDao;
+    private static SkRoleDao           _roleDao;
+    private static SkRoleTreeDao       _roleTreeDao;
+    private static SkRolePermissionDao _roleTreePermissionDao;
     
     /* **************************************************************************** */
     /*                                Public Methods                                */
@@ -190,10 +193,50 @@ class AbstractResource
     {
         // Avoid synchronizing exception for initialization.
         if (_roleDao == null) 
-            synchronized (RoleResource.class) {
+            synchronized (AbstractResource.class) {
                 if (_roleDao == null) _roleDao = new SkRoleDao();
            }
             
         return _roleDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkRoleTreeDao:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkRoleTreeDao getSkRoleTreeDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_roleTreeDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_roleTreeDao == null) _roleTreeDao = new SkRoleTreeDao();
+           }
+            
+        return _roleTreeDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkRolePermissionDao:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkRolePermissionDao getSkRolePermissionDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_roleTreePermissionDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_roleTreePermissionDao == null) _roleTreePermissionDao = new SkRolePermissionDao();
+           }
+            
+        return _roleTreePermissionDao;
     }
 }
