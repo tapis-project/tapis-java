@@ -77,7 +77,7 @@ public final class TapisThreadContext
     public String getRoles() {return roles;}
     public void setRoles(String roles) {
         if (StringUtils.isBlank(roles)) return;
-        this.roles = roles;
+        this.roles = roles.replaceAll("\\s+", ""); // remove whitespace
         roleList = Arrays.asList(StringUtils.split(roles, ","));
     }
     

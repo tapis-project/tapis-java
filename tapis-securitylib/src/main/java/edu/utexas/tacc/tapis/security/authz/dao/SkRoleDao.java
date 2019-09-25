@@ -108,6 +108,77 @@ public final class SkRoleDao
   }
 
   /* ---------------------------------------------------------------------- */
+  /* getRoleNames:                                                          */
+  /* ---------------------------------------------------------------------- */
+  /** Get all role names in a tenant in alphabetic order.
+   * 
+   * @param tenant the tenant id
+   * @return the a non-null but possibly empty list of role names
+   * @throws TapisException on error
+   */
+  public List<String> getRoleNames(String tenant) 
+    throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getRoleNames", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      ArrayList<String> names = new ArrayList<>(); // result
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.ROLE_SELECT_NAMES;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+                      
+          // Issue the call for the N row result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) names.add(rs.getString(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "tenant", tenant, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return names;
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* getRole:                                                               */
   /* ---------------------------------------------------------------------- */
   /** Get a role by tenant and name.
@@ -186,6 +257,84 @@ public final class SkRoleDao
   }
 
   /* ---------------------------------------------------------------------- */
+  /* getRoleId:                                                             */
+  /* ---------------------------------------------------------------------- */
+  /** Get a role's id by tenant and name.
+   * 
+   * @param tenant the role's tenant id
+   * @param name the role's name
+   * @return the role id if found or null
+   * @throws TapisException on error
+   */
+  public Integer getRoleId(String tenant, String name) 
+    throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(name)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getRole", "name");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      Integer id = null; // result
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.ROLE_SELECT_ID_BY_NAME;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, name);
+                      
+          // Issue the call for the 1 row result set.
+          ResultSet rs = pstmt.executeQuery();
+          if (rs.next()) id = rs.getInt(1);
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkRole", name, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return id;
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* createRole:                                                            */
   /* ---------------------------------------------------------------------- */
   /** Create a new role.
@@ -195,12 +344,12 @@ public final class SkRoleDao
    * 
    * @param tenant the tenant
    * @param user the creating user
-   * @param name role name
+   * @param roleName role name
    * @param description role description
    * @return number of rows affected (0 or 1)
    * @throws TapisException if the roles is not created for any reason
    */
-  public int createRole(String tenant, String user, String name, String description) 
+  public int createRole(String tenant, String user, String roleName, String description) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -215,8 +364,8 @@ public final class SkRoleDao
           _log.error(msg);
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(name)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "name");
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -240,7 +389,7 @@ public final class SkRoleDao
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenant);
-          pstmt.setString(2, name);
+          pstmt.setString(2, roleName);
           pstmt.setString(3, description);
           pstmt.setString(4, user);
           pstmt.setString(5, user);
@@ -285,11 +434,11 @@ public final class SkRoleDao
   /** Delete a role.  If the role doesn't exist this method has no effect.
    * 
    * @param tenant the role's tenant
-   * @param name the role name
+   * @param roleName the role name
    * @return number of rows affected by the delete
    * @throws TapisException on error
    */
-  public int deleteRole(String tenant, String name) 
+  public int deleteRole(String tenant, String roleName) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -299,8 +448,8 @@ public final class SkRoleDao
           _log.error(msg);
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(name)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteRole", "name");
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteRole", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -319,7 +468,7 @@ public final class SkRoleDao
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenant);
-          pstmt.setString(2, name);
+          pstmt.setString(2, roleName);
 
           // Issue the call.
           rows = pstmt.executeUpdate();

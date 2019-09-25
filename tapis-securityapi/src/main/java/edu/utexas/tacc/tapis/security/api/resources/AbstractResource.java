@@ -3,16 +3,24 @@ package edu.utexas.tacc.tapis.security.api.resources;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
 class AbstractResource 
 {
@@ -22,6 +30,14 @@ class AbstractResource
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(AbstractResource.class);
 
+    /* **************************************************************************** */
+    /*                                    Fields                                    */
+    /* **************************************************************************** */
+    // We share all dao's among all instances of this class.
+    private static SkRoleDao           _roleDao;
+    private static SkRoleTreeDao       _roleTreeDao;
+    private static SkRolePermissionDao _roleTreePermissionDao;
+    
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
@@ -137,5 +153,90 @@ class AbstractResource
     {
         if (o1 == null && o2 == null && o3 == null) return true;
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* checkTenantUser:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Check that we have value tenant id and user names in the threadlocal cache.
+     * Return null if the check succeed, otherwise return the error response.
+     * 
+     * @param prettyPrint whether to pretty print the response or not
+     * @return null on success, a response on error
+     */
+    protected Response checkTenantUser(TapisThreadContext threadContext, boolean prettyPrint)
+    {
+        // Get the thread local context and validate context parameters.  The
+        // tenantId and user are set in the jaxrc filter classes that process
+        // each request before processing methods are invoked.
+        if (!threadContext.validate()) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+          _log.error(msg);
+          return Response.status(Status.BAD_REQUEST).
+              entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+        }
+        
+        // Success
+        return null;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkRoleDao:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkRoleDao getSkRoleDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_roleDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_roleDao == null) _roleDao = new SkRoleDao();
+           }
+            
+        return _roleDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkRoleTreeDao:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkRoleTreeDao getSkRoleTreeDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_roleTreeDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_roleTreeDao == null) _roleTreeDao = new SkRoleTreeDao();
+           }
+            
+        return _roleTreeDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkRolePermissionDao:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkRolePermissionDao getSkRolePermissionDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_roleTreePermissionDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_roleTreePermissionDao == null) _roleTreePermissionDao = new SkRolePermissionDao();
+           }
+            
+        return _roleTreePermissionDao;
     }
 }

@@ -26,10 +26,12 @@ public class SqlStatements
       "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_ID = 
       "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND id = ?";
-  public static final String ROLE_INSERT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+  public static final String ROLE_SELECT_NAMES = 
+      "SELECT name FROM sk_role where tenant = ? ORDER BY name";
   public static final String ROLE_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_role where tenant = ? AND name = ?";
+  public static final String ROLE_INSERT = 
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String ROLE_DELETE_BY_ID =
       "DELETE FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_DELETE_BY_NAME =
@@ -72,9 +74,11 @@ public class SqlStatements
       "select r.tenant, ?, r.id, ?, ? from sk_role r where r.tenant = ? and r.name = ? " +
       "and r.tenant = (select tenant from sk_role where id = ?) " + // enforce tenant conformance
       "ON CONFLICT DO NOTHING";
-  public static final String ROLE_REMOVE_CHILD_ROLE_BY_NAME =
-      "DELETE FROM sk_role_tree where tenant = ? and parent_role_id = ? and " +
-      "child_role_id = (select r.id from sk_role r where r.tenant = ? and r.name = ?)";
+  public static final String ROLE_ADD_CHILD_ROLE_BY_ID =
+          "INSERT INTO sk_role_tree (tenant, parent_role_id, child_role_id, createdby, updatedby) " +
+          "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"; // caller guarantees same tenant for roles
+  public static final String ROLE_REMOVE_CHILD_ROLE_BY_ID =
+      "DELETE FROM sk_role_tree where tenant = ? and parent_role_id = ? and child_role_id = ?";
   
   // Child role name retrieval in alphabetic order.
   public static final String ROLE_GET_IMMEDIATE_CHILD_ROLE_NAMES =

@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
-import java.time.Instant;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -34,10 +34,16 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespName;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -124,7 +130,7 @@ public final class RoleResource
      @GET
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the names of all roles in the tenant.",
+             description = "Get the names of all roles in the tenant in alphabetic order.",
              tags = "role",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
@@ -143,15 +149,42 @@ public final class RoleResource
              _log.trace(msg);
          }
          
-         // ***** DUMMY TEST Response Data
-         RespNameArray names = new RespNameArray();
-         names.names = new String[2];
-         names.names[0] = "xxx";
-         names.names[1] = "yyy";
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
          
+         // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+         
+         // Create the role.
+         List<String> list = null;
+         try {
+             list = dao.getRoleNames(threadContext.getTenantId());
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_NAMES_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Assign result.
+         RespNameArray names = new RespNameArray();
+         names.names = list.toArray(new String[list.size()]);
+
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
-         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         int cnt = names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_FOUND", "Roles", cnt + " items"), prettyPrint, names)).build();
      }
@@ -171,7 +204,9 @@ public final class RoleResource
                    implementation = edu.utexas.tacc.tapis.security.authz.model.SkRole.class))),
               @ApiResponse(responseCode = "400", description = "Input error."),
               @ApiResponse(responseCode = "401", description = "Not authorized."),
-              @ApiResponse(responseCode = "404", description = "Named role not found."),
+              @ApiResponse(responseCode = "404", description = "Named role not found.",
+                content = @Content(schema = @Schema(
+                   implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
               @ApiResponse(responseCode = "500", description = "Server error.")}
      )
      public Response getRoleByName(@PathParam("roleName") String roleName,
@@ -184,16 +219,43 @@ public final class RoleResource
              _log.trace(msg);
          }
          
-         // ***** DUMMY TEST Response Data
-         SkRole role = new SkRole();
-         role.setId(88);
-         role.setName(roleName);
-         role.setTenant("faketenant");
-         role.setDescription("blah, blah, blah");
-         role.setCreatedby("bozo");
-         role.setUpdatedby("bozo");
-         role.setCreated(Instant.now());
-         role.setUpdated(Instant.now());
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+         
+         // Create the role.
+         SkRole role = null;
+         try {
+             role = dao.getRole(threadContext.getTenantId(), roleName);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Adjust status based on whether we found the role.
+         if (role == null) {
+             RespName missingName = new RespName();
+             missingName.name = roleName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_FOUND", "Role", roleName), prettyPrint, missingName)).build();
+         }
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
@@ -288,25 +350,46 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.createRole(threadContext.getTenantId(), threadContext.getUser(), 
+                                   roleName, description);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** roleName    = " + roleName);
-         System.out.println("***** description = " + description);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
-         RespResourceUrl requestUrl = new RespResourceUrl();
-         requestUrl.url = _request.getRequestURL().toString() + "/" + roleName;
-         // ***** END DUMMY RESPONSE Code
+         RespResourceUrl respUrl = new RespResourceUrl();
+         respUrl.url = _request.getRequestURL().toString() + "/" + roleName;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we created the role. 
          return Response.status(Status.CREATED).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, requestUrl)).build();
+             MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, respUrl)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -336,9 +419,39 @@ public final class RoleResource
              _log.trace(msg);
          }
          
-         // ***** DUMMY TEST Response Data
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+         
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.deleteRole(threadContext.getTenantId(), roleName);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Return the number of row affected.
          RespChangeCount count = new RespChangeCount();
-         count.changes = 1;
+         count.changes = rows;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we deleted the role. 
@@ -531,17 +644,40 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRolePermissionDao dao = null;
+         try {dao = getSkRolePermissionDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** roleName = " + roleName);
-         System.out.println("***** permSpec = " + permSpec);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.assignPermission(threadContext.getTenantId(), threadContext.getUser(), 
+                                         roleName, permSpec);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          permSpec, roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Report the number of rows changed.
          RespChangeCount count = new RespChangeCount();
-         count.changes = 2;
-         // ***** END DUMMY RESPONSE Code
+         count.changes = rows;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
@@ -630,17 +766,39 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRolePermissionDao dao = null;
+         try {dao = getSkRolePermissionDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** roleName = " + roleName);
-         System.out.println("***** permSpec = " + permSpec);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.removePermission(threadContext.getTenantId(), roleName, permSpec);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          permSpec, roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Report the number of rows changed.
          RespChangeCount count = new RespChangeCount();
-         count.changes = 1;
-         // ***** END DUMMY RESPONSE Code
+         count.changes = rows;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
@@ -731,17 +889,40 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleTreeDao dao = null;
+         try {dao = getSkRoleTreeDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roleTree");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** parentRoleName = " + parentRoleName);
-         System.out.println("***** childRoleName = " + childRoleName);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.assignChildRole(threadContext.getTenantId(), threadContext.getUser(), 
+                                        parentRoleName, childRoleName);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          childRoleName, parentRoleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Report the number of rows changed.
          RespChangeCount count = new RespChangeCount();
-         count.changes = 2;
-         // ***** END DUMMY RESPONSE Code
+         count.changes = rows;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
@@ -830,17 +1011,40 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleTreeDao dao = null;
+         try {dao = getSkRoleTreeDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roleTree");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** parentRoleName = " + parentRoleName);
-         System.out.println("***** childRoleName = " + childRoleName);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.removeChildRole(threadContext.getTenantId(),  
+                                        parentRoleName, childRoleName);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          childRoleName, parentRoleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Report the number of rows changed.
          RespChangeCount count = new RespChangeCount();
-         count.changes = 1;
-         // ***** END DUMMY RESPONSE Code
+         count.changes = rows;
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
@@ -1002,4 +1206,5 @@ public final class RoleResource
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Permission", oldPrefix), prettyPrint, count)).build();
      }
+     
 }

@@ -111,6 +111,40 @@ public final class SkRolePermissionDao
   /* ---------------------------------------------------------------------- */
   /* assignPermission:                                                      */
   /* ---------------------------------------------------------------------- */
+  /** Assign a named child role to the parent role with the specified name.
+   * 
+   * If the record already exists in the database, this method becomes a no-op
+   * and the number of rows returned is 0.  
+   * 
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param roleName the named role to which the permission will be assigned
+   * @param permission the permission specification to be assigned to the role
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int assignPermission(String tenant, String user, String roleName, 
+                              String permission) 
+   throws TapisException
+  {
+      // Inputs are all checked in the called routines.
+      SkRoleDao dao = new SkRoleDao();
+      
+      // The parent must exist in the tenant.
+      Integer roleId = dao.getRoleId(tenant, roleName);
+      if (roleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Assign the permission.
+      return assignPermission(tenant, user, roleId, permission);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* assignPermission:                                                      */
+  /* ---------------------------------------------------------------------- */
   /** Assign a named child role to the parent role with the specified id.
    * 
    * If the record already exists in the database, this method becomes a no-op
@@ -121,7 +155,7 @@ public final class SkRolePermissionDao
    * @param roleName the role to which the permission will be assigned
    * @param permission the permission specification to be assigned to the role
    * @return number of rows affected (0 or 1)
-   * @throws TapisException if a single row is not inserted
+   * @throws TapisException on error
    */
   public int assignPermission(String tenant, String user, int roleId, 
                               String permission) 
@@ -186,6 +220,127 @@ public final class SkRolePermissionDao
           
           // Log the exception.
           String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_role_permission");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* removePermission:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Remove a permission from a parent role.
+   * 
+   * If the record doesn't exist in the database, this method becomes a no-op
+   * and the number of rows returned is 0.  
+   * 
+   * @param tenant the tenant
+   * @param roleName the role from which the permission will be removed
+   * @param permission the permission specification to be removed from the role
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int removePermission(String tenant, String roleName, 
+                              String permission) 
+   throws TapisException
+  {
+      // Inputs are all checked in the called routines.
+      SkRoleDao dao = new SkRoleDao();
+      
+      // The parent must exist in the tenant.
+      Integer roleId = dao.getRoleId(tenant, roleName);
+      if (roleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Assign the permission.
+      return removePermission(tenant, roleId, permission);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* removePermission:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Remove a permission from a parent role.
+   * 
+   * If the record doesn't exist in the database, this method becomes a no-op
+   * and the number of rows returned is 0.  
+   * 
+   * @param tenant the tenant
+   * @param roleName the role to which the permission will be assigned
+   * @param permission the permission specification to be assigned to the role
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int removePermission(String tenant, int roleId, String permission) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(permission)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "permission");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (roleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "roleId");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_REMOVE_PERMISSION;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setInt(2, roleId);
+          pstmt.setString(3, permission);
+          
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_role_permission");
           _log.error(msg, e);
           throw TapisUtils.tapisify(e);
       }
