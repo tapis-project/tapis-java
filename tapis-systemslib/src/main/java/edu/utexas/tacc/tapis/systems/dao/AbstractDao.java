@@ -28,7 +28,7 @@ public abstract class AbstractDao
    * on demand if it doesn't exist.
    * 
    * @return a database connection
-   * @throws AloeException on error
+   * @throws TapisException on error
    */
   protected static synchronized Connection getConnection() 
    throws TapisException

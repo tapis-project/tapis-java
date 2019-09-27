@@ -175,7 +175,9 @@ public class SystemsResource
     // ------------------------- Create System Record ---------------------
     try {
         SystemsDao dao = new SystemsDao();
-        dao.createSystem(text);
+      // TODO remove hard code
+        dao.create("tenant", "name", "description", "owner", "host",  true,
+                   "bucket", "root", "effUser");
     }
     catch (Exception e) {
         String msg = MsgUtils.getMsg("SAMPLE_INSERT_TEXT_ERROR", e.getMessage());
@@ -210,7 +212,8 @@ public class SystemsResource
       // Retrieve the specified job if it exists.
       SystemsDao dao = new SystemsDao();
       System system = null;
-      try {system = dao.getSystemByName(name);}
+      // TODO remove hard code
+      try {system = dao.getSystemById(1);}
           catch (Exception e) {
               String msg = MsgUtils.getMsg("SAMPLE_SELECT_ID_ERROR", name,
                                            e.getMessage());
