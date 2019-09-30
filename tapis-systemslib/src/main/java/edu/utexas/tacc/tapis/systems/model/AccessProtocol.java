@@ -20,7 +20,7 @@ public final class AccessProtocol
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging
-  private static final Logger log = LoggerFactory.getLogger(AccessProtocol.class);
+  private static final Logger _log = LoggerFactory.getLogger(AccessProtocol.class);
 
   private final Mechanism mechanism; // How access authorization is handled.
   private final int port; // Port number used to access a system.

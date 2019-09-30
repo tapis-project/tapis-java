@@ -20,7 +20,7 @@ public final class System
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging
-  private static final Logger log = LoggerFactory.getLogger(System.class);
+  private static final Logger _log = LoggerFactory.getLogger(System.class);
 
   private long id;         // Unique database sequence number
   private String tenant;   // Name of the tenant for which the system is defined

@@ -11,8 +11,7 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 // is configured to work when invoked in a standalone 
 // container (command line) and in an IDE (eclipse). 
 @ApplicationPath("/v3")
-public class SystemsApplication 
- extends ResourceConfig
+public class SystemsApplication extends ResourceConfig
 {
     public SystemsApplication()
     {

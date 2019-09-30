@@ -1,6 +1,7 @@
 TapisV3 Systems Web Application Notes
 =======================================
 
+------------
 Introduction
 ------------
 This is the TapisV3 Systems web application front end. It was adapted from the skeleton web service found at tapis-sampleapi.
@@ -21,25 +22,28 @@ It integrates the following facilities:
 The back end may be found in tapis-systemslib
 
 
+-----------------------------
+Initialize the Database
+-----------------------------
+Current process to create and drop the DB is to use the sql directly.
+SQL files are in tapis-systemslib/src/main/resources/sql.
+First create the user "tapis_sys" From then on DB can be reset as follows:
+psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/drop.sql
+psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
+
+
 ???????????????????
 
-
-Initialize the Tapis Database
------------------------------
-Use the utilities in tapis-migrate to create the Tapis database and its schema.  These
-will create the sample_tbl that the sample web application uses.  See the README file 
-in the tapis-migrate project for details.
-
-
+------------
 Server Usage
 ------------
 Web applications can be controlled using these environment variables:
 
-tapis.envonly.allow.test.query.parms - allow test-only values sent as query parameters
-tapis.envonly.jwt.optional - set to true to skip jwt processing
-tapis.envonly.keystore.password - password to unlock jwt private signing key
-tapis.envonly.skip.jwt.verify - set to true to skip jwt signature verification
-tapis.request.logging.filter.prefixes - set url prefixes that log each request
+TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS - allow test-only values sent as query parameters
+TAPIS_ENVONLY_JWT_OPTIONAL - set to true to skip jwt processing
+TAPIS_ENVONLY_KEYSTORE_PASSWORD - password to unlock jwt private signing key
+TAPIS_ENVONLY_SKIP_JWT_VERIFY - set to true to skip jwt signature verification
+TAPIS_REQUEST_LOGGING_FILTER_PREFIXES - set url prefixes that log each request
 
 See the TapisEnv class for an explanation of how to use these parameters and for the
 complete listing of all possible Tapis parameters.  For example, to not require a jwt
@@ -47,22 +51,22 @@ in a request and to log all requests, set the following parameters when starting
 server:
  
         tapis.envonly.jwt.optional = true
-        tapis.request.logging.filter.prefixes = /tapis-sampleapi/v3.  
+        tapis.request.logging.filter.prefixes = /systems/v3.  
         
 Note that if jwt content is required to execute requests, that information can be passed 
 in request query parameters when tapis.envonly.allow.test.query.parms = true.
 
-The sample web application is packaged as a WAR file.  Configure your web application
-server, such as Tomcat, with the sample.war file.  Start your web application server 
-after setting the above environment variables to control the sample web application.
+The web application is packaged as a WAR file.  Configure your web application
+server, such as Tomcat, with the systems.war file.  Start your web application server 
+after setting the above environment variables to control the web application.
 
-
+------------
 Client Usage
 ------------
 *** From Browser, enter these urls to execute application endpoints:
 
 - Show index.html
-    http://localhost:8080/sample 
+    http://localhost:8080/systems/v3
     
 - Run GET on hello method
     http://localhost:8080/sample/v3/hello
@@ -82,46 +86,31 @@ http://localhost:8080/sample/v3?pretty=true
 - Retrieve all samples
     curl http://localhost:8080/sample/v3?pretty=true
     
+
+------------------------------------------------------------------------------
+Generating openapi spec
+------------------------------------------------------------------------------
 *** From Browser, enter these urls to generate the openapi definition of the sample interface:
+http://localhost:8080/systems/v3/openapi.json
+http://localhost:8080/systems/v3/openapi.yaml
 
-http://localhost:8080/sample/v3/openapi.json
-http://localhost:8080/sample/v3/openapi.yaml
+-------------------------------------------------------------------
+Creating a run configuration for the front end server in IntelliJ
+-------------------------------------------------------------------
+Configure Run configuration in IntelliJ
+  Run->Edit Configurations
+  Click "+" and select Tomcat Server->Local
+  On Server tab:
+    Uncheck "Open browser" if desired
+  On Deployment tab:
+    Click "+" and select "tapis-systemsapi:war"
+    Edit "Application context:" to be "/systems"
+  On Startup/Connection tab:
+    For "Run" and "Debug" add following Environment Variables
+      Name                                  Value
+      ---------------------------------------------
+      TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS  TRUE
+      TAPIS_ENVONLY_JWT_OPTIONAL            TRUE
+      TAPIS_ENVONLY_SKIP_JWT_VERIFY         TRUE
+      TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /systems/v3
 
-
-Creating from Scratch in Eclipse
---------------------------------
-There are many paths to creating a project in Eclipse, but only some of them work for a given
-application.  Our web application uses JAX-RS, so the ordering of actions during creation is 
-critical.  Here's one recipe that works.
-
-1. Create a new maven project with no archetype.
-    - Edit pom.xml to make it look like the one in tapis-sampleapi.
-    
-2. Right click the project name in the Navigator.
-    - Select Properties->Project Facets
-    - Click the "convert to a facets project" link.
-    - Select the JavaScript, Dynamic Web Module, JAX-RS facets in addition to the Java
-        - Java -> version 12 or higher
-        - Dynamic Web Module -> version 4.0 or higher
-        - JAX-RS -> version 2.1 or higher 
-    - Save
-    
-3. Right click the project name in the Navigator.
-    - Select Properties->Deployment Assembly
-    - Press Add
-    - Select Maven Dependencies
-    - Save
-    
-    Eclipse looks in the src/main/webapp/webapp directory for WEB-INF, index.html, etc.  
-    Maven also defaults to this behavior.  Put non-code, non-resource content you want to 
-    be part of the web application in that directory.
-    
-4. Make sure the web.xml is in WebContent/WEB-INF references the Jersey servlet.
-
-5. Create an index.html file in WebContent directory.
-
-6. The context root will be tapis-sampleapi by default.  Change the context by right 
-   clicking the project name, then Properties->Web Project Settings and setting the 
-   Context Root.
-    - Making the context root and the war file name (finalName in pom) the same will 
-      probably make life easier.

@@ -24,7 +24,7 @@ public class SystemsDao extends AbstractDao
   /*                               Constants                                */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger log = LoggerFactory.getLogger(SystemsDao.class);
+  private static final Logger _log = LoggerFactory.getLogger(SystemsDao.class);
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -45,7 +45,7 @@ public class SystemsDao extends AbstractDao
     if (StringUtils.isBlank(name))
     {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "name");
-      log.error(msg);
+      _log.error(msg);
       throw new TapisException(msg);
     }
 
@@ -76,7 +76,7 @@ public class SystemsDao extends AbstractDao
       if (rows != 1)
       {
         String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, name);
-        log.error(msg);
+        _log.error(msg);
         throw new TapisException(msg);
       }
 
@@ -92,12 +92,12 @@ public class SystemsDao extends AbstractDao
       }
       catch (Exception e1)
       {
-        log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
 
       // Log the exception.
       String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems_tbl");
-      log.error(msg, e);
+      _log.error(msg, e);
       throw new TapisException(msg, e);
     }
     finally
@@ -113,7 +113,7 @@ public class SystemsDao extends AbstractDao
           // If commit worked, we can swallow the exception.
           // If not, the commit exception will be thrown.
           String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-          log.error(msg, e);
+          _log.error(msg, e);
         }
     }
   }
@@ -161,11 +161,11 @@ public class SystemsDao extends AbstractDao
       }
       catch (Exception e1)
       {
-        log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
 
       String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "System", id, e.getMessage());
-      log.error(msg, e);
+      _log.error(msg, e);
       throw new TapisException(msg, e);
     }
     finally
@@ -180,7 +180,7 @@ public class SystemsDao extends AbstractDao
         // If commit worked, we can swallow the exception.
         // If not, the commit exception will be thrown.
         String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        log.error(msg, e);
+        _log.error(msg, e);
       }
     }
 
@@ -234,11 +234,11 @@ public class SystemsDao extends AbstractDao
       }
       catch (Exception e1)
       {
-        log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
 
       String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
-      log.error(msg, e);
+      _log.error(msg, e);
       throw new TapisException(msg, e);
     }
     finally
@@ -253,7 +253,7 @@ public class SystemsDao extends AbstractDao
         // If commit worked, we can swallow the exception.
         // If not, the commit exception will be thrown.
         String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        log.error(msg, e);
+        _log.error(msg, e);
       }
     }
 
@@ -287,7 +287,7 @@ public class SystemsDao extends AbstractDao
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
-      log.error(msg, e);
+      _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
     }
 
@@ -310,7 +310,7 @@ public class SystemsDao extends AbstractDao
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-      log.error(msg, e);
+      _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
     }
     return system;

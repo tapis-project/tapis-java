@@ -1,20 +1,26 @@
 {
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://aloe.tacc.utexas.edu/JobSubmitRequest",
-    "description": "Top-level schema for a sample create request",
-    "additionalProperties": false,
-    "type": "object",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
+  "description": "Top-level schema for a system create request",
+  "additionalProperties": false,
+  "type": "object",
     "properties": {
-        "text": {
-          "description": "The text to be saved in the database.",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        }
+      "name": {
+        "type": "string"
       },
-    "required": [
-        "text"
-    ]
+      "description": {
+        "type": "string"
+      },
+      "owner": {
+        "type": "string"
+      },
+      "host": {
+        "type": "string"
+      }
+    },
+  "required": [
+    "name",
+    "owner",
+    "host"
+  ]
 }
-
-
