@@ -11,9 +11,6 @@ openapi.yaml
 # BlueJ files
 *.ctxt
 
-# VIM swap files
-*.swp
-
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
@@ -37,11 +34,8 @@ target
 testreports
 test-output
 
-# Include IntelliJ runConfigurations
-#  but not other files under .idea
-.idea/*
-!.idea/runConfigurations/
 # Intellij metadata files
+*.idea
 *.ids
 *.iml
 *.eml

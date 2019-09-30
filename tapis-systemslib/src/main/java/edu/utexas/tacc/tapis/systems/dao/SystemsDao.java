@@ -37,8 +37,8 @@ public class SystemsDao extends AbstractDao
    * Insert a new system record.
    *
    */
-  public void create(String tenant, String name, String description, String owner, String host,
-                     boolean available, String bucketName, String rootDir, String effectiveUserId)
+  public void createSystem(String tenant, String name, String description, String owner, String host,
+                           boolean available, String bucketName, String rootDir, String effectiveUserId)
           throws TapisException
   {
     // ------------------------- Check Input -------------------------

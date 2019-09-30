@@ -176,8 +176,8 @@ public class SystemsResource
     try {
         SystemsDao dao = new SystemsDao();
       // TODO remove hard code
-        dao.create("tenant", "name", "description", "owner", "host",  true,
-                   "bucket", "root", "effUser");
+        dao.createSystem("tenant", "name", "description", "owner", "host", true,
+                         "bucket", "root", "effUser");
     }
     catch (Exception e) {
         String msg = MsgUtils.getMsg("SAMPLE_INSERT_TEXT_ERROR", e.getMessage());

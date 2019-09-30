@@ -24,6 +24,13 @@
     
     <dependencies>
         <dependency>
+            <!-- There are only test dependencies on testng -->
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>${hikariCP.version}</version>
