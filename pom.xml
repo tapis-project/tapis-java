@@ -387,6 +387,7 @@
         <module>tapis-sharedq</module>
         <module>tapis-migrate</module>
 		<module>tapis-securityapi</module>
+		<module>tapis-securityclt</module>
         <module>tapis-securitylib</module>
         <module>tapis-securitymigrate</module>
 		<module>tapis-sampleapi</module>

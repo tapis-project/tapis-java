@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.client;
 
-import java.net.URL;
+import java.net.URI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +14,21 @@ public class SKClient
     private static final Logger _log = LoggerFactory.getLogger(SKClient.class);
     
     /* **************************************************************************** */
+    /*                                 Constructors                                 */
+    /* **************************************************************************** */
+    public SKClient(URI uri) {}
+    
+    /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* createRole:                                                                  */
     /* ---------------------------------------------------------------------------- */
-    URL createRole(String roleName, String description)
+    URI createRole(String roleName, String description)
     {
-        URL url = null;
+        URI uri = null;
         
-        return url;
+        return uri;
     }
     
 }

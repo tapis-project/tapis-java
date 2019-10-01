@@ -16,11 +16,6 @@
 	<description>Java client for tapis-securityapi web application</description>
 
 	<dependencies>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-securityapi</artifactId>
-			<version>${project.version}</version>
-		</dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>tapis-shared</artifactId>
