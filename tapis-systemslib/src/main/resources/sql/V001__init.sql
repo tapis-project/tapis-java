@@ -12,8 +12,15 @@
 -- values read from the database can be assumed to be UTC.
 
 -- Create the schema and set the search path
-CREATE SCHEMA IF NOT EXISTS AUTHORIZATION tapis_sys;
-SET search_path TO tapis_sys;
+-- CREATE SCHEMA IF NOT EXISTS AUTHORIZATION tapis_sys;
+-- SET search_path TO tapis_sys;
+SET search_path TO public;
+
+-- Set permissions
+-- GRANT CONNECT ON DATABASE tapissysdb TO tapis_sys;
+-- GRANT USAGE ON SCHEMA tapis_sys TO tapis_sys;
+-- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA tapis_sys TO tapis_sys;
+-- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tapis_sys TO tapis_sys;
 
 -- Types
 CREATE TYPE access_mech_type AS ENUM ('SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
@@ -34,7 +41,7 @@ CREATE TABLE acc_protocol
   created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
   UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
 );
-
+ALTER TABLE acc_protocol OWNER TO tapis;
 COMMENT ON COLUMN acc_protocol.id IS 'Access protocol id';
 COMMENT ON COLUMN acc_protocol.mechanism IS 'Enum for how authorization is handled';
 COMMENT ON COLUMN acc_protocol.port IS 'Port number used to access a system';
@@ -55,6 +62,7 @@ CREATE TABLE txf_protocol
   created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
   UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
 );
+ALTER TABLE txf_protocol OWNER TO tapis;
 COMMENT ON COLUMN txf_protocol.id IS 'Transfer protocol id';
 COMMENT ON COLUMN txf_protocol.mechanism IS 'Enum for how I/O is handled';
 COMMENT ON COLUMN txf_protocol.port IS 'Port number used to access a system';
@@ -91,6 +99,7 @@ CREATE TABLE systems
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
 );
+ALTER TABLE systems OWNER TO tapis;
 COMMENT ON COLUMN systems.id IS 'System id';
 COMMENT ON COLUMN systems.tenant IS 'Tenant name associated with system';
 COMMENT ON COLUMN systems.name IS 'Unique name for the system';

@@ -20,6 +20,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  */
 public class SystemsDao extends AbstractDao
 {
+  // TODO Remove hard coded value
+  private static final String tenant = "tenant1";
+
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
@@ -29,12 +32,8 @@ public class SystemsDao extends AbstractDao
   /* ********************************************************************** */
   /*                             Public Methods                             */
   /* ********************************************************************** */
-  /* ---------------------------------------------------------------------- */
-  /* createSystem:                                                          */
-  /* ---------------------------------------------------------------------- */
-
   /**
-   * Insert a new system record.
+   * Create a new system record.
    *
    */
   public void createSystem(String tenant, String name, String description, String owner, String host,
@@ -118,10 +117,13 @@ public class SystemsDao extends AbstractDao
     }
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* getSystemById:                                                         */
-  /* ---------------------------------------------------------------------- */
-  public System getSystemById(int id)
+  /**
+   * getSystemByName
+   * @param name
+   * @return
+   * @throws TapisException
+   */
+  public System getSystemByName(String name)
           throws TapisException
   {
     // Initialize result.
@@ -135,11 +137,12 @@ public class SystemsDao extends AbstractDao
       conn = getConnection();
 
       // Get the select command.
-      String sql = SqlStatements.SELECT_SYSTEM_BY_ID;
+      String sql = SqlStatements.SELECT_SYSTEM_BY_NAME;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setInt(1, id);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
 
       // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
@@ -164,7 +167,7 @@ public class SystemsDao extends AbstractDao
         _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
 
-      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "System", id, e.getMessage());
+      String msg = MsgUtils.getMsg("DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -280,10 +283,7 @@ public class SystemsDao extends AbstractDao
 
     // Return null if the results are empty or exhausted.
     // This call advances the cursor.
-    try
-    {
-      if (!rs.next()) return null;
-    }
+    try { if (!rs.next()) return null; }
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());

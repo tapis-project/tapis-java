@@ -41,7 +41,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
         license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
         contact = @Contact(name = "CICSupport", email = "cicsupport@tacc.utexas.edu")),
     tags = {
-        @Tag(name = "system", description = "manage systems")
+        @Tag(name = "systems", description = "manage systems")
     },
     servers = {@Server(url = "http://localhost:8080", description = "Local test environment")},
     externalDocs = @ExternalDocumentation(description = "Tapis Home",
@@ -128,6 +128,6 @@ public class SystemsResource
     // ---------------------------- Success -------------------------------
     // Success means we are alive
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Systems application.")).build();
+        MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Systems service.")).build();
   }
 }

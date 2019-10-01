@@ -130,7 +130,7 @@ public class AccessProtocolDao extends AbstractDao
             conn = getConnection();
             
             // Get the select command.
-            String sql = SqlStatements.SELECT_SYSTEM_BY_ID;
+            String sql = SqlStatements.SELECT_SYSTEM_BY_NAME;
             
             // Prepare the statement and fill in the placeholders.
             PreparedStatement pstmt = conn.prepareStatement(sql);

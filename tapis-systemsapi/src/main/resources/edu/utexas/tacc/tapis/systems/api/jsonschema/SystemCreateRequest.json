@@ -4,20 +4,20 @@
   "description": "Top-level schema for a system create request",
   "additionalProperties": false,
   "type": "object",
-    "properties": {
-      "name": {
+  "properties": {
+    "name": {
         "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "owner": {
-        "type": "string"
-      },
-      "host": {
-        "type": "string"
-      }
     },
+    "description": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "host": {
+      "type": "string"
+    }
+  },
   "required": [
     "name",
     "owner",

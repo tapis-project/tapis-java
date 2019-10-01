@@ -22,6 +22,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,7 +40,7 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
-@Path("/")
+@Path("/system")
 public class SystemResource
 {
   /* **************************************************************************** */
@@ -48,7 +50,7 @@ public class SystemResource
   private static final Logger _log = LoggerFactory.getLogger(SystemResource.class);
 
   // Json schema resource files.
-  private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
+  private static final String FILE_SYSTEMS_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
 
   /* **************************************************************************** */
   /*                                    Fields                                    */
@@ -78,19 +80,14 @@ public class SystemResource
    */
   @Context
   private HttpHeaders _httpHeaders;
-
   @Context
   private Application _application;
-
   @Context
   private UriInfo _uriInfo;
-
   @Context
   private SecurityContext _securityContext;
-
   @Context
   private ServletContext _servletContext;
-
   @Context
   private HttpServletRequest _request;
 
@@ -106,13 +103,23 @@ public class SystemResource
    */
   @POST
   @Produces(MediaType.APPLICATION_JSON)
-  public Response system(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+  @Operation(
+      description = "Create a system using a request body",
+      tags = "system",
+      responses = {
+          @ApiResponse(responseCode = "201", description = "System created."),
+          @ApiResponse(responseCode = "400", description = "Input error."),
+          @ApiResponse(responseCode = "401", description = "Not authorized."),
+          @ApiResponse(responseCode = "500", description = "Server error.")
+      }
+  )
+  public Response createSystem(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                          InputStream payloadStream)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "post system",
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createSystem",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -120,68 +127,76 @@ public class SystemResource
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
     String json = null;
-    try
-    {
-      json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));
-    }
+    try { json = IOUtils.toString(payloadStream, Charset.forName("UTF-8")); }
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // Create validator specification.
-    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SYSTEM_CREATE_REQUEST);
+    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SYSTEMS_CREATE_REQUEST);
 
     // Make sure the json conforms to the expected schema.
-    try
-    {
-      JsonValidator.validate(spec);
-    }
+    try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
       String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // Extract the text value.
-    String text = null;
+    // Extract name, description, owner and host
+    String name = null;
+    String description = null;
+    String owner = null;
+    String host = null;
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-    text = obj.get("text").getAsString(); // validated to be a non-empty string 
+    name = obj.get("name").getAsString();
+    description = obj.get("description").getAsString();
+    owner = obj.get("owner").getAsString();
+    host = obj.get("host").getAsString();
 
-    // Check text.
-    if (StringUtils.isBlank(text))
+    // Check values.
+    if (StringUtils.isBlank(name))
     {
-      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", "Null or empty text.");
+      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
       _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (StringUtils.isBlank(owner))
+    {
+      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty owner.");
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (StringUtils.isBlank(host))
+    {
+      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ------------------------- Create System Record ---------------------
     try
     {
       SystemsDao dao = new SystemsDao();
-      // TODO remove hard code
-      dao.createSystem("tenant", "name", "description", "owner", "host", true,
-                       "bucket", "root", "effUser");
+      // TODO remove hard coded values
+      dao.createSystem("tenant1", name, description, owner, host, true,
+                       "bucket1", "/root1", "effUser1");
     }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SAMPLE_INSERT_TEXT_ERROR", e.getMessage());
+      String msg = MsgUtils.getMsg("SYSTEMS_CREATE_ERROR", name, e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success ------------------------------- 
-    // Success means we found the job. 
+    // Success means we found the job.
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("SYSTEM_CREATED", text), prettyPrint, "Inserted record into database")).build();
+        MsgUtils.getMsg("SYSTEMS_CREATED", name), prettyPrint, "Created system record")).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -190,42 +205,36 @@ public class SystemResource
   @GET
   @Path("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response getSystemById(@PathParam("name") String name,
-                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  public Response getSystemByName(@PathParam("name") String name,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSystem",
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSystemByName",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
 
-    // ------------------------- Retrieve Job -----------------------------
-    // Retrieve the specified job if it exists.
     SystemsDao dao = new SystemsDao();
     System system = null;
-    // TODO remove hard code
     try
     {
-      system = dao.getSystemById(1);
+      system = dao.getSystemByName(name);
     }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SAMPLE_SELECT_ID_ERROR", name,
-                                   e.getMessage());
+      String msg = MsgUtils.getMsg("SYSTEMS_GET_NAME_ERROR", name, e.getMessage());
       _log.error(msg, e);
-      return Response.status(RestUtils.getStatus(e)).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // The specified job was not found for the tenant.
     if (system == null)
     {
-      String msg = MsgUtils.getMsg("SAMPLE_NOT_FOUND", name);
+      String msg = MsgUtils.getMsg("SYSTEMS_NOT_FOUND", name);
       _log.warn(msg);
-      return Response.status(Status.NOT_FOUND).
-          entity(RestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
+      return Response.status(Status.NOT_FOUND).entity(RestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
                                                prettyPrint)).build();
     }
 

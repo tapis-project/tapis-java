@@ -16,9 +16,9 @@ final class SqlStatements
           "created, updated FROM systems ORDER BY id";
   
   // Get a specific row.
-  public static final String SELECT_SYSTEM_BY_ID =
+  public static final String SELECT_SYSTEM_BY_NAME =
       "SELECT id, tenant, name, description, owner, host, available, bucket_name, root_dir, effective_user_id, " +
-          "created, updated FROM systems WHERE id = ?";
+          "created, updated FROM systems WHERE tenant = ? AND name = ?";
 
   // -------------------------
   // ----- AccessProtocol ----

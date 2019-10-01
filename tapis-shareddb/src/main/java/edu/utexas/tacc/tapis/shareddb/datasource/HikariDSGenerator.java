@@ -49,6 +49,8 @@ public class HikariDSGenerator
   public static final String  TAPIS_SEC_DB_NAME = "tapissecdb";
   public static final String  TAPIS_SCHEMA_NAME = "public";
   public static final String  TAPIS_SEC_SCHEMA_NAME = "public";
+  public static final String  TAPIS_SYS_DB_NAME = "tapissysdb";
+  public static final String  TAPIS_SYS_SCHEMA_NAME = "public";
   
   // Other database defaults.
   public static final String  DEFAULT_DBMS_NAME = "postgresql";
