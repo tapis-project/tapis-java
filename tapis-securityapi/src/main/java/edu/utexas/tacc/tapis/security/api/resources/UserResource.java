@@ -8,6 +8,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -151,6 +152,86 @@ public final class UserResource
          names.names = new String[2];
          names.names[0] = "bud";
          names.names[1] = "harry";
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* getUserRoles:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/roles/{user}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get the roles assigned to a user.",
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "List of roles names assigned to the user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response getUserRoles(@PathParam("user") String user,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getUserRoles", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         RespNameArray names = new RespNameArray();
+         names.names = new String[2];
+         names.names[0] = "role1";
+         names.names[1] = "role2";
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* getUserPerms:                                                                */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/perms/{user}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get the roles assigned to a user.",
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response getUserPerms(@PathParam("user") String user,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getUserPerms", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         RespNameArray names = new RespNameArray();
+         names.names = new String[2];
+         names.names[0] = "perm1";
+         names.names[1] = "perm2";
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
