@@ -84,19 +84,14 @@ public class SystemsResource
    */
   @Context
   private HttpHeaders _httpHeaders;
-
   @Context
   private Application _application;
-
   @Context
   private UriInfo _uriInfo;
-
   @Context
   private SecurityContext _securityContext;
-
   @Context
   private ServletContext _servletContext;
-
   @Context
   private HttpServletRequest _request;
 

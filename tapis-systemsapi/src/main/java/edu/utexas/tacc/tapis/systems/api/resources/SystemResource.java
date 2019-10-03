@@ -91,6 +91,9 @@ public class SystemResource
   @Context
   private HttpServletRequest _request;
 
+  // TODO Remove hard coded values
+  private static final String tenant = "tenant1";
+
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
@@ -104,7 +107,11 @@ public class SystemResource
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-      description = "Create a system using a request body",
+      description = "Create a system using a request body. " +
+          "System name must be unique within a tenant and can be composed of alphanumeric characters " +
+          "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
+          "and can be no more than 256 characters in length. " +
+          "Description is optional with a maximum length of 2048 characters.",
       tags = "system",
       responses = {
           @ApiResponse(responseCode = "201", description = "System created."),
@@ -183,7 +190,7 @@ public class SystemResource
     {
       SystemsDao dao = new SystemsDao();
       // TODO remove hard coded values
-      dao.createSystem("tenant1", name, description, owner, host, true,
+      dao.createSystem(tenant, name, description, owner, host, true,
                        "bucket1", "/root1", "effUser1");
     }
     catch (Exception e)
@@ -254,29 +261,23 @@ public class SystemResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSystem",
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSystems",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
 
-    // ------------------------- Retrieve Job -----------------------------
-    // Retrieve the specified job if it exists.
+    // ------------------------- Retrieve all records -----------------------------
     SystemsDao dao = new SystemsDao();
     List<System> systems = null;
-    try
-    {
-      systems = dao.getSystems();
-    }
+    try { systems = dao.getSystems(); }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SAMPLE_SELECT_ERROR", e.getMessage());
+      String msg = MsgUtils.getMsg("SYSTEMS_SELECT_ERROR", e.getMessage());
       _log.error(msg, e);
-      return Response.status(RestUtils.getStatus(e)).
-          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
-    // Success means we found the job.
     int cnt = systems == null ? 0 : systems.size();
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, systems)).build();

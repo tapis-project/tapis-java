@@ -11,12 +11,13 @@ It integrates the following facilities:
     1. JAX-RS to implement REST endpoints.
     2. JAX-RS and servlet filters.
     3. Swagger to generate openapi json and yaml dynamically and at compile time.
-    4. Logback for logging.
-    5. Buildnumber maven plugin to capture git information at compile time.
-    6. Flyway to create database schema.
-    7. Hikari for database connection pooling.
-    8. io.jsonwebtoken for JWT processing.
-    9. Aloe support for parameter parsing, email clients, threadlocal management, 
+    4. Swagger-ui integration for serving up generated openai schema.
+    5. Logback for logging.
+    6. Buildnumber maven plugin to capture git information at compile time.
+    7. Flyway to create database schema.
+    8. Hikari for database connection pooling.
+    9. io.jsonwebtoken for JWT processing.
+   10. Aloe support for parameter parsing, email clients, threadlocal management,
        UUIDs, etc.
 
 The back end may be found in tapis-systemslib
@@ -88,11 +89,13 @@ http://localhost:8080/sample/v3?pretty=true
     
 
 ------------------------------------------------------------------------------
-Generating openapi spec
+Generating and viewing openapi spec
 ------------------------------------------------------------------------------
 *** From Browser, enter these urls to generate the openapi definition of the sample interface:
 http://localhost:8080/systems/v3/openapi.json
 http://localhost:8080/systems/v3/openapi.yaml
+*** From Browser, enter this url to view the definition via swagger-ui
+http://localhost:8080/systems/swagger-ui
 
 -------------------------------------------------------------------
 Creating a run configuration for the front end server in IntelliJ
