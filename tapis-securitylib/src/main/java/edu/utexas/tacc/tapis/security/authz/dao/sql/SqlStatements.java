@@ -36,8 +36,10 @@ public class SqlStatements
       "DELETE FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_DELETE_BY_NAME =
       "DELETE FROM sk_role where tenant = ? AND name = ?";
-  public static final String ROLE_UPDATE = 
-      "UPDATE sk_role SET name = ?, description = ?, updated = ?, updatedby = ? where tenant = ? AND id = ?";
+  public static final String ROLE_UPDATE_ROLENAME = 
+      "UPDATE sk_role SET name = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
+  public static final String ROLE_UPDATE_DESCRIPTION = 
+      "UPDATE sk_role SET description = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
   
   /* ---------------------------------------------------------------------- */
   /* sk_role_permission:                                                    */

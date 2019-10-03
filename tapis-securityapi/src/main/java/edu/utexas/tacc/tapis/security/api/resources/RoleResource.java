@@ -32,7 +32,8 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
-import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespName;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
@@ -463,22 +464,21 @@ public final class RoleResource
      /* updateRole:                                                                  */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/{roleName}")
+     @Path("/name/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
                            + "but not both.  Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
-                           + "character.  The limit on role name is 60 characters.  The limit "
-                           + "on description is 2048 characters.",
+                           + "character.  The limit on role name is 60 characters.",
              tags = "role",
              requestBody = 
                  @RequestBody(
                      required = false,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRole.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Role updated.",
+                 {@ApiResponse(responseCode = "200", description = "Role name updated.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
@@ -486,30 +486,29 @@ public final class RoleResource
                   @ApiResponse(responseCode = "404", description = "Named role not found."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response updateRole(@PathParam("roleName") String roleName,
-                                @QueryParam("newRoleName") String newRoleName,
-                                @QueryParam("description") String description,
-                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                InputStream payloadStream)
+     public Response updateRoleName(@PathParam("roleName") String roleName,
+                                    @QueryParam("newRoleName") String newRoleName,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "updateRole", _request.getRequestURL());
+                                          "updateRoleName", _request.getRequestURL());
              _log.trace(msg);
          }
          
          // ------------------------- Input Processing -------------------------
          // If all query parameters are null, we need to use the payload.
-         if (allNull(newRoleName, description)) {
+         if (newRoleName == null) {
              // Parse and validate the json in the request payload, which must exist.
-             ReqUpdateRole payload = null;
+             ReqUpdateRoleName payload = null;
              try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
-                                       ReqUpdateRole.class);
+                                       ReqUpdateRoleName.class);
              } 
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "updateRole", e.getMessage());
+                                              "updateRoleName", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
                    entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -517,26 +516,11 @@ public final class RoleResource
              
              // Fill in the parameter fields.
              newRoleName = payload.newRoleName;
-             description = payload.description;
          }
          
          // By this point there should be at least one non-null parameter.
-         if (allNull(newRoleName, description)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "roleName, description");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // Final checks.
          if (StringUtils.isBlank(newRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRole", "roleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(description)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRole", "description");
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "newRoleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -547,12 +531,95 @@ public final class RoleResource
          // ***** DUMMY TEST Code
          System.out.println("***** roleName    = " + roleName);
          System.out.println("***** newRoleName    = " + newRoleName);
+         
+         // ***** END DUMMY TEST Code
+         
+         // ***** DUMMY RESPONSE Code
+         RespChangeCount count = new RespChangeCount();
+         count.changes = 1;
+         // ***** END DUMMY RESPONSE Code
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* updateRole:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/desc/{roleName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Update an existing role using either a request body or query parameters, "
+                           + "but not both. The limit on a description is 2048 characters.",
+             tags = "role",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Role description updated.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response updateRoleDescription(
+                                @PathParam("roleName") String roleName,
+                                @QueryParam("description") String description,
+                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "updateRoleDescription", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // If all query parameters are null, we need to use the payload.
+         if (description == null) {
+             // Parse and validate the json in the request payload, which must exist.
+             ReqUpdateRoleDescription payload = null;
+             try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+                                       ReqUpdateRoleDescription.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "updateRoleName", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+             // Fill in the parameter fields.
+             description = payload.description;
+         }
+         
+         // By this point there should be at least one non-null parameter.
+         if (StringUtils.isBlank(description)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "description");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         
+         // ***** DUMMY TEST Code
+         System.out.println("***** roleName    = " + roleName);
          System.out.println("***** description = " + description);
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
          RespChangeCount count = new RespChangeCount();
-         count.changes = 2;
+         count.changes = 1;
          // ***** END DUMMY RESPONSE Code
          
          // ---------------------------- Success ------------------------------- 

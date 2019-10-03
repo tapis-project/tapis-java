@@ -1,8 +1,7 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public final class ReqUpdateRole 
+public final class ReqUpdateRoleDescription 
 {
-    public String newRoleName;
     public String description;
 }
 

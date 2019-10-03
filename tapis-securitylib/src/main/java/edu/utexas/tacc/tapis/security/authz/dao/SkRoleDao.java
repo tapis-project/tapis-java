@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.security.authz.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -347,7 +349,7 @@ public final class SkRoleDao
    * @param roleName role name
    * @param description role description
    * @return number of rows affected (0 or 1)
-   * @throws TapisException if the roles is not created for any reason
+   * @throws TapisException if the role is not created for any reason
    */
   public int createRole(String tenant, String user, String roleName, String description) 
    throws TapisException
@@ -409,6 +411,190 @@ public final class SkRoleDao
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
           String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_role");
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* updateRoleName:                                                        */
+  /* ---------------------------------------------------------------------- */
+  /** Update the name of an existing role.  Zero is returned if no row was
+   * affect; 1 is returned when a row was updated.
+   *
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param newRoleName current role name
+   * @param newRoleName new role name
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int updateRoleName(String tenant, String user, String roleName, String newRoleName) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "roleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(newRoleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "newRoleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_UPDATE_ROLENAME;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, newRoleName);
+          pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
+          pstmt.setString(3, user);
+          pstmt.setString(4, tenant);
+          pstmt.setString(5, roleName);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_UPDATE_FAILURE", "sk_role", roleName);
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* updateRoleDescription:                                                 */
+  /* ---------------------------------------------------------------------- */
+  /** Update the description of an existing role.  Zero is returned if no row was
+   * affect; 1 is returned when a row was updated.
+   *
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param roleName role name
+   * @param description optional new role description
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int updateRoleDescription(String tenant, String user, String roleName, String description) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "roleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(description)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "description");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_UPDATE_DESCRIPTION;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, description);
+          pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
+          pstmt.setString(3, user);
+          pstmt.setString(4, tenant);
+          pstmt.setString(5, roleName);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_UPDATE_FAILURE", "sk_role", roleName);
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
