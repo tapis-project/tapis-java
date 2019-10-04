@@ -121,7 +121,7 @@ public class SystemResource
       }
   )
   public Response createSystem(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                         InputStream payloadStream)
+                               InputStream payloadStream)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -213,7 +213,8 @@ public class SystemResource
   @Path("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getSystemByName(@PathParam("name") String name,
-                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                  @DefaultValue("false") @QueryParam("returnCredentials") boolean getCreds)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
