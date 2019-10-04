@@ -12,7 +12,7 @@ import java.time.Instant;
  * This class is intended to represent an immutable object.
  * Please keep it immutable.
  */
-public final class AccessProtocol
+public final class CommandProtocol
 {
   private enum Mechanism {SSH_ANONYMOUS, SSH_PASSWORD, SSH_KEYS, SSH_CERT}
 
@@ -20,7 +20,7 @@ public final class AccessProtocol
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging
-  private static final Logger _log = LoggerFactory.getLogger(AccessProtocol.class);
+  private static final Logger _log = LoggerFactory.getLogger(CommandProtocol.class);
 
   private final Mechanism mechanism; // How access authorization is handled.
   private final int port; // Port number used to access a system.
@@ -32,7 +32,7 @@ public final class AccessProtocol
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  public AccessProtocol(Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
+  public CommandProtocol(Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
   {
     mechanism = mechanism1;
     port = port1;

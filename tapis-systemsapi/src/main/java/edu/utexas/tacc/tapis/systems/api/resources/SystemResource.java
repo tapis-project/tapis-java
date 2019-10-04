@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
-import edu.utexas.tacc.tapis.systems.model.System;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -225,7 +225,7 @@ public class SystemResource
     }
 
     SystemsDao dao = new SystemsDao();
-    System system = null;
+    TSystem system = null;
     try
     {
       system = dao.getSystemByName(name);
@@ -269,7 +269,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     SystemsDao dao = new SystemsDao();
-    List<System> systems = null;
+    List<TSystem> systems = null;
     try { systems = dao.getSystems(); }
     catch (Exception e)
     {

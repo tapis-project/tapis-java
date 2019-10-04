@@ -20,10 +20,14 @@ final class SqlStatements
       "SELECT id, tenant, name, description, owner, host, available, bucket_name, root_dir, effective_user_id, " +
           "created, updated FROM systems WHERE tenant = ? AND name = ?";
 
+  // Delete a system given the name
+  public static final String DELETE_SYSTEM_BY_NAME =
+      "DELETE FROM systems where tenant = ? AND name = ?";
+
   // -------------------------
-  // ----- AccessProtocol ----
+  // ----- Command Protocol ----
   // -------------------------
   // Fields id, created are handled by DB.
-  static final String CREATE_ACCESS_PROTOCOL =
-    "INSERT INTO acc_protocol (mechanism, port, use_proxy, proxy_host, proxy_port, created) VALUES (?, ?, ?, ?, ?, ?)";
+  static final String CREATE_COMMAND_PROTOCOL =
+    "INSERT INTO cmd_protocol (mechanism, port, use_proxy, proxy_host, proxy_port, created) VALUES (?, ?, ?, ?, ?, ?)";
 }

@@ -14,13 +14,13 @@ import org.slf4j.LoggerFactory;
  * Each system has an owner, effective acccess user, access protocol, transfer protocol
  *   and flag indicating if it is currently available.
  */
-public final class System
+public final class TSystem
 {
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging
-  private static final Logger _log = LoggerFactory.getLogger(System.class);
+  private static final Logger _log = LoggerFactory.getLogger(TSystem.class);
 
   private long id;         // Unique database sequence number
   private String tenant;   // Name of the tenant for which the system is defined
@@ -38,9 +38,9 @@ public final class System
   /* ********************************************************************** */
   /*                               Constructors                             */
   /* ********************************************************************** */
-  public System(long id1, String tenant1, String name1, String description1,
-                String owner1, String host1, boolean available1, String bucketName1,
-                String rootDir1, String effectiveUserId1, Instant created1, Instant updated1)
+  public TSystem(long id1, String tenant1, String name1, String description1,
+                 String owner1, String host1, boolean available1, String bucketName1,
+                 String rootDir1, String effectiveUserId1, Instant created1, Instant updated1)
   {
     id = id1;
     tenant = tenant1;

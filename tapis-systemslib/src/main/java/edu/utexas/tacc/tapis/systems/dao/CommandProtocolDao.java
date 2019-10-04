@@ -3,7 +3,7 @@ package edu.utexas.tacc.tapis.systems.dao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.systems.model.System;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,13 +17,13 @@ import java.util.List;
 /*
  * Class to handle persistence for AccessProtocol objects.
  */
-public class AccessProtocolDao extends AbstractDao
+public class CommandProtocolDao extends AbstractDao
 {
   /* ********************************************************************** */
   /*                               Fields                                   */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger(AccessProtocolDao.class);
+  private static final Logger _log = LoggerFactory.getLogger(CommandProtocolDao.class);
 
 //    private final DataSource dataSource;
 
@@ -46,7 +46,7 @@ public class AccessProtocolDao extends AbstractDao
    * @param mechanism
    * @throws TapisException on error
    */
-  public void createAccessProtocol(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
+  public void createCommandProtocol(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
     throws TapisException
   {
     // ------------------------- Check Input -------------------------
@@ -116,11 +116,11 @@ public class AccessProtocolDao extends AbstractDao
     /* ---------------------------------------------------------------------- */
     /* getSystemById:                                                         */
     /* ---------------------------------------------------------------------- */
-    public System getSystemByName(String name)
+    public TSystem getSystemByName(String name)
      throws TapisException
     {
         // Initialize result.
-        System result = null;
+        TSystem result = null;
 
         // ------------------------- Call SQL ----------------------------
         Connection conn = null;
@@ -176,11 +176,11 @@ public class AccessProtocolDao extends AbstractDao
     /* ---------------------------------------------------------------------- */
     /* getSystems:                                                            */
     /* ---------------------------------------------------------------------- */
-    public List<System> getSystems() 
+    public List<TSystem> getSystems()
      throws TapisException
     {
         // The result list is always non-null.
-        var list = new ArrayList<System>();
+        var list = new ArrayList<TSystem>();
         
         // ------------------------- Call SQL ----------------------------
         Connection conn = null;
@@ -197,7 +197,7 @@ public class AccessProtocolDao extends AbstractDao
                         
             // Issue the call for the 1 row result set.
             ResultSet rs = pstmt.executeQuery();
-            System system = populateSystem(rs);
+            TSystem system = populateSystem(rs);
             while (system != null) {
                 list.add(system);
                 system = populateSystem(rs);
@@ -249,7 +249,7 @@ public class AccessProtocolDao extends AbstractDao
      * @return the new, fully populated job object or null if the result set is empty 
      * @throws TapisJDBCException 
      */
-    private System populateSystem(ResultSet rs) 
+    private TSystem populateSystem(ResultSet rs)
      throws TapisJDBCException
     {
       return null;

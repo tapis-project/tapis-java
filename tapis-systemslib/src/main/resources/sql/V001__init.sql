@@ -23,17 +23,17 @@ SET search_path TO public;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tapis_sys TO tapis_sys;
 
 -- Types
-CREATE TYPE access_mech_type AS ENUM ('SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
+CREATE TYPE command_mech_type AS ENUM ('SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
 CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3', 'LOCAL');
 
 -- ----------------------------------------------------------------------------------------
 --                               PROTOCOLS 
 -- ----------------------------------------------------------------------------------------
--- Access Protocol table
-CREATE TABLE acc_protocol
+-- Command Protocol table
+CREATE TABLE cmd_protocol
 (
   id         SERIAL PRIMARY KEY,
-  mechanism  access_mech_type NOT NULL,
+  mechanism  command_mech_type NOT NULL,
   port       INTEGER,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256),
@@ -41,14 +41,14 @@ CREATE TABLE acc_protocol
   created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
   UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
 );
-ALTER TABLE acc_protocol OWNER TO tapis;
-COMMENT ON COLUMN acc_protocol.id IS 'Access protocol id';
-COMMENT ON COLUMN acc_protocol.mechanism IS 'Enum for how authorization is handled';
-COMMENT ON COLUMN acc_protocol.port IS 'Port number used to access a system';
-COMMENT ON COLUMN acc_protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
-COMMENT ON COLUMN acc_protocol.proxy_host IS 'Proxy host name or ip address';
-COMMENT ON COLUMN acc_protocol.proxy_port IS 'Proxy port number';
-COMMENT ON COLUMN acc_protocol.created IS 'UTC time for when record was created';
+ALTER TABLE cmd_protocol OWNER TO tapis;
+COMMENT ON COLUMN cmd_protocol.id IS 'Command protocol id';
+COMMENT ON COLUMN cmd_protocol.mechanism IS 'Enum for how authorization is handled';
+COMMENT ON COLUMN cmd_protocol.port IS 'Port number used to access a system';
+COMMENT ON COLUMN cmd_protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
+COMMENT ON COLUMN cmd_protocol.proxy_host IS 'Proxy host name or ip address';
+COMMENT ON COLUMN cmd_protocol.proxy_port IS 'Proxy port number';
+COMMENT ON COLUMN cmd_protocol.created IS 'UTC time for when record was created';
 
 -- Transfer Protocol table
 CREATE TABLE txf_protocol
@@ -91,9 +91,9 @@ CREATE TABLE systems
 --  work_dir       VARCHAR(1024),
 --  scratch_dir    VARCHAR(1024),
   effective_user_id VARCHAR(60) NOT NULL,
---  access_protocol   SERIAL references acc_protocol(id),
+--  command_protocol   SERIAL references cmd_protocol(id),
 --  transfer_protocol SERIAL references txf_protocol(id),
---  access_protocol VARCHAR(32) NOT NULL,
+--  command_protocol VARCHAR(32) NOT NULL,
 --  transfer_protocol VARCHAR(32) NOT NULL,
   created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
@@ -114,7 +114,7 @@ COMMENT ON COLUMN systems.root_dir IS 'Name of root directory for a Unix system'
 --COMMENT ON COLUMN systems.work_dir IS '';
 --COMMENT ON COLUMN systems.scratch_dir IS '';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
---COMMENT ON COLUMN systems.access_protocol IS 'Reference to access protocol used for the system';
+--COMMENT ON COLUMN systems.command_protocol IS 'Reference to command protocol used for the system';
 --COMMENT ON COLUMN systems.transfer_protocol IS 'Reference to transfer protocol used for the system';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
