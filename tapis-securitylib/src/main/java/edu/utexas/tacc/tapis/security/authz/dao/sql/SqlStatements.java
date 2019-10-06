@@ -184,6 +184,7 @@ public class SqlStatements
   // be replaced with LIKE.  Otherwise, = will replace ${op}. 
   public static final String USER_SELECT_USERS_WITH_PERM = 
       "SELECT DISTINCT u.user_name FROM sk_role r, sk_user_role u, sk_role_permission pm " +
-      "WHERE r.id = u.role_id AND r.id = pm.role_id " +
+      "WHERE r.tenant = u.tenant AND r.tenant = pm.tenant " +
+          "AND r.id = u.role_id AND r.id = pm.role_id " +
           "AND r.tenant = ? AND pm.permission :op ?";
 }

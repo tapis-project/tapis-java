@@ -761,6 +761,35 @@ public final class SkRoleDao
   /* ---------------------------------------------------------------------- */
   /* getAncestorRoleNames:                                                  */
   /* ---------------------------------------------------------------------- */
+  /** Get the id of the role in the tenant and then call the actual 
+   * ancestor retrieval method.  The role must exist in the tenant.
+   * 
+   * @param tenant the role's tenant
+   * @param roleName the role's name whose ancestors are sought
+   * @return the non-null list of ancestor role names
+   * @throws TapisException on error including role not found
+   */
+  public List<String> getAncestorRoleNames(String tenant, String roleName) 
+   throws TapisException
+  {
+      // Get the role id.
+      Integer roleId = getRoleId(tenant, roleName);
+      
+      // Make sure we found the role.
+      if (roleId == null) {
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Find the role's ancestors.
+      return getAncestorRoleNames(roleId);
+  }
+  
+  
+  /* ---------------------------------------------------------------------- */
+  /* getAncestorRoleNames:                                                  */
+  /* ---------------------------------------------------------------------- */
   /** Get all the names of the ancestor roles for the specified child role id.
    * 
    * Note: Without modules or reorganizing packages, users from one tenant can

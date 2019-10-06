@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,6 +33,10 @@ public final class SkUserRoleDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SkUserRoleDao.class);
+  
+  // Placeholders hardcoded in sql statements.
+  private static final String SQL_NAMELIST_PLACEHOLDER  = ":namelist";
+  private static final String SQL_OPERATION_PLACEHOLDER = ":op";
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -455,31 +460,48 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* getUsersWithRole:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Get the users directly assigned a role.
+  /** Get the users directly or indirectly assigned a role.  User are indirectly
+   * assigned a role when they are assigned an ancestor of the specified role. 
+   * This implies that if a user is assigned the parent role of the role being 
+   * queried, then the user is also effectively assigned the role being queried. 
    * 
    * @param tenant the user's tenant
-   * @param user the user name
-   * @return a non-null list of all roles assigned to user
+   * @param roleName the role being queried
+   * @return a non-null list of all user assigned the role
    * @throws TapisException on error
    */
-  public List<Integer> getUsersWithRole(String tenant, String roleName) throws TapisException
+  public List<String> getUsersWithRole(String tenant, String roleName) 
+   throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
       if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUsersWithRole", "tenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(roleName)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "roleName");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUsersWithRole", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
       
-      // Initialize intermediate result.
-      ArrayList<Integer> roleIds = new ArrayList<>();
+      // ------------------------- Get Ancestors -----------------------
+      // Get the ancestors of the role of which there might be 0 or more.
+      List<String> roleNames = null;
+      try {roleNames = getAncestorRoleNames(tenant, roleName);}
+          catch (Exception e) {
+              String msg = MsgUtils.getMsg("SK_ANCESTOR_ROLE_ERROR", tenant, roleName);
+              _log.error(msg, e);
+              throw new TapisException(msg, e);
+          }
+      
+      // Always add the original role name to the list.
+      roleNames.add(roleName);
 
+      // Initialize final result.
+      ArrayList<String> users = new ArrayList<>();
+      
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
       try
@@ -487,17 +509,20 @@ public final class SkUserRoleDao
           // Get a database connection.
           conn = getConnection();
           
-          // Get the select command.
-          String sql = SqlStatements.USER_SELECT_ROLE_IDS;
+          // Get the select command and replace the list placeholder
+          // with a well-constructed list of role names as they should
+          // appear in an SQL IN clause.
+          String sql = SqlStatements.USER_SELECT_USERS_WITH_ROLE;
+          String s = roleNames.stream().collect(Collectors.joining("', '", "'", "'"));
+          sql.replace(SQL_NAMELIST_PLACEHOLDER, s);
           
-          // Prepare the statement and fill in the placeholders.
+          // Prepare the statement with the filled in placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenant);
-          pstmt.setString(2, roleName);
                       
-          // Issue the call the result set.
+          // Issue the call and process the result set.
           ResultSet rs = pstmt.executeQuery();
-          while (rs.next()) roleIds.add(rs.getInt(1));
+          while (rs.next()) users.add(rs.getString(1));
           
           // Close the result and statement.
           rs.close();
@@ -528,14 +553,117 @@ public final class SkUserRoleDao
             }
       }
       
-      return roleIds;
+      return users;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUsersWithPermission:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** Get the users assigned a permission through some role.  The role itself
+   * can be directly or indirectly assigned to the user using role inheritance.
+   * 
+   * The permSpec parameter is an extended Shiro-based permission specification
+   * that uses colons as separators, the asterisk as a wildcard character and
+   * commas to define lists.  Here are examples of permission specifications:
+   * 
+   *    system:mytenant:read:mysystem
+   *    system:mytenant:*:mysystem
+   *    system:mytenant
+   *    files:mytenant:read,write:mysystems
+   *
+   * This method recognizes the percent sign (%) as a string wildcard used
+   * only for database searching.  If a percent sign appears in the permSpec
+   * it is interpreted as a zero or more character wildcard.  For example,
+   * the following specification would match the first three of the above
+   * example specifications but not the fourth:
+   * 
+   *    system:mytenant:%
+   * 
+   * @param tenant the user's tenant
+   * @param permSpec the permission specification being queried with the
+   *                 optional use of percent signs for wildcard searches
+   * @return a non-null list of all user assigned the role
+   * @throws TapisException on error
+   */
+  public List<String> getUsersWithPermission(String tenant, String permSpec) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUsersWithPermission", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(permSpec)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUsersWithPermission", "permSpec");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Initialize final result.
+      ArrayList<String> users = new ArrayList<>();
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command and replace the list placeholder
+          // with a well-constructed list of role names as they should
+          // appear in an SQL IN clause.
+          String sql = SqlStatements.USER_SELECT_USERS_WITH_PERM;
+          String op = permSpec.contains("%") ? "LIKE" : "=";
+          sql.replace(SQL_OPERATION_PLACEHOLDER, op);
+          
+          // Prepare the statement with the filled in placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, permSpec);
+                      
+          // Issue the call and process the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) users.add(rs.getString(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkUserRole", permSpec, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return users;
   }
   
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* populateSkUserRole:                                                  */
+  /* populateSkUserRole:                                                    */
   /* ---------------------------------------------------------------------- */
   /** Populate a new SkUserRole object with a record retrieved from the 
    * database.  The result set's cursor will be advanced to the next
@@ -587,5 +715,27 @@ public final class SkUserRoleDao
     }
       
     return obj;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getAncestorRoleNames:                                                  */
+  /* ---------------------------------------------------------------------- */
+  /** Return the ancestors of the named role.  The list will never contain
+   * the roleName.
+   * 
+   * @param roleName the role name whose ancestors are sought
+   * @return a non-null list of ancestor role names that optionally includes
+   *         the input roleName
+   * @throws TapisException on error
+   */
+  private List<String> getAncestorRoleNames(String tenant, String roleName) 
+   throws TapisException
+  {
+      // Get all the role's ancestors.
+      SkRoleDao dao = new SkRoleDao();
+      List<String> list = dao.getAncestorRoleNames(tenant, roleName);
+      
+      // Return result list.
+      return list;
   }
 }
