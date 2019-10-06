@@ -559,12 +559,22 @@ public final class RoleResource
              rows = dao.updateRoleName(threadContext.getTenantId(), threadContext.getUser(), 
                                        roleName, newRoleName);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                  entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Did we update anything?
+         if (rows == 0) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.NOT_FOUND).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -660,12 +670,22 @@ public final class RoleResource
                                  threadContext.getTenantId(), threadContext.getUser(), 
                                  roleName, description);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                  entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Did we update anything?
+         if (rows == 0) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.NOT_FOUND).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ---------------------------- Success ------------------------------- 

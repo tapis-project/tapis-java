@@ -452,6 +452,85 @@ public final class SkUserRoleDao
       return roleIds;
   }
   
+  /* ---------------------------------------------------------------------- */
+  /* getUsersWithRole:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Get the users directly assigned a role.
+   * 
+   * @param tenant the user's tenant
+   * @param user the user name
+   * @return a non-null list of all roles assigned to user
+   * @throws TapisException on error
+   */
+  public List<Integer> getUsersWithRole(String tenant, String roleName) throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "roleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Initialize intermediate result.
+      ArrayList<Integer> roleIds = new ArrayList<>();
+
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.USER_SELECT_ROLE_IDS;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, roleName);
+                      
+          // Issue the call the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) roleIds.add(rs.getInt(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkUserRole", roleName, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return roleIds;
+  }
+  
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
