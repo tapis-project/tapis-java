@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -37,6 +38,10 @@ class AbstractResource
     private static SkRoleDao           _roleDao;
     private static SkRoleTreeDao       _roleTreeDao;
     private static SkRolePermissionDao _roleTreePermissionDao;
+    
+    // Role name validator.  Require names to start with alphabetic characters and 
+    // be followed by zero or more alphanumeric characters and underscores.
+    private static final Pattern _namePattern = Pattern.compile("^\\p{Alpha}(\\p{Alnum}|_)*");
     
     /* **************************************************************************** */
     /*                                Public Methods                                */
@@ -239,4 +244,19 @@ class AbstractResource
             
         return _roleTreePermissionDao;
     }
+
+    /* ---------------------------------------------------------------------------- */
+    /* isValidName:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Check a candidate name against the name regex.
+     * 
+     * @param name the name to validate
+     * @return true if matches regex, false otherwise
+     */
+    protected boolean isValidName(String name)
+    {
+        if (name == null) return false;
+        return _namePattern.matcher(name).matches();
+    }
+
 }

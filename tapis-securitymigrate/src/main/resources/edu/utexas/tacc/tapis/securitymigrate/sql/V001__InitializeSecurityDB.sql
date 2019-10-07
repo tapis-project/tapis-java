@@ -147,7 +147,7 @@ CREATE TABLE sk_role_permission
   id         serial4 PRIMARY KEY, 
   tenant     character varying(24) NOT NULL,
   role_id    integer NOT NULL,                           
-  permission character varying(1024) NOT NULL,                     
+  permission character varying(2048) NOT NULL,                     
   created    timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby  character varying(60) NOT NULL DEFAULT current_user,           
   updated    timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       

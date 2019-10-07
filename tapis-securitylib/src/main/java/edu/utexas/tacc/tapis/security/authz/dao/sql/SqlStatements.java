@@ -164,13 +164,29 @@ public class SqlStatements
       "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";
 
-  // Get the role ids assigned to user.
+  // Get the role ids directly (non-transitively) assigned to user.
   public static final String USER_SELECT_ROLE_IDS =
       "SELECT role_id FROM sk_user_role WHERE tenant = ? and user_name = ?";
   
-  // Get the role ids and the role names assigned to user.
+  // Get the role ids and the role names directly (non-transitively) assigned to user.
   public static final String USER_SELECT_ROLE_IDS_AND_NAMES =
       "SELECT ur.role_id, r.name FROM sk_user_role ur, sk_role r " +
       "WHERE ur.role_id = r.id and ur.tenant = ? and ur.user_name = ?";
+  
+  // Get all users assigned a list of role names which are expected
+  // to be the role the user is querying and all its ancestors.
+  public static final String USER_SELECT_USERS_WITH_ROLE = 
+      "SELECT DISTINCT u.user_name FROM sk_role r, sk_user_role u " + 
+      "WHERE r.id = u.role_id AND r.tenant = ? AND r.name IN (:namelist) " +
+      "ORDER BY u.user_name";
 
+  // Get all users assigned a specific permission.  The permission can contain the
+  // sql wildcard character (%), in which case the ${op} operator placeholder will 
+  // be replaced with LIKE.  Otherwise, = will replace ${op}. 
+  public static final String USER_SELECT_USERS_WITH_PERM = 
+      "SELECT DISTINCT u.user_name FROM sk_role r, sk_user_role u, sk_role_permission pm " +
+      "WHERE r.tenant = u.tenant AND r.tenant = pm.tenant " +
+          "AND r.id = u.role_id AND r.id = pm.role_id " +
+          "AND r.tenant = ? AND pm.permission :op ? " +
+          "ORDER BY u.user_name";
 }

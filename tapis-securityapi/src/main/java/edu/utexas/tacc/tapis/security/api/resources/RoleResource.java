@@ -350,6 +350,12 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+         if (!isValidName(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "createRole", "roleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
          // ------------------------- Check Tenant -----------------------------
          // Null means the tenant and user are both assigned.
@@ -461,10 +467,10 @@ public final class RoleResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* updateRole:                                                                  */
+     /* updateRoleName:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/name/{roleName}")
+     @Path("/updateName/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
@@ -478,12 +484,12 @@ public final class RoleResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Role name updated.",
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                 {@ApiResponse(responseCode = "200", description = "Role name updated."),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named role not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRoleName(@PathParam("roleName") String roleName,
@@ -525,31 +531,65 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+         if (!isValidName(newRoleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "newRoleName");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** roleName    = " + roleName);
-         System.out.println("***** newRoleName    = " + newRoleName);
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.updateRoleName(threadContext.getTenantId(), threadContext.getUser(), 
+                                       roleName, newRoleName);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
-         RespChangeCount count = new RespChangeCount();
-         count.changes = 1;
-         // ***** END DUMMY RESPONSE Code
+         // Did we update anything?
+         if (rows == 0) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.NOT_FOUND).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* updateRole:                                                                  */
+     /* updateRoleDescription:                                                       */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/desc/{roleName}")
+     @Path("/updateDesc/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
@@ -561,12 +601,12 @@ public final class RoleResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Role description updated.",
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
+                 {@ApiResponse(responseCode = "200", description = "Role description updated."),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named role not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRoleDescription(
@@ -610,22 +650,52 @@ public final class RoleResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkRoleDao dao = null;
+         try {dao = getSkRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
-         // ***** DUMMY TEST Code
-         System.out.println("***** roleName    = " + roleName);
-         System.out.println("***** description = " + description);
-         // ***** END DUMMY TEST Code
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = dao.updateRoleDescription(
+                                 threadContext.getTenantId(), threadContext.getUser(), 
+                                 roleName, description);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
-         // ***** DUMMY RESPONSE Code
-         RespChangeCount count = new RespChangeCount();
-         count.changes = 1;
-         // ***** END DUMMY RESPONSE Code
+         // Did we update anything?
+         if (rows == 0) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.NOT_FOUND).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint, count)).build();
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -651,7 +721,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response addRolePermission(@QueryParam("roleName") String roleName,
@@ -773,7 +845,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeRolePermission(@QueryParam("roleName") String roleName,
@@ -896,7 +970,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response addChildRole(@QueryParam("parentRoleName") String parentRoleName,
@@ -1018,7 +1094,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeChildRole(@QueryParam("parentRoleName") String parentRoleName,
@@ -1163,7 +1241,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response replacePathPrefix(@QueryParam("schema")   String schema,
