@@ -197,7 +197,7 @@ public final class UserResource
          // Success means we found the tenant's role names.
          int cnt = (names == null || names.names == null) ? 0 : names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+             MsgUtils.getMsg("TAPIS_FOUND", "Roles", cnt + " items"), prettyPrint, names)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -237,7 +237,7 @@ public final class UserResource
          // Success means we found the tenant's role names.
          int cnt = (names == null || names.names == null) ? 0 : names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+             MsgUtils.getMsg("TAPIS_FOUND", "Permissions", cnt + " items"), prettyPrint, names)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -261,7 +261,9 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response grantRole(@QueryParam("user") String user,
@@ -462,7 +464,9 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named resource not found.",
+                      content = @Content(schema = @Schema(
+                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response grantRoleWithPermission(@QueryParam("user") String user,
@@ -648,6 +652,80 @@ public final class UserResource
      }
 
      /* ---------------------------------------------------------------------------- */
+     /* hasRoleAny:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/hasRoleAny")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user has been assigned any of the roles "
+                           + "specified in the request body.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response hasRoleAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "hasRoleAny", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* hasRoleAll:                                                                  */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/hasRoleAll")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user has been assigned all of the roles "
+                           + "specified in the request body.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = false,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response hasRoleAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "hasRoleAny", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ALL);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
      /* isPermitted:                                                                 */
      /* ---------------------------------------------------------------------------- */
      @POST
@@ -746,80 +824,6 @@ public final class UserResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* hasRoleAny:                                                                  */
-     /* ---------------------------------------------------------------------------- */
-     @POST
-     @Path("/hasRoleAny")
-     @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Check whether a user has been assigned any of the roles "
-                           + "specified in the request body.",
-             tags = "user",
-             requestBody = 
-                 @RequestBody(
-                     required = false,
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
-             responses = 
-                 {@ApiResponse(responseCode = "200", description = "Check completed.",
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
-         )
-     public Response hasRoleAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                InputStream payloadStream)
-     {
-         // Trace this request.
-         if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "hasRoleAny", _request.getRequestURL());
-             _log.trace(msg);
-         }
-         
-         // Call the real method.
-         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY);
-     }
-     
-     /* ---------------------------------------------------------------------------- */
-     /* hasRoleAll:                                                                  */
-     /* ---------------------------------------------------------------------------- */
-     @POST
-     @Path("/hasRoleAll")
-     @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Check whether a user has been assigned all of the roles "
-                           + "specified in the request body.",
-             tags = "user",
-             requestBody = 
-                 @RequestBody(
-                     required = false,
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
-             responses = 
-                 {@ApiResponse(responseCode = "200", description = "Check completed.",
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
-         )
-     public Response hasRoleAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                InputStream payloadStream)
-     {
-         // Trace this request.
-         if (_log.isTraceEnabled()) {
-             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "hasRoleAny", _request.getRequestURL());
-             _log.trace(msg);
-         }
-         
-         // Call the real method.
-         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ALL);
-     }
-     
-     /* ---------------------------------------------------------------------------- */
      /* isPermittedAny:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
@@ -893,8 +897,110 @@ public final class UserResource
          return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ALL);
      }
      
+     /* ---------------------------------------------------------------------------- */
+     /* getUsersWithRole:                                                            */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/withRole/{roleName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get all users assigned a role.  The role must exist in the tenant.",
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a role.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response getUsersWithRole(@PathParam("roleName") String roleName,
+                                      @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getUsersWithRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         RespNameArray names = new RespNameArray();
+         names.names = new String[2];
+         names.names[0] = "user1";
+         names.names[1] = "user2";
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* getUsersWithPermission:                                                      */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/withPermission/{permSpec}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = 
+               "Get all users assigned a permission.  " +
+               "The permSpec parameter is a permission specification " +
+               "that uses colons as separators, the asterisk as a wildcard character and " +
+               "commas to define lists.  Here are examples of permission specifications:\n\n" +
+               "" +
+               "    system:mytenant:read:mysystem\n" +
+               "    system:mytenant:*:mysystem\n" +
+               "    system:mytenant\n" +
+               "    files:mytenant:read,write:mysystems\n" +
+               "" +
+               "This method recognizes the percent sign (%) as a string wildcard only " + 
+               "in the context of database searching.  If a percent sign appears in the " +
+               "permSpec it is interpreted as a zero or more character wildcard.  For example, " +
+               "the following specification would match the first three of the above " +
+               "example specifications but not the fourth:\n\n" +
+               "" +
+               "    system:mytenant:%\n",
+
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a permission.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error."),
+                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                  @ApiResponse(responseCode = "500", description = "Server error.")}
+         )
+     public Response getUsersWithPermission(@PathParam("permSpec") String permSpec,
+                                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getUsersWithPermission", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ***** DUMMY TEST Response Data
+         RespNameArray names = new RespNameArray();
+         names.names = new String[2];
+         names.names[0] = "user1";
+         names.names[1] = "user2";
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+     }
+
+
      /* **************************************************************************** */
-     /*                                Public Methods                                */
+     /*                               Private Methods                                */
      /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
      /* hasRoleMulti:                                                                */

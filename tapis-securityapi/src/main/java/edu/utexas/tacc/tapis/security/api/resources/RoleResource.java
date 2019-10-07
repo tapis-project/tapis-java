@@ -470,7 +470,7 @@ public final class RoleResource
      /* updateRoleName:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/chgName/{roleName}")
+     @Path("/updateName/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
@@ -487,7 +487,9 @@ public final class RoleResource
                  {@ApiResponse(responseCode = "200", description = "Role name updated."),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named role not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRoleName(@PathParam("roleName") String roleName,
@@ -587,7 +589,7 @@ public final class RoleResource
      /* updateRoleDescription:                                                       */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/changeDesc/{roleName}")
+     @Path("/updateDesc/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using either a request body or query parameters, "
@@ -602,7 +604,9 @@ public final class RoleResource
                  {@ApiResponse(responseCode = "200", description = "Role description updated."),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named role not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRoleDescription(
@@ -717,7 +721,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response addRolePermission(@QueryParam("roleName") String roleName,
@@ -839,7 +845,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeRolePermission(@QueryParam("roleName") String roleName,
@@ -962,7 +970,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response addChildRole(@QueryParam("parentRoleName") String parentRoleName,
@@ -1084,7 +1094,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response removeChildRole(@QueryParam("parentRoleName") String parentRoleName,
@@ -1229,7 +1241,9 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error."),
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "404", description = "Named resource not found."),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response replacePathPrefix(@QueryParam("schema")   String schema,
