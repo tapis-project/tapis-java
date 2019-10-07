@@ -460,14 +460,17 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* getUsersWithRole:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Get the users directly or indirectly assigned a role.  User are indirectly
+  /** Get the users directly or indirectly assigned a role.  Users are indirectly
    * assigned a role when they are assigned an ancestor of the specified role. 
-   * This implies that if a user is assigned the parent role of the role being 
-   * queried, then the user is also effectively assigned the role being queried. 
+   * For example, this implies that if a user is assigned the parent role of 
+   * the role being queried, then the user is also effectively assigned the 
+   * role being queried.
+   * 
+   * The user names are returned in alphabetic order.
    * 
    * @param tenant the user's tenant
    * @param roleName the role being queried
-   * @return a non-null list of all user assigned the role
+   * @return a non-null, sorted list of all users assigned the role
    * @throws TapisException on error
    */
   public List<String> getUsersWithRole(String tenant, String roleName) 
@@ -561,6 +564,7 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /** Get the users assigned a permission through some role.  The role itself
    * can be directly or indirectly assigned to the user using role inheritance.
+   * The user names are returned in alphabetic order.
    * 
    * The permSpec parameter is an extended Shiro-based permission specification
    * that uses colons as separators, the asterisk as a wildcard character and
@@ -572,7 +576,7 @@ public final class SkUserRoleDao
    *    files:mytenant:read,write:mysystems
    *
    * This method recognizes the percent sign (%) as a string wildcard used
-   * only for database searching.  If a percent sign appears in the permSpec
+   * only in database searching.  If a percent sign appears in the permSpec
    * it is interpreted as a zero or more character wildcard.  For example,
    * the following specification would match the first three of the above
    * example specifications but not the fourth:
@@ -582,7 +586,7 @@ public final class SkUserRoleDao
    * @param tenant the user's tenant
    * @param permSpec the permission specification being queried with the
    *                 optional use of percent signs for wildcard searches
-   * @return a non-null list of all user assigned the role
+   * @return a non-null, sorted list of all users assigned the role
    * @throws TapisException on error
    */
   public List<String> getUsersWithPermission(String tenant, String permSpec) 
