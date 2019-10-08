@@ -14,12 +14,14 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
@@ -38,6 +40,7 @@ class AbstractResource
     private static SkRoleDao           _roleDao;
     private static SkRoleTreeDao       _roleTreeDao;
     private static SkRolePermissionDao _roleTreePermissionDao;
+    private static SkUserRoleDao       _userRoleDao;
     
     // Role name validator.  Require names to start with alphabetic characters and 
     // be followed by zero or more alphanumeric characters and underscores.
@@ -92,6 +95,49 @@ class AbstractResource
             }
         
        return payload; 
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getRoleId:                                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Return the ID of a role given its tenant and name.  An exception is thrown
+     * if for any reason an ID could not be retrieved.
+     * 
+     * @param tenant the role's tenant
+     * @param roleName the role's name
+     * @return the role's id
+     * @throws TapisException if the id was not retrieved
+     */
+    protected int getRoleId(String tenant, String roleName) 
+     throws TapisException
+    {
+        // Get the dao.
+        SkRoleDao roleDao = null;
+        try {roleDao = getSkRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                _log.error(msg, e);
+                throw new TapisException(msg);
+            }
+        
+        // Get the role id.
+        Integer roleId = null;
+        try {roleId = roleDao.getRoleId(tenant, roleName);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_GET_ROLE_ID_ERROR", roleName,
+                                             tenant, e.getMessage());
+                _log.error(msg, e);
+                throw new TapisException(msg);
+            }
+        
+        // Make sure we found the role.
+        if (roleId == null) {
+            String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        return roleId;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -243,6 +289,26 @@ class AbstractResource
            }
             
         return _roleTreePermissionDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkUserRoleDao:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkUserRoleDao getSkUserRoleDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_userRoleDao == null) 
+            synchronized (AbstractResource.class) {
+                if (_userRoleDao == null) _userRoleDao = new SkUserRoleDao();
+           }
+            
+        return _userRoleDao;
     }
 
     /* ---------------------------------------------------------------------------- */

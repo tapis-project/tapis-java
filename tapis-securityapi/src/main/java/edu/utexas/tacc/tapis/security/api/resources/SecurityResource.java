@@ -44,7 +44,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         tags = {@Tag(name = "role", description = "manage roles and permissions"),
                 @Tag(name = "user", description = "assign roles and permissions to users"),
                 @Tag(name = "general", description = "informational endpoints")},
-        servers = {@Server(url = "http://localhost:8080", description = "Local test environment")},
+        servers = {@Server(url = "http://localhost:8080/security", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
                                               url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )

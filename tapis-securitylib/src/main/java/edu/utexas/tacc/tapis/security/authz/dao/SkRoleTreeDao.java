@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkRoleTree;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -123,6 +124,7 @@ public final class SkRoleTreeDao
    * @param childRoleName the name of the role to be assigned to the parent
    * @return number of rows affected (0 or 1)
    * @throws TapisException if a single row is not inserted
+   * @throws TapisNotFoundException unknown parent or child role name
    */
   public int assignChildRole(String tenant, String user, String parentRoleName, 
                              String childRoleName) 
@@ -136,7 +138,7 @@ public final class SkRoleTreeDao
       if (parentRoleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, parentRoleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, parentRoleName);
       }
       
       // The child must exist in the tenant.
@@ -144,7 +146,7 @@ public final class SkRoleTreeDao
       if (childRoleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, childRoleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, childRoleName);
       }
       
       // Assign the child.
@@ -265,6 +267,7 @@ public final class SkRoleTreeDao
    * @param childRoleName the name of the role to be deleted from the parent
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
+   * @throws TapisNotFoundException unknown parent or child role name
    */
   public int removeChildRole(String tenant, String parentRoleName, String childRoleName) 
    throws TapisException
@@ -277,7 +280,7 @@ public final class SkRoleTreeDao
       if (parentRoleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, parentRoleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, parentRoleName);
       }
       
       // The child must exist in the tenant.
@@ -285,7 +288,7 @@ public final class SkRoleTreeDao
       if (childRoleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, childRoleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, childRoleName);
       }
       
       // Assign the child.

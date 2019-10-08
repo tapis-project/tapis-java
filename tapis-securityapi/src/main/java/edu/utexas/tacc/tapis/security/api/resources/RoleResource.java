@@ -42,6 +42,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -255,7 +256,7 @@ public final class RoleResource
              RespName missingName = new RespName();
              missingName.name = roleName;
              return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_FOUND", "Role", roleName), prettyPrint, missingName)).build();
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -294,9 +295,7 @@ public final class RoleResource
                   @ApiResponse(responseCode = "401", description = "Not authorized."),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response createRole(@QueryParam("roleName") String roleName,
-                                @QueryParam("description") String description,
-                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response createRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
      {
          // Trace this request.
@@ -307,35 +306,22 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, description)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, description");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // If all parameters are null, we need to use the payload.
-         if (roleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqCreateRole payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_CREATE_ROLE_REQUEST, 
+         // Parse and validate the json in the request payload, which must exist.
+         ReqCreateRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_CREATE_ROLE_REQUEST, 
                                        ReqCreateRole.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "createRole", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-             
-             // Fill in the parameter fields.
-             roleName = payload.roleName;
-             description = payload.description;
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "createRole", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+             
+         // Fill in the parameter fields.
+         String roleName = payload.roleName;
+         String description = payload.description;
          
          // Final checks.
          if (StringUtils.isBlank(roleName)) {
@@ -493,7 +479,6 @@ public final class RoleResource
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
      public Response updateRoleName(@PathParam("roleName") String roleName,
-                                    @QueryParam("newRoleName") String newRoleName,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     InputStream payloadStream)
      {
@@ -505,24 +490,21 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // If all query parameters are null, we need to use the payload.
-         if (newRoleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqUpdateRoleName payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
-                                       ReqUpdateRoleName.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "updateRoleName", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-             
-             // Fill in the parameter fields.
-             newRoleName = payload.newRoleName;
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUpdateRoleName payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+                                   ReqUpdateRoleName.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "updateRoleName", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+             
+         // Fill in the parameter fields.
+         String newRoleName = payload.newRoleName;
          
          // By this point there should be at least one non-null parameter.
          if (StringUtils.isBlank(newRoleName)) {
@@ -575,8 +557,10 @@ public final class RoleResource
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
              _log.error(msg);
-             return Response.status(Status.NOT_FOUND).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             RespName missingName = new RespName();
+             missingName.name = roleName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -611,7 +595,6 @@ public final class RoleResource
          )
      public Response updateRoleDescription(
                                 @PathParam("roleName") String roleName,
-                                @QueryParam("description") String description,
                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
      {
@@ -623,24 +606,21 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // If all query parameters are null, we need to use the payload.
-         if (description == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqUpdateRoleDescription payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
-                                       ReqUpdateRoleDescription.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "updateRoleName", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-             
-             // Fill in the parameter fields.
-             description = payload.description;
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUpdateRoleDescription payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+                                   ReqUpdateRoleDescription.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "updateRoleName", e.getMessage());
+              _log.error(msg, e);
+              return Response.status(Status.BAD_REQUEST).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
+             
+         // Fill in the parameter fields.
+         String description = payload.description;
          
          // By this point there should be at least one non-null parameter.
          if (StringUtils.isBlank(description)) {
@@ -688,8 +668,10 @@ public final class RoleResource
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
              _log.error(msg);
-             return Response.status(Status.NOT_FOUND).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             RespName missingName = new RespName();
+             missingName.name = roleName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -726,9 +708,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response addRolePermission(@QueryParam("roleName") String roleName,
-                                       @QueryParam("permSpec") String permSpec,
-                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response addRolePermission(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        InputStream payloadStream)
      {
          // Trace this request.
@@ -739,35 +719,22 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, permSpec)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permSpec");
-             _log.error(msg);
+         // Parse and validate the json in the request payload, which must exist.
+         ReqAddRolePermission payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_ADD_ROLE_PERM_REQUEST, 
+                                   ReqAddRolePermission.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "addRolePermission", e.getMessage());
+             _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
-         // If all parameters are null, we need to use the payload.
-         if (roleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqAddRolePermission payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_ADD_ROLE_PERM_REQUEST, 
-                                       ReqAddRolePermission.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "addRolePermission", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
              
              // Fill in the parameter fields.
-             roleName = payload.roleName;
-             permSpec = payload.permSpec;
-         }
+         String roleName = payload.roleName;
+         String permSpec = payload.permSpec;
          
          // Final checks.
          if (StringUtils.isBlank(roleName)) {
@@ -805,7 +772,18 @@ public final class RoleResource
          try {
              rows = dao.assignPermission(threadContext.getTenantId(), threadContext.getUser(), 
                                          roleName, permSpec);
+         } catch (TapisNotFoundException e) {
+             // This only occurs when the role name is not found.
+             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          permSpec, roleName);
+             _log.error(msg, e);
+             RespName missingName = new RespName();
+             missingName.name = e.missingName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
          } catch (Exception e) {
+             // We assume a bad request for all other errors.
              String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           permSpec, roleName);
@@ -850,9 +828,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response removeRolePermission(@QueryParam("roleName") String roleName,
-                                          @QueryParam("permSpec") String permSpec,
-                                          @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response removeRolePermission(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                           InputStream payloadStream)
      {
          // Trace this request.
@@ -863,35 +839,22 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(roleName, permSpec)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "roleName, permSpec");
-             _log.error(msg);
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRemoveRolePermission payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_ROLE_PERM_REQUEST, 
+                                   ReqRemoveRolePermission.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "removeRolePermission", e.getMessage());
+             _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
-         // If all parameters are null, we need to use the payload.
-         if (roleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqRemoveRolePermission payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_REMOVE_ROLE_PERM_REQUEST, 
-                                       ReqRemoveRolePermission.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "removeRolePermission", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
              
-             // Fill in the parameter fields.
-             roleName = payload.roleName;
-             permSpec = payload.permSpec;
-         }
+         // Fill in the parameter fields.
+         String roleName = payload.roleName;
+         String permSpec = payload.permSpec;
          
          // Final checks.
          if (StringUtils.isBlank(roleName)) {
@@ -928,6 +891,16 @@ public final class RoleResource
          int rows = 0;
          try {
              rows = dao.removePermission(threadContext.getTenantId(), roleName, permSpec);
+         } catch (TapisNotFoundException e) {
+             // This only occurs when the role name is not found.
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          permSpec, roleName);
+             _log.error(msg, e);
+             RespName missingName = new RespName();
+             missingName.name = e.missingName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
@@ -975,9 +948,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response addChildRole(@QueryParam("parentRoleName") String parentRoleName,
-                                  @QueryParam("childRoleName") String childRoleName,
-                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response addChildRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                   InputStream payloadStream)
      {
          // Trace this request.
@@ -988,35 +959,22 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(parentRoleName, childRoleName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "parentRoleName, childRoleName");
-             _log.error(msg);
+         // Parse and validate the json in the request payload, which must exist.
+         ReqAddChildRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_ADD_CHILD_ROLE_REQUEST, 
+                                   ReqAddChildRole.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "addChildRole", e.getMessage());
+             _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
-         // If all parameters are null, we need to use the payload.
-         if (parentRoleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqAddChildRole payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_ADD_CHILD_ROLE_REQUEST, 
-                                       ReqAddChildRole.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "addChildRole", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
              
-             // Fill in the parameter fields.
-             parentRoleName = payload.parentRoleName;
-             childRoleName = payload.childRoleName;
-         }
+         // Fill in the parameter fields.
+         String parentRoleName = payload.parentRoleName;
+         String childRoleName = payload.childRoleName;
          
          // Final checks.
          if (StringUtils.isBlank(parentRoleName)) {
@@ -1054,6 +1012,15 @@ public final class RoleResource
          try {
              rows = dao.assignChildRole(threadContext.getTenantId(), threadContext.getUser(), 
                                         parentRoleName, childRoleName);
+         } catch (TapisNotFoundException e) {
+             String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
+                     threadContext.getTenantId(), threadContext.getUser(), 
+                     childRoleName, parentRoleName);
+             _log.error(msg, e);
+             RespName missingName = new RespName();
+             missingName.name = e.missingName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
@@ -1099,9 +1066,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response removeChildRole(@QueryParam("parentRoleName") String parentRoleName,
-                                     @QueryParam("childRoleName") String childRoleName,
-                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response removeChildRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                      InputStream payloadStream)
      {
          // Trace this request.
@@ -1112,35 +1077,22 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some query parameters.
-         if (!allNullOrNot(parentRoleName, childRoleName)) {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", "parentRoleName, childRoleName");
-             _log.error(msg);
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRemoveChildRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_CHILD_ROLE_REQUEST, 
+                                   ReqRemoveChildRole.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "removeChildRole", e.getMessage());
+             _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
-         // If all parameters are null, we need to use the payload.
-         if (parentRoleName == null) {
-             // Parse and validate the json in the request payload, which must exist.
-             ReqRemoveChildRole payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_REMOVE_CHILD_ROLE_REQUEST, 
-                                       ReqRemoveChildRole.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "removeChildRole", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
              
-             // Fill in the parameter fields.
-             parentRoleName = payload.parentRoleName;
-             childRoleName = payload.childRoleName;
-         }
+         // Fill in the parameter fields.
+         String parentRoleName = payload.parentRoleName;
+         String childRoleName = payload.childRoleName;
          
          // Final checks.
          if (StringUtils.isBlank(parentRoleName)) {
@@ -1178,6 +1130,15 @@ public final class RoleResource
          try {
              rows = dao.removeChildRole(threadContext.getTenantId(),  
                                         parentRoleName, childRoleName);
+         } catch (TapisNotFoundException e) {
+             String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
+                     threadContext.getTenantId(), threadContext.getUser(), 
+                     childRoleName, parentRoleName);
+             _log.error(msg, e);
+             RespName missingName = new RespName();
+             missingName.name = e.missingName;
+             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
@@ -1246,13 +1207,7 @@ public final class RoleResource
                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.")}
          )
-     public Response replacePathPrefix(@QueryParam("schema")   String schema,
-                                       @QueryParam("roleName") String roleName,  // can be null
-                                       @QueryParam("oldSystemId") String oldSystemId,
-                                       @QueryParam("newSystemId") String newSystemId,
-                                       @QueryParam("oldPrefix") String oldPrefix,
-                                       @QueryParam("newPrefix") String newPrefix,
-                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response replacePathPrefix(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        InputStream payloadStream)
      {
          // Trace this request.
@@ -1263,21 +1218,6 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-         // Either query parameters are used or the payload is used, but not a mixture
-         // of the two.  Query parameters take precedence if all are assigned; it's an
-         // error to supply only some of the required query parameters.
-         if (!allNullOrNot(schema, oldSystemId, newSystemId) && 
-             !allNullOrNot(newSystemId, oldPrefix, newPrefix)) 
-         {
-             String msg = MsgUtils.getMsg("NET_INCOMPLETE_QUERY_PARMS", 
-                                         "schema, oldSystemId, newSystemId, oldPrefix, newPrefix");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // If all parameters are null, we need to use the payload.
-         if (schema == null) {
              // Parse and validate the json in the request payload, which must exist.
              ReqReplacePathPrefix payload = null;
              try {payload = getPayload(payloadStream, FILE_SK_REPLACE_PATH_PREFIX_REQUEST, 
@@ -1291,14 +1231,13 @@ public final class RoleResource
                    entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
              
-             // Fill in the parameter fields.
-             schema = payload.schema;
-             roleName = payload.roleName;
-             oldSystemId = payload.oldSystemId;
-             newSystemId = payload.newSystemId;
-             oldPrefix = payload.oldPrefix;
-             newPrefix = payload.newPrefix;
-         }
+         // Fill in the parameter fields.
+         String schema = payload.schema;
+         String roleName = payload.roleName;
+         String oldSystemId = payload.oldSystemId;
+         String newSystemId = payload.newSystemId;
+         String oldPrefix = payload.oldPrefix;
+         String newPrefix = payload.newPrefix;
          
          // Final checks for required parameters.
          if (StringUtils.isBlank(schema)) {

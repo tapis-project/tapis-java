@@ -56,6 +56,12 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* getUserRoles:                                                          */
   /* ---------------------------------------------------------------------- */
+  /** Return the roles directly assigned to a user.  This method DOES NOT
+   * return the transitive closure of roles assigned to the user.
+   * 
+   * @return the user's immediately assigned roles
+   * @throws TapisException on error
+   */
   public List<SkUserRole> getUserRoles() 
     throws TapisException
   {
@@ -113,6 +119,80 @@ public final class SkUserRoleDao
       }
       
       return list;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getUserNames:                                                          */
+  /* ---------------------------------------------------------------------- */
+  /** Get the names of all users in the tenant assigned any role.  The names
+   * are returned in alphabet order.
+   * 
+   * @param tenant the tenant being queried
+   * @return a non-null, sorted list of user names r
+   * @throws TapisException on error
+   */
+  public List<String> getUserNames(String tenant) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Initialize intermediate result.
+      ArrayList<String> users = new ArrayList<>();
+
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Get the select command.
+          String sql = SqlStatements.SELECT_USER_NAMES;
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+                      
+          // Issue the call the result set.
+          ResultSet rs = pstmt.executeQuery();
+          while (rs.next()) users.add(rs.getString(1));
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "SkUserRole", tenant, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Always return the connection back to the connection pool.
+          try {if (conn != null) conn.close();}
+            catch (Exception e) 
+            {
+              // If commit worked, we can swallow the exception.  
+              // If not, the commit exception will be thrown.
+              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+              _log.error(msg, e);
+            }
+      }
+      
+      return users;
   }
   
   /* ---------------------------------------------------------------------- */
@@ -216,10 +296,86 @@ public final class SkUserRoleDao
   }
   
   /* ---------------------------------------------------------------------- */
+  /* removeRole:                                                            */
+  /* ---------------------------------------------------------------------- */
+  public int removeRole(String tenant, String user, int roleId) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRole", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (roleId <= 0) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "removeRole", "roleId", roleId);
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.USER_DELETE_ROLE_BY_ID;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, user);
+          pstmt.setInt(3, roleId);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_user_role");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
   /* getUserRoleNames:                                                      */
   /* ---------------------------------------------------------------------- */
   /** Get the names of all roles assigned to this user including those assigned
-   * transitively.  The role names are returned in alphabetic order.
+   * TRANSITIVELY.  The role names are returned in alphabetic order.
    * 
    * @param tenant the user's tenant
    * @param user the user name
@@ -228,7 +384,7 @@ public final class SkUserRoleDao
    */
   public List<String> getUserRoleNames(String tenant, String user) throws TapisException
   {
-      // Get the <role id, role name> tuples assigned to this user.
+      // Get the <role id, role name> tuples directly assigned to this user.
       // Input checking done here.
       List<Pair<Integer, String>> roleRecs = getUserRoleIdsAndNames(tenant, user);
       
@@ -258,7 +414,7 @@ public final class SkUserRoleDao
   /* getUserPermissions:                                                    */
   /* ---------------------------------------------------------------------- */
   /** Get the permission values (i.e., constraint strings) assigned to this 
-   * user including those assigned transitively.  
+   * user including those assigned TRANSITIVELY.  
    * 
    * @param tenant the user's tenant
    * @param user the user name
@@ -295,13 +451,13 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* getUserRoleIdsAndNames:                                                */
   /* ---------------------------------------------------------------------- */
-  /** Get the id and names of all roles assigned to this user including those 
-   * assigned transitively.  The result is a list of tuples <role id, role name>
-   * assigned to the user.
+  /** Get the id and names of all roles directly assigned to this user.  The
+   * result DOES NOT include roles assigned transitively.  The result is a 
+   * list of tuples <role id, role name> assigned to the user.
    * 
    * @param tenant the user's tenant
    * @param user the user name
-   * @return a non-null list of all roles ids and names assigned to user
+   * @return a non-null list of all roles ids and names assigned directly to user
    * @throws TapisException on error
    */
   public List<Pair<Integer,String>> getUserRoleIdsAndNames(String tenant, String user) 
@@ -380,12 +536,12 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* getUserRoleIds:                                                        */
   /* ---------------------------------------------------------------------- */
-  /** Get the role ids assigned to this user including those assigned
-   * transitively.
+  /** Get the role ids directly assigned to this user.  The result DOES NOT
+   * including roles assigned transitively.
    * 
    * @param tenant the user's tenant
    * @param user the user name
-   * @return a non-null list of all roles assigned to user
+   * @return a non-null list of all roles assigned directly to user
    * @throws TapisException on error
    */
   public List<Integer> getUserRoleIds(String tenant, String user) throws TapisException

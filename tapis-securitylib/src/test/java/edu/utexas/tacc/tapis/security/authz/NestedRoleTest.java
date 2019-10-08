@@ -76,7 +76,7 @@ public class NestedRoleTest
         checkUserPermissions();
         
         // Delete roles created by prior runs of this test.
-        deleteRoles();
+//        deleteRoles();
     }
 
     /* ********************************************************************** */

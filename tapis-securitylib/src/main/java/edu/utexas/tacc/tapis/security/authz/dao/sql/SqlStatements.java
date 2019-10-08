@@ -158,11 +158,20 @@ public class SqlStatements
       "SELECT id, tenant, user_name, role_id, created, createdby, updated, updatedby"
       + " FROM sk_user_role";
 
+  // Get all users in tenant.
+  public static final String SELECT_USER_NAMES =
+      "SELECT DISTINCT user_name FROM sk_user_role "
+      + "WHERE tenant = ? ORDER BY user_name";
+  
   // If the role's tenant does not match the passed in tenant, the insert will fail.
   public static final String USER_ADD_ROLE_BY_ID =
       "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
       "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";
+
+  // If the role's tenant does not match the passed in tenant, the insert will fail.
+  public static final String USER_DELETE_ROLE_BY_ID =
+      "DELETE FROM sk_user_role WHERE tenant = ? AND user_name = ? AND role_id = ?";
 
   // Get the role ids directly (non-transitively) assigned to user.
   public static final String USER_SELECT_ROLE_IDS =
