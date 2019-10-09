@@ -14,7 +14,7 @@ import java.time.Instant;
  */
 public final class CommandProtocol
 {
-  private enum Mechanism {SSH_ANONYMOUS, SSH_PASSWORD, SSH_KEYS, SSH_CERT}
+  private enum Mechanism {NONE, SSH_ANONYMOUS, SSH_PASSWORD, SSH_KEYS, SSH_CERT}
 
   /* ********************************************************************** */
   /*                                 Fields                                 */

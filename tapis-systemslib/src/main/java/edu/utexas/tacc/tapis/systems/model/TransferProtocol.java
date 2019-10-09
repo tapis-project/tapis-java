@@ -14,7 +14,7 @@ import java.time.Instant;
  */
 public final class TransferProtocol
 {
-  private enum Mechanism {SFTP, S3, LOCAL}
+  private enum Mechanism {NONE, SFTP, S3, LOCAL}
 
   /* ********************************************************************** */
   /*                                 Fields                                 */

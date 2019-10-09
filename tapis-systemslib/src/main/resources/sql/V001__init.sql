@@ -23,8 +23,8 @@ SET search_path TO public;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tapis_sys TO tapis_sys;
 
 -- Types
-CREATE TYPE command_mech_type AS ENUM ('SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
-CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3', 'LOCAL');
+CREATE TYPE command_mech_type AS ENUM ('NONE', 'SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
+CREATE TYPE transfer_mech_type AS ENUM ('NONE', 'SFTP', 'S3', 'LOCAL');
 
 -- ----------------------------------------------------------------------------------------
 --                               PROTOCOLS 
