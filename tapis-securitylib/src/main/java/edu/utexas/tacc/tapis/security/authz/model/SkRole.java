@@ -54,7 +54,7 @@ public final class SkRole
         int rows;
         try {
             SkRoleTreeDao dao = new SkRoleTreeDao();
-            rows = dao.assignChildRole(tenant, user, id, childRoleName);
+            rows = dao.assignChildRole(tenant, user, name, childRoleName);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
@@ -112,7 +112,7 @@ public final class SkRole
         int rows;
         try {
             SkUserRoleDao dao = new SkUserRoleDao();
-            rows = dao.assignRole(tenant, assigner, assignee, id);
+            rows = dao.assignUserRole(tenant, assigner, assignee, id);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;

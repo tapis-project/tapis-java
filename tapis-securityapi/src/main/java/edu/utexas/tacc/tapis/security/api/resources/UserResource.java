@@ -338,7 +338,7 @@ public final class UserResource
      @Path("/grantRole")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Grant a user the specified role using a request body.",
+             description = "Grant a user the specified role.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -429,8 +429,8 @@ public final class UserResource
 
          // Assign the role to the user.
          int rows = 0;
-         try {rows = dao.assignRole(threadContext.getTenantId(), threadContext.getUser(), 
-                                    user, roleId);}
+         try {rows = dao.assignUserRole(threadContext.getTenantId(), threadContext.getUser(), 
+                                        user, roleId);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_ADD_USER_ROLE_ERROR", threadContext.getUser(), 
                                               threadContext.getTenantId(), roleId, user);
@@ -456,7 +456,7 @@ public final class UserResource
      @Path("/removeRole")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a previously granted role from a user using a request body.",
+             description = "Remove a previously granted role from a user.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -544,7 +544,7 @@ public final class UserResource
 
          // Assign the role to the user.
          int rows = 0;
-         try {rows = dao.removeRole(threadContext.getTenantId(), user, roleId);}
+         try {rows = dao.removeUserRole(threadContext.getTenantId(), user, roleId);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_REMOVE_USER_ROLE_ERROR",  
                                               threadContext.getTenantId(), roleId, user,
@@ -571,9 +571,8 @@ public final class UserResource
      @Path("/grantRoleWithPerm")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Grant a user the specified role containing the specified permission "
-                         + "using either a request body or query parameters, but not both.  This "
-                         + "compound request first adds the permission to the role if it is not "
+             description = "Grant a user the specified role containing the specified permission.  "
+                         + "This compound request first adds the permission to the role if it is not "
                          + "already a member of the role and then assigns the role "
                          + "to the user.  The change count returned can range from zero to two "
                          + "depending on how many insertions were actually required.",
@@ -619,7 +618,7 @@ public final class UserResource
              }
              
          // Fill in the parameter fields.
-         String user = payload.user;
+         String user     = payload.user;
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
@@ -652,9 +651,21 @@ public final class UserResource
          
          // ******************* Insert Permission into Role ********************
          // --------------------------------------------------------------------
+         // Get the role id.
+         int roleId = 0;
+         try {roleId = getRoleId(threadContext.getTenantId(), roleName);}
+             catch (Exception e) {
+                 // Determine status based on the error code.
+                 Status status = Status.INTERNAL_SERVER_ERROR;
+                 if (e.getMessage().contains("SK_ROLE_NOT_FOUND"))
+                     status = Status.BAD_REQUEST;
+                 return Response.status(status).
+                     entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+             }
+
          // Get the dao.
-         SkRolePermissionDao rolePermdao = null;
-         try {rolePermdao = getSkRolePermissionDao();}
+         SkRolePermissionDao rolePermDao = null;
+         try {rolePermDao = getSkRolePermissionDao();}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
                  _log.error(msg, e);
@@ -665,8 +676,8 @@ public final class UserResource
          // Create the role.
          int rows = 0;
          try {
-             rows = rolePermdao.assignPermission(threadContext.getTenantId(), threadContext.getUser(), 
-                                                 roleName, permSpec);
+             rows = rolePermDao.assignPermission(threadContext.getTenantId(), threadContext.getUser(), 
+                                                 roleId, permSpec);
          } catch (TapisNotFoundException e) {
              // This only occurs when the role name is not found.
              String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
@@ -690,18 +701,6 @@ public final class UserResource
          
          // ************************ Assign Role to User ***********************
          // --------------------------------------------------------------------
-         // Get the role id.
-         int roleId = 0;
-         try {roleId = getRoleId(threadContext.getTenantId(), roleName);}
-             catch (Exception e) {
-                 // Determine status based on the error code.
-                 Status status = Status.INTERNAL_SERVER_ERROR;
-                 if (e.getMessage().contains("SK_ROLE_NOT_FOUND"))
-                     status = Status.BAD_REQUEST;
-                 return Response.status(status).
-                     entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-             }
-
          // Get the dao.
          SkUserRoleDao userDao = null;
          try {userDao = getSkUserRoleDao();}
@@ -713,8 +712,8 @@ public final class UserResource
              }
 
          // Assign the role to the user.
-         try {rows += userDao.assignRole(threadContext.getTenantId(), threadContext.getUser(), 
-                                         user, roleId);}
+         try {rows += userDao.assignUserRole(threadContext.getTenantId(), threadContext.getUser(), 
+                                             user, roleId);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_ADD_USER_ROLE_ERROR", threadContext.getUser(), 
                                               threadContext.getTenantId(), roleId, user);
@@ -779,72 +778,22 @@ public final class UserResource
              return Response.status(Status.BAD_REQUEST).
                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-             
-         // Fill in the parameter fields.
-         String user = payload.user;
-         String roleName = payload.roleName;
          
-         // Final checks.
-         if (StringUtils.isBlank(user)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRole", "user");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(roleName)) {
+         // Make sure we have a role name.
+         if (StringUtils.isBlank(payload.roleName)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
-         if (resp != null) return resp;
-         
-         // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkUserRoleDao dao = null;
-         try {dao = getSkUserRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
 
-         // Get the names.
-         List<String> roles = null;
-         try {roles = dao.getUserRoleNames(threadContext.getTenantId(), user);}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
-                                              threadContext.getTenantId(), 
-                                              user, e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
+         // Repackage into a multi-role request.
+         ReqUserHasRoleMulti multi = new ReqUserHasRoleMulti();
+         multi.user = payload.user;
+         multi.roleNames = new String[] {payload.roleName};
          
-         // Search for the role in the list whose elements are sorted in ascending order.
-         int position = Collections.binarySearch(roles, roleName);
-         
-         // If the position is non-negative, then the roleName is in the list.
-         // Set the response accordingly.
-         String resultCode;
-         RespAuthorized authResp = new RespAuthorized();
-         if (position < 0) resultCode = "TAPIS_NOT_AUTHORIZED"; // user does not have role
-         else {
-             // User has role.
-             resultCode = "TAPIS_AUTHORIZED";
-             authResp.isAuthorized = true;
-         }
-         
-         // ---------------------------- Success ------------------------------- 
-         // Success means we found the role. 
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", user), prettyPrint, authResp)).build();
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY, multi);
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -881,7 +830,7 @@ public final class UserResource
          }
          
          // Call the real method.
-         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY);
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY, null);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -913,12 +862,12 @@ public final class UserResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "hasRoleAny", _request.getRequestURL());
+                                          "hasRoleAll", _request.getRequestURL());
              _log.trace(msg);
          }
          
          // Call the real method.
-         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ALL);
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ALL, null);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -928,8 +877,8 @@ public final class UserResource
      @Path("/isPermitted")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Check whether a user has been assigned the specified permission, "
-                           + "either directly or transitively.",
+             description = "Check whether specified permission matches a permission "
+                           + "assigned to the user, either directly or transitively.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -968,67 +917,21 @@ public final class UserResource
                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
              
-         // Fill in the parameter fields.
-         String user = payload.user;
-         String permSpec = payload.permSpec;
-         
-         // Final checks.
-         if (StringUtils.isBlank(user)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "user");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(permSpec)) {
+         // Make sure we have a permission specification.
+         if (StringUtils.isBlank(payload.permSpec)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
-         if (resp != null) return resp;
+         // Transfer to a new payload object.
+         ReqUserIsPermittedMulti multi = new ReqUserIsPermittedMulti();
+         multi.user = payload.user;
+         multi.permSpecs = new String[] {payload.permSpec};
          
-         // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkUserRoleDao dao = null;
-         try {dao = getSkUserRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-
-         // Get the names.
-         List<String> perms = null;
-         try {perms = dao.getUserPermissions(threadContext.getTenantId(), user);}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
-                                              threadContext.getTenantId(), 
-                                              user, e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
-         // See if the user-supplied permSpec matches any permission assigned to the user.
-         RespAuthorized authResp = new RespAuthorized();
-         authResp.isAuthorized = matchPermission(permSpec, perms);
-         
-         // If the position is non-negative, then the roleName is in the list.
-         // Set the response accordingly.
-         String resultCode;
-         if (authResp.isAuthorized) resultCode = "TAPIS_AUTHORIZED";
-           else resultCode = "TAPIS_NOT_AUTHORIZED";
-         
-         // ---------------------------- Success ------------------------------- 
-         // Success means we found the role. 
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", user), prettyPrint, authResp)).build();
+         // Call the real method.
+         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ANY, multi);
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -1065,7 +968,7 @@ public final class UserResource
          }
 
          // Call the real method.
-         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ANY);
+         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ANY, null);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1102,7 +1005,7 @@ public final class UserResource
          }
 
          // Call the real method.
-         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ALL);
+         return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ALL, null);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1214,20 +1117,21 @@ public final class UserResource
      /* hasRoleMulti:                                                                */
      /* ---------------------------------------------------------------------------- */
      private Response hasRoleMulti(InputStream payloadStream, boolean prettyPrint, 
-                                   AuthOperation op)
+                                   AuthOperation op, ReqUserHasRoleMulti payload)
      {
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
-         ReqUserHasRoleMulti payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_USER_HAS_ROLE_MULTI_REQUEST, 
-                                   ReqUserHasRoleMulti.class);
-         } 
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "hasRoleMulti", e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         if (payload == null) {
+             try {payload = getPayload(payloadStream, FILE_SK_USER_HAS_ROLE_MULTI_REQUEST, 
+                                       ReqUserHasRoleMulti.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "hasRoleMulti", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          }
          
          // Unpack inputs for convenience.
@@ -1312,29 +1216,31 @@ public final class UserResource
            else resultCode = "TAPIS_NOT_AUTHORIZED";
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we found the role. 
+         // Success means we found the role.
+         String respMsg = user + " authorized: " + authorized;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", user), prettyPrint, authResp)).build();
+             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, authResp)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
      /* isPermittedMulti:                                                            */
      /* ---------------------------------------------------------------------------- */
      private Response isPermittedMulti(InputStream payloadStream, boolean prettyPrint, 
-                                       AuthOperation op)
+                                       AuthOperation op, ReqUserIsPermittedMulti payload)
      {
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
-         ReqUserIsPermittedMulti payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_USER_IS_PERMITTED_MULTI_REQUEST, 
-                                   ReqUserIsPermittedMulti.class);
-         } 
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "isPermittedMulti", e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+         if (payload == null) {
+             try {payload = getPayload(payloadStream, FILE_SK_USER_IS_PERMITTED_MULTI_REQUEST, 
+                                       ReqUserIsPermittedMulti.class);
+             } 
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                              "isPermittedMulti", e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.BAD_REQUEST).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          }
          
          // Unpack inputs for convenience.
@@ -1419,9 +1325,10 @@ public final class UserResource
            else resultCode = "TAPIS_NOT_AUTHORIZED";
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we found the role. 
+         // Success means we found the role.
+         String respMsg = user + " authorized: " + authorized;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", user), prettyPrint, authResp)).build();
+             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, authResp)).build();
      }
      
      /* ---------------------------------------------------------------------------- */

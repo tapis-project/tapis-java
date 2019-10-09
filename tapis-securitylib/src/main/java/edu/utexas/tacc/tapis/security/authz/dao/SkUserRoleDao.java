@@ -196,7 +196,7 @@ public final class SkUserRoleDao
   }
   
   /* ---------------------------------------------------------------------- */
-  /* assignRole:                                                            */
+  /* assignUserRole:                                                        */
   /* ---------------------------------------------------------------------- */
   /** Assign a named child role to the parent role with the specified id. It
    * is expected that all information other than the childRoleName was extracted
@@ -214,7 +214,7 @@ public final class SkUserRoleDao
    * @return number of rows affected (0 or 1)
    * @throws TapisException if a single row is not inserted
    */
-  public int assignRole(String tenant, String assigner, String assignee, int roleId) 
+  public int assignUserRole(String tenant, String assigner, String assignee, int roleId) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -296,9 +296,17 @@ public final class SkUserRoleDao
   }
   
   /* ---------------------------------------------------------------------- */
-  /* removeRole:                                                            */
+  /* removeUserRole:                                                        */
   /* ---------------------------------------------------------------------- */
-  public int removeRole(String tenant, String user, int roleId) 
+  /** Remove a role from a user.
+   * 
+   * @param tenant user's tenant
+   * @param user the target user
+   * @param roleId the role id to remove
+   * @return the number of rows affect (0 or 1)
+   * @throws TapisException on error
+   */
+  public int removeUserRole(String tenant, String user, int roleId) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------

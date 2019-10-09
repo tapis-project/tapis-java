@@ -112,7 +112,7 @@ public final class SkRolePermissionDao
   /* ---------------------------------------------------------------------- */
   /* assignPermission:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Assign a named child role to the parent role with the specified name.
+  /** Assign a permission to the named role.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0.  

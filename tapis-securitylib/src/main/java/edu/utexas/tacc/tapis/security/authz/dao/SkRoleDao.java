@@ -697,7 +697,7 @@ public final class SkRoleDao
   /** Get all the names of the children roles for the specified parent role id.
    * 
    * Note: Without modules or reorganizing packages, users from one tenant can
-   *       see role information from another.
+   *       see role information from another when going directly to this interface.
    * 
    * @param parentId the role id whose descendants are requested
    * @return a non-null list of descendant role names
