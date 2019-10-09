@@ -17,11 +17,11 @@ import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
@@ -109,7 +109,7 @@ class AbstractResource
      * @throws TapisException if the id was not retrieved
      */
     protected int getRoleId(String tenant, String roleName) 
-     throws TapisException
+     throws TapisException, TapisNotFoundException
     {
         // Get the dao.
         SkRoleDao roleDao = null;
@@ -134,7 +134,7 @@ class AbstractResource
         if (roleId == null) {
             String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
             _log.error(msg);
-            throw new TapisException(msg);
+            throw new TapisNotFoundException(msg, roleName);
         }
         
         return roleId;

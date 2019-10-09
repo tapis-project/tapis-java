@@ -408,12 +408,15 @@ public final class UserResource
          // Get the role id.
          int roleId = 0;
          try {roleId = getRoleId(threadContext.getTenantId(), roleName);}
+             catch (TapisNotFoundException e) {
+                 RespName missingName = new RespName();
+                 missingName.name = e.missingName;
+                 return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
+             }
              catch (Exception e) {
                  // Determine status based on the error code.
-                 Status status = Status.INTERNAL_SERVER_ERROR;
-                 if (e.getMessage().contains("SK_ROLE_NOT_FOUND"))
-                     status = Status.BAD_REQUEST;
-                 return Response.status(status).
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
              }
 
@@ -523,12 +526,15 @@ public final class UserResource
          // Get the role id.
          int roleId = 0;
          try {roleId = getRoleId(threadContext.getTenantId(), roleName);}
+             catch (TapisNotFoundException e) {
+                 RespName missingName = new RespName();
+                 missingName.name = e.missingName;
+                 return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
+             }
              catch (Exception e) {
                  // Determine status based on the error code.
-                 Status status = Status.INTERNAL_SERVER_ERROR;
-                 if (e.getMessage().contains("SK_ROLE_NOT_FOUND"))
-                     status = Status.BAD_REQUEST;
-                 return Response.status(status).
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
              }
 
@@ -542,7 +548,7 @@ public final class UserResource
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
 
-         // Assign the role to the user.
+         // Remove the role from the user.
          int rows = 0;
          try {rows = dao.removeUserRole(threadContext.getTenantId(), user, roleId);}
              catch (Exception e) {
@@ -551,7 +557,7 @@ public final class UserResource
                                               e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
          
          // Populate the response.
@@ -654,12 +660,15 @@ public final class UserResource
          // Get the role id.
          int roleId = 0;
          try {roleId = getRoleId(threadContext.getTenantId(), roleName);}
+             catch (TapisNotFoundException e) {
+                 RespName missingName = new RespName();
+                 missingName.name = e.missingName;
+                 return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
+             }
              catch (Exception e) {
                  // Determine status based on the error code.
-                 Status status = Status.INTERNAL_SERVER_ERROR;
-                 if (e.getMessage().contains("SK_ROLE_NOT_FOUND"))
-                     status = Status.BAD_REQUEST;
-                 return Response.status(status).
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
              }
 
@@ -1038,15 +1047,46 @@ public final class UserResource
              _log.trace(msg);
          }
          
-         // ***** DUMMY TEST Response Data
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkUserRoleDao dao = null;
+         try {dao = getSkUserRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+
+         // Assign the role to the user.
+         List<String> users = null;
+         try {users = dao.getUsersWithRole(threadContext.getTenantId(), roleName);}
+             catch (TapisNotFoundException e) {
+                 RespName missingName = new RespName();
+                 missingName.name = e.missingName;
+                 return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
+             }
+             catch (Exception e) {
+                 // Determine status based on the error code.
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+             }
+         
+         // Fill in the response.
          RespNameArray names = new RespNameArray();
-         names.names = new String[2];
-         names.names[0] = "user1";
-         names.names[1] = "user2";
+         String[] array = new String[users.size()];
+         names.names = users.toArray(array);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
-         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         int cnt = names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
      }
@@ -1095,16 +1135,41 @@ public final class UserResource
                                           "getUsersWithPermission", _request.getRequestURL());
              _log.trace(msg);
          }
+
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
          
-         // ***** DUMMY TEST Response Data
+         // ------------------------ Request Processing ------------------------
+         // Get the dao.
+         SkUserRoleDao dao = null;
+         try {dao = getSkUserRoleDao();}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+
+         // Assign the role to the user.
+         List<String> users = null;
+         try {users = dao.getUsersWithPermission(threadContext.getTenantId(), permSpec);}
+             catch (Exception e) {
+                 // Determine status based on the error code.
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(RestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+             }
+         
+         // Fill in the response.
          RespNameArray names = new RespNameArray();
-         names.names = new String[2];
-         names.names[0] = "user1";
-         names.names[1] = "user2";
+         String[] array = new String[users.size()];
+         names.names = users.toArray(array);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
-         int cnt = (names == null || names.names == null) ? 0 : names.names.length;
+         int cnt = names.names.length;
          return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
      }

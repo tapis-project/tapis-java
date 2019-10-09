@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -660,7 +661,7 @@ public final class SkUserRoleDao
           catch (Exception e) {
               String msg = MsgUtils.getMsg("SK_ANCESTOR_ROLE_ERROR", tenant, roleName);
               _log.error(msg, e);
-              throw new TapisException(msg, e);
+              throw TapisUtils.tapisify(e);  // preserve TapisNotFoundException
           }
       
       // Always add the original role name to the list.
@@ -897,7 +898,7 @@ public final class SkUserRoleDao
    * @throws TapisException on error
    */
   private List<String> getAncestorRoleNames(String tenant, String roleName) 
-   throws TapisException
+   throws TapisException, TapisNotFoundException
   {
       // Get all the role's ancestors.
       SkRoleDao dao = new SkRoleDao();
