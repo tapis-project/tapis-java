@@ -66,8 +66,10 @@ public final class RoleResource
     // Json schema resource files.
     private static final String FILE_SK_CREATE_ROLE_REQUEST = 
         "/edu/utexas/tacc/tapis/security/api/jsonschema/CreateRoleRequest.json";
-    private static final String FILE_SK_UPDATE_ROLE_REQUEST = 
-            "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleRequest.json";
+    private static final String FILE_SK_UPDATE_ROLE_NAME_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleNameRequest.json";
+    private static final String FILE_SK_UPDATE_ROLE_DESCRIPTION_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleDescriptionRequest.json";
     private static final String FILE_SK_ADD_ROLE_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/AddRolePermissionRequest.json";
     private static final String FILE_SK_ADD_CHILD_ROLE_REQUEST = 
@@ -492,7 +494,7 @@ public final class RoleResource
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
          ReqUpdateRoleName payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_NAME_REQUEST, 
                                    ReqUpdateRoleName.class);
          } 
          catch (Exception e) {
@@ -608,7 +610,7 @@ public final class RoleResource
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
          ReqUpdateRoleDescription payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_REQUEST, 
+         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_DESCRIPTION_REQUEST, 
                                    ReqUpdateRoleDescription.class);
          } 
          catch (Exception e) {
