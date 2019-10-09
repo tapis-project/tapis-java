@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
@@ -697,7 +698,7 @@ public final class SkRoleDao
   /** Get all the names of the children roles for the specified parent role id.
    * 
    * Note: Without modules or reorganizing packages, users from one tenant can
-   *       see role information from another.
+   *       see role information from another when going directly to this interface.
    * 
    * @param parentId the role id whose descendants are requested
    * @return a non-null list of descendant role names
@@ -770,7 +771,7 @@ public final class SkRoleDao
    * @throws TapisException on error including role not found
    */
   public List<String> getAncestorRoleNames(String tenant, String roleName) 
-   throws TapisException
+   throws TapisException, TapisNotFoundException
   {
       // Get the role id.
       Integer roleId = getRoleId(tenant, roleName);
@@ -779,7 +780,7 @@ public final class SkRoleDao
       if (roleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, roleName);
       }
       
       // Find the role's ancestors.

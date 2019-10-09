@@ -438,8 +438,8 @@ public static Timestamp getUTCTimestamp()
       // -------- Wrapper for TapisRecoverableException
       else if (e instanceof TapisRecoverableException) {
           // Wrap the recoverable exception in a generic tapis exception.
-          // Recoverable exceptions are discovered by search the cause chain
-          // using findInChain(), so there's no loss in burying them inside
+          // Recoverable exceptions are discovered by searching the cause chain
+          // using findInChain(), so there's no loss when burying them inside
           // another exception.
           tapisException = new TapisException(msg, e);
       }

@@ -7,16 +7,10 @@
         "properties": {
           "roleName": {
             "type": "string"
-          },
-          "description": {
-            "type": "string"
           }
         },
-    "anyOf": [
-        { "required":
-            [ "roleName" ] },
-        { "required":
-            [ "description" ] }
+    "required": [
+        "roleName"
     ]
 }
 

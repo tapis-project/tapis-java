@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkRolePermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -111,7 +112,7 @@ public final class SkRolePermissionDao
   /* ---------------------------------------------------------------------- */
   /* assignPermission:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Assign a named child role to the parent role with the specified name.
+  /** Assign a permission to the named role.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0.  
@@ -122,10 +123,11 @@ public final class SkRolePermissionDao
    * @param permission the permission specification to be assigned to the role
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
+   * @throws TapisNotFoundException unknown role name
    */
   public int assignPermission(String tenant, String user, String roleName, 
                               String permission) 
-   throws TapisException
+   throws TapisException, TapisNotFoundException
   {
       // Inputs are all checked in the called routines.
       SkRoleDao dao = new SkRoleDao();
@@ -135,7 +137,7 @@ public final class SkRolePermissionDao
       if (roleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, roleName);
       }
       
       // Assign the permission.
@@ -252,10 +254,11 @@ public final class SkRolePermissionDao
    * @param permission the permission specification to be removed from the role
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
+   * @throws TapisNotFoundException unknown role name
    */
   public int removePermission(String tenant, String roleName, 
                               String permission) 
-   throws TapisException
+   throws TapisException, TapisNotFoundException
   {
       // Inputs are all checked in the called routines.
       SkRoleDao dao = new SkRoleDao();
@@ -265,7 +268,7 @@ public final class SkRolePermissionDao
       if (roleId == null) {
           String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
           _log.error(msg);
-          throw new TapisException(msg);
+          throw new TapisNotFoundException(msg, roleName);
       }
       
       // Assign the permission.
