@@ -689,10 +689,24 @@ public final class RoleResource
      @Path("/addPerm")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Add a permission to an existing role using either a request body "
-                         + "or query parameters, but not both.  If the permission already exists, "
+             description = "Add a permission to an existing role using either a request body.  "
+                         + "If the permission already exists, "
                          + "then the request has no effect and the change count returned is "
-                         + "zero. Otherwise, the permission is added and the change count is one.",
+                         + "zero. Otherwise, the permission is added and the change count is one.  "
+                         + ""
+                         + "Permissions are case-sensitive strings that follow the format "
+                         + "defined by Apache Shiro (https://shiro.apache.org/permissions.html).  "
+                         + "This format defines any number of colon-separated (:) parts, with the "
+                         + "possible use of asterisks (*) as wildcards and commas (,) as "
+                         + "aggregators.  Here are two example permission strings:\n\n"
+                         + ""
+                         + "    system:MyTenant:read,write:system1\n"
+                         + "    system:MyTenant:create,read,write,delete:*\n\n"
+                         + ""
+                         + "See the Shiro documentation for further details.  Note that the three "
+                         + "reserved characters, [: * ,], cannot appear in the text of any part.  "
+                         + "It's the application's responsibility to escape those characters in "
+                         + "a manner that is safe in the application's domain.",
              tags = "role",
              requestBody = 
                  @RequestBody(
