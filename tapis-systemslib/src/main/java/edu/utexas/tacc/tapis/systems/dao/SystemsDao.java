@@ -16,7 +16,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /*
- * Class to handle persistence for System objects.
+ * Class to handle persistence for Tapis System objects.
  */
 public class SystemsDao extends AbstractDao
 {
@@ -36,10 +36,14 @@ public class SystemsDao extends AbstractDao
    * Create a new system record.
    *
    */
-  public int createSystem(String tenant, String name, String description, String owner, String host,
-                           boolean available, String bucketName, String rootDir, String effectiveUserId)
+  public int createTSystem(String tenant, String name, String description, String owner, String host,
+                           boolean available, String bucketName, String rootDir,
+                           String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
+                           String effectiveUserId, int cmdProtocolId, int txfProtocolId,
+                           String commandCredential, String transferCredential)
           throws TapisException
   {
+    // TODO Store credentials in Security Kernel
     int rows = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
@@ -73,7 +77,13 @@ public class SystemsDao extends AbstractDao
       pstmt.setBoolean(6, available);
       pstmt.setString(7, bucketName);
       pstmt.setString(8, rootDir);
-      pstmt.setString(9, effectiveUserId);
+      pstmt.setString(9, jobInputDir);
+      pstmt.setString(10, jobOutputDir);
+      pstmt.setString(11, workDir);
+      pstmt.setString(12, scratchDir);
+      pstmt.setString(13, effectiveUserId);
+      pstmt.setInt(14, cmdProtocolId);
+      pstmt.setInt(15, txfProtocolId);
 
       // Issue the call.
       rows = pstmt.executeUpdate();
@@ -128,7 +138,7 @@ public class SystemsDao extends AbstractDao
    * Delete a system record given the system name.
    *
    */
-  public int deleteSystem(String tenant, String name)
+  public int deleteTSystem(String tenant, String name)
       throws TapisException
   {
     int rows = -1;
@@ -180,7 +190,7 @@ public class SystemsDao extends AbstractDao
       }
 
       // Log the exception.
-      String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems_tbl");
+      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "systems");
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -209,7 +219,7 @@ public class SystemsDao extends AbstractDao
    * @return
    * @throws TapisException
    */
-  public TSystem getSystemByName(String name) throws TapisException {
+  public TSystem getTSystemByName(String name) throws TapisException {
     // Initialize result.
     TSystem result = null;
 
@@ -230,7 +240,7 @@ public class SystemsDao extends AbstractDao
 
       // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
-      result = populateSystem(rs);
+      result = populateTSystem(rs);
 
       // Close out and commit
       rs.close();
@@ -275,7 +285,7 @@ public class SystemsDao extends AbstractDao
   /* ---------------------------------------------------------------------- */
   /* getSystems:                                                            */
   /* ---------------------------------------------------------------------- */
-  public List<TSystem> getSystems()
+  public List<TSystem> getTSystems()
           throws TapisException
   {
     // The result list is always non-null.
@@ -296,11 +306,11 @@ public class SystemsDao extends AbstractDao
 
       // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
-      TSystem system = populateSystem(rs);
+      TSystem system = populateTSystem(rs);
       while (system != null)
       {
         list.add(system);
-        system = populateSystem(rs);
+        system = populateTSystem(rs);
       }
 
       // Close out and commit
@@ -355,7 +365,7 @@ public class SystemsDao extends AbstractDao
    * @return the new, fully populated job object or null if the result set is empty
    * @throws TapisJDBCException
    */
-  private TSystem populateSystem(ResultSet rs)
+  private TSystem populateTSystem(ResultSet rs)
           throws TapisJDBCException
   {
     // Quick check.
@@ -371,21 +381,29 @@ public class SystemsDao extends AbstractDao
       throw new TapisJDBCException(msg, e);
     }
 
-    TSystem system = null;
+    TSystem tSystem = null;
     try
     {
-      system = new TSystem(rs.getInt(1),
-                           rs.getString(2),
-                           rs.getString(3),
-                           rs.getString(4),
-                           rs.getString(5),
-                           rs.getString(6),
-                           rs.getBoolean(7),
-                           rs.getString(8),
-                           rs.getString(9),
-                           rs.getString(10),
-                           rs.getTimestamp(11).toInstant(),
-                           rs.getTimestamp(12).toInstant());
+      tSystem = new TSystem(rs.getInt(1), // id
+                           rs.getString(2), // tenant
+                           rs.getString(3), // name
+                           rs.getString(4), // description
+                           rs.getString(5), // owner
+                           rs.getString(6), // host
+                           rs.getBoolean(7), //available
+                           rs.getString(8), // bucketName
+                           rs.getString(9), // rootDir
+                           rs.getString(10), // jobInputDir
+                           rs.getString(11), // jobOutputDir
+                           rs.getString(12), // workDir
+                           rs.getString(13), // scratchDir
+                           rs.getString(14), // effectiveUserId
+                           null, // commandProtocol
+                           null, // transferProtocol
+                           rs.getString(15), // commandCred
+                           rs.getString(16), // transferCred
+                           rs.getTimestamp(11).toInstant(), // created
+                           rs.getTimestamp(12).toInstant()); // updated
     }
     catch (Exception e)
     {
@@ -393,6 +411,6 @@ public class SystemsDao extends AbstractDao
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
     }
-    return system;
+    return tSystem;
   }
 }

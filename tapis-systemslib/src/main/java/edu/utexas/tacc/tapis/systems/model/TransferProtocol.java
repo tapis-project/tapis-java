@@ -14,7 +14,7 @@ import java.time.Instant;
  */
 public final class TransferProtocol
 {
-  private enum Mechanism {NONE, SFTP, S3, LOCAL}
+  public enum Mechanism {NONE, SFTP, S3, LOCAL}
 
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -22,6 +22,7 @@ public final class TransferProtocol
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(TransferProtocol.class);
 
+  private final int id;
   private final Mechanism mechanism; // How access authorization is handled.
   private final int port; // Port number used to access a system.
   private final boolean useProxy; // Indicates if a system should be accessed through a proxy.
@@ -32,8 +33,9 @@ public final class TransferProtocol
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  public TransferProtocol(Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
+  public TransferProtocol(int id1, Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
   {
+    id = id1;
     mechanism = mechanism1;
     port = port1;
     useProxy = useProxy1;
@@ -45,6 +47,7 @@ public final class TransferProtocol
   /* ********************************************************************** */
   /*                               Accessors                                */
   /* ********************************************************************** */
+  public int getId() { return id; }
   public String getMechanism() { return mechanism.toString(); }
   public int getPort() { return port; }
   public boolean useProxy() { return useProxy; }

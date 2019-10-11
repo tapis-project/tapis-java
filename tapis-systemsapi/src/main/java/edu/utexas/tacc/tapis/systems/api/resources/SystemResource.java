@@ -190,8 +190,10 @@ public class SystemResource
     {
       SystemsDao dao = new SystemsDao();
       // TODO remove hard coded values
-      dao.createSystem(tenant, name, description, owner, host, true,
-                       "bucket1", "/root1", "effUser1");
+      dao.createTSystem(tenant, name, description, owner, host, true, "bucket1", "/root1",
+                        "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1",
+                        "effUser1", -1, -1,
+                        "cpassword1", "tpassword1");
     }
     catch (Exception e)
     {
@@ -228,7 +230,7 @@ public class SystemResource
     TSystem system = null;
     try
     {
-      system = dao.getSystemByName(name);
+      system = dao.getTSystemByName(name);
     }
     catch (Exception e)
     {
@@ -270,7 +272,7 @@ public class SystemResource
     // ------------------------- Retrieve all records -----------------------------
     SystemsDao dao = new SystemsDao();
     List<TSystem> systems = null;
-    try { systems = dao.getSystems(); }
+    try { systems = dao.getTSystems(); }
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("SYSTEMS_SELECT_ERROR", e.getMessage());

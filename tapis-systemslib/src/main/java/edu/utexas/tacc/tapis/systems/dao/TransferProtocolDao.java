@@ -3,8 +3,8 @@ package edu.utexas.tacc.tapis.systems.dao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol;
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol.Mechanism;
+import edu.utexas.tacc.tapis.systems.model.TransferProtocol;
+import edu.utexas.tacc.tapis.systems.model.TransferProtocol.Mechanism;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +14,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /*
- * Class to handle persistence for CommandProtocol objects.
+ * Class to handle persistence for TransferProtocol objects.
  */
-public class CommandProtocolDao extends AbstractDao
+public class TransferProtocolDao extends AbstractDao
 {
   /* ********************************************************************** */
   /*                               Fields                                   */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger(CommandProtocolDao.class);
+  private static final Logger _log = LoggerFactory.getLogger(TransferProtocolDao.class);
 
 //    private final DataSource dataSource;
 
@@ -30,7 +30,7 @@ public class CommandProtocolDao extends AbstractDao
   /*                             Constructors                               */
   /* ********************************************************************** */
 //  @Inject
-//  CommandProtocolDao(DataSource dataSource1) {
+//  TransferProtocolDao(DataSource dataSource1) {
 //    dataSource = dataSource1;
 //  }
 
@@ -51,7 +51,7 @@ public class CommandProtocolDao extends AbstractDao
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(mechanism))
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createCommandProtocol", "mechanism");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createTransferProtocol", "mechanism");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -60,7 +60,7 @@ public class CommandProtocolDao extends AbstractDao
     if (proxyHost == null) proxyHost = "";
 
     // Check for existing record. If present we are done
-    CommandProtocol item = get(mechanism, port, useProxy, proxyHost, proxyPort);
+    TransferProtocol item = get(mechanism, port, useProxy, proxyHost, proxyPort);
     if (item != null) return item.getId();
 
     // Generated sequence id
@@ -74,7 +74,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.CREATE_CMDPROT;
+      String sql = SqlStatements.CREATE_TXFPROT;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -90,7 +90,7 @@ public class CommandProtocolDao extends AbstractDao
       // The generated sequence id should come back in the result
       if (!rs.next())
       {
-        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "cmd_protocol");
+        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "txf_protocol");
         _log.error(msg);
         throw new TapisException(msg);
       }
@@ -148,11 +148,11 @@ public class CommandProtocolDao extends AbstractDao
    * @return item if found, null otherwise
    * @throws TapisException
    */
-  public CommandProtocol get(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
+  public TransferProtocol get(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
       throws TapisException
   {
     // Initialize result.
-    CommandProtocol result = null;
+    TransferProtocol result = null;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -162,7 +162,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Get the select command.
-      String sql = SqlStatements.SELECT_CMDPROT_BY_VALUE;
+      String sql = SqlStatements.SELECT_TXFPROT_BY_VALUE;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -196,7 +196,7 @@ public class CommandProtocolDao extends AbstractDao
       }
 
       // TODO Update message to give all values
-      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "CommandProtocol", mechanism, e.getMessage());
+      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "TransferProtocol", mechanism, e.getMessage());
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -242,7 +242,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.DELETE_CMDPROT_BY_VALUE;
+      String sql = SqlStatements.DELETE_TXFPROT_BY_VALUE;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -272,7 +272,7 @@ public class CommandProtocolDao extends AbstractDao
       }
 
       // Log the exception.
-      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "cmd_protocol");
+      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "TXF_protocol");
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -307,7 +307,7 @@ public class CommandProtocolDao extends AbstractDao
    * @return the new, fully populated job object or null if the result set is empty
    * @throws TapisJDBCException
    */
-  private CommandProtocol populate(ResultSet rs)
+  private TransferProtocol populate(ResultSet rs)
       throws TapisJDBCException
   {
     // Quick check.
@@ -327,10 +327,10 @@ public class CommandProtocolDao extends AbstractDao
     }
 
     // Create the item
-    CommandProtocol item = null;
+    TransferProtocol item = null;
     try
     {
-      item = new CommandProtocol(rs.getInt(1),
+      item = new TransferProtocol(rs.getInt(1),
                                  Mechanism.valueOf(rs.getString(2)),
                                  rs.getInt(3),
                                  rs.getBoolean(4),

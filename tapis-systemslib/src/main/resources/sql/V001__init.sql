@@ -30,14 +30,15 @@ CREATE TYPE transfer_mech_type AS ENUM ('NONE', 'SFTP', 'S3', 'LOCAL');
 --                               PROTOCOLS 
 -- ----------------------------------------------------------------------------------------
 -- Command Protocol table
+-- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
 CREATE TABLE cmd_protocol
 (
   id         SERIAL PRIMARY KEY,
   mechanism  command_mech_type NOT NULL,
-  port       INTEGER,
+  port       INTEGER NOT NULL DEFAULT -1,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
-  proxy_host VARCHAR(256),
-  proxy_port INTEGER,
+  proxy_host VARCHAR(256) NOT NULL DEFAULT '',
+  proxy_port INTEGER NOT NULL DEFAULT -1,
   created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
   UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
 );
@@ -51,14 +52,15 @@ COMMENT ON COLUMN cmd_protocol.proxy_port IS 'Proxy port number';
 COMMENT ON COLUMN cmd_protocol.created IS 'UTC time for when record was created';
 
 -- Transfer Protocol table
+-- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
 CREATE TABLE txf_protocol
 (
   id         SERIAL PRIMARY KEY,
   mechanism  transfer_mech_type NOT NULL,
-  port       INTEGER,
+  port       INTEGER NOT NULL DEFAULT -1,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
-  proxy_host VARCHAR(256),
-  proxy_port INTEGER,
+  proxy_host VARCHAR(256) NOT NULL DEFAULT '',
+  proxy_port INTEGER NOT NULL DEFAULT -1,
   created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
   UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
 );
@@ -86,15 +88,13 @@ CREATE TABLE systems
   available      BOOLEAN NOT NULL DEFAULT true,
   bucket_name    VARCHAR(63),
   root_dir       VARCHAR(1024),
---  job_input_dir  VARCHAR(1024),
---  job_output_dir VARCHAR(1024),
---  work_dir       VARCHAR(1024),
---  scratch_dir    VARCHAR(1024),
+  job_input_dir  VARCHAR(1024),
+  job_output_dir VARCHAR(1024),
+  work_dir       VARCHAR(1024),
+  scratch_dir    VARCHAR(1024),
   effective_user_id VARCHAR(60) NOT NULL,
---  command_protocol   SERIAL references cmd_protocol(id),
---  transfer_protocol SERIAL references txf_protocol(id),
---  command_protocol VARCHAR(32) NOT NULL,
---  transfer_protocol VARCHAR(32) NOT NULL,
+  command_protocol   SERIAL references cmd_protocol(id),
+  transfer_protocol SERIAL references txf_protocol(id),
   created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
@@ -109,13 +109,13 @@ COMMENT ON COLUMN systems.host IS 'System host name or ip address';
 COMMENT ON COLUMN systems.available IS 'Indicates if system is currently available';
 COMMENT ON COLUMN systems.bucket_name IS 'Name of the bucket for an S3 system';
 COMMENT ON COLUMN systems.root_dir IS 'Name of root directory for a Unix system';
---COMMENT ON COLUMN systems.job_input_dir IS '';
---COMMENT ON COLUMN systems.job_output_dir IS '';
---COMMENT ON COLUMN systems.work_dir IS '';
---COMMENT ON COLUMN systems.scratch_dir IS '';
+COMMENT ON COLUMN systems.job_input_dir IS 'Directory used for staging job input files';
+COMMENT ON COLUMN systems.job_output_dir IS 'Directory used for writing job output files';
+COMMENT ON COLUMN systems.work_dir IS 'Directory based on a path shared among all users in a cluster';
+COMMENT ON COLUMN systems.scratch_dir IS 'Directory based on a path shared among all users in a cluster';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
---COMMENT ON COLUMN systems.command_protocol IS 'Reference to command protocol used for the system';
---COMMENT ON COLUMN systems.transfer_protocol IS 'Reference to transfer protocol used for the system';
+COMMENT ON COLUMN systems.command_protocol IS 'Reference to command protocol used for the system';
+COMMENT ON COLUMN systems.transfer_protocol IS 'Reference to transfer protocol used for the system';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
 
