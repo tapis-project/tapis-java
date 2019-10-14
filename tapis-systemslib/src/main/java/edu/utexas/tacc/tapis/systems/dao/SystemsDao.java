@@ -20,9 +20,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  */
 public class SystemsDao extends AbstractDao
 {
-  // TODO Remove hard coded value
-  private static final String tenant = "tenant1";
-
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
@@ -35,6 +32,8 @@ public class SystemsDao extends AbstractDao
   /**
    * Create a new system record.
    *
+   * @return Number of rows inserted
+   * @throws TapisException
    */
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
@@ -219,7 +218,7 @@ public class SystemsDao extends AbstractDao
    * @return
    * @throws TapisException
    */
-  public TSystem getTSystemByName(String name) throws TapisException {
+  public TSystem getTSystemByName(String tenant, String name) throws TapisException {
     // Initialize result.
     TSystem result = null;
 
@@ -285,7 +284,7 @@ public class SystemsDao extends AbstractDao
   /* ---------------------------------------------------------------------- */
   /* getSystems:                                                            */
   /* ---------------------------------------------------------------------- */
-  public List<TSystem> getTSystems()
+  public List<TSystem> getTSystems(String tenant)
           throws TapisException
   {
     // The result list is always non-null.
@@ -303,6 +302,7 @@ public class SystemsDao extends AbstractDao
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
 
       // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
@@ -384,6 +384,12 @@ public class SystemsDao extends AbstractDao
     TSystem tSystem = null;
     try
     {
+      // TODO: What about credentials?
+      // TODO: Populate command and transfer protocols from the references
+      int cmdProtId = rs.getInt(15);
+      int txfProtId = rs.getInt(16);
+      System.out.println("***************************************************************CmdProtId: " + cmdProtId);
+      System.out.println("***************************************************************TxfProtId: " + txfProtId);
       tSystem = new TSystem(rs.getInt(1), // id
                            rs.getString(2), // tenant
                            rs.getString(3), // name
@@ -400,10 +406,10 @@ public class SystemsDao extends AbstractDao
                            rs.getString(14), // effectiveUserId
                            null, // commandProtocol
                            null, // transferProtocol
-                           rs.getString(15), // commandCred
-                           rs.getString(16), // transferCred
-                           rs.getTimestamp(11).toInstant(), // created
-                           rs.getTimestamp(12).toInstant()); // updated
+                           "cmdCred1", // commandCred
+                           "txfCred1", // transferCred
+                           rs.getTimestamp(17).toInstant(), // created
+                           rs.getTimestamp(18).toInstant()); // updated
     }
     catch (Exception e)
     {

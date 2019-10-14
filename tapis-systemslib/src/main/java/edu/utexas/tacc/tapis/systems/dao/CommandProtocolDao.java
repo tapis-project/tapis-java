@@ -42,7 +42,7 @@ public class CommandProtocolDao extends AbstractDao
    *  Operation is idempotent. If record already exists no update will be made
    *
    * @param mechanism
-   * @return Sequence id of object created
+   * @return Sequence id of object created or existing object
    * @throws TapisException on error
    */
   public int create(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
@@ -60,7 +60,7 @@ public class CommandProtocolDao extends AbstractDao
     if (proxyHost == null) proxyHost = "";
 
     // Check for existing record. If present we are done
-    CommandProtocol item = get(mechanism, port, useProxy, proxyHost, proxyPort);
+    CommandProtocol item = getByValue(mechanism, port, useProxy, proxyHost, proxyPort);
     if (item != null) return item.getId();
 
     // Generated sequence id
@@ -148,7 +148,7 @@ public class CommandProtocolDao extends AbstractDao
    * @return item if found, null otherwise
    * @throws TapisException
    */
-  public CommandProtocol get(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
+  public CommandProtocol getByValue(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
       throws TapisException
   {
     // Initialize result.
@@ -218,18 +218,93 @@ public class CommandProtocolDao extends AbstractDao
 
     return result;
   }
+
   /**
-   * Delete a single record matching specified values.
+   * Retrieve a single record give the id.
+   * Return null if not found.
+   *
+   * @param id
+   * @return item if found, null otherwise
+   * @throws TapisException
+   */
+  public CommandProtocol getById(int id) throws TapisException
+  {
+    // Initialize result.
+    CommandProtocol result = null;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.SELECT_CMDPROT_BY_ID;
+
+      // Prepare the statement and fill in the placeholders.
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setInt(1, id);
+
+      // Issue the call for the 1 row result set.
+      ResultSet rs = pstmt.executeQuery();
+      result = populate(rs);
+
+      // Close the result and statement.
+      rs.close();
+      pstmt.close();
+
+      // Commit the transaction.
+      conn.commit();
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction.
+      try
+      {
+        if (conn != null) conn.rollback();
+      }
+      catch (Exception e1)
+      {
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+      }
+
+      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "CommandProtocol", "" + id, e.getMessage());
+      _log.error(msg, e);
+      throw new TapisException(msg, e);
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      try
+      {
+        if (conn != null) conn.close();
+      }
+      catch (Exception e)
+      {
+        // If commit worked, we can swallow the exception.
+        // If not, the commit exception will be thrown.
+        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+        _log.error(msg, e);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Delete a single record given the record id
    *
    */
-  public int delete(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
-      throws TapisException
+  public int delete(int id) throws TapisException
   {
     int rows = -1;
     // ------------------------- Check Input -------------------------
-    if (StringUtils.isBlank(mechanism))
+    if (id < 1)
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "delete", "mechanism");
+      // # 0 = method name, 1 = parameter name, 2 = value received
+      // TAPIS_INVALID_PARAMETER=TAPIS_INVALID_PARAMETER Invalid parameter received by method {0}: {1} = {2}
+      String msg = MsgUtils.getMsg("TAPIS_INVALID_PAMETER", "delete", "id", "" + id);
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -242,15 +317,11 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.DELETE_CMDPROT_BY_VALUE;
+      String sql = SqlStatements.DELETE_CMDPROT_BY_ID;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, mechanism);
-      pstmt.setInt(2, port);
-      pstmt.setBoolean(3, useProxy);
-      pstmt.setString(4, proxyHost);
-      pstmt.setInt(5, proxyPort);
+      pstmt.setInt(1, id);
 
       // Issue the call.
       rows = pstmt.executeUpdate();
@@ -272,7 +343,7 @@ public class CommandProtocolDao extends AbstractDao
       }
 
       // Log the exception.
-      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "cmd_protocol");
+      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "CMD_protocol");
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }

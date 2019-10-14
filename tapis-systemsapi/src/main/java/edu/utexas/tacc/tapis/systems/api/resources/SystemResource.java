@@ -230,7 +230,7 @@ public class SystemResource
     TSystem system = null;
     try
     {
-      system = dao.getTSystemByName(name);
+      system = dao.getTSystemByName(tenant, name);
     }
     catch (Exception e)
     {
@@ -272,7 +272,7 @@ public class SystemResource
     // ------------------------- Retrieve all records -----------------------------
     SystemsDao dao = new SystemsDao();
     List<TSystem> systems = null;
-    try { systems = dao.getTSystems(); }
+    try { systems = dao.getTSystems(tenant); }
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("SYSTEMS_SELECT_ERROR", e.getMessage());
