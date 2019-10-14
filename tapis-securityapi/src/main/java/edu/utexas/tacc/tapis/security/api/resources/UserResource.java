@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -23,6 +24,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.permission.WildcardPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1309,7 +1311,7 @@ public final class UserResource
          }
          
          // Unpack inputs for convenience.
-         String   user = payload.user;
+         String   user      = payload.user;
          String[] permSpecs = payload.permSpecs;
          
          // Final checks.
@@ -1344,8 +1346,8 @@ public final class UserResource
              }
 
          // Get the names.
-         List<String> perms = null;
-         try {perms = dao.getUserPermissions(threadContext.getTenantId(), user);}
+         List<String> assignedPerms = null;
+         try {assignedPerms = dao.getUserPermissions(threadContext.getTenantId(), user);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
                                               threadContext.getTenantId(), 
@@ -1355,14 +1357,31 @@ public final class UserResource
                          entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
          
+         // Maybe it's already obvious that the user does not have permission.
+         if (assignedPerms.isEmpty()) {
+             String respMsg = user + " authorized: false";
+             RespAuthorized authResp = new RespAuthorized();
+             return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_NOT_AUTHORIZED", "User", respMsg), prettyPrint, authResp)).build();
+         }
+         
          // Initialize the result based on the operation.
          // ANY starts out as false, ALL starts as true.
          boolean authorized = (op == AuthOperation.ANY) ? false : true;
          
+         // Create a permission cache that allows us to allocate at most
+         // one wildcard object for each assigned permission.  The cache
+         // is only useful if more than 1 permSpec might get tested.
+         HashMap<String,WildcardPermission> assignedPermMap;
+         if (permSpecs.length > 1) 
+             assignedPermMap = new HashMap<>(1 + 2 * assignedPerms.size());
+           else assignedPermMap = null;
+         
          // Iterate through the list of user-suppled role names.
-         for (String curPermSpec : permSpecs) {
-             // Match the current user-supply permission with those assigned to the user.
-             boolean matched = matchPermission(curPermSpec, perms);
+         for (String curPermSpec : permSpecs) 
+         {
+             // Match the current user-supplied permission with those assigned to the user.
+             boolean matched = matchPermission(curPermSpec, assignedPerms, assignedPermMap);
              
              // We stop processing ANY constraints as soon as we find the first match.
              if (op == AuthOperation.ANY) {
@@ -1399,15 +1418,48 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      /* matchPermission:                                                             */
      /* ---------------------------------------------------------------------------- */
-     /** Perform the extended Shiro-base permission checking.
+     /** Perform the extended Shiro-base permission checking.  All permission checking
+      * is case-sensitive.  
       * 
-      * @param permSpec the spec to be matched
-      * @param perms the user's assigned permissions
+      * The caller may provide a map to use as a cache for permission objects.  A cache 
+      * will reduce the number of object created when this method is going to be called
+      * with different reqPermStr's in a row, all using the same set of assignedPermStrs.
+      * 
+      * @param reqPermStr the spec to be matched on a user request
+      * @param assignedPermStrs the user's assigned permissions
+      * @param assignedPermMap the optional cache of permission strings to objects
       * @return true if permSpec matches one of the perms, false otherwise
       */
-     private boolean matchPermission(String permSpec, List<String> perms)
+     private boolean matchPermission(String reqPermStr, List<String> assignedPermStrs,
+                                     HashMap<String,WildcardPermission> assignedPermMap)
      {
-         // TODO: *********************************************
-         return true;
+         // Create a case-sensitive request permission.
+         WildcardPermission reqPerm = new WildcardPermission(reqPermStr, true);
+         
+         // See if any of the user's assigned permissions match the request spec.
+         for (String curAssignedPermStr : assignedPermStrs) 
+         {
+             // Declare the current perm object.
+             WildcardPermission curAssignedPerm;
+             
+             // If caching is activated, determine if we've already created a 
+             // perm object for this assigned perm string.
+             if (assignedPermMap != null) {
+                 curAssignedPerm = assignedPermMap.get(curAssignedPermStr);
+                 if (curAssignedPerm == null) {
+                     // Create and cache the perm object.
+                     curAssignedPerm = new WildcardPermission(curAssignedPermStr, true);
+                     assignedPermMap.put(curAssignedPermStr, curAssignedPerm);
+                 }
+             }
+             else curAssignedPerm = new WildcardPermission(curAssignedPermStr, true);
+             
+             // Check the request permission and return as soon 
+             // as we find a match.
+             if (curAssignedPerm.implies(reqPerm)) return true;
+         }
+         
+         // No match if we get here.
+         return false;
      }
 }
