@@ -72,6 +72,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqCreateRole'
+        required: true
       responses:
         200:
           description: Role existed.
@@ -180,6 +181,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUpdateRoleName'
+        required: true
       responses:
         200:
           description: Role name updated.
@@ -218,6 +220,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUpdateRoleDescription'
+        required: true
       responses:
         200:
           description: Role description updated.
@@ -256,6 +259,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqAddRolePermission'
+        required: true
       responses:
         200:
           description: Permission assigned to role.
@@ -292,6 +296,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqRemoveRolePermission'
+        required: true
       responses:
         200:
           description: Permission removed from role.
@@ -330,6 +335,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqAddChildRole'
+        required: true
       responses:
         200:
           description: Child assigned to parent role.
@@ -366,6 +372,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqRemoveChildRole'
+        required: true
       responses:
         200:
           description: Child removed from parent role.
@@ -409,6 +416,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqReplacePathPrefix'
+        required: true
       responses:
         200:
           description: Path prefixes replaced.
@@ -465,6 +473,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserHasRole'
+        required: true
       responses:
         200:
           description: Check completed.
@@ -495,6 +504,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqRemoveUserRole'
+        required: true
       responses:
         200:
           description: Role removed from user.
@@ -612,6 +622,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqGrantUserRole'
+        required: true
       responses:
         200:
           description: Role assigned to user.
@@ -652,6 +663,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqGrantUserRoleWithPermission'
+        required: true
       responses:
         200:
           description: Permission assigned to user.
@@ -689,6 +701,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserHasRoleMulti'
+        required: true
       responses:
         200:
           description: Check completed.
@@ -720,6 +733,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserHasRoleMulti'
+        required: true
       responses:
         200:
           description: Check completed.
@@ -751,6 +765,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserIsPermitted'
+        required: true
       responses:
         200:
           description: Check completed.
@@ -782,6 +797,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserIsPermittedMulti'
+        required: true
       responses:
         200:
           description: Check completed.
@@ -813,6 +829,7 @@ paths:
           '*/*':
             schema:
               $ref: '#/components/schemas/ReqUserIsPermittedMulti'
+        required: true
       responses:
         200:
           description: Check completed.
