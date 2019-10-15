@@ -289,7 +289,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole.class))),
              responses = 
@@ -382,7 +382,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole.class))),
              responses = 
@@ -482,7 +482,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission.class))),
              responses = 
@@ -589,7 +589,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole.class))),
              responses = 
@@ -653,7 +653,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
              responses = 
@@ -690,7 +690,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti.class))),
              responses = 
@@ -727,7 +727,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted.class))),
              responses = 
@@ -791,7 +791,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti.class))),
              responses = 
@@ -828,7 +828,7 @@ public final class UserResource
              tags = "user",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti.class))),
              responses = 
