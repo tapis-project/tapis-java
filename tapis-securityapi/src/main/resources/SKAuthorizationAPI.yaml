@@ -55,12 +55,11 @@ paths:
     post:
       tags:
       - role
-      description: Create a role using either a request body or query parameters,
-        but not both.  Role names are case sensitive, alpha-numeric strings that can
-        also contain underscores.  Role names must start with an alphbetic character
-        and can be no more than 60 characters in length.  The desciption can be no
-        more than 2048 characters long.  If the role already exists, this request
-        has no effect.
+      description: Create a role using a request body.  Role names are case sensitive,
+        alpha-numeric strings that can also contain underscores.  Role names must
+        start with an alphbetic character and can be no more than 60 characters in
+        length.  The desciption can be no more than 2048 characters long.  If the
+        role already exists, this request has no effect.
       operationId: createRole
       parameters:
       - name: pretty
@@ -161,10 +160,9 @@ paths:
     post:
       tags:
       - role
-      description: Update an existing role using either a request body or query parameters,
-        but not both.  Role names are case sensitive, alphanumeric strings that can
-        contain underscores but must begin with an alphabetic character.  The limit
-        on role name is 60 characters.
+      description: Update an existing role using a request body.  Role names are case
+        sensitive, alphanumeric strings that can contain underscores but must begin
+        with an alphabetic character.  The limit on role name is 60 characters.
       operationId: updateRoleName
       parameters:
       - name: roleName
@@ -201,8 +199,8 @@ paths:
     post:
       tags:
       - role
-      description: Update an existing role using either a request body or query parameters,
-        but not both. The limit on a description is 2048 characters.
+      description: Update an existing role using a request body.  The size limit on
+        a description is 2048 characters.
       operationId: updateRoleDescription
       parameters:
       - name: roleName
@@ -240,7 +238,7 @@ paths:
       tags:
       - role
       description: |-
-        Add a permission to an existing role using either a request body.  If the permission already exists, then the request has no effect and the change count returned is zero. Otherwise, the permission is added and the change count is one.  Permissions are case-sensitive strings that follow the format defined by Apache Shiro (https://shiro.apache.org/permissions.html).  This format defines any number of colon-separated (:) parts, with the possible use of asterisks (*) as wildcards and commas (,) as aggregators.  Here are two example permission strings:
+        Add a permission to an existing role using a request body.  If the permission already exists, then the request has no effect and the change count returned is zero. Otherwise, the permission is added and the change count is one.  Permissions are case-sensitive strings that follow the format defined by Apache Shiro (https://shiro.apache.org/permissions.html).  This format defines any number of colon-separated (:) parts, with the possible use of asterisks (*) as wildcards and commas (,) as aggregators.  Here are two example permission strings:
 
             system:MyTenant:read,write:system1
             system:MyTenant:create,read,write,delete:*
@@ -281,8 +279,7 @@ paths:
     post:
       tags:
       - role
-      description: Remove a permission from a role using either a request body or
-        query parameters, but not both.
+      description: Remove a permission from a role using a request body.
       operationId: removeRolePermission
       parameters:
       - name: pretty
@@ -318,10 +315,9 @@ paths:
     post:
       tags:
       - role
-      description: Add a child role to another role using either a request body or
-        query parameters, but not both.  If the child already exists, then the request
-        has no effect and the change count returned is zero. Otherwise, the child
-        is added and the change count is one.
+      description: Add a child role to another role using a request body.  If the
+        child already exists, then the request has no effect and the change count
+        returned is zero. Otherwise, the child is added and the change count is one.
       operationId: addChildRole
       parameters:
       - name: pretty
@@ -357,8 +353,7 @@ paths:
     post:
       tags:
       - role
-      description: Remove a child role from a parent role using either a request body
-        or query parameters, but not both.
+      description: Remove a child role from a parent role using a request body.
       operationId: removeChildRole
       parameters:
       - name: pretty
@@ -401,7 +396,7 @@ paths:
 
         By convention, the last component is an extended path attribute whose content can be changed by replacePathPrefix requests.  Specifically, paths that begin with the oldPrefix will have that prefix replaced with the newPrefix value.  Replacement only occurs on permissions that also match the schema and oldSystemId parameter values.  The systemId is required to be the next to last attribute and immediately preceding the path attribute.  The oldSystemId is replaced with the newSystemId when a match is found.  If a roleName is provided, then replacement is limited to permissions defined only in that role.  Otherwise, permissions in all roles that meet the other matching criteria will be considered.
 
-        Either a request body or query parameters can be used on this request, but not both.  The response indicates the number of changed permission specifications.
+        Use a request body to pass parameters on this request.  The response indicates the number of changed permission specifications.
       operationId: replacePathPrefix
       parameters:
       - name: pretty
