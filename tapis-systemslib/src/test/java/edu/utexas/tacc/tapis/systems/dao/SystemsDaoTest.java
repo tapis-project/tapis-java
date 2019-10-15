@@ -53,7 +53,7 @@ public class SystemsDaoTest
   {
     String[] sys0 = sys1;
     int numRows = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId, sys0[12], sys0[13]);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
     Assert.assertEquals(numRows, 1);
   }
 
@@ -62,7 +62,7 @@ public class SystemsDaoTest
   public void testGetByName() throws Exception {
     String[] sys0 = sys2;
     dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId, sys0[12], sys0[13]);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
     System.out.println("Found item: " + sys0[1]);
@@ -83,7 +83,7 @@ public class SystemsDaoTest
   public void testDelete() throws Exception {
     String[] sys0 = sys3;
     dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId, sys0[12], sys0[13]);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
     dao.deleteTSystem(sys0[0], sys0[1]);
     TSystem tmpSystem = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0[1]);

@@ -22,7 +22,11 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -107,20 +110,26 @@ public class SystemResource
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-      description = "Create a system using a request body. " +
+      summary = "Create a system using a request body",
+      description =
+          "Create a system using a request body. " +
           "System name must be unique within a tenant and can be composed of alphanumeric characters " +
           "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
           "and can be no more than 256 characters in length. " +
           "Description is optional with a maximum length of 2048 characters.",
-      tags = "system",
+      tags = "systems",
+      parameters = {
+        @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+          description = "Pretty print the response")
+      },
       responses = {
           @ApiResponse(responseCode = "201", description = "System created."),
-          @ApiResponse(responseCode = "400", description = "Input error."),
+          @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
           @ApiResponse(responseCode = "401", description = "Not authorized."),
           @ApiResponse(responseCode = "500", description = "Server error.")
       }
   )
-  public Response createSystem(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                InputStream payloadStream)
   {
     // Trace this request.
@@ -154,16 +163,41 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // Extract name, description, owner and host
-    String name = null;
-    String description = null;
-    String owner = null;
-    String host = null;
+    String name, description, owner, host, bucketName, rootDir,
+           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId;
+    String cmdMech, cmdProxyHost, txfMech, txfProxyHost;
+    // TODO: creds might need to be byte array
+    String cmdCred, txfCred;
+    int cmdPort, cmdProxyPort, txfPort, txfProxyPort;
+    boolean available, cmdUseProxy, txfUseProxy;
+
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
+    // Extract top level properties: name, description, owner, host ...
     name = obj.get("name").getAsString();
     description = obj.get("description").getAsString();
     owner = obj.get("owner").getAsString();
     host = obj.get("host").getAsString();
+    bucketName = obj.get("bucketName").getAsString();
+    rootDir = obj.get("rootDir").getAsString();
+    jobInputDir = obj.get("jobInputDir").getAsString();
+    jobOutputDir = obj.get("jobOutputDir").getAsString();
+    workDir = obj.get("workDir").getAsString();
+    scratchDir = obj.get("scratchDir").getAsString();
+    effectiveUserId = obj.get("effectiveUserId").getAsString();
+    available = obj.get("available").getAsBoolean();
+    cmdCred = obj.get("commandCredential").getAsString();
+    txfCred = obj.get("transferCredential").getAsString();
+    //Extract CommandProtocol and TransferProtocol properties
+    cmdMech = obj.get("commandProtocol.mechanism").getAsString();
+    cmdPort = obj.get("commandProtocol.port").getAsInt();
+    cmdUseProxy = obj.get("commandProtocol.useProxy").getAsBoolean();
+    cmdProxyHost = obj.get("commandProtocol.proxyHost").getAsString();
+    cmdProxyPort = obj.get("commandProtocol.proxyPort").getAsInt();
+    txfMech = obj.get("transferProtocol.mechanism").getAsString();
+    txfPort = obj.get("transferProtocol.port").getAsInt();
+    txfUseProxy = obj.get("transferProtocol.useProxy").getAsBoolean();
+    txfProxyHost = obj.get("transferProtocol.proxyHost").getAsString();
+    txfProxyPort = obj.get("transferProtocol.proxyPort").getAsInt();
 
     // Check values.
     if (StringUtils.isBlank(name))
@@ -185,27 +219,28 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // ------------------------- Create System Record ---------------------
+    // ------------------------- Create System Object ---------------------
     try
     {
-      SystemsDao dao = new SystemsDao();
-      // TODO remove hard coded values
-      dao.createTSystem(tenant, name, description, owner, host, true, "bucket1", "/root1",
-                        "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1",
-                        "effUser1", -1, -1,
-                        "cpassword1", "tpassword1");
+      // TODO Use static factory method, or better yet use DI, maybe Guice
+      SystemsService svc = new SystemsService();
+      svc.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
+                       jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
+                       cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort,
+                       txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort,
+                       cmdCred, txfCred);
     }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SYSTEMS_CREATE_ERROR", name, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success ------------------------------- 
-    // Success means we found the job.
-    return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("SYSTEMS_CREATED", name), prettyPrint, "Created system record")).build();
+    // Success means the object was created.
+    return Response.status(Status.CREATED).entity(RestUtils.createSuccessResponse(
+      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, "Created system object")).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -214,6 +249,26 @@ public class SystemResource
   @GET
   @Path("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+      summary = "Retrieve information for a system given the system name.",
+      description =
+          "Retrieve information for a system given the system name. " +
+          "Use query parameter returnCredentials = true to have the user access credentials " +
+          "included in the response.",
+      tags = "systems",
+      parameters = {
+          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+              description = "Pretty print the response"),
+          @Parameter(in = ParameterIn.QUERY, name = "returnCredentials", required = false,
+              description = "Include the credentials in the response")
+      },
+      responses = {
+          @ApiResponse(responseCode = "200", description = "System found."),
+          @ApiResponse(responseCode = "400", description = "Input error."),
+          @ApiResponse(responseCode = "401", description = "Not authorized."),
+          @ApiResponse(responseCode = "500", description = "Server error.")
+      }
+  )
   public Response getSystemByName(@PathParam("name") String name,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                   @DefaultValue("false") @QueryParam("returnCredentials") boolean getCreds)
@@ -226,15 +281,16 @@ public class SystemResource
       _log.trace(msg);
     }
 
-    SystemsDao dao = new SystemsDao();
+    // TODO Use static factory method, or better yet use DI, maybe Guice
+    SystemsService svc = new SystemsService();
     TSystem system = null;
     try
     {
-      system = dao.getTSystemByName(tenant, name);
+      system = svc.getSystemByName(tenant, name, getCreds);
     }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SYSTEMS_GET_NAME_ERROR", name, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, name, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -242,14 +298,14 @@ public class SystemResource
     // The specified job was not found for the tenant.
     if (system == null)
     {
-      String msg = MsgUtils.getMsg("SYSTEMS_NOT_FOUND", name);
+      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, name);
       _log.warn(msg);
       return Response.status(Status.NOT_FOUND).entity(RestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
                                                prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
-    // Success means we found the job.
+    // Success means we retrieved the system information.
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, system)).build();
   }
@@ -270,12 +326,13 @@ public class SystemResource
     }
 
     // ------------------------- Retrieve all records -----------------------------
-    SystemsDao dao = new SystemsDao();
+    // TODO Use static factory method, or better yet use DI, maybe Guice
+    SystemsService svc = new SystemsService();
     List<TSystem> systems = null;
-    try { systems = dao.getTSystems(tenant); }
+    try { systems = svc.getSystems(tenant); }
     catch (Exception e)
     {
-      String msg = MsgUtils.getMsg("SYSTEMS_SELECT_ERROR", e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", null, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }

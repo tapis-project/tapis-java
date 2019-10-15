@@ -6,21 +6,136 @@
   "type": "object",
   "properties": {
     "name": {
-        "type": "string"
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 2048
     },
     "owner": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
     },
     "host": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "available": {
+      "type": "boolean",
+      "default": true
+    },
+    "bucketName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63
+    },
+    "rootDir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "jobInputDir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "jobOutputDir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "workDir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "scratchDir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "effectiveUserId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "commandCredential": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transferCredential": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commandProtocol": {
+      "type": "object",
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "SSH_ANONYMOUS",
+            "SSH_PASSWORD",
+            "SSH_KEYS",
+            "SSH_CERT"
+          ]
+        },
+        "port": {
+          "type": "integer"
+        },
+        "useProxy": {
+          "type": "boolean",
+          "default": "false"
+        },
+        "proxyHost": {
+          "type": "string",
+          "maxLength": 256,
+          "default": ""
+        },
+        "proxyPort": {
+          "type": "integer"
+        }
+      }
+    },
+    "transferProtocol": {
+      "type": "object",
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "SFTP",
+            "S3",
+            "LOCAL"
+          ]
+        },
+        "port": {
+          "type": "integer"
+        },
+        "useProxy": {
+          "type": "boolean",
+          "default": "false"
+        },
+        "proxyHost": {
+          "type": "string",
+          "maxLength": 256,
+          "default": ""
+        },
+        "proxyPort": {
+          "type": "integer"
+        }
+      }
     }
   },
   "required": [
     "name",
     "owner",
-    "host"
+    "host",
+    "commandProtocol",
+    "transferProtocol"
   ]
 }

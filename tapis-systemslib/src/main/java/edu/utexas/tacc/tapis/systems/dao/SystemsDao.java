@@ -30,7 +30,7 @@ public class SystemsDao extends AbstractDao
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /**
-   * Create a new system record.
+   * Create a new system object.
    *
    * @return Number of rows inserted
    * @throws TapisException
@@ -38,11 +38,9 @@ public class SystemsDao extends AbstractDao
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, int cmdProtocolId, int txfProtocolId,
-                           String commandCredential, String transferCredential)
+                           String effectiveUserId, int cmdProtocolId, int txfProtocolId)
           throws TapisException
   {
-    // TODO Store credentials in Security Kernel
     int rows = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
