@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.security.api.permissions;
+package edu.utexas.tacc.tapis.security.authz.permissions;
 
 import org.apache.shiro.authz.permission.WildcardPermission;
 import org.slf4j.Logger;
@@ -25,14 +25,14 @@ public final class ExtendedWildcardPermission
     /* constructor:                                                                 */
     /* ---------------------------------------------------------------------------- */
     public ExtendedWildcardPermission(String wildcardString) {
-        this(wildcardString, DEFAULT_CASE_SENSITIVE);
+        super(wildcardString, DEFAULT_CASE_SENSITIVE);
     }
 
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
     /* ---------------------------------------------------------------------------- */
     public ExtendedWildcardPermission(String wildcardString, boolean caseSensitive) {
-        setParts(wildcardString, caseSensitive);
+        super(wildcardString, caseSensitive);
     }
 
                                                                

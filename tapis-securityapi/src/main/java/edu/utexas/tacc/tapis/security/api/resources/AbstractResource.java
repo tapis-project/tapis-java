@@ -11,11 +11,12 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
-import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
-import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
-import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
+import edu.utexas.tacc.tapis.security.api.responseBody.RespName;
+import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
+import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
+import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -36,18 +37,12 @@ class AbstractResource
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
-    // We share all dao's among all instances of this class.
-    private static SkRoleDao           _roleDao;
-    private static SkRoleTreeDao       _roleTreeDao;
-    private static SkRolePermissionDao _roleTreePermissionDao;
-    private static SkUserRoleDao       _userRoleDao;
-    
     // Role name validator.  Require names to start with alphabetic characters and 
     // be followed by zero or more alphanumeric characters and underscores.
     private static final Pattern _namePattern = Pattern.compile("^\\p{Alpha}(\\p{Alnum}|_)*");
     
     /* **************************************************************************** */
-    /*                                Public Methods                                */
+    /*                             Protected Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* getPayload:                                                                  */
@@ -98,113 +93,14 @@ class AbstractResource
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* getRoleId:                                                                   */
+    /* getRoleImpl:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    /** Return the ID of a role given its tenant and name.  An exception is thrown
-     * if for any reason an ID could not be retrieved.
-     * 
-     * @param tenant the role's tenant
-     * @param roleName the role's name
-     * @return the role's id
-     * @throws TapisException if the id was not retrieved
-     */
-    protected int getRoleId(String tenant, String roleName) 
-     throws TapisException, TapisNotFoundException
-    {
-        // Get the dao.
-        SkRoleDao roleDao = null;
-        try {roleDao = getSkRoleDao();}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                _log.error(msg, e);
-                throw new TapisException(msg);
-            }
-        
-        // Get the role id.
-        Integer roleId = null;
-        try {roleId = roleDao.getRoleId(tenant, roleName);}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_GET_ROLE_ID_ERROR", roleName,
-                                             tenant, e.getMessage());
-                _log.error(msg, e);
-                throw new TapisException(msg);
-            }
-        
-        // Make sure we found the role.
-        if (roleId == null) {
-            String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
-            _log.error(msg);
-            throw new TapisNotFoundException(msg, roleName);
-        }
-        
-        return roleId;
-    }
+    protected RoleImpl getRoleImpl() {return RoleImpl.getInstance();}
     
     /* ---------------------------------------------------------------------------- */
-    /* allNullOrNot:                                                                */
+    /* getUserImpl:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    /** Return true if either both parameters are null or both are not null.
-     * Otherwise, return false.
-     * 
-     * @param o1 any object
-     * @param o2 any other object
-     * @return true if both parameters have the same nullity, false otherwise
-     */
-    protected boolean allNullOrNot(Object o1, Object o2)
-    {
-        if (o1 == null && o2 == null) return true;
-        if (o1 != null && o2 != null) return true;
-        return false;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* allNullOrNot:                                                                */
-    /* ---------------------------------------------------------------------------- */
-    /** Return true if either all parameters are null or all are not null.
-     * Otherwise, return false.
-     * 
-     * @param o1 any object
-     * @param o2 any other object
-     * @param o3 yet another object
-     * @return true if all parameters have the same nullity, false otherwise
-     */
-    protected boolean allNullOrNot(Object o1, Object o2, Object o3)
-    {
-        if (o1 == null && o2 == null && o3 == null) return true;
-        if (o1 != null && o2 != null && o3 != null) return true;
-        return false;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* allNull:                                                                     */
-    /* ---------------------------------------------------------------------------- */
-    /** Return true if both parameters are null. Otherwise, return false.
-     * 
-     * @param o1 any object
-     * @param o2 any other object
-     * @return true if both parameters are null, false otherwise
-     */
-    protected boolean allNull(Object o1, Object o2)
-    {
-        if (o1 == null && o2 == null) return true;
-        return false;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* allNull:                                                                     */
-    /* ---------------------------------------------------------------------------- */
-    /** Return true if all parameters are null. Otherwise, return false.
-     * 
-     * @param o1 any object
-     * @param o2 any other object
-     * @param o3 yet another object
-     * @return true if all parameters are null, false otherwise
-     */
-    protected boolean allNull(Object o1, Object o2, Object o3)
-    {
-        if (o1 == null && o2 == null && o3 == null) return true;
-        return false;
-    }
+    protected UserImpl getUserImpl() {return UserImpl.getInstance();}
     
     /* ---------------------------------------------------------------------------- */
     /* checkTenantUser:                                                             */
@@ -232,86 +128,6 @@ class AbstractResource
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* getSkRoleDao:                                                                */
-    /* ---------------------------------------------------------------------------- */
-    /** Create the shared dao on first reference.
-     * 
-     * @return the dao
-     * @throws TapisException on error
-     */
-    protected static SkRoleDao getSkRoleDao() 
-     throws TapisException
-    {
-        // Avoid synchronizing exception for initialization.
-        if (_roleDao == null) 
-            synchronized (AbstractResource.class) {
-                if (_roleDao == null) _roleDao = new SkRoleDao();
-           }
-            
-        return _roleDao;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* getSkRoleTreeDao:                                                            */
-    /* ---------------------------------------------------------------------------- */
-    /** Create the shared dao on first reference.
-     * 
-     * @return the dao
-     * @throws TapisException on error
-     */
-    protected static SkRoleTreeDao getSkRoleTreeDao() 
-     throws TapisException
-    {
-        // Avoid synchronizing exception for initialization.
-        if (_roleTreeDao == null) 
-            synchronized (AbstractResource.class) {
-                if (_roleTreeDao == null) _roleTreeDao = new SkRoleTreeDao();
-           }
-            
-        return _roleTreeDao;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* getSkRolePermissionDao:                                                      */
-    /* ---------------------------------------------------------------------------- */
-    /** Create the shared dao on first reference.
-     * 
-     * @return the dao
-     * @throws TapisException on error
-     */
-    protected static SkRolePermissionDao getSkRolePermissionDao() 
-     throws TapisException
-    {
-        // Avoid synchronizing exception for initialization.
-        if (_roleTreePermissionDao == null) 
-            synchronized (AbstractResource.class) {
-                if (_roleTreePermissionDao == null) _roleTreePermissionDao = new SkRolePermissionDao();
-           }
-            
-        return _roleTreePermissionDao;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* getSkUserRoleDao:                                                            */
-    /* ---------------------------------------------------------------------------- */
-    /** Create the shared dao on first reference.
-     * 
-     * @return the dao
-     * @throws TapisException on error
-     */
-    protected static SkUserRoleDao getSkUserRoleDao() 
-     throws TapisException
-    {
-        // Avoid synchronizing exception for initialization.
-        if (_userRoleDao == null) 
-            synchronized (AbstractResource.class) {
-                if (_userRoleDao == null) _userRoleDao = new SkUserRoleDao();
-           }
-            
-        return _userRoleDao;
-    }
-
-    /* ---------------------------------------------------------------------------- */
     /* isValidName:                                                                 */
     /* ---------------------------------------------------------------------------- */
     /** Check a candidate name against the name regex.
@@ -325,4 +141,50 @@ class AbstractResource
         return _namePattern.matcher(name).matches();
     }
 
+    /* ---------------------------------------------------------------------------- */
+    /* getExceptionResponse:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    /** Construct responses when exceptions are thrown from a securitylib call.  If 
+     * the message parameter is null the message in the exception is logged.
+     * 
+     * @param e the thrown exception
+     * @param message a message to log or null
+     * @param prettyPrint whether the response should be pretty printed
+     * @param parms 0 or more exception-specific string parameters
+     * @return a response
+     */
+    protected Response getExceptionResponse(Exception e, String message, 
+                                            boolean prettyPrint, String... parms)
+    {
+        // Select and print a message and the caller's stack frame info.
+        String msg = message == null ? e.getMessage() : message;
+        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+        String caller = stack.length > 1 ? ("\n   " + stack[2]) : "";
+        _log.error(msg + caller);
+        
+        // Send response based on the type of exception.
+        if (e instanceof TapisNotFoundException) {
+            
+            // Create the response payload.
+            TapisNotFoundException e2 = (TapisNotFoundException) e;
+            RespName missingName = new RespName();
+            missingName.name = e2.missingName;
+            
+            // Get the not found message parameters.
+            String missingType  = parms.length > 0 ? parms[0] : "entity";
+            String missingValue = parms.length > 1 ? parms[1] : missingName.name;
+            
+            return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+                MsgUtils.getMsg("TAPIS_NOT_FOUND", missingType, missingValue), 
+                                prettyPrint, missingName)).build();
+        }
+        else if (e instanceof TapisImplException) {
+            return Response.status(SKApiUtils.toHttpStatus(((TapisImplException)e).condition)).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+        } 
+        else {
+            return Response.status(Status.INTERNAL_SERVER_ERROR).
+                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+        }
+    }
 }

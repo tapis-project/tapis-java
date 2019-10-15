@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.security.api.permissions;
+package edu.utexas.tacc.tapis.security.authz.permissions;
 
 import org.apache.shiro.authz.permission.WildcardPermission;
 import org.testng.Assert;

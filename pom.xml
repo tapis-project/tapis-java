@@ -215,6 +215,7 @@
 		<rabbitmq.version>3.6.11</rabbitmq.version>
 		<shiro.version>1.4.1</shiro.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
+		<snakeyaml.version>1.25</snakeyaml.version>
 		<software.amazon.awssdk.version>2.5.56</software.amazon.awssdk.version>
 		<sshj.version>0.27.0</sshj.version>
 		<statefulj.version>3.0</statefulj.version>
