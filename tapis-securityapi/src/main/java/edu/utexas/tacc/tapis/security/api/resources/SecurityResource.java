@@ -24,16 +24,18 @@ import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @OpenAPIDefinition(
-        security = {@SecurityRequirement(name = "Tapis JWT")},
+        security = {@SecurityRequirement(name = "TapisJWT")},
         info = @Info(title = "Tapis Security API",
                      version = "0.1",
                      description = "The Tapis Security API provides access to the " +
@@ -47,6 +49,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         servers = {@Server(url = "http://localhost:8080/security", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
                                               url = "https://tacc-cloud.readthedocs.io/projects/agave")
+)
+@SecurityScheme(
+        name="TapisJWT",
+        type=SecuritySchemeType.HTTP,
+        scheme="bearer",
+        bearerFormat="JWT"
 )
 @Path("/")
 public final class SecurityResource
