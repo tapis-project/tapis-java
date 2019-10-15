@@ -48,6 +48,11 @@
 			<artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
 			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>tapis-sharedapi</artifactId>
@@ -55,18 +60,8 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-shareddb</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
 			<artifactId>tapis-securitylib</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.shiro</groupId>
-			<artifactId>shiro-core</artifactId>
-			<version>${shiro.version}</version>
 		</dependency>
 	</dependencies>
 

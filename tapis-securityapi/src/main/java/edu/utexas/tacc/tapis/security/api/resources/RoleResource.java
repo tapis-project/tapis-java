@@ -38,11 +38,7 @@ import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespName;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
 import edu.utexas.tacc.tapis.security.api.responseBody.RespResourceUrl;
-import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
-import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
-import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -160,26 +156,14 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          List<String> list = null;
          try {
-             list = dao.getRoleNames(threadContext.getTenantId());
+             list = getRoleImpl().getRoleNames(threadContext.getTenantId());
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_GET_NAMES_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser());
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint);
          }
          
          // Assign result.
@@ -230,27 +214,15 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          SkRole role = null;
          try {
-             role = dao.getRole(threadContext.getTenantId(), roleName);
+             role = getRoleImpl().getRoleByName(threadContext.getTenantId(), roleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint);
          }
 
          // Adjust status based on whether we found the role.
@@ -352,28 +324,16 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          int rows = 0;
          try {
-             rows = dao.createRole(threadContext.getTenantId(), threadContext.getUser(), 
-                                   roleName, description);
+             rows = getRoleImpl().createRole(threadContext.getTenantId(), threadContext.getUser(), 
+                                             roleName, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint);
          }
          
          // NOTE: We need to assign a location header as well.
@@ -382,7 +342,7 @@ public final class RoleResource
          respUrl.url = _request.getRequestURL().toString() + "/" + roleName;
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we created the role. 
+         // Success means the role exists. 
          return Response.status(Status.CREATED).entity(RestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, respUrl)).build();
      }
@@ -421,27 +381,15 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
-         // Create the role.
+         // Delete the role.
          int rows = 0;
          try {
-             rows = dao.deleteRole(threadContext.getTenantId(), roleName);
+             rows =  getRoleImpl().deleteRoleByName(threadContext.getTenantId(), roleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint);
          }
          
          // Return the number of row affected.
@@ -518,7 +466,7 @@ public final class RoleResource
          if (!isValidName(newRoleName)) {
              String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "newRoleName");
              _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
+             return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
@@ -529,40 +477,16 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          int rows = 0;
          try {
-             rows = dao.updateRoleName(threadContext.getTenantId(), threadContext.getUser(), 
-                                       roleName, newRoleName);
+             rows = getRoleImpl().updateRoleName(threadContext.getTenantId(), threadContext.getUser(), 
+                                                 roleName, newRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // Did we update anything?
-         if (rows == 0) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          roleName);
-             _log.error(msg);
-             RespName missingName = new RespName();
-             missingName.name = roleName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -639,41 +563,17 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleDao dao = null;
-         try {dao = getSkRoleDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          int rows = 0;
          try {
-             rows = dao.updateRoleDescription(
+             rows = getRoleImpl().updateRoleDescription(
                                  threadContext.getTenantId(), threadContext.getUser(), 
                                  roleName, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // Did we update anything?
-         if (rows == 0) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          roleName);
-             _log.error(msg);
-             RespName missingName = new RespName();
-             missingName.name = roleName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
          // ---------------------------- Success ------------------------------- 
@@ -773,39 +673,18 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRolePermissionDao dao = null;
-         try {dao = getSkRolePermissionDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
-         // Create the role.
+         // Add permission to role.
          int rows = 0;
          try {
-             rows = dao.assignPermission(threadContext.getTenantId(), threadContext.getUser(), 
-                                         roleName, permSpec);
-         } catch (TapisNotFoundException e) {
+             rows = getRoleImpl().addRolePermission(threadContext.getTenantId(), 
+                                                   threadContext.getUser(), 
+                                                   roleName, permSpec);
+         } catch (Exception e) {
              // This only occurs when the role name is not found.
              String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           permSpec, roleName);
-             _log.error(msg, e);
-             RespName missingName = new RespName();
-             missingName.name = e.missingName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
-         } catch (Exception e) {
-             // We assume a bad request for all other errors.
-             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          permSpec, roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
 
          // Report the number of rows changed.
@@ -893,39 +772,18 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRolePermissionDao dao = null;
-         try {dao = getSkRolePermissionDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
-         // Create the role.
+         // Remove the permission from the role.
          int rows = 0;
          try {
-             rows = dao.removePermission(threadContext.getTenantId(), roleName, permSpec);
-         } catch (TapisNotFoundException e) {
+             rows = getRoleImpl().removeRolePermission(threadContext.getTenantId(), roleName, permSpec);
+         } catch (Exception e) {
              // This only occurs when the role name is not found.
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           permSpec, roleName);
-             _log.error(msg, e);
-             RespName missingName = new RespName();
-             missingName.name = e.missingName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", roleName), prettyPrint, missingName)).build();
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          permSpec, roleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
-
+    
          // Report the number of rows changed.
          RespChangeCount count = new RespChangeCount();
          count.changes = rows;
@@ -1013,37 +871,17 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleTreeDao dao = null;
-         try {dao = getSkRoleTreeDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roleTree");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
-         // Create the role.
+         // Add the child role to the parent.
          int rows = 0;
          try {
-             rows = dao.assignChildRole(threadContext.getTenantId(), threadContext.getUser(), 
-                                        parentRoleName, childRoleName);
-         } catch (TapisNotFoundException e) {
+             rows = getRoleImpl().addChildRole(threadContext.getTenantId(), 
+                                               threadContext.getUser(), 
+                                               parentRoleName, childRoleName);
+         } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
                      threadContext.getTenantId(), threadContext.getUser(), 
                      childRoleName, parentRoleName);
-             _log.error(msg, e);
-             RespName missingName = new RespName();
-             missingName.name = e.missingName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          childRoleName, parentRoleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
 
          // Report the number of rows changed.
@@ -1131,37 +969,16 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Get the dao.
-         SkRoleTreeDao dao = null;
-         try {dao = getSkRoleTreeDao();}
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roleTree");
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
-         
          // Create the role.
          int rows = 0;
          try {
-             rows = dao.removeChildRole(threadContext.getTenantId(),  
-                                        parentRoleName, childRoleName);
-         } catch (TapisNotFoundException e) {
+             rows = getRoleImpl().removeChildRole(threadContext.getTenantId(),  
+                                                  parentRoleName, childRoleName);
+         } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
                      threadContext.getTenantId(), threadContext.getUser(), 
                      childRoleName, parentRoleName);
-             _log.error(msg, e);
-             RespName missingName = new RespName();
-             missingName.name = e.missingName;
-             return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_NOT_FOUND", "Role", missingName.name), prettyPrint, missingName)).build();
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          childRoleName, parentRoleName);
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                 entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
 
          // Report the number of rows changed.
