@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.api.utils;
 
+import com.google.gson.JsonElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,5 +74,11 @@ public class ApiUtils
       msgValue = sb.toString();
     }
     return msgValue;
+  }
+
+  public static String getValS(JsonElement jelem, String defaultVal)
+  {
+    if (jelem == null) return defaultVal;
+    else return jelem.getAsString();
   }
 }

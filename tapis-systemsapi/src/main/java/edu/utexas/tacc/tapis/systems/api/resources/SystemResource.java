@@ -6,13 +6,7 @@ import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -27,6 +21,9 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -109,25 +106,35 @@ public class SystemResource
    */
   @POST
   @Produces(MediaType.APPLICATION_JSON)
+  @Consumes(MediaType.APPLICATION_JSON)
   @Operation(
-      summary = "Create a system using a request body",
-      description =
-          "Create a system using a request body. " +
-          "System name must be unique within a tenant and can be composed of alphanumeric characters " +
-          "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
-          "and can be no more than 256 characters in length. " +
-          "Description is optional with a maximum length of 2048 characters.",
-      tags = "systems",
-      parameters = {
-        @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-          description = "Pretty print the response")
-      },
-      responses = {
-          @ApiResponse(responseCode = "201", description = "System created."),
-          @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
-          @ApiResponse(responseCode = "401", description = "Not authorized."),
-          @ApiResponse(responseCode = "500", description = "Server error.")
-      }
+    summary = "Create a system",
+    description =
+        "Create a system using a request body. " +
+        "System name must be unique within a tenant and can be composed of alphanumeric characters " +
+        "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
+        "and can be no more than 256 characters in length. " +
+        "Description is optional with a maximum length of 2048 characters.",
+    tags = "systems",
+    parameters = {
+      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+                 description = "Pretty print the response")
+    },
+    requestBody =
+      @RequestBody(
+      description = "A JSON object specifying information for the system to be created.",
+      required = true,
+      content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                         schema = @Schema(implementation = edu.utexas.tacc.tapis.systems.api.requestBody.ReqCreateSystem.class)
+                        )
+      ),
+    responses = {
+      @ApiResponse(responseCode = "201", description = "System created."),
+      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
+      @ApiResponse(responseCode = "401", description = "Not authorized."),
+      @ApiResponse(responseCode = "409", description = "System already exists."),
+      @ApiResponse(responseCode = "500", description = "Server error.")
+    }
   )
   public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                InputStream payloadStream)
@@ -172,49 +179,58 @@ public class SystemResource
     boolean available, cmdUseProxy, txfUseProxy;
 
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-    // Extract top level properties: name, description, owner, host ...
+    // Extract required name value and check to see if object exists.
     name = obj.get("name").getAsString();
-    description = obj.get("description").getAsString();
-    owner = obj.get("owner").getAsString();
+    // TODO: Check if object exists. If yes then return 409 - Conflict
+
+    // Extract other top level properties: description, owner, host ...
+    // Extract required values
     host = obj.get("host").getAsString();
-    bucketName = obj.get("bucketName").getAsString();
-    rootDir = obj.get("rootDir").getAsString();
-    jobInputDir = obj.get("jobInputDir").getAsString();
-    jobOutputDir = obj.get("jobOutputDir").getAsString();
-    workDir = obj.get("workDir").getAsString();
-    scratchDir = obj.get("scratchDir").getAsString();
-    effectiveUserId = obj.get("effectiveUserId").getAsString();
-    available = obj.get("available").getAsBoolean();
-    cmdCred = obj.get("commandCredential").getAsString();
-    txfCred = obj.get("transferCredential").getAsString();
+    // Extract optional values
+    description = ApiUtils.getValS(obj.get("description"), "");
+    owner = ApiUtils.getValS(obj.get("owner"), "");
+    bucketName = ApiUtils.getValS(obj.get("bucketName"), "");
+    rootDir = ApiUtils.getValS(obj.get("rootDir"), "");
+    jobInputDir = ApiUtils.getValS(obj.get("jobInputDir"), "");
+    jobOutputDir = (obj.has("jobOutputDir") ? obj.get("jobOutputDir").getAsString() : "");
+    workDir = (obj.has("workDir") ? obj.get("workDir").getAsString() : "");
+    scratchDir = (obj.has("scratchDir") ? obj.get("scratchDir").getAsString() : "");
+    effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
+    available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
+    cmdCred = (obj.has("commandCredential") ? obj.get("commandCredential").getAsString() : "");
+    txfCred = (obj.has("transferCredential") ? obj.get("transferCredential").getAsString() : "");
+
     //Extract CommandProtocol and TransferProtocol properties
-    cmdMech = obj.get("commandProtocol.mechanism").getAsString();
-    cmdPort = obj.get("commandProtocol.port").getAsInt();
-    cmdUseProxy = obj.get("commandProtocol.useProxy").getAsBoolean();
-    cmdProxyHost = obj.get("commandProtocol.proxyHost").getAsString();
-    cmdProxyPort = obj.get("commandProtocol.proxyPort").getAsInt();
-    txfMech = obj.get("transferProtocol.mechanism").getAsString();
-    txfPort = obj.get("transferProtocol.port").getAsInt();
-    txfUseProxy = obj.get("transferProtocol.useProxy").getAsBoolean();
-    txfProxyHost = obj.get("transferProtocol.proxyHost").getAsString();
-    txfProxyPort = obj.get("transferProtocol.proxyPort").getAsInt();
+    JsonObject cmdProtObj = obj.getAsJsonObject("commandProtocol");
+    cmdMech = (cmdProtObj.has("mechanism") ? cmdProtObj.get("mechanism").getAsString() : "NONE");
+    cmdPort = (cmdProtObj.has("port") ? cmdProtObj.get("port").getAsInt() : -1);
+    cmdUseProxy = (cmdProtObj.has("useProxy") ? cmdProtObj.get("useProxy").getAsBoolean() : false);
+    cmdProxyHost = (cmdProtObj.has("proxyHost") ? cmdProtObj.get("proxyHost").getAsString() : "");
+    cmdProxyPort = (cmdProtObj.has("proxyPort") ? cmdProtObj.get("proxyPort").getAsInt() : -1);
+    JsonObject txfProtObj = obj.getAsJsonObject("transferProtocol");
+    txfMech = (txfProtObj.has("mechanism") ? txfProtObj.get("mechanism").getAsString() : "NONE");
+    txfPort = (txfProtObj.has("port") ? txfProtObj.get("port").getAsInt() : -1);
+    txfUseProxy = (txfProtObj.has("useProxy") ? txfProtObj.get("useProxy").getAsBoolean() : false);
+    txfProxyHost = (txfProtObj.has("proxyHost") ? txfProtObj.get("proxyHost").getAsString() : "");
+    txfProxyPort = (txfProtObj.has("proxyPort") ? txfProtObj.get("proxyPort").getAsInt() : -1);
 
     // Check values.
-    if (StringUtils.isBlank(name))
-    {
-      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
-      _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    String msg = null;
+    if (StringUtils.isBlank(name)) {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
     }
-    if (StringUtils.isBlank(owner))
-    {
-      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty owner.");
-      _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+    else if (StringUtils.isBlank(host)) {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
     }
-    if (StringUtils.isBlank(host))
+    else if (StringUtils.isBlank(cmdMech)) {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty CommandProtocol mechanism.");
+    }
+    else if (StringUtils.isBlank(txfMech)) {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty TransferProtocol mechanism.");
+    }
+    // If validation failed log error message and return response
+    if (msg != null)
     {
-      String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
       _log.error(msg);
       return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -232,7 +248,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -250,7 +266,7 @@ public class SystemResource
   @Path("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-      summary = "Retrieve information for a system given the system name.",
+      summary = "Retrieve information for a system",
       description =
           "Retrieve information for a system given the system name. " +
           "Use query parameter returnCredentials = true to have the user access credentials " +
@@ -315,6 +331,21 @@ public class SystemResource
   /* ---------------------------------------------------------------------------- */
   @GET
   @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+    summary = "Retrieve all systems",
+    description = "Retrieve all systems.",
+    tags = "systems",
+    parameters = {
+      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+        description = "Pretty print the response")
+    },
+    responses = {
+      @ApiResponse(responseCode = "200", description = "Success."),
+      @ApiResponse(responseCode = "400", description = "Input error."),
+      @ApiResponse(responseCode = "401", description = "Not authorized."),
+      @ApiResponse(responseCode = "500", description = "Server error.")
+    }
+  )
   public Response getSystems(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
   {
     // Trace this request.
@@ -338,7 +369,7 @@ public class SystemResource
     }
 
     // ---------------------------- Success -------------------------------
-    int cnt = systems == null ? 0 : systems.size();
+    int cnt = (systems == null ? 0 : systems.size());
     return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, systems)).build();
   }

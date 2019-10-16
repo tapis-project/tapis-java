@@ -12,12 +12,14 @@
     },
     "description": {
       "type": "string",
-      "maxLength": 2048
+      "maxLength": 2048,
+      "default": ""
     },
     "owner": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 60
+      "maxLength": 60,
+      "default": "${apiUserId}"
     },
     "host": {
       "type": "string",
@@ -30,46 +32,54 @@
     },
     "bucketName": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 63
+      "maxLength": 63,
+      "default": ""
     },
     "rootDir": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "default": "/"
     },
     "jobInputDir": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "default": "/input"
     },
     "jobOutputDir": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "default": "/output"
     },
     "workDir": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "default": "/data"
     },
     "scratchDir": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "default": "/scratch"
     },
     "effectiveUserId": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 60
+      "maxLength": 60,
+      "default": "${apiUserId}"
     },
     "commandCredential": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "default": ""
     },
     "transferCredential": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "default": ""
     },
     "commandProtocol": {
       "type": "object",
@@ -85,11 +95,12 @@
           ]
         },
         "port": {
-          "type": "integer"
+          "type": "integer",
+          "default": -1
         },
         "useProxy": {
           "type": "boolean",
-          "default": "false"
+          "default": false
         },
         "proxyHost": {
           "type": "string",
@@ -97,9 +108,13 @@
           "default": ""
         },
         "proxyPort": {
-          "type": "integer"
+          "type": "integer",
+          "default": -1
         }
-      }
+      },
+      "required": [
+        "mechanism"
+      ]
     },
     "transferProtocol": {
       "type": "object",
@@ -114,11 +129,12 @@
           ]
         },
         "port": {
-          "type": "integer"
+          "type": "integer",
+          "default": -1
         },
         "useProxy": {
           "type": "boolean",
-          "default": "false"
+          "default": false
         },
         "proxyHost": {
           "type": "string",
@@ -126,14 +142,17 @@
           "default": ""
         },
         "proxyPort": {
-          "type": "integer"
+          "type": "integer",
+          "default": -1
         }
-      }
+      },
+      "required": [
+        "mechanism"
+      ]
     }
   },
   "required": [
     "name",
-    "owner",
     "host",
     "commandProtocol",
     "transferProtocol"
