@@ -1,0 +1,254 @@
+openapi: 3.0.1
+info:
+  title: Tapis Systems API
+  description: The Tapis Systems API provides for management of Tapis Systems including
+    access and transfer protocols and credentials.
+  contact:
+    name: CICSupport
+    email: cicsupport@tacc.utexas.edu
+  license:
+    name: 3-Clause BSD License
+    url: https://opensource.org/licenses/BSD-3-Clause
+  version: "0.1"
+externalDocs:
+  description: Tapis Home
+  url: https://tacc-cloud.readthedocs.io/projects/agave
+servers:
+- url: http://localhost:8080
+  description: Local test environment
+  variables: {}
+security:
+- Tapis JWT: []
+tags:
+- name: systems
+  description: manage systems
+paths:
+  /system/{name}:
+    get:
+      tags:
+      - systems
+      summary: Retrieve information for a system
+      description: Retrieve information for a system given the system name. Use query
+        parameter returnCredentials = true to have the user access credentials included
+        in the response.
+      operationId: getSystemByName
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      - name: returnCredentials
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: System found.
+        400:
+          description: Input error.
+        404:
+          description: System not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Name'
+        401:
+          description: Not authorized.
+        500:
+          description: Server error.
+  /system:
+    get:
+      tags:
+      - systems
+      summary: Retrieve all systems
+      description: Retrieve all systems.
+      operationId: getSystems
+      parameters:
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NameArray'
+        400:
+          description: Input error.
+        401:
+          description: Not authorized.
+        500:
+          description: Server error.
+    post:
+      tags:
+      - systems
+      summary: Create a system
+      description: 'Create a system using a request body. System name must be unique
+        within a tenant and can be composed of alphanumeric characters and the following
+        special characters: [-._~]. Name must begin with an alphabetic character and
+        can be no more than 256 characters in length. Description is optional with
+        a maximum length of 2048 characters.'
+      operationId: createSystem
+      parameters:
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        description: A JSON object specifying information for the system to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSystem'
+        required: true
+      responses:
+        201:
+          description: System created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceUrl'
+        400:
+          description: Input error. Invalid JSON.
+        401:
+          description: Not authorized.
+        409:
+          description: System already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceUrl'
+        500:
+          description: Server error.
+  /hello:
+    get:
+      tags:
+      - general
+      description: Connectivity test.
+      operationId: getHello
+      parameters:
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: Message received.
+        401:
+          description: Not authorized.
+        500:
+          description: Server error.
+components:
+  schemas:
+    Name:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        name:
+          type: string
+    NameArray:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        names:
+          type: array
+          items:
+            type: string
+    ResourceUrl:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        url:
+          type: string
+    CommandProtocol:
+      type: object
+      properties:
+        mechanism:
+          type: string
+        port:
+          type: integer
+          format: int32
+        useProxy:
+          type: boolean
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+          format: int32
+    CreateSystem:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        host:
+          type: string
+        available:
+          type: boolean
+        bucketName:
+          type: string
+        rootDir:
+          type: string
+        jobInputDir:
+          type: string
+        jobOutputDir:
+          type: string
+        scratchDir:
+          type: string
+        workDir:
+          type: string
+        effectiveUserId:
+          type: string
+        commandCredential:
+          type: string
+        transferCredential:
+          type: string
+        commandProtocol:
+          $ref: '#/components/schemas/CommandProtocol'
+        transferProtocol:
+          $ref: '#/components/schemas/TransferProtocol'
+    TransferProtocol:
+      type: object
+      properties:
+        mechanism:
+          type: string
+        port:
+          type: integer
+          format: int32
+        useProxy:
+          type: boolean
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+          format: int32

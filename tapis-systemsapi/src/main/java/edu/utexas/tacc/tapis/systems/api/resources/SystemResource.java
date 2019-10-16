@@ -16,6 +16,10 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.systems.api.requestBody.CreateSystem;
+import edu.utexas.tacc.tapis.systems.api.responseBody.Name;
+import edu.utexas.tacc.tapis.systems.api.responseBody.NameArray;
+import edu.utexas.tacc.tapis.systems.api.responseBody.ResourceUrl;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -122,22 +126,22 @@ public class SystemResource
     },
     requestBody =
       @RequestBody(
-      description = "A JSON object specifying information for the system to be created.",
-      required = true,
-      content = @Content(mediaType = MediaType.APPLICATION_JSON,
-                         schema = @Schema(implementation = edu.utexas.tacc.tapis.systems.api.requestBody.ReqCreateSystem.class)
-                        )
+        description = "A JSON object specifying information for the system to be created.",
+        required = true,
+        content = @Content(schema = @Schema(implementation = CreateSystem.class))
       ),
     responses = {
-      @ApiResponse(responseCode = "201", description = "System created."),
+      @ApiResponse(responseCode = "201", description = "System created.",
+                   content = @Content(schema = @Schema(implementation = ResourceUrl.class))
+      ),
       @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
       @ApiResponse(responseCode = "401", description = "Not authorized."),
-      @ApiResponse(responseCode = "409", description = "System already exists."),
+      @ApiResponse(responseCode = "409", description = "System already exists.",
+                   content = @Content(schema = @Schema(implementation = ResourceUrl.class))),
       @ApiResponse(responseCode = "500", description = "Server error.")
     }
   )
-  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                               InputStream payloadStream)
+  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -241,10 +245,9 @@ public class SystemResource
       // TODO Use static factory method, or better yet use DI, maybe Guice
       SystemsService svc = new SystemsService();
       svc.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                       jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
+                       jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, cmdCred, txfCred,
                        cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort,
-                       txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort,
-                       cmdCred, txfCred);
+                       txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort);
     }
     catch (Exception e)
     {
@@ -281,13 +284,16 @@ public class SystemResource
       responses = {
           @ApiResponse(responseCode = "200", description = "System found."),
           @ApiResponse(responseCode = "400", description = "Input error."),
+          @ApiResponse(responseCode = "404", description = "System not found.",
+                       content = @Content(schema = @Schema(implementation = Name.class))
+          ),
           @ApiResponse(responseCode = "401", description = "Not authorized."),
           @ApiResponse(responseCode = "500", description = "Server error.")
       }
   )
   public Response getSystemByName(@PathParam("name") String name,
-                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                  @DefaultValue("false") @QueryParam("returnCredentials") boolean getCreds)
+                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                  @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -340,13 +346,15 @@ public class SystemResource
         description = "Pretty print the response")
     },
     responses = {
-      @ApiResponse(responseCode = "200", description = "Success."),
+      @ApiResponse(responseCode = "200", description = "Success.",
+                   content = @Content(schema = @Schema(implementation = NameArray.class))
+      ),
       @ApiResponse(responseCode = "400", description = "Input error."),
       @ApiResponse(responseCode = "401", description = "Not authorized."),
       @ApiResponse(responseCode = "500", description = "Server error.")
     }
   )
-  public Response getSystems(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  public Response getSystems(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     // Trace this request.
     if (_log.isTraceEnabled())

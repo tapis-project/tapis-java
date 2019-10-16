@@ -20,17 +20,17 @@ It integrates the following facilities:
    10. Aloe support for parameter parsing, email clients, threadlocal management,
        UUIDs, etc.
 
-The back end may be found in tapis-systemslib
+The back end may be found in tapis-systemssvc
 
 
 -----------------------------
 Initialize the Database
 -----------------------------
 Current process to create and drop the DB is to use the sql directly.
-SQL files are in tapis-systemslib/src/main/resources/sql.
+SQL files are in tapis-systemssvc/src/main/resources/sql.
 First create the user "tapis_sys" From then on DB can be reset as follows:
-psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/drop.sql
-psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
+psql -h localhost -U postgres -q -f tapis-systemssvc/src/main/resources/sql/drop.sql
+psql -h localhost -U postgres -q -f tapis-systemssvc/src/main/resources/sql/V001__init.sql
 
 
 ???????????????????

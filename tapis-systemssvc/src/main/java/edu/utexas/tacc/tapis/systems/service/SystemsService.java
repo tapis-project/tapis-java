@@ -35,9 +35,9 @@ public class SystemsService
   public int createSystem(String tenant, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId,
+                          String commandCredential, String transferCredential,
                           String cmdMech, int cmdPort, boolean cmdUseProxy, String cmdProxyHost, int cmdProxyPort,
-                          String txfMech, int txfPort, boolean txfUseProxy, String txfProxyHost, int txfProxyPort,
-                          String commandCredential, String transferCredential)
+                          String txfMech, int txfPort, boolean txfUseProxy, String txfProxyHost, int txfProxyPort)
           throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice

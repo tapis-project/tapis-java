@@ -17,6 +17,18 @@ import org.slf4j.LoggerFactory;
 public final class TSystem
 {
   /* ********************************************************************** */
+  /*                               Constants                                */
+  /* ********************************************************************** */
+  public static final String DEFAULT_OWNER = "${apiUserId}";
+  public static final boolean DEFAULT_AVAILABLE_ = true;
+  public static final String DEFAULT_ROOTDIR = "/";
+  public static final String DEFAULT_JOBINPUTDIR = "/input";
+  public static final String DEFAULT_JOBOUTPUTDIR = "/output";
+  public static final String DEFAULT_WORKDIR = "/data";
+  public static final String DEFAULT_SCRATCHDIR = "/scratch";
+  public static final String DEFAULT_EFFECTIVEUSERID = "${apiUserId}";
+
+  /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging

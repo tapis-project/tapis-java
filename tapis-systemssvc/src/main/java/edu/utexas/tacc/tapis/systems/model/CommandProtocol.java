@@ -8,19 +8,28 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 
 /*
- * Transfer Protocol contains information required to do I/O for a system, except for user and secret.
+ * Command Protocol contains information required to access a system, except for user and secret.
  * This class is intended to represent an immutable object.
- * Please keep it that way.
+ * Please keep it immutable.
  */
-public final class TransferProtocol
+public final class CommandProtocol
 {
-  public enum Mechanism {NONE, SFTP, S3, LOCAL}
+  public enum Mechanism {NONE, SSH_ANONYMOUS, SSH_PASSWORD, SSH_KEYS, SSH_CERT}
+
+  /* ********************************************************************** */
+  /*                               Constants                                */
+  /* ********************************************************************** */
+  public static final Mechanism DEFAULT_MECHANISM= Mechanism.NONE;
+  public static final int DEFAULT_PORT = -1;
+  public static final boolean DEFAULT_USEPROXY = false;
+  public static final String DEFAULT_PROXYHOST = "";
+  public static final int DEFAULT_PROXYPORT = -1;
 
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Logging
-  private static final Logger _log = LoggerFactory.getLogger(TransferProtocol.class);
+  private static final Logger _log = LoggerFactory.getLogger(CommandProtocol.class);
 
   private final int id;
   private final Mechanism mechanism; // How access authorization is handled.
@@ -33,7 +42,7 @@ public final class TransferProtocol
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  public TransferProtocol(int id1, Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
+  public CommandProtocol(int id1, Mechanism mechanism1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
   {
     id = id1;
     mechanism = mechanism1;

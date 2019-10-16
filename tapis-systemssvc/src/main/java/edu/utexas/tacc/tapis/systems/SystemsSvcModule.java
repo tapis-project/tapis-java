@@ -5,7 +5,7 @@ import com.google.inject.AbstractModule;
 /*
  * Guice module for SystemsLib
  */
-public class SystemsLibModule extends AbstractModule
+public class SystemsSvcModule extends AbstractModule
 {
   @Override
   protected void configure()

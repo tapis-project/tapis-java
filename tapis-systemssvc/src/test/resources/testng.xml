@@ -1,13 +1,13 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 
-<suite name="Tapis Systems Library" verbose="1" parallel="none">
+<suite name="Tapis Systems Service" verbose="1" parallel="none">
   <groups>
     <run>
       <exclude name="broken"/>
       <exclude name="notReady"/>
     </run>
   </groups>
-  <test name="systemslib">
+  <test name="systemssvc">
     <packages>
       <package name="edu.utexas.tacc.tapis.systems.*" /> 
     </packages>
