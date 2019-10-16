@@ -48,10 +48,22 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
     post:
       tags:
       - role
@@ -88,10 +100,22 @@ paths:
                 $ref: '#/components/schemas/RespResourceUrl'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/{roleName}:
     get:
       tags:
@@ -115,11 +139,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SkRole'
+                $ref: '#/components/schemas/RespRole'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -128,6 +160,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
     delete:
       tags:
       - role
@@ -153,10 +189,22 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/updateName/{roleName}:
     post:
       tags:
@@ -185,10 +233,22 @@ paths:
       responses:
         200:
           description: Role name updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -197,6 +257,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/updateDesc/{roleName}:
     post:
       tags:
@@ -224,10 +288,22 @@ paths:
       responses:
         200:
           description: Role description updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -236,6 +312,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/addPerm:
     post:
       tags:
@@ -269,8 +349,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -279,6 +367,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/removePerm:
     post:
       tags:
@@ -306,8 +398,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -316,6 +416,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/addChild:
     post:
       tags:
@@ -345,8 +449,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -355,6 +467,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/removeChild:
     post:
       tags:
@@ -382,8 +498,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -392,6 +516,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/role/replacePathPrefix:
     post:
       tags:
@@ -426,8 +554,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -436,6 +572,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/hello:
     get:
       tags:
@@ -451,6 +591,10 @@ paths:
       responses:
         200:
           description: Message received.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
         500:
@@ -483,10 +627,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/removeRole:
     post:
       tags:
@@ -514,10 +670,22 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user:
     get:
       tags:
@@ -540,10 +708,22 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/roles/{user}:
     get:
       tags:
@@ -570,10 +750,22 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/perms/{user}:
     get:
       tags:
@@ -601,10 +793,22 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/grantRole:
     post:
       tags:
@@ -632,8 +836,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -642,6 +854,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/grantRoleWithPerm:
     post:
       tags:
@@ -673,8 +889,16 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Role not found.
           content:
@@ -683,6 +907,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/hasRoleAny:
     post:
       tags:
@@ -711,10 +939,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/hasRoleAll:
     post:
       tags:
@@ -743,10 +983,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/isPermitted:
     post:
       tags:
@@ -775,10 +1027,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/isPermittedAny:
     post:
       tags:
@@ -807,10 +1071,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/isPermittedAll:
     post:
       tags:
@@ -839,10 +1115,22 @@ paths:
                 $ref: '#/components/schemas/RespAuthorized'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/withRole/{roleName}:
     get:
       tags:
@@ -869,8 +1157,16 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         404:
           description: Named role not found.
           content:
@@ -879,6 +1175,10 @@ paths:
                 $ref: '#/components/schemas/RespName'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/user/withPermission/{permSpec}:
     get:
       tags:
@@ -914,17 +1214,51 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
 components:
   schemas:
-    RespResourceUrl:
+    BodyResourceUrl:
       type: object
       properties:
         url:
           type: string
+    RespResourceUrl:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/BodyResourceUrl'
+    RespBasic:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          type: object
     ReqCreateRole:
       type: object
       properties:
@@ -932,44 +1266,39 @@ components:
           type: string
         description:
           type: string
-    RespNameArray:
-      type: object
-      properties:
-        names:
-          type: array
-          items:
-            type: string
-    SkRole:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int32
-        tenant:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        created:
-          type: string
-        createdby:
-          type: string
-        updated:
-          type: string
-        updatedby:
-          type: string
-    RespName:
-      type: object
-      properties:
-        name:
-          type: string
-    RespChangeCount:
+    BodyChangeCount:
       type: object
       properties:
         changes:
           type: integer
           format: int32
+    RespChangeCount:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/BodyChangeCount'
+    BodyName:
+      type: object
+      properties:
+        name:
+          type: string
+    RespName:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/BodyName'
     ReqUpdateRoleName:
       type: object
       properties:
@@ -1023,11 +1352,71 @@ components:
           type: string
         newPrefix:
           type: string
-    RespAuthorized:
+    BodyNameArray:
+      type: object
+      properties:
+        names:
+          type: array
+          items:
+            type: string
+    RespNameArray:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/BodyNameArray'
+    RespRole:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/SkRole'
+    SkRole:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        tenant:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created:
+          type: string
+        createdby:
+          type: string
+        updated:
+          type: string
+        updatedby:
+          type: string
+    BodyAuthorized:
       type: object
       properties:
         isAuthorized:
           type: boolean
+    RespAuthorized:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/BodyAuthorized'
     ReqUserHasRole:
       type: object
       properties:

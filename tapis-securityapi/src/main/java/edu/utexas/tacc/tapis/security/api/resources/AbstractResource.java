@@ -11,7 +11,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.responseBody.RespName;
+import edu.utexas.tacc.tapis.security.api.responseBody.BodyName;
+import edu.utexas.tacc.tapis.security.api.responses.RespName;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
@@ -24,7 +25,7 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 class AbstractResource 
 {
@@ -120,7 +121,7 @@ class AbstractResource
           String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
           _log.error(msg);
           return Response.status(Status.BAD_REQUEST).
-              entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         }
         
         // Success
@@ -167,24 +168,25 @@ class AbstractResource
             
             // Create the response payload.
             TapisNotFoundException e2 = (TapisNotFoundException) e;
-            RespName missingName = new RespName();
+            BodyName missingName = new BodyName();
             missingName.name = e2.missingName;
+            RespName r = new RespName(missingName);
             
             // Get the not found message parameters.
             String missingType  = parms.length > 0 ? parms[0] : "entity";
             String missingValue = parms.length > 1 ? parms[1] : missingName.name;
             
-            return Response.status(Status.NOT_FOUND).entity(RestUtils.createSuccessResponse(
+            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                 MsgUtils.getMsg("TAPIS_NOT_FOUND", missingType, missingValue), 
-                                prettyPrint, missingName)).build();
+                                prettyPrint, r)).build();
         }
         else if (e instanceof TapisImplException) {
             return Response.status(SKApiUtils.toHttpStatus(((TapisImplException)e).condition)).
-                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         } 
         else {
             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         }
     }
 }

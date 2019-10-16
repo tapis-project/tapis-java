@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.responseBody;
 
-public final class RespNameArray 
+public final class BodyChangeCount 
 {
-    public String[] names;
+    public int changes;
 }

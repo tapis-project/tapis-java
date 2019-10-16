@@ -64,6 +64,9 @@ public class TestParameterRequestFilter
         if (queryParms == null || queryParms.isEmpty()) return;
         tenantId = queryParms.getFirst(TapisConstants.QUERY_PARM_TEST_TENANT);
         user = queryParms.getFirst(TapisConstants.QUERY_PARM_TEST_USER);
+
+tenantId = "fakeTenant";
+user     = "fakeUser";
         
         // Assign non-null test values to thread-local variables.
         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
