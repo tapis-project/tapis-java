@@ -245,8 +245,8 @@ public final class RoleResource
      @POST
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Create a role using either a request body or query parameters, "
-                           + "but not both.  Role names are case sensitive, alpha-numeric "
+             description = "Create a role using a request body.  "
+                           + "Role names are case sensitive, alpha-numeric "
                            + "strings that can also contain underscores.  Role names must "
                            + "start with an alphbetic character and can be no more than 60 "
                            + "characters in length.  The desciption can be no more than "
@@ -255,7 +255,7 @@ public final class RoleResource
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole.class))),
              responses = 
@@ -409,14 +409,14 @@ public final class RoleResource
      @Path("/updateName/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role using either a request body or query parameters, "
-                           + "but not both.  Role names are case sensitive, alphanumeric strings "
+             description = "Update an existing role using a request body.  "
+                           + "Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
                            + "character.  The limit on role name is 60 characters.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName.class))),
              responses = 
@@ -502,12 +502,12 @@ public final class RoleResource
      @Path("/updateDesc/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role using either a request body or query parameters, "
-                           + "but not both. The limit on a description is 2048 characters.",
+             description = "Update an existing role using a request body.  "
+                           + "The size limit on a description is 2048 characters.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription.class))),
              responses = 
@@ -589,7 +589,7 @@ public final class RoleResource
      @Path("/addPerm")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Add a permission to an existing role using either a request body.  "
+             description = "Add a permission to an existing role using a request body.  "
                          + "If the permission already exists, "
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the permission is added and the change count is one.  "
@@ -610,7 +610,7 @@ public final class RoleResource
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission.class))),
              responses = 
@@ -704,12 +704,11 @@ public final class RoleResource
      @Path("/removePerm")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a permission from a role using either a request body "
-                         + "or query parameters, but not both.",
+             description = "Remove a permission from a role using a request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission.class))),
              responses = 
@@ -801,14 +800,14 @@ public final class RoleResource
      @Path("/addChild")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Add a child role to another role using either a request body "
-                         + "or query parameters, but not both.  If the child already exists, "
+             description = "Add a child role to another role using a request body.  "
+                         + "If the child already exists, "
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the child is added and the change count is one.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole.class))),
              responses = 
@@ -901,12 +900,11 @@ public final class RoleResource
      @Path("/removeChild")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a child role from a parent role using either a request body "
-                         + "or query parameters, but not both.",
+             description = "Remove a child role from a parent role using a request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole.class))),
              responses = 
@@ -1020,13 +1018,13 @@ public final class RoleResource
                          + "limited to permissions defined only in that role.  Otherwise, permissions "
                          + "in all roles that meet the other matching criteria will be considered.\n\n"
                          + ""
-                         + "Either a request body or query parameters can be used on this request, "
-                         + "but not both.  The response indicates the number of changed permission "
+                         + "Use a request body to pass parameters on this request.  "
+                         + "The response indicates the number of changed permission "
                          + "specifications.",
              tags = "role",
              requestBody = 
                  @RequestBody(
-                     required = false,
+                     required = true,
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix.class))),
              responses = 
