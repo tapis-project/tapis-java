@@ -20,7 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,8 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
@@ -123,7 +126,9 @@ public final class SecurityResource
           description = "Connectivity test.",
           tags = "general",
           responses = 
-              {@ApiResponse(responseCode = "200", description = "Message received."),
+              {@ApiResponse(responseCode = "200", description = "Message received.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                @ApiResponse(responseCode = "401", description = "Not authorized."),
                @ApiResponse(responseCode = "500", description = "Server error.")}
       )
@@ -135,11 +140,14 @@ public final class SecurityResource
                                      "  " + _request.getRequestURL());
           _log.trace(msg);
       }
+      
+      // Create the response payload.
+      RespBasic r = new RespBasic("Hello from the Tapis Security Kernel.");
          
       // ---------------------------- Success ------------------------------- 
       // Success means we found the job. 
-      return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, "Hello from the Tapis Security Kernel.")).build();
+      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, r)).build();
   }
 
 }

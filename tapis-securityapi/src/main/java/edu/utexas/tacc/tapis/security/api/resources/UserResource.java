@@ -32,15 +32,18 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
-import edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized;
-import edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount;
-import edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray;
+import edu.utexas.tacc.tapis.security.api.responseBody.BodyAuthorized;
+import edu.utexas.tacc.tapis.security.api.responseBody.BodyChangeCount;
+import edu.utexas.tacc.tapis.security.api.responseBody.BodyNameArray;
+import edu.utexas.tacc.tapis.security.api.responses.RespAuthorized;
+import edu.utexas.tacc.tapis.security.api.responses.RespChangeCount;
+import edu.utexas.tacc.tapis.security.api.responses.RespNameArray;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -132,10 +135,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of user names.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUserNames(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
@@ -161,15 +170,16 @@ public final class UserResource
              }
          
          // Populate response.
-         RespNameArray names = new RespNameArray();
+         BodyNameArray names = new BodyNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
+         RespNameArray r = new RespNameArray(names);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
          int cnt = names.names.length;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " users"), prettyPrint, names)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " users"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -184,10 +194,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of roles names assigned to the user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUserRoles(@PathParam("user") String user,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -214,15 +230,16 @@ public final class UserResource
              }
          
          // Populate response.
-         RespNameArray names = new RespNameArray();
+         BodyNameArray names = new BodyNameArray();
          String[] array = new String[roles.size()];
          names.names = roles.toArray(array);
+         RespNameArray r = new RespNameArray(names);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
          int cnt = names.names.length;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Roles", cnt + " roles"), prettyPrint, names)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Roles", cnt + " roles"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -237,10 +254,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUserPerms(@PathParam("user") String user,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -267,15 +290,16 @@ public final class UserResource
              }
          
          // Populate response.
-         RespNameArray names = new RespNameArray();
+         BodyNameArray names = new BodyNameArray();
          String[] array = new String[perms.size()];
          names.names = perms.toArray(array);
+         RespNameArray r = new RespNameArray(names);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
          int cnt = names.names.length;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Permissions", cnt + " permissions"), prettyPrint, names)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Permissions", cnt + " permissions"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -295,13 +319,19 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role assigned to user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Named role not found.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response grantRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
@@ -324,7 +354,7 @@ public final class UserResource
                                           "grantRole", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
              
          // Fill in the parameter fields.
@@ -336,13 +366,13 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(roleName)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ------------------------- Check Tenant -----------------------------
@@ -362,13 +392,14 @@ public final class UserResource
              }
          
          // Populate the response.
-         RespChangeCount count = new RespChangeCount();
+         BodyChangeCount count = new BodyChangeCount();
          count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles assigned"), prettyPrint, count)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles assigned"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -388,10 +419,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role removed from user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response removeRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
@@ -414,7 +451,7 @@ public final class UserResource
                                           "removeRole", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
              
          // Fill in the parameter fields.
@@ -426,13 +463,13 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(roleName)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ------------------------- Check Tenant -----------------------------
@@ -458,13 +495,14 @@ public final class UserResource
              }
          
          // Populate the response.
-         RespChangeCount count = new RespChangeCount();
+         BodyChangeCount count = new BodyChangeCount();
          count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles removed"), prettyPrint, count)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles removed"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -488,13 +526,19 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespChangeCount.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Role not found.",
                       content = @Content(schema = @Schema(
-                          implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response grantRoleWithPermission(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                              InputStream payloadStream)
@@ -517,7 +561,7 @@ public final class UserResource
                                           "grantRoleWithPermission", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
              
          // Fill in the parameter fields.
@@ -530,19 +574,19 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(roleName)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(permSpec)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ------------------------- Check Tenant -----------------------------
@@ -568,13 +612,14 @@ public final class UserResource
              }
 
          // Populate the response.
-         RespChangeCount count = new RespChangeCount();
+         BodyChangeCount count = new BodyChangeCount();
          count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
 
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " changes"), prettyPrint, count)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " changes"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -595,10 +640,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response hasRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                              InputStream payloadStream)
@@ -621,7 +672,7 @@ public final class UserResource
                                           "hasRole", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // Make sure we have a role name.
@@ -629,7 +680,7 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
          // Repackage into a multi-role request.
@@ -659,10 +710,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response hasRoleAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
@@ -696,10 +753,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response hasRoleAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
@@ -733,10 +796,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response isPermitted(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                  InputStream payloadStream)
@@ -759,7 +828,7 @@ public final class UserResource
                                           "isPermitted", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-               entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
              
          // Make sure we have a permission specification.
@@ -767,7 +836,7 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "permSpec");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // Transfer to a new payload object.
@@ -797,10 +866,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response isPermittedAny(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     InputStream payloadStream)
@@ -834,10 +909,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespAuthorized.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response isPermittedAll(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     InputStream payloadStream)
@@ -865,13 +946,19 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a role.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Named role not found.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUsersWithRole(@PathParam("roleName") String roleName,
                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -898,15 +985,16 @@ public final class UserResource
              }
          
          // Fill in the response.
-         RespNameArray names = new RespNameArray();
+         BodyNameArray names = new BodyNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
+         RespNameArray r = new RespNameArray(names);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
          int cnt = names.names.length;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -939,10 +1027,16 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a permission.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responseBody.RespNameArray.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error."),
-                  @ApiResponse(responseCode = "401", description = "Not authorized."),
-                  @ApiResponse(responseCode = "500", description = "Server error.")}
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUsersWithPermission(@PathParam("permSpec") String permSpec,
                                             @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -969,15 +1063,16 @@ public final class UserResource
              }
          
          // Fill in the response.
-         RespNameArray names = new RespNameArray();
+         BodyNameArray names = new BodyNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
+         RespNameArray r = new RespNameArray(names);
          
          // ---------------------------- Success ------------------------------- 
          // Success means we found the tenant's role names.
          int cnt = names.names.length;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, names)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, r)).build();
      }
 
      /* **************************************************************************** */
@@ -1000,7 +1095,7 @@ public final class UserResource
                                               "hasRoleMulti", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
          }
          
@@ -1013,13 +1108,13 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRoleMulti", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (roleNames == null || (roleNames.length == 0)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasRoleMulti", "roleNames");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ------------------------- Check Tenant -----------------------------
@@ -1041,8 +1136,9 @@ public final class UserResource
              }
          
          // Set the result payload.
-         RespAuthorized authResp = new RespAuthorized();
+         BodyAuthorized authResp = new BodyAuthorized();
          authResp.isAuthorized = authorized;
+         RespAuthorized r = new RespAuthorized(authResp);
          
          // Set the response message.
          String resultCode;
@@ -1052,8 +1148,8 @@ public final class UserResource
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role.
          String respMsg = user + " authorized: " + authorized;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, authResp)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -1073,7 +1169,7 @@ public final class UserResource
                                               "isPermittedMulti", e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
          }
          
@@ -1086,13 +1182,13 @@ public final class UserResource
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermittedMulti", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (permSpecs == null || (permSpecs.length == 0)) {
              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermittedMulti", "permSpecs");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
          // ------------------------- Check Tenant -----------------------------
@@ -1113,8 +1209,9 @@ public final class UserResource
              }
          
          // Set the result payload.
-         RespAuthorized authResp = new RespAuthorized();
+         BodyAuthorized authResp = new BodyAuthorized();
          authResp.isAuthorized = authorized;
+         RespAuthorized r = new RespAuthorized(authResp);
          
          // Set the response message.
          String resultCode;
@@ -1124,8 +1221,7 @@ public final class UserResource
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role.
          String respMsg = user + " authorized: " + authorized;
-         return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, authResp)).build();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg(resultCode, "User", respMsg), prettyPrint, r)).build();
      }
-     
 }
