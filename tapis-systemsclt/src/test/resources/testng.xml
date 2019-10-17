@@ -1,0 +1,15 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+<suite name="Tapis Systems client" verbose="1" parallel="none">
+    <groups>
+        <run>
+            <exclude name="broken"/>
+            <exclude name="notReady"/>
+        </run>
+    </groups>
+	<test name="systemsclt">
+		<packages>
+		   <package name="edu.utexas.tacc.tapis.systems.client.*" /> 
+		</packages>
+	</test>
+</suite>

@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.systems.api.requestBody;
 
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol;
-
 public final class CreateSystem
 {
   public String name;
