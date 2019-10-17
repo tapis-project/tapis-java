@@ -99,6 +99,13 @@ public class SampleResource
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
+  //
+  // NOTE: These methods use the aloe way of creating response messages, which works
+  //       well until we want to generate code from openapi specification.  To better
+  //       support automated SDK generation, use the TapisRestUtils class place
+  //       of the RestUtils class.  See TapisRestUtils usage in the Security Kernel
+  //       and elsewhere.
+     
   /* ---------------------------------------------------------------------------- */
   /* hello:                                                                       */
   /* ---------------------------------------------------------------------------- */
