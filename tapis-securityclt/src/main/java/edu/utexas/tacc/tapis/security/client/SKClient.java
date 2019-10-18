@@ -5,6 +5,10 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespResourceUrl;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+
 public class SKClient 
 {
     /* **************************************************************************** */
@@ -16,6 +20,9 @@ public class SKClient
     /* **************************************************************************** */
     /*                                 Constructors                                 */
     /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* constructor:                                                                 */
+    /* ---------------------------------------------------------------------------- */
     public SKClient(URI uri) {}
     
     /* **************************************************************************** */
@@ -24,11 +31,21 @@ public class SKClient
     /* ---------------------------------------------------------------------------- */
     /* createRole:                                                                  */
     /* ---------------------------------------------------------------------------- */
-    URI createRole(String roleName, String description)
+    ResultResourceUrl createRole(String roleName, String description)
+     throws TapisException
     {
-        URI uri = null;
+        RespResourceUrl resp = null;
+        try {
+            
+        }
+        catch (Exception e) {
+            throw new TapisException(e.getMessage(), e);
+        }
         
-        return uri;
+        // 
+        if (resp == null) throw new TapisException("No response");
+        
+        return null;
     }
     
 }

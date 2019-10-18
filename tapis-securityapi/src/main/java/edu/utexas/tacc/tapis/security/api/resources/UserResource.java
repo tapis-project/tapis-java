@@ -32,12 +32,12 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyAuthorized;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyChangeCount;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyNameArray;
 import edu.utexas.tacc.tapis.security.api.responses.RespAuthorized;
 import edu.utexas.tacc.tapis.security.api.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responses.RespNameArray;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultAuthorized;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultChangeCount;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -170,7 +170,7 @@ public final class UserResource
              }
          
          // Populate response.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
          RespNameArray r = new RespNameArray(names);
@@ -230,7 +230,7 @@ public final class UserResource
              }
          
          // Populate response.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          String[] array = new String[roles.size()];
          names.names = roles.toArray(array);
          RespNameArray r = new RespNameArray(names);
@@ -290,7 +290,7 @@ public final class UserResource
              }
          
          // Populate response.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          String[] array = new String[perms.size()];
          names.names = perms.toArray(array);
          RespNameArray r = new RespNameArray(names);
@@ -392,7 +392,7 @@ public final class UserResource
              }
          
          // Populate the response.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -495,7 +495,7 @@ public final class UserResource
              }
          
          // Populate the response.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -612,7 +612,7 @@ public final class UserResource
              }
 
          // Populate the response.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
 
@@ -985,7 +985,7 @@ public final class UserResource
              }
          
          // Fill in the response.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
          RespNameArray r = new RespNameArray(names);
@@ -1063,7 +1063,7 @@ public final class UserResource
              }
          
          // Fill in the response.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          String[] array = new String[users.size()];
          names.names = users.toArray(array);
          RespNameArray r = new RespNameArray(names);
@@ -1136,7 +1136,7 @@ public final class UserResource
              }
          
          // Set the result payload.
-         BodyAuthorized authResp = new BodyAuthorized();
+         ResultAuthorized authResp = new ResultAuthorized();
          authResp.isAuthorized = authorized;
          RespAuthorized r = new RespAuthorized(authResp);
          
@@ -1209,7 +1209,7 @@ public final class UserResource
              }
          
          // Set the result payload.
-         BodyAuthorized authResp = new BodyAuthorized();
+         ResultAuthorized authResp = new ResultAuthorized();
          authResp.isAuthorized = authorized;
          RespAuthorized r = new RespAuthorized(authResp);
          

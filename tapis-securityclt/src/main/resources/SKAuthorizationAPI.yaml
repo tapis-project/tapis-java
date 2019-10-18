@@ -1232,11 +1232,6 @@ paths:
                 $ref: '#/components/schemas/RespBasic'
 components:
   schemas:
-    BodyResourceUrl:
-      type: object
-      properties:
-        url:
-          type: string
     RespResourceUrl:
       type: object
       properties:
@@ -1247,7 +1242,12 @@ components:
         version:
           type: string
         result:
-          $ref: '#/components/schemas/BodyResourceUrl'
+          $ref: '#/components/schemas/ResultResourceUrl'
+    ResultResourceUrl:
+      type: object
+      properties:
+        url:
+          type: string
     RespBasic:
       type: object
       properties:
@@ -1266,13 +1266,7 @@ components:
           type: string
         description:
           type: string
-    BodyChangeCount:
-      type: object
-      properties:
-        changes:
-          type: integer
-          format: int32
-    RespChangeCount:
+    RespNameArray:
       type: object
       properties:
         status:
@@ -1282,11 +1276,44 @@ components:
         version:
           type: string
         result:
-          $ref: '#/components/schemas/BodyChangeCount'
-    BodyName:
+          $ref: '#/components/schemas/ResultNameArray'
+    ResultNameArray:
       type: object
       properties:
+        names:
+          type: array
+          items:
+            type: string
+    RespRole:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/SkRole'
+    SkRole:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        tenant:
+          type: string
         name:
+          type: string
+        description:
+          type: string
+        created:
+          type: string
+        createdby:
+          type: string
+        updated:
+          type: string
+        updatedby:
           type: string
     RespName:
       type: object
@@ -1298,7 +1325,29 @@ components:
         version:
           type: string
         result:
-          $ref: '#/components/schemas/BodyName'
+          $ref: '#/components/schemas/ResultName'
+    ResultName:
+      type: object
+      properties:
+        name:
+          type: string
+    RespChangeCount:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultChangeCount'
+    ResultChangeCount:
+      type: object
+      properties:
+        changes:
+          type: integer
+          format: int32
     ReqUpdateRoleName:
       type: object
       properties:
@@ -1352,60 +1401,6 @@ components:
           type: string
         newPrefix:
           type: string
-    BodyNameArray:
-      type: object
-      properties:
-        names:
-          type: array
-          items:
-            type: string
-    RespNameArray:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/BodyNameArray'
-    RespRole:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/SkRole'
-    SkRole:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int32
-        tenant:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        created:
-          type: string
-        createdby:
-          type: string
-        updated:
-          type: string
-        updatedby:
-          type: string
-    BodyAuthorized:
-      type: object
-      properties:
-        isAuthorized:
-          type: boolean
     RespAuthorized:
       type: object
       properties:
@@ -1416,7 +1411,12 @@ components:
         version:
           type: string
         result:
-          $ref: '#/components/schemas/BodyAuthorized'
+          $ref: '#/components/schemas/ResultAuthorized'
+    ResultAuthorized:
+      type: object
+      properties:
+        isAuthorized:
+          type: boolean
     ReqUserHasRole:
       type: object
       properties:

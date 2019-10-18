@@ -34,15 +34,15 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyChangeCount;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyName;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyNameArray;
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyResourceUrl;
 import edu.utexas.tacc.tapis.security.api.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.security.api.responses.RespName;
 import edu.utexas.tacc.tapis.security.api.responses.RespNameArray;
 import edu.utexas.tacc.tapis.security.api.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.api.responses.RespRole;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultChangeCount;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultNameArray;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultName;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -178,7 +178,7 @@ public final class RoleResource
          }
          
          // Assign result.
-         BodyNameArray names = new BodyNameArray();
+         ResultNameArray names = new ResultNameArray();
          names.names = list.toArray(new String[list.size()]);
          RespNameArray r = new RespNameArray(names);
 
@@ -245,7 +245,7 @@ public final class RoleResource
 
          // Adjust status based on whether we found the role.
          if (role == null) {
-             BodyName missingName = new BodyName();
+             ResultName missingName = new ResultName();
              missingName.name = roleName;
              RespName r = new RespName(missingName);
              return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
@@ -364,7 +364,7 @@ public final class RoleResource
          
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
-         BodyResourceUrl respUrl = new BodyResourceUrl();
+         ResultResourceUrl respUrl = new ResultResourceUrl();
          respUrl.url = _request.getRequestURL().toString() + "/" + roleName;
          RespResourceUrl r = new RespResourceUrl(respUrl);
          
@@ -430,7 +430,7 @@ public final class RoleResource
          }
          
          // Return the number of row affected.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -748,7 +748,7 @@ public final class RoleResource
          }
 
          // Report the number of rows changed.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -851,7 +851,7 @@ public final class RoleResource
          }
     
          // Report the number of rows changed.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -958,7 +958,7 @@ public final class RoleResource
          }
 
          // Report the number of rows changed.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -1061,7 +1061,7 @@ public final class RoleResource
          }
 
          // Report the number of rows changed.
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
          RespChangeCount r = new RespChangeCount(count);
          
@@ -1202,7 +1202,7 @@ public final class RoleResource
          // ***** END DUMMY TEST Code
          
          // ***** DUMMY RESPONSE Code
-         BodyChangeCount count = new BodyChangeCount();
+         ResultChangeCount count = new ResultChangeCount();
          count.changes = 2;
          RespChangeCount r = new RespChangeCount(count);
          // ***** END DUMMY RESPONSE Code
