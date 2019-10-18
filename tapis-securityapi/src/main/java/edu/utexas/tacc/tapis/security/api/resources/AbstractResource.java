@@ -11,8 +11,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.api.responseBody.BodyName;
 import edu.utexas.tacc.tapis.security.api.responses.RespName;
+import edu.utexas.tacc.tapis.security.api.responses.results.ResultName;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
@@ -168,7 +168,7 @@ class AbstractResource
             
             // Create the response payload.
             TapisNotFoundException e2 = (TapisNotFoundException) e;
-            BodyName missingName = new BodyName();
+            ResultName missingName = new ResultName();
             missingName.name = e2.missingName;
             RespName r = new RespName(missingName);
             

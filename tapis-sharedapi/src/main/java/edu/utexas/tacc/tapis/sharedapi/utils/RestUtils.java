@@ -40,7 +40,10 @@ public class RestUtils
    * @param prettyPrint true for multi-line formating, false for compact formatting
    * @param result a result object to be converted to json
    * @return the json response string
+   * 
+   * @deprecated Replaced by method in TapisRestUtils
    */
+  @Deprecated(forRemoval = true)
   public static String createSuccessResponse(String message, boolean prettyPrint, Object result)
   {
     ResponseWrapper wrapper = 
@@ -56,7 +59,10 @@ public class RestUtils
    * @param message the application level error message to be included in the response
    * @param prettyPrint true for multi-line formating, false for compact formatting
    * @return the json response string
+   * 
+   * @deprecated Replaced by method in TapisRestUtils
    */
+  @Deprecated(forRemoval = true)
   public static String createSuccessResponse(String message, boolean prettyPrint)
   {
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.success, message);
@@ -73,7 +79,10 @@ public class RestUtils
    * @param prettyPrint true for multi-line formating, false for compact formatting
    * @param result a result object to be converted to json
    * @return the json response string
+   * 
+   * @deprecated Replaced by method in TapisRestUtils
    */
+  @Deprecated(forRemoval = true)
   public static String createErrorResponse(String message, boolean prettyPrint, Object result)
   {
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.error, message);
@@ -89,7 +98,10 @@ public class RestUtils
    * @param message the application level error message to be included in the response
    * @param prettyPrint true for multi-line formating, false for compact formatting
    * @return the json response string
+   * 
+   * @deprecated Replaced by method in TapisRestUtils
    */
+  @Deprecated(forRemoval = true)
   public static String createErrorResponse(String message, boolean prettyPrint)
   {
     ResponseWrapper wrapper = new ResponseWrapper(RESPONSE_STATUS.error, message);
