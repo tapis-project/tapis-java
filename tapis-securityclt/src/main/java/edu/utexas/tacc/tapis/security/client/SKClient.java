@@ -8,11 +8,23 @@ import com.google.gson.Gson;
 
 import edu.utexas.tacc.tapis.security.client.gen.ApiException;
 import edu.utexas.tacc.tapis.security.client.gen.api.RoleApi;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveChildRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveRolePermission;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqReplacePathPrefix;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUpdateRoleDescription;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUpdateRoleName;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespBasic;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespChangeCount;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespResourceUrl;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultChangeCount;
+import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 public class SKClient 
@@ -47,13 +59,51 @@ public class SKClient
     /*                                Public Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
+    /* getRoleNames:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getRoleNames()
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.getRoleNames(false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getRoleByName:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    public SkRole getRoleByName(String roleName)
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespRole resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.getRoleByName(roleName, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* createRole:                                                                  */
     /* ---------------------------------------------------------------------------- */
-    ResultResourceUrl createRole(String roleName, String description)
+    public ResultResourceUrl createRole(String roleName, String description)
      throws TapisClientException
     {
         // Assign input body.
-        ReqCreateRole body = new ReqCreateRole();
+        var body = new ReqCreateRole();
         body.setRoleName(roleName);
         body.setDescription(description);
         
@@ -66,15 +116,14 @@ public class SKClient
         }
         catch (Exception e) {throwTapisClientException(e);}
         
-        // Check the response and return result if ok.
-        checkResult(resp);
+        // Return result value.
         return resp.getResult();
     }
     
     /* ---------------------------------------------------------------------------- */
     /* deleteRoleByName:                                                            */
     /* ---------------------------------------------------------------------------- */
-    ResultChangeCount deleteRoleByName(String roleName)
+    public ResultChangeCount deleteRoleByName(String roleName)
      throws TapisClientException
     {
         // Make the REST call.
@@ -86,45 +135,179 @@ public class SKClient
         }
         catch (Exception e) {throwTapisClientException(e);}
         
-        // Check the response and return result if ok.
-        checkResult(resp);
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* updateRoleName:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    public void updateRoleName(String roleName, String newRoleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUpdateRoleName();
+        body.setNewRoleName(newRoleName);
+        
+        // Make the REST call.
+        RespBasic resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.updateRoleName(body, roleName, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* updateRoleDescription:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    public void updateRoleDescription(String roleName, String description)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUpdateRoleDescription();
+        body.setDescription(description);
+        
+        // Make the REST call.
+        RespBasic resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.updateRoleDescription(body, roleName, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* addRolePermission:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount addRolePermission(String roleName, String permSpec)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqAddRolePermission();
+        body.setRoleName(roleName);
+        body.setPermSpec(permSpec);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.addRolePermission(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* addRemovePermission:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount addRemovePermission(String roleName, String permSpec)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqRemoveRolePermission();
+        body.setRoleName(roleName);
+        body.setPermSpec(permSpec);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.removeRolePermission(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* addChildRole:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount addChildRole(String parentRoleName, String childRoleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqAddChildRole();
+        body.setParentRoleName(parentRoleName);
+        body.setChildRoleName(childRoleName);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.addChildRole(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* removeChildRole:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount removeChildRole(String parentRoleName, String childRoleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqRemoveChildRole();
+        body.setParentRoleName(parentRoleName);
+        body.setChildRoleName(childRoleName);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.removeChildRole(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* replacePathPrefix:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount replacePathPrefix(String schema, String roleName,
+                                               String oldSystemId, String newSystemId,
+                                               String oldPrefix, String newPrefix)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqReplacePathPrefix();
+        body.setSchema(schema);
+        body.setRoleName(roleName);
+        body.setOldSystemId(oldSystemId);
+        body.setNewSystemId(newSystemId);
+        body.setOldPrefix(oldPrefix);
+        body.setNewPrefix(newPrefix);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.replacePathPrefix(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
         return resp.getResult();
     }
     
     /* **************************************************************************** */
     /*                               Private Methods                                */
     /* **************************************************************************** */
-    /* ---------------------------------------------------------------------------- */
-    /* checkResult:                                                                 */
-    /* ---------------------------------------------------------------------------- */
-    private void checkResult(Object resp) throws TapisClientException
-    {
-        // We should always get a non-null response.
-        if (resp == null) throw new TapisClientException(EMsg.NO_RESPONSE.name());
-        
-        // This approach converts the response object that always has the tapis
-        // response wrapper fields into json and then into our data transfer type.
-        // This code should suffice even when new responses are added since the
-        // four top-level fields will always be there.
-        String respJson = _gson.toJson(resp);
-        var tapisResp = _gson.fromJson(respJson, TapisResponse.class);
-        
-        // Throw exception on errors reported by the service.
-        if (!STATUS_SUCCESS.equals(tapisResp.status)) {
-            // Set the error message.
-            String msg = tapisResp.message;
-            if (StringUtils.isBlank(msg)) msg = EMsg.ERROR_STATUS.name();
-            
-            // Create and throw the client exception.
-            var tapisClientException =  new TapisClientException(msg);
-            tapisClientException.setTapisMessage(tapisResp.message);
-            tapisClientException.setStatus(tapisResp.status);
-            tapisClientException.setVersion(tapisResp.version);
-            tapisClientException.setResult(tapisResp.result);
-            throw tapisClientException;
-        }
-    }
-
     /* ---------------------------------------------------------------------------- */
     /* throwTapisClientException:                                                   */
     /* ---------------------------------------------------------------------------- */
