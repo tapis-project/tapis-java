@@ -173,7 +173,7 @@ public class HikariDSGenerator
    		throw new TapisRuntimeException(msg);
    	}
    	if (maxPoolSize < 1) {
-   	    String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getDataSource", maxPoolSize);
+   	    String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getDataSource", "maxPoolSize", maxPoolSize);
    		_log.error(msg);
    		throw new TapisRuntimeException(msg);
    	}
