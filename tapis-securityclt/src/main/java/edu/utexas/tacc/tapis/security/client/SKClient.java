@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.client;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -8,19 +9,29 @@ import com.google.gson.Gson;
 
 import edu.utexas.tacc.tapis.security.client.gen.ApiException;
 import edu.utexas.tacc.tapis.security.client.gen.api.RoleApi;
+import edu.utexas.tacc.tapis.security.client.gen.api.UserApi;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqGrantUserRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqGrantUserRoleWithPermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveRolePermission;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveUserRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqUpdateRoleName;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUserHasRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUserHasRoleMulti;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUserIsPermitted;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqUserIsPermittedMulti;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespAuthorized;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespBasic;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespChangeCount;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ResultAuthorized;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultChangeCount;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
@@ -56,7 +67,7 @@ public class SKClient
     public SKClient(URI uri) {}
     
     /* **************************************************************************** */
-    /*                                Public Methods                                */
+    /*                              Public Role Methods                             */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* getRoleNames:                                                                */
@@ -298,6 +309,322 @@ public class SKClient
             // Get the API object using default networking.
             RoleApi roleApi = new RoleApi();
             resp = roleApi.replacePathPrefix(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* **************************************************************************** */
+    /*                              Public User Methods                             */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getUserNames:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getUserNames()
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.getUserNames(false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getUserNames:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getUserRoles(String user)
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.getUserRoles(user, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getUserNames:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getUserPerms(String user)
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.getUserPerms(user, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* grantUserRole:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount grantUserRole(String user, String roleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqGrantUserRole();
+        body.setUser(user);
+        body.setRoleName(roleName);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.grantRole(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* removeUserRole:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount removeUserRole(String user, String roleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqRemoveUserRole();
+        body.setUser(user);
+        body.setRoleName(roleName);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.removeRole(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* grantRoleWithPermission:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount grantRoleWithPermission(String user, String roleName,
+                                                     String permSpec)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqGrantUserRoleWithPermission();
+        body.setUser(user);
+        body.setRoleName(roleName);
+        body.setPermSpec(permSpec);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.grantRoleWithPermission(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* hasRole:                                                                     */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized hasRole(String user, String roleName)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserHasRole();
+        body.setUser(user);
+        body.setRoleName(roleName);
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.hasRole(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* hasAnyRole:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized hasRoleAny(String user, String[] roleNames)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserHasRoleMulti();
+        body.setUser(user);
+        body.setRoleNames(Arrays.asList(roleNames));
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.hasRoleAny(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* hasAllRole:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized hasRoleAll(String user, String[] roleNames)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserHasRoleMulti();
+        body.setUser(user);
+        body.setRoleNames(Arrays.asList(roleNames));
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.hasRoleAll(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isPermitted:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized isPermitted(String user, String permSpec)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserIsPermitted();
+        body.setUser(user);
+        body.setPermSpec(permSpec);
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.isPermitted(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isPermittedAny:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized isPermittedAny(String user, String[] permSpecs)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserIsPermittedMulti();
+        body.setUser(user);
+        body.setPermSpecs(Arrays.asList(permSpecs));
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.isPermittedAny(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isPermittedAll:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    public ResultAuthorized isPermittedAll(String user, String[] permSpecs)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqUserIsPermittedMulti();
+        body.setUser(user);
+        body.setPermSpecs(Arrays.asList(permSpecs));
+        
+        // Make the REST call.
+        RespAuthorized resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.isPermittedAll(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getUsersWithRole:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getUsersWithRole(String roleName)
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.getUsersWithRole(roleName, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getUsersWithPermission:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    public ResultNameArray getUsersWithPermission(String permSpec)
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespNameArray resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.getUsersWithPermission(permSpec, false);
         }
         catch (Exception e) {throwTapisClientException(e);}
         
