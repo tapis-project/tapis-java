@@ -16,6 +16,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.gson.JsonElement;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.systems.api.requestBody.CreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responseBody.Name;
 import edu.utexas.tacc.tapis.systems.api.responseBody.NameArray;
@@ -36,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
@@ -43,7 +46,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @Path("/system")
 public class SystemResource
@@ -164,7 +167,7 @@ public class SystemResource
     {
       String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // Create validator specification.
@@ -176,16 +179,16 @@ public class SystemResource
     {
       String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     String name, description, owner, host, bucketName, rootDir,
            jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId;
-    String cmdMech, cmdProxyHost, txfMech, txfProxyHost;
+    String accessMech, proxyHost;
     // TODO: creds might need to be byte array
-    String cmdCred, txfCred;
-    int cmdPort, cmdProxyPort, txfPort, txfProxyPort;
-    boolean available, cmdUseProxy, txfUseProxy;
+    String accessCred;
+    int port, proxyPort;
+    boolean available, useProxy;
 
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     // Extract required name value and check to see if object exists.
@@ -206,22 +209,29 @@ public class SystemResource
     scratchDir = (obj.has("scratchDir") ? obj.get("scratchDir").getAsString() : "");
     effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
-    cmdCred = (obj.has("commandCredential") ? obj.get("commandCredential").getAsString() : "");
-    txfCred = (obj.has("transferCredential") ? obj.get("transferCredential").getAsString() : "");
+    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
 
-    //Extract CommandProtocol and TransferProtocol properties
-    JsonObject cmdProtObj = obj.getAsJsonObject("commandProtocol");
-    cmdMech = (cmdProtObj.has("mechanism") ? cmdProtObj.get("mechanism").getAsString() : "NONE");
-    cmdPort = (cmdProtObj.has("port") ? cmdProtObj.get("port").getAsInt() : -1);
-    cmdUseProxy = (cmdProtObj.has("useProxy") ? cmdProtObj.get("useProxy").getAsBoolean() : false);
-    cmdProxyHost = (cmdProtObj.has("proxyHost") ? cmdProtObj.get("proxyHost").getAsString() : "");
-    cmdProxyPort = (cmdProtObj.has("proxyPort") ? cmdProtObj.get("proxyPort").getAsInt() : -1);
-    JsonObject txfProtObj = obj.getAsJsonObject("transferProtocol");
-    txfMech = (txfProtObj.has("mechanism") ? txfProtObj.get("mechanism").getAsString() : "NONE");
-    txfPort = (txfProtObj.has("port") ? txfProtObj.get("port").getAsInt() : -1);
-    txfUseProxy = (txfProtObj.has("useProxy") ? txfProtObj.get("useProxy").getAsBoolean() : false);
-    txfProxyHost = (txfProtObj.has("proxyHost") ? txfProtObj.get("proxyHost").getAsString() : "");
-    txfProxyPort = (txfProtObj.has("proxyPort") ? txfProtObj.get("proxyPort").getAsInt() : -1);
+    //Extract Protocol
+    JsonObject protObj = obj.getAsJsonObject("protocol");
+    accessMech = (protObj.has("accessMechanism") ? protObj.get("accessMechanism").getAsString() : "NONE");
+    port = (protObj.has("port") ? protObj.get("port").getAsInt() : -1);
+    useProxy = (protObj.has("useProxy") ? protObj.get("useProxy").getAsBoolean() : false);
+    proxyHost = (protObj.has("proxyHost") ? protObj.get("protocolProxyHost").getAsString() : "");
+    proxyPort = (protObj.has("proxyPort") ? protObj.get("proxyPort").getAsInt() : -1);
+    // Extract list of supported transfer mechanisms contained in protocol
+    // If element is not there or the list is empty then build empty array "{}"
+    StringBuilder transferMechs = new StringBuilder("{");
+    JsonArray mechs = null;
+    if (protObj.has("transferMechanisms")) mechs = protObj.getAsJsonArray("transferMechanisms");
+    if (mechs != null && mechs.size() > 0)
+    {
+      for (int i = 0; i < mechs.size()-1; i++)
+      {
+        transferMechs.append(mechs.get(i).toString()).append(",");
+      }
+      transferMechs.append(mechs.get(mechs.size()-1).toString());
+    }
+    transferMechs.append("}");
 
     // Check values.
     String msg = null;
@@ -231,17 +241,14 @@ public class SystemResource
     else if (StringUtils.isBlank(host)) {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
     }
-    else if (StringUtils.isBlank(cmdMech)) {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty CommandProtocol mechanism.");
-    }
-    else if (StringUtils.isBlank(txfMech)) {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty TransferProtocol mechanism.");
+    else if (StringUtils.isBlank(accessMech)) {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty AccessProtocol mechanism.");
     }
     // If validation failed log error message and return response
     if (msg != null)
     {
       _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ------------------------- Create System Object ---------------------
@@ -249,21 +256,21 @@ public class SystemResource
     try
     {
       systemsService.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, cmdCred, txfCred,
-                                  cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort,
-                                  txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort);
+                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, accessCred,
+                                  accessMech, transferMechs.toString(), port, useProxy, proxyHost, proxyPort);
     }
     catch (Exception e)
     {
       msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
       _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success ------------------------------- 
     // Success means the object was created.
-    return Response.status(Status.CREATED).entity(RestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, "Created system object")).build();
+    Name resp = new Name();
+    return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
+      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp)).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -318,7 +325,7 @@ public class SystemResource
     {
       String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, name, e.getMessage());
       _log.error(msg, e);
-      return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // The specified job was not found for the tenant.
@@ -326,14 +333,15 @@ public class SystemResource
     {
       String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, name);
       _log.warn(msg);
-      return Response.status(Status.NOT_FOUND).entity(RestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
+      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
                                                prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
-    return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, system)).build();
+    Name resp = new Name();
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+        MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, resp)).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -376,12 +384,13 @@ public class SystemResource
     {
       String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", null, e.getMessage());
       _log.error(msg, e);
-      return Response.status(RestUtils.getStatus(e)).entity(RestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
     int cnt = (systems == null ? 0 : systems.size());
-    return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, systems)).build();
+    NameArray resp = new NameArray();
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+        MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp)).build();
   }
 }

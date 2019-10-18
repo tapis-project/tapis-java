@@ -47,10 +47,8 @@ public final class TSystem
   private String jobOutputDir;
   private String workDir;
   private String scratchDir;
-  private String commandCredential;
-  private String transferCredential;
-  private CommandProtocol commandProtocol;
-  private TransferProtocol transferProtocol;
+  private String accessCredential;
+  private Protocol protocol;
   private String effectiveUserId;
   private Instant created; // UTC time for when record was created
   private Instant updated; // UTC time for when record was last updated
@@ -61,8 +59,7 @@ public final class TSystem
   public TSystem(long id1, String tenant1, String name1, String description1,
                  String owner1, String host1, boolean available1, String bucketName1,
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
-                 String effectiveUserId1, CommandProtocol commandProtocol1, TransferProtocol transferProtocol1,
-                 String commandCredential1, String transferCredential1,
+                 String effectiveUserId1, Protocol protocol1, String accessCredential1,
                  Instant created1, Instant updated1)
   {
     id = id1;
@@ -79,10 +76,8 @@ public final class TSystem
     workDir = workDir1;
     scratchDir = scratchDir1;
     effectiveUserId = effectiveUserId1;
-    commandProtocol = commandProtocol1;
-    transferProtocol = transferProtocol1;
-    commandCredential = commandCredential1;
-    transferCredential = transferCredential1;
+    protocol = protocol1;
+    accessCredential = accessCredential1;
     created = created1;
     updated = updated1;
   }
@@ -120,13 +115,9 @@ public final class TSystem
 
   public String getEffectiveUserId() { return effectiveUserId; }
 
-  public CommandProtocol getCommandProtocol() { return commandProtocol; }
+  public Protocol getProtocol() { return protocol; }
 
-  public TransferProtocol getTransferProtocol() { return transferProtocol; }
-
-  public String getCommandCredential() { return commandCredential; }
-
-  public String getTransferCredential() { return transferCredential; }
+  public String getAccessCredential() { return accessCredential; }
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }

@@ -3,8 +3,9 @@ package edu.utexas.tacc.tapis.systems.dao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol;
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol.Mechanism;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
+import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMechanism;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +15,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /*
- * Class to handle persistence for CommandProtocol objects.
+ * Class to handle persistence for Protocol objects.
  */
-public class CommandProtocolDao extends AbstractDao
+public class ProtocolDao extends AbstractDao
 {
   /* ********************************************************************** */
   /*                               Fields                                   */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger(CommandProtocolDao.class);
+  private static final Logger _log = LoggerFactory.getLogger(ProtocolDao.class);
 
 //    private final DataSource dataSource;
 
@@ -30,7 +31,7 @@ public class CommandProtocolDao extends AbstractDao
   /*                             Constructors                               */
   /* ********************************************************************** */
 //  @Inject
-//  CommandProtocolDao(DataSource dataSource1) {
+//  ProtocolDao(DataSource dataSource1) {
 //    dataSource = dataSource1;
 //  }
 
@@ -41,17 +42,18 @@ public class CommandProtocolDao extends AbstractDao
   /** Insert a new record.
    *  Operation is idempotent. If record already exists no update will be made
    *
-   * @param mechanism
+   * @param accessMechanism
    * @return Sequence id of object created or existing object
    * @throws TapisException on error
    */
-  public int create(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
+  public int create(String accessMechanism, String transferMechanisms,
+                    int port, boolean useProxy, String proxyHost, int proxyPort)
       throws TapisException
   {
     // ------------------------- Check Input -------------------------
-    if (StringUtils.isBlank(mechanism))
+    if (StringUtils.isBlank(accessMechanism))
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createCommandProtocol", "mechanism");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createProtocol", "accessMechanism");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -60,8 +62,9 @@ public class CommandProtocolDao extends AbstractDao
     if (proxyHost == null) proxyHost = "";
 
     // Check for existing record. If present we are done
-    CommandProtocol item = getByValue(mechanism, port, useProxy, proxyHost, proxyPort);
-    if (item != null) return item.getId();
+    // TODO can we still be immutable now that we have a list of TransferMechanism?
+//    Protocol item = getByValue(accessMechanism, port, useProxy, proxyHost, proxyPort);
+//    if (item != null) return item.getId();
 
     // Generated sequence id
     int itemId;
@@ -74,15 +77,16 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.CREATE_CMDPROT;
+      String sql = SqlStatements.CREATE_PROTOCOL;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, mechanism);
-      pstmt.setInt(2, port);
-      pstmt.setBoolean(3, useProxy);
-      pstmt.setString(4, proxyHost);
-      pstmt.setInt(5, proxyPort);
+      pstmt.setString(1, accessMechanism);
+      pstmt.setString(2, transferMechanisms);
+      pstmt.setInt(3, port);
+      pstmt.setBoolean(4, useProxy);
+      pstmt.setString(5, proxyHost);
+      pstmt.setInt(6, proxyPort);
 
       // Issue the call.
       pstmt.execute();
@@ -90,7 +94,7 @@ public class CommandProtocolDao extends AbstractDao
       // The generated sequence id should come back in the result
       if (!rs.next())
       {
-        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "cmd_protocol");
+        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "protocol");
         _log.error(msg);
         throw new TapisException(msg);
       }
@@ -148,11 +152,12 @@ public class CommandProtocolDao extends AbstractDao
    * @return item if found, null otherwise
    * @throws TapisException
    */
-  public CommandProtocol getByValue(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
+/*
+  public Protocol getByValue(String mechanism, int port, boolean useProxy, String proxyHost, int proxyPort)
       throws TapisException
   {
     // Initialize result.
-    CommandProtocol result = null;
+    Protocol result = null;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -162,7 +167,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Get the select command.
-      String sql = SqlStatements.SELECT_CMDPROT_BY_VALUE;
+      String sql = SqlStatements.SELECT_PROTOCOL_BY_VALUE;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -196,7 +201,7 @@ public class CommandProtocolDao extends AbstractDao
       }
 
       // TODO Update message to give all values
-      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "CommandProtocol", mechanism, e.getMessage());
+      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "Protocol", mechanism, e.getMessage());
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -218,6 +223,7 @@ public class CommandProtocolDao extends AbstractDao
 
     return result;
   }
+*/
 
   /**
    * Retrieve a single record give the id.
@@ -227,10 +233,10 @@ public class CommandProtocolDao extends AbstractDao
    * @return item if found, null otherwise
    * @throws TapisException
    */
-  public CommandProtocol getById(int id) throws TapisException
+  public Protocol getById(int id) throws TapisException
   {
     // Initialize result.
-    CommandProtocol result = null;
+    Protocol result = null;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -240,7 +246,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Get the select command.
-      String sql = SqlStatements.SELECT_CMDPROT_BY_ID;
+      String sql = SqlStatements.SELECT_PROTOCOL_BY_ID;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -269,7 +275,7 @@ public class CommandProtocolDao extends AbstractDao
         _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
 
-      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "CommandProtocol", "" + id, e.getMessage());
+      String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "Protocol", "" + id, e.getMessage());
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -317,7 +323,7 @@ public class CommandProtocolDao extends AbstractDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.DELETE_CMDPROT_BY_ID;
+      String sql = SqlStatements.DELETE_PROTOCOL_BY_ID;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -343,7 +349,7 @@ public class CommandProtocolDao extends AbstractDao
       }
 
       // Log the exception.
-      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "CMD_protocol");
+      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "protocol");
       _log.error(msg, e);
       throw new TapisException(msg, e);
     }
@@ -378,7 +384,7 @@ public class CommandProtocolDao extends AbstractDao
    * @return the new, fully populated job object or null if the result set is empty
    * @throws TapisJDBCException
    */
-  private CommandProtocol populate(ResultSet rs)
+  private Protocol populate(ResultSet rs)
       throws TapisJDBCException
   {
     // Quick check.
@@ -398,16 +404,19 @@ public class CommandProtocolDao extends AbstractDao
     }
 
     // Create the item
-    CommandProtocol item = null;
+    Protocol item = null;
     try
     {
-      item = new CommandProtocol(rs.getInt(1),
-                                 Mechanism.valueOf(rs.getString(2)),
-                                 rs.getInt(3),
-                                 rs.getBoolean(4),
-                                 rs.getString(5),
-                                 rs.getInt(6),
-                                 rs.getTimestamp(7).toInstant());
+      // TODO remove hard coded values
+      TransferMechanism[] tmechs = {TransferMechanism.S3, TransferMechanism.SFTP};
+      item = new Protocol(rs.getInt(1),
+                          AccessMechanism.valueOf(rs.getString(2)),
+                          tmechs,
+                          rs.getInt(3),
+                          rs.getBoolean(4),
+                          rs.getString(5),
+                          rs.getInt(6),
+                          rs.getTimestamp(7).toInstant());
     }
     catch (Exception e)
     {

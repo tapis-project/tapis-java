@@ -14,23 +14,12 @@ public final class CreateSystem
   public String scratchDir;
   public String workDir;
   public String effectiveUserId;
-  public String commandCredential;
-  public String transferCredential;
-  public CommandProtocol commandProtocol;
-  public TransferProtocol transferProtocol;
+  public String accessCredential;
+  public Protocol Protocol;
 
-  class CommandProtocol
+  class Protocol
   {
-    public String mechanism;
-    public int port;
-    public boolean useProxy;
-    public String proxyHost;
-    public int proxyPort;
-  }
-
-  class TransferProtocol
-  {
-    public String mechanism;
+    public String accessMechanism;
     public int port;
     public boolean useProxy;
     public String proxyHost;

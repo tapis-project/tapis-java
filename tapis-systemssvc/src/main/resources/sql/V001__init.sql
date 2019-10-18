@@ -23,55 +23,36 @@ SET search_path TO public;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tapis_sys TO tapis_sys;
 
 -- Types
-CREATE TYPE command_mech_type AS ENUM ('NONE', 'SSH_ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
-CREATE TYPE transfer_mech_type AS ENUM ('NONE', 'SFTP', 'S3', 'LOCAL');
+CREATE TYPE access_mech_type AS ENUM ('NONE', 'ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
+CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3', 'LOCAL');
 
 -- ----------------------------------------------------------------------------------------
 --                               PROTOCOLS 
 -- ----------------------------------------------------------------------------------------
--- Command Protocol table
+-- Protocol table
 -- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
-CREATE TABLE cmd_protocol
+CREATE TABLE protocol
 (
   id         SERIAL PRIMARY KEY,
-  mechanism  command_mech_type NOT NULL,
+  access_mechanism  access_mech_type NOT NULL,
+  transfer_mechanisms transfer_mech_type[] NOT NULL,
   port       INTEGER NOT NULL DEFAULT -1,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256) NOT NULL DEFAULT '',
   proxy_port INTEGER NOT NULL DEFAULT -1,
-  created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
-  UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
+  created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+--  UNIQUE (access_mechanism, port, use_proxy, proxy_host, proxy_port)
 );
-ALTER TABLE cmd_protocol OWNER TO tapis;
-COMMENT ON COLUMN cmd_protocol.id IS 'Command protocol id';
-COMMENT ON COLUMN cmd_protocol.mechanism IS 'Enum for how authorization is handled';
-COMMENT ON COLUMN cmd_protocol.port IS 'Port number used to access a system';
-COMMENT ON COLUMN cmd_protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
-COMMENT ON COLUMN cmd_protocol.proxy_host IS 'Proxy host name or ip address';
-COMMENT ON COLUMN cmd_protocol.proxy_port IS 'Proxy port number';
-COMMENT ON COLUMN cmd_protocol.created IS 'UTC time for when record was created';
+ALTER TABLE protocol OWNER TO tapis;
+COMMENT ON COLUMN protocol.id IS 'Protocol id';
+COMMENT ON COLUMN protocol.access_mechanism IS 'Enum for how authorization is handled';
+COMMENT ON COLUMN protocol.transfer_mechanisms IS 'List of supported transfer mechanisms';
+COMMENT ON COLUMN protocol.port IS 'Port number used to access a system';
+COMMENT ON COLUMN protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
+COMMENT ON COLUMN protocol.proxy_host IS 'Proxy host name or ip address';
+COMMENT ON COLUMN protocol.proxy_port IS 'Proxy port number';
+COMMENT ON COLUMN protocol.created IS 'UTC time for when record was created';
 
--- Transfer Protocol table
--- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
-CREATE TABLE txf_protocol
-(
-  id         SERIAL PRIMARY KEY,
-  mechanism  transfer_mech_type NOT NULL,
-  port       INTEGER NOT NULL DEFAULT -1,
-  use_proxy  BOOLEAN NOT NULL DEFAULT false,
-  proxy_host VARCHAR(256) NOT NULL DEFAULT '',
-  proxy_port INTEGER NOT NULL DEFAULT -1,
-  created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
-  UNIQUE (mechanism, port, use_proxy, proxy_host, proxy_port)
-);
-ALTER TABLE txf_protocol OWNER TO tapis;
-COMMENT ON COLUMN txf_protocol.id IS 'Transfer protocol id';
-COMMENT ON COLUMN txf_protocol.mechanism IS 'Enum for how I/O is handled';
-COMMENT ON COLUMN txf_protocol.port IS 'Port number used to access a system';
-COMMENT ON COLUMN txf_protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
-COMMENT ON COLUMN txf_protocol.proxy_host IS 'Proxy host name or ip address';
-COMMENT ON COLUMN txf_protocol.proxy_port IS 'Proxy port number';
-COMMENT ON COLUMN txf_protocol.created IS 'UTC time for when record was created';
 
 -- ----------------------------------------------------------------------------------------
 --                                     SYSTEMS
@@ -93,8 +74,7 @@ CREATE TABLE systems
   work_dir       VARCHAR(1024),
   scratch_dir    VARCHAR(1024),
   effective_user_id VARCHAR(60) NOT NULL,
-  command_protocol   SERIAL references cmd_protocol(id),
-  transfer_protocol SERIAL references txf_protocol(id),
+  protocol   SERIAL references protocol(id),
   created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
@@ -114,8 +94,7 @@ COMMENT ON COLUMN systems.job_output_dir IS 'Directory used for writing job outp
 COMMENT ON COLUMN systems.work_dir IS 'Directory based on a path shared among all users in a cluster';
 COMMENT ON COLUMN systems.scratch_dir IS 'Directory based on a path shared among all users in a cluster';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
-COMMENT ON COLUMN systems.command_protocol IS 'Reference to command protocol used for the system';
-COMMENT ON COLUMN systems.transfer_protocol IS 'Reference to transfer protocol used for the system';
+COMMENT ON COLUMN systems.protocol IS 'Reference to protocol used for the system';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
 

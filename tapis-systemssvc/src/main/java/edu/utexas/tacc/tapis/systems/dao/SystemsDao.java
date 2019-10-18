@@ -38,7 +38,7 @@ public class SystemsDao extends AbstractDao
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, int cmdProtocolId, int txfProtocolId)
+                           String effectiveUserId, int protocolId)
           throws TapisException
   {
     int rows = -1;
@@ -79,8 +79,7 @@ public class SystemsDao extends AbstractDao
       pstmt.setString(11, workDir);
       pstmt.setString(12, scratchDir);
       pstmt.setString(13, effectiveUserId);
-      pstmt.setInt(14, cmdProtocolId);
-      pstmt.setInt(15, txfProtocolId);
+      pstmt.setInt(14, protocolId);
 
       // Issue the call.
       rows = pstmt.executeUpdate();
@@ -383,11 +382,9 @@ public class SystemsDao extends AbstractDao
     try
     {
       // TODO: What about credentials?
-      // TODO: Populate command and transfer protocols from the references
+      // TODO: Populate protocols from the references
       int cmdProtId = rs.getInt(15);
-      int txfProtId = rs.getInt(16);
-      System.out.println("***************************************************************CmdProtId: " + cmdProtId);
-      System.out.println("***************************************************************TxfProtId: " + txfProtId);
+      System.out.println("***************************************************************ProtId: " + cmdProtId);
       tSystem = new TSystem(rs.getInt(1), // id
                            rs.getString(2), // tenant
                            rs.getString(3), // name
@@ -402,12 +399,10 @@ public class SystemsDao extends AbstractDao
                            rs.getString(12), // workDir
                            rs.getString(13), // scratchDir
                            rs.getString(14), // effectiveUserId
-                           null, // commandProtocol
-                           null, // transferProtocol
-                           "cmdCred1", // commandCred
-                           "txfCred1", // transferCred
-                           rs.getTimestamp(17).toInstant(), // created
-                           rs.getTimestamp(18).toInstant()); // updated
+                           null, // Protocol
+                           "accessCred1", // accessCred
+                           rs.getTimestamp(16).toInstant(), // created
+                           rs.getTimestamp(17).toInstant()); // updated
     }
     catch (Exception e)
     {

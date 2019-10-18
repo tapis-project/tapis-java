@@ -1,10 +1,9 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.inject.Singleton;
+//import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.systems.dao.CommandProtocolDao;
+import edu.utexas.tacc.tapis.systems.dao.ProtocolDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
-import edu.utexas.tacc.tapis.systems.dao.TransferProtocolDao;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,7 @@ import java.util.List;
  *   Uses Dao layer and other service library classes to perform all
  *   top level service operations.
  */
-@Singleton
+//@Singleton
 public class SystemsServiceImpl implements SystemsService
 {
   /* ********************************************************************** */
@@ -38,20 +37,19 @@ public class SystemsServiceImpl implements SystemsService
   public int createSystem(String tenant, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId,
-                          String commandCredential, String transferCredential,
-                          String cmdMech, int cmdPort, boolean cmdUseProxy, String cmdProxyHost, int cmdProxyPort,
-                          String txfMech, int txfPort, boolean txfUseProxy, String txfProxyHost, int txfProxyPort)
+                          String accessCredential, String accessMechanism, String transferMechanisms,
+                          int protocolPort, boolean protocolUseProxy,
+                          String protocolProxyHost, int protocolProxyPort)
           throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     SystemsDao dao = new SystemsDao();
-    CommandProtocolDao cmdDao = new CommandProtocolDao();
-    TransferProtocolDao txfDao = new TransferProtocolDao();
-    int cmdProtId = cmdDao.create(cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort);
-    int txfProtId = txfDao.create(txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort);
+    ProtocolDao protocolDao = new ProtocolDao();
+
+
+    int protocolId = protocolDao.create(accessMechanism, transferMechanisms, protocolPort, protocolUseProxy, protocolProxyHost, protocolProxyPort);
     int numRows = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
-                                    cmdProtId, txfProtId);
+                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, protocolId);
 
     // TODO Store credentials in Security Kernel
 

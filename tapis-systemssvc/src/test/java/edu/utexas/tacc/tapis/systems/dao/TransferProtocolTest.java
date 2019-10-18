@@ -1,13 +1,6 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
-import edu.utexas.tacc.tapis.systems.model.TransferProtocol;
-import edu.utexas.tacc.tapis.systems.model.TransferProtocol.Mechanism;
-import org.testng.Assert;
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-
-import java.time.Instant;
 
 /**
  * Test the TransferProtocolDao class against a running DB
@@ -15,6 +8,7 @@ import java.time.Instant;
 @Test(groups={"integration"})
 public class TransferProtocolTest
 {
+  /*
   private TransferProtocolDao dao;
 
   // Test data
@@ -98,4 +92,6 @@ public class TransferProtocolTest
     dao.delete(id2);
     dao.delete(id3);
   }
+
+*/
 }

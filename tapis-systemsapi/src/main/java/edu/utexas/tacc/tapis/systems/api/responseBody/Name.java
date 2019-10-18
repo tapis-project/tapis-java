@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.systems.api.responseBody;
 
-public class Name extends BaseResponse
+import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
+
+public class Name extends RespAbstract
 {
   public String name;
 }

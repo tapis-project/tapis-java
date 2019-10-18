@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
-import edu.utexas.tacc.tapis.systems.model.CommandProtocol;
-import edu.utexas.tacc.tapis.systems.model.TransferProtocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -13,16 +13,16 @@ import edu.utexas.tacc.tapis.systems.model.TSystem;
 
 /**
  * Test the SystemsDao class against a running DB
- * System objects need a valid CommandProtocol and TransferProtocol so create those in setup
+ * System objects need a valid Protocol so create those in setup
  */
 @Test(groups={"integration"})
 public class SystemsDaoTest
 {
   private SystemsDao dao;
-  private CommandProtocolDao commandProtocolDao;
-  private TransferProtocolDao transferProtocolDao;
+  private ProtocolDao protocolDao;
 
   // Test data
+  private static String mechsStr = "{SFTP,S3}";
   private static final String tenant = "tenant1";
   private static final String[] sys1 = {tenant, "sys1", "description 1", "owner1", "host1", "bucket1", "/root1",
       "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", "cpassword1", "tpassword1"};
@@ -31,20 +31,17 @@ public class SystemsDaoTest
   private static final String[] sys3 = {tenant, "sys3", "description 3", "owner3", "host3", "bucket3", "/root3",
       "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", "cpassword3", "tpassword3"};
 
-  int cmdProtId;
-  int txfProtId;
+  int protId;
 
   @BeforeSuite
   public void setup() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
     dao = new SystemsDao();
-    commandProtocolDao = new CommandProtocolDao();
-    transferProtocolDao = new TransferProtocolDao();
+    protocolDao = new ProtocolDao();
     // Use port number different from values in other tests since other tests may be running in parallel. Cleanup in other tests
     //  can fail if protocols are referenced in the systems created here.
-    cmdProtId = commandProtocolDao.create(CommandProtocol.Mechanism.NONE.name(), 1001, false, "",0);
-    txfProtId = transferProtocolDao.create(TransferProtocol.Mechanism.NONE.name(), 1001, false, "",0);
+    protId = protocolDao.create(AccessMechanism.NONE.name(), mechsStr, 1001, false, "", 0);
   }
 
   // Test create for a single item
@@ -53,7 +50,7 @@ public class SystemsDaoTest
   {
     String[] sys0 = sys1;
     int numRows = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId);
     Assert.assertEquals(numRows, 1);
   }
 
@@ -62,7 +59,7 @@ public class SystemsDaoTest
   public void testGetByName() throws Exception {
     String[] sys0 = sys2;
     dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
     System.out.println("Found item: " + sys0[1]);
@@ -83,7 +80,7 @@ public class SystemsDaoTest
   public void testDelete() throws Exception {
     String[] sys0 = sys3;
     dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], cmdProtId, txfProtId);
+                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId);
     dao.deleteTSystem(sys0[0], sys0[1]);
     TSystem tmpSystem = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0[1]);
@@ -98,7 +95,6 @@ public class SystemsDaoTest
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys1[1]);
     dao.deleteTSystem(sys2[0], sys2[1]);
     dao.deleteTSystem(sys3[0], sys3[1]);
-    commandProtocolDao.delete(cmdProtId);
-    transferProtocolDao.delete(txfProtId);
+    protocolDao.delete(protId);
   }
 }

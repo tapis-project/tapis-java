@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.systems.api.responseBody;
 
-public class NameArray extends BaseResponse
+import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
+
+public class NameArray extends RespAbstract
 {
   public String[] names;
 }
