@@ -3,7 +3,7 @@ package edu.utexas.tacc.tapis.systems;
 import com.google.inject.AbstractModule;
 
 /*
- * Guice module for SystemsLib
+ * Guice module for SystemsSvc
  */
 public class SystemsSvcModule extends AbstractModule
 {

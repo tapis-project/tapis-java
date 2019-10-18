@@ -10,7 +10,7 @@
   </parent>
   
   <groupId>edu.utexas.tacc.tapis</groupId>
-  <artifactId>tapis-systems</artifactId>
+  <artifactId>tapis-systemsapi</artifactId>
   <packaging>war</packaging>
   
   <name>Tapis Systems API</name>
@@ -21,9 +21,15 @@
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <replacer.version>1.5.3</replacer.version>
     <swagger-ui.version>3.23.8</swagger-ui.version>
+    <guice.version>4.2.2</guice.version>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>${guice.version}</version>
+    </dependency>
     <dependency>
       <groupId>javax.ws.rs</groupId>
       <artifactId>javax.ws.rs-api</artifactId>

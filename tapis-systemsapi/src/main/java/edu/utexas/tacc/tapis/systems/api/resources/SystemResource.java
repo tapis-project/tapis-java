@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.systems.api.responseBody.NameArray;
 import edu.utexas.tacc.tapis.systems.api.responseBody.ResourceUrl;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
+import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -97,6 +98,10 @@ public class SystemResource
 
   // TODO Remove hard coded values
   private static final String tenant = "tenant1";
+
+  // **************** Inject Services ****************
+//  @com.google.inject.Inject
+  SystemsService systemsService;
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -240,14 +245,13 @@ public class SystemResource
     }
 
     // ------------------------- Create System Object ---------------------
+    systemsService = new SystemsServiceImpl();
     try
     {
-      // TODO Use static factory method, or better yet use DI, maybe Guice
-      SystemsService svc = new SystemsService();
-      svc.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                       jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, cmdCred, txfCred,
-                       cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort,
-                       txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort);
+      systemsService.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
+                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, cmdCred, txfCred,
+                                  cmdMech, cmdPort, cmdUseProxy, cmdProxyHost, cmdProxyPort,
+                                  txfMech, txfPort, txfUseProxy, txfProxyHost, txfProxyPort);
     }
     catch (Exception e)
     {
@@ -295,6 +299,7 @@ public class SystemResource
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds)
   {
+    systemsService = new SystemsServiceImpl();
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -303,12 +308,11 @@ public class SystemResource
       _log.trace(msg);
     }
 
-    // TODO Use static factory method, or better yet use DI, maybe Guice
-    SystemsService svc = new SystemsService();
     TSystem system = null;
     try
     {
-      system = svc.getSystemByName(tenant, name, getCreds);
+      system = systemsService.getSystemByName(tenant, name, getCreds);
+//      system = svc.getSystemByName(tenant, name, getCreds);
     }
     catch (Exception e)
     {
@@ -365,10 +369,9 @@ public class SystemResource
     }
 
     // ------------------------- Retrieve all records -----------------------------
-    // TODO Use static factory method, or better yet use DI, maybe Guice
-    SystemsService svc = new SystemsService();
+    systemsService = new SystemsServiceImpl();
     List<TSystem> systems = null;
-    try { systems = svc.getSystems(tenant); }
+    try { systems = systemsService.getSystems(tenant); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", null, e.getMessage());

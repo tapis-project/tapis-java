@@ -13,23 +13,25 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 @ApplicationPath("/v3")
 public class SystemsApplication extends ResourceConfig
 {
-    public SystemsApplication()
-    {
-        // Log our existence.
-        System.out.println("**** Starting tapis-systems ****");
-        
-        // Register the swagger resources that allow the 
-        // documentation endpoints to be automatically generated.
-        register(OpenApiResource.class);
-        register(AcceptHeaderOpenApiResource.class);
-        
-        // We specify what packages JAX-RS should recursively scan
-        // to find annotations.  By setting the value to the top-level
-        // tapis directory in all projects, we can use JAX-RS annotations
-        // in any tapis class.  In particular, the filter classes in 
-        // tapis-sharedapi will be discovered whenever that project is
-        // included as a maven dependency.
-        packages("edu.utexas.tacc.tapis");
-        setApplicationName("systems"); 
-    }
+  public SystemsApplication()
+  {
+    // Log our existence.
+    System.out.println("**** Starting tapis-systems ****");
+
+    // Register the swagger resources that allow the
+    // documentation endpoints to be automatically generated.
+    register(OpenApiResource.class);
+    register(AcceptHeaderOpenApiResource.class);
+
+    // We specify what packages JAX-RS should recursively scan
+    // to find annotations.  By setting the value to the top-level
+    // tapis directory in all projects, we can use JAX-RS annotations
+    // in any tapis class.  In particular, the filter classes in
+    // tapis-sharedapi will be discovered whenever that project is
+    // included as a maven dependency.
+    packages("edu.utexas.tacc.tapis");
+
+    // Finally set the application name
+    setApplicationName("systems");
+  }
 }
