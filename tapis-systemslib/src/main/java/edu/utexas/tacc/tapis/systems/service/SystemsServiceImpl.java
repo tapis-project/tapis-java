@@ -61,8 +61,7 @@ public class SystemsServiceImpl implements SystemsService
    *
    */
   @Override
-  public int deleteSystem(String tenant, String name)
-      throws TapisException
+  public int deleteSystem(String tenant, String name) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     SystemsDao dao = new SystemsDao();
@@ -90,12 +89,25 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public List<TSystem> getSystems(String tenant)
-          throws TapisException
+  public List<TSystem> getSystems(String tenant) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     SystemsDao dao = new SystemsDao();
     return dao.getTSystems(tenant);
+  }
+
+  /**
+   * Get list of system names
+   * @param tenant
+   * @return
+   * @throws TapisException
+   */
+  @Override
+  public List<String> getSystemNames(String tenant) throws TapisException
+  {
+    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
+    SystemsDao dao = new SystemsDao();
+    return dao.getTSystemNames(tenant);
   }
 
   /* ********************************************************************** */

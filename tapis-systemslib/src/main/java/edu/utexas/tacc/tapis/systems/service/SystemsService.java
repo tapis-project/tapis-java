@@ -23,4 +23,6 @@ public interface SystemsService
   TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException;
 
   List<TSystem> getSystems(String tenant) throws TapisException;
+
+  List<String> getSystemNames(String tenant) throws TapisException;
 }

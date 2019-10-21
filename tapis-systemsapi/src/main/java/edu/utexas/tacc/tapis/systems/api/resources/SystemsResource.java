@@ -16,8 +16,9 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.responseBody.Name;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 
 @OpenAPIDefinition(
     security = {@SecurityRequirement(name = "Tapis JWT")},
@@ -124,9 +124,10 @@ public class SystemsResource
 
     // ---------------------------- Success -------------------------------
     // Success means we are alive
-    Name resp = new Name();
+    ResultName result = new ResultName();
+    result.name = "Hello from Tapis Systems Service";
+    RespName resp = new RespName(result);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-//        MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Systems service.")).build();
       MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, resp)).build();
   }
 }

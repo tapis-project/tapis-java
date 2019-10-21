@@ -134,8 +134,7 @@ public class SystemsDao extends AbstractDao
    * Delete a system record given the system name.
    *
    */
-  public int deleteTSystem(String tenant, String name)
-      throws TapisException
+  public int deleteTSystem(String tenant, String name) throws TapisException
   {
     int rows = -1;
     // ------------------------- Check Input -------------------------
@@ -212,7 +211,7 @@ public class SystemsDao extends AbstractDao
   /**
    * getSystemByName
    * @param name
-   * @return
+   * @return System object if found, null if not found
    * @throws TapisException
    */
   public TSystem getTSystemByName(String tenant, String name) throws TapisException {
@@ -234,9 +233,10 @@ public class SystemsDao extends AbstractDao
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
 
-      // Issue the call for the 1 row result set.
+      // Should get one row back. If not return null.
+      // Use result to populate system object
       ResultSet rs = pstmt.executeQuery();
-      result = populateTSystem(rs);
+      if (rs != null && rs.next() ) result = populateTSystem(rs);
 
       // Close out and commit
       rs.close();
@@ -278,11 +278,13 @@ public class SystemsDao extends AbstractDao
     return result;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* getSystems:                                                            */
-  /* ---------------------------------------------------------------------- */
-  public List<TSystem> getTSystems(String tenant)
-          throws TapisException
+  /**
+   * getSystems
+   * @param tenant
+   * @return
+   * @throws TapisException
+   */
+  public List<TSystem> getTSystems(String tenant) throws TapisException
   {
     // The result list is always non-null.
     var list = new ArrayList<TSystem>();
@@ -303,12 +305,83 @@ public class SystemsDao extends AbstractDao
 
       // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
-      TSystem system = populateTSystem(rs);
-      while (system != null)
+      if (rs != null)
       {
-        list.add(system);
-        system = populateTSystem(rs);
+        while (rs.next())
+        {
+          TSystem system = populateTSystem(rs);
+          if (system != null) list.add(system);
+        }
       }
+
+      // Close out and commit
+      rs.close();
+      pstmt.close();
+      conn.commit();
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction.
+      try
+      {
+        if (conn != null) conn.rollback();
+      }
+      catch (Exception e1)
+      {
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+      }
+
+      String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
+      _log.error(msg, e);
+      throw new TapisException(msg, e);
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      try
+      {
+        if (conn != null) conn.close();
+      }
+      catch (Exception e)
+      {
+        // If commit worked, we can swallow the exception.
+        // If not, the commit exception will be thrown.
+        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+        _log.error(msg, e);
+      }
+    }
+
+    return list;
+  }
+
+  /**
+   * getSystemNames
+   * @param tenant
+   * @return
+   * @throws TapisException
+   */
+  public List<String> getTSystemNames(String tenant) throws TapisException
+  {
+    // The result list is always non-null.
+    var list = new ArrayList<String>();
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.SELECT_ALL_SYSTEM_NAMES;
+
+      // Prepare the statement and fill in the placeholders.
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+
+      // Issue the call for the 1 row result set.
+      ResultSet rs = pstmt.executeQuery();
+      while (rs.next()) list.add(rs.getString(1));
 
       // Close out and commit
       rs.close();
@@ -355,28 +428,18 @@ public class SystemsDao extends AbstractDao
   /* ********************************************************************** */
 
   /**
-   * populateSystem
-   * Instantiate and populate an object using single row result
+   * populateTSystem
+   * Instantiate and populate an object using a result set. The cursor for the
+   *   ResultSet must be advanced to the desired result.
    *
-   * @param rs the result set for one job
-   * @return the new, fully populated job object or null if the result set is empty
+   * @param rs the result set containing one or more items, cursor at desired item
+   * @return the new, fully populated job object or null if there is a problem
    * @throws TapisJDBCException
    */
-  private TSystem populateTSystem(ResultSet rs)
-          throws TapisJDBCException
+  private TSystem populateTSystem(ResultSet rs) throws TapisJDBCException
   {
     // Quick check.
     if (rs == null) return null;
-
-    // Return null if the results are empty or exhausted.
-    // This call advances the cursor.
-    try { if (!rs.next()) return null; }
-    catch (Exception e)
-    {
-      String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisJDBCException(msg, e);
-    }
 
     TSystem tSystem = null;
     try

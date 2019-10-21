@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
-import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
@@ -66,12 +65,21 @@ public class SystemsDaoTest
     Assert.assertEquals(tmpSys.getName(), sys0[1]);
   }
 
+  // Test retrieving all system names
+  @Test(enabled=true)
+  public void testGetSystemNames() throws Exception {
+    List<String> systemNames = dao.getTSystemNames(tenant);
+    for (String name : systemNames) {
+      System.out.println("Found item: " + name);
+    }
+  }
+
   // Test retrieving all systems
   @Test(enabled=true)
   public void testGetSystems() throws Exception {
     List<TSystem> systems = dao.getTSystems(tenant);
     for (TSystem system : systems) {
-      System.out.println("Found item: " + system.getName());
+      System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
   }
 

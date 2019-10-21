@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -16,18 +17,18 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.gson.JsonElement;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.systems.api.requestBody.CreateSystem;
-import edu.utexas.tacc.tapis.systems.api.responseBody.Name;
-import edu.utexas.tacc.tapis.systems.api.responseBody.NameArray;
-import edu.utexas.tacc.tapis.systems.api.responseBody.ResourceUrl;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
+import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -137,16 +138,16 @@ public class SystemResource
       @RequestBody(
         description = "A JSON object specifying information for the system to be created.",
         required = true,
-        content = @Content(schema = @Schema(implementation = CreateSystem.class))
+        content = @Content(schema = @Schema(implementation = ReqCreateSystem.class))
       ),
     responses = {
       @ApiResponse(responseCode = "201", description = "System created.",
-                   content = @Content(schema = @Schema(implementation = ResourceUrl.class))
+                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))
       ),
       @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
       @ApiResponse(responseCode = "401", description = "Not authorized."),
       @ApiResponse(responseCode = "409", description = "System already exists.",
-                   content = @Content(schema = @Schema(implementation = ResourceUrl.class))),
+                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
       @ApiResponse(responseCode = "500", description = "Server error.")
     }
   )
@@ -269,14 +270,20 @@ public class SystemResource
 
     // ---------------------------- Success ------------------------------- 
     // Success means the object was created.
-    Name resp = new Name();
+    ResultResourceUrl respUrl = new ResultResourceUrl();
+    respUrl.url = _request.getRequestURL().toString() + "/" + name;
+    RespResourceUrl resp = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
       ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp)).build();
   }
 
-  /* ---------------------------------------------------------------------------- */
-  /* getSystemByName:                                                             */
-  /* ---------------------------------------------------------------------------- */
+  /**
+   * getSystemByName
+   * @param name
+   * @param prettyPrint
+   * @param getCreds
+   * @return
+   */
   @GET
   @Path("/{name}")
   @Produces(MediaType.APPLICATION_JSON)
@@ -295,11 +302,10 @@ public class SystemResource
 //              description = "Include the credentials in the response")
 //      },
       responses = {
-          @ApiResponse(responseCode = "200", description = "System found."),
+          @ApiResponse(responseCode = "200", description = "System found.",
+            content = @Content(schema = @Schema(implementation = RespSystem.class))),
           @ApiResponse(responseCode = "400", description = "Input error."),
-          @ApiResponse(responseCode = "404", description = "System not found.",
-                       content = @Content(schema = @Schema(implementation = Name.class))
-          ),
+          @ApiResponse(responseCode = "404", description = "System not found."),
           @ApiResponse(responseCode = "401", description = "Not authorized."),
           @ApiResponse(responseCode = "500", description = "Server error.")
       }
@@ -321,7 +327,6 @@ public class SystemResource
     try
     {
       system = systemsService.getSystemByName(tenant, name, getCreds);
-//      system = svc.getSystemByName(tenant, name, getCreds);
     }
     catch (Exception e)
     {
@@ -341,19 +346,21 @@ public class SystemResource
 
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
-    Name resp = new Name();
+    RespSystem resp = new RespSystem(system);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, resp)).build();
   }
 
-  /* ---------------------------------------------------------------------------- */
-  /* getSystems:                                                                  */
-  /* ---------------------------------------------------------------------------- */
+  /**
+   * getSystemNames
+   * @param prettyPrint
+   * @return
+   */
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Retrieve all systems",
-    description = "Retrieve all systems.",
+    summary = "Retrieve list of system names",
+    description = "Retrieve list of system names.",
     tags = "systems",
 // TODO
 //    parameters = {
@@ -362,14 +369,14 @@ public class SystemResource
 //    },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
-                   content = @Content(schema = @Schema(implementation = NameArray.class))
+                   content = @Content(schema = @Schema(implementation = RespNameArray.class))
       ),
       @ApiResponse(responseCode = "400", description = "Input error."),
       @ApiResponse(responseCode = "401", description = "Not authorized."),
       @ApiResponse(responseCode = "500", description = "Server error.")
     }
   )
-  public Response getSystems(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -381,8 +388,8 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     systemsService = new SystemsServiceImpl();
-    List<TSystem> systems = null;
-    try { systems = systemsService.getSystems(tenant); }
+    List<String> systemNames = null;
+    try { systemNames = systemsService.getSystemNames(tenant); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", null, e.getMessage());
@@ -391,8 +398,11 @@ public class SystemResource
     }
 
     // ---------------------------- Success -------------------------------
-    int cnt = (systems == null ? 0 : systems.size());
-    NameArray resp = new NameArray();
+    if (systemNames == null) systemNames = Collections.emptyList();
+    int cnt = systemNames.size();
+    ResultNameArray names = new ResultNameArray();
+    names.names = (String[]) systemNames.toArray();
+    RespNameArray resp = new RespNameArray(names);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp)).build();
   }

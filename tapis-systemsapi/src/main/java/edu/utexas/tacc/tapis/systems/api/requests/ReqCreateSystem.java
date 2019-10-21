@@ -1,6 +1,6 @@
-package edu.utexas.tacc.tapis.systems.api.requestBody;
+package edu.utexas.tacc.tapis.systems.api.requests;
 
-public final class CreateSystem
+public final class ReqCreateSystem
 {
   public String name;
   public String description;
