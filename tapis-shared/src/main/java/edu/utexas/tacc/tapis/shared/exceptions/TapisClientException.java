@@ -1,6 +1,4 @@
-package edu.utexas.tacc.tapis.security.client;
-
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+package edu.utexas.tacc.tapis.shared.exceptions;
 
 public class TapisClientException 
  extends TapisException
