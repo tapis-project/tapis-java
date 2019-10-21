@@ -20,6 +20,7 @@ public final class CreateSystem
   class Protocol
   {
     public String accessMechanism;
+    public String[] transferMechanisms;
     public int port;
     public boolean useProxy;
     public String proxyHost;

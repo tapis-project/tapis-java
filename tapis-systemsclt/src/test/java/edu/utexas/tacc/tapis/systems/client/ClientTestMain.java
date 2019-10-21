@@ -13,7 +13,7 @@ public class ClientTestMain
     apiClient.setBasePath("http://localhost:8080/systems/v3");
     apiClient.setDebugging(true);
     SystemsApi sysApi = new SystemsApi(apiClient);
-    ApiResponse resp = sysApi.getSystemByNameWithHttpInfo("system1", "true", "false", true);
+    ApiResponse resp = sysApi.getSystemByNameWithHttpInfo("system1", Boolean.TRUE, Boolean.FALSE);
     System.out.println(resp);
   }
 }

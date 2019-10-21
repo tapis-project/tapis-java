@@ -23,46 +23,6 @@ tags:
 - name: systems
   description: manage systems
 paths:
-  /system/{name}:
-    get:
-      tags:
-      - systems
-      summary: Retrieve information for a system
-      description: Retrieve information for a system given the system name. Use query
-        parameter returnCredentials = true to have the user access credentials included
-        in the response.
-      operationId: getSystemByName
-      parameters:
-      - name: name
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
-      - name: returnCredentials
-        in: query
-        schema:
-          type: boolean
-          default: false
-      responses:
-        200:
-          description: System found.
-        400:
-          description: Input error.
-        404:
-          description: System not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Name'
-        401:
-          description: Not authorized.
-        500:
-          description: Server error.
   /system:
     get:
       tags:
@@ -131,6 +91,46 @@ paths:
                 $ref: '#/components/schemas/ResourceUrl'
         500:
           description: Server error.
+  /system/{name}:
+    get:
+      tags:
+      - systems
+      summary: Retrieve information for a system
+      description: Retrieve information for a system given the system name. Use query
+        parameter returnCredentials = true to have the user access credentials included
+        in the response.
+      operationId: getSystemByName
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      - name: returnCredentials
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: System found.
+        400:
+          description: Input error.
+        404:
+          description: System not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Name'
+        401:
+          description: Not authorized.
+        500:
+          description: Server error.
   /hello:
     get:
       tags:
@@ -152,30 +152,6 @@ paths:
           description: Server error.
 components:
   schemas:
-    Name:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        name:
-          type: string
-    NameArray:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        names:
-          type: array
-          items:
-            type: string
     ResourceUrl:
       type: object
       properties:
@@ -223,6 +199,10 @@ components:
       properties:
         accessMechanism:
           type: string
+        transferMechanisms:
+          type: array
+          items:
+            type: string
         port:
           type: integer
           format: int32
@@ -233,3 +213,27 @@ components:
         proxyPort:
           type: integer
           format: int32
+    NameArray:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        names:
+          type: array
+          items:
+            type: string
+    Name:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        name:
+          type: string

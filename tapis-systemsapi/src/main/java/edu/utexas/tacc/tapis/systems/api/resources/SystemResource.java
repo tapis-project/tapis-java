@@ -217,7 +217,7 @@ public class SystemResource
     accessMech = (protObj.has("accessMechanism") ? protObj.get("accessMechanism").getAsString() : "NONE");
     port = (protObj.has("port") ? protObj.get("port").getAsInt() : -1);
     useProxy = (protObj.has("useProxy") ? protObj.get("useProxy").getAsBoolean() : false);
-    proxyHost = (protObj.has("proxyHost") ? protObj.get("protocolProxyHost").getAsString() : "");
+    proxyHost = (protObj.has("proxyHost") ? protObj.get("proxyHost").getAsString() : "");
     proxyPort = (protObj.has("proxyPort") ? protObj.get("proxyPort").getAsInt() : -1);
     // Extract list of supported transfer mechanisms contained in protocol
     // If element is not there or the list is empty then build empty array "{}"

@@ -16,6 +16,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.responseBody.Name;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -122,7 +124,9 @@ public class SystemsResource
 
     // ---------------------------- Success -------------------------------
     // Success means we are alive
-    return Response.status(Status.OK).entity(RestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Systems service.")).build();
+    Name resp = new Name();
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+//        MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, "Hello from the Tapis Systems service.")).build();
+      MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, resp)).build();
   }
 }
