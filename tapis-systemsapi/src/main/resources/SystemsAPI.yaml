@@ -27,9 +27,9 @@ paths:
     get:
       tags:
       - systems
-      summary: Retrieve all systems
-      description: Retrieve all systems.
-      operationId: getSystems
+      summary: Retrieve list of system names
+      description: Retrieve list of system names.
+      operationId: getSystemNames
       parameters:
       - name: pretty
         in: query
@@ -42,7 +42,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NameArray'
+                $ref: '#/components/schemas/RespNameArray'
         400:
           description: Input error.
         401:
@@ -70,7 +70,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSystem'
+              $ref: '#/components/schemas/ReqCreateSystem'
         required: true
       responses:
         201:
@@ -78,7 +78,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ResourceUrl'
+                $ref: '#/components/schemas/RespResourceUrl'
         400:
           description: Input error. Invalid JSON.
         401:
@@ -88,7 +88,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ResourceUrl'
+                $ref: '#/components/schemas/RespResourceUrl'
         500:
           description: Server error.
   /system/{name}:
@@ -119,14 +119,44 @@ paths:
       responses:
         200:
           description: System found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespSystem'
         400:
           description: Input error.
         404:
           description: System not found.
+        401:
+          description: Not authorized.
+        500:
+          description: Server error.
+    delete:
+      tags:
+      - systems
+      summary: Delete a system given the system name
+      description: 'Delete a system given the system name. '
+      operationId: deleteSystemByName
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pretty
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: System deleted.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Name'
+                $ref: '#/components/schemas/RespChangeCount'
+        400:
+          description: Input error.
         401:
           description: Not authorized.
         500:
@@ -152,7 +182,7 @@ paths:
           description: Server error.
 components:
   schemas:
-    ResourceUrl:
+    RespResourceUrl:
       type: object
       properties:
         status:
@@ -161,9 +191,40 @@ components:
           type: string
         version:
           type: string
+        result:
+          $ref: '#/components/schemas/ResultResourceUrl'
+    ResultResourceUrl:
+      type: object
+      properties:
         url:
           type: string
-    CreateSystem:
+    Protocol:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        accessMechanism:
+          type: string
+        transferMechanisms:
+          type: array
+          items:
+            type: string
+            enum:
+            - SFTP
+            - S3
+            - LOCAL
+        port:
+          type: integer
+          format: int32
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+          format: int32
+        created:
+          type: string
+    ReqCreateSystem:
       type: object
       properties:
         name:
@@ -194,26 +255,7 @@ components:
           type: string
         Protocol:
           $ref: '#/components/schemas/Protocol'
-    Protocol:
-      type: object
-      properties:
-        accessMechanism:
-          type: string
-        transferMechanisms:
-          type: array
-          items:
-            type: string
-        port:
-          type: integer
-          format: int32
-        useProxy:
-          type: boolean
-        proxyHost:
-          type: string
-        proxyPort:
-          type: integer
-          format: int32
-    NameArray:
+    RespNameArray:
       type: object
       properties:
         status:
@@ -222,11 +264,16 @@ components:
           type: string
         version:
           type: string
+        result:
+          $ref: '#/components/schemas/ResultNameArray'
+    ResultNameArray:
+      type: object
+      properties:
         names:
           type: array
           items:
             type: string
-    Name:
+    RespChangeCount:
       type: object
       properties:
         status:
@@ -235,5 +282,62 @@ components:
           type: string
         version:
           type: string
+        result:
+          $ref: '#/components/schemas/ResultChangeCount'
+    ResultChangeCount:
+      type: object
+      properties:
+        changes:
+          type: integer
+          format: int32
+    RespSystem:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/TSystem'
+    TSystem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tenant:
+          type: string
         name:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        host:
+          type: string
+        available:
+          type: boolean
+        bucketName:
+          type: string
+        rootDir:
+          type: string
+        workDir:
+          type: string
+        scratchDir:
+          type: string
+        accessCredential:
+          type: string
+        protocol:
+          $ref: '#/components/schemas/Protocol'
+        effectiveUserId:
+          type: string
+        created:
+          type: string
+        updated:
+          type: string
+        jobInputDirDir:
+          type: string
+        jobOutputDirDir:
           type: string
