@@ -1,13 +1,16 @@
 package edu.utexas.tacc.tapis.security.client;
 
-import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.gson.Gson;
 
+import edu.utexas.tacc.tapis.security.client.gen.ApiClient;
 import edu.utexas.tacc.tapis.security.client.gen.ApiException;
+import edu.utexas.tacc.tapis.security.client.gen.Configuration;
+import edu.utexas.tacc.tapis.security.client.gen.Pair;
 import edu.utexas.tacc.tapis.security.client.gen.api.RoleApi;
 import edu.utexas.tacc.tapis.security.client.gen.api.UserApi;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
@@ -56,6 +59,9 @@ public class SKClient
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
+    // The underlying api client that actually issues requests.
+    private ApiClient _apiClient;
+    
     // Response serializer.
     private static final Gson _gson = TapisGsonUtils.getGson();
     
@@ -65,7 +71,29 @@ public class SKClient
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    public SKClient(URI uri) {}
+    /** Constructor that uses the compiled-in basePath value in ApiClient.  This
+     * constructor is only appropriate for test code.
+     */
+    public SKClient() {this(null, null, null);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* constructor:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Constructor that overrides the compiled-in basePath value in ApiClient.  This
+     * constructor typically used in production.
+     */
+    public SKClient(String path) {this(path, null, null);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* constructor:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** The real constructor that allows full configuration of the server url.
+     */
+    public SKClient(String path, List<Pair> queryParams, List<Pair> collectionQueryParams) 
+    {
+        _apiClient = Configuration.getDefaultApiClient();
+        _apiClient.setBasePath(path);
+    }
     
     /* **************************************************************************** */
     /*                              Public Role Methods                             */

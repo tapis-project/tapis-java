@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.security.api.responses.results;
+package edu.utexas.tacc.tapis.sharedapi.responses.results;
 
 public final class ResultNameArray 
 {

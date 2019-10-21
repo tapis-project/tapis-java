@@ -32,17 +32,17 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
-import edu.utexas.tacc.tapis.security.api.responses.RespAuthorized;
-import edu.utexas.tacc.tapis.security.api.responses.RespChangeCount;
-import edu.utexas.tacc.tapis.security.api.responses.RespNameArray;
-import edu.utexas.tacc.tapis.security.api.responses.results.ResultAuthorized;
-import edu.utexas.tacc.tapis.security.api.responses.results.ResultChangeCount;
-import edu.utexas.tacc.tapis.security.api.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultAuthorized;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -135,7 +135,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of user names.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -194,7 +194,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of roles names assigned to the user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -254,7 +254,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -319,7 +319,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role assigned to user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -328,7 +328,7 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Named role not found.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
@@ -419,7 +419,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role removed from user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -526,7 +526,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespChangeCount.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -535,7 +535,7 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Role not found.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
@@ -640,7 +640,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -710,7 +710,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -753,7 +753,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -796,7 +796,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -866,7 +866,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -909,7 +909,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Check completed.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespAuthorized.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -946,7 +946,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a role.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -955,7 +955,7 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "Named role not found.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespName.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
@@ -1027,7 +1027,7 @@ public final class UserResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a permission.",
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespNameArray.class))),
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
