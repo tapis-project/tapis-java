@@ -398,7 +398,7 @@
         <module>tapis-securitymigrate</module>
         <module>tapis-systemsapi</module>
 		<module>tapis-systemsclt</module>
-        <module>tapis-systemssvc</module>
+        <module>tapis-systemslib</module>
 		<module>tapis-sampleapi</module>
 		<module>tapis-samplelib</module>
 	</modules>

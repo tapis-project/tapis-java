@@ -10,7 +10,7 @@
   </parent>
   
   <groupId>edu.utexas.tacc.tapis</groupId>
-  <artifactId>tapis-systemssvc</artifactId>
+  <artifactId>tapis-systemslib</artifactId>
   
   <name>Tapis Systems Library</name>
   <description>Backend library for Tapis Systems Service</description>
@@ -64,6 +64,6 @@
       </plugin>
     </plugins>
 
-    <finalName>systemssvc</finalName>
+    <finalName>systemslib</finalName>
   </build>
 </project>

@@ -68,7 +68,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-systemssvc</artifactId>
+      <artifactId>tapis-systemslib</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

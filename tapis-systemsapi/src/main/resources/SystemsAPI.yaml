@@ -187,21 +187,6 @@ components:
           type: string
         url:
           type: string
-    CommandProtocol:
-      type: object
-      properties:
-        mechanism:
-          type: string
-        port:
-          type: integer
-          format: int32
-        useProxy:
-          type: boolean
-        proxyHost:
-          type: string
-        proxyPort:
-          type: integer
-          format: int32
     CreateSystem:
       type: object
       properties:
@@ -229,18 +214,14 @@ components:
           type: string
         effectiveUserId:
           type: string
-        commandCredential:
+        accessCredential:
           type: string
-        transferCredential:
-          type: string
-        commandProtocol:
-          $ref: '#/components/schemas/CommandProtocol'
-        transferProtocol:
-          $ref: '#/components/schemas/TransferProtocol'
-    TransferProtocol:
+        Protocol:
+          $ref: '#/components/schemas/Protocol'
+    Protocol:
       type: object
       properties:
-        mechanism:
+        accessMechanism:
           type: string
         port:
           type: integer

@@ -128,10 +128,11 @@ public class SystemResource
         "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
-    parameters = {
-      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-                 description = "Pretty print the response")
-    },
+// TODO
+//    parameters = {
+//      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+//                 description = "Pretty print the response")
+//    },
     requestBody =
       @RequestBody(
         description = "A JSON object specifying information for the system to be created.",
@@ -286,12 +287,13 @@ public class SystemResource
           "Use query parameter returnCredentials = true to have the user access credentials " +
           "included in the response.",
       tags = "systems",
-      parameters = {
-          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-              description = "Pretty print the response"),
-          @Parameter(in = ParameterIn.QUERY, name = "returnCredentials", required = false,
-              description = "Include the credentials in the response")
-      },
+// TODO
+//      parameters = {
+//          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+//              description = "Pretty print the response"),
+//          @Parameter(in = ParameterIn.QUERY, name = "returnCredentials", required = false,
+//              description = "Include the credentials in the response")
+//      },
       responses = {
           @ApiResponse(responseCode = "200", description = "System found."),
           @ApiResponse(responseCode = "400", description = "Input error."),
@@ -353,10 +355,11 @@ public class SystemResource
     summary = "Retrieve all systems",
     description = "Retrieve all systems.",
     tags = "systems",
-    parameters = {
-      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-        description = "Pretty print the response")
-    },
+// TODO
+//    parameters = {
+//      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+//        description = "Pretty print the response")
+//    },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
                    content = @Content(schema = @Schema(implementation = NameArray.class))
