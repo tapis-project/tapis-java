@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.client;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -10,7 +9,6 @@ import com.google.gson.Gson;
 import edu.utexas.tacc.tapis.security.client.gen.ApiClient;
 import edu.utexas.tacc.tapis.security.client.gen.ApiException;
 import edu.utexas.tacc.tapis.security.client.gen.Configuration;
-import edu.utexas.tacc.tapis.security.client.gen.Pair;
 import edu.utexas.tacc.tapis.security.client.gen.api.RoleApi;
 import edu.utexas.tacc.tapis.security.client.gen.api.UserApi;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
@@ -78,6 +76,12 @@ public class SKClient
     /* ---------------------------------------------------------------------------- */
     /** Constructor that overrides the compiled-in basePath value in ApiClient.  This
      * constructor typically used in production.
+     * 
+     * The path includes the URL prefix up to and including the service root.  By
+     * default this value is http://localhost:8080/security.  In production environments
+     * the protocol is https and the host/port will be specific to that environment. 
+     * 
+     * @param path the base path 
      */
     public SKClient(String path) 
     {
