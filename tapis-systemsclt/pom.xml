@@ -28,14 +28,6 @@
       <artifactId>tapis-shared</artifactId>
       <version>${project.version}</version>
     </dependency>
-
-    <!-- TODO Remove this. Hard coded jar file -->
-    <dependency>
-      <groupId>my.systems_client</groupId>
-      <artifactId>my.systems_client.jar</artifactId>
-      <version>0.0.1</version>
-    </dependency>
-
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-annotations</artifactId>
