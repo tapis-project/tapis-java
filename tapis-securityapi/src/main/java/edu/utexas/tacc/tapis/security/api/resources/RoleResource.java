@@ -337,7 +337,7 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (!isValidName(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "createRole", "roleName");
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "createRole", "roleName", roleName);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -510,7 +510,8 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (!isValidName(newRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "newRoleName");
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "newRoleName",
+                                           newRoleName);
              _log.error(msg);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();

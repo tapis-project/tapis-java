@@ -16,7 +16,7 @@ public class GenTest
     /*                            Main Test Method                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* testAll:                                                               */
+    /* testRole:                                                              */
     /* ---------------------------------------------------------------------- */
     @Test
     public void testRole() throws ApiException
@@ -37,6 +37,5 @@ public class GenTest
         System.out.println("deleteRoleByName: " + countResp + "\n");
         
         System.out.println(TapisGsonUtils.getGson(true).toJson(countResp));
-        
     }
 }
