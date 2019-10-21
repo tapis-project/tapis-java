@@ -61,7 +61,7 @@ public class SystemsServiceImpl implements SystemsService
    *
    */
   @Override
-  public int deleteSystem(String tenant, String name) throws TapisException
+  public int deleteSystemByName(String tenant, String name) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     SystemsDao dao = new SystemsDao();

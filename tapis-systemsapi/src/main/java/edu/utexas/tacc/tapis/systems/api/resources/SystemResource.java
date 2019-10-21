@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,9 +17,10 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
@@ -105,7 +106,7 @@ public class SystemResource
 
   // **************** Inject Services ****************
 //  @com.google.inject.Inject
-  SystemsService systemsService;
+  private SystemsService systemsService;
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -113,9 +114,9 @@ public class SystemResource
 
   /**
    * Create a system
-   * @param prettyPrint
-   * @param payloadStream
-   * @return
+   * @param prettyPrint - pretty print the output
+   * @param payloadStream - request body
+   * @return response containing reference to created object
    */
   @POST
   @Produces(MediaType.APPLICATION_JSON)
@@ -163,8 +164,8 @@ public class SystemResource
 
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
-    String json = null;
-    try { json = IOUtils.toString(payloadStream, Charset.forName("UTF-8")); }
+    String json;
+    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
       String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
@@ -279,10 +280,10 @@ public class SystemResource
 
   /**
    * getSystemByName
-   * @param name
-   * @param prettyPrint
-   * @param getCreds
-   * @return
+   * @param name - name of the system
+   * @param prettyPrint - pretty print the output
+   * @param getCreds - should credentials be included
+   * @return Response with system object as the result
    */
   @GET
   @Path("/{name}")
@@ -323,7 +324,7 @@ public class SystemResource
       _log.trace(msg);
     }
 
-    TSystem system = null;
+    TSystem system;
     try
     {
       system = systemsService.getSystemByName(tenant, name, getCreds);
@@ -353,8 +354,8 @@ public class SystemResource
 
   /**
    * getSystemNames
-   * @param prettyPrint
-   * @return
+   * @param prettyPrint - pretty print the output
+   * @return - list of system names
    */
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -388,7 +389,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     systemsService = new SystemsServiceImpl();
-    List<String> systemNames = null;
+    List<String> systemNames;
     try { systemNames = systemsService.getSystemNames(tenant); }
     catch (Exception e)
     {
@@ -406,4 +407,65 @@ public class SystemResource
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp)).build();
   }
+
+  /**
+   * deleteSystemByName
+   * @param name - name of the system to delete
+   * @param prettyPrint - pretty print the output
+   * @return - response with change count as the result
+   */
+  @DELETE
+  @Path("/{name}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+    summary = "Delete a system given the system name",
+    description = "Delete a system given the system name. ",
+    tags = "systems",
+// TODO
+//      parameters = {
+//          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
+//              description = "Pretty print the response")
+//      },
+    responses = {
+      @ApiResponse(responseCode = "200", description = "System deleted.",
+        content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
+      @ApiResponse(responseCode = "400", description = "Input error."),
+      @ApiResponse(responseCode = "401", description = "Not authorized."),
+      @ApiResponse(responseCode = "500", description = "Server error.")
+    }
+  )
+  public Response deleteSystemByName(@PathParam("name") String name,
+                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+  {
+    systemsService = new SystemsServiceImpl();
+    // Trace this request.
+    if (_log.isTraceEnabled())
+    {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "deleteSystemByName",
+                                   "  " + _request.getRequestURL());
+      _log.trace(msg);
+    }
+
+    int changeCount;
+    try
+    {
+      changeCount = systemsService.deleteSystemByName(tenant, name);
+    }
+    catch (Exception e)
+    {
+      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", null, name, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    // Success means we deleted the system.
+    // Return the number of objects impacted.
+    ResultChangeCount count = new ResultChangeCount();
+    count.changes = changeCount;
+    RespChangeCount resp = new RespChangeCount(count);
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+      MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp)).build();
+  }
+
 }

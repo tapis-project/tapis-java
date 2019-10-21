@@ -18,7 +18,7 @@ public interface SystemsService
                    int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort)
     throws TapisException;
 
-  int deleteSystem(String tenant, String name) throws TapisException;
+  int deleteSystemByName(String tenant, String name) throws TapisException;
 
   TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException;
 
