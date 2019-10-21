@@ -36,6 +36,7 @@ import edu.utexas.tacc.tapis.security.client.gen.model.ResultChangeCount;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 public class SKClient 
