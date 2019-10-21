@@ -15,7 +15,7 @@ public class SKClientTest
     @Test
     public void testRole() throws TapisException
     {
-        SKClient skClient = new SKClient(null);
+        SKClient skClient = new SKClient();
         
         // Create a role.
         ResultResourceUrl resp1;

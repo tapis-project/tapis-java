@@ -59,9 +59,6 @@ public class SKClient
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
-    // The underlying api client that actually issues requests.
-    private ApiClient _apiClient;
-    
     // Response serializer.
     private static final Gson _gson = TapisGsonUtils.getGson();
     
@@ -74,7 +71,7 @@ public class SKClient
     /** Constructor that uses the compiled-in basePath value in ApiClient.  This
      * constructor is only appropriate for test code.
      */
-    public SKClient() {this(null, null, null);}
+    public SKClient() {this(null);}
     
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
@@ -82,17 +79,10 @@ public class SKClient
     /** Constructor that overrides the compiled-in basePath value in ApiClient.  This
      * constructor typically used in production.
      */
-    public SKClient(String path) {this(path, null, null);}
-    
-    /* ---------------------------------------------------------------------------- */
-    /* constructor:                                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /** The real constructor that allows full configuration of the server url.
-     */
-    public SKClient(String path, List<Pair> queryParams, List<Pair> collectionQueryParams) 
+    public SKClient(String path) 
     {
-        _apiClient = Configuration.getDefaultApiClient();
-        _apiClient.setBasePath(path);
+        ApiClient apiClient = Configuration.getDefaultApiClient();
+        if (!StringUtils.isBlank(path)) apiClient.setBasePath(path);
     }
     
     /* **************************************************************************** */
