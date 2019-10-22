@@ -15,7 +15,7 @@ public final class ReqCreateSystem
   public String workDir;
   public String effectiveUserId;
   public String accessCredential;
-  public Protocol Protocol;
+  public Protocol protocol;
 
   class Protocol
   {

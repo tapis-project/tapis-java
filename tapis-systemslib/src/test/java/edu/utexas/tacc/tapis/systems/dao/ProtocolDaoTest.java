@@ -43,7 +43,7 @@ public class ProtocolDaoTest
   public void testCreate() throws Exception
   {
     Protocol item0 = item1;
-    id1 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.useProxy(), item0.getProxyHost(), item0.getProxyPort());
+    id1 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.isUseProxy(), item0.getProxyHost(), item0.getProxyPort());
     System.out.println("Created object with id: " + id1);
   }
 
@@ -51,7 +51,7 @@ public class ProtocolDaoTest
   @Test(enabled=true)
   public void testGet() throws Exception {
     Protocol item0 = item2;
-    id2 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.useProxy(), item0.getProxyHost(), item0.getProxyPort());
+    id2 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.isUseProxy(), item0.getProxyHost(), item0.getProxyPort());
     System.out.println("Created object with id: " + id2);
     // Get by Value
     Protocol tmpItem = null;
@@ -67,7 +67,7 @@ public class ProtocolDaoTest
 //    Assert.assertEquals(tmpItem.getProxyPort(), item0.getProxyPort());
     // Get by Id
     item0 = item3;
-    id3 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.useProxy(), item0.getProxyHost(), item0.getProxyPort());
+    id3 = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.isUseProxy(), item0.getProxyHost(), item0.getProxyPort());
     System.out.println("Created object with id: " + id3);
     tmpItem = dao.getById(id3);
     System.out.println("Found object with id: " + tmpItem.getId());
@@ -76,7 +76,7 @@ public class ProtocolDaoTest
     System.out.println("Found item: " + item0.toString());
     Assert.assertEquals(tmpItem.getAccessMechanism(), item0.getAccessMechanism());
     Assert.assertEquals(tmpItem.getPort(), item0.getPort());
-    Assert.assertEquals(tmpItem.useProxy(), item0.useProxy());
+    Assert.assertEquals(tmpItem.isUseProxy(), item0.isUseProxy());
     Assert.assertEquals(tmpItem.getProxyHost(), item0.getProxyHost());
     Assert.assertEquals(tmpItem.getProxyPort(), item0.getProxyPort());
   }
@@ -85,7 +85,7 @@ public class ProtocolDaoTest
   @Test(enabled=true)
   public void testDelete() throws Exception {
     Protocol item0 = item4;
-    int id = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.useProxy(), item0.getProxyHost(), item0.getProxyPort());
+    int id = dao.create(item0.getAccessMechanism(), mechsStr, item0.getPort(), item0.isUseProxy(), item0.getProxyHost(), item0.getProxyPort());
     System.out.println("Created object with id: " + id);
     dao.delete(id);
     Protocol tmpItem = dao.getById(id);

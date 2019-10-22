@@ -67,7 +67,7 @@ public final class Protocol
   public int getId() { return id; }
   public String getAccessMechanism() { return accessMechanism.toString(); }
   public int getPort() { return port; }
-  public boolean useProxy() { return useProxy; }
+  public boolean isUseProxy() { return useProxy; }
   public String getProxyHost() { return proxyHost; }
   public int getProxyPort() { return proxyPort; }
 

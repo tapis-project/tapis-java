@@ -23,6 +23,15 @@
   </properties>
 
   <dependencies>
+    <!-- *************************************** -->
+    <!-- TODO Remove this. Hard coded jar file -->
+    <dependency>
+      <groupId>my.systems_client</groupId>
+      <artifactId>my.systems_client.jar</artifactId>
+      <version>0.0.1</version>
+    </dependency>
+    <!-- *************************************** -->
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared</artifactId>
