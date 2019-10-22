@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.systems.api.requests;
 
+import java.util.List;
+
 public final class ReqCreateSystem
 {
   public String name;
@@ -20,7 +22,7 @@ public final class ReqCreateSystem
   class Protocol
   {
     public String accessMechanism;
-    public String[] transferMechanisms;
+    public List<String> transferMechanisms;
     public int port;
     public boolean useProxy;
     public String proxyHost;

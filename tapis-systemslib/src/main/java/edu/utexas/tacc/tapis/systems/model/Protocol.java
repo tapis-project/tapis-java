@@ -6,7 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /*
  * Protocol contains information required to access a system, except for user and secret.
@@ -23,7 +24,7 @@ public final class Protocol
   /*                               Constants                                */
   /* ********************************************************************** */
   public static final AccessMechanism DEFAULT_ACCESS_MECHANISM = AccessMechanism.NONE;
-  public static final TransferMechanism[] DEFAULT_TRANSFER_MECHANISMS = {};
+  public static final List<TransferMechanism> DEFAULT_TRANSFER_MECHANISMS = Collections.emptyList();
   public static final int DEFAULT_PORT = -1;
   public static final boolean DEFAULT_USEPROXY = false;
   public static final String DEFAULT_PROXYHOST = "";
@@ -37,7 +38,7 @@ public final class Protocol
 
   private final int id;
   private final AccessMechanism accessMechanism; // How access authorization is handled.
-  private final TransferMechanism[] transferMechanisms; // List of supported transfer mechanisms
+  private final List<TransferMechanism> transferMechanisms; // List of supported transfer mechanisms
   private final int port; // Port number used to access a system.
   private final boolean useProxy; // Indicates if a system should be accessed through a proxy.
   private final String proxyHost; //
@@ -47,7 +48,7 @@ public final class Protocol
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  public Protocol(int id1, AccessMechanism accessMechanism1, TransferMechanism[] transferMechanisms1,
+  public Protocol(int id1, AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
                   int port1, boolean useProxy1, String proxyHost1, int proxyPort1, Instant created1)
   {
     id = id1;
@@ -71,7 +72,7 @@ public final class Protocol
   public String getProxyHost() { return proxyHost; }
   public int getProxyPort() { return proxyPort; }
 
-  public TransferMechanism[] getTransferMechanisms()
+  public List<TransferMechanism> getTransferMechanisms()
   {
 //    String[] mechanisms = Arrays.stream(transferMechanisms).toArray(String[]::new);;
     return transferMechanisms;

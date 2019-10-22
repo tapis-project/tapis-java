@@ -105,9 +105,9 @@ public final class TSystem
 
   public String getRootDir() { return rootDir; }
 
-  public String getJobInputDirDir() { return jobInputDir; }
+  public String getJobInputDir() { return jobInputDir; }
 
-  public String getJobOutputDirDir() { return jobOutputDir; }
+  public String getJobOutputDir() { return jobOutputDir; }
 
   public String getWorkDir() { return workDir; }
 

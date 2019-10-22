@@ -1,10 +1,16 @@
 package edu.utexas.tacc.tapis.systems.client;
 
 //import edu.utexas.tacc.tapis.systems_client.ApiClient;
-//import edu.utexas.tacc.tapis.systems_client.ApiResponse;
 //import edu.utexas.tacc.tapis.systems_client.api.SystemsApi;
 //import edu.utexas.tacc.tapis.systems_client.model.Protocol;
 //import edu.utexas.tacc.tapis.systems_client.model.ReqCreateSystem;
+//import edu.utexas.tacc.tapis.systems_client.model.RespResourceUrl;
+//import edu.utexas.tacc.tapis.systems_client.model.RespSystem;
+//import edu.utexas.tacc.tapis.systems_client.model.RespChangeCount;
+
+import java.util.Collections;
+import java.util.List;
+
 
 public class ClientTestMain
 {
@@ -17,8 +23,11 @@ public class ClientTestMain
 //    SystemsApi sysApi = new SystemsApi(apiClient);
 //
 //    // Create Protocol component needed for system create request
+////    List<Protocol.TransferMechanismsEnum> transferMechs = new ArrayList<>(List.of(Protocol.TransferMechanismsEnum.S3));
+//    List<String> transferMechs = Collections.emptyList();
 //    Protocol protocol = new Protocol();
 //    protocol.setAccessMechanism("SSH_PASSWORD");
+//    protocol.setTransferMechanisms(transferMechs);
 //    protocol.setPort(22);
 //    protocol.setUseProxy(false);
 //    protocol.setProxyHost("");
@@ -38,22 +47,23 @@ public class ClientTestMain
 //    reqCreateSystem.setWorkDir("/home/${apiUserId}/tapis/data");
 //    reqCreateSystem.setScratchDir("/scratch/${tenant}/${apiUserId}");
 //    reqCreateSystem.setEffectiveUserId("${apiUserId}");
-//    reqCreateSystem.setAccessCredential("<password>");
+//    reqCreateSystem.setAccessCredential("fakePassword1");
 //    reqCreateSystem.setProtocol(protocol);
 //
 //
 //    // Create a system
 //    System.out.println("Creating system with name: " + name);
-//    ApiResponse resp = sysApi.createSystemWithHttpInfo(reqCreateSystem, true);
-//    System.out.println(resp);
+//    RespResourceUrl respUrl = sysApi.createSystem(reqCreateSystem, true);
+//    System.out.println("Created system: " + respUrl.getResult().getUrl());
 //
 //    // Retrieve the system
 //    System.out.println("Retrieving system with name: " + name);
-//    resp = sysApi.getSystemByNameWithHttpInfo(name, Boolean.TRUE, Boolean.FALSE);
-//    System.out.println(resp);
+//    RespSystem respSystem = sysApi.getSystemByName(name, Boolean.TRUE, Boolean.FALSE);
+//    System.out.println("Retrieved system: " + respSystem.getResult());
 //
-//    // TODO Delete the system
+//    // Delete the system
 //    System.out.println("Deleting system with name: " + name);
-////    resp = sysApi.delete
+//    RespChangeCount respChangeCount = sysApi.deleteSystemByName(name, true);
+//    System.out.println("Number of items deleted: " + respChangeCount.getResult().getChanges());
   }
 }

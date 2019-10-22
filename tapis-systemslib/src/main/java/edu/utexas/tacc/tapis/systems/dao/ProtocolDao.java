@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * Class to handle persistence for Protocol objects.
@@ -25,7 +27,9 @@ public class ProtocolDao extends AbstractDao
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(ProtocolDao.class);
 
-//    private final DataSource dataSource;
+  private static final String DEFAULT_TRANSFERMECHANISMS_STR = "{}";
+
+  //    private final DataSource dataSource;
 
   /* ********************************************************************** */
   /*                             Constructors                               */
@@ -57,6 +61,7 @@ public class ProtocolDao extends AbstractDao
       _log.error(msg);
       throw new TapisException(msg);
     }
+    if (transferMechanisms == null || StringUtils.isBlank(transferMechanisms)) transferMechanisms = DEFAULT_TRANSFERMECHANISMS_STR;
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     if (proxyHost == null) proxyHost = "";
@@ -407,16 +412,26 @@ public class ProtocolDao extends AbstractDao
     Protocol item = null;
     try
     {
-      // TODO remove hard coded values
-      TransferMechanism[] tmechs = {TransferMechanism.S3, TransferMechanism.SFTP};
+      List<TransferMechanism> tmechsList = new ArrayList<>();
+      String tmechsStr = rs.getString(3);
+      if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
+      {
+        // Strip off surrounding braces and convert strings to enums
+        // NOTE: All values should be valid due to enforcement of type in DB and json schema validation
+        String[] tmechsStrArray = (tmechsStr.substring(1, tmechsStr.length() - 1)).split(",");
+        for (String tmech : tmechsStrArray)
+        {
+          if (!StringUtils.isBlank(tmech)) tmechsList.add(TransferMechanism.valueOf(tmech));
+        }
+      }
       item = new Protocol(rs.getInt(1),
                           AccessMechanism.valueOf(rs.getString(2)),
-                          tmechs,
-                          rs.getInt(3),
-                          rs.getBoolean(4),
-                          rs.getString(5),
-                          rs.getInt(6),
-                          rs.getTimestamp(7).toInstant());
+                          tmechsList,
+                          rs.getInt(4),
+                          rs.getBoolean(5),
+                          rs.getString(6),
+                          rs.getInt(7),
+                          rs.getTimestamp(8).toInstant());
     }
     catch (Exception e)
     {

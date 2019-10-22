@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.systems.model.Protocol;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,7 +237,7 @@ public class SystemsDao extends AbstractDao
       // Should get one row back. If not return null.
       // Use result to populate system object
       ResultSet rs = pstmt.executeQuery();
-      if (rs != null && rs.next() ) result = populateTSystem(rs);
+      if (rs != null && rs.next()) result = populateTSystem(rs);
 
       // Close out and commit
       rs.close();
@@ -442,12 +443,34 @@ public class SystemsDao extends AbstractDao
     if (rs == null) return null;
 
     TSystem tSystem = null;
+    Protocol prot = null;
     try
     {
       // TODO: What about credentials?
-      // TODO: Populate protocols from the references
-      int cmdProtId = rs.getInt(15);
-      System.out.println("***************************************************************ProtId: " + cmdProtId);
+
+      // Populate protocol
+      int protId = rs.getInt(15);
+      List<Protocol.TransferMechanism> tmechsList = new ArrayList<>();
+      String tmechsStr = rs.getString(19);
+      if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
+      {
+        // Strip off surrounding braces and convert strings to enums
+        // NOTE: All values should be valid due to enforcement of type in DB and json schema validation
+        String[] tmechsStrArray = (tmechsStr.substring(1, tmechsStr.length() - 1)).split(",");
+        for (String tmech : tmechsStrArray)
+        {
+          if (!StringUtils.isBlank(tmech)) tmechsList.add(Protocol.TransferMechanism.valueOf(tmech));
+        }
+      }
+
+      prot = new Protocol(protId,
+                          Protocol.AccessMechanism.valueOf(rs.getString(18)),
+                          tmechsList,
+                          rs.getInt(20),
+                          rs.getBoolean(21),
+                          rs.getString(22),
+                          rs.getInt(23),
+                          rs.getTimestamp(24).toInstant());
       tSystem = new TSystem(rs.getInt(1), // id
                            rs.getString(2), // tenant
                            rs.getString(3), // name
@@ -462,8 +485,8 @@ public class SystemsDao extends AbstractDao
                            rs.getString(12), // workDir
                            rs.getString(13), // scratchDir
                            rs.getString(14), // effectiveUserId
-                           null, // Protocol
-                           "accessCred1", // accessCred
+                           prot, // Protocol
+                           "fakeAccessCred1", // accessCred
                            rs.getTimestamp(16).toInstant(), // created
                            rs.getTimestamp(17).toInstant()); // updated
     }
