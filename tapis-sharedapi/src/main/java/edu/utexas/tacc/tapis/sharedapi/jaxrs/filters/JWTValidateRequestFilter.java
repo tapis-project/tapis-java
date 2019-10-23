@@ -1,8 +1,19 @@
 package edu.utexas.tacc.tapis.sharedapi.jaxrs.filters;
 
+import java.io.IOException;
+import java.security.KeyFactory;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -12,6 +23,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
 import org.apache.commons.lang3.StringUtils;
@@ -23,21 +35,22 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext.AccountType;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 
 /** This jax-rs filter performs the following:
  * 
- *      - Reads the jwt assertion header from the http request.
+ *      - Reads the tapis jwt assertion header from the http request.
  *      - Determines whether the header is required and takes appropriate action.
- *      - Extracts the tenant id from the key name (!!).
- *      - Decodes and optionally verifies the JWT signature.
- *      - Extracts the user name from the JWT claims.
- *      - Sets the thread-local values for tenantId and user.
+ *      - Extracts the tenant id from the unverified claims.
+ *      - Optionally verifies the JWT signature using a tenant-specific key.
+ *      - Extracts the user name and other values from the JWT claims.
+ *      - Assigns claim values to their thread-local fields.
  *      
  * The test parameter filter run after this filter and may override the values
  * set by this filter.
@@ -55,12 +68,23 @@ public class JWTValidateRequestFilter
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JWTValidateRequestFilter.class);
     
-    // Header key prefix for jwts.
-    private static final String JWT_PREFIX = "x-jwt-assertion-";
+    // Header key for jwts.
+    private static final String TAPIS_JWT_HEADER = "X-Tapis-Token";
     
-    // The JWT key alias.  This is the key pair used to sign JWTs
-    // and verify them.
-    public static final String DEFAULT_KEY_ALIAS = "wso2";
+    // Tapis claim keys.
+    private static final String CLAIM_TENANT         = "tapis/tenant_id";
+    private static final String CLAIM_USERNAME       = "tapis/username";
+    private static final String CLAIM_TOKEN_TYPE     = "tapis/token_type";
+    private static final String CLAIM_ACCOUNT_TYPE   = "tapis/account_type";
+    private static final String CLAIM_DELEGATION     = "tapis/delegation";
+    private static final String CLAIM_DELEGATION_SUB = "tapis/delegation_sub";
+    
+    // The token types this filter expects.
+    private static final String TOKEN_ACCESS = "access";
+    
+    // TODO: Hardcode signature verification key for all tenants until SK becomes available.
+    private static final String TEMP_TAPIS_PUBLIC_KEY = 
+      "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJtGvK8P6tP+K35PIxh713Vw0ZecWNaK31Lkz7aSJJYKNZ4gpgS+5+5bRZCzoNs3DSho3wh2g6sipnvOzo35bIo2Pb6SJ3rk3/PJ6SsyR0bh0NF7oSDGVJvNCImZAWRXxh5HENnsfMxJZrVQR9ZDQaaZ9awccX9S2L2WVMMniZMwIDAQAB";
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -88,21 +112,15 @@ public class JWTValidateRequestFilter
         // Skip JWT processing for non-authenticated requests.
         if (isNoAuthRequest(requestContext)) return;   
         
+        // ------------------------ Extract Encoded JWT ------------------------
         // Parse variables.
-        String headerTenantId = null;
-        String encodedJWT     = null;
+        String encodedJWT = null;
         
         // Extract the jwt header from the set of headers.
         MultivaluedMap<String, String> headers = requestContext.getHeaders();
         for (Entry<String, List<String>> entry : headers.entrySet()) {
             String key = entry.getKey();
-            if (key.startsWith(JWT_PREFIX)) {
-                
-                // Get the tenant information encoded in the key
-                // and transform it to match tenant naming conventions.
-                headerTenantId = key.substring(JWT_PREFIX.length());
-                headerTenantId = TapisUtils.transformRawTenantId(headerTenantId);
-                
+            if (key.equalsIgnoreCase(TAPIS_JWT_HEADER)) {
                 // Get the encoded jwt.
                 List<String> values = entry.getValue();
                 if ((values != null) && !values.isEmpty())
@@ -114,7 +132,7 @@ public class JWTValidateRequestFilter
         }
             
         // Make sure that a JWT was provided when it is required.
-        if (StringUtils.isBlank(encodedJWT) || StringUtils.isBlank(headerTenantId)) {
+        if (StringUtils.isBlank(encodedJWT)) {
             // This is an error in production, but allowed when running in test mode.
             // We let the endpoint verify that all needed parameters have been supplied.
             boolean jwtOptional = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL);
@@ -123,47 +141,125 @@ public class JWTValidateRequestFilter
             // We abort the request because we're missing required security information.
             String msg = MsgUtils.getMsg("TAPIS_SECURITY_MISSING_JWT_INFO", requestContext.getMethod());
             _log.error(msg);
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
             return;
         }
         
-        // Decode the JWT and optionally validate the JWT signature.
-        Jwt jwt = null;
-        boolean skipJWTVerify = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY);
-        try {
-            if (skipJWTVerify) jwt = decodeJwt(encodedJWT);
-              else jwt = decodeAndVerifyJwt(encodedJWT);
-        } 
+        // ------------------------ Read Tenant Claim --------------------------
+        // Get the JWT without verifying the signature.  Decoding checks that
+        // the token has not expired.
+        Jwt unverifiedJwt = null;
+        try {unverifiedJwt = decodeJwt(encodedJWT);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_DECODE_ERROR", encodedJWT, e.getMessage());
+            // Preserve the decoder method's message.
+            String msg = e.getMessage();
             _log.error(msg, e);
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
             return;
         }
         
-        // Make sure we got a JWT. This shouldn't happen, but in case it does...
-        if (jwt == null) {
-            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_DECODE_ERROR", encodedJWT,
-                                         "Null JWT encountered in " + getClass().getSimpleName() + ".");
+        // Get the claims.
+        Claims claims = null;
+        try {claims = (Claims) unverifiedJwt.getBody();}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_GET_CLAIMS", unverifiedJwt);
+            _log.error(msg, e);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+        if (claims == null) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_NO_CLAIMS", unverifiedJwt);
             _log.error(msg);
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(msg).build());
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
             return;
         }
         
         // Retrieve the user name from the claims section.
-        String user  = null;
-        String roles = null;
-        Claims claims = (Claims) jwt.getBody();
-        if (claims != null) {
-            user  = getUser(claims);
-            roles = getRoles(claims);
+        String tenant = (String)claims.get(CLAIM_TENANT);
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_CLAIM_NOT_FOUND", unverifiedJwt, 
+                                         CLAIM_TENANT);
+            _log.error(msg);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+            
+        // ------------------------ Verify JWT ---------------------------------
+        // Do we need to verify the JWT?
+        boolean skipJWTVerify = TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY);
+        if (!skipJWTVerify) {
+            try {verifyJwt(encodedJWT, tenant);}
+            catch (Exception e) {
+                Status status = Status.UNAUTHORIZED;
+                String msg = e.getMessage();
+                if (msg.startsWith("TAPIS_SECURITY_JWT_KEY_ERROR"))
+                    status = Status.INTERNAL_SERVER_ERROR;
+                _log.error(e.getMessage(), e);
+                requestContext.abortWith(Response.status(status).entity(e.getMessage()).build());
+                return;
+            }
         }
         
-        // Assign JWT information to thread-local variables.
+        // ------------------------ Validate Claims ----------------------------
+        // Check the token type.
+        String tokenType = (String)claims.get(CLAIM_TOKEN_TYPE);
+        if (StringUtils.isBlank(tokenType) || !TOKEN_ACCESS.contentEquals(tokenType)) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_TOKEN_TYPE,
+                                         tokenType);
+            _log.error(msg);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+        
+        // Check the account type.
+        String accountTypeStr = (String)claims.get(CLAIM_ACCOUNT_TYPE);
+        if (StringUtils.isBlank(accountTypeStr)) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_ACCOUNT_TYPE,
+                                         accountTypeStr);
+            _log.error(msg);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+        AccountType accountType = null;
+        try {accountType = AccountType.valueOf(accountTypeStr);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_ACCOUNT_TYPE,
+                                         accountTypeStr);
+            _log.error(msg, e);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+        
+        // Get the user.
+        String user = (String)claims.get(CLAIM_USERNAME);
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_USERNAME, user);
+            _log.error(msg);
+            requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+            return;
+        }
+        
+        // Get the delation information if it exists.
+        String delegator = null;
+        Boolean delegation = (Boolean)claims.get(CLAIM_DELEGATION);
+        if (delegation != null && delegation) {
+            delegator = (String)claims.get(CLAIM_DELEGATION_SUB);
+            if (!TapisRestUtils.checkJWTSubjectFormat(delegator)) {
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_DELEGATION_SUB,
+                                             delegator);
+                _log.error(msg);
+                requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
+                return;
+            }
+        }
+        
+        // ------------------------ Assign Claim Values ------------------------
+        // Assign pertinent claims to our threadlocal context.
         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-        if (!StringUtils.isBlank(headerTenantId)) threadContext.setTenantId(headerTenantId);
-        if (!StringUtils.isBlank(user)) threadContext.setUser(user);
-        if (!StringUtils.isBlank(roles)) threadContext.setRoles(roles);
+        threadContext.setTenantId(tenant);
+        threadContext.setUser(user);
+        threadContext.setAccountType(accountType);
+        threadContext.setDelegatorSubject(delegator);
     }
 
     /* ********************************************************************** */
@@ -172,10 +268,11 @@ public class JWTValidateRequestFilter
     /* ---------------------------------------------------------------------- */
     /* decodeJwt:                                                             */
     /* ---------------------------------------------------------------------- */
-    /** Decode the jwt without verifying it signature.
+    /** Decode the jwt without verifying its signature.
      * 
      * @param encodedJWT the JWT from the request header
      * @return the decoded but not verified jwt
+     * @throws TapisSecurityException on error
      */
     private Jwt decodeJwt(String encodedJWT)
      throws TapisSecurityException
@@ -198,7 +295,13 @@ public class JWTValidateRequestFilter
         Jwt jwt = null;
         try {jwt = Jwts.parser().parse(remnant);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_PARSE_ERROR", e.getMessage());
+                // The decode may have detected an expired JWT.
+                String msg;
+                String emsg = e.getMessage();
+                if (emsg != null && emsg.startsWith("JWT expired at")) 
+                    msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_EXPIRED", emsg);
+                  else msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_PARSE_ERROR", emsg);
+                
                 _log.error(msg, e);
                 throw new TapisSecurityException(msg, e);
             }
@@ -206,34 +309,31 @@ public class JWTValidateRequestFilter
     }
     
     /* ---------------------------------------------------------------------- */
-    /* decodeAndVerifyJwt:                                                    */
+    /* verifyJwt:                                                             */
     /* ---------------------------------------------------------------------- */
-    /** Decode the jwt and use the JWT signature to validate that the header 
-     * and payload have not changed. 
+    /** Verify the jwt as it was received as a header value.  Signature verification
+     * occurs using the specified tenant's signing key.  An exception is thrown
+     * if decoding or signature verification fails.
      * 
-     * @param encodedJWT the JWT from the request header
-     * @return the decoded and verified jwt
+     * @param encodedJwt the raw jwt
+     * @param tenant the tenant to verify against
+     * @throws TapisSecurityException if the jwt cannot be verified 
      */
-    private Jwt decodeAndVerifyJwt(String encodedJWT)
+    private void verifyJwt(String encodedJwt, String tenant) 
      throws TapisSecurityException
     {
-        // Some defensive programming.
-        if (encodedJWT == null) return null;
-        
         // Get the public part of the signing key.
-        PublicKey publicKey = getJwtPublicKey();
+        //PublicKey publicKey = getJwtPublicKey(tenant);
+        PublicKey publicKey = getJwtPublicKeyFromTestKeyStore();
         
         // Verify and import the jwt data.
         Jwt jwt = null; 
-        try {jwt = Jwts.parser().setSigningKey(publicKey).parse(encodedJWT);}
+        try {jwt = Jwts.parser().setSigningKey(publicKey).parse(encodedJwt);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_PARSE_ERROR", e.getMessage());
                 _log.error(msg, e);
                 throw new TapisSecurityException(msg, e);
             }
-        
-        // We have a validated jwt.
-        return jwt;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -242,9 +342,15 @@ public class JWTValidateRequestFilter
     /** Return the cached public key if it exists.  If it doesn't exist, load it
      * from the keystore, cache it, and then return it. 
      * 
-     * @return 
+     * This exceptions thrown by this method all use the TAPIS_SECURITY_JWT_KEY_ERROR
+     * message.  This message is used by calling routines to distinguish between
+     * server and requestor errors.
+     * 
+     * @param tenant the tenant whose signature verification key is requested
+     * @return the tenant's signature verification key
+     * @throws TapisSecurityException on error
      */
-    private PublicKey getJwtPublicKey()
+    private PublicKey getJwtPublicKey(String tenant)
      throws TapisSecurityException
      {
         // Use the cached copy if it has already been loaded.
@@ -256,61 +362,29 @@ public class JWTValidateRequestFilter
             // Maybe another thread loaded the key in the intervening time.
             if (_jwtPublicKey != null) return _jwtPublicKey; 
             
-            // We need to load the key from the keystore.
-            // Get our own instance of the key manager 
-            // to avoid possible multithreading issues.
-            KeyManager km;
-            try {km = new KeyManager();}
+            // TODO: replace with SK call in real code.
+            // Decode the base 64 string.
+            byte[] publicBytes;
+            try {publicBytes = Base64.getDecoder().decode(TEMP_TAPIS_PUBLIC_KEY);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_KEYSTORE", e.getMessage());
+                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_KEY_ERROR", e.getMessage());
                     _log.error(msg, e);
                     throw new TapisSecurityException(msg, e);
                 }
-        
-            // Get the keystore's password.
-            String password = TapisEnv.get(EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD);
-            if (StringUtils.isBlank(password)) {
-                String msg = MsgUtils.getMsg("TAPIS_SECURITY_NO_KEYSTORE_PASSWORD");
-                _log.error(msg);
-                throw new TapisSecurityException(msg);
+            
+            // Create the public key object from the byte array.
+            PublicKey publicKey;
+            try {
+                X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                publicKey = keyFactory.generatePublic(keySpec);
             }
-        
-            // Load the complete store.
-            try {km.load(password);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("TAPIS_SECURITY_KEYSTORE_LOAD_ERROR", e.getMessage());
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_KEY_ERROR", e.getMessage());
                 _log.error(msg, e);
                 throw new TapisSecurityException(msg, e);
             }
-            
-            // Get the certificate containing the public key.
-            Certificate cert = null;
-            try {cert = km.getCertificate(DEFAULT_KEY_ALIAS);}
-              catch (KeyStoreException e) {
-                  String msg = MsgUtils.getMsg("TAPIS_SECURITY_GET_CERTIFICATE", 
-                                               DEFAULT_KEY_ALIAS, e.getMessage());
-                  _log.error(msg, e);
-                  throw new TapisSecurityException(msg, e);
-            }
-            
-            // Make sure we got a certificate.
-            if (cert == null) {
-                String msg = MsgUtils.getMsg("TAPIS_SECURITY_CERTIFICATE_NOT_FOUND", 
-                                             DEFAULT_KEY_ALIAS, km.getStorePath());
-                _log.error(msg);
-                throw new TapisSecurityException(msg);
-            }
-            
-            // Get the public key from the certificate and verify the certificate.
-            PublicKey publicKey = cert.getPublicKey();
-            try {cert.verify(publicKey);} 
-                catch (Exception e) {
-                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_CERTIFICATE_VERIFY", 
-                                                 DEFAULT_KEY_ALIAS, e.getMessage());
-                    _log.error(msg, e);
-                    throw new TapisSecurityException(msg, e);
-                } 
-            
+
             // Success!
             _jwtPublicKey = publicKey;
         }
@@ -319,36 +393,40 @@ public class JWTValidateRequestFilter
      }
     
     /* ---------------------------------------------------------------------- */
-    /* getUser:                                                               */
+    /* getJwtPublicKeyFromTestKeyStore:                                       */
     /* ---------------------------------------------------------------------- */
-    /** Get the user name or return null.
+    /** TEMPORARY TEST CODE
      * 
-     * @param claims the JWT claims object
-     * @return the simple user name or null
-     */
-    private String getUser(Claims claims)
-    {
-        // The enduser name may have extraneous information around it.
-        String s = (String)claims.get("http://wso2.org/claims/enduser");
-        if (StringUtils.isBlank(s)) return null;
-        else if (s.contains("@")) return StringUtils.substringBefore(s, "@");
-        else if (s.contains("/")) return StringUtils.substringAfter(s, "/");
-        else return s;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getRoles:                                                              */
-    /* ---------------------------------------------------------------------- */
-    /** Get the set of roles or return null.
+     * TODO: remove this code
      * 
-     * @param claims the JWT claims object
-     * @return the user's roles or null
+     * @return
+     * @throws TapisSecurityException
      */
-    private String getRoles(Claims claims)
+    private PublicKey getJwtPublicKeyFromTestKeyStore() 
+      throws TapisSecurityException
     {
-        String s =  (String)claims.get("http://wso2.org/claims/role");
-        if (StringUtils.isBlank(s)) return null;
-          else return s;
+        // Hardcode parameters for testing...
+        String alias = "jwt";
+        String password = "!akxK3CuHfqzI#97";
+        String keystoreFilename = ".TapisTestKeyStore.p12";
+        
+        PublicKey publicKey = null;
+        try {
+            // ----- Load the keystore.
+            KeyManager km = new KeyManager(null, keystoreFilename);
+            km.load(password);
+
+            // ----- Get the private key from the keystore.
+            PrivateKey privateKey = km.getPrivateKey(alias, password);
+            Certificate cert = km.getCertificate(alias);
+            publicKey = cert.getPublicKey();
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_KEY_ERROR", e.getMessage());
+            _log.error(msg, e);
+            throw new TapisSecurityException(msg, e);
+        }
+        
+        return publicKey;
     }
     
     /* ---------------------------------------------------------------------- */

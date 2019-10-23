@@ -14,6 +14,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Base64.Encoder;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -21,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
-import io.jsonwebtoken.impl.Base64UrlCodec;
 
 /** This class creates a public/private key pair and stores them in the default
  * keystore as defined in KeyManager.  If the key pair exists, the user will be
@@ -36,6 +37,9 @@ public class CreateKey
     /* ********************************************************************* */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(CreateKey.class);
+    
+    // Generated key size.
+    private static final String KEY_SIZE = "2048";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -137,7 +141,7 @@ public class CreateKey
         cmdList.add("-alias");
         cmdList.add(_parms.alias);
         cmdList.add("-keysize");
-        cmdList.add("4096");
+        cmdList.add(Integer.toString(_parms.keySize));
         cmdList.add("-storetype");
         cmdList.add("PKCS12");
         cmdList.add("-dname");
@@ -180,18 +184,18 @@ public class CreateKey
         KeyPair keyPair = new KeyPair(publicKey, privateKey);
         
         // Reusable codec.
-        Base64UrlCodec b64Codec = new Base64UrlCodec();
+        Encoder b64Encoder = Base64.getUrlEncoder();
         
         // Print keys.
         System.out.println("**** Public Key Information (base64url encoded)");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPublic().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPublic().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPublic().getEncoded()));
         System.out.println("**** End Public Key Information");
         System.out.println("**** Private Key Information (base64url encoded)");
         System.out.println("  algorithm: " + keyPair.getPrivate().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPrivate().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPrivate().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPrivate().getEncoded()));
         System.out.println("**** End Private Key Information\n");
     }
     

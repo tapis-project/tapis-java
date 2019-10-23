@@ -5,11 +5,11 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.util.Map.Entry;
+import java.util.Base64;
+import java.util.Set;
+import java.util.Base64.Encoder;
 
 import edu.utexas.tacc.tapis.sharedapi.keys.KeyManager;
-
-import java.util.Set;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
@@ -140,24 +140,24 @@ public class JJWTTest
         KeyPair keyPair = RsaProvider.generateKeyPair();
         
         // Reusable codec.
-        Base64UrlCodec b64Codec = new Base64UrlCodec();
+        Encoder b64Encoder = Base64.getUrlEncoder();
 
         // Print keys.
         System.out.println("**** Public Key Information");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPublic().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPublic().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPublic().getEncoded()));
         System.out.println("**** End Public Key Information");
         System.out.println("**** Private Key Information");
         System.out.println("  algorithm: " + keyPair.getPrivate().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPrivate().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPrivate().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPrivate().getEncoded()));
         System.out.println("**** End Private Key Information\n");
         
         // Create and print json.
         Claims claims = Jwts.claims();
         claims.put("fruit", "banana");
-        String json = Jwts.builder().setSubject("bud").setClaims(claims).signWith(SignatureAlgorithm.RS384, keyPair.getPrivate()).compact();
+        String json = Jwts.builder().setSubject("bud").setClaims(claims).signWith(keyPair.getPrivate(), SignatureAlgorithm.RS384).compact();
         System.out.println("Generated JWT:");
         System.out.println(json);
         
@@ -208,24 +208,24 @@ public class JJWTTest
         KeyPair keyPair = new KeyPair(publicKey, privateKey);
         
         // Reusable codec.
-        Base64UrlCodec b64Codec = new Base64UrlCodec();
+        Encoder b64Encoder = Base64.getUrlEncoder();
 
         // Print keys.
         System.out.println("**** Public Key Information");
         System.out.println("  algorithm: " + keyPair.getPublic().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPublic().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPublic().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPublic().getEncoded()));
         System.out.println("**** End Public Key Information");
         System.out.println("**** Private Key Information");
         System.out.println("  algorithm: " + keyPair.getPrivate().getAlgorithm());
         System.out.println("  format   : " + keyPair.getPrivate().getFormat());
-        System.out.println("  key      : " + b64Codec.encode(keyPair.getPrivate().getEncoded()));
+        System.out.println("  key      : " + b64Encoder.encodeToString(keyPair.getPrivate().getEncoded()));
         System.out.println("**** End Private Key Information\n");
         
         // Create and print json.
         Claims claims = Jwts.claims();
         claims.put("fruit", "apple");
-        String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(SignatureAlgorithm.RS384, keyPair.getPrivate()).compact();
+        String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(keyPair.getPrivate(), SignatureAlgorithm.RS384).compact();
         System.out.println("Generated JWT:");
         System.out.println(json);
         

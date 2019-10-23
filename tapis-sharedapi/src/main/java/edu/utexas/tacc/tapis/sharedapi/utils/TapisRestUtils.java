@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.sharedapi.utils;
 
+import org.apache.commons.lang3.StringUtils;
+
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper.RESPONSE_STATUS;
@@ -95,5 +97,28 @@ public class TapisRestUtils
         resp.message = message;
         resp.version = TapisUtils.getTapisVersion();
         return TapisGsonUtils.getGson(prettyPrint).toJson(resp);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* checkJWTSubjectFormat:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Return true if the subject is non-null and of the form user@tenant, false 
+     * otherwise. 
+     * 
+     * @param subject a subject in the form user@tenant
+     * @return true is valid, false otherwise
+     */
+    public static boolean checkJWTSubjectFormat(String subject)
+    {
+        // Null or empty string don't cut it.
+        if (StringUtils.isBlank(subject)) return false;
+        
+        // Test for non-whitespace characters on both sides of the @ sign.
+        String trimmedSubject = subject.trim();
+        int index = trimmedSubject.indexOf("@");
+        if (index < 1 || (index >= trimmedSubject.length() - 1)) return false;
+        
+        // Correct format.
+        return true;
     }
 }

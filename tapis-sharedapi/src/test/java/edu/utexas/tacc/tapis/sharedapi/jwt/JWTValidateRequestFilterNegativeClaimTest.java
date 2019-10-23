@@ -7,6 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Base64.Decoder;
+import java.util.Base64.Encoder;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
@@ -19,7 +22,6 @@ import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv.EnvVar;
 import edu.utexas.tacc.tapis.sharedapi.utils.CreateJWT;
 import edu.utexas.tacc.tapis.sharedapi.utils.CreateJWTParameters;
-import io.jsonwebtoken.impl.Base64UrlCodec;
 
 /** 
  *  This class performs a negative claim test on JWTValidateRequestFilter.java
@@ -127,9 +129,10 @@ public class JWTValidateRequestFilterNegativeClaimTest {
 		json.addProperty("bank", "fcu");
 
 		// Base64URL encode the incorrect claim
-		Base64UrlCodec b64Codec = new Base64UrlCodec();
-		String encodedPayload = b64Codec.encode(json.toString());
-		String decodedPayload = b64Codec.decodeToString(encodedPayload);
+		Encoder b64Encoder = Base64.getUrlEncoder();
+		String encodedPayload = b64Encoder.encodeToString(json.toString().getBytes());
+		Decoder b64Decoder = Base64.getUrlDecoder();
+		String decodedPayload = b64Decoder.decode(encodedPayload).toString();
 
 		System.out.println("encoded Incorrect Payload: " + encodedPayload + "\n");
 		System.out.println("decoded Incorrect Payload: " + decodedPayload + "\n");

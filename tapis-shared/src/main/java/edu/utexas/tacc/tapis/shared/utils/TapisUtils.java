@@ -381,25 +381,6 @@ public static Timestamp getUTCTimestamp()
   }
   
   /* ---------------------------------------------------------------------------- */
-  /* transformRawTenantId                                                         */
-  /* ---------------------------------------------------------------------------- */
-  /** Convert the raw tenant id encode in the http request header key name into
-   * the actual tenant id defined in the tenants table.  Nulls and empty strings
-   * are passed back as received.
-   * 
-   * @param rawTenantId tenantId as encoded in the http request header key name
-   * @return the transformed tenant id 
-   */
-  public static String transformRawTenantId(String rawTenantId)
-  {
-      if (StringUtils.isBlank(rawTenantId)) return rawTenantId;
-      String tenantId = rawTenantId.toLowerCase();
-      tenantId = tenantId.replace('-', '.');
-      tenantId = tenantId.replace('_', '.');
-      return tenantId;
-  }
-  
-  /* ---------------------------------------------------------------------------- */
   /* tapisify:                                                                    */
   /* ---------------------------------------------------------------------------- */
   /** Wrap non-tapis exceptions in an TapisException keeping the same error message
