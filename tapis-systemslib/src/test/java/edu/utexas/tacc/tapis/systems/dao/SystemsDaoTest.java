@@ -18,8 +18,8 @@ import edu.utexas.tacc.tapis.systems.model.TSystem;
 @Test(groups={"integration"})
 public class SystemsDaoTest
 {
-  private SystemsDao dao;
-  private ProtocolDao protocolDao;
+  private SystemsDaoImpl dao;
+  private ProtocolDaoImpl protocolDao;
 
   // Test data
   private static String mechsStr = "{SFTP,S3}";
@@ -45,8 +45,8 @@ public class SystemsDaoTest
   public void setup() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
-    dao = new SystemsDao();
-    protocolDao = new ProtocolDao();
+    dao = new SystemsDaoImpl();
+    protocolDao = new ProtocolDaoImpl();
     // Use port number different from values in other tests since other tests may be running in parallel. Cleanup in other tests
     //  can fail if protocols are referenced in the systems created here.
     protId1 = protocolDao.create(AccessMechanism.NONE.name(), mechsStr, 1001, false, "", 0);

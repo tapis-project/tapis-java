@@ -16,20 +16,34 @@
   <name>Tapis Systems API</name>
   <description>Front end for Tapis Systems Service web application</description>
 
-  <!-- TODO move into master pom if swagger-ui integration becomes permanent -->
   <properties>
-    <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
-    <replacer.version>1.5.3</replacer.version>
-    <swagger-ui.version>3.23.8</swagger-ui.version>
     <guice.version>4.2.2</guice.version>
   </properties>
 
   <dependencies>
+<!-- ******** Guice ******** -->
     <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
       <version>${guice.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.inject.extensions</groupId>
+      <artifactId>guice-servlet</artifactId>
+      <version>${guice.version}</version>
+    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.logz</groupId>-->
+<!--      <artifactId>guice-jersey</artifactId>-->
+<!--      <version>1.0.9</version>-->
+<!--    </dependency>-->
+<!--    <dependency>-->
+<!--      <groupId>com.squarespace.jersey2-guice</groupId>-->
+<!--      <artifactId>jersey2-guice</artifactId>-->
+<!--      <version>0.10</version>-->
+<!--    </dependency>-->
+<!-- ******** Guice ******** -->
+
     <dependency>
       <groupId>javax.ws.rs</groupId>
       <artifactId>javax.ws.rs-api</artifactId>
@@ -120,6 +134,7 @@
       </plugin>
 
       <!-- ********************* Begin swagger-ui integration ************************** -->
+      <!-- Live-docs can be found at http://localhost:8080/systems/swagger-ui/index.html -->
       <!-- Download Swagger UI webjar. -->
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>

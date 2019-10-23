@@ -18,7 +18,7 @@ import java.util.List;
 @Test(groups={"integration"})
 public class ProtocolDaoTest
 {
-  private ProtocolDao dao;
+  private ProtocolDaoImpl dao;
 
   // Test data
   private static String mechsStr = "{SFTP,S3}";
@@ -39,7 +39,7 @@ public class ProtocolDaoTest
   public void setup() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
-    dao = new ProtocolDao();
+    dao = new ProtocolDaoImpl();
   }
 
   // Test create for a single item

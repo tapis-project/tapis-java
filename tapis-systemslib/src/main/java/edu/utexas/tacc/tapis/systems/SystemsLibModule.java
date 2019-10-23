@@ -1,15 +1,21 @@
 package edu.utexas.tacc.tapis.systems;
 
 import com.google.inject.AbstractModule;
+import edu.utexas.tacc.tapis.systems.dao.ProtocolDao;
+import edu.utexas.tacc.tapis.systems.dao.ProtocolDaoImpl;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 
 /*
- * Guice module for SystemsSvc
+ * Guice module for SystemsLib
  */
-public class SystemsSvcModule extends AbstractModule
+public class SystemsLibModule extends AbstractModule
 {
   @Override
   protected void configure()
   {
+    bind(SystemsDao.class).to(SystemsDaoImpl.class);
+    bind(ProtocolDao.class).to(ProtocolDaoImpl.class);
 //      bind(TransactionLog.class).to(DatabaseTransactionLog.class);
 
       /*

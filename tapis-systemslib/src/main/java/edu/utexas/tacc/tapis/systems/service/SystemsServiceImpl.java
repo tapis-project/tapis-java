@@ -1,9 +1,11 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-//import com.google.inject.Singleton;
+import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.dao.ProtocolDao;
+import edu.utexas.tacc.tapis.systems.dao.ProtocolDaoImpl;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +17,7 @@ import java.util.List;
  *   Uses Dao layer and other service library classes to perform all
  *   top level service operations.
  */
-//@Singleton
+@Singleton
 public class SystemsServiceImpl implements SystemsService
 {
   /* ********************************************************************** */
@@ -23,6 +25,12 @@ public class SystemsServiceImpl implements SystemsService
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
+
+  // **************** Inject Dao singletons ****************
+  @com.google.inject.Inject
+  private SystemsDao dao;
+  @com.google.inject.Inject
+  private ProtocolDao protocolDao;
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -43,8 +51,8 @@ public class SystemsServiceImpl implements SystemsService
           throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDao();
-    ProtocolDao protocolDao = new ProtocolDao();
+    SystemsDao dao = new SystemsDaoImpl();
+    ProtocolDao protocolDao = new ProtocolDaoImpl();
 
 
     int protocolId = protocolDao.create(accessMechanism, transferMechanisms, protocolPort, protocolUseProxy, protocolProxyHost, protocolProxyPort);
@@ -64,7 +72,7 @@ public class SystemsServiceImpl implements SystemsService
   public int deleteSystemByName(String tenant, String name) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDao();
+    SystemsDao dao = new SystemsDaoImpl();
     return dao.deleteTSystem(tenant, name);
   }
 
@@ -77,7 +85,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDao();
+    SystemsDao dao = new SystemsDaoImpl();
     TSystem result = dao.getTSystemByName(tenant, name);
     return result;
   }
@@ -92,7 +100,7 @@ public class SystemsServiceImpl implements SystemsService
   public List<TSystem> getSystems(String tenant) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDao();
+    SystemsDao dao = new SystemsDaoImpl();
     return dao.getTSystems(tenant);
   }
 
@@ -106,7 +114,7 @@ public class SystemsServiceImpl implements SystemsService
   public List<String> getSystemNames(String tenant) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDao();
+    SystemsDao dao = new SystemsDaoImpl();
     return dao.getTSystemNames(tenant);
   }
 
