@@ -182,79 +182,6 @@ paths:
           description: Server error.
 components:
   schemas:
-    RespResourceUrl:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/ResultResourceUrl'
-    ResultResourceUrl:
-      type: object
-      properties:
-        url:
-          type: string
-    Protocol:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int32
-        accessMechanism:
-          type: string
-        transferMechanisms:
-          type: array
-          items:
-            type: string
-            enum:
-            - SFTP
-            - S3
-            - LOCAL
-        port:
-          type: integer
-          format: int32
-        proxyHost:
-          type: string
-        proxyPort:
-          type: integer
-          format: int32
-        created:
-          type: string
-    ReqCreateSystem:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        owner:
-          type: string
-        host:
-          type: string
-        available:
-          type: boolean
-        bucketName:
-          type: string
-        rootDir:
-          type: string
-        jobInputDir:
-          type: string
-        jobOutputDir:
-          type: string
-        scratchDir:
-          type: string
-        workDir:
-          type: string
-        effectiveUserId:
-          type: string
-        accessCredential:
-          type: string
-        Protocol:
-          $ref: '#/components/schemas/Protocol'
     RespNameArray:
       type: object
       properties:
@@ -323,21 +250,106 @@ components:
           type: string
         rootDir:
           type: string
+        jobInputDir:
+          type: string
+        jobOutputDir:
+          type: string
         workDir:
           type: string
         scratchDir:
           type: string
         accessCredential:
           type: string
-        protocol:
-          $ref: '#/components/schemas/Protocol'
         effectiveUserId:
           type: string
+        accessMechanism:
+          type: string
+          enum:
+          - NONE
+          - ANONYMOUS
+          - SSH_PASSWORD
+          - SSH_KEYS
+          - SSH_CERT
+        transferMechanisms:
+          type: array
+          items:
+            type: string
+            enum:
+            - SFTP
+            - S3
+            - LOCAL
+        port:
+          type: integer
+          format: int32
+        useProxy:
+          type: boolean
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+          format: int32
         created:
           type: string
         updated:
           type: string
-        jobInputDirDir:
+    RespResourceUrl:
+      type: object
+      properties:
+        status:
           type: string
-        jobOutputDirDir:
+        message:
           type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultResourceUrl'
+    ResultResourceUrl:
+      type: object
+      properties:
+        url:
+          type: string
+    ReqCreateSystem:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        host:
+          type: string
+        available:
+          type: boolean
+        bucketName:
+          type: string
+        rootDir:
+          type: string
+        jobInputDir:
+          type: string
+        jobOutputDir:
+          type: string
+        scratchDir:
+          type: string
+        workDir:
+          type: string
+        effectiveUserId:
+          type: string
+        accessCredential:
+          type: string
+        accessMechanism:
+          type: string
+        transferMechanisms:
+          type: array
+          items:
+            type: string
+        port:
+          type: integer
+          format: int32
+        useProxy:
+          type: boolean
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+          format: int32
