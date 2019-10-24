@@ -7,7 +7,7 @@
       <exclude name="notReady"/>
     </run>
   </groups>
-  <test name="systemssvc">
+  <test name="systemslib">
     <packages>
       <package name="edu.utexas.tacc.tapis.systems.*" /> 
     </packages>

@@ -1,17 +1,25 @@
 package edu.utexas.tacc.tapis.systems.model;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
+import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMechanism;
+
+import static edu.utexas.tacc.tapis.systems.model.Protocol.DEFAULT_TRANSFER_MECHANISMS;
+
 /*
  * Tapis System representing a server or collection of servers exposed through a
  * single host name or ip address. Each system is associated with a specific tenant.
  * Tenant + name must be unique
  * Name of the system must be URI safe, see RFC 3986.
  *   Allowed characters: Alphanumeric  [0-9a-zA-Z] and special characters [-._~].
- * Each system has an owner, effective acccess user, access protocol, transfer protocol
+ * Each system has an owner, effective acccess user, protocol attributes
  *   and flag indicating if it is currently available.
  */
 public final class TSystem
@@ -27,6 +35,7 @@ public final class TSystem
   public static final String DEFAULT_WORKDIR = "/data";
   public static final String DEFAULT_SCRATCHDIR = "/scratch";
   public static final String DEFAULT_EFFECTIVEUSERID = "${apiUserId}";
+
 
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -48,8 +57,13 @@ public final class TSystem
   private String workDir;
   private String scratchDir;
   private String accessCredential;
-  private Protocol protocol;
   private String effectiveUserId;
+  private AccessMechanism accessMechanism; // How access authorization is handled.
+  private List<TransferMechanism> transferMechanisms; // List of supported transfer mechanisms
+  private int port; // Port number used to access the system.
+  private boolean useProxy; // Indicates if a system should be accessed through a proxy.
+  private String proxyHost; //
+  private int proxyPort; //
   private Instant created; // UTC time for when record was created
   private Instant updated; // UTC time for when record was last updated
 
@@ -59,7 +73,8 @@ public final class TSystem
   public TSystem(long id1, String tenant1, String name1, String description1,
                  String owner1, String host1, boolean available1, String bucketName1,
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
-                 String effectiveUserId1, Protocol protocol1, String accessCredential1,
+                 String effectiveUserId1, AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
+                 int port1, boolean useProxy1, String proxyHost1, int proxyPort1, String accessCredential1,
                  Instant created1, Instant updated1)
   {
     id = id1;
@@ -76,7 +91,13 @@ public final class TSystem
     workDir = workDir1;
     scratchDir = scratchDir1;
     effectiveUserId = effectiveUserId1;
-    protocol = protocol1;
+    accessMechanism = accessMechanism1;
+    if (transferMechanisms1 != null) transferMechanisms = transferMechanisms1;
+    else transferMechanisms = DEFAULT_TRANSFER_MECHANISMS;
+    port = port1;
+    useProxy = useProxy1;
+    proxyHost = proxyHost1;
+    proxyPort = proxyPort1;
     accessCredential = accessCredential1;
     created = created1;
     updated = updated1;
@@ -115,7 +136,17 @@ public final class TSystem
 
   public String getEffectiveUserId() { return effectiveUserId; }
 
-  public Protocol getProtocol() { return protocol; }
+  public AccessMechanism getAccessMechanism() { return accessMechanism; }
+
+  public int getPort() { return port; }
+
+  public boolean isUseProxy() { return useProxy; }
+
+  public String getProxyHost() { return proxyHost; }
+
+  public int getProxyPort() { return proxyPort; }
+
+  public List<TransferMechanism> getTransferMechanisms() { return transferMechanisms; }
 
   public String getAccessCredential() { return accessCredential; }
 

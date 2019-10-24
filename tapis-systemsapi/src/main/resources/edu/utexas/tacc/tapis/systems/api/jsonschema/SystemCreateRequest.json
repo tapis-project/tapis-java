@@ -76,56 +76,48 @@
       "minLength": 1,
       "default": ""
     },
-    "protocol": {
-      "type": "object",
-      "properties": {
-        "accessMechanism": {
-          "type": "string",
-          "enum": [
-            "NONE",
-            "ANONYMOUS",
-            "SSH_PASSWORD",
-            "SSH_KEYS",
-            "SSH_CERT"
-          ]
-        },
-        "transferMechanisms": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "SFTP",
-              "S3",
-              "LOCAL"
-            ]
-          }
-        },
-        "port": {
-          "type": "integer",
-          "default": -1
-        },
-        "useProxy": {
-          "type": "boolean",
-          "default": false
-        },
-        "proxyHost": {
-          "type": "string",
-          "maxLength": 256,
-          "default": ""
-        },
-        "proxyPort": {
-          "type": "integer",
-          "default": -1
-        }
-      },
-      "required": [
-        "accessMechanism"
+    "accessMechanism": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "ANONYMOUS",
+        "SSH_PASSWORD",
+        "SSH_KEYS",
+        "SSH_CERT"
       ]
+    },
+    "transferMechanisms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "SFTP",
+          "S3",
+          "LOCAL"
+        ]
+      }
+    },
+    "port": {
+      "type": "integer",
+      "default": -1
+    },
+    "useProxy": {
+      "type": "boolean",
+      "default": false
+    },
+    "proxyHost": {
+      "type": "string",
+      "maxLength": 256,
+      "default": ""
+    },
+    "proxyPort": {
+      "type": "integer",
+      "default": -1
     }
   },
   "required": [
     "name",
     "host",
-    "protocol"
+    "accessMechanism"
   ]
 }

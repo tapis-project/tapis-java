@@ -2,8 +2,6 @@ package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.systems.dao.ProtocolDao;
-import edu.utexas.tacc.tapis.systems.dao.ProtocolDaoImpl;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
@@ -29,8 +27,6 @@ public class SystemsServiceImpl implements SystemsService
   // **************** Inject Dao singletons ****************
   @com.google.inject.Inject
   private SystemsDao dao;
-  @com.google.inject.Inject
-  private ProtocolDao protocolDao;
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -38,7 +34,7 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Create a new system object
    *
-   * @return Number of rows inserted
+   * @return Sequence id of object created
    * @throws TapisException
    */
   @Override
@@ -52,16 +48,16 @@ public class SystemsServiceImpl implements SystemsService
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     SystemsDao dao = new SystemsDaoImpl();
-    ProtocolDao protocolDao = new ProtocolDaoImpl();
 
 
-    int protocolId = protocolDao.create(accessMechanism, transferMechanisms, protocolPort, protocolUseProxy, protocolProxyHost, protocolProxyPort);
-    int numRows = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, protocolId);
+    int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
+                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
+                                   accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
+                                   protocolProxyHost, protocolProxyPort);
 
     // TODO Store credentials in Security Kernel
 
-    return numRows;
+    return itemId;
   }
 
   /**

@@ -1,29 +1,40 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
-import edu.utexas.tacc.tapis.systems.model.Protocol;
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
+import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMechanism;
+
 
 /**
  * Test the SystemsDao class against a running DB
- * System objects need a valid Protocol so create those in setup
  */
 @Test(groups={"integration"})
 public class SystemsDaoTest
 {
   private SystemsDaoImpl dao;
-  private ProtocolDaoImpl protocolDao;
 
   // Test data
-  private static String mechsStr = "{SFTP,S3}";
   private static final String tenant = "tenant1";
+  private static String mechsStr = "{SFTP,S3}";
+  private static List<TransferMechanism> mechs = new ArrayList<>(List.of(TransferMechanism.SFTP, TransferMechanism.S3));
+  private static String mechsStrEmpty = "{}";
+  private static List<TransferMechanism> mechsEmpty = new ArrayList<>();
+  private static final Protocol prot1 = new Protocol(AccessMechanism.NONE, mechs, 0, false, "", 0);
+  private static final Protocol prot2 = new Protocol(AccessMechanism.ANONYMOUS, mechs, 22, false, "",0);
+  private static final Protocol prot3 = new Protocol(AccessMechanism.SSH_CERT, mechs, 23, true, "localhost",22);
+  private static final Protocol prot4 = new Protocol(AccessMechanism.SSH_CERT, mechsEmpty, -1, false, "",-1);
+  private static final Protocol prot5 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, null,-1);
+  private static final Protocol prot6 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, "",-1);
+  private static final Protocol prot7 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, "",-1);
   private static final String[] sys1 = {tenant, "sys1", "description 1", "owner1", "host1", "bucket1", "/root1",
       "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", "fakePassword1"};
   private static final String[] sys2 = {tenant, "sys2", "description 2", "owner2", "host2", "bucket2", "/root2",
@@ -39,19 +50,11 @@ public class SystemsDaoTest
   private static final String[] sys7 = {tenant, "sys7", "description 7", "owner7", "host7", "bucket7", "/root7",
     "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", "fakePassword7"};
 
-  int protId1, protId2;
-
   @BeforeSuite
   public void setup() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
     dao = new SystemsDaoImpl();
-    protocolDao = new ProtocolDaoImpl();
-    // Use port number different from values in other tests since other tests may be running in parallel. Cleanup in other tests
-    //  can fail if protocols are referenced in the systems created here.
-    protId1 = protocolDao.create(AccessMechanism.NONE.name(), mechsStr, 1001, false, "", 0);
-    protId2 = protocolDao.create(AccessMechanism.SSH_PASSWORD.name(), null, 1002, true,
-                                 "localhost", 2222);
   }
 
   // Test create for a single item
@@ -59,17 +62,24 @@ public class SystemsDaoTest
   public void testCreate() throws Exception
   {
     String[] sys0 = sys1;
-    int numRows = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
-    Assert.assertEquals(numRows, 1);
+    Protocol prot0 = prot1;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
   // Test retrieving a single item
   @Test(enabled=true)
   public void testGetByName() throws Exception {
     String[] sys0 = sys2;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
+    Protocol prot0 = prot2;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
     System.out.println("Found item: " + sys0[1]);
@@ -84,27 +94,34 @@ public class SystemsDaoTest
     Assert.assertEquals(tmpSys.getWorkDir(), sys0[9]);
     Assert.assertEquals(tmpSys.getScratchDir(), sys0[10]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[11]);
-    Assert.assertNotNull(tmpSys.getProtocol(), "Protocol was null for system name: " + sys0[1]);
-    Assert.assertEquals(tmpSys.getProtocol().getAccessMechanism(), AccessMechanism.NONE.name());
-    Assert.assertEquals(tmpSys.getProtocol().getPort(), 1001);
-    Assert.assertEquals(tmpSys.getProtocol().isUseProxy(), false);
-    Assert.assertEquals(tmpSys.getProtocol().getProxyHost(), "");
-    Assert.assertEquals(tmpSys.getProtocol().getProxyPort(), 0);
-    List<Protocol.TransferMechanism> tmechsList = tmpSys.getProtocol().getTransferMechanisms();
+    Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
+    Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
+    Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
+    Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
+    Assert.assertEquals(tmpSys.getProxyPort(), prot0.getProxyPort());
+    List<TransferMechanism> tmechsList = tmpSys.getTransferMechanisms();
     Assert.assertNotNull(tmechsList);
-    Assert.assertTrue(tmechsList.contains(Protocol.TransferMechanism.S3), "List of transfer mechanisms did not contain: " + Protocol.TransferMechanism.S3.name());
-    Assert.assertTrue(tmechsList.contains(Protocol.TransferMechanism.SFTP), "List of transfer mechanisms did not contain: " + Protocol.TransferMechanism.SFTP.name());
+    Assert.assertTrue(tmechsList.contains(TransferMechanism.S3), "List of transfer mechanisms did not contain: " + TransferMechanism.S3.name());
+    Assert.assertTrue(tmechsList.contains(TransferMechanism.SFTP), "List of transfer mechanisms did not contain: " + TransferMechanism.SFTP.name());
   }
 
   // Test retrieving all system names
   @Test(enabled=true)
   public void testGetSystemNames() throws Exception {
     String[] sys0 = sys3;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
+    Protocol prot0 = prot3;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
+    prot0 = prot4;
+    itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<String> systemNames = dao.getTSystemNames(tenant);
     for (String name : systemNames) {
       System.out.println("Found item: " + name);
@@ -117,8 +134,12 @@ public class SystemsDaoTest
   @Test(enabled=true)
   public void testGetSystems() throws Exception {
     String[] sys0 = sys5;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
+    Protocol prot0 = prot5;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<TSystem> systems = dao.getTSystems(tenant);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
@@ -129,8 +150,12 @@ public class SystemsDaoTest
   @Test(enabled=true)
   public void testDelete() throws Exception {
     String[] sys0 = sys6;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId1);
+    Protocol prot0 = prot6;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     dao.deleteTSystem(sys0[0], sys0[1]);
     TSystem tmpSystem = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0[1]);
@@ -141,8 +166,12 @@ public class SystemsDaoTest
   public void testNoTxfr() throws Exception
   {
     String[] sys0 = sys7;
-    dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                      sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], protId2);
+    Protocol prot0 = prot7;
+    int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11],
+                                    prot0.getAccessMechanism().name(), null, prot0.getPort(),
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
     System.out.println("Found item: " + sys0[1]);
@@ -157,13 +186,12 @@ public class SystemsDaoTest
     Assert.assertEquals(tmpSys.getWorkDir(), sys0[9]);
     Assert.assertEquals(tmpSys.getScratchDir(), sys0[10]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[11]);
-    Assert.assertNotNull(tmpSys.getProtocol(), "Protocol was null for system name: " + sys0[1]);
-    Assert.assertEquals(tmpSys.getProtocol().getAccessMechanism(), AccessMechanism.SSH_PASSWORD.name());
-    Assert.assertEquals(tmpSys.getProtocol().getPort(), 1002);
-    Assert.assertEquals(tmpSys.getProtocol().isUseProxy(), true);
-    Assert.assertEquals(tmpSys.getProtocol().getProxyHost(), "localhost");
-    Assert.assertEquals(tmpSys.getProtocol().getProxyPort(), 2222);
-    List<Protocol.TransferMechanism> tmechsList = tmpSys.getProtocol().getTransferMechanisms();
+    Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
+    Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
+    Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
+    Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
+    Assert.assertEquals(tmpSys.getProxyPort(), prot0.getProxyPort());
+    List<TransferMechanism> tmechsList = tmpSys.getTransferMechanisms();
     Assert.assertNotNull(tmechsList);
     Assert.assertEquals(tmechsList.size(), 0);
   }
@@ -179,8 +207,6 @@ public class SystemsDaoTest
     dao.deleteTSystem(sys3[0], sys3[1]);
     dao.deleteTSystem(sys4[0], sys4[1]);
     dao.deleteTSystem(sys5[0], sys5[1]);
-    dao.deleteTSystem(sys5[0], sys7[1]);
-    protocolDao.delete(protId1);
-    protocolDao.delete(protId2);
+    dao.deleteTSystem(sys7[0], sys7[1]);
   }
 }

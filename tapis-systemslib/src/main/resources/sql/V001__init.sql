@@ -27,34 +27,6 @@ CREATE TYPE access_mech_type AS ENUM ('NONE', 'ANONYMOUS', 'SSH_PASSWORD', 'SSH_
 CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3', 'LOCAL');
 
 -- ----------------------------------------------------------------------------------------
---                               PROTOCOLS 
--- ----------------------------------------------------------------------------------------
--- Protocol table
--- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
-CREATE TABLE protocol
-(
-  id         SERIAL PRIMARY KEY,
-  access_mechanism  access_mech_type NOT NULL,
-  transfer_mechanisms transfer_mech_type[] NOT NULL,
-  port       INTEGER NOT NULL DEFAULT -1,
-  use_proxy  BOOLEAN NOT NULL DEFAULT false,
-  proxy_host VARCHAR(256) NOT NULL DEFAULT '',
-  proxy_port INTEGER NOT NULL DEFAULT -1,
-  created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
---  UNIQUE (access_mechanism, port, use_proxy, proxy_host, proxy_port)
-);
-ALTER TABLE protocol OWNER TO tapis;
-COMMENT ON COLUMN protocol.id IS 'Protocol id';
-COMMENT ON COLUMN protocol.access_mechanism IS 'Enum for how authorization is handled';
-COMMENT ON COLUMN protocol.transfer_mechanisms IS 'List of supported transfer mechanisms';
-COMMENT ON COLUMN protocol.port IS 'Port number used to access a system';
-COMMENT ON COLUMN protocol.use_proxy IS 'Indicates if system should accessed through a proxy';
-COMMENT ON COLUMN protocol.proxy_host IS 'Proxy host name or ip address';
-COMMENT ON COLUMN protocol.proxy_port IS 'Proxy port number';
-COMMENT ON COLUMN protocol.created IS 'UTC time for when record was created';
-
-
--- ----------------------------------------------------------------------------------------
 --                                     SYSTEMS
 -- ----------------------------------------------------------------------------------------
 -- Systems table
@@ -74,7 +46,12 @@ CREATE TABLE systems
   work_dir       VARCHAR(1024),
   scratch_dir    VARCHAR(1024),
   effective_user_id VARCHAR(60) NOT NULL,
-  protocol   SERIAL references protocol(id),
+  access_mechanism  access_mech_type NOT NULL,
+  transfer_mechanisms transfer_mech_type[] NOT NULL,
+  port       INTEGER NOT NULL DEFAULT -1,
+  use_proxy  BOOLEAN NOT NULL DEFAULT false,
+  proxy_host VARCHAR(256) NOT NULL DEFAULT '',
+  proxy_port INTEGER NOT NULL DEFAULT -1,
   created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
@@ -94,7 +71,12 @@ COMMENT ON COLUMN systems.job_output_dir IS 'Directory used for writing job outp
 COMMENT ON COLUMN systems.work_dir IS 'Directory based on a path shared among all users in a cluster';
 COMMENT ON COLUMN systems.scratch_dir IS 'Directory based on a path shared among all users in a cluster';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
-COMMENT ON COLUMN systems.protocol IS 'Reference to protocol used for the system';
+COMMENT ON COLUMN systems.access_mechanism IS 'Enum for how authorization is handled';
+COMMENT ON COLUMN systems.transfer_mechanisms IS 'List of supported transfer mechanisms';
+COMMENT ON COLUMN systems.port IS 'Port number used to access a system';
+COMMENT ON COLUMN systems.use_proxy IS 'Indicates if system should accessed through a proxy';
+COMMENT ON COLUMN systems.proxy_host IS 'Proxy host name or ip address';
+COMMENT ON COLUMN systems.proxy_port IS 'Proxy port number';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
 

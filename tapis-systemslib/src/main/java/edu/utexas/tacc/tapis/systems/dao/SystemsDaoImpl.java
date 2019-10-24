@@ -7,11 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.inject.Singleton;
-import edu.utexas.tacc.tapis.systems.model.Protocol;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMechanism;
+import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMechanism;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -35,17 +37,19 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /**
    * Create a new system object.
    *
-   * @return Number of rows inserted
+   * @return Sequence id of object created
    * @throws TapisException
    */
   @Override
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, int protocolId)
+                           String effectiveUserId, String accessMechanism, String transferMechanisms, int port,
+                           boolean useProxy, String proxyHost, int proxyPort)
           throws TapisException
   {
-    int rows = -1;
+    // Generated sequence id
+    int itemId;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenant");
@@ -57,6 +61,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       _log.error(msg);
       throw new TapisException(msg);
     }
+    if (StringUtils.isBlank(accessMechanism))
+    {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "accessMechanism");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (transferMechanisms == null || StringUtils.isBlank(transferMechanisms)) transferMechanisms = Protocol.DEFAULT_TRANSFER_MECHANISMS_STR;
+
+    // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
+    if (proxyHost == null) proxyHost = Protocol.DEFAULT_PROXYHOST;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -83,16 +97,24 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(11, workDir);
       pstmt.setString(12, scratchDir);
       pstmt.setString(13, effectiveUserId);
-      pstmt.setInt(14, protocolId);
+      pstmt.setString(14, accessMechanism);
+      pstmt.setString(15, transferMechanisms);
+      pstmt.setInt(16, port);
+      pstmt.setBoolean(17, useProxy);
+      pstmt.setString(18, proxyHost);
+      pstmt.setInt(19, proxyPort);
 
       // Issue the call.
-      rows = pstmt.executeUpdate();
-      if (rows != 1)
+      pstmt.execute();
+      // The generated sequence id should come back in the result
+      ResultSet rs = pstmt.getResultSet();
+      if (!rs.next())
       {
-        String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, name);
+        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
         _log.error(msg);
         throw new TapisException(msg);
       }
+      itemId = rs.getInt(1);
 
       // Close out and commit
       pstmt.close();
@@ -131,7 +153,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           _log.error(msg, e);
         }
     }
-    return rows;
+    return itemId;
   }
 
   /**
@@ -455,10 +477,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // TODO: What about credentials?
 
-      // Populate protocol
-      int protId = rs.getInt(15);
-      List<Protocol.TransferMechanism> tmechsList = new ArrayList<>();
-      String tmechsStr = rs.getString(19);
+      // Populate protocol transfer mechanisms
+      List<TransferMechanism> tmechsList = new ArrayList<>();
+      String tmechsStr = rs.getString(16);
       if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
       {
         // Strip off surrounding braces and convert strings to enums
@@ -469,33 +490,29 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           if (!StringUtils.isBlank(tmech)) tmechsList.add(Protocol.TransferMechanism.valueOf(tmech));
         }
       }
-
-      prot = new Protocol(protId,
-                          Protocol.AccessMechanism.valueOf(rs.getString(18)),
-                          tmechsList,
-                          rs.getInt(20),
-                          rs.getBoolean(21),
-                          rs.getString(22),
-                          rs.getInt(23),
-                          rs.getTimestamp(24).toInstant());
       tSystem = new TSystem(rs.getInt(1), // id
-                           rs.getString(2), // tenant
-                           rs.getString(3), // name
-                           rs.getString(4), // description
-                           rs.getString(5), // owner
-                           rs.getString(6), // host
-                           rs.getBoolean(7), //available
-                           rs.getString(8), // bucketName
-                           rs.getString(9), // rootDir
-                           rs.getString(10), // jobInputDir
-                           rs.getString(11), // jobOutputDir
-                           rs.getString(12), // workDir
-                           rs.getString(13), // scratchDir
-                           rs.getString(14), // effectiveUserId
-                           prot, // Protocol
+                            rs.getString(2), // tenant
+                            rs.getString(3), // name
+                            rs.getString(4), // description
+                            rs.getString(5), // owner
+                            rs.getString(6), // host
+                            rs.getBoolean(7), //available
+                            rs.getString(8), // bucketName
+                            rs.getString(9), // rootDir
+                            rs.getString(10), // jobInputDir
+                            rs.getString(11), // jobOutputDir
+                            rs.getString(12), // workDir
+                            rs.getString(13), // scratchDir
+                            rs.getString(14), // effectiveUserId
+                            AccessMechanism.valueOf(rs.getString(15)),
+                            tmechsList,
+                            rs.getInt(17),
+                            rs.getBoolean(18),
+                            rs.getString(19),
+                            rs.getInt(20),
                            "fakeAccessCred1", // accessCred
-                           rs.getTimestamp(16).toInstant(), // created
-                           rs.getTimestamp(17).toInstant()); // updated
+                            rs.getTimestamp(21).toInstant(), // created
+                            rs.getTimestamp(22).toInstant()); // updated
     }
     catch (Exception e)
     {

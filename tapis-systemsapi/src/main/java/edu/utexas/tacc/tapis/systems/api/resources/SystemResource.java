@@ -214,18 +214,17 @@ public class SystemResource
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
     accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
 
-    //Extract Protocol
-    JsonObject protObj = obj.getAsJsonObject("protocol");
-    accessMech = (protObj.has("accessMechanism") ? protObj.get("accessMechanism").getAsString() : "NONE");
-    port = (protObj.has("port") ? protObj.get("port").getAsInt() : -1);
-    useProxy = (protObj.has("useProxy") ? protObj.get("useProxy").getAsBoolean() : false);
-    proxyHost = (protObj.has("proxyHost") ? protObj.get("proxyHost").getAsString() : "");
-    proxyPort = (protObj.has("proxyPort") ? protObj.get("proxyPort").getAsInt() : -1);
+    //Extract Protocol information
+    accessMech = (obj.has("accessMechanism") ? obj.get("accessMechanism").getAsString() : "NONE");
+    port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
+    useProxy = (obj.has("useProxy") ? obj.get("useProxy").getAsBoolean() : false);
+    proxyHost = (obj.has("proxyHost") ? obj.get("proxyHost").getAsString() : "");
+    proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
     // Extract list of supported transfer mechanisms contained in protocol
     // If element is not there or the list is empty then build empty array "{}"
     StringBuilder transferMechs = new StringBuilder("{");
     JsonArray mechs = null;
-    if (protObj.has("transferMechanisms")) mechs = protObj.getAsJsonArray("transferMechanisms");
+    if (obj.has("transferMechanisms")) mechs = obj.getAsJsonArray("transferMechanisms");
     if (mechs != null && mechs.size() > 0)
     {
       for (int i = 0; i < mechs.size()-1; i++)
