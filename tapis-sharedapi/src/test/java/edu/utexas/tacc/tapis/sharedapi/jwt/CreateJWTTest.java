@@ -24,7 +24,6 @@ import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SignatureException;
 
 
 /**
@@ -88,7 +87,7 @@ public class CreateJWTTest
 	/*                              Test                                      */
 	/* ********************************************************************** */  
 
-	@Test(enabled=false)
+	@Test(enabled=true)
 	public void createJWTTest() throws Exception
 	{
 
@@ -134,7 +133,6 @@ public class CreateJWTTest
 		cert.verify(publicKey);
 		KeyPair keyPair = new KeyPair(publicKey, privateKey);
 
-
 		// Validate JWT.
 		System.out.println("----------Validating JWT----------");
 
@@ -147,10 +145,10 @@ public class CreateJWTTest
 			Claims parsedClaims = (Claims) body;
 
 			Assert.assertEquals(header.get("alg"),SignatureAlgorithm.RS256.toString(), "Signature algorithm did not match");
-			Assert.assertEquals(parsedClaims.get("http://wso2.org/claims/subscriber"),"testuser2", "Subscriber could not be verified");
-			Assert.assertEquals(parsedClaims.get("iss"),"wso2.org/products/am","Claim could not be verified");
+			Assert.assertEquals(parsedClaims.get("tapis/username"),"testuser2", "Subscriber could not be verified");
+			Assert.assertEquals(parsedClaims.get("tapis/tenant_id"),"dev","Claim could not be verified");
 
-		} catch (SignatureException e) {
+		} catch (SecurityException e) {
 			System.out.println("Signature could not be verified!\n");
 		}
 

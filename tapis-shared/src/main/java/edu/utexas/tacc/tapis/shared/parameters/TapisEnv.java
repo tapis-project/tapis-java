@@ -176,13 +176,15 @@ public class TapisEnv
       // Boolean value, the default is false.
       TAPIS_ENVONLY_LOG_SECURITY_INFO(ENVONLY_KEY_PREFIX + "log.security.info"),
     
-	  // ENV-VARIABLE-ONLY: Boolean parameter that allow test query parameters to be 
+	  // ENV-VARIABLE-ONLY: Boolean parameter that allow test header parameters to be 
 	  // recognized when processing various REST endpoints.  All such parameters start 
-	  // with "test" and are in specified in camel case.  These parameters allow 
-	  // values to be passed to endpoints for testing purposes.  Setting this flag to 
-      // false causes these parameters to ignored if they are present.
+	  // with "X-Tapis-Test-" and closely match the Tapis JWT claims.  These parameters 
+      // allow values to be passed to endpoints for testing purposes.  Setting this flag 
+      // to false causes these parameters to ignored if they are present.  This setting
+      // is usually used in conjunction with the JWT_OPTIONAL setting to test services
+      // locally for different users without requiring a JWT.
       // Boolean value, the default is false.
-	  TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS(ENVONLY_KEY_PREFIX + "allow.test.query.parms"),
+	  TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS(ENVONLY_KEY_PREFIX + "allow.test.header.parms"),
 	      
 	  // ENV-VARIABLE-ONLY: The flag that accepts requests that may not have a JWT header. 
 	  // Set this flag to true in test environments in which JWT values are assigned

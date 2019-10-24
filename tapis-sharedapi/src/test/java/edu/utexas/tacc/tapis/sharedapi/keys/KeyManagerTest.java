@@ -22,7 +22,7 @@ public class KeyManagerTest
     /*                                   Constants                                  */
     /* **************************************************************************** */
     private static final String KEY_STORE_PASSWORD = "!akxK3CuHfqzI#97";
-    private static final String KEY_ALIAS = "jwt";
+    private static final String KEY_ALIAS = "tapis-jwt";
     private static final String TEST_STORE_FILE_NAME  = ".TapisTestKeyStore.p12";
     
     /* **************************************************************************** */
@@ -109,7 +109,7 @@ public class KeyManagerTest
         cmdList.add("-alias");
         cmdList.add(KEY_ALIAS);
         cmdList.add("-keysize");
-        cmdList.add("4096");
+        cmdList.add("2048");
         cmdList.add("-storetype");
         cmdList.add("PKCS12");
         cmdList.add("-dname");

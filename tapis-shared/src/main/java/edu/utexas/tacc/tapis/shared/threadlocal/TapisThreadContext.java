@@ -1,8 +1,5 @@
 package edu.utexas.tacc.tapis.shared.threadlocal;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 
 public final class TapisThreadContext 
@@ -14,20 +11,23 @@ public final class TapisThreadContext
     // An invalid tenant id string that indicates an uninitialized tenant id.
 	public static final String INVALID_ID = "?";
 	
+    /* **************************************************************************** */
+    /*                                     Enums                                    */
+    /* **************************************************************************** */
+	public enum AccountType {user, service}
+	
 	/* **************************************************************************** */
 	/*                                    Fields                                    */
 	/* **************************************************************************** */
 	// The tenant and user of the current thread's request initialized to non-null.
-	// Roles aren't required, so we initialize null. When present, roles take the
-	// for of a comma separated lists.
+	// Account type also cannot be null.  The delegator subject is either null when
+	// no delegation has occurred or in the 'user@tenant' format when there is 
+	// delegation.
 	private String tenantId = INVALID_ID;
 	private String user = INVALID_ID;
-	private String roles = null;
+	private AccountType accountType;
+    private String delegatorSubject = null; 
 	
-    // The roles in list format for easy processing. 
-	// Created on demand whenever roles are assigned.
-    private List<String> roleList;
-    
 	// The execution context is set at a certain point in request processing, 
 	// usually well after processing has begun.
 	private TapisExecutionContext executionContext = null;
@@ -51,6 +51,7 @@ public final class TapisThreadContext
 	    // Make sure required parameters have been assigned.
 	    if (INVALID_ID.contentEquals(tenantId) || StringUtils.isBlank(tenantId)) return false;
 	    if (INVALID_ID.contentEquals(user)     || StringUtils.isBlank(user))     return false;
+	    if (accountType == null) return false;
 	            
 	    return true;
 	}
@@ -74,17 +75,18 @@ public final class TapisThreadContext
 	    if (!StringUtils.isBlank(user)) this.user = user;
 	}
 
-    public String getRoles() {return roles;}
-    public void setRoles(String roles) {
-        if (StringUtils.isBlank(roles)) return;
-        this.roles = roles.replaceAll("\\s+", ""); // remove whitespace
-        roleList = Arrays.asList(StringUtils.split(roles, ","));
-    }
-    
-    public List<String> getRoleList(){return roleList;}
-    
+    public AccountType getAccountType() {return accountType;}
+    public void setAccountType(AccountType accountType) {this.accountType = accountType;}
+	
     public TapisExecutionContext getExecutionContext() {return executionContext;}
     public void setExecutionContext(TapisExecutionContext executionContext) {
         this.executionContext = executionContext;
+    }
+
+    public String getDelegatorSubject() {
+        return delegatorSubject;
+    }
+    public void setDelegatorSubject(String delegatorSubject) {
+        this.delegatorSubject = delegatorSubject;
     }
 }

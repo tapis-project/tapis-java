@@ -15,7 +15,6 @@ import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.impl.crypto.RsaProvider;
 
 /** This class tests a custom version of jjwt. That version of jjwt is modified in the 
@@ -85,7 +84,7 @@ public class JJWTTestNGTest
 		// Note that setClaims needs called before setSubject otherwise subject information in the claim gets overwritten by setClaims
 		Claims claims = Jwts.claims();
 		claims.put("fruit", "banana");
-		String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(SignatureAlgorithm.RS384, keyPair.getPrivate()).compact();
+		String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(keyPair.getPrivate(), SignatureAlgorithm.RS384).compact();
 
 		// Validate JWT.
 		try {
@@ -98,7 +97,7 @@ public class JJWTTestNGTest
 			Assert.assertEquals(parsedClaims.getSubject(),"bud", "Subject could not be verified");
 			Assert.assertEquals(parsedClaims.get("fruit"),"banana","Claim could not be verified");
 
-		} catch (SignatureException e) {
+		} catch (SecurityException e) {
 			System.out.println("Signature could not be verified!\n");
 		}
 
@@ -134,7 +133,7 @@ public class JJWTTestNGTest
 		// Note that setClaims needs called before setSubject otherwise subject information in the claim gets overwritten by setClaims
 		Claims claims = Jwts.claims();
 		claims.put("fruit", "apple");
-		String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(SignatureAlgorithm.RS384, keyPair.getPrivate()).compact();
+		String json = Jwts.builder().setClaims(claims).setSubject("bud").signWith(keyPair.getPrivate(), SignatureAlgorithm.RS384).compact();
 
 		try {
 			Jwt jwt = Jwts.parser().setSigningKey(keyPair.getPublic()).parse(json);
@@ -146,7 +145,7 @@ public class JJWTTestNGTest
 			Assert.assertEquals(parsedClaims.getSubject(),"bud", "Subject could not be verified");
 			Assert.assertEquals(parsedClaims.get("fruit"),"apple","Claim could not be verified");
 
-		} catch (SignatureException e) {
+		} catch (SecurityException e) {
 			System.out.println("Signature could not be verified!\n");
 		}
 

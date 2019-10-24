@@ -24,6 +24,9 @@ public final class CreateKeyParameters
   private static final int MIN_PASSWORD_LEN = 16;
   private static final int MAX_PASSWORD_LEN = 32;
   
+  // Key information.
+  private static final int MIN_RSA_KEYSIZE = 2048;
+  
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
@@ -42,6 +45,10 @@ public final class CreateKeyParameters
   @Option(name = "-u", required = true, aliases = {"-user"}, 
       metaVar = "<user name>", usage = "First and last name of user")
   public String user;
+
+  @Option(name = "-keysize", required = false,  
+          metaVar = "<RSA key size>", usage = "2048 or more")
+  public int keySize = MIN_RSA_KEYSIZE;
 
   @Option(name = "-help", aliases = {"--help"}, 
       usage = "display help information")
@@ -129,6 +136,14 @@ public final class CreateKeyParameters
       if ((password.length() < MIN_PASSWORD_LEN) || (password.length() > MAX_PASSWORD_LEN)) {
           String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER_LEN", "CreateKey", "password", 
                                        MIN_PASSWORD_LEN, MAX_PASSWORD_LEN);
+          _log.error(msg);
+          throw new IllegalArgumentException(msg);
+      }
+      
+      // Key size.
+      if (keySize < MIN_RSA_KEYSIZE) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER_LEN", "CreateKey", "keysize", 
+                                       MIN_RSA_KEYSIZE, 4096);
           _log.error(msg);
           throw new IllegalArgumentException(msg);
       }

@@ -48,11 +48,23 @@
 			<artifactId>gson</artifactId>
 			<version>${gson.version}</version>
 		</dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-aloe</artifactId>
-            <version>${jjwt-aloe.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>${jjwt.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
 		<dependency>
 			<groupId>args4j</groupId>
 			<artifactId>args4j</artifactId>
@@ -81,9 +93,9 @@
 		</dependency>
 
 
-        <!-- These dependences are required so that the jjwt library  -->
-        <!-- can access javax.xml.bind.DatatypeConverter, which is no -->
-        <!-- longer part of Java SE, but only as part of Java EE.     -->
+		<!-- These dependences are required so that the jjwt library -->
+		<!-- can access javax.xml.bind.DatatypeConverter, which is no -->
+		<!-- longer part of Java SE, but only as part of Java EE. -->
 		<dependency>
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
@@ -104,21 +116,21 @@
 			<artifactId>activation</artifactId>
 			<version>${javax.activation.activation.version}</version>
 		</dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-core</artifactId>
-            <version>${swagger-jaxrs2.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-core</artifactId>
+			<version>${swagger-jaxrs2.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2</artifactId>
 			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>${swagger-jaxrs2.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-annotations</artifactId>
+			<version>${swagger-jaxrs2.version}</version>
+		</dependency>
 	</dependencies>
     
     <build>

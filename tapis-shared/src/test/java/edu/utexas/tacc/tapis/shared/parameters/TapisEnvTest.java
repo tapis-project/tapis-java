@@ -37,7 +37,7 @@ public class TapisEnvTest
         //   TAPIS_ENVONLY_JWT_OPTIONAL=true
         //   tapis.envonly.keystore.password=value1
         //   TAPIS_ENVONLY_KEYSTORE_PASSWORD=value2
-        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName(), "true");
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName(), "true");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL.name(), "true");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.getEnvName(), "value1");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.name(), "value2");
@@ -75,7 +75,7 @@ public class TapisEnvTest
     public void testGet()
     {
         // Check EnvVar.getEnvName
-        TapisEnv.EnvVar envVar = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS;
+        TapisEnv.EnvVar envVar = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS;
         String envVal = TapisEnv.get(envVar);
         Assert.assertNotNull(envVal, "Property from environment was null for: " + envVar);
         Assert.assertFalse(envVal.isEmpty(), "Property from environment was empty for: " + envVar);
@@ -99,7 +99,7 @@ public class TapisEnvTest
     @Test
     public void testGetBoolean()
     {
-        TapisEnv.EnvVar envVar = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS;
+        TapisEnv.EnvVar envVar = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS;
         boolean envVal = TapisEnv.getBoolean(envVar);
         Assert.assertTrue(envVal);
     }

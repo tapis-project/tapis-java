@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 
-import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 
 public final class CreateJWTParameters 
 {
@@ -21,6 +19,9 @@ public final class CreateJWTParameters
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(CreateJWTParameters.class);
+  
+  // Default key name in keystore.s
+  private static final String DEFAULT_KEY_ALIAS = "wso2";
   
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -42,8 +43,8 @@ public final class CreateJWTParameters
   public String outFilename;
 
   @Option(name = "-a", required = false, aliases = {"-alias"}, 
-     metaVar = "<key alias>", usage = "name by which key is known [jwt]")
-  public String alias;
+     metaVar = "<key alias>", usage = "name by which key is known")
+  public String alias = DEFAULT_KEY_ALIAS;
       
   @Option(name = "-help", aliases = {"--help"}, 
       usage = "display help information")
@@ -127,8 +128,6 @@ public final class CreateJWTParameters
   private void validateParms()
    throws TapisException
   {
-     // Make sure we have a key name.
-     if (StringUtils.isBlank(alias)) alias = JWTValidateRequestFilter.DEFAULT_KEY_ALIAS; 
   }
   
 }
