@@ -1,19 +1,11 @@
 package edu.utexas.tacc.tapis.sharedapi.jaxrs.filters;
 
-import java.io.IOException;
 import java.security.KeyFactory;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -153,7 +145,7 @@ public class JWTValidateRequestFilter
         catch (Exception e) {
             // Preserve the decoder method's message.
             String msg = e.getMessage();
-            _log.error(msg, e);
+            _log.error(msg); // No need to log the stack trace again.
             requestContext.abortWith(Response.status(Status.UNAUTHORIZED).entity(msg).build());
             return;
         }
@@ -397,7 +389,7 @@ public class JWTValidateRequestFilter
     /* ---------------------------------------------------------------------- */
     /** TEMPORARY TEST CODE
      * 
-     * TODO: remove this code
+     * TODO: remove this code when we switch to using the tokens-api keys
      * 
      * @return
      * @throws TapisSecurityException
