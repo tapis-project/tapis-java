@@ -193,7 +193,7 @@ public class JWTValidateRequestFilter
         }
         
         // ------------------------ Validate Claims ----------------------------
-        // Check the token type.
+        // Check that the token is always an access token.
         String tokenType = (String)claims.get(CLAIM_TOKEN_TYPE);
         if (StringUtils.isBlank(tokenType) || !TOKEN_ACCESS.contentEquals(tokenType)) {
             String msg = MsgUtils.getMsg("TAPIS_SECURITY_JWT_INVALID_CLAIM", CLAIM_TOKEN_TYPE,

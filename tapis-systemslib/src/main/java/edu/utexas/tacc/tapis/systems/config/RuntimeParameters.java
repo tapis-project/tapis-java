@@ -100,7 +100,7 @@ public final class RuntimeParameters
 	private String  supportEmail;
 	
 	// Allow test query parameters to be used.
-	private boolean allowTestQueryParms;
+	private boolean allowTestHeaderParms;
 	
 	// The slf4j/logback target directory and file.
 	private String  logDirectory;
@@ -178,11 +178,11 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_FILE.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogFile(parm);
                  
-    // Optional test query parameter switch.
-    parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName());
-    if (StringUtils.isBlank(parm)) setAllowTestQueryParms(false);
+    // Optional test header parameter switch.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName());
+    if (StringUtils.isBlank(parm)) setAllowTestHeaderParms(false);
       else {
-        try {setAllowTestQueryParms(Boolean.valueOf(parm));}
+        try {setAllowTestHeaderParms(Boolean.valueOf(parm));}
           catch (Exception e) {
             // Stop on bad input.
             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -420,8 +420,8 @@ public final class RuntimeParameters
 	    buf.append("\n------- EnvOnly Configuration ---------------------");
 	    buf.append("\ntapis.envonly.log.security.info: ");
 	    buf.append(RuntimeParameters.getLogSecurityInfo());
-	    buf.append("\ntapis.envonly.allow.test.query.parms: ");
-	    buf.append(this.isAllowTestQueryParms());
+	    buf.append("\ntapis.envonly.allow.test.header.parms: ");
+	    buf.append(this.isAllowTestHeaderParms());
 	    buf.append("\ntapis.envonly.jwt.optional: ");
 	    buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL));
 	    buf.append("\ntapis.envonly.skip.jwt.verify: ");
@@ -606,12 +606,12 @@ public final class RuntimeParameters
 	    return id;
 	}
 
-	public boolean isAllowTestQueryParms() {
-	    return allowTestQueryParms;
+	public boolean isAllowTestHeaderParms() {
+	    return allowTestHeaderParms;
 	}
 
-	private void setAllowTestQueryParms(boolean allowTestQueryParms) {
-	    this.allowTestQueryParms = allowTestQueryParms;
+	private void setAllowTestHeaderParms(boolean allowTestHeaderParms) {
+	    this.allowTestHeaderParms = allowTestHeaderParms;
 	}
 
 	public int getDbMeterMinutes() {

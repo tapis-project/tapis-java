@@ -39,7 +39,7 @@ public class TapisInputTest
         //   TAPIS_ENVONLY_JWT_OPTIONAL=true
         //   tapis.envonly.keystore.password=value1
         //   TAPIS_ENVONLY_KEYSTORE_PASSWORD=value2
-        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName(), "true");
+        newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName(), "true");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL.name(), "true");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.getEnvName(), "value1");
         newEnv.put(TapisEnv.EnvVar.TAPIS_ENVONLY_KEYSTORE_PASSWORD.name(), "value2");
@@ -73,7 +73,7 @@ public class TapisInputTest
         Properties tapisProperties = tapisInput.getInputParameters();
 
         // Check EnvVar.getEnvName
-        String propName = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS.getEnvName();
+        String propName = TapisEnv.EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName();
         String checkName = propName;
         String propVal = tapisProperties.getProperty(propName);
         Assert.assertNotNull(propVal, "Property from environment was null for: " + checkName);
