@@ -33,7 +33,7 @@ Server Usage
 ------------
 Web applications can be controlled using these environment variables:
 
-tapis.envonly.allow.test.query.parms - allow test-only values sent as query parameters
+tapis.envonly.allow.test.header.parms - allow test-only values sent as header parameters
 tapis.envonly.jwt.optional - set to true to skip jwt processing
 tapis.envonly.keystore.password - password to unlock jwt private signing key
 tapis.envonly.skip.jwt.verify - set to true to skip jwt signature verification
