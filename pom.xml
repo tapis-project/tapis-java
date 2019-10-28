@@ -138,11 +138,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
 		<!-- Java version -->
-		<java-source.version>1.12</java-source.version>
-		<java-target.version>1.12</java-target.version>
+		<java-source.version>1.13</java-source.version>
+		<java-target.version>1.13</java-target.version>
 		
 		<!-- Maven compiler plugin Java release support -->
-		<maven-compiler-plugin-release>12</maven-compiler-plugin-release>
+		<maven-compiler-plugin-release>13</maven-compiler-plugin-release>
 		
 		<!-- Capture the UTC build time for filtering use in children poms -->
 		<!-- There's some goofy behavior that prevent the direct use of    -->
