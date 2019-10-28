@@ -35,19 +35,19 @@ public class SystemsDaoTest
   private static final Protocol prot5 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, null,-1);
   private static final Protocol prot6 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, "",-1);
   private static final Protocol prot7 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, "",-1);
-  private static final String[] sys1 = {tenant, "sys1", "description 1", "owner1", "host1", "bucket1", "/root1",
+  private static final String[] sys1 = {tenant, "sys1a", "description 1", "owner1", "host1", "bucket1", "/root1",
       "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", "fakePassword1"};
-  private static final String[] sys2 = {tenant, "sys2", "description 2", "owner2", "host2", "bucket2", "/root2",
+  private static final String[] sys2 = {tenant, "sys2a", "description 2", "owner2", "host2", "bucket2", "/root2",
       "jobInputDir2", "jobOutputDir2", "workDir2", "scratchDir2", "effUser2", "fakePassword2"};
-  private static final String[] sys3 = {tenant, "sys3", "description 3", "owner3", "host3", "bucket3", "/root3",
+  private static final String[] sys3 = {tenant, "sys3a", "description 3", "owner3", "host3", "bucket3", "/root3",
       "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", "fakePassword3"};
-  private static final String[] sys4 = {tenant, "sys4", "description 4", "owner4", "host4", "bucket4", "/root4",
+  private static final String[] sys4 = {tenant, "sys4a", "description 4", "owner4", "host4", "bucket4", "/root4",
     "jobInputDir4", "jobOutputDir4", "workDir4", "scratchDir4", "effUser4", "fakePassword4"};
-  private static final String[] sys5 = {tenant, "sys5", "description 5", "owner5", "host5", "bucket5", "/root5",
+  private static final String[] sys5 = {tenant, "sys5a", "description 5", "owner5", "host5", "bucket5", "/root5",
     "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", "fakePassword5"};
-  private static final String[] sys6 = {tenant, "sys6", "description 6", "owner6", "host6", "bucket6", "/root6",
+  private static final String[] sys6 = {tenant, "sys6a", "description 6", "owner6", "host6", "bucket6", "/root6",
     "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", "fakePassword6"};
-  private static final String[] sys7 = {tenant, "sys7", "description 7", "owner7", "host7", "bucket7", "/root7",
+  private static final String[] sys7 = {tenant, "sys7a", "description 7", "owner7", "host7", "bucket7", "/root7",
     "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", "fakePassword7"};
 
   @BeforeSuite
