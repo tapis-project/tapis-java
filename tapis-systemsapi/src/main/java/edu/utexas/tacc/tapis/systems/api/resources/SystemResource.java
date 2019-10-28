@@ -17,6 +17,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
@@ -101,9 +103,6 @@ public class SystemResource
   @Context
   private HttpServletRequest _request;
 
-  // TODO Remove hard coded values
-  private static final String tenant = "tenant1";
-
   // **************** Inject Services ****************
 //  @com.google.inject.Inject
   private SystemsService systemsService;
@@ -154,6 +153,8 @@ public class SystemResource
   )
   public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
   {
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -161,6 +162,17 @@ public class SystemResource
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get tenant and apiUserId from context
+    String tenant = threadContext.getTenantId();
+// TODO    String apiUserId = threadContext.getUser();
+
+
 
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
@@ -272,9 +284,9 @@ public class SystemResource
     // Success means the object was created.
     ResultResourceUrl respUrl = new ResultResourceUrl();
     respUrl.url = _request.getRequestURL().toString() + "/" + name;
-    RespResourceUrl resp = new RespResourceUrl(respUrl);
+    RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp)).build();
+      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp1)).build();
   }
 
   /**
@@ -315,6 +327,8 @@ public class SystemResource
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds)
   {
     systemsService = new SystemsServiceImpl();
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -322,6 +336,15 @@ public class SystemResource
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get tenant and apiUserId from context
+    String tenant = threadContext.getTenantId();
+// TODO    String apiUserId = threadContext.getUser();
 
     TSystem system;
     try
@@ -346,9 +369,9 @@ public class SystemResource
 
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
-    RespSystem resp = new RespSystem(system);
+    RespSystem resp1 = new RespSystem(system);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, resp)).build();
+        MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, resp1)).build();
   }
 
   /**
@@ -378,6 +401,8 @@ public class SystemResource
   )
   public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -385,6 +410,15 @@ public class SystemResource
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get tenant and apiUserId from context
+    String tenant = threadContext.getTenantId();
+// TODO    String apiUserId = threadContext.getUser();
 
     // ------------------------- Retrieve all records -----------------------------
     systemsService = new SystemsServiceImpl();
@@ -402,9 +436,9 @@ public class SystemResource
     int cnt = systemNames.size();
     ResultNameArray names = new ResultNameArray();
     names.names = (String[]) systemNames.toArray();
-    RespNameArray resp = new RespNameArray(names);
+    RespNameArray resp1 = new RespNameArray(names);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp)).build();
+        MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp1)).build();
   }
 
   /**
@@ -437,6 +471,8 @@ public class SystemResource
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = new SystemsServiceImpl();
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -444,6 +480,15 @@ public class SystemResource
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get tenant and apiUserId from context
+    String tenant = threadContext.getTenantId();
+// TODO    String apiUserId = threadContext.getUser();
 
     int changeCount;
     try
@@ -462,9 +507,9 @@ public class SystemResource
     // Return the number of objects impacted.
     ResultChangeCount count = new ResultChangeCount();
     count.changes = changeCount;
-    RespChangeCount resp = new RespChangeCount(count);
+    RespChangeCount resp1 = new RespChangeCount(count);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp)).build();
+      MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp1)).build();
   }
 
 }

@@ -11,7 +11,10 @@ It integrates the following facilities:
     1. JAX-RS to implement REST endpoints.
     2. JAX-RS and servlet filters.
     3. Swagger to generate openapi json and yaml dynamically and at compile time.
+      http://localhost:8080/systems/v3/openapi.json
+      http://localhost:8080/systems/v3/openapi.yaml
     4. Swagger-ui integration for serving up generated openai schema.
+      http://localhost:8080/systems/swagger-ui
     5. Logback for logging.
     6. Buildnumber maven plugin to capture git information at compile time.
     7. Flyway to create database schema.
@@ -29,8 +32,8 @@ Initialize the Database
 Current process to create and drop the DB is to use the sql directly.
 SQL files are in tapis-systemslib/src/main/resources/sql.
 First create the user "tapis_sys" From then on DB can be reset as follows:
-psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/drop.sql
-psql -h localhost -U postgres -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
+psql -h localhost -U tapis -d tapissysdb -q -f tapis-systemslib/src/main/resources/sql/drop.sql
+psql -h localhost -U tapis -d tapissysdb -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
 
 
 ???????????????????

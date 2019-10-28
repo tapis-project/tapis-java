@@ -1,9 +1,13 @@
 package edu.utexas.tacc.tapis.systems.api.utils;
 
 import com.google.gson.JsonElement;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -80,5 +84,21 @@ public class ApiUtils
   {
     if (jelem == null) return defaultVal;
     else return jelem.getAsString();
+  }
+
+  public static Response checkContext(TapisThreadContext threadContext, boolean prettyPrint)
+  {
+    // Validate call checks for tenantId, user and accountType
+    // If all OK return null, else return error response.
+    if (threadContext.validate())
+    {
+      return null;
+    }
+    else
+    {
+      String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+      _log.error(msg);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
   }
 }

@@ -12,9 +12,10 @@
 -- values read from the database can be assumed to be UTC.
 
 -- Create the schema and set the search path
--- CREATE SCHEMA IF NOT EXISTS AUTHORIZATION tapis_sys;
--- SET search_path TO tapis_sys;
-SET search_path TO public;
+CREATE SCHEMA IF NOT EXISTS tapis_sys AUTHORIZATION tapis;
+ALTER ROLE tapis SET search_path = 'tapis_sys';
+SET search_path TO tapis_sys;
+-- SET search_path TO public;
 
 -- Set permissions
 -- GRANT CONNECT ON DATABASE tapissysdb TO tapis_sys;
