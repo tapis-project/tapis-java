@@ -38,8 +38,10 @@ public class TapisJDBCMigrate
   /* **************************************************************************** */
   /*                                  Constants                                   */
   /* **************************************************************************** */
-  // The tapis database and user that services use.
-  private final String TAPIS_DB_NAME;
+  // Local logger.
+  private static final Logger _log = LoggerFactory.getLogger(TapisJDBCMigrate.class);
+    
+  // The userid that services use.
   private static final String TAPIS_USER = "tapis"; 
   private static final String DFT_TAPIS_USER_PASSWORD = "password"; // change on 1st use
   
@@ -55,8 +57,8 @@ public class TapisJDBCMigrate
   /* **************************************************************************** */
   /*                                    Fields                                    */
   /* **************************************************************************** */
-  // Local logger.
-  private static Logger _log = LoggerFactory.getLogger(TapisJDBCMigrate.class);
+  // The tapis database name used throughout this program.
+  private final String _tapisDbName;
   
   // Parse and validate command line input parameters.
   private TapisJDBCMigrateParms _parms;
@@ -80,7 +82,7 @@ public class TapisJDBCMigrate
       }
       
       // Assign the name.
-      TAPIS_DB_NAME = dbName;
+      _tapisDbName = dbName;
   }
   
   /* **************************************************************************** */
@@ -133,7 +135,7 @@ public class TapisJDBCMigrate
     // Drop tapisdb database if requested (excludes clean).
     if (_parms.isDropDatabases || _parms.isDropOnly)
       {
-        _log.info(MsgUtils.getMsg("MIGRATE_DROPPING_DB", TAPIS_DB_NAME));
+        _log.info(MsgUtils.getMsg("MIGRATE_DROPPING_DB", _tapisDbName));
         dropTapisDB();
       }
     
@@ -144,7 +146,7 @@ public class TapisJDBCMigrate
     // Clean tapisdb database if requested (excludes drop).
     if (_parms.isCleanDatabases || _parms.isCleanOnly)
       {
-        _log.info(MsgUtils.getMsg("MIGRATE_CLEANING_DB", TAPIS_DB_NAME));
+        _log.info(MsgUtils.getMsg("MIGRATE_CLEANING_DB", _tapisDbName));
         cleanTapisDB();
       }
     
@@ -210,7 +212,7 @@ public class TapisJDBCMigrate
       throws TapisJDBCException
   {
     // Construct the data source targeting the tapisdb database.
-    String dataSource = getJdbcUrl(TAPIS_DB_NAME);
+    String dataSource = getJdbcUrl(_tapisDbName);
     
     try {  
         // Clean the database using Flyway.  This wipes out all the database
@@ -225,9 +227,9 @@ public class TapisJDBCMigrate
      catch (Exception e)
       {
        // This stops the migration.
-       String msg = "Unable to clean " + TAPIS_DB_NAME + 
+       String msg = "Unable to clean " + _tapisDbName + 
                     " with data source \"" + dataSource + "\".";
-       _log.error(MsgUtils.getMsg("MIGRATE_CLEANING_FAILED", TAPIS_DB_NAME, dataSource), e);
+       _log.error(MsgUtils.getMsg("MIGRATE_CLEANING_FAILED", _tapisDbName, dataSource), e);
        throw new TapisJDBCException(msg, e);
       }
   }
@@ -247,16 +249,16 @@ public class TapisJDBCMigrate
        stmt = conn.createStatement();
        
        // Drop the tapisdb database if it exists.
-       String sql = "DROP DATABASE IF EXISTS " + TAPIS_DB_NAME;
+       String sql = "DROP DATABASE IF EXISTS " + _tapisDbName;
        conn.setAutoCommit(true);
        stmt.executeUpdate(sql);
        if (_log.isInfoEnabled())
-         _log.info(MsgUtils.getMsg("MIGRATE_DB_DROPPED", TAPIS_DB_NAME));
+         _log.info(MsgUtils.getMsg("MIGRATE_DB_DROPPED", _tapisDbName));
       }
      catch (Exception e)
       {
        // Log and throw wrapper exception.
-       String msg = MsgUtils.getMsg("MIGRATE_DROPPING_FAILED", TAPIS_DB_NAME);
+       String msg = MsgUtils.getMsg("MIGRATE_DROPPING_FAILED", _tapisDbName);
        _log.error(msg, e);
        throw new TapisJDBCException(msg, e);
       }
@@ -309,7 +311,7 @@ public class TapisJDBCMigrate
        
       // The db discovery query.
       String sql = 
-    	  "SELECT datname FROM pg_catalog.pg_database WHERE datname = '" + TAPIS_DB_NAME + "'";
+    	  "SELECT datname FROM pg_catalog.pg_database WHERE datname = '" + _tapisDbName + "'";
 
       // Execute the query and get the number of rows returned.
       ResultSet rs = stmt.executeQuery(sql);
@@ -327,7 +329,7 @@ public class TapisJDBCMigrate
       if (hasFirst) 
          {
           if (_log.isInfoEnabled())
-             _log.info(MsgUtils.getMsg("MIGRATE_FOUND_DB", TAPIS_DB_NAME));
+             _log.info(MsgUtils.getMsg("MIGRATE_FOUND_DB", _tapisDbName));
           return;
          }
          
@@ -356,7 +358,7 @@ public class TapisJDBCMigrate
       // ------------------------- Create DB -------------------------
       // Create the tapis database.  Once is created, 
       // the database must be explicitly dropped to remove it.
-      sql = "CREATE DATABASE " + TAPIS_DB_NAME +
+      sql = "CREATE DATABASE " + _tapisDbName +
               " WITH OWNER " + TAPIS_USER +
               " ENCODING='UTF8' LC_COLLATE='en_US.utf8' LC_CTYPE='en_US.utf8'";
 
@@ -368,23 +370,23 @@ public class TapisJDBCMigrate
       conn.setAutoCommit(false);
       
       if (_log.isInfoEnabled())
-          _log.info(MsgUtils.getMsg("MIGRATE_DB_CREATED", TAPIS_DB_NAME));
+          _log.info(MsgUtils.getMsg("MIGRATE_DB_CREATED", _tapisDbName));
       
       // ---------------------- Configure DB -------------------------
       // Limit the search to the public schema in the new database.
-      sql = "ALTER DATABASE " + TAPIS_DB_NAME + " SET search_path TO " + SEARCH_PATH; 
+      sql = "ALTER DATABASE " + _tapisDbName + " SET search_path TO " + SEARCH_PATH; 
       stmt = conn.createStatement();
       stmt.execute(sql);
       stmt.close();
       conn.commit();      
 
       if (_log.isInfoEnabled())
-          _log.info(MsgUtils.getMsg("MIGRATE_DB_SCHEMA_SEARCH", TAPIS_DB_NAME, SEARCH_PATH));
+          _log.info(MsgUtils.getMsg("MIGRATE_DB_SCHEMA_SEARCH", _tapisDbName, SEARCH_PATH));
     }
     catch (Exception e)
     {
       // Not all exceptions mean that the db creation failed.
-      String msg = MsgUtils.getMsg("MIGRATE_INCOMPLETE", TAPIS_DB_NAME);
+      String msg = MsgUtils.getMsg("MIGRATE_INCOMPLETE", _tapisDbName);
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
      }
@@ -457,7 +459,7 @@ public class TapisJDBCMigrate
    throws TapisJDBCException
   {
     // Construct the flyway object targeting the named database.
-    String dataSource = getJdbcUrl(TAPIS_DB_NAME);
+    String dataSource = getJdbcUrl(_tapisDbName);
     try {  
       Flyway flyway = Flyway.configure()
                       .dataSource(dataSource, _parms.username, _parms.password)
@@ -469,7 +471,7 @@ public class TapisJDBCMigrate
     catch (Exception e)
      {
       // This stops flyway processing.
-      String msg = MsgUtils.getMsg("MIGRATE_CONFIG_FAILED", TAPIS_DB_NAME, dataSource);
+      String msg = MsgUtils.getMsg("MIGRATE_CONFIG_FAILED", _tapisDbName, dataSource);
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
      }
@@ -491,7 +493,7 @@ public class TapisJDBCMigrate
 	Flyway flyway = configureFlyway();
 	  
     // Construct the data source targeting the named database.
-    String dataSource = getJdbcUrl(TAPIS_DB_NAME);
+    String dataSource = getJdbcUrl(_tapisDbName);
     try {  
       // Migrate the database using all properly named command files in the 
       // migration file directory.  See the Flyway documentation for command file 
@@ -509,12 +511,12 @@ public class TapisJDBCMigrate
          
       // Report number of migration files executed.
       if (count > 0)
-        _log.info(MsgUtils.getMsg("MIGRATE_SUCCESS", TAPIS_DB_NAME, count));
+        _log.info(MsgUtils.getMsg("MIGRATE_SUCCESS", _tapisDbName, count));
      }
     catch (Exception e)
      {
       // This stops the migration.
-      String msg = MsgUtils.getMsg("MIGRATE_FAILED", TAPIS_DB_NAME, dataSource, _parms.cmdDirectory);
+      String msg = MsgUtils.getMsg("MIGRATE_FAILED", _tapisDbName, dataSource, _parms.cmdDirectory);
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
      }
@@ -535,7 +537,7 @@ public class TapisJDBCMigrate
 	Flyway flyway = configureFlyway();
 	  
     // Construct the data source targeting the named database.
-    String dataSource = getJdbcUrl(TAPIS_DB_NAME);
+    String dataSource = getJdbcUrl(_tapisDbName);
     try {  
       // Baseline the existing database.
       flyway.baseline();
@@ -543,7 +545,7 @@ public class TapisJDBCMigrate
     catch (Exception e)
      {
       // This stops the migration.
-      String msg = MsgUtils.getMsg("MIGRATE_BASELINING_FAILED", TAPIS_DB_NAME, dataSource);
+      String msg = MsgUtils.getMsg("MIGRATE_BASELINING_FAILED", _tapisDbName, dataSource);
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
      }
