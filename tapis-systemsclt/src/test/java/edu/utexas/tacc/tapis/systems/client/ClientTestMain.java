@@ -1,8 +1,8 @@
 package edu.utexas.tacc.tapis.systems.client;
 
-import edu.utexas.tacc.tapis.systems_client.ApiClient;
-import edu.utexas.tacc.tapis.systems_client.api.SystemsApi;
-import edu.utexas.tacc.tapis.systems_client.model.*;
+import edu.utexas.tacc.tapis.systems.client.gen.ApiClient;
+import edu.utexas.tacc.tapis.systems.client.gen.api.SystemsApi;
+import edu.utexas.tacc.tapis.systems.client.gen.model.*;
 
 import java.util.ArrayList;
 import java.util.Collections;

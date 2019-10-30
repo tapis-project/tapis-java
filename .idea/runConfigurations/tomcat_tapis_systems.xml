@@ -91,7 +91,7 @@
         <option name="PROGRAM_PARAMETERS" value="" />
       </SHUTDOWN>
       <EnvironmentVariables>
-        <option name="NAME" value="TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS" />
+        <option name="NAME" value="TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS" />
         <option name="VALUE" value="true" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>

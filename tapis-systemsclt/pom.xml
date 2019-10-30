@@ -96,9 +96,9 @@
               <groupId>edu.utexas.tacc.tapis</groupId>
               <artifactId>systems-client</artifactId>
               <artifactVersion>0.0.1</artifactVersion>
-              <invokerPackage>edu.utexas.tacc.tapis.systems-client</invokerPackage>
-              <apiPackage>edu.utexas.tacc.tapis.systems-client.api</apiPackage>
-              <modelPackage>edu.utexas.tacc.tapis.systems-client.model</modelPackage>
+              <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
+              <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
+              <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
               <configOptions>
                 <sourceFolder>src/gen/java/main</sourceFolder>
                 <dateLibrary>java8</dateLibrary>

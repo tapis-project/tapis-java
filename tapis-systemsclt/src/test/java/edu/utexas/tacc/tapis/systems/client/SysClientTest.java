@@ -10,7 +10,7 @@ import org.testng.annotations.Test;
 //import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 @Test(groups={"integration"})
-public class GenTest 
+public class SysClientTest
 {
     /* ********************************************************************** */
     /*                            Main Test Method                            */

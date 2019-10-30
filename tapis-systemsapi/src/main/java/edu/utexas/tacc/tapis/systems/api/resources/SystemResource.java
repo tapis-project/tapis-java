@@ -170,7 +170,7 @@ public class SystemResource
 
     // Get tenant and apiUserId from context
     String tenant = threadContext.getTenantId();
-// TODO    String apiUserId = threadContext.getUser();
+    String apiUserId = threadContext.getUser();
 
 
 
@@ -344,7 +344,7 @@ public class SystemResource
 
     // Get tenant and apiUserId from context
     String tenant = threadContext.getTenantId();
-// TODO    String apiUserId = threadContext.getUser();
+    String apiUserId = threadContext.getUser();
 
     TSystem system;
     try
@@ -418,7 +418,7 @@ public class SystemResource
 
     // Get tenant and apiUserId from context
     String tenant = threadContext.getTenantId();
-// TODO    String apiUserId = threadContext.getUser();
+    String apiUserId = threadContext.getUser();
 
     // ------------------------- Retrieve all records -----------------------------
     systemsService = new SystemsServiceImpl();
@@ -435,7 +435,7 @@ public class SystemResource
     if (systemNames == null) systemNames = Collections.emptyList();
     int cnt = systemNames.size();
     ResultNameArray names = new ResultNameArray();
-    names.names = (String[]) systemNames.toArray();
+    names.names = systemNames.toArray(new String[0]);
     RespNameArray resp1 = new RespNameArray(names);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp1)).build();
@@ -488,7 +488,7 @@ public class SystemResource
 
     // Get tenant and apiUserId from context
     String tenant = threadContext.getTenantId();
-// TODO    String apiUserId = threadContext.getUser();
+    String apiUserId = threadContext.getUser();
 
     int changeCount;
     try
