@@ -99,6 +99,10 @@
               <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
               <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
               <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
+              <generateApiTests>false</generateApiTests>
+              <generateApiDocumentation>false</generateApiDocumentation>
+              <generateModelTests>false</generateModelTests>
+              <generateModelDocumentation>false</generateModelDocumentation>
               <configOptions>
                 <sourceFolder>src/gen/java/main</sourceFolder>
                 <dateLibrary>java8</dateLibrary>

@@ -38,4 +38,3 @@ EXPOSE 8080
 # CMD ["catalina.sh", "run"]
 # Run with debugger on
 CMD ["catalina.sh", "jpda", "run"]
-

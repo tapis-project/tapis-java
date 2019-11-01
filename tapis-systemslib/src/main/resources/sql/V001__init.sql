@@ -1,5 +1,12 @@
 -- Initial DB schema creation for Tapis Systems Service
 -- postgres commands to create all tables, indices and other database artifacts required.
+-- Prerequisites:
+-- Create DB named tapissysdb and user named tapis
+--   CREATE DATABASE tapissysdb;
+--   CREATE USER tapis WITH ENCRYPTED PASSWORD '<password>'
+--   GRANT ALL PRIVILEGES ON DATABASE tapissysdb TO tapis;
+-- Fast way to check for table. Might use this at startup during an init phase.
+--   SELECT to_regclass('tapis_sys.systems');
 --
 --
 -- TIMEZONE Convention
