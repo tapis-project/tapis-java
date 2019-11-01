@@ -88,7 +88,28 @@ public class SKClient
         ApiClient apiClient = Configuration.getDefaultApiClient();
         if (!StringUtils.isBlank(path)) apiClient.setBasePath(path);
     }
-    
+
+    /* **************************************************************************** */
+    /*                              Public Methods                                  */
+    /* **************************************************************************** */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getApiClient: Return underlying ApiClient                                    */
+    /* ---------------------------------------------------------------------------- */
+    public ApiClient getApiClient()
+    {
+        return Configuration.getDefaultApiClient();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* addDefaultHeader: Add http header to client                                  */
+    /* ---------------------------------------------------------------------------- */
+    public ApiClient addDefaultHeader(String key, String val)
+    {
+        return Configuration.getDefaultApiClient().addDefaultHeader(key, val);
+    }
+
+
     /* **************************************************************************** */
     /*                              Public Role Methods                             */
     /* **************************************************************************** */
