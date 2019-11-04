@@ -580,8 +580,8 @@ paths:
     get:
       tags:
       - general
-      description: Connectivity test.
-      operationId: getDummy
+      description: Logged connectivity test.
+      operationId: sayHello
       parameters:
       - name: pretty
         in: query
@@ -597,6 +597,21 @@ paths:
                 $ref: '#/components/schemas/RespBasic'
         401:
           description: Not authorized.
+        500:
+          description: Server error.
+  /v3/healthcheck:
+    get:
+      tags:
+      - general
+      description: Lightwieght health check.
+      operationId: checkHealth
+      responses:
+        200:
+          description: Message received.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         500:
           description: Server error.
   /v3/user/hasRole:
