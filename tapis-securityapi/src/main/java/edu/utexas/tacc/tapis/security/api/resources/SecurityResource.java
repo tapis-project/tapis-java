@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
@@ -112,6 +114,9 @@ public final class SecurityResource
   
      @Context
      private HttpServletRequest _request;
+     
+     // Count the number of healthchecks requests received.
+     private static final AtomicLong _healthChecks = new AtomicLong();
     
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -123,7 +128,7 @@ public final class SecurityResource
   @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-          description = "Connectivity test.",
+          description = "Logged connectivity test.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
@@ -132,7 +137,7 @@ public final class SecurityResource
                @ApiResponse(responseCode = "401", description = "Not authorized."),
                @ApiResponse(responseCode = "500", description = "Server error.")}
       )
-  public Response getDummy(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  public Response sayHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
   {
       // Trace this request.
       if (_log.isTraceEnabled()) {
@@ -145,9 +150,42 @@ public final class SecurityResource
       RespBasic r = new RespBasic("Hello from the Tapis Security Kernel.");
          
       // ---------------------------- Success ------------------------------- 
-      // Success means we found the job. 
+      // Success means we found the resource. 
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, r)).build();
+  }
+
+  /* ---------------------------------------------------------------------------- */
+  /* healthcheck:                                                                 */
+  /* ---------------------------------------------------------------------------- */
+  /** This method does no logging and is expected to be as lightwieght as possible.
+   * It's intended as the endpoint that monitoring applications can use to check
+   * the responsiveness of the application.  In particular, kubernetes can use this
+   * endpoint as part of its pod health check.
+   * 
+   * @return a sucess response if all is ok
+   */
+  @GET
+  @Path("/healthcheck")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+          description = "Lightwieght health check.",
+          tags = "general",
+          responses = 
+              {@ApiResponse(responseCode = "200", description = "Message received.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+               @ApiResponse(responseCode = "500", description = "Server error.")}
+      )
+  public Response checkHealth()
+  {
+      // Create the response payload.
+      RespBasic r = new RespBasic("Healthcheck " + _healthChecks.incrementAndGet() + " received.");
+         
+      // ---------------------------- Success ------------------------------- 
+      // Always return success. 
+      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_HEALTHY", "Security Kernel"), false, r)).build();
   }
 
 }
