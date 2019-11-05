@@ -77,16 +77,13 @@ public class JWTValidateRequestFilter
     
     // TODO: Hardcode signature verification key for all tenants until SK becomes available.
     private static final String TEMP_TAPIS_PUBLIC_KEY = 
-      "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJtGvK8P6tP+K35PIxh713Vw0ZecWNaK31Lkz7aSJJYKNZ4gpgS+5+5bRZCzoNs3DSho3wh2g6sipnvOzo35bIo2Pb6SJ3rk3/PJ6SsyR0bh0NF7oSDGVJvNCImZAWRXxh5HENnsfMxJZrVQR9ZDQaaZ9awccX9S2L2WVMMniZMwIDAQAB";
+      "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz7rr5CsFM7rHMFs7uKIdcczn0uL4ebRMvH8pihrg1tW/fp5Q+5ktltoBTfIaVDrXGF4DiCuzLsuvTG5fGElKEPPcpNqaCzD8Y1v9r3tfkoPT3Bd5KbF9f6eIwrGERMTs1kv7665pliwehz91nAB9DMqqSyjyKY3tpSIaPKzJKUMsKJjPi9QAS167ylEBlr5PECG4slWLDAtSizoiA3fZ7fpngfNr4H6b2iQwRtPEV/EnSg1N3Oj1x8ktJPwbReKprHGiEDlqdyT6j58l/I+9ihR6ettkMVCq7Ho/bsIrwm5gP0PjJRvaD5Flsze7P4gQT37D1c5nbLR+K6/T0QTiyQIDAQAB";
     
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
     // List all of url substrings that identify authentication exempt requests.
     private static final HashSet<String> _noAuthRequests = initNoAuthRequests();
-//    private static final String[] _noAuthRequests = {
-//            "/security/v3/healthcheck"
-//    };
     
     // The public key used to check the JWT signature.  This cached copy is
     // used by all instances of this class.
@@ -319,8 +316,8 @@ public class JWTValidateRequestFilter
      throws TapisSecurityException
     {
         // Get the public part of the signing key.
-        //PublicKey publicKey = getJwtPublicKey(tenant);
-        PublicKey publicKey = getJwtPublicKeyFromTestKeyStore();
+        PublicKey publicKey = getJwtPublicKey(tenant);
+        //PublicKey publicKey = getJwtPublicKeyFromTestKeyStore();
         
         // Verify and import the jwt data.
         Jwt jwt = null; 

@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import edu.utexas.tacc.tapis.security.client.gen.ApiClient;
 import edu.utexas.tacc.tapis.security.client.gen.ApiException;
 import edu.utexas.tacc.tapis.security.client.gen.Configuration;
+import edu.utexas.tacc.tapis.security.client.gen.api.GeneralApi;
 import edu.utexas.tacc.tapis.security.client.gen.api.RoleApi;
 import edu.utexas.tacc.tapis.security.client.gen.api.UserApi;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
@@ -48,6 +49,12 @@ public class SKClient
     // Response status.
     public static final String STATUS_SUCCESS = "success";
     
+    // Header key for jwts.
+    public static final String TAPIS_JWT_HEADER = "X-Tapis-Token";
+    
+    // Configuration defaults.
+    private static final String SKCLIENT_USER_AGENT = "SKClient";
+    
     /* **************************************************************************** */
     /*                                     Enums                                    */
     /* **************************************************************************** */
@@ -69,7 +76,7 @@ public class SKClient
     /** Constructor that uses the compiled-in basePath value in ApiClient.  This
      * constructor is only appropriate for test code.
      */
-    public SKClient() {this(null);}
+    public SKClient() {this(null, null);}
     
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
@@ -81,12 +88,116 @@ public class SKClient
      * default this value is http://localhost:8080/security.  In production environments
      * the protocol is https and the host/port will be specific to that environment. 
      * 
+     * The jwt is the base64url representation of a Tapis JWT.  If not null or empty,
+     * the TAPIS_JWT_HEADER key will be set to the jwt value. 
+     * 
+     * The user-agent is automatically set to SKClient.
+     * 
+     * Instances of this class are currently limited to using the default ApiClient.
+     * This implies that the RoleApi, UserApi and GeneralApi implementations also
+     * are expected to be using the same default ApiClient object.
+     * 
      * @param path the base path 
      */
-    public SKClient(String path) 
+    public SKClient(String path, String jwt) 
     {
+        // Process input.
         ApiClient apiClient = Configuration.getDefaultApiClient();
         if (!StringUtils.isBlank(path)) apiClient.setBasePath(path);
+        if (!StringUtils.isBlank(jwt)) apiClient.addDefaultHeader(TAPIS_JWT_HEADER, jwt);
+        
+        // Other defaults.
+        apiClient.setUserAgent(SKCLIENT_USER_AGENT);
+    }
+    
+    /* **************************************************************************** */
+    /*                                Utility Methods                               */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* addDefaultHeader:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    public SKClient addDefaultHeader(String key, String value)
+    {
+        Configuration.getDefaultApiClient().addDefaultHeader(key, value);
+        return this;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* setUserAgent:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public SKClient setUserAgent(String userAgent) 
+    {
+        Configuration.getDefaultApiClient().setUserAgent(userAgent);
+        return this;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* setConnectTimeout:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the connection timeout
+     * 
+     * @param millis the connection timeout in milliseconds; 0 means forever.
+     * @return this object
+     */
+    public SKClient setConnectTimeout(int millis)
+    {
+        Configuration.getDefaultApiClient().setConnectTimeout(millis);
+        return this;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* setReadTimeout:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the read timeout
+     * 
+     * @param millis the read timeout in milliseconds; 0 means forever.
+     * @return this object
+     */
+    public SKClient setReadTimeout(int millis)
+    {
+        Configuration.getDefaultApiClient().setReadTimeout(millis);
+        return this;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* setDebugging:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    public SKClient setDebugging(boolean debugging) 
+    {
+        Configuration.getDefaultApiClient().setDebugging(debugging);
+        return this;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getConnectTimeout:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Get the connection timeout.
+     * 
+     * @return the connection timeout in milliseconds
+     */
+    public int getConnectTimeout()
+    {
+        return Configuration.getDefaultApiClient().getConnectTimeout();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getReadTimeout:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Get the read timeout.
+     * 
+     * @return read timeout in milliseconds
+     */
+    public int getReadTimeout()
+    {
+        return Configuration.getDefaultApiClient().getReadTimeout();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isDebugging:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    public boolean isDebugging() 
+    {
+        return Configuration.getDefaultApiClient().isDebugging();
     }
     
     /* **************************************************************************** */
@@ -699,6 +810,49 @@ public class SKClient
         
         // Throw the client exception.
         throw clientException;
+    }
+    
+    /* **************************************************************************** */
+    /*                            Public General Methods                            */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* sayHello:                                                                    */
+    /* ---------------------------------------------------------------------------- */
+    public String sayHello()
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespBasic resp = null;
+        try {
+            // Get the API object using default networking.
+            var generalApi = new GeneralApi();
+            resp = generalApi.sayHello(false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value as a string.
+        Object obj = resp.getResult();
+        return obj == null ? null : obj.toString();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* checkHealth:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    public String checkHealth()
+     throws TapisClientException
+    {
+        // Make the REST call.
+        RespBasic resp = null;
+        try {
+            // Get the API object using default networking.
+            var generalApi = new GeneralApi();
+            resp = generalApi.checkHealth();
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value as a string.
+        Object obj = resp.getResult();
+        return obj == null ? null : obj.toString();
     }
     
     /* **************************************************************************** */
