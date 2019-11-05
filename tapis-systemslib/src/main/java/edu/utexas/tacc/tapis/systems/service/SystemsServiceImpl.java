@@ -70,7 +70,7 @@ public class SystemsServiceImpl implements SystemsService
     String storePerm = "store:" + tenant + ":*:" + name + ":*";
 
     SKClient skClient = new SKClient(skBaseURL);
-    skClient.addDefaultHeader("X-Tapis-Token", skJWT);
+//    skClient.addDefaultHeader("X-Tapis-Token", skJWT);
     // Create Role and grant it to user
     skClient.createRole(owner, "User role");
     skClient.grantUserRole(owner, owner);
