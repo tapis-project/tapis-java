@@ -1,5 +1,18 @@
 package edu.utexas.tacc.tapis.systems.client;
 
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.ApiClient;
+import edu.utexas.tacc.tapis.systems.client.gen.ApiException;
+import edu.utexas.tacc.tapis.systems.client.gen.Configuration;
+
+import com.google.gson.Gson;
+import edu.utexas.tacc.tapis.systems.client.gen.api.SystemsApi;
+import edu.utexas.tacc.tapis.systems.client.gen.model.*;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Class providing a convenient front-end for the automatically generated client code
  * for the Systems Service REST API.
@@ -8,16 +21,133 @@ package edu.utexas.tacc.tapis.systems.client;
  */
 public class SystemsClient
 {
-    /* **************************************************************************** */
-    /*                                   Constants                                  */
-    /* **************************************************************************** */
+  /* **************************************************************************** */
+  /*                                   Constants                                  */
+  /* **************************************************************************** */
 
-    /* **************************************************************************** */
-    /*                                 Constructors                                 */
-    /* **************************************************************************** */
-    public SystemsClient() {}
-    
-    /* **************************************************************************** */
-    /*                                Public Methods                                */
-    /* **************************************************************************** */
+  /* **************************************************************************** */
+  /*                                    Fields                                    */
+  /* **************************************************************************** */
+
+  /* **************************************************************************** */
+  /*                                 Constructors                                 */
+  /* **************************************************************************** */
+
+  public SystemsClient()
+  {
+  }
+
+  /**
+   * Constructor that overrides the compiled-in basePath value in ApiClient.  This
+   * constructor is typically used in production.
+   * <p>
+   * The path includes the URL prefix up to and including the service root.  By
+   * default this value is http://localhost:8080/security.  In production environments
+   * the protocol is https and the host/port will be specific to that environment.
+   *
+   * @param path the base path
+   */
+  public SystemsClient(String path)
+  {
+    ApiClient apiClient = Configuration.getDefaultApiClient();
+    if (!StringUtils.isBlank(path)) apiClient.setBasePath(path);
+  }
+
+  /* **************************************************************************** */
+  /*                              Public Methods                                  */
+  /* **************************************************************************** */
+
+  /**
+   * getApiClient: Return underlying ApiClient
+   */
+  public ApiClient getApiClient()
+  {
+    return Configuration.getDefaultApiClient();
+  }
+
+  /**
+   * addDefaultHeader: Add http header to client
+   */
+  public ApiClient addDefaultHeader(String key, String val)
+  {
+    return Configuration.getDefaultApiClient().addDefaultHeader(key, val);
+  }
+
+  /**
+   * Create a system
+   */
+  public String createSystem(String name, String description, String owner, String host,
+                             boolean available, String bucketName, String rootDir, String jobInputDir,
+                             String jobOutputDir, String workDir, String scratchDir, String effectiveUserId,
+                             String accessCredential, String accessMechanism, List<String> transferMechanisms,
+                             int port, boolean useProxy, String proxyHost, int proxyPort)
+    throws ApiException
+  {
+    var sysApi = new SystemsApi();
+    // Build the request
+    var req = new ReqCreateSystem();
+    req.setName(name);
+    req.setDescription(description);
+    req.setOwner(owner);
+    req.setHost(host);
+    req.setAvailable(available);
+    req.setBucketName(bucketName);
+    req.setRootDir(rootDir);
+    req.setJobInputDir(jobInputDir);
+    req.setJobOutputDir(jobOutputDir);
+    req.setWorkDir(workDir);
+    req.setScratchDir(scratchDir);
+    req.setEffectiveUserId(effectiveUserId);
+    req.setAccessCredential(accessCredential);
+    req.setAccessMechanism(accessMechanism);
+    req.setTransferMechanisms(transferMechanisms);
+    req.setPort(port);
+    req.setUseProxy(useProxy);
+    req.setProxyHost(proxyHost);
+    req.setProxyPort(proxyPort);
+    // Submit the request and return the response
+    RespResourceUrl respUrl = sysApi.createSystem(req, false);
+    return respUrl.getResult().getUrl();
+  }
+
+  /**
+   * Get a system by name
+   */
+  public TSystem getSystemByName(String name, boolean returnCredentials) throws ApiException
+  {
+    var sysApi = new SystemsApi();
+    RespSystem respSystem = sysApi.getSystemByName(name, false, returnCredentials);
+    return respSystem.getResult();
+  }
+
+  /**
+   * Get list of system names
+   */
+  public List<String> getSystemNames() throws ApiException
+  {
+    var sysApi = new SystemsApi();
+    RespNameArray resp = sysApi.getSystemNames(false);
+    return resp.getResult().getNames();
+  }
+
+  /**
+   * Get all systems
+   */
+  public List<TSystem> getSystems() throws ApiException
+  {
+    var sysApi = new SystemsApi();
+//        RespNameArray resp = sysApi.getSystemNames(false);
+//        return resp.getResult();
+    return Collections.emptyList();
+  }
+
+  /**
+   * Delete a system given the system name.
+   */
+  public int deleteSystemByName(String name) throws ApiException
+  {
+    var sysApi = new SystemsApi();
+    RespChangeCount resp = sysApi.deleteSystemByName(name, false);
+    return resp.getResult().getChanges();
+  }
 }

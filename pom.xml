@@ -166,6 +166,7 @@
 
 		<!-- PLUGIN Versions (in alphabetical order) -->
 		<buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
+		<exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 		<maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
 		<maven-surefire-plugin.version>3.0.0-M3</maven-surefire-plugin.version>
@@ -203,9 +204,11 @@
 		<jersey-container-servlet.version>2.29</jersey-container-servlet.version> <!-- jersey group -->
 		<jjwt.version>0.10.7</jjwt.version>
 		<jetty-server.version>9.4.0.M1</jetty-server.version>
+		<junit.version>4.12</junit.version>
 		<logback-classic.version>1.2.3</logback-classic.version>  <!-- Logback supplies the proper version of sl4j -->
 		<metrics-core.version>3.2.3</metrics-core.version>
 		<okhttp.version>2.7.5</okhttp.version>
+		<okhttp3.version>4.2.2</okhttp3.version>
 		<org.everit.json.schema.version>1.11.1</org.everit.json.schema.version>
 		<org.json.version>20180130</org.json.version>
         <p6spy.version>3.8.3</p6spy.version>
@@ -397,6 +400,7 @@
         <module>tapis-systemsapi</module>
 		<module>tapis-systemsclt</module>
         <module>tapis-systemslib</module>
+		<module>tapis-tokensclt</module>
 		<module>tapis-sampleapi</module>
 		<module>tapis-samplelib</module>
 	</modules>

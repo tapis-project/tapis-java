@@ -56,6 +56,11 @@
 			<artifactId>javax.annotation-api</artifactId>
 			<version>${javax.annotation.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+		</dependency>
 	</dependencies>
     
 	<build>

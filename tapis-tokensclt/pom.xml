@@ -9,10 +9,10 @@
   </parent>
 
   <groupId>edu.utexas.tacc.tapis</groupId>
-  <artifactId>tapis-systemsclt</artifactId>
+  <artifactId>tapis-tokensclt</artifactId>
 
-  <name>Tapis Systems Client</name>
-  <description>Java client for tapis-systemsapi web application</description>
+  <name>Tapis Tokens Client</name>
+  <description>Java client for Tokens web application</description>
 
   <properties>
     <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -21,16 +21,6 @@
   </properties>
 
   <dependencies>
-    <!-- *************************************** -->
-    <!-- TODO Remove this. Hard coded jar file -->
-<!--
-    <dependency>
-      <groupId>my.systems_client</groupId>
-      <artifactId>my.systems_client.jar</artifactId>
-      <version>0.0.1</version>
-    </dependency>
-     ***************************************
--->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared</artifactId>
@@ -71,32 +61,35 @@
       <artifactId>swagger-annotations</artifactId>
       <version>${swagger-annotations2.version}</version>
     </dependency>
-
-
-
+<!--
     <dependency>
-      <groupId>com.squareup.okhttp</groupId>
-      <artifactId>okhttp</artifactId>
-      <version>${okhttp.version}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
     </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp</groupId>
-      <artifactId>logging-interceptor</artifactId>
-      <version>${okhttp.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-annotations</artifactId>
-      <version>${swagger-annotations.version}</version>
-    </dependency>
+-->
   </dependencies>
-    
+
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
-
-
     <plugins>
-<!--
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>${exec-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>Generate bundled openapi json file</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>${basedir}/gen_bundled.sh</executable>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -107,15 +100,17 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
+              <inputSpec>${project.basedir}/target/tokens.json</inputSpec>
+              <enablePostProcessFile>true</enablePostProcessFile>
+              <generateAliasAsModel>true</generateAliasAsModel>
               <output>${project.build.directory}/generated-sources/openapi</output>
               <generatorName>java</generatorName>
               <groupId>edu.utexas.tacc.tapis</groupId>
-              <artifactId>systems-client</artifactId>
+              <artifactId>tokens-client</artifactId>
               <artifactVersion>0.0.1</artifactVersion>
-              <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
-              <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
-              <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
+              <invokerPackage>edu.utexas.tacc.tapis.tokens.client.gen</invokerPackage>
+              <apiPackage>edu.utexas.tacc.tapis.tokens.client.gen.api</apiPackage>
+              <modelPackage>edu.utexas.tacc.tapis.tokens.client.gen.model</modelPackage>
               <generateApiTests>false</generateApiTests>
               <generateApiDocumentation>false</generateApiDocumentation>
               <generateModelTests>false</generateModelTests>
@@ -124,37 +119,13 @@
                 <sourceFolder>src/gen/java/main</sourceFolder>
                 <dateLibrary>java8</dateLibrary>
               </configOptions>
--Dio.swagger.parser.util.RemoteUrl.trustAll=true -Dio.swagger.v3.parser.util.RemoteUrl.trustAll=true
             </configuration>
           </execution>
         </executions>
       </plugin>
--->
-      <plugin>
-      <groupId>io.swagger.codegen.v3</groupId>
-      <artifactId>swagger-codegen-maven-plugin</artifactId>
-      <version>3.0.13</version>
-      <executions>
-        <execution>
-          <goals>
-            <goal>generate</goal>
-          </goals>
-          <configuration>
-            <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
-            <language>java</language>
-            <configOptions>
-              <sourceFolder>src/main/java</sourceFolder>
-              <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
-              <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
-              <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
-            </configOptions>
-          </configuration>
-        </execution>
-      </executions>
-    </plugin>
     </plugins>
 
-    <finalName>tapis-systemsclt</finalName>
+    <finalName>tapis-tokensclt</finalName>
   </build>
 
 </project>

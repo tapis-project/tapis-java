@@ -463,7 +463,10 @@ public class JWTValidateRequestFilter
         set.add("/security/v3/healthcheck");
         set.add("/security/v3/openapi.json");
         set.add("/security/v3/openapi.yaml");
-        
+        set.add("/systems/v3/healthcheck");
+        set.add("/systems/v3/openapi.json");
+        set.add("/systems/v3/openapi.yaml");
+
         return set;
     }
 }

@@ -8,10 +8,14 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.tokens.client.TokensClient;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+
+import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 
 /*
  * Service level methods for Systems.
@@ -26,6 +30,8 @@ public class SystemsServiceImpl implements SystemsService
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
+
+  private static final String SYSTEM_OWNER_ROLE = "SystemOwner";
 
   // **************** Inject Dao singletons ****************
   @com.google.inject.Inject
@@ -50,7 +56,7 @@ public class SystemsServiceImpl implements SystemsService
           throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDaoImpl();
+    var dao = new SystemsDaoImpl();
 
 
     int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
@@ -58,44 +64,70 @@ public class SystemsServiceImpl implements SystemsService
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
                                    protocolProxyHost, protocolProxyPort);
 
+    // TODO: Remove debug System.out statements
+
     // TODO Store credentials in Security Kernel
     // TODO Do real service location lookup
-    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security/v3";
-    // TODO Get real JWT
-    // TODO This JWT encodes tenant_id = dev, username = testuser2
-    String skJWT = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Rldi5hcGkudGFwaXMuaW8vdG9rZW5zL3YzIiwiZXhwIjoyLjM4NDQ4MTcxMzg0MkUxMiwic3ViIjoidGVzdHVzZXIyQGRldiIsInRhcGlzL3Rva2VuX3R5cGUiOiJhY2Nlc3MiLCJ0YXBpcy9hY2NvdW50X3R5cGUiOiJ1c2VyIiwidGFwaXMvdGVuYW50X2lkIjoiZGV2IiwidGFwaXMvdXNlcm5hbWUiOiJ0ZXN0dXNlcjIiLCJ0YXBpcy9kZWxlZ2F0aW9uIjpmYWxzZX0.jsYjzhPcT2mgZm1rCc92_HjLANHWXoYi9tg5yxeS205DeTGlr_MPx_AxeAUswH7FSsxDfFDo7h6byvjR6QjCJfZ6wZgYuFirwZxL3PHaPqGtqZ1z8852vvjkiEOr6U5CD_jMsuIJJ-VH3V-4YqS01GdNSx0pukRkhEh72rhghrhy-TiA6d1tAcIMcqTf9QNOB9uOoR6H0zu6nwWlZo5SkNG2WcmOxtLJt_GvM-b9ceJYxIA7bfopBjnQpJnznXbSldTW6KfUhNucmOfl63O7_DXyzt1wsS4dGIjtmsM_B556zf6K_fDm6LODQfXftancksT0aO7fgle_DKD2hd3GByj5JTBbL5L9mZQwBuYMfH04aTRcQ8rTsNzm-B65MVgsfIN7s-x4RL4tOP_tBOaQzG7KHo-a6Ntk4LjTp2mziJCXctNYN-9IQ9g_BAoZ8HZAEMUdjx8PJHLBpNDu7o4L2wJgXUafwsNsWh64UlgmVYWh8LJYqCvBOkbIhDRWf7XRmiJexU3Y5L_0W5_ByGWcm5N5996QSnVEtL_b_bzgyKcNk4BxMpB-nsZhm8Xdo3c6Ry7TG3em3VqjZcPQDoF-smYxiG5gxmqg8AFspv7S6Nk0YspzloarkBdEO89iP97yoUt_83URVZ_Pc28Lrs7fP5oKvRH9bbGcHmb98p4Aixc";
+    String tokBaseURL = "https://dev.develop.tapis.io";
+//    String tokBaseURL = "http://c002.rodeo.tacc.utexas.edu:31357";
+    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security";
+    // Get short term JWT from tokens service
+    var tokClient = new TokensClient(tokBaseURL);
+    // TODO: use real tenant
+    String devTenant = "dev";
+    String skJWT = null;
+    try {skJWT = tokClient.getSvcToken(devTenant, SERVICE_NAME_SYSTEMS);}
+    catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
+    System.out.println("Got skJWT: " + skJWT);
+    _log.error("Got skJWT: " + skJWT);
+    // Basic check of JWT
+    if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
 
-    // TODO/TBD: Build perm specs here?
+    // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenant + ":*:" + name;
     String storePerm = "store:" + tenant + ":*:" + name + ":*";
 
-    SKClient skClient = new SKClient(skBaseURL, null);
-//    skClient.addDefaultHeader("X-Tapis-Token", skJWT);
-    // Create Role and grant it to user
-    skClient.createRole(owner, "User role");
-    skClient.grantUserRole(owner, owner);
-    skClient.addRolePermission(owner, sysPerm);
-    skClient.addRolePermission(owner, storePerm);
+    var skClient = new SKClient(skBaseURL, skJWT);
+    // Create Role with perms and grant it to user
+    // TODO/TBD: name of system owner role, one for each "tenant+system"?
+    String roleName = SYSTEM_OWNER_ROLE + "_" + name;
+    try
+    {
+      skClient.createRole(roleName, "System owner role");
+
+      // TODO: Add back in when working.
+//      skClient.addRolePermission(roleName, sysPerm);
+//      skClient.addRolePermission(roleName, storePerm);
+      skClient.grantUserRole(owner, roleName);
+    }
+    catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO remove test
     // Test by retrieving role and permissions from SK
-    SkRole skRole = skClient.getRoleByName(owner);
-    _log.info("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-    ResultNameArray nameArray = skClient.getUsersWithRole(owner);
-    List<String> names = nameArray.getNames();
-    if (names != null && names.contains(owner))
-    {
-      _log.info("User " + owner + " does have role " + skRole.getName());
-    } else {
-      _log.error("User " + owner + " does NOT have role " + skRole.getName());
-    }
+    SkRole skRole = null;
+    try { skRole = skClient.getRoleByName(roleName); }
+    catch (Exception e) { _log.error(e.toString()); throw e;}
+    _log.error("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+    System.out.println("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+// TODO Retry when working
+//    ResultNameArray nameArray = skClient.getUsersWithRole(roleName);
+//    List<String> names = nameArray.getNames();
+//    if (names != null && names.contains(owner))
+//    {
+//      _log.error("User " + owner + " does have role " + skRole.getName());
+//      System.out.println("User " + owner + " does have role " + skRole.getName());
+//    } else {
+//      _log.error("User " + owner + " does NOT have role " + skRole.getName());
+//      System.out.println("User " + owner + " does NOT have role " + skRole.getName());
+//    }
     ResultNameArray permArray = skClient.getUserPerms(owner);
     List<String> perms = permArray.getNames();
-    _log.info("User " + owner + " has the following permissions: ");
+    _log.error("User " + owner + " has the following permissions: ");
+    System.out.println("User " + owner + " has the following permissions: ");
     for (String perm : perms) {
-      _log.info("  perm: " + perm);
+      _log.error("  perm: " + perm);
+      System.out.println("  perm: " + perm);
     }
-
     return itemId;
   }
 
@@ -107,7 +139,7 @@ public class SystemsServiceImpl implements SystemsService
   public int deleteSystemByName(String tenant, String name) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDaoImpl();
+    var dao = new SystemsDaoImpl();
     return dao.deleteTSystem(tenant, name);
   }
 
@@ -120,7 +152,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDaoImpl();
+    var dao = new SystemsDaoImpl();
     TSystem result = dao.getTSystemByName(tenant, name);
     return result;
   }
@@ -135,7 +167,7 @@ public class SystemsServiceImpl implements SystemsService
   public List<TSystem> getSystems(String tenant) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDaoImpl();
+    var dao = new SystemsDaoImpl();
     return dao.getTSystems(tenant);
   }
 
@@ -149,7 +181,7 @@ public class SystemsServiceImpl implements SystemsService
   public List<String> getSystemNames(String tenant) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    SystemsDao dao = new SystemsDaoImpl();
+    var dao = new SystemsDaoImpl();
     return dao.getTSystemNames(tenant);
   }
 

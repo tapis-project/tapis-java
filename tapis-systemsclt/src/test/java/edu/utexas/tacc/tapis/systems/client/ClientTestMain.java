@@ -1,16 +1,16 @@
-package edu.utexas.tacc.tapis.systems.client;
-
+//package edu.utexas.tacc.tapis.systems.client;
+//
 //import edu.utexas.tacc.tapis.systems.client.gen.ApiClient;
 //import edu.utexas.tacc.tapis.systems.client.gen.api.SystemsApi;
 //import edu.utexas.tacc.tapis.systems.client.gen.model.*;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-
-public class ClientTestMain
-{
+//
+//import java.util.ArrayList;
+//import java.util.Collections;
+//import java.util.List;
+//
+//
+//public class ClientTestMain
+//{
 //  public static void main(String[] args) throws Exception
 //  {
 //    System.out.println("Starting Systems ClientTest");
@@ -66,4 +66,4 @@ public class ClientTestMain
 //    RespChangeCount respChangeCount = sysApi.deleteSystemByName(name, true);
 //    System.out.println("Number of items deleted: " + respChangeCount.getResult().getChanges());
 //  }
-}
+//}

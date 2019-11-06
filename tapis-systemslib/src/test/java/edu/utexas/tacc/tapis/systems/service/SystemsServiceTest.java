@@ -160,5 +160,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys3[0], sys3[1]);
     svc.deleteSystemByName(sys4[0], sys4[1]);
     svc.deleteSystemByName(sys5[0], sys5[1]);
+    svc.deleteSystemByName(sys6[0], sys6[1]);
   }
 }

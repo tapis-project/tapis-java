@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -25,6 +26,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.servers.Server;
@@ -112,7 +115,7 @@ public class SystemsResource
           @ApiResponse(responseCode = "500", description = "Server error.")
       }
   )
-  public Response getHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+  public Response getHello()
   {
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -128,6 +131,29 @@ public class SystemsResource
     result.name = "Hello from Tapis Systems Service";
     RespName resp = new RespName(result);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), prettyPrint, resp)).build();
+      MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), true, resp)).build();
+  }
+
+  /**
+   * Lightweight non-authenticated health check endpoint.
+   *
+   * @return a sucesss response if all is ok
+   */
+  @GET
+  @Path("/healthcheck")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+    description = "Health check.",
+    tags = "general",
+    responses = {
+      @ApiResponse(responseCode = "200", description = "Message received."),
+      @ApiResponse(responseCode = "500", description = "Server error.")
+    }
+  )
+  public Response healthCheck()
+  {
+    RespBasic resp = new RespBasic("Healthcheck");
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+      MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service"), false, resp)).build();
   }
 }
