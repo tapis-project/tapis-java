@@ -44,7 +44,7 @@ echo "    removing any old service war files from Docker build context"
 rm $BUILD_DIR/$SRVC.war
 
 echo "    unzipping $SRVC.war to ${BUILD_DIR}/${SRVC} "
-unzip $SRVC_DIR/$SRVC.war -o -d ${BUILD_DIR}/${SRVC}
+unzip $SRVC_DIR/$SRVC.war -d ${BUILD_DIR}/${SRVC}
 
 echo "    building the docker image from deployment/tapis-${SRVC_API}/Dockerfile"
 echo " docker image build -f $BUILD_FILE --build-arg SRVC_WAR=$SRVC.war --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
