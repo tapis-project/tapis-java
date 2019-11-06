@@ -51,5 +51,5 @@ echo " docker image build -f $BUILD_FILE --build-arg SRVC_WAR=$SRVC.war --build-
 docker image build -f $BUILD_FILE --build-arg SRVC_ROOT=${SRVC} --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
 
 echo "    remvoing ${BUILD_DIR}/${SRVC}"
-# rm -fr ${BUILD_DIR}/${SRVC}
+rm -fr ${BUILD_DIR}/${SRVC}
 
