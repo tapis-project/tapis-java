@@ -11,14 +11,14 @@
           "roleName": {
             "type": "string"
           },
-          "permName": {
+          "permSpec": {
             "type": "string"
           }
         },
     "required": [
         "user",
         "roleName", 
-        "permName"
+        "permSpec"
     ]
 }
 
