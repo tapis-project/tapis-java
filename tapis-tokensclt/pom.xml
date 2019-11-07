@@ -73,6 +73,7 @@
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
     <plugins>
+      <!-- Run script to download latest tokens openapi_v3.yml and generate bundled json file  -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -90,6 +91,7 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Build generated client code using openapi-generator -->
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>

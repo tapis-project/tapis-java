@@ -21,16 +21,6 @@
   </properties>
 
   <dependencies>
-    <!-- *************************************** -->
-    <!-- TODO Remove this. Hard coded jar file -->
-<!--
-    <dependency>
-      <groupId>my.systems_client</groupId>
-      <artifactId>my.systems_client.jar</artifactId>
-      <version>0.0.1</version>
-    </dependency>
-     ***************************************
--->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared</artifactId>
@@ -72,8 +62,7 @@
       <version>${swagger-annotations2.version}</version>
     </dependency>
 
-
-
+<!-- Dependencies needed when building with swagger-codegen
     <dependency>
       <groupId>com.squareup.okhttp</groupId>
       <artifactId>okhttp</artifactId>
@@ -89,69 +78,69 @@
       <artifactId>swagger-annotations</artifactId>
       <version>${swagger-annotations.version}</version>
     </dependency>
+-->
   </dependencies>
-    
+
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
 
-
     <plugins>
-<!--
-      <plugin>
-        <groupId>org.openapitools</groupId>
-        <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>${openapi-generator-maven-plugin.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
-              <output>${project.build.directory}/generated-sources/openapi</output>
-              <generatorName>java</generatorName>
-              <groupId>edu.utexas.tacc.tapis</groupId>
-              <artifactId>systems-client</artifactId>
-              <artifactVersion>0.0.1</artifactVersion>
-              <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
-              <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
-              <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
-              <generateApiTests>false</generateApiTests>
-              <generateApiDocumentation>false</generateApiDocumentation>
-              <generateModelTests>false</generateModelTests>
-              <generateModelDocumentation>false</generateModelDocumentation>
-              <configOptions>
-                <sourceFolder>src/gen/java/main</sourceFolder>
-                <dateLibrary>java8</dateLibrary>
-              </configOptions>
--Dio.swagger.parser.util.RemoteUrl.trustAll=true -Dio.swagger.v3.parser.util.RemoteUrl.trustAll=true
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
--->
-      <plugin>
-      <groupId>io.swagger.codegen.v3</groupId>
-      <artifactId>swagger-codegen-maven-plugin</artifactId>
-      <version>3.0.13</version>
-      <executions>
-        <execution>
-          <goals>
-            <goal>generate</goal>
-          </goals>
-          <configuration>
-            <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
-            <language>java</language>
-            <configOptions>
-              <sourceFolder>src/main/java</sourceFolder>
-              <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
-              <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
-              <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
-            </configOptions>
-          </configuration>
-        </execution>
-      </executions>
-    </plugin>
+      <!-- Build generated client code using openapi-generator -->
+            <plugin>
+              <groupId>org.openapitools</groupId>
+              <artifactId>openapi-generator-maven-plugin</artifactId>
+              <version>${openapi-generator-maven-plugin.version}</version>
+              <executions>
+                <execution>
+                  <goals>
+                    <goal>generate</goal>
+                  </goals>
+                  <configuration>
+                    <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
+                    <output>${project.build.directory}/generated-sources/openapi</output>
+                    <generatorName>java</generatorName>
+                    <groupId>edu.utexas.tacc.tapis</groupId>
+                    <artifactId>systems-client</artifactId>
+                    <artifactVersion>0.0.1</artifactVersion>
+                    <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
+                    <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
+                    <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
+                    <generateApiTests>false</generateApiTests>
+                    <generateApiDocumentation>false</generateApiDocumentation>
+                    <generateModelTests>false</generateModelTests>
+                    <generateModelDocumentation>false</generateModelDocumentation>
+                    <configOptions>
+                      <sourceFolder>src/gen/java/main</sourceFolder>
+                      <dateLibrary>java8</dateLibrary>
+                    </configOptions>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+      <!-- Build generated client code using swagger-codegen
+            <plugin>
+            <groupId>io.swagger.codegen.v3</groupId>
+            <artifactId>swagger-codegen-maven-plugin</artifactId>
+            <version>3.0.13</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
+                  <language>java</language>
+                  <configOptions>
+                    <sourceFolder>src/main/java</sourceFolder>
+                    <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
+                    <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
+                    <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
+                  </configOptions>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+      -->
     </plugins>
 
     <finalName>tapis-systemsclt</finalName>
