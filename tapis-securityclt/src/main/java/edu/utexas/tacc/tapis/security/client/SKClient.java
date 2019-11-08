@@ -782,14 +782,18 @@ public class SKClient
         
         // This should always be true.
         if (e instanceof ApiException) {
-            // Extract information from the thrown exception.
+            // Extract information from the thrown exception.  If the body was sent by
+            // SK, then it should be json.  Otherwise, we treat it as plain text.
             var apiException = (ApiException) e;
             String respBody = apiException.getResponseBody();
             if (respBody != null) 
-                tapisResponse = _gson.fromJson(respBody, TapisResponse.class);
+                try {tapisResponse = _gson.fromJson(respBody, TapisResponse.class);}
+                catch (Exception e1) {} // not proper json, ignore
+            
+            // Get the other parts of the exception.
             code = apiException.getCode();
-            msg  = e.getMessage();
         }
+        else msg = e.getMessage(); 
 
         // Use the extracted information if there's any.
         if (StringUtils.isBlank(msg))

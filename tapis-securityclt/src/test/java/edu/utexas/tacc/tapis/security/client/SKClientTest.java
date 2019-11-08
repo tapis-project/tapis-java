@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.security.client;
 import org.testng.annotations.Test;
 
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultChangeCount;
+import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
@@ -23,7 +24,7 @@ public class SKClientTest
     /* ---------------------------------------------------------------------- */
     /* testRole:                                                              */
     /* ---------------------------------------------------------------------- */
-    @Test
+    @Test(enabled = true)
     public void testRole() throws TapisException
     {
         SKClient skClient = new SKClient(null, JWT);
@@ -47,4 +48,58 @@ public class SKClientTest
         System.out.println("deleteRoleByName: " + resp2 + "\n");
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* testGetUsersWithRole:                                                  */
+    /* ---------------------------------------------------------------------- */
+    @Test(enabled = true)
+    public void testGetUsersWithRole() throws TapisException
+    {
+        SKClient skClient = new SKClient(null, JWT);
+        String roleName = "piggy";
+        
+        // Create a role.
+        ResultResourceUrl resp1;
+        try {resp1 = skClient.createRole(roleName, "you little piggy.");}
+            catch (Exception e) {
+                System.out.println(e.toString());
+                throw e;
+            }
+        System.out.println("createRole: " + resp1 + "\n");
+        
+        // Assign a user the role.
+        ResultChangeCount resp2;
+        try {resp2 = skClient.grantUserRole("bud", roleName);}
+        catch (Exception e) {
+            System.out.println(e.toString());
+            throw e;
+        }
+        System.out.println("grantUserRole: " + resp2 + "\n");
+        
+        // Assign a user the role.
+        ResultChangeCount resp3;
+        try {resp3 = skClient.grantUserRole("jane", roleName);}
+        catch (Exception e) {
+            System.out.println(e.toString());
+            throw e;
+        }
+        System.out.println("grantUserRole: " + resp3 + "\n");
+        
+        // Get users with role.
+        ResultNameArray resp4;
+        try {resp4 = skClient.getUsersWithRole(roleName);}
+        catch (Exception e) {
+            System.out.println(e.toString());
+            throw e;
+        }
+        System.out.println("grantUserRole: " + resp4 + "\n");
+        
+        // Delete a role.
+        ResultChangeCount resp5;
+        try {resp5 = skClient.deleteRoleByName(roleName);}
+        catch (Exception e) {
+            System.out.println(e.toString());
+            throw e;
+        }
+        System.out.println("deleteRoleByName: " + resp5 + "\n");
+    }
 }
