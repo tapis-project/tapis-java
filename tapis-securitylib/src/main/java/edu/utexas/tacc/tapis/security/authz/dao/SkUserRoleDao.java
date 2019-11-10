@@ -682,7 +682,7 @@ public final class SkUserRoleDao
           // appear in an SQL IN clause.
           String sql = SqlStatements.USER_SELECT_USERS_WITH_ROLE;
           String s = roleNames.stream().collect(Collectors.joining("', '", "'", "'"));
-          sql.replace(SQL_NAMELIST_PLACEHOLDER, s);
+          sql = sql.replace(SQL_NAMELIST_PLACEHOLDER, s);
           
           // Prepare the statement with the filled in placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -785,7 +785,7 @@ public final class SkUserRoleDao
           // appear in an SQL IN clause.
           String sql = SqlStatements.USER_SELECT_USERS_WITH_PERM;
           String op = permSpec.contains("%") ? "LIKE" : "=";
-          sql.replace(SQL_OPERATION_PLACEHOLDER, op);
+          sql = sql.replace(SQL_OPERATION_PLACEHOLDER, op);
           
           // Prepare the statement with the filled in placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
