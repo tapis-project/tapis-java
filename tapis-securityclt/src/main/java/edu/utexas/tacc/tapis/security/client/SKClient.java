@@ -788,7 +788,7 @@ public class SKClient
             String respBody = apiException.getResponseBody();
             if (respBody != null) 
                 try {tapisResponse = _gson.fromJson(respBody, TapisResponse.class);}
-                catch (Exception e1) {msg = respBody;} // not proper jsone
+                catch (Exception e1) {msg = respBody;} // not proper json
             
             // Get the other parts of the exception.
             code = apiException.getCode();
