@@ -67,67 +67,66 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Remove debug System.out statements
 
     // TODO Store credentials in Security Kernel
-    // TODO Do real service location lookup
+    // TODO Do real service location lookup, through tenants service?
     String tokBaseURL = "https://dev.develop.tapis.io";
 //    String tokBaseURL = "http://c002.rodeo.tacc.utexas.edu:31357";
-    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security";
+//    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security";
+    String skBaseURL = "https://dev.develop.tapis.io/security";
     // Get short term JWT from tokens service
-    var tokClient = new TokensClient(tokBaseURL);
-    // TODO: use real tenant
-    String devTenant = "dev";
-    String skJWT = null;
-    try {skJWT = tokClient.getSvcToken(devTenant, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
-    System.out.println("Got skJWT: " + skJWT);
-    _log.error("Got skJWT: " + skJWT);
-    // Basic check of JWT
-    if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
-
-    // TODO/TBD: Build perm specs here? review details
-    String sysPerm = "system:" + tenant + ":*:" + name;
-    String storePerm = "store:" + tenant + ":*:" + name + ":*";
-
-    var skClient = new SKClient(skBaseURL, skJWT);
-    // Create Role with perms and grant it to user
-    // TODO/TBD: name of system owner role, one for each "tenant+system"?
-    String roleName = SYSTEM_OWNER_ROLE + "_" + name;
-    try
-    {
-      skClient.createRole(roleName, "System owner role");
-
-      // TODO: Add back in when working.
+//    var tokClient = new TokensClient(tokBaseURL);
+//    // TODO: use real tenant
+//    String devTenant = "dev";
+//    String skJWT = null;
+//    try {skJWT = tokClient.getSvcToken(devTenant, SERVICE_NAME_SYSTEMS);}
+//    catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
+//    System.out.println("Got skJWT: " + skJWT);
+//    _log.error("Got skJWT: " + skJWT);
+//    // Basic check of JWT
+//    if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
+//
+//    // TODO/TBD: Build perm specs here? review details
+//    String sysPerm = "system:" + tenant + ":*:" + name;
+//    String storePerm = "store:" + tenant + ":*:" + name + ":*";
+//
+//    var skClient = new SKClient(skBaseURL, skJWT);
+//    // Create Role with perms and grant it to user
+//    // TODO/TBD: name of system owner role, one for each "tenant+system"?
+//    String roleName = SYSTEM_OWNER_ROLE + "_" + name;
+//    try
+//    {
+//      skClient.createRole(roleName, "System owner role");
 //      skClient.addRolePermission(roleName, sysPerm);
 //      skClient.addRolePermission(roleName, storePerm);
-      skClient.grantUserRole(owner, roleName);
-    }
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-
-    // TODO remove test
-    // Test by retrieving role and permissions from SK
-    SkRole skRole = null;
-    try { skRole = skClient.getRoleByName(roleName); }
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-    _log.error("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-    System.out.println("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-// TODO Retry when working
-//    ResultNameArray nameArray = skClient.getUsersWithRole(roleName);
-//    List<String> names = nameArray.getNames();
-//    if (names != null && names.contains(owner))
-//    {
-//      _log.error("User " + owner + " does have role " + skRole.getName());
-//      System.out.println("User " + owner + " does have role " + skRole.getName());
-//    } else {
-//      _log.error("User " + owner + " does NOT have role " + skRole.getName());
-//      System.out.println("User " + owner + " does NOT have role " + skRole.getName());
+//      skClient.grantUserRole(owner, roleName);
 //    }
-    ResultNameArray permArray = skClient.getUserPerms(owner);
-    List<String> perms = permArray.getNames();
-    _log.error("User " + owner + " has the following permissions: ");
-    System.out.println("User " + owner + " has the following permissions: ");
-    for (String perm : perms) {
-      _log.error("  perm: " + perm);
-      System.out.println("  perm: " + perm);
-    }
+//    catch (Exception e) { _log.error(e.toString()); throw e;}
+//
+//    // TODO remove test
+//    // Test by retrieving role and permissions from SK
+//    SkRole skRole = null;
+//    try { skRole = skClient.getRoleByName(roleName); }
+//    catch (Exception e) { _log.error(e.toString()); throw e;}
+//    _log.error("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+//    System.out.println("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+//// TODO Retry when working
+////    ResultNameArray nameArray = skClient.getUsersWithRole(roleName);
+////    List<String> names = nameArray.getNames();
+////    if (names != null && names.contains(owner))
+////    {
+////      _log.error("User " + owner + " does have role " + skRole.getName());
+////      System.out.println("User " + owner + " does have role " + skRole.getName());
+////    } else {
+////      _log.error("User " + owner + " does NOT have role " + skRole.getName());
+////      System.out.println("User " + owner + " does NOT have role " + skRole.getName());
+////    }
+//    ResultNameArray permArray = skClient.getUserPerms(owner);
+//    List<String> perms = permArray.getNames();
+//    _log.error("User " + owner + " has the following permissions: ");
+//    System.out.println("User " + owner + " has the following permissions: ");
+//    for (String perm : perms) {
+//      _log.error("  perm: " + perm);
+//      System.out.println("  perm: " + perm);
+//    }
     return itemId;
   }
 

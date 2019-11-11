@@ -10,7 +10,11 @@ cd $RUN_DIR
 # Create target dir in case not yet created by maven
 mkdir -p $PRG_PATH/target
 # Download latest openapi spec from repo
-curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/master/service/resources/openapi_v3.yml
+
+# Master yaml
+# curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/master/service/resources/openapi_v3.yml
+# Dev yaml
+curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/dev/service/resources/openapi_v3.yml
 
 # Run swagger-cli from docker image to generate bundled json file from openapi yaml file
 export REPO=$PRG_PATH/target

@@ -73,7 +73,7 @@ public class TokensClient
       var tokApi = new TokensApi();
       // Build the request
       var req = new InlineObject1();
-      req.tokenType(InlineObject1.TokenTypeEnum.SERVICE);
+      req.accountType(InlineObject1.AccountTypeEnum.SERVICE);
       req.tokenTenantId(tenant);
       req.tokenUsername(username);
       // Make the call and return the result
