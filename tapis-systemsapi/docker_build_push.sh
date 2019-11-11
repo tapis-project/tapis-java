@@ -1,4 +1,5 @@
 #!/bin/sh
+set -xv
 export VER=`cat target/systems/WEB-INF/classes/tapis.version`
 export GIT_COMMIT=`awk '{print $2}' target/systems/WEB-INF/classes/git.info`
 export TAG="tapis/systems:${VER}"
