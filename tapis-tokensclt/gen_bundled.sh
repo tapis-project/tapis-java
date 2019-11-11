@@ -25,4 +25,4 @@ mkdir -p $REPO/swagger-api/out
 #        	tapis/swagger-cli bundle -r /swagger-api/yaml/openapi_v3.yml -o /swagger-api/out/$API_NAME
 docker run -v $REPO/openapi_v3.yml:/swagger-api/yaml/openapi_v3.yml -v /tmp:/tmp \
        	tapis/swagger-cli bundle -r /swagger-api/yaml/openapi_v3.yml -o /tmp/$API_NAME
-cp /tmp/$API_NAME $REPO/swagger-api/out/$API_NAME
+cp /tmp/$API_NAME $REPO/$API_NAME
