@@ -2,11 +2,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
     <artifactId>tapis</artifactId>
-    <groupId>edu.utexas.tacc</groupId>
+    <groupId>edu.utexas.tacc.tapis</groupId>
     <version>0.0.1</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>edu.utexas.tacc.tapis</groupId>
   <artifactId>tapis-securitymigrate</artifactId>
   <name>Tapis Security Database Migration</name>
   <description>Library that automates the security database schema migration</description>
@@ -28,7 +27,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>

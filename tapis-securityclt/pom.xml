@@ -4,12 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>edu.utexas.tacc</groupId>
+		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis</artifactId>
 		<version>0.0.1</version>
 	</parent>
 
-	<groupId>edu.utexas.tacc.tapis</groupId>
 	<artifactId>tapis-securityclt</artifactId>
 
 	<name>Tapis Security Client</name>
@@ -18,49 +17,41 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-shared</artifactId>
-			<version>${project.version}</version>
+			<artifactId>tapis-shared-lib</artifactId>
+			<version>${tapis-shared-java.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-annotations</artifactId>
-			<version>${swagger-annotations.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.squareup.okhttp</groupId>
 			<artifactId>okhttp</artifactId>
-			<version>${okhttp.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.squareup.okhttp</groupId>
 			<artifactId>logging-interceptor</artifactId>
-			<version>${okhttp.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>${gson.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.gsonfire</groupId>
 			<artifactId>gson-fire</artifactId>
-			<version>${gson-fire.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.threeten</groupId>
 			<artifactId>threetenbp</artifactId>
-			<version>${threetenbp.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
-			<version>${javax.annotation.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
 	</dependencies>
     
 	<build>
@@ -110,7 +101,6 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>${maven-shade-plugin.version}</version>
             <executions>
                 <execution>
                     <phase>package</phase>

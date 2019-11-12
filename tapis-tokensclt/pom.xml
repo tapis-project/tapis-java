@@ -3,69 +3,54 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>edu.utexas.tacc</groupId>
+    <groupId>edu.utexas.tacc.tapis</groupId>
     <artifactId>tapis</artifactId>
     <version>0.0.1</version>
   </parent>
 
-  <groupId>edu.utexas.tacc.tapis</groupId>
   <artifactId>tapis-tokensclt</artifactId>
 
   <name>Tapis Tokens Client</name>
   <description>Java client for Tokens web application</description>
 
-  <properties>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <swagger-core-version>2.0.10</swagger-core-version>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-shared</artifactId>
-      <version>${project.version}</version>
+      <artifactId>tapis-shared-lib</artifactId>
+      <version>${tapis-shared-java.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>${gson.version}</version>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>
       <artifactId>javax.annotation-api</artifactId>
-      <version>${javax.annotation.version}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
-      <version>${okhttp3.version}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>logging-interceptor</artifactId>
-      <version>${okhttp3.version}</version>
     </dependency>
     <dependency>
       <groupId>org.threeten</groupId>
       <artifactId>threetenbp</artifactId>
-      <version>${threetenbp.version}</version>
     </dependency>
     <dependency>
       <groupId>io.gsonfire</groupId>
       <artifactId>gson-fire</artifactId>
-      <version>${gson-fire.version}</version>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <version>${swagger-annotations2.version}</version>
     </dependency>
 <!--
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
     </dependency>
 -->
   </dependencies>
