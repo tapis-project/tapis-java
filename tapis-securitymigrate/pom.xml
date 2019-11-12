@@ -4,12 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>edu.utexas.tacc</groupId>
+		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis</artifactId>
 		<version>0.0.1</version>
 	</parent>
 	
-	<groupId>edu.utexas.tacc.tapis</groupId>
 	<artifactId>tapis-securitymigrate</artifactId>
 	
 	<name>Tapis Security Database Migration</name>
@@ -18,13 +17,13 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shared</artifactId>
-            <version>${project.version}</version>
+            <artifactId>tapis-shared-lib</artifactId>
+            <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shareddb</artifactId>
-            <version>${project.version}</version>
+            <artifactId>tapis-shared-db</artifactId>
+            <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -34,17 +33,14 @@
         <dependency>
             <groupId>args4j</groupId>
             <artifactId>args4j</artifactId>
-            <version>${args4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>${flywaydb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
         </dependency>
     </dependencies>
 
@@ -72,7 +68,6 @@
 		<plugin>
 			<groupId>org.apache.maven.plugins</groupId>
 			<artifactId>maven-shade-plugin</artifactId>
-			<version>${maven-shade-plugin.version}</version>
 			<executions>
 				<execution>
 					<phase>package</phase>

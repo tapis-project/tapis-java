@@ -69,33 +69,33 @@ public class SystemsServiceImpl implements SystemsService
     String sysPerm = "system:" + tenant + ":*:" + name;
     String storePerm = "store:" + tenant + ":*:" + name + ":*";
 
-    SKClient skClient = new SKClient(skBaseURL, null);
-//    skClient.addDefaultHeader("X-Tapis-Token", skJWT);
-    // Create Role and grant it to user
-    skClient.createRole(owner, "User role");
-    skClient.grantUserRole(owner, owner);
-    skClient.addRolePermission(owner, sysPerm);
-    skClient.addRolePermission(owner, storePerm);
-
-    // TODO remove test
-    // Test by retrieving role and permissions from SK
-    SkRole skRole = skClient.getRoleByName(owner);
-    _log.info("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-    ResultNameArray nameArray = skClient.getUsersWithRole(owner);
-    List<String> names = nameArray.getNames();
-    if (names != null && names.contains(owner))
-    {
-      _log.info("User " + owner + " does have role " + skRole.getName());
-    } else {
-      _log.error("User " + owner + " does NOT have role " + skRole.getName());
-    }
-    ResultNameArray permArray = skClient.getUserPerms(owner);
-    List<String> perms = permArray.getNames();
-    _log.info("User " + owner + " has the following permissions: ");
-    for (String perm : perms) {
-      _log.info("  perm: " + perm);
-    }
-
+//    SKClient skClient = new SKClient(skBaseURL, null);
+////    skClient.addDefaultHeader("X-Tapis-Token", skJWT);
+//    // Create Role and grant it to user
+//    skClient.createRole(owner, "User role");
+//    skClient.grantUserRole(owner, owner);
+//    skClient.addRolePermission(owner, sysPerm);
+//    skClient.addRolePermission(owner, storePerm);
+//
+//    // TODO remove test
+//    // Test by retrieving role and permissions from SK
+//    SkRole skRole = skClient.getRoleByName(owner);
+//    _log.info("Created and then found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+//    ResultNameArray nameArray = skClient.getUsersWithRole(owner);
+//    List<String> names = nameArray.getNames();
+//    if (names != null && names.contains(owner))
+//    {
+//      _log.info("User " + owner + " does have role " + skRole.getName());
+//    } else {
+//      _log.error("User " + owner + " does NOT have role " + skRole.getName());
+//    }
+//    ResultNameArray permArray = skClient.getUserPerms(owner);
+//    List<String> perms = permArray.getNames();
+//    _log.info("User " + owner + " has the following permissions: ");
+//    for (String perm : perms) {
+//      _log.info("  perm: " + perm);
+//    }
+//
     return itemId;
   }
 

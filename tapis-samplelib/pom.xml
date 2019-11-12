@@ -4,12 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>edu.utexas.tacc</groupId>
+		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis</artifactId>
 		<version>0.0.1</version>
 	</parent>
 	
-	<groupId>edu.utexas.tacc.tapis</groupId>
 	<artifactId>tapis-samplelib</artifactId>
 	
 	<name>Tapis Sample Library</name>
@@ -18,13 +17,13 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shared</artifactId>
-            <version>${project.version}</version>
+            <artifactId>tapis-shared-lib</artifactId>
+            <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shareddb</artifactId>
-            <version>${project.version}</version>
+            <artifactId>tapis-shared-db</artifactId>
+            <version>${tapis-shared-java.version}</version>
         </dependency>
     </dependencies>
 	
@@ -37,7 +36,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>${buildnumber-maven-plugin.version}</version>
             </plugin>
             
             <plugin>
