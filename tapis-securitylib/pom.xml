@@ -4,12 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>edu.utexas.tacc</groupId>
+		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis</artifactId>
 		<version>0.0.1</version>
 	</parent>
 	
-	<groupId>edu.utexas.tacc.tapis</groupId>
 	<artifactId>tapis-securitylib</artifactId>
 	
 	<name>Tapis Security Library</name>
@@ -18,13 +17,13 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-shared</artifactId>
-			<version>${project.version}</version>
+			<artifactId>tapis-shared-lib</artifactId>
+			<version>${tapis-shared-java.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-shareddb</artifactId>
-			<version>${project.version}</version>
+			<artifactId>tapis-shared-db</artifactId>
+			<version>${tapis-shared-java.version}</version>
 		</dependency>
         <dependency>
             <groupId>org.apache.shiro</groupId>
@@ -34,18 +33,15 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
         </dependency>
         <!-- Needed to hide certain methods from swagger -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
-            <version>${swagger-jaxrs2.version}</version>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>${snakeyaml.version}</version>
         </dependency>
 	</dependencies>
 	
@@ -58,7 +54,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>${buildnumber-maven-plugin.version}</version>
             </plugin>
             
             <plugin>

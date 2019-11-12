@@ -4,12 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<parent>
-		<groupId>edu.utexas.tacc</groupId>
+		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis</artifactId>
 		<version>0.0.1</version>
 	</parent>
 	
-	<groupId>edu.utexas.tacc.tapis</groupId>
 	<artifactId>tapis-sampleapi</artifactId>
 	<packaging>war</packaging>
 	
@@ -20,38 +19,33 @@
         <dependency>
             <groupId>javax.ws.rs</groupId>
             <artifactId>javax.ws.rs-api</artifactId>
-            <version>${javax.ws.rs-api.version}</version>
         </dependency>
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
-			<version>${jakarta.servlet-api.version}</version>
-			<scope>provided</scope>
+            <scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet</artifactId>
-			<version>${jersey-container-servlet.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2</artifactId>
-			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
-			<version>${swagger-jaxrs2.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>tapis-sharedapi</artifactId>
-			<version>${project.version}</version>
+			<artifactId>tapis-shared-api</artifactId>
+			<version>${tapis-shared-java.version}</version>
 		</dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-shareddb</artifactId>
-            <version>${project.version}</version>
+            <artifactId>tapis-shared-db</artifactId>
+            <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -86,7 +80,6 @@
             <plugin>
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
-                <version>${swagger-maven-plugin.version}</version>
                 <configuration>
                     <outputFileName>openapi</outputFileName>
                     <outputPath>${project.basedir}/src/main/resources</outputPath>
