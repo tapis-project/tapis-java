@@ -10,7 +10,7 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
 // container (command line) and in an IDE (eclipse). 
-@ApplicationPath("/v3")
+@ApplicationPath("/security")
 public class SecurityApplication 
  extends ResourceConfig
 {

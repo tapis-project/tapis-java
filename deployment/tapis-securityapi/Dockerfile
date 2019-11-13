@@ -21,10 +21,10 @@ ARG GIT_COMMIT
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
 # make security webapp subdirectory.
-RUN mkdir /usr/local/tomcat/webapps/security
+RUN mkdir /usr/local/tomcat/webapps/v3
 
 # add
-COPY $SRVC_ROOT /usr/local/tomcat/webapps/security
+COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
 
 # Set environment and turn on remote debug
 ENV CATALINA_HOME /usr/local/tomcat
