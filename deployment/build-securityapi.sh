@@ -20,6 +20,7 @@ export TAG="tapis/${SRVC_API}:$VER"
 export BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC_API}"
 export BUILD_FILE="$BUILD_DIR/Dockerfile"
 export GIT_COMMIT=${GIT_COMMIT}
+export WAR_NAME=v3
 
 # See if we can determine the git commit if it's not already set.
 # Basically, we take the second word in the git.info file.
@@ -38,18 +39,19 @@ echo "TAG: $TAG"
 echo "BUILD_DIR: $BUILD_DIR"
 echo "BUILD_FILE: $BUILD_FILE"
 echo "GIT_COMMIT: $GIT_COMMIT"
+echo "WAR_NAME: $WAR_NAME"
 echo ""
 
 echo "    removing any old service war files from Docker build context"
-rm $BUILD_DIR/$SRVC.war
+rm $BUILD_DIR/$WAR_NAME.war
 
 echo "    unzipping $SRVC.war to ${BUILD_DIR}/${SRVC} "
-unzip $SRVC_DIR/$SRVC.war -d ${BUILD_DIR}/${SRVC}
+unzip $SRVC_DIR/$WAR_NAME.war -d ${BUILD_DIR}/${WAR_NAME}
 
 echo "    building the docker image from deployment/tapis-${SRVC_API}/Dockerfile"
 echo " docker image build -f $BUILD_FILE --build-arg SRVC_WAR=$SRVC.war --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
-docker image build -f $BUILD_FILE --build-arg SRVC_ROOT=${SRVC} --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
+docker image build -f $BUILD_FILE --build-arg SRVC_ROOT=${WAR_NAME} --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
 
 echo "    remvoing ${BUILD_DIR}/${SRVC}"
-rm -fr ${BUILD_DIR}/${SRVC}
+rm -fr ${BUILD_DIR}/${WAR_NAME}
 

@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
@@ -27,6 +28,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
@@ -51,15 +53,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         tags = {@Tag(name = "role", description = "manage roles and permissions"),
                 @Tag(name = "user", description = "assign roles and permissions to users"),
                 @Tag(name = "general", description = "informational endpoints")},
-        servers = {@Server(url = "http://localhost:8080/security", description = "Local test environment")},
+        servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
                                               url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
 @SecurityScheme(
         name="TapisJWT",
-        type=SecuritySchemeType.HTTP,
-        scheme="bearer",
-        bearerFormat="JWT"
+        description="Tapis signed JWT token authentication",
+        type=SecuritySchemeType.APIKEY,
+        in=SecuritySchemeIn.HEADER,
+        paramName="X-Tapis-Token"
 )
 @Path("/")
 public final class SecurityResource
@@ -163,11 +166,14 @@ public final class SecurityResource
    * the responsiveness of the application.  In particular, kubernetes can use this
    * endpoint as part of its pod health check.
    * 
+   * Note that no JWT is required on this call.
+   * 
    * @return a sucess response if all is ok
    */
   @GET
   @Path("/healthcheck")
   @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
   @Operation(
           description = "Lightwieght health check.",
           tags = "general",

@@ -1,64 +1,63 @@
 openapi: 3.0.1
 info:
   title: Tapis Security API
-  description: The Tapis Security API provides access to the Tapis Security Kernel
-    authorization and secrets facilities.
+  description: The Tapis Security API provides access to the Tapis Security Kernel authorization and secrets facilities.
   contact:
     name: CICSupport
     email: cicsupport@tacc.utexas.edu
   license:
     name: 3-Clause BSD License
-    url: https://opensource.org/licenses/BSD-3-Clause
-  version: "0.1"
+    url: 'https://opensource.org/licenses/BSD-3-Clause'
+  version: '0.1'
 externalDocs:
   description: Tapis Home
-  url: https://tacc-cloud.readthedocs.io/projects/agave
+  url: 'https://tacc-cloud.readthedocs.io/projects/agave'
 servers:
-- url: http://localhost:8080/security
-  description: Local test environment
-  variables: {}
+  - url: 'http://localhost:8080/v3'
+    description: Local test environment
+    variables: {}
 security:
-- TapisJWT: []
+  - TapisJWT: []
 tags:
-- name: role
-  description: manage roles and permissions
-- name: user
-  description: assign roles and permissions to users
-- name: general
-  description: informational endpoints
+  - name: role
+    description: manage roles and permissions
+  - name: user
+    description: assign roles and permissions to users
+  - name: general
+    description: informational endpoints
 paths:
-  /v3/role:
+  /security/role:
     get:
       tags:
-      - role
+        - role
       description: Get the names of all roles in the tenant in alphabetic order.
       operationId: getRoleNames
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: List of role names returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
@@ -66,19 +65,15 @@ paths:
                 $ref: '#/components/schemas/RespBasic'
     post:
       tags:
-      - role
-      description: Create a role using a request body.  Role names are case sensitive,
-        alpha-numeric strings that can also contain underscores.  Role names must
-        start with an alphbetic character and can be no more than 60 characters in
-        length.  The desciption can be no more than 2048 characters long.  If the
-        role already exists, this request has no effect.
+        - role
+      description: 'Create a role using a request body.  Role names are case sensitive, alpha-numeric strings that can also contain underscores.  Role names must start with an alphbetic character and can be no more than 60 characters in length.  The desciption can be no more than 2048 characters long.  If the role already exists, this request has no effect.'
       operationId: createRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -86,79 +81,79 @@ paths:
               $ref: '#/components/schemas/ReqCreateRole'
         required: true
       responses:
-        200:
+        '200':
           description: Role existed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespResourceUrl'
-        201:
+        '201':
           description: Role created.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespResourceUrl'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/{roleName}:
+  '/security/role/{roleName}':
     get:
       tags:
-      - role
+        - role
       description: Get the named role's definition.
       operationId: getRoleByName
       parameters:
-      - name: roleName
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Named role returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespRole'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
@@ -166,64 +161,62 @@ paths:
                 $ref: '#/components/schemas/RespBasic'
     delete:
       tags:
-      - role
+        - role
       description: Delete the named role.
       operationId: deleteRoleByName
       parameters:
-      - name: roleName
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Role deleted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/updateName/{roleName}:
+  '/security/role/updateName/{roleName}':
     post:
       tags:
-      - role
-      description: Update an existing role using a request body.  Role names are case
-        sensitive, alphanumeric strings that can contain underscores but must begin
-        with an alphabetic character.  The limit on role name is 60 characters.
+        - role
+      description: 'Update an existing role using a request body.  Role names are case sensitive, alphanumeric strings that can contain underscores but must begin with an alphabetic character.  The limit on role name is 60 characters.'
       operationId: updateRoleName
       parameters:
-      - name: roleName
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -231,54 +224,53 @@ paths:
               $ref: '#/components/schemas/ReqUpdateRoleName'
         required: true
       responses:
-        200:
+        '200':
           description: Role name updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/updateDesc/{roleName}:
+  '/security/role/updateDesc/{roleName}':
     post:
       tags:
-      - role
-      description: Update an existing role using a request body.  The size limit on
-        a description is 2048 characters.
+        - role
+      description: Update an existing role using a request body.  The size limit on a description is 2048 characters.
       operationId: updateRoleDescription
       parameters:
-      - name: roleName
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -286,40 +278,40 @@ paths:
               $ref: '#/components/schemas/ReqUpdateRoleDescription'
         required: true
       responses:
-        200:
+        '200':
           description: Role description updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/addPerm:
+  /security/role/addPerm:
     post:
       tags:
-      - role
+        - role
       description: |-
         Add a permission to an existing role using a request body.  If the permission already exists, then the request has no effect and the change count returned is zero. Otherwise, the permission is added and the change count is one.  Permissions are case-sensitive strings that follow the format defined by Apache Shiro (https://shiro.apache.org/permissions.html).  This format defines any number of colon-separated (:) parts, with the possible use of asterisks (*) as wildcards and commas (,) as aggregators.  Here are two example permission strings:
 
@@ -329,11 +321,11 @@ paths:
         See the Shiro documentation for further details.  Note that the three reserved characters, [: * ,], cannot appear in the text of any part.  It's the application's responsibility to escape those characters in a manner that is safe in the application's domain.
       operationId: addRolePermission
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -341,48 +333,48 @@ paths:
               $ref: '#/components/schemas/ReqAddRolePermission'
         required: true
       responses:
-        200:
+        '200':
           description: Permission assigned to role.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/removePerm:
+  /security/role/removePerm:
     post:
       tags:
-      - role
+        - role
       description: Remove a permission from a role using a request body.
       operationId: removeRolePermission
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -390,50 +382,48 @@ paths:
               $ref: '#/components/schemas/ReqRemoveRolePermission'
         required: true
       responses:
-        200:
+        '200':
           description: Permission removed from role.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/addChild:
+  /security/role/addChild:
     post:
       tags:
-      - role
-      description: Add a child role to another role using a request body.  If the
-        child already exists, then the request has no effect and the change count
-        returned is zero. Otherwise, the child is added and the change count is one.
+        - role
+      description: 'Add a child role to another role using a request body.  If the child already exists, then the request has no effect and the change count returned is zero. Otherwise, the child is added and the change count is one.'
       operationId: addChildRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -441,48 +431,48 @@ paths:
               $ref: '#/components/schemas/ReqAddChildRole'
         required: true
       responses:
-        200:
+        '200':
           description: Child assigned to parent role.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/removeChild:
+  /security/role/removeChild:
     post:
       tags:
-      - role
+        - role
       description: Remove a child role from a parent role using a request body.
       operationId: removeChildRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -490,40 +480,40 @@ paths:
               $ref: '#/components/schemas/ReqRemoveChildRole'
         required: true
       responses:
-        200:
+        '200':
           description: Child removed from parent role.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/role/replacePathPrefix:
+  /security/role/replacePathPrefix:
     post:
       tags:
-      - role
+        - role
       description: |-
         Replace the text in a permission specification when its last component defines an *extended path attribute*.  Extended path attributes enhance the standard Shiro matching algorithm with one that treats designated components in a permission specification as a path name, such as a posix file or directory path name.  This request is useful when files or directories have been renamed or moved and their authorizations need to be adjusted.  Consider, for example, permissions that conform to the following specification:
 
@@ -534,11 +524,11 @@ paths:
         Use a request body to pass parameters on this request.  The response indicates the number of changed permission specifications.
       operationId: replacePathPrefix
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -546,87 +536,86 @@ paths:
               $ref: '#/components/schemas/ReqReplacePathPrefix'
         required: true
       responses:
-        200:
+        '200':
           description: Path prefixes replaced.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/hello:
+  /security/hello:
     get:
       tags:
-      - general
+        - general
       description: Logged connectivity test.
       operationId: sayHello
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Message received.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
-        500:
+        '500':
           description: Server error.
-  /v3/healthcheck:
+  /security/healthcheck:
     get:
       tags:
-      - general
+        - general
       description: Lightwieght health check.
       operationId: checkHealth
       responses:
-        200:
+        '200':
           description: Message received.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
-  /v3/user/hasRole:
+  /security/user/hasRole:
     post:
       tags:
-      - user
-      description: Check whether a user has been assigned the specified role, either
-        directly or transitively.
+        - user
+      description: 'Check whether a user has been assigned the specified role, either directly or transitively.'
       operationId: hasRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -634,42 +623,42 @@ paths:
               $ref: '#/components/schemas/ReqUserHasRole'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/removeRole:
+  /security/user/removeRole:
     post:
       tags:
-      - user
+        - user
       description: Remove a previously granted role from a user.
       operationId: removeRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -677,165 +666,163 @@ paths:
               $ref: '#/components/schemas/ReqRemoveUserRole'
         required: true
       responses:
-        200:
+        '200':
           description: Role removed from user.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user:
+  /security/user:
     get:
       tags:
-      - user
-      description: Get the names of all users in the tenant that have been granted
-        a role or permission.
+        - user
+      description: Get the names of all users in the tenant that have been granted a role or permission.
       operationId: getUserNames
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Sorted list of user names.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/roles/{user}:
+  '/security/user/roles/{user}':
     get:
       tags:
-      - user
-      description: Get the roles assigned to a user, including those assigned transively.
+        - user
+      description: 'Get the roles assigned to a user, including those assigned transively.'
       operationId: getUserRoles
       parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: List of roles names assigned to the user.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/perms/{user}:
+  '/security/user/perms/{user}':
     get:
       tags:
-      - user
-      description: Get the permissions assigned to a user, including those assigned
-        transively.
+        - user
+      description: 'Get the permissions assigned to a user, including those assigned transively.'
       operationId: getUserPerms
       parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: List of permissions assigned to the user.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/grantRole:
+  /security/user/grantRole:
     post:
       tags:
-      - user
+        - user
       description: Grant a user the specified role.
       operationId: grantRole
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -843,52 +830,48 @@ paths:
               $ref: '#/components/schemas/ReqGrantUserRole'
         required: true
       responses:
-        200:
+        '200':
           description: Role assigned to user.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/grantRoleWithPerm:
+  /security/user/grantRoleWithPerm:
     post:
       tags:
-      - user
-      description: Grant a user the specified role containing the specified permission.  This
-        compound request first adds the permission to the role if it is not already
-        a member of the role and then assigns the role to the user.  The change count
-        returned can range from zero to two depending on how many insertions were
-        actually required.
+        - user
+      description: Grant a user the specified role containing the specified permission.  This compound request first adds the permission to the role if it is not already a member of the role and then assigns the role to the user.  The change count returned can range from zero to two depending on how many insertions were actually required.
       operationId: grantRoleWithPermission
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -896,49 +879,48 @@ paths:
               $ref: '#/components/schemas/ReqGrantUserRoleWithPermission'
         required: true
       responses:
-        200:
+        '200':
           description: Permission assigned to user.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespChangeCount'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/hasRoleAny:
+  /security/user/hasRoleAny:
     post:
       tags:
-      - user
-      description: Check whether a user has been assigned any of the roles specified
-        in the request body.
+        - user
+      description: Check whether a user has been assigned any of the roles specified in the request body.
       operationId: hasRoleAny
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -946,43 +928,42 @@ paths:
               $ref: '#/components/schemas/ReqUserHasRoleMulti'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/hasRoleAll:
+  /security/user/hasRoleAll:
     post:
       tags:
-      - user
-      description: Check whether a user has been assigned all of the roles specified
-        in the request body.
+        - user
+      description: Check whether a user has been assigned all of the roles specified in the request body.
       operationId: hasRoleAll
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -990,43 +971,42 @@ paths:
               $ref: '#/components/schemas/ReqUserHasRoleMulti'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/isPermitted:
+  /security/user/isPermitted:
     post:
       tags:
-      - user
-      description: Check whether specified permission matches a permission assigned
-        to the user, either directly or transitively.
+        - user
+      description: 'Check whether specified permission matches a permission assigned to the user, either directly or transitively.'
       operationId: isPermitted
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -1034,43 +1014,42 @@ paths:
               $ref: '#/components/schemas/ReqUserIsPermitted'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/isPermittedAny:
+  /security/user/isPermittedAny:
     post:
       tags:
-      - user
-      description: Check whether a user's permissions satisfy any of the permission
-        specifications contained in the request body.
+        - user
+      description: Check whether a user's permissions satisfy any of the permission specifications contained in the request body.
       operationId: isPermittedAny
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -1078,43 +1057,42 @@ paths:
               $ref: '#/components/schemas/ReqUserIsPermittedMulti'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/isPermittedAll:
+  /security/user/isPermittedAll:
     post:
       tags:
-      - user
-      description: Check whether a user's permissions satisfy all of the permission
-        specifications contained in the request body.
+        - user
+      description: Check whether a user's permissions satisfy all of the permission specifications contained in the request body.
       operationId: isPermittedAll
       parameters:
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
         content:
           '*/*':
@@ -1122,82 +1100,82 @@ paths:
               $ref: '#/components/schemas/ReqUserIsPermittedMulti'
         required: true
       responses:
-        200:
+        '200':
           description: Check completed.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespAuthorized'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/withRole/{roleName}:
+  '/security/user/withRole/{roleName}':
     get:
       tags:
-      - user
+        - user
       description: Get all users assigned a role.  The role must exist in the tenant.
       operationId: getUsersWithRole
       parameters:
-      - name: roleName
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Sorted list of users assigned a role.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        404:
+        '404':
           description: Named role not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespName'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /v3/user/withPermission/{permSpec}:
+  '/security/user/withPermission/{permSpec}':
     get:
       tags:
-      - user
+        - user
       description: |
         Get all users assigned a permission.  The permSpec parameter is a permission specification that uses colons as separators, the asterisk as a wildcard character and commas to define lists.  Here are examples of permission specifications:
 
@@ -1210,36 +1188,36 @@ paths:
             system:mytenant:%
       operationId: getUsersWithPermission
       parameters:
-      - name: permSpec
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: pretty
-        in: query
-        schema:
-          type: boolean
-          default: false
+        - name: permSpec
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
-        200:
+        '200':
           description: Sorted list of users assigned a permission.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespNameArray'
-        400:
+        '400':
           description: Input error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        401:
+        '401':
           description: Not authorized.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        500:
+        '500':
           description: Server error.
           content:
             application/json:
@@ -1489,6 +1467,7 @@ components:
             type: string
   securitySchemes:
     TapisJWT:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+      type: apiKey
+      description: Tapis signed JWT token authentication
+      name: X-Tapis-Token
+      in: header
