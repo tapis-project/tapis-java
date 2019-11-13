@@ -106,8 +106,8 @@
 <!--    <module>tapis-systemsclt</module>-->
     <module>tapis-systemslib</module>
 <!--    <module>tapis-tokensclt</module>-->
-<!--    <module>tapis-sampleapi</module>-->
-<!--    <module>tapis-samplelib</module>-->
+    <module>tapis-sampleapi</module>
+    <module>tapis-samplelib</module>
   </modules>
 
 </project>
