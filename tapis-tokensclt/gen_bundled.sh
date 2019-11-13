@@ -12,9 +12,9 @@ mkdir -p $PRG_PATH/target
 # Download latest openapi spec from repo
 
 # Master yaml
-# curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/master/service/resources/openapi_v3.yml
+curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/master/service/resources/openapi_v3.yml
 # Dev yaml
-curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/dev/service/resources/openapi_v3.yml
+# curl -o target/openapi_v3.yml https://raw.githubusercontent.com/tapis-project/tokens-api/dev/service/resources/openapi_v3.yml
 
 # Run swagger-cli from docker image to generate bundled json file from openapi yaml file
 set -xv
@@ -23,6 +23,6 @@ export API_NAME=tokens.json
 mkdir -p $REPO/swagger-api/out
 # docker run -v $REPO/openapi_v3.yml:/swagger-api/yaml/openapi_v3.yml -v $REPO:/swagger-api/out \
 #        	tapis/swagger-cli bundle -r /swagger-api/yaml/openapi_v3.yml -o /swagger-api/out/$API_NAME
-docker run -v $REPO/openapi_v3.yml:/swagger-api/yaml/openapi_v3.yml -v /tmp:/tmp \
+docker run --rm -v $REPO/openapi_v3.yml:/swagger-api/yaml/openapi_v3.yml -v /tmp:/tmp \
        	tapis/swagger-cli bundle -r /swagger-api/yaml/openapi_v3.yml -o /tmp/$API_NAME
 cp /tmp/$API_NAME $REPO/$API_NAME

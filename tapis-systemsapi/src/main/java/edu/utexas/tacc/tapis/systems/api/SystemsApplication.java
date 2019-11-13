@@ -9,8 +9,12 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
-// container (command line) and in an IDE (eclipse). 
-@ApplicationPath("/v3")
+// container (command line) and in an IDE (eclipse).
+// NOTE: This path should match the war file name (v3#systems.war) for running
+//       in IntelliJ IDE as well as from a docker container.
+// NOTE: When running from IntelliJ IDE the live openapi docs contain /v3/systems in the URL
+//       but when running from a docker container they do not.
+@ApplicationPath("v3/systems")
 public class SystemsApplication extends ResourceConfig
 {
   public SystemsApplication()
@@ -32,6 +36,6 @@ public class SystemsApplication extends ResourceConfig
     packages("edu.utexas.tacc.tapis");
 
     // Finally set the application name
-    setApplicationName("systems");
+    setApplicationName("asystems2");
   }
 }

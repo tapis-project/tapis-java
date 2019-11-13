@@ -15,22 +15,22 @@
   <name>Tapis Systems API</name>
   <description>Front end for Tapis Systems Service web application</description>
 
-  <properties>
-    <guice.version>4.2.2</guice.version>
-  </properties>
+<!--  <properties>-->
+<!--    <guice.version>4.2.2</guice.version>-->
+<!--  </properties>-->
 
   <dependencies>
 <!-- ******** Guice ******** -->
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>${guice.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject.extensions</groupId>
-      <artifactId>guice-servlet</artifactId>
-      <version>${guice.version}</version>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.google.inject</groupId>-->
+<!--      <artifactId>guice</artifactId>-->
+<!--      <version>${guice.version}</version>-->
+<!--    </dependency>-->
+<!--    <dependency>-->
+<!--      <groupId>com.google.inject.extensions</groupId>-->
+<!--      <artifactId>guice-servlet</artifactId>-->
+<!--      <version>${guice.version}</version>-->
+<!--    </dependency>-->
 <!--    <dependency>-->
 <!--      <groupId>io.logz</groupId>-->
 <!--      <artifactId>guice-jersey</artifactId>-->
@@ -50,6 +50,7 @@
     <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
@@ -61,16 +62,20 @@
     </dependency>
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
     </dependency>
+<!--    <dependency>-->
+<!--      <groupId>${project.groupId}</groupId>-->
+<!--      <artifactId>tapis-shared-lib</artifactId>-->
+<!--      <version>${tapis-shared-java.version}</version>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared-api</artifactId>
-      <version>${tapis-shared-java.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-shared-db</artifactId>
       <version>${tapis-shared-java.version}</version>
     </dependency>
     <dependency>
@@ -112,6 +117,7 @@
           <outputFormat>JSONANDYAML</outputFormat>
           <resourcePackages>
             <package>edu.utexas.tacc.tapis.systems.api.resources</package>
+<!--            <package>edu.utexas.tacc.tapis.sample.api.resources</package>-->
           </resourcePackages>
           <prettyPrint>true</prettyPrint>
         </configuration>
@@ -126,72 +132,72 @@
       </plugin>
 
       <!-- ********************* Begin swagger-ui integration ************************** -->
-      <!-- Live-docs can be found at http://localhost:8080/systems/swagger-ui/index.html -->
+      <!-- Live-docs can be found at http://localhost:8080/swagger-ui/index.html -->
       <!-- Download Swagger UI webjar. -->
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.webjars</groupId>
-                  <artifactId>swagger-ui</artifactId>
-                  <version>${swagger-ui.version}</version>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>${project.build.directory}/swagger-ui</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <!-- Add Swagger UI resources to the war file. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-war-plugin</artifactId>
-        <configuration>
-          <webResources combine.children="append">
-            <resource>
-              <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>
-              <includes>
-                <include>**/*.*</include>
-              </includes>
-              <targetPath>swagger-ui</targetPath>
-            </resource>
-          </webResources>
-        </configuration>
-      </plugin>
-      <!-- Replace the OpenAPI specification example URL with the local one. -->
-      <plugin>
-        <groupId>com.google.code.maven-replacer-plugin</groupId>
-        <artifactId>replacer</artifactId>
-         <version>${google-maven-replacer-plugin.version}</version>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>replace</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>
-          <replacements>
-            <replacement>
-              <token>https://petstore.swagger.io/v2/swagger.json</token>
-              <value>/systems/v3/openapi.json</value>
-            </replacement>
-          </replacements>
-        </configuration>
-      </plugin>
-      <!-- ********************* End swagger-ui integration ************************** -->
+<!--      <plugin>-->
+<!--        <artifactId>maven-dependency-plugin</artifactId>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <phase>prepare-package</phase>-->
+<!--            <goals>-->
+<!--              <goal>unpack</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <artifactItems>-->
+<!--                <artifactItem>-->
+<!--                  <groupId>org.webjars</groupId>-->
+<!--                  <artifactId>swagger-ui</artifactId>-->
+<!--                  <version>${swagger-ui.version}</version>-->
+<!--                </artifactItem>-->
+<!--              </artifactItems>-->
+<!--              <outputDirectory>${project.build.directory}/swagger-ui</outputDirectory>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
+<!--      &lt;!&ndash; Add Swagger UI resources to the war file. &ndash;&gt;-->
+<!--      <plugin>-->
+<!--        <groupId>org.apache.maven.plugins</groupId>-->
+<!--        <artifactId>maven-war-plugin</artifactId>-->
+<!--        <configuration>-->
+<!--          <webResources combine.children="append">-->
+<!--            <resource>-->
+<!--              <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>-->
+<!--              <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--              </includes>-->
+<!--              <targetPath>swagger-ui</targetPath>-->
+<!--            </resource>-->
+<!--          </webResources>-->
+<!--        </configuration>-->
+<!--      </plugin>-->
+<!--      &lt;!&ndash; Replace the OpenAPI specification example URL with the local one. &ndash;&gt;-->
+<!--      <plugin>-->
+<!--        <groupId>com.google.code.maven-replacer-plugin</groupId>-->
+<!--        <artifactId>replacer</artifactId>-->
+<!--         <version>${google-maven-replacer-plugin.version}</version>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <phase>prepare-package</phase>-->
+<!--            <goals>-->
+<!--              <goal>replace</goal>-->
+<!--            </goals>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--        <configuration>-->
+<!--          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>-->
+<!--          <replacements>-->
+<!--            <replacement>-->
+<!--              <token>https://petstore.swagger.io/v2/swagger.json</token>-->
+<!--              <value>/v3/systems/openapi.json</value>-->
+<!--            </replacement>-->
+<!--          </replacements>-->
+<!--        </configuration>-->
+<!--      </plugin>-->
+<!--      &lt;!&ndash; ********************* End swagger-ui integration ************************** &ndash;&gt;-->
     </plugins>
 
-    <finalName>systems</finalName>
+    <finalName>v3#systems</finalName>
   </build>
 
 </project>

@@ -27,72 +27,87 @@
       <!-- Properties can be overridden here       -->
       <!-- Version of tapis-shared-java to be used. Individual projects may want to override. -->
       <tapis-shared-java.version>1.1-SNAPSHOT</tapis-shared-java.version>
-	</properties>
+    </properties>
 
-	<build>
-        <!-- buildnumber-maven-plugin updates properties in resources -->
-		<resources>
-			<!-- Write the project version number to the specified file. -->
-			<!-- Setting the targetPath puts the file into the jar at the -->
-			<!-- specified root-relative directory. The the modified -->
-			<!-- tapis.version file is always copied to the target/classes -->
-			<!-- directory. Do the same for other data that we want to -->
-			<!-- capture. A jar and war file will contain these files -->
-			<!-- as long as the templated files are in the configured -->
-			<!-- directory in the child project. -->
-			<resource>
-				<directory>src/main/resources</directory>
-				<targetPath>.</targetPath>
-				<filtering>true</filtering>
-				<includes>
-					<include>**/tapis.version</include>
-					<include>**/git.info</include>
-					<include>**/build.time</include>
-				</includes>
-			</resource>
+  <repositories>
+    <!-- Include snapshot repo so we can pickup snapshot version of parent bom -->
+    <repository>
+      <id>oss.sonatype.org-snapshot</id>
+      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+    </repository>
+  </repositories>
 
-			<!-- For some reason, we have to tell maven, surefire or testng -->
-			<!-- that all main/resources need to be copied to some target -->
-			<!-- directory. We also have to tell them to NOT undo filtering -->
-			<!-- for the files that we explicitly filter above. Good stuff. -->
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>false</filtering>
-				<includes>
-					<include>**/*</include>
-				</includes>
-				<excludes>
-					<exclude>**/tapis.version</exclude>
-					<exclude>**/git.info</exclude>
-					<exclude>**/build.time</exclude>
-				</excludes>
-			</resource>
-		</resources>
-	</build>
-	
-	<!-- Global Dependencies -->
-	<!--                     -->
-	<!-- Only add dependencies here that are used by EVERY submodule. -->
-	<dependencies>
-        <dependency>
-            <!-- There are only test dependencies on testng -->
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-		</dependency>
-    </dependencies>
+  <build>
+    <!-- buildnumber-maven-plugin updates properties in resources -->
+    <resources>
+      <!-- Write the project version number to the specified file. -->
+      <!-- Setting the targetPath puts the file into the jar at the -->
+      <!-- specified root-relative directory. The the modified -->
+      <!-- tapis.version file is always copied to the target/classes -->
+      <!-- directory. Do the same for other data that we want to -->
+      <!-- capture. A jar and war file will contain these files -->
+      <!-- as long as the templated files are in the configured -->
+      <!-- directory in the child project. -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <targetPath>.</targetPath>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/tapis.version</include>
+          <include>**/git.info</include>
+          <include>**/build.time</include>
+        </includes>
+      </resource>
+
+      <!-- For some reason, we have to tell maven, surefire or testng -->
+      <!-- that all main/resources need to be copied to some target -->
+      <!-- directory. We also have to tell them to NOT undo filtering -->
+      <!-- for the files that we explicitly filter above. Good stuff. -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+        <excludes>
+          <exclude>**/tapis.version</exclude>
+          <exclude>**/git.info</exclude>
+          <exclude>**/build.time</exclude>
+        </excludes>
+      </resource>
+    </resources>
+  </build>
+  
+  <!-- Global Dependencies -->
+  <!--                     -->
+  <!-- Only add dependencies here that are used by EVERY submodule. -->
+  <dependencies>
+    <dependency>
+    <!-- There are only test dependencies on testng -->
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+    </dependency>
+  </dependencies>
 
     <modules>
-        <module>tapis-migrate</module>
-		<module>tapis-securityapi</module>
-		<module>tapis-securityclt</module>
-        <module>tapis-securitylib</module>
-        <module>tapis-securitymigrate</module>
-        <module>tapis-systemsapi</module>
-		<module>tapis-systemsclt</module>
-        <module>tapis-systemslib</module>
-		<module>tapis-tokensclt</module>
-		<module>tapis-sampleapi</module>
-		<module>tapis-samplelib</module>
-	</modules>
+    <module>tapis-migrate</module>
+    <module>tapis-securityapi</module>
+    <module>tapis-securityclt</module>
+    <module>tapis-securitylib</module>
+    <module>tapis-securitymigrate</module>
+    <module>tapis-systemsapi</module>
+<!--    <module>tapis-systemsclt</module>-->
+    <module>tapis-systemslib</module>
+<!--    <module>tapis-tokensclt</module>-->
+<!--    <module>tapis-sampleapi</module>-->
+<!--    <module>tapis-samplelib</module>-->
+  </modules>
 
 </project>

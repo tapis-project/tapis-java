@@ -5,7 +5,7 @@
 #   $TAG            the tag for image identification
 #
 ##########################################################################
-FROM tomcat:9.0.27-jdk13-openjdk-oracle
+FROM tomcat:8.5-jdk13-openjdk-oracle
 
 ARG VER
 ARG GIT_COMMIT
@@ -13,21 +13,21 @@ ARG GIT_COMMIT
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
 # Create directory for the service
-RUN mkdir /usr/local/tomcat/webapps/systems
+RUN mkdir /usr/local/tomcat/webapps/v3#systems
 
 # add
-COPY target/systems /usr/local/tomcat/webapps/systems
+COPY target/v3#systems /usr/local/tomcat/webapps/v3#systems
 
 # Environment variables for testing without JWT
-# ENV TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS true
-# ENV TAPIS_ENVONLY_JWT_OPTIONAL true
+ENV TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS true
+ENV TAPIS_ENVONLY_JWT_OPTIONAL true
 ENV TAPIS_ENVONLY_SKIP_JWT_VERIFY true
 # Environment variables to turn on debugging
 ENV JPDA_ADDRESS "*:8000"
 # might need ENV JPDA_ADDRESS *:8000 for tomcat 9
 ENV JPDA_TRANSPORT dt_socket
 # Other environment variables
-ENV TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /systems/v3
+ENV TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
 
 # Debug port and http port
 EXPOSE 8000

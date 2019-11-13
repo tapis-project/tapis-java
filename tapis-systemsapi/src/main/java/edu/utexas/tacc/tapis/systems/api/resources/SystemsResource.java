@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
@@ -23,6 +24,8 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
@@ -30,6 +33,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -48,9 +52,19 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
     tags = {
         @Tag(name = "systems", description = "manage systems")
     },
-    servers = {@Server(url = "http://localhost:8080", description = "Local test environment")},
-    externalDocs = @ExternalDocumentation(description = "Tapis Home",
-        url = "https://tacc-cloud.readthedocs.io/projects/agave")
+    servers = {
+      @Server(url = "/v3/systems", description = "Base URL")
+//      @Server(url = "http://localhost:8080/v3/systems", description = "Local test environment")
+//      @Server(url = "https://dev.develop.tapis.io/v3", description = "Development environment")
+    },
+    externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
+)
+@SecurityScheme(
+  name="TapisJWT",
+  description="Tapis signed JWT token authentication",
+  type= SecuritySchemeType.APIKEY,
+  in= SecuritySchemeIn.HEADER,
+  paramName="X-Tapis-Token"
 )
 @Path("/")
 public class SystemsResource
@@ -136,12 +150,13 @@ public class SystemsResource
 
   /**
    * Lightweight non-authenticated health check endpoint.
-   *
+   * Note that no JWT is required on this call
    * @return a sucesss response if all is ok
    */
   @GET
   @Path("/healthcheck")
   @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
   @Operation(
     description = "Health check.",
     tags = "general",
