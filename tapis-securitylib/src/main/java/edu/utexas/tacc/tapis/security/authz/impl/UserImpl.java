@@ -535,8 +535,8 @@ public final class UserImpl
      * is case-sensitive.  
      * 
      * The caller may provide a map to use as a cache for permission objects.  A cache 
-     * will reduce the number of object created when this method is going to be called
-     * with different reqPermStr's in a row, all using the same set of assignedPermStrs.
+     * will reduce the number of objects created when this method is called with 
+     * different reqPermStr's in a row, all using the same set of assignedPermStrs.
      * 
      * @param reqPermStr the spec to be matched on a user request
      * @param assignedPermStrs the user's assigned permissions
