@@ -124,7 +124,8 @@ public class SystemsResource
       description = "Connectivity test.",
       tags = "general",
       responses = {
-          @ApiResponse(responseCode = "200", description = "Message received."),
+          @ApiResponse(responseCode = "200", description = "Message received.",
+            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
           @ApiResponse(responseCode = "401", description = "Not authorized."),
           @ApiResponse(responseCode = "500", description = "Server error.")
       }
@@ -151,7 +152,7 @@ public class SystemsResource
   /**
    * Lightweight non-authenticated health check endpoint.
    * Note that no JWT is required on this call
-   * @return a sucesss response if all is ok
+   * @return a success response if all is ok
    */
   @GET
   @Path("/healthcheck")
@@ -161,7 +162,8 @@ public class SystemsResource
     description = "Health check.",
     tags = "general",
     responses = {
-      @ApiResponse(responseCode = "200", description = "Message received."),
+      @ApiResponse(responseCode = "200", description = "Message received.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "500", description = "Server error.")
     }
   )

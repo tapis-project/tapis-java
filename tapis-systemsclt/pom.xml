@@ -82,21 +82,23 @@
                     <goal>generate</goal>
                   </goals>
                   <configuration>
+                    <!-- Use the openapi spec auto-generated from build of tapis-systemsapi module -->
                     <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
                     <output>${project.build.directory}/generated-sources/openapi</output>
                     <generatorName>java</generatorName>
                     <groupId>edu.utexas.tacc.tapis</groupId>
-                    <artifactId>systems-client</artifactId>
-                    <artifactVersion>0.0.1</artifactVersion>
                     <invokerPackage>edu.utexas.tacc.tapis.systems.client.gen</invokerPackage>
                     <apiPackage>edu.utexas.tacc.tapis.systems.client.gen.api</apiPackage>
                     <modelPackage>edu.utexas.tacc.tapis.systems.client.gen.model</modelPackage>
+                    <!-- Turn off generation of stuff we do not need -->
                     <generateApiTests>false</generateApiTests>
                     <generateApiDocumentation>false</generateApiDocumentation>
                     <generateModelTests>false</generateModelTests>
                     <generateModelDocumentation>false</generateModelDocumentation>
                     <configOptions>
                       <sourceFolder>src/gen/java/main</sourceFolder>
+                      <!-- Use java 8 libraries instead of 3rd party libraries -->
+                      <java8>true</java8>
                       <dateLibrary>java8</dateLibrary>
                     </configOptions>
                   </configuration>
@@ -127,6 +129,21 @@
             </executions>
           </plugin>
       -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
     <finalName>tapis-systemsclt</finalName>

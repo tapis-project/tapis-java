@@ -17,7 +17,7 @@ public class SystemsServiceTest
   private SystemsService svc;
 
   // Test data
-  private static final String tenant = "tenant1";
+  private static final String tenant = "dev";
   private static final List<TransferMechanism> mechList = new ArrayList<>(List.of(TransferMechanism.SFTP,TransferMechanism.S3));
   private static final Protocol prot1 = new Protocol(AccessMechanism.NONE, mechList, -1, false, "",-1);
   private static final String prot1AccessMechName = prot1.getAccessMechanism().name();
