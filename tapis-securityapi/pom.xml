@@ -89,7 +89,7 @@
                     <outputPath>${project.basedir}/src/main/resources</outputPath>
                     <outputFormat>JSONANDYAML</outputFormat>
                     <resourcePackages>
-                        <package>edu.utexas.tacc.tapis.sample.api.resources</package>
+                        <package>edu.utexas.tacc.tapis.security.api.resources</package>
                     </resourcePackages>
                     <prettyPrint>true</prettyPrint>
                 </configuration>
