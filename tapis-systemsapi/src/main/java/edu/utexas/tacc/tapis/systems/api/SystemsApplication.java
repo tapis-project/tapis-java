@@ -36,6 +36,7 @@ public class SystemsApplication extends ResourceConfig
     packages("edu.utexas.tacc.tapis");
 
     // Finally set the application name
-    setApplicationName("asystems2");
+    // This appears to have no impact on base URL
+    setApplicationName("systems");
   }
 }

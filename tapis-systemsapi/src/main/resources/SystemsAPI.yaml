@@ -1,3 +1,4 @@
+
 openapi: 3.0.1
 info:
   title: Tapis Systems API
@@ -44,10 +45,22 @@ paths:
                 $ref: '#/components/schemas/RespNameArray'
         '400':
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '401':
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
     post:
       tags:
         - systems
@@ -76,8 +89,16 @@ paths:
                 $ref: '#/components/schemas/RespResourceUrl'
         '400':
           description: Input error. Invalid JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '401':
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '409':
           description: System already exists.
           content:
@@ -86,6 +107,10 @@ paths:
                 $ref: '#/components/schemas/RespResourceUrl'
         '500':
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   '/v3/systems/system/{name}':
     get:
       tags:
@@ -118,12 +143,28 @@ paths:
                 $ref: '#/components/schemas/RespSystem'
         '400':
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '401':
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '404':
           description: System not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
     delete:
       tags:
         - systems
@@ -150,10 +191,22 @@ paths:
                 $ref: '#/components/schemas/RespChangeCount'
         '400':
           description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '401':
           description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/systems/hello:
     get:
       tags:
@@ -196,6 +249,17 @@ components:
       properties:
         url:
           type: string
+    RespBasic:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          type: object
     ReqCreateSystem:
       type: object
       properties:

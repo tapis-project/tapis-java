@@ -144,11 +144,14 @@ public class SystemResource
       @ApiResponse(responseCode = "201", description = "System created.",
                    content = @Content(schema = @Schema(implementation = RespResourceUrl.class))
       ),
-      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON."),
-      @ApiResponse(responseCode = "401", description = "Not authorized."),
+      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "401", description = "Not authorized.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "409", description = "System already exists.",
                    content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.")
+      @ApiResponse(responseCode = "500", description = "Server error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
   public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
@@ -316,10 +319,14 @@ public class SystemResource
       responses = {
           @ApiResponse(responseCode = "200", description = "System found.",
             content = @Content(schema = @Schema(implementation = RespSystem.class))),
-          @ApiResponse(responseCode = "400", description = "Input error."),
-          @ApiResponse(responseCode = "404", description = "System not found."),
-          @ApiResponse(responseCode = "401", description = "Not authorized."),
-          @ApiResponse(responseCode = "500", description = "Server error.")
+          @ApiResponse(responseCode = "400", description = "Input error.",
+            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+          @ApiResponse(responseCode = "404", description = "System not found.",
+            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+          @ApiResponse(responseCode = "401", description = "Not authorized.",
+            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+          @ApiResponse(responseCode = "500", description = "Server error.",
+            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
       }
   )
   public Response getSystemByName(@PathParam("name") String name,
@@ -394,9 +401,12 @@ public class SystemResource
       @ApiResponse(responseCode = "200", description = "Success.",
                    content = @Content(schema = @Schema(implementation = RespNameArray.class))
       ),
-      @ApiResponse(responseCode = "400", description = "Input error."),
-      @ApiResponse(responseCode = "401", description = "Not authorized."),
-      @ApiResponse(responseCode = "500", description = "Server error.")
+      @ApiResponse(responseCode = "400", description = "Input error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "401", description = "Not authorized.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "500", description = "Server error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
   public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
@@ -462,9 +472,12 @@ public class SystemResource
     responses = {
       @ApiResponse(responseCode = "200", description = "System deleted.",
         content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
-      @ApiResponse(responseCode = "400", description = "Input error."),
-      @ApiResponse(responseCode = "401", description = "Not authorized."),
-      @ApiResponse(responseCode = "500", description = "Server error.")
+      @ApiResponse(responseCode = "400", description = "Input error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "401", description = "Not authorized.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "500", description = "Server error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
   public Response deleteSystemByName(@PathParam("name") String name,
@@ -511,5 +524,4 @@ public class SystemResource
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
       MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp1)).build();
   }
-
 }
