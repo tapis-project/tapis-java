@@ -49,7 +49,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int createSystem(String tenant, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
-                          String jobOutputDir, String workDir, String scratchDir, String effectiveUserId,
+                          String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
                           String accessCredential, String accessMechanism, String transferMechanisms,
                           int protocolPort, boolean protocolUseProxy,
                           String protocolProxyHost, int protocolProxyPort)
@@ -60,7 +60,7 @@ public class SystemsServiceImpl implements SystemsService
 
 
     int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
+                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags,
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
                                    protocolProxyHost, protocolProxyPort);
 

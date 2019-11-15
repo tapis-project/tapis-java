@@ -10,8 +10,8 @@ public interface SystemsDao
   int createTSystem(String tenant, String name, String description, String owner, String host,
                     boolean available, String bucketName, String rootDir,
                     String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                    String effectiveUserId, String accessMechanism, String transferMechanisms, int port,
-                    boolean useProxy, String proxyHost, int proxyPort)
+                    String effectiveUserId, String accessMechanism, String tags, String transferMechanisms,
+                    int port, boolean useProxy, String proxyHost, int proxyPort)
     throws TapisException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;

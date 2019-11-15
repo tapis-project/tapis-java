@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
   "description": "Top-level schema for a system create request",
   "additionalProperties": false,
@@ -70,6 +70,10 @@
       "minLength": 1,
       "maxLength": 60,
       "default": "${apiUserId}"
+    },
+    "tags": {
+      "type": "string",
+      "default": "{}"
     },
     "accessCredential": {
       "type": "string",

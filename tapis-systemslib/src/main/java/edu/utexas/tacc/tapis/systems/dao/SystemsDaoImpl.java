@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +45,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, String accessMechanism, String transferMechanisms, int port,
-                           boolean useProxy, String proxyHost, int proxyPort)
+                           String effectiveUserId, String tags, String accessMechanism, String transferMechanisms,
+                           int port, boolean useProxy, String proxyHost, int proxyPort)
           throws TapisException
   {
     // Generated sequence id
@@ -82,6 +83,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Set the sql command.
       String sql = SqlStatements.CREATE_SYSTEM;
 
+      // Convert tags to jsonb object
+      var tagsJson = new PGobject();
+      tagsJson.setType("jsonb");
+      tagsJson.setValue(tags);
+
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
@@ -97,12 +103,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(11, workDir);
       pstmt.setString(12, scratchDir);
       pstmt.setString(13, effectiveUserId);
-      pstmt.setString(14, accessMechanism);
-      pstmt.setString(15, transferMechanisms);
-      pstmt.setInt(16, port);
-      pstmt.setBoolean(17, useProxy);
-      pstmt.setString(18, proxyHost);
-      pstmt.setInt(19, proxyPort);
+      pstmt.setObject(14, tagsJson);
+      pstmt.setString(15, accessMechanism);
+      pstmt.setString(16, transferMechanisms);
+      pstmt.setInt(17, port);
+      pstmt.setBoolean(18, useProxy);
+      pstmt.setString(19, proxyHost);
+      pstmt.setInt(20, proxyPort);
 
       // Issue the call.
       pstmt.execute();
@@ -479,7 +486,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Populate protocol transfer mechanisms
       List<TransferMechanism> tmechsList = new ArrayList<>();
-      String tmechsStr = rs.getString(16);
+      String tmechsStr = rs.getString(17);
       if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
       {
         // Strip off surrounding braces and convert strings to enums
@@ -490,6 +497,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           if (!StringUtils.isBlank(tmech)) tmechsList.add(Protocol.TransferMechanism.valueOf(tmech));
         }
       }
+
       tSystem = new TSystem(rs.getInt(1), // id
                             rs.getString(2), // tenant
                             rs.getString(3), // name
@@ -504,15 +512,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(12), // workDir
                             rs.getString(13), // scratchDir
                             rs.getString(14), // effectiveUserId
-                            AccessMechanism.valueOf(rs.getString(15)),
+                            rs.getString(15), // tags
+                            AccessMechanism.valueOf(rs.getString(16)),
                             tmechsList,
-                            rs.getInt(17),
-                            rs.getBoolean(18),
-                            rs.getString(19),
-                            rs.getInt(20),
+                            rs.getInt(18),
+                            rs.getBoolean(19),
+                            rs.getString(20),
+                            rs.getInt(21),
                            "fakeAccessCred1", // accessCred
-                            rs.getTimestamp(21).toInstant(), // created
-                            rs.getTimestamp(22).toInstant()); // updated
+                            rs.getTimestamp(22).toInstant(), // created
+                            rs.getTimestamp(23).toInstant()); // updated
     }
     catch (Exception e)
     {

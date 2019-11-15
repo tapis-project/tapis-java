@@ -11,6 +11,8 @@ import org.testng.annotations.*;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO Update tests to check "tags" value
+
 @Test(groups={"integration"})
 public class SystemsServiceTest
 {
@@ -22,19 +24,20 @@ public class SystemsServiceTest
   private static final Protocol prot1 = new Protocol(AccessMechanism.NONE, mechList, -1, false, "",-1);
   private static final String prot1AccessMechName = prot1.getAccessMechanism().name();
   private static final String prot1TxfMechs = prot1.getTransferMechanismsAsStr();
+  private static final String tags = "{\"key1\":\"a\", \"key2\":\"b\"}";
 
   private static final String[] sys1 = {tenant, "sys1", "description 1", "owner1", "host1", "bucket1", "/root1",
-    "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", "fakePassword1", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", tags, "fakePassword1", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys2 = {tenant, "sys2", "description 2", "owner2", "host2", "bucket2", "/root2",
-    "jobInputDir2", "jobOutputDir2", "workDir2", "scratchDir2", "effUser2", "fakePassword2", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir2", "jobOutputDir2", "workDir2", "scratchDir2", "effUser2", tags, "fakePassword2", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys3 = {tenant, "sys3", "description 3", "owner3", "host3", "bucket3", "/root3",
-    "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", "fakePassword3", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", tags, "fakePassword3", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys4 = {tenant, "sys4", "description 4", "owner4", "host4", "bucket4", "/root4",
-    "jobInputDir4", "jobOutputDir4", "workDir4", "scratchDir4", "effUser4", "fakePassword4", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir4", "jobOutputDir4", "workDir4", "scratchDir4", "effUser4", tags, "fakePassword4", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys5 = {tenant, "sys5", "description 5", "owner5", "host5", "bucket5", "/root5",
-    "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", "fakePassword5", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", tags, "fakePassword5", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys6 = {tenant, "sys6", "description 6", "owner6", "host6", "bucket6", "/root6",
-    "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", "fakePassword6", prot1AccessMechName, prot1TxfMechs};
+    "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", tags, "fakePassword6", prot1AccessMechName, prot1TxfMechs};
 
 
   @BeforeSuite
@@ -49,8 +52,8 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys1;
     int itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
-                                   sys0[13], sys0[14], prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort());
+                                  sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
+                                  sys0[14], sys0[15], prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
@@ -60,7 +63,7 @@ public class SystemsServiceTest
     String[] sys0 = sys2;
     Protocol prot0 = prot1;
     int itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
+                                    sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                     prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
@@ -78,6 +81,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getWorkDir(), sys0[9]);
     Assert.assertEquals(tmpSys.getScratchDir(), sys0[10]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[11]);
+    System.out.println("Found tags: " + tmpSys.getTags());
     Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
     Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
@@ -95,14 +99,14 @@ public class SystemsServiceTest
     String[] sys0 = sys3;
     Protocol prot0 = prot1;
     int itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
+                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
     prot0 = prot1;
     itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
+                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
@@ -120,7 +124,7 @@ public class SystemsServiceTest
     String[] sys0 = sys5;
     Protocol prot0 = prot1;
     int itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
+                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
@@ -137,7 +141,7 @@ public class SystemsServiceTest
     String[] sys0 = sys6;
     Protocol prot0 = prot1;
     int itemId = svc.createSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
-                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12],
+                                   sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);

@@ -35,6 +35,7 @@ public final class TSystem
   public static final String DEFAULT_WORKDIR = "/data";
   public static final String DEFAULT_SCRATCHDIR = "/scratch";
   public static final String DEFAULT_EFFECTIVEUSERID = "${apiUserId}";
+  public static final String DEFAULT_TAGS = "{}";
 
 
   /* ********************************************************************** */
@@ -58,6 +59,7 @@ public final class TSystem
   private String scratchDir;
   private String accessCredential;
   private String effectiveUserId;
+  private String tags; // Simple metadata as json containing key:val pairs
   private AccessMechanism accessMechanism; // How access authorization is handled.
   private List<TransferMechanism> transferMechanisms; // List of supported transfer mechanisms
   private int port; // Port number used to access the system.
@@ -73,7 +75,8 @@ public final class TSystem
   public TSystem(long id1, String tenant1, String name1, String description1,
                  String owner1, String host1, boolean available1, String bucketName1,
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
-                 String effectiveUserId1, AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
+                 String effectiveUserId1, String tags1,
+                 AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
                  int port1, boolean useProxy1, String proxyHost1, int proxyPort1, String accessCredential1,
                  Instant created1, Instant updated1)
   {
@@ -91,6 +94,7 @@ public final class TSystem
     workDir = workDir1;
     scratchDir = scratchDir1;
     effectiveUserId = effectiveUserId1;
+    tags = tags1;
     accessMechanism = accessMechanism1;
     if (transferMechanisms1 != null) transferMechanisms = transferMechanisms1;
     else transferMechanisms = DEFAULT_TRANSFER_MECHANISMS;
@@ -135,6 +139,8 @@ public final class TSystem
   public String getScratchDir() { return scratchDir; }
 
   public String getEffectiveUserId() { return effectiveUserId; }
+
+  public String getTags() { return tags; }
 
   public AccessMechanism getAccessMechanism() { return accessMechanism; }
 

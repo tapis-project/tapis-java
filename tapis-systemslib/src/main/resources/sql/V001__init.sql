@@ -60,6 +60,7 @@ CREATE TABLE systems
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256) NOT NULL DEFAULT '',
   proxy_port INTEGER NOT NULL DEFAULT -1,
+  tags       JSONB NOT NULL,
   created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
@@ -85,6 +86,7 @@ COMMENT ON COLUMN systems.port IS 'Port number used to access a system';
 COMMENT ON COLUMN systems.use_proxy IS 'Indicates if system should accessed through a proxy';
 COMMENT ON COLUMN systems.proxy_host IS 'Proxy host name or ip address';
 COMMENT ON COLUMN systems.proxy_port IS 'Proxy port number';
+COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
 
