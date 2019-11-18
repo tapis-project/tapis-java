@@ -1088,7 +1088,7 @@ public final class RoleResource
                          + "authorizations need to be adjusted.  Consider, for example, "
                          + "permissions that conform to the following specification:\n\n"
                          + ""
-                         + "      store:tenantId:op:systemId:path\n\n"
+                         + "      files:tenantId:op:systemId:path\n\n"
                          + ""
                          + "By convention, the last component is an extended path attribute whose "
                          + "content can be changed by replacePathPrefix requests.  Specifically, paths "

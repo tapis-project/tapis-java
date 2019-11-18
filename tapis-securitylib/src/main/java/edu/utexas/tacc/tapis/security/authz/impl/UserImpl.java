@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
+import edu.utexas.tacc.tapis.security.authz.permissions.ExtWildcardPermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -495,7 +496,7 @@ public final class UserImpl
         // Create a permission cache that allows us to allocate at most
         // one wildcard object for each assigned permission.  The cache
         // is only useful if more than 1 permSpec might get tested.
-        HashMap<String,WildcardPermission> assignedPermMap;
+        HashMap<String,ExtWildcardPermission> assignedPermMap;
         if (permSpecs.length > 1) 
             assignedPermMap = new HashMap<>(1 + 2 * assignedPerms.size());
           else assignedPermMap = null;
@@ -532,7 +533,7 @@ public final class UserImpl
     /* matchPermission:                                                             */
     /* ---------------------------------------------------------------------------- */
     /** Perform the extended Shiro-base permission checking.  All permission checking
-     * is case-sensitive.  
+     * is case-sensitive.  Exceptions are logged and not rethrown. 
      * 
      * The caller may provide a map to use as a cache for permission objects.  A cache 
      * will reduce the number of objects created when this method is called with 
@@ -544,32 +545,53 @@ public final class UserImpl
      * @return true if permSpec matches one of the perms, false otherwise
      */
     private boolean matchPermission(String reqPermStr, List<String> assignedPermStrs,
-                                    HashMap<String,WildcardPermission> assignedPermMap)
+                                    HashMap<String,ExtWildcardPermission> assignedPermMap)
     {
         // Create a case-sensitive request permission.
-        WildcardPermission reqPerm = new WildcardPermission(reqPermStr, true);
+        ExtWildcardPermission reqPerm;
+        try {reqPerm = new ExtWildcardPermission(reqPermStr, true);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_PERM_CREATE_ERROR", reqPermStr,
+                                             e.getMessage());            
+                _log.error(msg, e);
+                return false;
+            }
         
         // See if any of the user's assigned permissions match the request spec.
         for (String curAssignedPermStr : assignedPermStrs) 
         {
             // Declare the current perm object.
-            WildcardPermission curAssignedPerm;
+            ExtWildcardPermission curAssignedPerm;
             
             // If caching is activated, determine if we've already created a 
             // perm object for this assigned perm string.
-            if (assignedPermMap != null) {
-                curAssignedPerm = assignedPermMap.get(curAssignedPermStr);
-                if (curAssignedPerm == null) {
-                    // Create and cache the perm object.
-                    curAssignedPerm = new WildcardPermission(curAssignedPermStr, true);
-                    assignedPermMap.put(curAssignedPermStr, curAssignedPerm);
+            try {
+                if (assignedPermMap != null) {
+                    curAssignedPerm = assignedPermMap.get(curAssignedPermStr);
+                    if (curAssignedPerm == null) {
+                        // Create and cache the perm object.
+                        curAssignedPerm = new ExtWildcardPermission(curAssignedPermStr, true);
+                        assignedPermMap.put(curAssignedPermStr, curAssignedPerm);
+                    }
                 }
+                else curAssignedPerm = new ExtWildcardPermission(curAssignedPermStr, true);
             }
-            else curAssignedPerm = new WildcardPermission(curAssignedPermStr, true);
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_PERM_CREATE_ERROR", curAssignedPermStr,
+                                             e.getMessage());            
+                _log.error(msg, e);
+                continue;
+            }
             
             // Check the request permission and return as soon 
-            // as we find a match.
-            if (curAssignedPerm.implies(reqPerm)) return true;
+            // as we find a match. Runtime exceptions can be thrown.
+            try {if (curAssignedPerm.implies(reqPerm)) return true;}
+                catch (Exception e) {
+                    // Just log the exception.
+                    String msg = MsgUtils.getMsg("SK_PERM_MATCH_ERROR", curAssignedPermStr,
+                                                 reqPermStr, e.getMessage());            
+                    _log.error(msg, e);
+                }
         }
         
         // No match if we get here.
