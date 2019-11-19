@@ -45,7 +45,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, String tags, String accessMechanism, String transferMechanisms,
+                           String effectiveUserId, String tags, String notes, String accessMechanism, String transferMechanisms,
                            int port, boolean useProxy, String proxyHost, int proxyPort)
           throws TapisException
   {
@@ -83,10 +83,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Set the sql command.
       String sql = SqlStatements.CREATE_SYSTEM;
 
-      // Convert tags to jsonb object
+      // Convert tags and notes to jsonb objects
       var tagsJson = new PGobject();
       tagsJson.setType("jsonb");
       tagsJson.setValue(tags);
+      var notesJson = new PGobject();
+      notesJson.setType("jsonb");
+      notesJson.setValue(notes);
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -104,12 +107,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(12, scratchDir);
       pstmt.setString(13, effectiveUserId);
       pstmt.setObject(14, tagsJson);
-      pstmt.setString(15, accessMechanism);
-      pstmt.setString(16, transferMechanisms);
-      pstmt.setInt(17, port);
-      pstmt.setBoolean(18, useProxy);
-      pstmt.setString(19, proxyHost);
-      pstmt.setInt(20, proxyPort);
+      pstmt.setObject(15, notesJson);
+      pstmt.setString(16, accessMechanism);
+      pstmt.setString(17, transferMechanisms);
+      pstmt.setInt(18, port);
+      pstmt.setBoolean(19, useProxy);
+      pstmt.setString(20, proxyHost);
+      pstmt.setInt(21, proxyPort);
 
       // Issue the call.
       pstmt.execute();
@@ -486,7 +490,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Populate protocol transfer mechanisms
       List<TransferMechanism> tmechsList = new ArrayList<>();
-      String tmechsStr = rs.getString(17);
+      String tmechsStr = rs.getString(18);
       if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
       {
         // Strip off surrounding braces and convert strings to enums
@@ -513,15 +517,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(13), // scratchDir
                             rs.getString(14), // effectiveUserId
                             rs.getString(15), // tags
-                            AccessMechanism.valueOf(rs.getString(16)),
+                            rs.getString(16), // notes
+                            AccessMechanism.valueOf(rs.getString(17)),
                             tmechsList,
-                            rs.getInt(18),
-                            rs.getBoolean(19),
-                            rs.getString(20),
-                            rs.getInt(21),
+                            rs.getInt(19),
+                            rs.getBoolean(20),
+                            rs.getString(21),
+                            rs.getInt(22),
                            "fakeAccessCred1", // accessCred
-                            rs.getTimestamp(22).toInstant(), // created
-                            rs.getTimestamp(23).toInstant()); // updated
+                            rs.getTimestamp(23).toInstant(), // created
+                            rs.getTimestamp(24).toInstant()); // updated
     }
     catch (Exception e)
     {

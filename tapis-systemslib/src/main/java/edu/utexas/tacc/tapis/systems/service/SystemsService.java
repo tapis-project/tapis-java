@@ -14,7 +14,7 @@ public interface SystemsService
   int createSystem(String tenant, String name, String description, String owner, String host,
                    boolean available, String bucketName, String rootDir, String jobInputDir,
                    String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
-                   String accessCredential, String accessMechanism, String transferMechanisms,
+                   String notes, String accessCredential, String accessMechanism, String transferMechanisms,
                    int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort)
     throws TapisException;
 

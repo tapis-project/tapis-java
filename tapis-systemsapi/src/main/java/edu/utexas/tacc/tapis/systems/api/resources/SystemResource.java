@@ -201,7 +201,7 @@ public class SystemResource
     }
 
     String name, description, owner, host, bucketName, rootDir,
-           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags;
+           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes;
     String accessMech, proxyHost;
     // TODO: creds might need to be byte array
     String accessCred;
@@ -229,6 +229,7 @@ public class SystemResource
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
     accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
     tags = ApiUtils.getValS(obj.get("tags"), "{}");
+    notes = ApiUtils.getValS(obj.get("notes"), "{}");
 
     //Extract Protocol information
     accessMech = (obj.has("accessMechanism") ? obj.get("accessMechanism").getAsString() : "NONE");
@@ -274,8 +275,8 @@ public class SystemResource
     try
     {
       systemsService.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, accessCred,
-                                  accessMech, transferMechs.toString(), port, useProxy, proxyHost, proxyPort);
+                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
+                                  accessCred, accessMech, transferMechs.toString(), port, useProxy, proxyHost, proxyPort);
     }
     catch (Exception e)
     {

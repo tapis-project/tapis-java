@@ -5,10 +5,14 @@ import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
+import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
+import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +54,7 @@ public class SystemsServiceImpl implements SystemsService
   public int createSystem(String tenant, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
-                          String accessCredential, String accessMechanism, String transferMechanisms,
+                          String notes, String accessCredential, String accessMechanism, String transferMechanisms,
                           int protocolPort, boolean protocolUseProxy,
                           String protocolProxyHost, int protocolProxyPort)
           throws TapisException
@@ -60,21 +64,21 @@ public class SystemsServiceImpl implements SystemsService
 
 
     int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags,
+                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
                                    protocolProxyHost, protocolProxyPort);
 
     // TODO: Remove debug System.out statements
 
     // TODO Store credentials in Security Kernel
+
+    // TODO Get the tenant and base URLs from the environment so "dev" is not hard-coded.
+    RuntimeParameters parms = RuntimeParameters.getInstance();
     // TODO Do real service location lookup, through tenants service?
-    String tokBaseURL = "https://dev.develop.tapis.io";
-//    String tokBaseURL = "http://c002.rodeo.tacc.utexas.edu:31357";
-//    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security";
-    String skBaseURL = "https://dev.develop.tapis.io/v3";
+//    String tokensBaseURL = "https://dev.develop.tapis.io";
+    String tokensBaseURL = parms.getTokensSvcURL();
     // Get short term JWT from tokens service
-    var tokClient = new TokensClient(tokBaseURL);
-    // TODO: use real tenant
+    var tokClient = new TokensClient(tokensBaseURL);
     String skJWT = null;
     try {skJWT = tokClient.getSvcToken(tenant, SERVICE_NAME_SYSTEMS);}
     catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
@@ -83,11 +87,20 @@ public class SystemsServiceImpl implements SystemsService
     // Basic check of JWT
     if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
 
+    // Lookup tenant info from tenants service
+//    String tenantsBaseURL = "https://dev.develop.tapis.io";
+    String tenantsBaseURL = parms.getTenantsSvcURL();
+    var tenantsClient = new TenantsClient(tenantsBaseURL);
+
+    // TODO If SK base bath not in the env, get it from tenant info
+
+//    String skBaseURL = "https://dev.develop.tapis.io/v3";
+    String skBaseURL = parms.getSkSvcURL();
+    var skClient = new SKClient(skBaseURL, skJWT);
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenant + ":*:" + name;
     String storePerm = "store:" + tenant + ":*:" + name + ":*";
 
-    var skClient = new SKClient(skBaseURL, skJWT);
     // Create Role with perms and grant it to user
     // TODO/TBD: name of system owner role, one for each "tenant+system"?
     String roleName = SYSTEM_OWNER_ROLE + "_" + name;

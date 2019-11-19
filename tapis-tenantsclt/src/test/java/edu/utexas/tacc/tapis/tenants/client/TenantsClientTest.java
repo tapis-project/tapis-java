@@ -1,16 +1,16 @@
-package edu.utexas.tacc.tapis.systems.client;
+package edu.utexas.tacc.tapis.tenants.client;
 
 import org.testng.annotations.Test;
 
-//import edu.utexas.tacc.tapis.systems.client.gen.ApiException;
-//import edu.utexas.tacc.tapis.systems.client.gen.api.RoleApi;
-//import edu.utexas.tacc.tapis.systems.client.gen.model.ReqCreateRole;
-//import edu.utexas.tacc.tapis.systems.client.gen.model.RespChangeCount;
-//import edu.utexas.tacc.tapis.systems.client.gen.model.RespResourceUrl;
+//import edu.utexas.tacc.tapis.tenants.client.gen.ApiException;
+//import edu.utexas.tacc.tapis.tenants.client.gen.api.RoleApi;
+//import edu.utexas.tacc.tapis.tenants.client.gen.model.ReqCreateRole;
+//import edu.utexas.tacc.tapis.tenants.client.gen.model.RespChangeCount;
+//import edu.utexas.tacc.tapis.tenants.client.gen.model.RespResourceUrl;
 //import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 @Test(groups={"integration"})
-public class SysClientTest
+public class TenantsClientTest
 {
     /* ********************************************************************** */
     /*                            Main Test Method                            */

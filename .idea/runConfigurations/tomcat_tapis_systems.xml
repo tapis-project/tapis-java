@@ -115,6 +115,21 @@
         <option name="VALUE" value="password" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_TOKENS_URL" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_TENANTS_URL" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_SK_URL" />
+        <option name="VALUE" value="https://dev.develop.tapis.io/v3" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
     </ConfigurationWrapper>
     <method v="2">
       <option name="Make" enabled="true" />

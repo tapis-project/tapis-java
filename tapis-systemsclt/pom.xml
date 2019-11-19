@@ -47,24 +47,30 @@
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
     </dependency>
+    <dependency>
+      <groupId>edu.utexas.tacc.tapis</groupId>
+      <artifactId>tapis-systemslib</artifactId>
+      <version>0.0.1</version>
+      <scope>test</scope>
+    </dependency>
 
-<!-- Dependencies needed when building with swagger-codegen
-    <dependency>
-      <groupId>com.squareup.okhttp</groupId>
-      <artifactId>okhttp</artifactId>
-      <version>${okhttp.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp</groupId>
-      <artifactId>logging-interceptor</artifactId>
-      <version>${okhttp.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-annotations</artifactId>
-      <version>${swagger-annotations.version}</version>
-    </dependency>
--->
+    <!-- Dependencies needed when building with swagger-codegen
+        <dependency>
+          <groupId>com.squareup.okhttp</groupId>
+          <artifactId>okhttp</artifactId>
+          <version>${okhttp.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.squareup.okhttp</groupId>
+          <artifactId>logging-interceptor</artifactId>
+          <version>${okhttp.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>io.swagger.core.v3</groupId>
+          <artifactId>swagger-annotations</artifactId>
+          <version>${swagger-annotations.version}</version>
+        </dependency>
+    -->
   </dependencies>
 
   <build>
@@ -82,8 +88,10 @@
                     <goal>generate</goal>
                   </goals>
                   <configuration>
-                    <!-- Use the openapi spec auto-generated from build of tapis-systemsapi module -->
-                    <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec>
+                    <!-- Use the openapi spec auto-generated from build of tapis-systemsapi module
+                    <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/openapi.yaml</inputSpec> -->
+                    <!-- Use the published openapi spec -->
+                    <inputSpec>${project.basedir}/../tapis-systemsapi/src/main/resources/SystemsAPI.yaml</inputSpec>
                     <output>${project.build.directory}/generated-sources/openapi</output>
                     <generatorName>java</generatorName>
                     <groupId>edu.utexas.tacc.tapis</groupId>

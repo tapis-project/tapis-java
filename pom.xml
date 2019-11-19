@@ -97,15 +97,16 @@
   </dependencies>
 
     <modules>
+    <module>tapis-tokensclt</module>
+    <module>tapis-tenantsclt</module>
+    <module>tapis-securityclt</module>
+    <module>tapis-systemsclt</module>
     <module>tapis-migrate</module>
     <module>tapis-securityapi</module>
-    <module>tapis-securityclt</module>
     <module>tapis-securitylib</module>
     <module>tapis-securitymigrate</module>
     <module>tapis-systemsapi</module>
-    <module>tapis-systemsclt</module>
     <module>tapis-systemslib</module>
-    <module>tapis-tokensclt</module>
     <module>tapis-sampleapi</module>
     <module>tapis-samplelib</module>
   </modules>
