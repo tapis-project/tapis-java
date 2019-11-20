@@ -274,9 +274,10 @@ public class SystemResource
     systemsService = new SystemsServiceImpl();
     try
     {
-      systemsService.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
+      systemsService.createSystem(tenant, apiUserId, name, description, owner, host, available, bucketName, rootDir,
                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
-                                  accessCred, accessMech, transferMechs.toString(), port, useProxy, proxyHost, proxyPort);
+                                  accessCred, accessMech, transferMechs.toString(),
+                                  port, useProxy, proxyHost, proxyPort, json);
     }
     catch (Exception e)
     {

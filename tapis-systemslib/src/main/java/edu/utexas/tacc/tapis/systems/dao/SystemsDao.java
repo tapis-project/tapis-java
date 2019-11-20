@@ -11,7 +11,7 @@ public interface SystemsDao
                     boolean available, String bucketName, String rootDir,
                     String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
                     String effectiveUserId, String tags, String notes, String accessMechanism,String transferMechanisms,
-                    int port, boolean useProxy, String proxyHost, int proxyPort)
+                    int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
     throws TapisException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;

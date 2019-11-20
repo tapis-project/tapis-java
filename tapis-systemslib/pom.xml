@@ -36,13 +36,13 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-tokensclt</artifactId>
-      <version>${project.version}</version>
+      <artifactId>tokens-client</artifactId>
+      <version>${tapis-client-java.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-tenantsclt</artifactId>
-      <version>${project.version}</version>
+      <artifactId>tenants-client</artifactId>
+      <version>${tapis-client-java.version}</version>
     </dependency>
     <dependency>
       <groupId>io.swagger.core.v3</groupId>

@@ -7,7 +7,11 @@
     <parent>
       <groupId>edu.utexas.tacc.tapis</groupId>
       <artifactId>tapis-bom</artifactId>
-      <version>1.2-SNAPSHOT</version>
+      <version>1.4-SNAPSHOT</version>
+      <!-- Set empty relative path to avoid maven warning and-->
+      <!--   ensure parent is found in local repository if that-->
+      <!--   is the only place it exists.-->
+      <relativePath></relativePath>
     </parent>
 
     <artifactId>tapis</artifactId>
@@ -27,6 +31,7 @@
       <!-- Properties can be overridden here       -->
       <!-- Version of tapis-shared-java to be used. Individual projects may want to override. -->
       <tapis-shared-java.version>1.1-SNAPSHOT</tapis-shared-java.version>
+      <tapis-client-java.version>1.1-SNAPSHOT</tapis-client-java.version>
     </properties>
 
   <repositories>
@@ -97,10 +102,7 @@
   </dependencies>
 
     <modules>
-    <module>tapis-tokensclt</module>
-    <module>tapis-tenantsclt</module>
     <module>tapis-securityclt</module>
-    <module>tapis-systemsclt</module>
     <module>tapis-migrate</module>
     <module>tapis-securityapi</module>
     <module>tapis-securitylib</module>

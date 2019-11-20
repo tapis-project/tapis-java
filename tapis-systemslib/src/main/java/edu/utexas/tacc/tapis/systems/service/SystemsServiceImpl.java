@@ -36,6 +36,10 @@ public class SystemsServiceImpl implements SystemsService
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
   private static final String SYSTEM_OWNER_ROLE = "SystemOwner";
+  private static final String APIUSERID_VAR = "${apiUserId}";
+  private static final String OWNER_VAR = "${owner}";
+  private static final String TENANT_VAR = "${tenant}";
+  private static final String EFFUSERID_VAR = "${effectiveUserId}";
 
   // **************** Inject Dao singletons ****************
   @com.google.inject.Inject
@@ -51,52 +55,74 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public int createSystem(String tenant, String name, String description, String owner, String host,
+  public int createSystem(String tenant, String apiUserId, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
                           String notes, String accessCredential, String accessMechanism, String transferMechanisms,
-                          int protocolPort, boolean protocolUseProxy,
-                          String protocolProxyHost, int protocolProxyPort)
+                          int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
+                          String rawRequest)
           throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
 
+    // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
+    if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
+
+    // Perform variable substitutions for bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed.
+    // TODO
 
     int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
-                                   protocolProxyHost, protocolProxyPort);
+                                   protocolProxyHost, protocolProxyPort, rawRequest);
 
     // TODO: Remove debug System.out statements
 
+    // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
+
     // TODO Store credentials in Security Kernel
 
-    // TODO Get the tenant and base URLs from the environment so "dev" is not hard-coded.
+    // Get the tenant and token base URLs from the environment
     RuntimeParameters parms = RuntimeParameters.getInstance();
     // TODO Do real service location lookup, through tenants service?
 //    String tokensBaseURL = "https://dev.develop.tapis.io";
     String tokensBaseURL = parms.getTokensSvcURL();
-    // Get short term JWT from tokens service
+    // Get short term service JWT from tokens service
     var tokClient = new TokensClient(tokensBaseURL);
-    String skJWT = null;
-    try {skJWT = tokClient.getSvcToken(tenant, SERVICE_NAME_SYSTEMS);}
+    String svcJWT = null;
+    // TODO proper exception handling
+    try {svcJWT = tokClient.getSvcToken(tenant, SERVICE_NAME_SYSTEMS);}
     catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
-    System.out.println("Got skJWT: " + skJWT);
-    _log.error("Got skJWT: " + skJWT);
+    System.out.println("Got svcJWT: " + svcJWT);
+    _log.error("Got svcJWT: " + svcJWT);
     // Basic check of JWT
-    if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
+    if (StringUtils.isBlank(svcJWT)) throw new TapisException("Token service returned invalid JWT");
 
-    // Lookup tenant info from tenants service
-//    String tenantsBaseURL = "https://dev.develop.tapis.io";
-    String tenantsBaseURL = parms.getTenantsSvcURL();
-    var tenantsClient = new TenantsClient(tenantsBaseURL);
 
-    // TODO If SK base bath not in the env, get it from tenant info
-
+    // Get Security Kernel URL from the env or the tenants service
+    // Env value has precedence
 //    String skBaseURL = "https://dev.develop.tapis.io/v3";
     String skBaseURL = parms.getSkSvcURL();
-    var skClient = new SKClient(skBaseURL, skJWT);
+    if (StringUtils.isBlank(skBaseURL))
+    {
+      // Lookup tenant info from tenants service
+//    String tenantsBaseURL = "https://dev.develop.tapis.io";
+      String tenantsBaseURL = parms.getTenantsSvcURL();
+      var tenantsClient = new TenantsClient(tenantsBaseURL);
+      // TODO proper exception handling
+      try {skBaseURL = tenantsClient.getSKBasePath(tenant);}
+      catch (Exception e) {throw new TapisException("Exception from Tenants service", e);}
+      // TODO remove strip-off of everything after /v3 once tenant is updated
+      // Strip off everything after the /v3 so we have a valid SK base URL
+      skBaseURL = skBaseURL.substring(0, skBaseURL.indexOf("/v3") + 3);
+      // TODO: remove. There is currently a typo in the sk url for tenant dev. hard code for now
+      skBaseURL = "https://dev.develop.tapis.io/v3";
+    }
+
+
+    var skClient = new SKClient(skBaseURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenant + ":*:" + name;
     String storePerm = "store:" + tenant + ":*:" + name + ":*";

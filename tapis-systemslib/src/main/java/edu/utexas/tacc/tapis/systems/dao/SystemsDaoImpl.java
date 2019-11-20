@@ -46,7 +46,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
                            String effectiveUserId, String tags, String notes, String accessMechanism, String transferMechanisms,
-                           int port, boolean useProxy, String proxyHost, int proxyPort)
+                           int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
           throws TapisException
   {
     // Generated sequence id
@@ -114,6 +114,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setBoolean(19, useProxy);
       pstmt.setString(20, proxyHost);
       pstmt.setInt(21, proxyPort);
+      pstmt.setString(22, rawRequest);
 
       // Issue the call.
       pstmt.execute();

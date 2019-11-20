@@ -70,7 +70,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
@@ -82,7 +82,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
@@ -119,14 +119,14 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
     prot0 = prot4;
     itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<String> systemNames = dao.getTSystemNames(tenant);
     for (String name : systemNames) {
@@ -144,7 +144,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                 sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                 prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<TSystem> systems = dao.getTSystems(tenant);
     for (TSystem system : systems) {
@@ -160,7 +160,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     dao.deleteTSystem(sys0[0], sys0[1]);
     TSystem tmpSystem = dao.getTSystemByName(sys0[0], sys0[1]);
@@ -176,7 +176,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
                                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13],
                                     prot0.getAccessMechanism().name(), null, prot0.getPort(),
-                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort());
+                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0[0], sys0[1]);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);

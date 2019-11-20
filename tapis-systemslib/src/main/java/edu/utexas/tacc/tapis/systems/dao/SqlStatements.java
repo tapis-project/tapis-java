@@ -10,8 +10,9 @@ final class SqlStatements
   static final String CREATE_SYSTEM =
     "INSERT INTO systems (tenant, name, description, owner, host, available, bucket_name, root_dir, job_input_dir, " +
       "job_output_dir, work_dir, scratch_dir, effective_user_id, tags, notes, access_mechanism, transfer_mechanisms, " +
-      "port, use_proxy, proxy_host, proxy_port) " +
-      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::access_mech_type, ?::transfer_mech_type[], ?, ?, ?, ?) RETURNING id";
+      "port, use_proxy, proxy_host, proxy_port, raw_req) " +
+      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::access_mech_type, ?::transfer_mech_type[], ?, ?, ?, ?, ?) " +
+      "RETURNING id";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =
