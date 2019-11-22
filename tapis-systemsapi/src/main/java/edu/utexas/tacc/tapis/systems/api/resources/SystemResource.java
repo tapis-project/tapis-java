@@ -209,9 +209,30 @@ public class SystemResource
     boolean available, useProxy;
 
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
+
+    // ------------------------- Create System Object ---------------------
+    systemsService = new SystemsServiceImpl();
+    String msg = null;
+
     // Extract required name value and check to see if object exists.
+    // If object exists then return 409 - Conflict
     name = obj.get("name").getAsString();
-    // TODO: Check if object exists. If yes then return 409 - Conflict
+    try
+    {
+      boolean found = systemsService.checkForSystemByName(tenant, name);
+      if (found)
+      {
+        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
+        _log.warn(msg);
+        return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+    }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, name, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
 
     // Extract other top level properties: description, owner, host ...
     // Extract required values
@@ -253,7 +274,6 @@ public class SystemResource
     transferMechs.append("}");
 
     // Check values.
-    String msg = null;
     if (StringUtils.isBlank(name)) {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
     }
@@ -270,8 +290,7 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // ------------------------- Create System Object ---------------------
-    systemsService = new SystemsServiceImpl();
+    // Make the service call to create the system
     try
     {
       systemsService.createSystem(tenant, apiUserId, name, description, owner, host, available, bucketName, rootDir,

@@ -39,4 +39,8 @@ final class SqlStatements
   // Delete a system given the name
   public static final String DELETE_SYSTEM_BY_NAME =
     "DELETE FROM systems where tenant = ? AND name = ?";
+
+  // Check for a existence of a record
+  public static final String CHECK_FOR_SYSTEM_BY_NAME =
+    "SELECT EXISTS(SELECT 1 FROM systems where tenant = ? AND name = ?)";
 }

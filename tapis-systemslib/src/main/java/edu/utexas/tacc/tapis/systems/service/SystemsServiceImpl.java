@@ -188,6 +188,20 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
+  public boolean checkForSystemByName(String tenant, String name) throws TapisException {
+    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
+    var dao = new SystemsDaoImpl();
+    boolean result = dao.checkForTSystemByName(tenant, name);
+    return result;
+  }
+
+  /**
+   * getSystemByName
+   * @param name
+   * @return
+   * @throws TapisException
+   */
+  @Override
   public TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();

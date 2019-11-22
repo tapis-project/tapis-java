@@ -44,6 +44,8 @@ public class SystemsServiceTest
     "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", tags, notes, "fakePassword5", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys6 = {tenant, "Ssys6", "description 6", "owner6", "host6", "bucket6", "/root6",
     "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", tags, notes, "fakePassword6", prot1AccessMechName, prot1TxfMechs};
+  private static final String[] sys7 = {tenant, "Ssys7", "description 7", "owner7", "host7", "bucket7", "/root7",
+    "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", tags, notes, "fakePassword7", prot1AccessMechName, prot1TxfMechs};
 
 
   @BeforeSuite
@@ -160,6 +162,22 @@ public class SystemsServiceTest
     Assert.assertNull(tmpSys2, "System not deleted. System name: " + sys0[1]);
   }
 
+  @Test
+  public void testSystemExists() throws Exception
+  {
+    // If system not there we should get false
+    Assert.assertFalse(svc.checkForSystemByName(sys7[0], sys7[1]));
+    // After creating system we should get true
+    String[] sys0 = sys7;
+    Protocol prot0 = prot1;
+    int itemId = svc.createSystem(sys0[0], apiUserId, sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                  sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13], sys0[14],
+                                  prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                  prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    Assert.assertTrue(svc.checkForSystemByName(sys7[0], sys7[1]));
+  }
+
   @AfterSuite
   public void tearDown() throws Exception
   {
@@ -173,5 +191,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys4[0], sys4[1]);
     svc.deleteSystemByName(sys5[0], sys5[1]);
     svc.deleteSystemByName(sys6[0], sys6[1]);
+    svc.deleteSystemByName(sys7[0], sys7[1]);
   }
 }

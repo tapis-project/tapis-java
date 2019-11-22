@@ -248,6 +248,75 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   }
 
   /**
+   * checkForSystemByName
+   * @param name
+   * @return true if found else false
+   * @throws TapisException
+   */
+  @Override
+  public boolean checkForTSystemByName(String tenant, String name) throws TapisException {
+    // Initialize result.
+    boolean result = false;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+
+      // Prepare the statement and fill in the placeholders.
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+
+      // Should get one row back. If not return null.
+      ResultSet rs = pstmt.executeQuery();
+      if (rs != null && rs.next()) result = rs.getBoolean(1);
+
+      // Close out and commit
+      rs.close();
+      pstmt.close();
+      conn.commit();
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction.
+      try
+      {
+        if (conn != null) conn.rollback();
+      }
+      catch (Exception e1)
+      {
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+      }
+
+      String msg = MsgUtils.getMsg("DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
+      _log.error(msg, e);
+      throw new TapisException(msg, e);
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      try
+      {
+        if (conn != null) conn.close();
+      }
+      catch (Exception e)
+      {
+        // If commit worked, we can swallow the exception.
+        // If not, the commit exception will be thrown.
+        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+        _log.error(msg, e);
+      }
+    }
+    return result;
+  }
+
+  /**
    * getSystemByName
    * @param name
    * @return System object if found, null if not found

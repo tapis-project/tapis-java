@@ -21,6 +21,8 @@ public interface SystemsService
 
   int deleteSystemByName(String tenant, String name) throws TapisException;
 
+  boolean checkForSystemByName(String tenant, String name) throws TapisException;
+
   TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException;
 
   List<TSystem> getSystems(String tenant) throws TapisException;
