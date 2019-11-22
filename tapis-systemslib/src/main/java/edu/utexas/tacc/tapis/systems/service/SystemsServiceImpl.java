@@ -5,11 +5,10 @@ import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
@@ -20,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
 /*
  * Service level methods for Systems.
@@ -36,10 +38,7 @@ public class SystemsServiceImpl implements SystemsService
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
   private static final String SYSTEM_OWNER_ROLE = "SystemOwner";
-  private static final String APIUSERID_VAR = "${apiUserId}";
-  private static final String OWNER_VAR = "${owner}";
-  private static final String TENANT_VAR = "${tenant}";
-  private static final String EFFUSERID_VAR = "${effectiveUserId}";
+  private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
 
   // **************** Inject Dao singletons ****************
   @com.google.inject.Inject
@@ -69,9 +68,28 @@ public class SystemsServiceImpl implements SystemsService
     // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
     if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
 
-    // Perform variable substitutions for bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
-    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed.
-    // TODO
+    // TODO/TBD do this check here? it is already being done in systemsapi front-end. If we are going to support
+    //   other front-ends over which we have less control then a lot more checking needs to be done here as well.
+    // Check for valid effectiveUserId
+    // For SSH_CERT access the effectiveUserId cannot be static string other than owner
+//    if (accessMechanism != null && accessMechanism.equals(Protocol.AccessMechanism.SSH_CERT) &&
+//        !effectiveUserId.equals(owner) &&
+//        !effectiveUserId.equals(APIUSERID_VAR) &&
+//        !effectiveUserId.equals(OWNER_VAR))
+//    {
+//
+//    }
+
+      // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
+    //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
+    String[] allVarSubstitutions = {apiUserId, owner, tenant};
+    bucketName = StringUtils.replaceEach(bucketName, ALL_VARS, allVarSubstitutions);
+    rootDir = StringUtils.replaceEach(rootDir, ALL_VARS, allVarSubstitutions);
+    jobInputDir = StringUtils.replaceEach(jobInputDir, ALL_VARS, allVarSubstitutions);
+    jobOutputDir = StringUtils.replaceEach(jobOutputDir, ALL_VARS, allVarSubstitutions);
+    workDir = StringUtils.replaceEach(workDir, ALL_VARS, allVarSubstitutions);
+    scratchDir = StringUtils.replaceEach(scratchDir, ALL_VARS, allVarSubstitutions);
 
     int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
@@ -202,10 +220,15 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException {
+  public TSystem getSystemByName(String tenant, String name, String apiUserId, boolean getCreds) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
     TSystem result = dao.getTSystemByName(tenant, name);
+    if (result == null) return result;
+    // Resolve effectiveUserId if necessary
+    result.setEffectiveUserId(resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId));
+    // TODO If requested retrieve credentials from Security Kernel
+    //result.setAccessCredential();
     return result;
   }
 
@@ -216,11 +239,18 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public List<TSystem> getSystems(String tenant) throws TapisException
+  public List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
-    return dao.getTSystems(tenant);
+    List<TSystem> result = dao.getTSystems(tenant);
+    for (TSystem sys : result)
+    {
+      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
+      // TODO If requested retrieve credentials from Security Kernel
+      //sys.setAccessCredential();
+    }
+    return result;
   }
 
   /**
@@ -241,4 +271,16 @@ public class SystemsServiceImpl implements SystemsService
   /*                             Private Methods                            */
   /* ********************************************************************** */
 
+  /**
+   * If effectiveUserId is dynamic then resolve it
+   * @param userId
+   * @return
+   */
+  private String resolveEffectiveUserId(String userId, String owner, String apiUserId)
+  {
+    if (StringUtils.isBlank(userId)) return userId;
+    else if (userId.equals(OWNER_VAR) && !StringUtils.isBlank(owner)) return owner;
+    else if (userId.equals(APIUSERID_VAR) && !StringUtils.isBlank(apiUserId)) return apiUserId;
+    else return userId;
+  }
 }

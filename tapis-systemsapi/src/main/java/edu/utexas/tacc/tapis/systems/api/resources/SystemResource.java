@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +53,9 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+
+import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 
 @Path("/system")
 public class SystemResource
@@ -175,8 +180,6 @@ public class SystemResource
     String tenant = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-
-
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
     String json;
@@ -260,6 +263,7 @@ public class SystemResource
     proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
     // Extract list of supported transfer mechanisms contained in protocol
     // If element is not there or the list is empty then build empty array "{}"
+    var mechsArr = new ArrayList<String>();
     StringBuilder transferMechs = new StringBuilder("{");
     JsonArray mechs = null;
     if (obj.has("transferMechanisms")) mechs = obj.getAsJsonArray("transferMechanisms");
@@ -268,21 +272,43 @@ public class SystemResource
       for (int i = 0; i < mechs.size()-1; i++)
       {
         transferMechs.append(mechs.get(i).toString()).append(",");
+        mechsArr.add(mechs.get(i).toString());
       }
       transferMechs.append(mechs.get(mechs.size()-1).toString());
+      mechsArr.add(mechs.get(mechs.size()-1).toString());
     }
     transferMechs.append("}");
 
-    // Check values.
-    if (StringUtils.isBlank(name)) {
+    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
+    // Check values. name, host, accessMech must be set. effectiveUserId is restricted.
+    // If transfer mechanism S3 is supported then bucketName must be set.
+    if (StringUtils.isBlank(name))
+    {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
     }
-    else if (StringUtils.isBlank(host)) {
+    else if (StringUtils.isBlank(host))
+    {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
     }
-    else if (StringUtils.isBlank(accessMech)) {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty AccessProtocol mechanism.");
+    else if (StringUtils.isBlank(accessMech))
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access mechanism.");
     }
+    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT) &&
+             !StringUtils.isBlank(owner) &&
+             !effectiveUserId.equals(owner) &&
+             !effectiveUserId.equals(APIUSERID_VAR) &&
+             !effectiveUserId.equals(OWNER_VAR))
+    {
+      // For SSH_CERT access the effectiveUserId cannot be static string other than owner
+      msg = MsgUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
+    }
+    else if (mechsArr.contains(Protocol.TransferMechanism.S3.name()) && StringUtils.isBlank(bucketName))
+    {
+      // For S3 support bucketName must be set
+      msg = MsgUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+    }
+
     // If validation failed log error message and return response
     if (msg != null)
     {
@@ -378,7 +404,7 @@ public class SystemResource
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, name, getCreds);
+      system = systemsService.getSystemByName(tenant, name, apiUserId, getCreds);
     }
     catch (Exception e)
     {

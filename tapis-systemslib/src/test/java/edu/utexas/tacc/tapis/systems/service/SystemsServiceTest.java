@@ -46,6 +46,9 @@ public class SystemsServiceTest
     "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", tags, notes, "fakePassword6", prot1AccessMechName, prot1TxfMechs};
   private static final String[] sys7 = {tenant, "Ssys7", "description 7", "owner7", "host7", "bucket7", "/root7",
     "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", tags, notes, "fakePassword7", prot1AccessMechName, prot1TxfMechs};
+  private static final String[] sys8 = {tenant, "Ssys8", "description 8", "${apiUserId}", "host8", "bucket8-${tenant}-${apiUserId}",
+    "/root8/${tenant}", "jobInputDir8/home/${apiUserId}/input", "jobOutputDir8/home/${apiUserId}/output", "workDir8/home/${apiUserId}/tapis/data",
+    "scratchDir8/home/${owner}/${tenant}/${apiUserId}", "${owner}", tags, notes, "fakePassword8", prot1AccessMechName, prot1TxfMechs};
 
 
   @BeforeSuite
@@ -76,7 +79,7 @@ public class SystemsServiceTest
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                     prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    TSystem tmpSys = svc.getSystemByName(sys0[0], sys0[1], false);
+    TSystem tmpSys = svc.getSystemByName(sys0[0], sys0[1], apiUserId, false);
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
     System.out.println("Found item: " + sys0[1]);
     Assert.assertEquals(tmpSys.getName(), sys0[1]);
@@ -90,6 +93,59 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getWorkDir(), sys0[9]);
     Assert.assertEquals(tmpSys.getScratchDir(), sys0[10]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[11]);
+    System.out.println("Found tags: " + tmpSys.getTags());
+    System.out.println("Found notes: " + tmpSys.getNotes());
+    Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
+    Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
+    Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
+    Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
+    Assert.assertEquals(tmpSys.getProxyPort(), prot0.getProxyPort());
+    List<TransferMechanism> tmechsList = tmpSys.getTransferMechanisms();
+    Assert.assertNotNull(tmechsList);
+    Assert.assertTrue(tmechsList.contains(TransferMechanism.S3), "List of transfer mechanisms did not contain: " + TransferMechanism.S3.name());
+    Assert.assertTrue(tmechsList.contains(TransferMechanism.SFTP), "List of transfer mechanisms did not contain: " + TransferMechanism.SFTP.name());
+  }
+
+  // Check that when a system is created variable substitution is correct for:
+  //   owner, bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+  // And when system is retrieved effectiveUserId is resolved
+  @Test
+  public void testGetSystemByNameWithVariables() throws Exception
+  {
+    // TODO
+    String[] sys0 = sys8;
+    Protocol prot0 = prot1;
+    int itemId = svc.createSystem(sys0[0], apiUserId, sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                  sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13], sys0[14],
+                                  prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                  prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    TSystem tmpSys = svc.getSystemByName(sys0[0], sys0[1], apiUserId, false);
+    Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0[1]);
+    System.out.println("Found item: " + sys0[1]);
+
+// sys8 = {tenant, "Ssys8", "description 8", "${apiUserId}", "host8", "bucket8-${tenant}-${apiUserId}",
+//   "/root8/${tenant}", "jobInputDir8/home/${apiUserId}/input", "jobOutputDir8/home/${apiUserId}/output", "workDir8/home/${apiUserId}/tapis/data",
+//   "scratchDir8/home/${owner}/${tenant}/${apiUserId}", "${owner}", tags, notes, "fakePassword8", prot1AccessMechName, prot1TxfMechs};
+    String owner = apiUserId;
+    String bucketName = "bucket8-" + tenant + "-" + apiUserId;
+    String rootDir = "/root8/" + tenant;
+    String jobInputDir = "jobInputDir8/home/" + apiUserId + "/input";
+    String jobOutputDir = "jobOutputDir8/home/" + apiUserId + "/output";
+    String workDir = "workDir8/home/" + apiUserId + "/tapis/data";
+    String scratchDir = "scratchDir8/home/" + owner + "/" + tenant + "/" + apiUserId;
+    String effectiveUserId = owner;
+    Assert.assertEquals(tmpSys.getName(), sys0[1]);
+    Assert.assertEquals(tmpSys.getDescription(), sys0[2]);
+    Assert.assertEquals(tmpSys.getOwner(), owner);
+    Assert.assertEquals(tmpSys.getHost(), sys0[4]);
+    Assert.assertEquals(tmpSys.getBucketName(), bucketName);
+    Assert.assertEquals(tmpSys.getRootDir(), rootDir);
+    Assert.assertEquals(tmpSys.getJobInputDir(), jobInputDir);
+    Assert.assertEquals(tmpSys.getJobOutputDir(), jobOutputDir);
+    Assert.assertEquals(tmpSys.getWorkDir(), workDir);
+    Assert.assertEquals(tmpSys.getScratchDir(), scratchDir);
+    Assert.assertEquals(tmpSys.getEffectiveUserId(), effectiveUserId);
     System.out.println("Found tags: " + tmpSys.getTags());
     System.out.println("Found notes: " + tmpSys.getNotes());
     Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
@@ -138,7 +194,7 @@ public class SystemsServiceTest
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = svc.getSystems(tenant);
+    List<TSystem> systems = svc.getSystems(tenant, apiUserId);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
@@ -158,7 +214,7 @@ public class SystemsServiceTest
 
     // Delete the system
     svc.deleteSystemByName(sys0[0], sys0[1]);
-    TSystem tmpSys2 = svc.getSystemByName(sys0[0], sys0[1], false);
+    TSystem tmpSys2 = svc.getSystemByName(sys0[0], sys0[1], apiUserId, false);
     Assert.assertNull(tmpSys2, "System not deleted. System name: " + sys0[1]);
   }
 
@@ -178,13 +234,25 @@ public class SystemsServiceTest
     Assert.assertTrue(svc.checkForSystemByName(sys7[0], sys7[1]));
   }
 
+  // Check that accessMech = SSH_CERT and static effective user other than owner is not allowed
+//  @Test
+//  public void testSshCertEffectiveUserIdNotAllowed() throws Exception
+//  {
+//  }
+
+  // Check that if system supports S3 transfer mechanism then bucketName is required
+//  @Test
+//  public void testBucketnameRequiredForS3() throws Exception
+//  {
+//  }
+
   @AfterSuite
   public void tearDown() throws Exception
   {
     System.out.println("Executing AfterSuite teardown method");
     //Remove all objects created by tests
     svc.deleteSystemByName(sys1[0], sys1[1]);
-    TSystem tmpSys = svc.getSystemByName(sys1[0], sys1[1], false);
+    TSystem tmpSys = svc.getSystemByName(sys1[0], sys1[1], apiUserId, false);
     Assert.assertNull(tmpSys, "System not deleted. System name: " + sys1[1]);
     svc.deleteSystemByName(sys2[0], sys2[1]);
     svc.deleteSystemByName(sys3[0], sys3[1]);
@@ -192,5 +260,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys5[0], sys5[1]);
     svc.deleteSystemByName(sys6[0], sys6[1]);
     svc.deleteSystemByName(sys7[0], sys7[1]);
+    svc.deleteSystemByName(sys8[0], sys8[1]);
   }
 }

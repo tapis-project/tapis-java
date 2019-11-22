@@ -27,14 +27,21 @@ public final class TSystem
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
-  public static final String DEFAULT_OWNER = "${apiUserId}";
+  // Allowed substitution variables
+  public static final String APIUSERID_VAR = "${apiUserId}";
+  public static final String OWNER_VAR = "${owner}";
+  public static final String TENANT_VAR = "${tenant}";
+  public static final String EFFUSERID_VAR = "${effectiveUserId}";
+
+  // Default values
+  public static final String DEFAULT_OWNER = APIUSERID_VAR;
   public static final boolean DEFAULT_AVAILABLE_ = true;
   public static final String DEFAULT_ROOTDIR = "/";
   public static final String DEFAULT_JOBINPUTDIR = "/input";
   public static final String DEFAULT_JOBOUTPUTDIR = "/output";
   public static final String DEFAULT_WORKDIR = "/data";
   public static final String DEFAULT_SCRATCHDIR = "/scratch";
-  public static final String DEFAULT_EFFECTIVEUSERID = "${apiUserId}";
+  public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
   public static final String DEFAULT_TAGS = "{}";
   public static final String DEFAULT_NOTES = "{}";
 
@@ -120,14 +127,14 @@ public final class TSystem
   public String getName() { return name; }
 
   public String getDescription() { return description; }
-  public void setDescription(String description) { this.description = description; }
+  public void setDescription(String descr) { description = descr; }
 
   public String getOwner() { return owner; }
 
   public String getHost() { return host; }
 
   public boolean isAvailable() { return available; }
-  public void setAvailable(boolean available) { this.available = available; }
+  public void setAvailable(boolean avail) { available = avail; }
 
   public String getBucketName() { return bucketName; }
 
@@ -142,6 +149,7 @@ public final class TSystem
   public String getScratchDir() { return scratchDir; }
 
   public String getEffectiveUserId() { return effectiveUserId; }
+  public void setEffectiveUserId(String userId) { effectiveUserId = userId; }
 
   public String getTags() { return tags; }
 
@@ -160,6 +168,7 @@ public final class TSystem
   public List<TransferMechanism> getTransferMechanisms() { return transferMechanisms; }
 
   public String getAccessCredential() { return accessCredential; }
+  public void setAccessCredential(String creds) {accessCredential = creds;}
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }
