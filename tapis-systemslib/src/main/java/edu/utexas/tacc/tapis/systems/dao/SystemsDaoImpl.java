@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.inject.Singleton;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
                            String effectiveUserId, String tags, String notes, String accessMechanism, String transferMechanisms,
                            int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
-          throws TapisException
+          throws TapisException, IllegalStateException
   {
     // Generated sequence id
     int itemId;
@@ -80,8 +81,19 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
+      // Check to see if system exists. If yes then throw IllegalStateException
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+      // Should get one row back. If not assume system does not exist
+      boolean doesExist = false;
+      ResultSet rs = pstmt.executeQuery();
+      if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", null, name));
+
       // Set the sql command.
-      String sql = SqlStatements.CREATE_SYSTEM;
+      sql = SqlStatements.CREATE_SYSTEM;
 
       // Convert tags and notes to jsonb objects
       var tagsJson = new PGobject();
@@ -92,7 +104,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       notesJson.setValue(notes);
 
       // Prepare the statement and fill in the placeholders.
-      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
       pstmt.setString(3, description);
@@ -118,8 +130,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Issue the call.
       pstmt.execute();
-      // The generated sequence id should come back in the result
-      ResultSet rs = pstmt.getResultSet();
+      // The generated sequence id should come back in the doesExist
+      rs = pstmt.getResultSet();
       if (!rs.next())
       {
         String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
@@ -143,6 +155,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       {
         _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
+
+      // If IllegalStateException pass it back up
+      if (e instanceof IllegalStateException) throw (IllegalStateException) e;
 
       // Log the exception.
       String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems_tbl");

@@ -177,7 +177,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
+    String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
     // ------------------------- Validate Payload -------------------------
@@ -217,28 +217,9 @@ public class SystemResource
     systemsService = new SystemsServiceImpl();
     String msg = null;
 
-    // Extract required name value and check to see if object exists.
-    // If object exists then return 409 - Conflict
-    name = obj.get("name").getAsString();
-    try
-    {
-      boolean found = systemsService.checkForSystemByName(tenant, name);
-      if (found)
-      {
-        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
-        _log.warn(msg);
-        return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-      }
-    }
-    catch (Exception e)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, name, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
-    // Extract other top level properties: description, owner, host ...
+    // Extract top level properties: name, host, description, owner, ...
     // Extract required values
+    name = obj.get("name").getAsString();
     host = obj.get("host").getAsString();
     // Extract optional values
     description = ApiUtils.getValS(obj.get("description"), "");
@@ -319,10 +300,17 @@ public class SystemResource
     // Make the service call to create the system
     try
     {
-      systemsService.createSystem(tenant, apiUserId, name, description, owner, host, available, bucketName, rootDir,
+      systemsService.createSystem(tenantName, apiUserId, name, description, owner, host, available, bucketName, rootDir,
                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
                                   accessCred, accessMech, transferMechs.toString(),
                                   port, useProxy, proxyHost, proxyPort, json);
+    }
+    catch (IllegalStateException e)
+    {
+      // IllegalStateException indicates object exists - return 409 - Conflict
+      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
+      _log.warn(msg);
+      return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {

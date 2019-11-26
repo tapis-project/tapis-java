@@ -25,7 +25,7 @@ public class SystemsDaoTest
   private SystemsDaoImpl dao;
 
   // Test data
-  private static final String tenant = "tenant1";
+  private static final String tenantName = "tenant1";
   private static String mechsStr = "{SFTP,S3}";
   private static List<TransferMechanism> mechs = new ArrayList<>(List.of(TransferMechanism.SFTP, TransferMechanism.S3));
   private static String mechsStrEmpty = "{}";
@@ -39,19 +39,19 @@ public class SystemsDaoTest
   private static final Protocol prot7 = new Protocol(AccessMechanism.SSH_PASSWORD, mechsEmpty, -1, false, "",-1);
   private static final String tags = "{\"key1\":\"a\", \"key2\":\"b\"}";
   private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
-  private static final String[] sys1 = {tenant, "Dsys1", "description 1", "owner1", "host1", "bucket1", "/root1",
+  private static final String[] sys1 = {tenantName, "Dsys1", "description 1", "owner1", "host1", "bucket1", "/root1",
       "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", tags, notes, "fakePassword1"};
-  private static final String[] sys2 = {tenant, "Dsys2", "description 2", "owner2", "host2", "bucket2", "/root2",
+  private static final String[] sys2 = {tenantName, "Dsys2", "description 2", "owner2", "host2", "bucket2", "/root2",
       "jobInputDir2", "jobOutputDir2", "workDir2", "scratchDir2", "effUser2", tags, notes, "fakePassword2"};
-  private static final String[] sys3 = {tenant, "Dsys3", "description 3", "owner3", "host3", "bucket3", "/root3",
+  private static final String[] sys3 = {tenantName, "Dsys3", "description 3", "owner3", "host3", "bucket3", "/root3",
       "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", tags, notes, "fakePassword3"};
-  private static final String[] sys4 = {tenant, "Dsys4", "description 4", "owner4", "host4", "bucket4", "/root4",
+  private static final String[] sys4 = {tenantName, "Dsys4", "description 4", "owner4", "host4", "bucket4", "/root4",
     "jobInputDir4", "jobOutputDir4", "workDir4", "scratchDir4", "effUser4", tags, notes, "fakePassword4"};
-  private static final String[] sys5 = {tenant, "Dsys5", "description 5", "owner5", "host5", "bucket5", "/root5",
+  private static final String[] sys5 = {tenantName, "Dsys5", "description 5", "owner5", "host5", "bucket5", "/root5",
     "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", tags, notes, "fakePassword5"};
-  private static final String[] sys6 = {tenant, "Dsys6", "description 6", "owner6", "host6", "bucket6", "/root6",
+  private static final String[] sys6 = {tenantName, "Dsys6", "description 6", "owner6", "host6", "bucket6", "/root6",
     "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", tags, notes, "fakePassword6"};
-  private static final String[] sys7 = {tenant, "Dsys7", "description 7", "owner7", "host7", "bucket7", "/root7",
+  private static final String[] sys7 = {tenantName, "Dsys7", "description 7", "owner7", "host7", "bucket7", "/root7",
     "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", tags, notes, "fakePassword7"};
 
   @BeforeSuite
@@ -128,7 +128,7 @@ public class SystemsDaoTest
                                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                     prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<String> systemNames = dao.getTSystemNames(tenant);
+    List<String> systemNames = dao.getTSystemNames(tenantName);
     for (String name : systemNames) {
       System.out.println("Found item: " + name);
     }
@@ -146,7 +146,7 @@ public class SystemsDaoTest
                                 prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                 prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = dao.getTSystems(tenant);
+    List<TSystem> systems = dao.getTSystems(tenantName);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }

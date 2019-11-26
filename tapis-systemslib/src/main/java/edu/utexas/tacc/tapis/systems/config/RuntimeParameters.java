@@ -198,17 +198,9 @@ public final class RuntimeParameters
       }
 
 		// --------------------- Base URLs for other services that this service requires ----------------------------
-		// Tokens and Tenants service base URLs are required. Throw runtime exception if not found.
-		// Security Kernel base URL is optional. Normally it is retrieved from the Tenants service.
-		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_TOKENS_URL.getEnvName());
-		if (StringUtils.isBlank(parm)) {
-			String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING", TapisConstants.SERVICE_NAME_SYSTEMS, "tokensSvcUrl");
-			_log.error(msg);
-			throw new TapisRuntimeException(msg);
-		}
-		setTokensSvcURL(parm);
-
-		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_TENANTS_URL.getEnvName());
+		// Tenants service base URL is required. Throw runtime exception if not found.
+		// Tokens and Security Kernel base URLs are optional. Normally these are retrieved from the Tenants service.
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TENANTS.getEnvName());
 		if (StringUtils.isBlank(parm)) {
 			String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING", TapisConstants.SERVICE_NAME_SYSTEMS, "tenantsSvcUrl");
 			_log.error(msg);
@@ -216,7 +208,10 @@ public final class RuntimeParameters
 		}
 		setTenantsSvcURL(parm);
 
-		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_SK_URL.getEnvName());
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TOKENS.getEnvName());
+		if (!StringUtils.isBlank(parm)) setTokensSvcURL(parm);
+
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_SK.getEnvName());
 		if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
 
 
@@ -765,9 +760,9 @@ public final class RuntimeParameters
 
     // TODO/TBD move this to shared TapisEnv?
 	private static enum EnvVar2 {
-		TAPIS_SVC_TOKENS_URL("tapis.svc.tokens.url"),
-		TAPIS_SVC_TENANTS_URL("tapis.svc.tenants.url"),
-		TAPIS_SVC_SK_URL("tapis.svc.sk.url");
+		TAPIS_SVC_URL_TOKENS("tapis.svc.url.tokens"),
+		TAPIS_SVC_URL_TENANTS("tapis.svc.url.tenants"),
+		TAPIS_SVC_URL_SK("tapis.svc.url.sk");
 
 		private String _envName;
 

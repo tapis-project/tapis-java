@@ -8,8 +8,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
-import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
 import org.apache.commons.lang3.StringUtils;
@@ -52,15 +52,16 @@ public class SystemsServiceImpl implements SystemsService
    *
    * @return Sequence id of object created
    * @throws TapisException
+   * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createSystem(String tenant, String apiUserId, String name, String description, String owner, String host,
+  public int createSystem(String tenantName, String apiUserId, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
                           String notes, String accessCredential, String accessMechanism, String transferMechanisms,
                           int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
                           String rawRequest)
-          throws TapisException
+          throws TapisException, IllegalStateException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
@@ -83,7 +84,7 @@ public class SystemsServiceImpl implements SystemsService
       // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
     // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
     //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
-    String[] allVarSubstitutions = {apiUserId, owner, tenant};
+    String[] allVarSubstitutions = {apiUserId, owner, tenantName};
     bucketName = StringUtils.replaceEach(bucketName, ALL_VARS, allVarSubstitutions);
     rootDir = StringUtils.replaceEach(rootDir, ALL_VARS, allVarSubstitutions);
     jobInputDir = StringUtils.replaceEach(jobInputDir, ALL_VARS, allVarSubstitutions);
@@ -91,7 +92,7 @@ public class SystemsServiceImpl implements SystemsService
     workDir = StringUtils.replaceEach(workDir, ALL_VARS, allVarSubstitutions);
     scratchDir = StringUtils.replaceEach(scratchDir, ALL_VARS, allVarSubstitutions);
 
-    int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
+    int itemId = dao.createTSystem(tenantName, name, description, owner, host, available, bucketName, rootDir,
                                    jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
                                    protocolProxyHost, protocolProxyPort, rawRequest);
@@ -102,48 +103,58 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO Store credentials in Security Kernel
 
-    // Get the tenant and token base URLs from the environment
+    // Use Tenants service to lookup information we need to:
+    //  Access the tokens service associated with the tenant.
+    //  Access the security kernel service associated with the tenant.
+    // NOTE: The front-end is responsible for validating the JWT using the public key for the tenant.
+    //       edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
+
+    // Tenants and tokens services base URLs from the environment have precedence.
+    // NOTE: Tenants URL is a required parameter, so no need to check here
     RuntimeParameters parms = RuntimeParameters.getInstance();
-    // TODO Do real service location lookup, through tenants service?
-//    String tokensBaseURL = "https://dev.develop.tapis.io";
-    String tokensBaseURL = parms.getTokensSvcURL();
+
+//    String tenantsURL = "https://dev.develop.tapis.io";
+    String tenantsURL = parms.getTenantsSvcURL();
+    var tenantsClient = new TenantsClient(tenantsURL);
+    Tenant tenant1 = null;
+    // TODO proper exception handling
+    try {tenant1 = tenantsClient.getTenant(tenantName);}
+    catch (Exception e) {throw new TapisException("Exception from Tenants service", e);}
+    if (tenant1 == null) throw new TapisException("ERROR: Unable to create client for Tenants service.");
+
+    // Tokens service URL must come from env or the tenants service
+//    String tokensURL = "https://dev.develop.tapis.io";
+    String tokensURL = parms.getTokensSvcURL();
+    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+    if (StringUtils.isBlank(tokensURL)) throw new TapisException("ERROR: Unable to determine Tokens service base URL");
+
     // Get short term service JWT from tokens service
-    var tokClient = new TokensClient(tokensBaseURL);
+    var tokClient = new TokensClient(tokensURL);
     String svcJWT = null;
     // TODO proper exception handling
-    try {svcJWT = tokClient.getSvcToken(tenant, SERVICE_NAME_SYSTEMS);}
+    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
     catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
     System.out.println("Got svcJWT: " + svcJWT);
     _log.error("Got svcJWT: " + svcJWT);
     // Basic check of JWT
     if (StringUtils.isBlank(svcJWT)) throw new TapisException("Token service returned invalid JWT");
 
+    // TODO/TBD: tenants java client can return tenant object with more info, use it here?
 
     // Get Security Kernel URL from the env or the tenants service
     // Env value has precedence
-//    String skBaseURL = "https://dev.develop.tapis.io/v3";
-    String skBaseURL = parms.getSkSvcURL();
-    if (StringUtils.isBlank(skBaseURL))
-    {
-      // Lookup tenant info from tenants service
-//    String tenantsBaseURL = "https://dev.develop.tapis.io";
-      String tenantsBaseURL = parms.getTenantsSvcURL();
-      var tenantsClient = new TenantsClient(tenantsBaseURL);
-      // TODO proper exception handling
-      try {skBaseURL = tenantsClient.getSKBasePath(tenant);}
-      catch (Exception e) {throw new TapisException("Exception from Tenants service", e);}
-      // TODO remove strip-off of everything after /v3 once tenant is updated
-      // Strip off everything after the /v3 so we have a valid SK base URL
-      skBaseURL = skBaseURL.substring(0, skBaseURL.indexOf("/v3") + 3);
-      // TODO: remove. There is currently a typo in the sk url for tenant dev. hard code for now
-      skBaseURL = "https://dev.develop.tapis.io/v3";
-    }
+//    String skURL = "https://dev.develop.tapis.io/v3";
+    String skURL = parms.getSkSvcURL();
+    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
+    if (StringUtils.isBlank(skURL)) throw new TapisException("ERROR: Unable to determine Security Kernel service URL");
+    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
+    // Strip off everything after the /v3 so we have a valid SK base URL
+    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
-
-    var skClient = new SKClient(skBaseURL, svcJWT);
+    var skClient = new SKClient(skURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
-    String sysPerm = "system:" + tenant + ":*:" + name;
-    String storePerm = "store:" + tenant + ":*:" + name + ":*";
+    String sysPerm = "system:" + tenantName + ":*:" + name;
+    String storePerm = "store:" + tenantName + ":*:" + name + ":*";
 
     // Create Role with perms and grant it to user
     // TODO/TBD: name of system owner role, one for each "tenant+system"?

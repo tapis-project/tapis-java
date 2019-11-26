@@ -11,13 +11,13 @@ import java.util.List;
  */
 public interface SystemsService
 {
-  int createSystem(String tenant, String apiUserId, String name, String description, String owner, String host,
+  int createSystem(String tenantName, String apiUserId, String name, String description, String owner, String host,
                    boolean available, String bucketName, String rootDir, String jobInputDir,
                    String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
                    String notes, String accessCredential, String accessMechanism, String transferMechanisms,
                    int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
                    String rawRequest)
-    throws TapisException;
+    throws TapisException, IllegalStateException;
 
   int deleteSystemByName(String tenant, String name) throws TapisException;
 

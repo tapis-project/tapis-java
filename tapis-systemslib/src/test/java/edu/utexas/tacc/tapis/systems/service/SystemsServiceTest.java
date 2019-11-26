@@ -23,32 +23,35 @@ public class SystemsServiceTest
   private SystemsService svc;
 
   // Test data
-  private static final String tenant = "dev";
+  private static final String tenantName = "dev";
   private static final String apiUserId = "testuser1";
   private static final List<TransferMechanism> mechList = new ArrayList<>(List.of(TransferMechanism.SFTP,TransferMechanism.S3));
   private static final Protocol prot1 = new Protocol(AccessMechanism.NONE, mechList, -1, false, "",-1);
   private static final String prot1AccessMechName = prot1.getAccessMechanism().name();
+  private static final String accessMechNameSSH_CERT = AccessMechanism.SSH_CERT.name();
   private static final String prot1TxfMechs = prot1.getTransferMechanismsAsStr();
   private static final String tags = "{\"key1\":\"a\", \"key2\":\"b\"}";
   private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
 
-  private static final String[] sys1 = {tenant, "Ssys1", "description 1", "owner1", "host1", "bucket1", "/root1",
+  private static final String[] sys1 = {tenantName, "Ssys1", "description 1", "owner1", "host1", "bucket1", "/root1",
     "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", tags, notes, "fakePassword1", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys2 = {tenant, "Ssys2", "description 2", "owner2", "host2", "bucket2", "/root2",
+  private static final String[] sys2 = {tenantName, "Ssys2", "description 2", "owner2", "host2", "bucket2", "/root2",
     "jobInputDir2", "jobOutputDir2", "workDir2", "scratchDir2", "effUser2", tags, notes, "fakePassword2", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys3 = {tenant, "Ssys3", "description 3", "owner3", "host3", "bucket3", "/root3",
+  private static final String[] sys3 = {tenantName, "Ssys3", "description 3", "owner3", "host3", "bucket3", "/root3",
     "jobInputDir3", "jobOutputDir3", "workDir3", "scratchDir3", "effUser3", tags, notes, "fakePassword3", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys4 = {tenant, "Ssys4", "description 4", "owner4", "host4", "bucket4", "/root4",
+  private static final String[] sys4 = {tenantName, "Ssys4", "description 4", "owner4", "host4", "bucket4", "/root4",
     "jobInputDir4", "jobOutputDir4", "workDir4", "scratchDir4", "effUser4", tags, notes, "fakePassword4", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys5 = {tenant, "Ssys5", "description 5", "owner5", "host5", "bucket5", "/root5",
+  private static final String[] sys5 = {tenantName, "Ssys5", "description 5", "owner5", "host5", "bucket5", "/root5",
     "jobInputDir5", "jobOutputDir5", "workDir5", "scratchDir5", "effUser5", tags, notes, "fakePassword5", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys6 = {tenant, "Ssys6", "description 6", "owner6", "host6", "bucket6", "/root6",
+  private static final String[] sys6 = {tenantName, "Ssys6", "description 6", "owner6", "host6", "bucket6", "/root6",
     "jobInputDir6", "jobOutputDir6", "workDir6", "scratchDir6", "effUser6", tags, notes, "fakePassword6", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys7 = {tenant, "Ssys7", "description 7", "owner7", "host7", "bucket7", "/root7",
+  private static final String[] sys7 = {tenantName, "Ssys7", "description 7", "owner7", "host7", "bucket7", "/root7",
     "jobInputDir7", "jobOutputDir7", "workDir7", "scratchDir7", "effUser7", tags, notes, "fakePassword7", prot1AccessMechName, prot1TxfMechs};
-  private static final String[] sys8 = {tenant, "Ssys8", "description 8", "${apiUserId}", "host8", "bucket8-${tenant}-${apiUserId}",
+  private static final String[] sys8 = {tenantName, "Ssys8", "description 8", "${apiUserId}", "host8", "bucket8-${tenant}-${apiUserId}",
     "/root8/${tenant}", "jobInputDir8/home/${apiUserId}/input", "jobOutputDir8/home/${apiUserId}/output", "workDir8/home/${apiUserId}/tapis/data",
     "scratchDir8/home/${owner}/${tenant}/${apiUserId}", "${owner}", tags, notes, "fakePassword8", prot1AccessMechName, prot1TxfMechs};
+  private static final String[] sys9 = {tenantName, "Ssys9", "description 9", "owner9", "host9", "bucket9", "/root9",
+    "jobInputDir9", "jobOutputDir9", "workDir9", "scratchDir9", "effUser9", tags, notes, "fakePassword9", accessMechNameSSH_CERT, prot1TxfMechs};
 
 
   @BeforeSuite
@@ -128,12 +131,12 @@ public class SystemsServiceTest
 //   "/root8/${tenant}", "jobInputDir8/home/${apiUserId}/input", "jobOutputDir8/home/${apiUserId}/output", "workDir8/home/${apiUserId}/tapis/data",
 //   "scratchDir8/home/${owner}/${tenant}/${apiUserId}", "${owner}", tags, notes, "fakePassword8", prot1AccessMechName, prot1TxfMechs};
     String owner = apiUserId;
-    String bucketName = "bucket8-" + tenant + "-" + apiUserId;
-    String rootDir = "/root8/" + tenant;
+    String bucketName = "bucket8-" + tenantName + "-" + apiUserId;
+    String rootDir = "/root8/" + tenantName;
     String jobInputDir = "jobInputDir8/home/" + apiUserId + "/input";
     String jobOutputDir = "jobOutputDir8/home/" + apiUserId + "/output";
     String workDir = "workDir8/home/" + apiUserId + "/tapis/data";
-    String scratchDir = "scratchDir8/home/" + owner + "/" + tenant + "/" + apiUserId;
+    String scratchDir = "scratchDir8/home/" + owner + "/" + tenantName + "/" + apiUserId;
     String effectiveUserId = owner;
     Assert.assertEquals(tmpSys.getName(), sys0[1]);
     Assert.assertEquals(tmpSys.getDescription(), sys0[2]);
@@ -176,7 +179,7 @@ public class SystemsServiceTest
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<String> systemNames = svc.getSystemNames(tenant);
+    List<String> systemNames = svc.getSystemNames(tenantName);
     for (String name : systemNames) {
       System.out.println("Found item: " + name);
     }
@@ -194,7 +197,7 @@ public class SystemsServiceTest
                                    prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
                                    prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = svc.getSystems(tenant, apiUserId);
+    List<TSystem> systems = svc.getSystems(tenantName, apiUserId);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
@@ -234,11 +237,25 @@ public class SystemsServiceTest
     Assert.assertTrue(svc.checkForSystemByName(sys7[0], sys7[1]));
   }
 
-  // Check that accessMech = SSH_CERT and static effective user other than owner is not allowed
-//  @Test
-//  public void testSshCertEffectiveUserIdNotAllowed() throws Exception
-//  {
-//  }
+  // Check that if systems already exists we get an IllegalStateException
+  @Test(expectedExceptions = {IllegalStateException.class})
+  public void testSystemAlreadyExists() throws Exception
+  {
+    // Create the system
+    String[] sys0 = sys9;
+    Protocol prot0 = prot1;
+    int itemId = svc.createSystem(sys0[0], apiUserId, sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                                  sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13], sys0[14],
+                                  prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                                  prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    Assert.assertTrue(svc.checkForSystemByName(sys9[0], sys9[1]));
+    // Now attempt to create again, should get IllegalStateException
+    svc.createSystem(sys0[0], apiUserId, sys0[1], sys0[2], sys0[3], sys0[4], true, sys0[5], sys0[6],
+                     sys0[7], sys0[8], sys0[9], sys0[10], sys0[11], sys0[12], sys0[13], sys0[14],
+                     prot0.getAccessMechanism().name(), prot0.getTransferMechanismsAsStr(), prot0.getPort(),
+                     prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
+  }
 
   // Check that if system supports S3 transfer mechanism then bucketName is required
 //  @Test
@@ -261,5 +278,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys6[0], sys6[1]);
     svc.deleteSystemByName(sys7[0], sys7[1]);
     svc.deleteSystemByName(sys8[0], sys8[1]);
+    svc.deleteSystemByName(sys9[0], sys9[1]);
   }
 }

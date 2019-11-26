@@ -23,7 +23,7 @@ public class LibUtils
   private static final Logger _log = LoggerFactory.getLogger(LibUtils.class);
 
   // Location of message bundle files
-  private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.systems.SysLibMessages";
+  private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.systems.lib.SysLibMessages";
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
