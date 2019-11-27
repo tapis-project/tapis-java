@@ -253,10 +253,10 @@ public class SystemResource
       for (int i = 0; i < mechs.size()-1; i++)
       {
         transferMechs.append(mechs.get(i).toString()).append(",");
-        mechsArr.add(mechs.get(i).toString());
+        mechsArr.add(StringUtils.remove(mechs.get(i).toString(),'"'));
       }
       transferMechs.append(mechs.get(mechs.size()-1).toString());
-      mechsArr.add(mechs.get(mechs.size()-1).toString());
+      mechsArr.add(StringUtils.remove(mechs.get(mechs.size()-1).toString(),'"'));
     }
     transferMechs.append("}");
 
@@ -275,19 +275,19 @@ public class SystemResource
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access mechanism.");
     }
-    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT) &&
+    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT.name()) &&
              !StringUtils.isBlank(owner) &&
              !effectiveUserId.equals(owner) &&
              !effectiveUserId.equals(APIUSERID_VAR) &&
              !effectiveUserId.equals(OWNER_VAR))
     {
       // For SSH_CERT access the effectiveUserId cannot be static string other than owner
-      msg = MsgUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
     }
     else if (mechsArr.contains(Protocol.TransferMechanism.S3.name()) && StringUtils.isBlank(bucketName))
     {
       // For S3 support bucketName must be set
-      msg = MsgUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
     }
 
     // If validation failed log error message and return response
