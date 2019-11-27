@@ -90,7 +90,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       boolean doesExist = false;
       ResultSet rs = pstmt.executeQuery();
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
-      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", null, name));
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", name));
 
       // Set the sql command.
       sql = SqlStatements.CREATE_SYSTEM;

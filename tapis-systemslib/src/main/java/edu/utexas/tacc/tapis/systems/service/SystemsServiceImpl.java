@@ -9,6 +9,7 @@ import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
@@ -81,7 +82,7 @@ public class SystemsServiceImpl implements SystemsService
 //
 //    }
 
-      // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
     // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
     //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
     String[] allVarSubstitutions = {apiUserId, owner, tenantName};
@@ -107,9 +108,9 @@ public class SystemsServiceImpl implements SystemsService
     //  Access the tokens service associated with the tenant.
     //  Access the security kernel service associated with the tenant.
     // NOTE: The front-end is responsible for validating the JWT using the public key for the tenant.
-    //       edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
+    //       See edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
 
-    // Tenants and tokens services base URLs from the environment have precedence.
+    // Tenants and tokens service URLs from the environment have precedence.
     // NOTE: Tenants URL is a required parameter, so no need to check here
     RuntimeParameters parms = RuntimeParameters.getInstance();
 
@@ -117,36 +118,31 @@ public class SystemsServiceImpl implements SystemsService
     String tenantsURL = parms.getTenantsSvcURL();
     var tenantsClient = new TenantsClient(tenantsURL);
     Tenant tenant1 = null;
-    // TODO proper exception handling
     try {tenant1 = tenantsClient.getTenant(tenantName);}
-    catch (Exception e) {throw new TapisException("Exception from Tenants service", e);}
-    if (tenant1 == null) throw new TapisException("ERROR: Unable to create client for Tenants service.");
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", name, e.getMessage()), e);}
+    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", name));
 
-    // Tokens service URL must come from env or the tenants service
+    // Tokens service URL comes from env or the tenants service
 //    String tokensURL = "https://dev.develop.tapis.io";
     String tokensURL = parms.getTokensSvcURL();
     if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
-    if (StringUtils.isBlank(tokensURL)) throw new TapisException("ERROR: Unable to determine Tokens service base URL");
+    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", name));
 
     // Get short term service JWT from tokens service
     var tokClient = new TokensClient(tokensURL);
     String svcJWT = null;
-    // TODO proper exception handling
     try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", name, e.getMessage()), e);}
+    // Basic check of JWT
+    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", name));
     System.out.println("Got svcJWT: " + svcJWT);
     _log.error("Got svcJWT: " + svcJWT);
-    // Basic check of JWT
-    if (StringUtils.isBlank(svcJWT)) throw new TapisException("Token service returned invalid JWT");
 
-    // TODO/TBD: tenants java client can return tenant object with more info, use it here?
-
-    // Get Security Kernel URL from the env or the tenants service
-    // Env value has precedence
+    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
 //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = parms.getSkSvcURL();
     if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException("ERROR: Unable to determine Security Kernel service URL");
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", name));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
@@ -166,9 +162,10 @@ public class SystemsServiceImpl implements SystemsService
       skClient.addRolePermission(roleName, storePerm);
       skClient.grantUserRole(owner, roleName);
     }
+    // TODO exception handling, but consider how data integrity will be handled for distributed data
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
-    // TODO remove tests
+    // TODO *************** remove tests ********************
     // Test by retrieving role and permissions from SK
     SkRole skRole = null;
     try { skRole = skClient.getRoleByName(roleName); }
@@ -195,6 +192,8 @@ public class SystemsServiceImpl implements SystemsService
       _log.error("  perm: " + perm);
       System.out.println("  perm: " + perm);
     }
+    // TODO *************** remove tests ********************
+
     return itemId;
   }
 

@@ -257,12 +257,6 @@ public class SystemsServiceTest
                      prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
   }
 
-  // Check that if system supports S3 transfer mechanism then bucketName is required
-//  @Test
-//  public void testBucketnameRequiredForS3() throws Exception
-//  {
-//  }
-
   @AfterSuite
   public void tearDown() throws Exception
   {
