@@ -5,10 +5,14 @@ import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
+import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
+import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
 /*
  * Service level methods for Systems.
@@ -32,6 +39,7 @@ public class SystemsServiceImpl implements SystemsService
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
   private static final String SYSTEM_OWNER_ROLE = "SystemOwner";
+  private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
 
   // **************** Inject Dao singletons ****************
   @com.google.inject.Inject
@@ -45,49 +53,105 @@ public class SystemsServiceImpl implements SystemsService
    *
    * @return Sequence id of object created
    * @throws TapisException
+   * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createSystem(String tenant, String name, String description, String owner, String host,
+  public int createSystem(String tenantName, String apiUserId, String name, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
-                          String jobOutputDir, String workDir, String scratchDir, String effectiveUserId,
-                          String accessCredential, String accessMechanism, String transferMechanisms,
-                          int protocolPort, boolean protocolUseProxy,
-                          String protocolProxyHost, int protocolProxyPort)
-          throws TapisException
+                          String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
+                          String notes, String accessCredential, String accessMechanism, String transferMechanisms,
+                          int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
+                          String rawRequest)
+          throws TapisException, IllegalStateException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
 
+    // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
+    if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
 
-    int itemId = dao.createTSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId,
+    // TODO/TBD do this check here? it is already being done in systemsapi front-end. If we are going to support
+    //   other front-ends over which we have less control then a lot more checking needs to be done here as well.
+    // Check for valid effectiveUserId
+    // For SSH_CERT access the effectiveUserId cannot be static string other than owner
+//    if (accessMechanism != null && accessMechanism.equals(Protocol.AccessMechanism.SSH_CERT) &&
+//        !effectiveUserId.equals(owner) &&
+//        !effectiveUserId.equals(APIUSERID_VAR) &&
+//        !effectiveUserId.equals(OWNER_VAR))
+//    {
+//
+//    }
+
+    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
+    //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
+    String[] allVarSubstitutions = {apiUserId, owner, tenantName};
+    bucketName = StringUtils.replaceEach(bucketName, ALL_VARS, allVarSubstitutions);
+    rootDir = StringUtils.replaceEach(rootDir, ALL_VARS, allVarSubstitutions);
+    jobInputDir = StringUtils.replaceEach(jobInputDir, ALL_VARS, allVarSubstitutions);
+    jobOutputDir = StringUtils.replaceEach(jobOutputDir, ALL_VARS, allVarSubstitutions);
+    workDir = StringUtils.replaceEach(workDir, ALL_VARS, allVarSubstitutions);
+    scratchDir = StringUtils.replaceEach(scratchDir, ALL_VARS, allVarSubstitutions);
+
+    int itemId = dao.createTSystem(tenantName, name, description, owner, host, available, bucketName, rootDir,
+                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
                                    accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
-                                   protocolProxyHost, protocolProxyPort);
+                                   protocolProxyHost, protocolProxyPort, rawRequest);
 
     // TODO: Remove debug System.out statements
 
+    // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
+
     // TODO Store credentials in Security Kernel
-    // TODO Do real service location lookup, through tenants service?
-    String tokBaseURL = "https://dev.develop.tapis.io";
-//    String tokBaseURL = "http://c002.rodeo.tacc.utexas.edu:31357";
-//    String skBaseURL = "http://c002.rodeo.tacc.utexas.edu:32169/security";
-    String skBaseURL = "https://dev.develop.tapis.io/v3";
-    // Get short term JWT from tokens service
-    var tokClient = new TokensClient(tokBaseURL);
-    // TODO: use real tenant
-    String skJWT = null;
-    try {skJWT = tokClient.getSvcToken(tenant, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException("Exception from Tokens service", e);}
-    System.out.println("Got skJWT: " + skJWT);
-    _log.error("Got skJWT: " + skJWT);
+
+    // Use Tenants service to lookup information we need to:
+    //  Access the tokens service associated with the tenant.
+    //  Access the security kernel service associated with the tenant.
+    // NOTE: The front-end is responsible for validating the JWT using the public key for the tenant.
+    //       See edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
+
+    // Tenants and tokens service URLs from the environment have precedence.
+    // NOTE: Tenants URL is a required parameter, so no need to check here
+    RuntimeParameters parms = RuntimeParameters.getInstance();
+
+//    String tenantsURL = "https://dev.develop.tapis.io";
+    String tenantsURL = parms.getTenantsSvcURL();
+    var tenantsClient = new TenantsClient(tenantsURL);
+    Tenant tenant1 = null;
+    try {tenant1 = tenantsClient.getTenant(tenantName);}
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", name, e.getMessage()), e);}
+    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", name));
+
+    // Tokens service URL comes from env or the tenants service
+//    String tokensURL = "https://dev.develop.tapis.io";
+    String tokensURL = parms.getTokensSvcURL();
+    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", name));
+
+    // Get short term service JWT from tokens service
+    var tokClient = new TokensClient(tokensURL);
+    String svcJWT = null;
+    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", name, e.getMessage()), e);}
     // Basic check of JWT
-    if (StringUtils.isBlank(skJWT)) throw new TapisException("Token service returned invalid JWT");
+    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", name));
+    System.out.println("Got svcJWT: " + svcJWT);
+    _log.error("Got svcJWT: " + svcJWT);
 
+    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
+//    String skURL = "https://dev.develop.tapis.io/v3";
+    String skURL = parms.getSkSvcURL();
+    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", name));
+    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
+    // Strip off everything after the /v3 so we have a valid SK base URL
+    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
+
+    var skClient = new SKClient(skURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
-    String sysPerm = "system:" + tenant + ":*:" + name;
-    String storePerm = "store:" + tenant + ":*:" + name + ":*";
+    String sysPerm = "system:" + tenantName + ":*:" + name;
+    String storePerm = "store:" + tenantName + ":*:" + name + ":*";
 
-    var skClient = new SKClient(skBaseURL, skJWT);
     // Create Role with perms and grant it to user
     // TODO/TBD: name of system owner role, one for each "tenant+system"?
     String roleName = SYSTEM_OWNER_ROLE + "_" + name;
@@ -98,9 +162,10 @@ public class SystemsServiceImpl implements SystemsService
       skClient.addRolePermission(roleName, storePerm);
       skClient.grantUserRole(owner, roleName);
     }
+    // TODO exception handling, but consider how data integrity will be handled for distributed data
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
-    // TODO remove tests
+    // TODO *************** remove tests ********************
     // Test by retrieving role and permissions from SK
     SkRole skRole = null;
     try { skRole = skClient.getRoleByName(roleName); }
@@ -127,6 +192,8 @@ public class SystemsServiceImpl implements SystemsService
       _log.error("  perm: " + perm);
       System.out.println("  perm: " + perm);
     }
+    // TODO *************** remove tests ********************
+
     return itemId;
   }
 
@@ -149,10 +216,29 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public TSystem getSystemByName(String tenant, String name, boolean getCreds) throws TapisException {
+  public boolean checkForSystemByName(String tenant, String name) throws TapisException {
+    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
+    var dao = new SystemsDaoImpl();
+    boolean result = dao.checkForTSystemByName(tenant, name);
+    return result;
+  }
+
+  /**
+   * getSystemByName
+   * @param name
+   * @return
+   * @throws TapisException
+   */
+  @Override
+  public TSystem getSystemByName(String tenant, String name, String apiUserId, boolean getCreds) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
     TSystem result = dao.getTSystemByName(tenant, name);
+    if (result == null) return result;
+    // Resolve effectiveUserId if necessary
+    result.setEffectiveUserId(resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId));
+    // TODO If requested retrieve credentials from Security Kernel
+    //result.setAccessCredential();
     return result;
   }
 
@@ -163,11 +249,18 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException
    */
   @Override
-  public List<TSystem> getSystems(String tenant) throws TapisException
+  public List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     var dao = new SystemsDaoImpl();
-    return dao.getTSystems(tenant);
+    List<TSystem> result = dao.getTSystems(tenant);
+    for (TSystem sys : result)
+    {
+      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
+      // TODO If requested retrieve credentials from Security Kernel
+      //sys.setAccessCredential();
+    }
+    return result;
   }
 
   /**
@@ -188,4 +281,16 @@ public class SystemsServiceImpl implements SystemsService
   /*                             Private Methods                            */
   /* ********************************************************************** */
 
+  /**
+   * If effectiveUserId is dynamic then resolve it
+   * @param userId
+   * @return
+   */
+  private String resolveEffectiveUserId(String userId, String owner, String apiUserId)
+  {
+    if (StringUtils.isBlank(userId)) return userId;
+    else if (userId.equals(OWNER_VAR) && !StringUtils.isBlank(owner)) return owner;
+    else if (userId.equals(APIUSERID_VAR) && !StringUtils.isBlank(apiUserId)) return apiUserId;
+    else return userId;
+  }
 }

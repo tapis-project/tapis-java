@@ -27,14 +27,23 @@ public final class TSystem
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
-  public static final String DEFAULT_OWNER = "${apiUserId}";
+  // Allowed substitution variables
+  public static final String APIUSERID_VAR = "${apiUserId}";
+  public static final String OWNER_VAR = "${owner}";
+  public static final String TENANT_VAR = "${tenant}";
+  public static final String EFFUSERID_VAR = "${effectiveUserId}";
+
+  // Default values
+  public static final String DEFAULT_OWNER = APIUSERID_VAR;
   public static final boolean DEFAULT_AVAILABLE_ = true;
   public static final String DEFAULT_ROOTDIR = "/";
   public static final String DEFAULT_JOBINPUTDIR = "/input";
   public static final String DEFAULT_JOBOUTPUTDIR = "/output";
   public static final String DEFAULT_WORKDIR = "/data";
   public static final String DEFAULT_SCRATCHDIR = "/scratch";
-  public static final String DEFAULT_EFFECTIVEUSERID = "${apiUserId}";
+  public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
+  public static final String DEFAULT_TAGS = "{}";
+  public static final String DEFAULT_NOTES = "{}";
 
 
   /* ********************************************************************** */
@@ -58,6 +67,8 @@ public final class TSystem
   private String scratchDir;
   private String accessCredential;
   private String effectiveUserId;
+  private String tags; // Simple metadata as json containing key:val pairs for efficient searching
+  private String notes; // Simple metadata as json
   private AccessMechanism accessMechanism; // How access authorization is handled.
   private List<TransferMechanism> transferMechanisms; // List of supported transfer mechanisms
   private int port; // Port number used to access the system.
@@ -73,7 +84,8 @@ public final class TSystem
   public TSystem(long id1, String tenant1, String name1, String description1,
                  String owner1, String host1, boolean available1, String bucketName1,
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
-                 String effectiveUserId1, AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
+                 String effectiveUserId1, String tags1, String notes1,
+                 AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
                  int port1, boolean useProxy1, String proxyHost1, int proxyPort1, String accessCredential1,
                  Instant created1, Instant updated1)
   {
@@ -91,6 +103,8 @@ public final class TSystem
     workDir = workDir1;
     scratchDir = scratchDir1;
     effectiveUserId = effectiveUserId1;
+    tags = tags1;
+    notes = notes1;
     accessMechanism = accessMechanism1;
     if (transferMechanisms1 != null) transferMechanisms = transferMechanisms1;
     else transferMechanisms = DEFAULT_TRANSFER_MECHANISMS;
@@ -113,14 +127,14 @@ public final class TSystem
   public String getName() { return name; }
 
   public String getDescription() { return description; }
-  public void setDescription(String description) { this.description = description; }
+  public void setDescription(String descr) { description = descr; }
 
   public String getOwner() { return owner; }
 
   public String getHost() { return host; }
 
   public boolean isAvailable() { return available; }
-  public void setAvailable(boolean available) { this.available = available; }
+  public void setAvailable(boolean avail) { available = avail; }
 
   public String getBucketName() { return bucketName; }
 
@@ -135,6 +149,11 @@ public final class TSystem
   public String getScratchDir() { return scratchDir; }
 
   public String getEffectiveUserId() { return effectiveUserId; }
+  public void setEffectiveUserId(String userId) { effectiveUserId = userId; }
+
+  public String getTags() { return tags; }
+
+  public String getNotes() { return notes; }
 
   public AccessMechanism getAccessMechanism() { return accessMechanism; }
 
@@ -149,6 +168,7 @@ public final class TSystem
   public List<TransferMechanism> getTransferMechanisms() { return transferMechanisms; }
 
   public String getAccessCredential() { return accessCredential; }
+  public void setAccessCredential(String creds) {accessCredential = creds;}
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }

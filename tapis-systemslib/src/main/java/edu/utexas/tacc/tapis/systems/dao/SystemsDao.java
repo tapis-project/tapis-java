@@ -10,11 +10,13 @@ public interface SystemsDao
   int createTSystem(String tenant, String name, String description, String owner, String host,
                     boolean available, String bucketName, String rootDir,
                     String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                    String effectiveUserId, String accessMechanism, String transferMechanisms, int port,
-                    boolean useProxy, String proxyHost, int proxyPort)
-    throws TapisException;
+                    String effectiveUserId, String tags, String notes, String accessMechanism,String transferMechanisms,
+                    int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
+    throws TapisException, IllegalStateException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;
+
+  boolean checkForTSystemByName(String tenant, String name) throws TapisException;
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;
 

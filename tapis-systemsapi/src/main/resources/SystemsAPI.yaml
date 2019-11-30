@@ -1,4 +1,3 @@
-
 openapi: 3.0.1
 info:
   title: Tapis Systems API
@@ -65,7 +64,7 @@ paths:
       tags:
         - systems
       summary: Create a system
-      description: 'Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters: [-._~]. Name must begin with an alphabetic character and can be no more than 256 characters in length. Description is optional with a maximum length of 2048 characters.'
+      description: 'Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters: [-._~]. Name must begin with an alphabetic character and can be no more than 300 characters in length. Description is optional with a maximum length of 2048 characters.'
       operationId: createSystem
       parameters:
         - name: pretty
@@ -216,6 +215,10 @@ paths:
       responses:
         '200':
           description: Message received.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespName'
         '401':
           description: Not authorized.
         '500':
@@ -229,6 +232,10 @@ paths:
       responses:
         '200':
           description: Message received.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
 components:
@@ -288,6 +295,10 @@ components:
         effectiveUserId:
           type: string
         accessCredential:
+          type: string
+        tags:
+          type: string
+        notes:
           type: string
         accessMechanism:
           type: string
@@ -349,6 +360,10 @@ components:
         accessCredential:
           type: string
         effectiveUserId:
+          type: string
+        tags:
+          type: string
+        notes:
           type: string
         accessMechanism:
           type: string
@@ -415,6 +430,22 @@ components:
         changes:
           type: integer
           format: int32
+    RespName:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultName'
+    ResultName:
+      type: object
+      properties:
+        name:
+          type: string
   securitySchemes:
     TapisJWT:
       type: apiKey

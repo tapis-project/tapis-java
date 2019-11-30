@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="tomcat_tapis_systems" type="#com.intellij.j2ee.web.tomcat.TomcatRunConfigurationFactory" factoryName="Local" APPLICATION_SERVER_NAME="Tomcat 8.5.41" ALTERNATIVE_JRE_ENABLED="false">
-    <option name="OPEN_IN_BROWSER_URL" value="http://localhost:8080/v3/systems/hello" />
+    <option name="OPEN_IN_BROWSER_URL" value="http://localhost:8080/v3/systems/healthcheck" />
     <option name="BROWSER_ID" value="a7bb68e0-33c0-4d6f-a81a-aac1fdb870c8" />
     <option name="UPDATING_POLICY" value="restart-server" />
     <deployment>
@@ -113,6 +113,16 @@
       <EnvironmentVariables>
         <option name="NAME" value="TAPIS_ENVONLY_KEYSTORE_PASSWORD" />
         <option name="VALUE" value="password" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_TOKENS_URL" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_TENANTS_URL" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
     </ConfigurationWrapper>

@@ -84,7 +84,12 @@ public final class RuntimeParameters
 	private String  dbPassword;
 	private String  jdbcURL;
 	private int     dbMeterMinutes;
-	
+
+	// Service base URLs - tokens, tenants, Security Kernel
+	private String tokensSvcURL;
+	private String tenantsSvcURL;
+	private String skSvcURL;
+
 	// Mail configuration.
 	private EmailProviderType emailProviderType;
 	private boolean emailAuth;
@@ -170,11 +175,9 @@ public final class RuntimeParameters
       }
     }
 	
-    // Logging level of the Maverick libary code
+    // Location of log file
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_DIRECTORY.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogDirectory(parm);
-                 
-    // Logging level of the Maverick libary code
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_FILE.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogFile(parm);
                  
@@ -193,8 +196,27 @@ public final class RuntimeParameters
             throw new TapisRuntimeException(msg, e);
           }
       }
-    
-	  // --------------------- DB Parameters ----------------------------
+
+		// --------------------- Base URLs for other services that this service requires ----------------------------
+		// Tenants service base URL is required. Throw runtime exception if not found.
+		// Tokens and Security Kernel base URLs are optional. Normally these are retrieved from the Tenants service.
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TENANTS.getEnvName());
+		if (StringUtils.isBlank(parm)) {
+			String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING", TapisConstants.SERVICE_NAME_SYSTEMS, "tenantsSvcUrl");
+			_log.error(msg);
+			throw new TapisRuntimeException(msg);
+		}
+		setTenantsSvcURL(parm);
+
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TOKENS.getEnvName());
+		if (!StringUtils.isBlank(parm)) setTokensSvcURL(parm);
+
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_SK.getEnvName());
+		if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
+
+
+
+		// --------------------- DB Parameters ----------------------------
     // User does not have to provide a pool size.
     parm = inputProperties.getProperty(EnvVar.TAPIS_DB_CONNECTION_POOL_SIZE.getEnvName());
     if (StringUtils.isBlank(parm)) setDbConnectionPoolSize(CONNECTION_POOL_SIZE);
@@ -375,92 +397,100 @@ public final class RuntimeParameters
 	 */
 	public void getRuntimeInfo(StringBuilder buf)
 	{
-	    buf.append("\n------- Logging -----------------------------------");
-        buf.append("\ntapis.log.directory: ");
-        buf.append(this.getLogDirectory());
-        buf.append("\ntapis.log.file: ");
-        buf.append(this.getLogFile());
-        
-        buf.append("\n------- Network -----------------------------------");
-        buf.append("\nHost Addresses: ");
-        buf.append(getNetworkAddresses());
-	    
-	    buf.append("\n------- DB Configuration --------------------------");
-	    buf.append("\ntapis.db.jdbc.url: ");
-	    buf.append(this.getJdbcURL());
-	    buf.append("\ntapis.db.user: ");
-	    buf.append(this.getDbUser());
-	    buf.append("\ntapis.db.connection.pool.size: ");
-	    buf.append(this.getDbConnectionPoolSize());
-	    buf.append("\ntapis.db.meter.minutes: ");
-	    buf.append(this.getDbMeterMinutes());
-	    
-	    buf.append("\n------- Email Configuration -----------------------");
-	    buf.append("\ntapis.mail.provider: ");
-	    buf.append(this.getEmailProviderType().name());
-	    buf.append("\ntapis.smtp.auth: ");
-	    buf.append(this.isEmailAuth());
-	    buf.append("\ntapis.smtp.host: ");
-	    buf.append(this.getEmailHost());
-	    buf.append("\ntapis.smtp.port: ");
-	    buf.append(this.getEmailPort());
-	    buf.append("\ntapis.smtp.user: ");
-	    buf.append(this.getEmailUser());
-	    buf.append("\ntapis.smtp.from.name: ");
-	    buf.append(this.getEmailFromName());
-	    buf.append("\ntapis.smtp.from.address: ");
-	    buf.append(this.getEmailFromAddress());
-	    
-	    buf.append("\n------- Support Configuration ---------------------");
-	    buf.append("\ntapis.support.name: ");
-	    buf.append(this.getSupportName());
-	    buf.append("\ntapis.support.email: ");
-	    buf.append(this.getSupportEmail());
+		buf.append("\n------- Logging -----------------------------------");
+		buf.append("\ntapis.log.directory: ");
+		buf.append(this.getLogDirectory());
+		buf.append("\ntapis.log.file: ");
+		buf.append(this.getLogFile());
 
-	    buf.append("\n------- EnvOnly Configuration ---------------------");
-	    buf.append("\ntapis.envonly.log.security.info: ");
-	    buf.append(RuntimeParameters.getLogSecurityInfo());
-	    buf.append("\ntapis.envonly.allow.test.header.parms: ");
-	    buf.append(this.isAllowTestHeaderParms());
-	    buf.append("\ntapis.envonly.jwt.optional: ");
-	    buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL));
-	    buf.append("\ntapis.envonly.skip.jwt.verify: ");
-	    buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY));
+		buf.append("\n------- Network -----------------------------------");
+		buf.append("\nHost Addresses: ");
+		buf.append(getNetworkAddresses());
 
-	    buf.append("\n------- Java Configuration ------------------------");
-	    buf.append("\njava.version: ");
-	    buf.append(System.getProperty("java.version"));
-	    buf.append("\njava.vendor: ");
-	    buf.append(System.getProperty("java.vendor"));
-	    buf.append("\njava.vm.version: ");
-	    buf.append(System.getProperty("java.vm.version"));
-	    buf.append("\njava.vm.vendor: ");
-	    buf.append(System.getProperty("java.vm.vendor"));
-	    buf.append("\njava.vm.name: ");
-	    buf.append(System.getProperty("java.vm.name"));
-	    buf.append("\nos.name: ");
-	    buf.append(System.getProperty("os.name"));
-	    buf.append("\nos.arch: ");
-	    buf.append(System.getProperty("os.arch"));
-	    buf.append("\nos.version: ");
-	    buf.append(System.getProperty("os.version"));
-	    buf.append("\nuser.name: ");
-	    buf.append(System.getProperty("user.name"));
-	    buf.append("\nuser.home: ");
-	    buf.append(System.getProperty("user.home"));
-	    buf.append("\nuser.dir: ");
-	    buf.append(System.getProperty("user.dir"));
-	    
-	    buf.append("\n------- JVM Runtime Values ------------------------");
-	    NumberFormat formatter = NumberFormat.getIntegerInstance();
-	    buf.append("\navailableProcessors: ");
-	    buf.append(formatter.format(Runtime.getRuntime().availableProcessors()));
-	    buf.append("\nmaxMemory: ");
-	    buf.append(formatter.format(Runtime.getRuntime().maxMemory()));
-        buf.append("\ntotalMemory: ");
-        buf.append(formatter.format(Runtime.getRuntime().totalMemory()));
-        buf.append("\nfreeMemory: ");
-        buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
+		buf.append("\n------- DB Configuration --------------------------");
+		buf.append("\ntapis.db.jdbc.url: ");
+		buf.append(this.getJdbcURL());
+		buf.append("\ntapis.db.user: ");
+		buf.append(this.getDbUser());
+		buf.append("\ntapis.db.connection.pool.size: ");
+		buf.append(this.getDbConnectionPoolSize());
+		buf.append("\ntapis.db.meter.minutes: ");
+		buf.append(this.getDbMeterMinutes());
+
+		buf.append("\n------- Base Service URLs --------------------------");
+		buf.append("\ntapis.svc.tokens.url: ");
+		buf.append(tokensSvcURL);
+		buf.append("\ntapis.svc.tenants.url: ");
+		buf.append(tenantsSvcURL);
+		buf.append("\ntapis.svc.sk.url: ");
+		buf.append(skSvcURL);
+
+		buf.append("\n------- Email Configuration -----------------------");
+		buf.append("\ntapis.mail.provider: ");
+		buf.append(this.getEmailProviderType().name());
+		buf.append("\ntapis.smtp.auth: ");
+		buf.append(this.isEmailAuth());
+		buf.append("\ntapis.smtp.host: ");
+		buf.append(this.getEmailHost());
+		buf.append("\ntapis.smtp.port: ");
+		buf.append(this.getEmailPort());
+		buf.append("\ntapis.smtp.user: ");
+		buf.append(this.getEmailUser());
+		buf.append("\ntapis.smtp.from.name: ");
+		buf.append(this.getEmailFromName());
+		buf.append("\ntapis.smtp.from.address: ");
+		buf.append(this.getEmailFromAddress());
+
+		buf.append("\n------- Support Configuration ---------------------");
+		buf.append("\ntapis.support.name: ");
+		buf.append(this.getSupportName());
+		buf.append("\ntapis.support.email: ");
+		buf.append(this.getSupportEmail());
+
+		buf.append("\n------- EnvOnly Configuration ---------------------");
+		buf.append("\ntapis.envonly.log.security.info: ");
+		buf.append(RuntimeParameters.getLogSecurityInfo());
+		buf.append("\ntapis.envonly.allow.test.header.parms: ");
+		buf.append(this.isAllowTestHeaderParms());
+		buf.append("\ntapis.envonly.jwt.optional: ");
+		buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_JWT_OPTIONAL));
+		buf.append("\ntapis.envonly.skip.jwt.verify: ");
+		buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_ENVONLY_SKIP_JWT_VERIFY));
+
+		buf.append("\n------- Java Configuration ------------------------");
+		buf.append("\njava.version: ");
+		buf.append(System.getProperty("java.version"));
+		buf.append("\njava.vendor: ");
+		buf.append(System.getProperty("java.vendor"));
+		buf.append("\njava.vm.version: ");
+		buf.append(System.getProperty("java.vm.version"));
+		buf.append("\njava.vm.vendor: ");
+		buf.append(System.getProperty("java.vm.vendor"));
+		buf.append("\njava.vm.name: ");
+		buf.append(System.getProperty("java.vm.name"));
+		buf.append("\nos.name: ");
+		buf.append(System.getProperty("os.name"));
+		buf.append("\nos.arch: ");
+		buf.append(System.getProperty("os.arch"));
+		buf.append("\nos.version: ");
+		buf.append(System.getProperty("os.version"));
+		buf.append("\nuser.name: ");
+		buf.append(System.getProperty("user.name"));
+		buf.append("\nuser.home: ");
+		buf.append(System.getProperty("user.home"));
+		buf.append("\nuser.dir: ");
+		buf.append(System.getProperty("user.dir"));
+
+		buf.append("\n------- JVM Runtime Values ------------------------");
+		NumberFormat formatter = NumberFormat.getIntegerInstance();
+		buf.append("\navailableProcessors: ");
+		buf.append(formatter.format(Runtime.getRuntime().availableProcessors()));
+		buf.append("\nmaxMemory: ");
+		buf.append(formatter.format(Runtime.getRuntime().maxMemory()));
+		buf.append("\ntotalMemory: ");
+		buf.append(formatter.format(Runtime.getRuntime().totalMemory()));
+		buf.append("\nfreeMemory: ");
+		buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
 	}
 	
     /* ********************************************************************** */
@@ -594,6 +624,15 @@ public final class RuntimeParameters
 		this.jdbcURL = jdbcURL;
 	}
 
+	public String getTokensSvcURL() { return tokensSvcURL; }
+	private void setTokensSvcURL(String url) {tokensSvcURL = url; }
+
+	public String getTenantsSvcURL() { return tenantsSvcURL; }
+	private void setTenantsSvcURL(String url) {tenantsSvcURL = url; }
+
+	public String getSkSvcURL() { return skSvcURL; }
+	private void setSkSvcURL(String url) {skSvcURL = url; }
+
 	public String getInstanceName() {
 	    return instanceName;
 	}
@@ -717,4 +756,22 @@ public final class RuntimeParameters
     public void setLogFile(String logFile) {
         this.logFile = logFile;
     }
+
+
+    // TODO/TBD move this to shared TapisEnv?
+	private static enum EnvVar2 {
+		TAPIS_SVC_URL_TOKENS("tapis.svc.url.tokens"),
+		TAPIS_SVC_URL_TENANTS("tapis.svc.url.tenants"),
+		TAPIS_SVC_URL_SK("tapis.svc.url.sk");
+
+		private String _envName;
+
+		EnvVar2(String envName) {
+			_envName = envName;
+		}
+
+		public String getEnvName() {
+			return this._envName;
+		}
+	}
 }

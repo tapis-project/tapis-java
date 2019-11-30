@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +53,9 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+
+import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 
 @Path("/system")
 public class SystemResource
@@ -172,10 +177,8 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
+    String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
-
-
 
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
@@ -201,7 +204,7 @@ public class SystemResource
     }
 
     String name, description, owner, host, bucketName, rootDir,
-           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId;
+           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes;
     String accessMech, proxyHost;
     // TODO: creds might need to be byte array
     String accessCred;
@@ -209,12 +212,14 @@ public class SystemResource
     boolean available, useProxy;
 
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-    // Extract required name value and check to see if object exists.
-    name = obj.get("name").getAsString();
-    // TODO: Check if object exists. If yes then return 409 - Conflict
 
-    // Extract other top level properties: description, owner, host ...
+    // ------------------------- Create System Object ---------------------
+    systemsService = new SystemsServiceImpl();
+    String msg = null;
+
+    // Extract top level properties: name, host, description, owner, ...
     // Extract required values
+    name = obj.get("name").getAsString();
     host = obj.get("host").getAsString();
     // Extract optional values
     description = ApiUtils.getValS(obj.get("description"), "");
@@ -228,6 +233,8 @@ public class SystemResource
     effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
     accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
+    tags = ApiUtils.getValS(obj.get("tags"), "{}");
+    notes = ApiUtils.getValS(obj.get("notes"), "{}");
 
     //Extract Protocol information
     accessMech = (obj.has("accessMechanism") ? obj.get("accessMechanism").getAsString() : "NONE");
@@ -237,6 +244,7 @@ public class SystemResource
     proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
     // Extract list of supported transfer mechanisms contained in protocol
     // If element is not there or the list is empty then build empty array "{}"
+    var mechsArr = new ArrayList<String>();
     StringBuilder transferMechs = new StringBuilder("{");
     JsonArray mechs = null;
     if (obj.has("transferMechanisms")) mechs = obj.getAsJsonArray("transferMechanisms");
@@ -245,22 +253,43 @@ public class SystemResource
       for (int i = 0; i < mechs.size()-1; i++)
       {
         transferMechs.append(mechs.get(i).toString()).append(",");
+        mechsArr.add(StringUtils.remove(mechs.get(i).toString(),'"'));
       }
       transferMechs.append(mechs.get(mechs.size()-1).toString());
+      mechsArr.add(StringUtils.remove(mechs.get(mechs.size()-1).toString(),'"'));
     }
     transferMechs.append("}");
 
-    // Check values.
-    String msg = null;
-    if (StringUtils.isBlank(name)) {
+    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
+    // Check values. name, host, accessMech must be set. effectiveUserId is restricted.
+    // If transfer mechanism S3 is supported then bucketName must be set.
+    if (StringUtils.isBlank(name))
+    {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
     }
-    else if (StringUtils.isBlank(host)) {
+    else if (StringUtils.isBlank(host))
+    {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
     }
-    else if (StringUtils.isBlank(accessMech)) {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty AccessProtocol mechanism.");
+    else if (StringUtils.isBlank(accessMech))
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access mechanism.");
     }
+    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT.name()) &&
+             !StringUtils.isBlank(owner) &&
+             !effectiveUserId.equals(owner) &&
+             !effectiveUserId.equals(APIUSERID_VAR) &&
+             !effectiveUserId.equals(OWNER_VAR))
+    {
+      // For SSH_CERT access the effectiveUserId cannot be static string other than owner
+      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
+    }
+    else if (mechsArr.contains(Protocol.TransferMechanism.S3.name()) && StringUtils.isBlank(bucketName))
+    {
+      // For S3 support bucketName must be set
+      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+    }
+
     // If validation failed log error message and return response
     if (msg != null)
     {
@@ -268,13 +297,20 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // ------------------------- Create System Object ---------------------
-    systemsService = new SystemsServiceImpl();
+    // Make the service call to create the system
     try
     {
-      systemsService.createSystem(tenant, name, description, owner, host, available, bucketName, rootDir,
-                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, accessCred,
-                                  accessMech, transferMechs.toString(), port, useProxy, proxyHost, proxyPort);
+      systemsService.createSystem(tenantName, apiUserId, name, description, owner, host, available, bucketName, rootDir,
+                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
+                                  accessCred, accessMech, transferMechs.toString(),
+                                  port, useProxy, proxyHost, proxyPort, json);
+    }
+    catch (IllegalStateException e)
+    {
+      // IllegalStateException indicates object exists - return 409 - Conflict
+      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
+      _log.warn(msg);
+      return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
@@ -356,7 +392,7 @@ public class SystemResource
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, name, getCreds);
+      system = systemsService.getSystemByName(tenant, name, apiUserId, getCreds);
     }
     catch (Exception e)
     {

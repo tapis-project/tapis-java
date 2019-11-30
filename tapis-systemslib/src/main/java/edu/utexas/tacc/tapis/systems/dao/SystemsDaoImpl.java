@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.inject.Singleton;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +46,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   public int createTSystem(String tenant, String name, String description, String owner, String host,
                            boolean available, String bucketName, String rootDir,
                            String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                           String effectiveUserId, String accessMechanism, String transferMechanisms, int port,
-                           boolean useProxy, String proxyHost, int proxyPort)
-          throws TapisException
+                           String effectiveUserId, String tags, String notes, String accessMechanism, String transferMechanisms,
+                           int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
+          throws TapisException, IllegalStateException
   {
     // Generated sequence id
     int itemId;
@@ -79,11 +81,30 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
+      // Check to see if system exists. If yes then throw IllegalStateException
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+      // Should get one row back. If not assume system does not exist
+      boolean doesExist = false;
+      ResultSet rs = pstmt.executeQuery();
+      if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", name));
+
       // Set the sql command.
-      String sql = SqlStatements.CREATE_SYSTEM;
+      sql = SqlStatements.CREATE_SYSTEM;
+
+      // Convert tags and notes to jsonb objects
+      var tagsJson = new PGobject();
+      tagsJson.setType("jsonb");
+      tagsJson.setValue(tags);
+      var notesJson = new PGobject();
+      notesJson.setType("jsonb");
+      notesJson.setValue(notes);
 
       // Prepare the statement and fill in the placeholders.
-      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
       pstmt.setString(3, description);
@@ -97,17 +118,20 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(11, workDir);
       pstmt.setString(12, scratchDir);
       pstmt.setString(13, effectiveUserId);
-      pstmt.setString(14, accessMechanism);
-      pstmt.setString(15, transferMechanisms);
-      pstmt.setInt(16, port);
-      pstmt.setBoolean(17, useProxy);
-      pstmt.setString(18, proxyHost);
-      pstmt.setInt(19, proxyPort);
+      pstmt.setObject(14, tagsJson);
+      pstmt.setObject(15, notesJson);
+      pstmt.setString(16, accessMechanism);
+      pstmt.setString(17, transferMechanisms);
+      pstmt.setInt(18, port);
+      pstmt.setBoolean(19, useProxy);
+      pstmt.setString(20, proxyHost);
+      pstmt.setInt(21, proxyPort);
+      pstmt.setString(22, rawRequest);
 
       // Issue the call.
       pstmt.execute();
-      // The generated sequence id should come back in the result
-      ResultSet rs = pstmt.getResultSet();
+      // The generated sequence id should come back in the doesExist
+      rs = pstmt.getResultSet();
       if (!rs.next())
       {
         String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
@@ -131,6 +155,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       {
         _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
       }
+
+      // If IllegalStateException pass it back up
+      if (e instanceof IllegalStateException) throw (IllegalStateException) e;
 
       // Log the exception.
       String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems_tbl");
@@ -233,6 +260,75 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
     }
     return rows;
+  }
+
+  /**
+   * checkForSystemByName
+   * @param name
+   * @return true if found else false
+   * @throws TapisException
+   */
+  @Override
+  public boolean checkForTSystemByName(String tenant, String name) throws TapisException {
+    // Initialize result.
+    boolean result = false;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+
+      // Prepare the statement and fill in the placeholders.
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+
+      // Should get one row back. If not return null.
+      ResultSet rs = pstmt.executeQuery();
+      if (rs != null && rs.next()) result = rs.getBoolean(1);
+
+      // Close out and commit
+      rs.close();
+      pstmt.close();
+      conn.commit();
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction.
+      try
+      {
+        if (conn != null) conn.rollback();
+      }
+      catch (Exception e1)
+      {
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+      }
+
+      String msg = MsgUtils.getMsg("DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
+      _log.error(msg, e);
+      throw new TapisException(msg, e);
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      try
+      {
+        if (conn != null) conn.close();
+      }
+      catch (Exception e)
+      {
+        // If commit worked, we can swallow the exception.
+        // If not, the commit exception will be thrown.
+        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+        _log.error(msg, e);
+      }
+    }
+    return result;
   }
 
   /**
@@ -479,7 +575,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Populate protocol transfer mechanisms
       List<TransferMechanism> tmechsList = new ArrayList<>();
-      String tmechsStr = rs.getString(16);
+      String tmechsStr = rs.getString(18);
       if (tmechsStr != null && !StringUtils.isBlank(tmechsStr))
       {
         // Strip off surrounding braces and convert strings to enums
@@ -490,6 +586,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           if (!StringUtils.isBlank(tmech)) tmechsList.add(Protocol.TransferMechanism.valueOf(tmech));
         }
       }
+
       tSystem = new TSystem(rs.getInt(1), // id
                             rs.getString(2), // tenant
                             rs.getString(3), // name
@@ -504,15 +601,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(12), // workDir
                             rs.getString(13), // scratchDir
                             rs.getString(14), // effectiveUserId
-                            AccessMechanism.valueOf(rs.getString(15)),
+                            rs.getString(15), // tags
+                            rs.getString(16), // notes
+                            AccessMechanism.valueOf(rs.getString(17)),
                             tmechsList,
-                            rs.getInt(17),
-                            rs.getBoolean(18),
-                            rs.getString(19),
-                            rs.getInt(20),
+                            rs.getInt(19),
+                            rs.getBoolean(20),
+                            rs.getString(21),
+                            rs.getInt(22),
                            "fakeAccessCred1", // accessCred
-                            rs.getTimestamp(21).toInstant(), // created
-                            rs.getTimestamp(22).toInstant()); // updated
+                            rs.getTimestamp(23).toInstant(), // created
+                            rs.getTimestamp(24).toInstant()); // updated
     }
     catch (Exception e)
     {

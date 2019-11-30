@@ -17,6 +17,8 @@ public final class ReqCreateSystem
   public String workDir;
   public String effectiveUserId;
   public String accessCredential;
+  public String tags;
+  public String notes;
   public String accessMechanism;
   public List<String> transferMechanisms;
   public int port;

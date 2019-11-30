@@ -23,11 +23,23 @@ public class LibUtils
   private static final Logger _log = LoggerFactory.getLogger(LibUtils.class);
 
   // Location of message bundle files
-  private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.systems.SysLibMessages";
+  private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.systems.lib.SysLibMessages";
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
+
+  /**
+   * Get a localized message using the specified key and parameters. Locale is null.
+   * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+   * @param key
+   * @param parms
+   * @return
+   */
+  public static String getMsg(String key, Object... parms)
+  {
+    return getMsg(key, null, parms);
+  }
 
   /**
    * Get a localized message using the specified locale, key and parameters.
