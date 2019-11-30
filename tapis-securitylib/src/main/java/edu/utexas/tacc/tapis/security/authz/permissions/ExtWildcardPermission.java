@@ -11,20 +11,21 @@ import org.apache.shiro.authz.Permission;
 import org.apache.shiro.authz.permission.WildcardPermission;
 import org.apache.shiro.util.CollectionUtils;
 
-/** This class allows predefined schemas to use extension to standard Shiro permission
- * checking.  The ideal is to incorporate pathnames or URLs into permission specifications
- * and provided custom matching semantics for those values.
+/** This class allows predefined schemas to extend standard Shiro permission
+ * checking.  For example, one extension incorporates pathnames or URLs into 
+ * permission specifications and provides custom matching semantics for those values.
  * 
  * Each colon separated segment of a permission string is called a part.  Custom 
  * schemas can define one or more parts that have their own matching semantics and
  * syntactic rule.  One consideration when specifying a custom schema is to make
  * sure it is well-defined.  In particular, any schema with a custom part that might
- * contain a Shiro permissions reserved character (:, *, comma) must be the last part
- * in the schema.  Without this constraint permission parsing would become ambiguous. 
+ * contain a Shiro permissions reserved character (:, *, comma) can only be the last
+ * part of the schema.  Without this constraint permission parsing would become 
+ * ambiguous. 
  * 
  * We continue the coding practices of the Shiro super class with regard to exception
  * handling and logging, which is a different that typical SK code.  Some code was
- * copied from Apache Shiro.
+ * copied directly from Apache Shiro.
  * 
  * @author rcardone
  *
@@ -46,11 +47,12 @@ public final class ExtWildcardPermission
      * Types that begin with an underscore indicate that their values may contain Shiro 
      * permissions reserved characters (:, *, comma).  We say these types are NOT 
      * Shiro-parsing safe.  The values of these types have to be parsed differently and
-     * cannot be compound, i.e., commas are not recognized as value separators within 
-     * a part.
+     * cannot be compounded, i.e., commas are not recognized as value separators within 
+     * such a part.
      * 
      * In addition, only one Shiro-parsing unsafe type can be defined in a schema and
-     * that type can only be associated with the last part in the schema. 
+     * that type can only be specified as the last part in the schema.  The supported
+     * matching types are listed here: 
      *
      * SHIRO
      * -----
@@ -61,18 +63,19 @@ public final class ExtWildcardPermission
      * Example schema: files:tenantId:op:systemId:path
      * Shiro-parsing safe: No
      * Semantics: Path matching where the :path means the named path and everything in
-     *            its subtree.  That is, either the path is an exact match or the 
-     *            (path + "/") is a prefix of the request path.   
+     *            its subtree.  Matches require that either the path is an exact match 
+     *            or the (path + "/") is a prefix of the request path.   
      */
     private enum ExtMatchType {SHIRO, _RECURSIVE_PATH}
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
-    // The mapping of strings to a pair of matching attributes.  The string represents
-    // the schema (the first segment) of a permission.  The pair consists of the
-    // the match type and the segment ordinal in which the path appears (left to right,
-    // starting at 1).
+    // A mapping of strings to pairs of matching attributes using a custom type
+    // representation.  The string key represents the schema (the first segment) of a 
+    // permission.  Each pair associated with that schema consists of the the match 
+    // type and the segment ordinal in which the path appears (left to right,
+    // starting at 0).
     private static final ExtMatchInfo[] _extMatchInfo = initExtMatchInfo();
     
     // Array of match types where the position of each type corresponds to the schema 
@@ -128,11 +131,10 @@ public final class ExtWildcardPermission
     {
         // Use the same error message as the superclass.
         if (StringUtils.isBlank(wildcardString)) {
-            throw new IllegalArgumentException("Wildcard string cannot be null or empty. Make sure permission strings are properly formatted.");
+            throw new IllegalArgumentException(
+                    "Wildcard string cannot be null or empty. "
+                    + "Make sure permission strings are properly formatted.");
         }
-        
-        // A somewhat funny way to deal with case sensitivity.
-        if (!caseSensitive) wildcardString = wildcardString.toLowerCase();
         
         // Construct the schema's type map.
         _typeArray = getTypeArray(wildcardString);
@@ -142,6 +144,10 @@ public final class ExtWildcardPermission
             super.setParts(wildcardString, caseSensitive);
             return;
         }
+        
+        // --------------- Extended Permission Processing ---------------
+        // A somewhat funny way to deal with case sensitivity carried over from Shiro.
+        if (!caseSensitive) wildcardString = wildcardString.toLowerCase();
         
         // This is a custom schema with one or more extensions.  Determine if
         // the last component is a Shiro-parsing unsafe type and, if so, cut
@@ -156,7 +162,7 @@ public final class ExtWildcardPermission
         var nestedParts = new ArrayList<Set<String>>();
         
         // Decompose each comma separated value.
-        int lastPartIndex = parts.size() - 1;
+        int lastPartIndex = _typeArray.length - 1; // custom schema max index
         for (int i = 0; i < parts.size(); i++) 
         {
             // Current part.
@@ -174,14 +180,17 @@ public final class ExtWildcardPermission
 
             // Check subparts before adding to nested part list.
             if (subparts.isEmpty()) 
-                throw new IllegalArgumentException("Wildcard string cannot contain parts with only dividers. Make sure permission strings are properly formatted.");
+                throw new IllegalArgumentException(
+                        "Wildcard string cannot contain parts with only dividers. "
+                        + "Make sure permission strings are properly formatted.");
             
             nestedParts.add(subparts);
         }
         
         // Make sure we have a non-empty permission spec.
         if (nestedParts.isEmpty()) 
-            throw new IllegalArgumentException("Wildcard string cannot contain only dividers. Make sure permission strings are properly formatted.");
+            throw new IllegalArgumentException("Wildcard string cannot contain only dividers. "
+                    + "Make sure permission strings are properly formatted.");
 
         // Assign the parent field.
         super.setParts(nestedParts);
@@ -190,9 +199,18 @@ public final class ExtWildcardPermission
     /* ---------------------------------------------------------------------------- */
     /* implies:                                                                     */
     /* ---------------------------------------------------------------------------- */
+    /** The basic logic is the same as in standard Shiro except for the actual part
+     * comparison which depends on the matching type.
+     * 
+     * @param p the request permission string
+     * @return true if the request permission is implied by this permission, false otherwise
+     */
     @Override
     public boolean implies(Permission p)
     {
+        // Use standard shiro matching when this object is not extended.
+        if (!requiresExtendedParsing()) return super.implies(p);
+        
         // We only compare to ourselves.
         if (!(p instanceof ExtWildcardPermission)) return false;
         ExtWildcardPermission otherPerm = (ExtWildcardPermission) p;
@@ -209,7 +227,7 @@ public final class ExtWildcardPermission
             // Check this position for a match.  Note the containsAll call
             // means that comma is interpreted as AND in either permission.
             Set<String> part = getParts().get(i);
-            if (!part.contains(WILDCARD_TOKEN) && !part.containsAll(otherPart)) 
+            if (!impliesPart(_typeArray[i], part, otherPart)) 
                 return false;
             
             // Move to the next position.
@@ -233,13 +251,57 @@ public final class ExtWildcardPermission
     /*                              Private Methods                                 */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
+    /* impliesPart:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Implement the implies logic for each matching type, which includes the standard 
+     * Shiro matching and all extended matching semantics.
+     * 
+     * @param matchType the type of matching to be applied
+     * @param part this permission's part
+     * @param otherPart the request permission part
+     * @return true if there's a match, false otherwise
+     */
+    private boolean impliesPart(ExtMatchType matchType, Set<String> part, Set<String> otherPart)
+    {
+        // The match type determines the how we compare the other part to this part.
+        switch (matchType) {
+            // Standard Shiro matching.
+            case SHIRO:
+                if (part.contains(WILDCARD_TOKEN) || part.containsAll(otherPart)) 
+                    return true;
+                break;
+                
+            // Filepath matching does not recognize any special characters and only
+            // matches if (1) the two parts are exactly the same or (2) the other
+            // part is a descendant of this part in a path hierarchy.  Avoid false
+            // capture by appending the path separator when this part is interpreted
+            // as a parent directory/container.
+            case _RECURSIVE_PATH:
+                // There can only be exactly one string in each part.
+                String partString = part.iterator().next();
+                String otherPartString = otherPart.iterator().next();
+                if (otherPartString.equals(partString)) return true;
+                if (otherPartString.startsWith(partString + "/")) return true;
+                break;
+        }
+        
+        // No match.
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* getTypeArray:                                                                */
     /* ---------------------------------------------------------------------------- */
     private ExtMatchType[] getTypeArray(String wildcardString)
     {
+        // Get the schema if one is specified.
+        int index = wildcardString.indexOf(':');
+        if (index < 1) return null;
+        String schema = wildcardString.substring(0, index);
+        
         // See if a custom schema has been defined.
         for (ExtMatchInfo info : _extMatchInfo) 
-            if (info._schema.equals(wildcardString)) {
+            if (info._schema.equals(schema)) {
                 // Get the maximum part position.
                 int maxIndex = info._extensions.stream().
                                 max(Comparator.comparing(Pair::getValue)).get().getValue();
@@ -261,17 +323,24 @@ public final class ExtWildcardPermission
     private boolean isShiroParsingSafe()
     {
        // Parsing safety is determined by the last custom match type that relies
-       // on the naming convention explained above.
+       // on the naming convention explained above.  Non-extended types are always
+       // shiro-parsing safe.
+       if (!requiresExtendedParsing()) return true;
        if (_typeArray[_typeArray.length-1].name().startsWith("_")) return false;
          else return true;
     }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* requiresExtendedParsing:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    private boolean requiresExtendedParsing() {return _typeArray != null;}
     
     /* ---------------------------------------------------------------------------- */
     /* initExtMatchInfo:                                                            */
     /* ---------------------------------------------------------------------------- */
     /** This method defines all the schemas that require some type of customized
      * permission matching treatment.  The current implementation hardcodes these
-     * schemas, eventually we'd like to move these specifications to the database
+     * schemas, but we'd like to eventually move these specifications to the database
      * and, possibly, provide a user-facing API.
      * 
      * Each info item must contain at least one type/position pair.  If a type is not
@@ -294,7 +363,8 @@ public final class ExtWildcardPermission
         fileMatchInfo._extensions.add(Pair.of(ExtMatchType._RECURSIVE_PATH, 4));
         extMatchList.add(fileMatchInfo);
         
-        // Double-check that Shiro-parsign unsafe types only appear in the last position.
+        // Double-check that Shiro-parsign unsafe types only appear in the last 
+        // position.  This is for future-proofing...
         validateExtMatchInfoList(extMatchList);
         
         // Return an array.
@@ -320,9 +390,11 @@ public final class ExtWildcardPermission
             }
             
             // The first part of a custom permission is a constant name string.
-            if (info._schema.contains("*") || info._schema.contains(",")) {
+            if (info._schema.contains("*") || info._schema.contains(",") || 
+                info._schema.contains(":")) 
+            {
                 String msg = "The first position of custom schema " + info._schema + 
-                             " must be a constant string without asterisks or commas.";
+                             " must be a constant string without colons, asterisks or commas.";
                 throw new IllegalArgumentException(msg);
             }
             
@@ -346,7 +418,7 @@ public final class ExtWildcardPermission
                     throw new IllegalArgumentException(msg);
                 }
                 
-                // Count the number of shiro-parsing unsafe match types are specified. 
+                // Count the number of shiro-parsing unsafe match types specified. 
                 String typeName = pair.getKey().name();
                 if (typeName.charAt(0) == '_') {
                     unsafeCount++;
@@ -360,7 +432,7 @@ public final class ExtWildcardPermission
             // Is the definition unparseable because of multiple unsafe match types?
             if (unsafeCount > 1) {
                 String msg = "Schema " + info._schema + 
-                             " cannot define more than one unsafe extended type.";
+                             " cannot define more than one unsafe parsing extended type.";
                 throw new IllegalArgumentException(msg);
             }
             

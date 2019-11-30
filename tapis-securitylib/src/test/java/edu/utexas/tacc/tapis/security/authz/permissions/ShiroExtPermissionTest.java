@@ -11,156 +11,134 @@ import org.testng.annotations.Test;
 public class ShiroExtPermissionTest 
 {
     /* ---------------------------------------------------------------------- */
-    /* simpleTest:                                                            */
+    /* tenantTest:                                                            */
     /* ---------------------------------------------------------------------- */
-    @Test
-    public void simpleTest()
+    @Test(enabled=true)
+    public void tenantTest()
     {
       // The required permission spec.
-      ExtWildcardPermission wcPerm = new ExtWildcardPermission("a:b:c,d");
+      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org");
       
-      boolean implies = wcPerm.implies(new ExtWildcardPermission("a:b:c"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:c");
+      boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b:d"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:d");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b:d:e:f"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:d:e:f");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b:z"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:b:z");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:b");
-
-      implies = wcPerm.implies(new ExtWildcardPermission("*:b:d"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to imply *:b:d");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/myfile"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/myfile");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("x"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply x");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/myfile"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/myfile");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my:file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my:file");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my,file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my,file");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my*file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my*file");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/*,:"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/*,:");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx");
     }
 
     /* ---------------------------------------------------------------------- */
-    /* wildcardAtEndTest:                                                     */
+    /* pathTest:                                                              */
     /* ---------------------------------------------------------------------- */
-    @Test
-    public void wildcardAtEndTest()
+    @Test(enabled=true)
+    public void pathTest()
     {
       // The required permission spec.
-      ExtWildcardPermission wcPerm = new ExtWildcardPermission("a:b:*");
+      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud");
       
-      boolean implies = wcPerm.implies(new ExtWildcardPermission("a:b:c"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:c");
+      boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b:d:e:f"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:d:e:f");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/myfile"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/myfile");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/myfile"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/myfile");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("a:*"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:*");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my:file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my:file");
       
-      implies = wcPerm.implies(new ExtWildcardPermission("x"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply x");
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my,file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my,file");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/my*file"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/mydir/my*file");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/*,:"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/*,:");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:stampede2");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/myfile"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/myfile");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/myfile"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:write:stampede2:/home/bud/myfile");
+      
+      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/mydir/myfile");
+      
     }
-
-    /* ---------------------------------------------------------------------- */
-    /* wildcardInMiddleTest:                                                  */
-    /* ---------------------------------------------------------------------- */
-    @Test
-    public void wildcardInMiddleTest()
-    {
-      // The required permission spec.
-      ExtWildcardPermission wcPerm = new ExtWildcardPermission("a:*:c,d");
-      
-      boolean implies = wcPerm.implies(new ExtWildcardPermission("a:b:c"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:c");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:banana:c"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:banana:c");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:*:c"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*:c");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:*:d"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*:d");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b:d:e:f"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b:d:e:f");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:*:d:e:f"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*:d:e:f");
-      
-      // Both c AND d must be true.
-      implies = wcPerm.implies(new ExtWildcardPermission("a:p:c,d"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:p:c,d");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:*:v"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:*:v");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:banana"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply :banana");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("a:b"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:b");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("*:*:d"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply *:*:d");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("*:b:d"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply *:b:d");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("x"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply x");
-      
-      // Comma is a logical AND when appearing in a request.
-      implies = wcPerm.implies(new ExtWildcardPermission("a:p:c,e"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:p:c,e");
-      
-      // Comma is a logical AND when appearing in a request.
-      implies = wcPerm.implies(new ExtWildcardPermission("a:p:c,d,e"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a:p:c,d,e");
-      
-      // Comma is a logical AND when appearing in a request.
-      implies = wcPerm.implies(new ExtWildcardPermission("a,q:p:c,d"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply a,q:p:c,d");
-   }
 
     /* ---------------------------------------------------------------------- */
     /* validPermTest:                                                         */
     /* ---------------------------------------------------------------------- */
-    @Test
+    @Test(enabled=true)
     public void validPermTest()
     {
         // We accept goofy parts that include an asterisk.  
-        // This is really the same as "a:*" or "a".
-        ExtWildcardPermission wcPerm = new ExtWildcardPermission("a:b,*");
+        // This is really the same as "files:*" or "files".
+        ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:b,*");
         
-        boolean implies = wcPerm.implies(new ExtWildcardPermission("a:b"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b");
+        boolean implies = wcPerm.implies(new ExtWildcardPermission("files:b"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:b");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a:z"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:z");
+        implies = wcPerm.implies(new ExtWildcardPermission("files:z"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:z");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a");
+        implies = wcPerm.implies(new ExtWildcardPermission("files"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*");
+        implies = wcPerm.implies(new ExtWildcardPermission("files:*"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:*");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a:b,*"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:b,*");
+        implies = wcPerm.implies(new ExtWildcardPermission("files:b,*"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:b,*");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a:c,*"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:c,*");
+        implies = wcPerm.implies(new ExtWildcardPermission("files:c,*"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:c,*");
         
-        implies = wcPerm.implies(new ExtWildcardPermission("a:*:d:e:f"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*:d:e:f");
+        implies = wcPerm.implies(new ExtWildcardPermission("files:*:d:e:f"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:*:d:e:f");
         
         implies = wcPerm.implies(new ExtWildcardPermission("*"));
         Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply *");

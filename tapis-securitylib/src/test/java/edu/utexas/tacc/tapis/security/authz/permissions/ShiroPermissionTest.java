@@ -4,7 +4,8 @@ import org.apache.shiro.authz.permission.WildcardPermission;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/** Basic sanity check of Shiro Wildcard permission checking.
+/** Basic sanity check of standard Shiro Wildcard permission checking using
+ * the extended wildcard class.
  * 
  * @author rcardone
  */
@@ -151,7 +152,7 @@ public class ShiroPermissionTest
         implies = wcPerm.implies(new WildcardPermission("a"));
         Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a");
         
-        implies = wcPerm.implies(new WildcardPermission("a"));
+        implies = wcPerm.implies(new WildcardPermission("a:*"));
         Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:*");
         
         implies = wcPerm.implies(new WildcardPermission("a:b,*"));
