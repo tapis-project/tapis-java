@@ -150,8 +150,7 @@ public class ShiroExtPermissionTest
     @Test(enabled=true)
     public void allowAllTest()
     {
-        // We accept goofy parts that include an asterisk.  
-        // This is really the same as "files:*" or "files".
+        // We accept everything.
         ExtWildcardPermission wcPerm = new ExtWildcardPermission("*");
         
         boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/mydir/myfile"));
