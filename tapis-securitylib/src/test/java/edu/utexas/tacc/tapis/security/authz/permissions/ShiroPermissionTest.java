@@ -167,4 +167,18 @@ public class ShiroPermissionTest
         implies = wcPerm.implies(new WildcardPermission("*"));
         Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply *");
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* allowAllTest:                                                          */
+    /* ---------------------------------------------------------------------- */
+    @Test(enabled=true)
+    public void allowAllTest()
+    {
+        // We accept goofy parts that include an asterisk.  
+        // This is really the same as "files:*" or "files".
+        ExtWildcardPermission wcPerm = new ExtWildcardPermission("*");
+        
+        boolean implies = wcPerm.implies(new WildcardPermission("a:p:c,d"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:p:c,d");
+    }
 }
