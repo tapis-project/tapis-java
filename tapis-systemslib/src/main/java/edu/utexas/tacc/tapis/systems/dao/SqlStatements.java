@@ -43,4 +43,8 @@ final class SqlStatements
   // Check for a existence of a record
   public static final String CHECK_FOR_SYSTEM_BY_NAME =
     "SELECT EXISTS(SELECT 1 FROM systems where tenant = ? AND name = ?)";
+
+  // Get system owner
+  public static final String SELECT_SYSTEM_OWNER =
+    "SELECT owner FROM systems WHERE tenant = ? AND name = ?";
 }

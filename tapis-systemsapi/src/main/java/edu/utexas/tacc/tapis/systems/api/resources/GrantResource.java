@@ -1,36 +1,25 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
-import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateGrant;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
-import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,31 +32,27 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import javax.ws.rs.core.Response.Status;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 
-import edu.utexas.tacc.tapis.systems.model.TSystem;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-
-import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
-
-@Path("/system")
-public class SystemResource
+@Path("/grant")
+public class GrantResource
 {
   /* **************************************************************************** */
   /*                                   Constants                                  */
   /* **************************************************************************** */
   // Local logger.
-  private static final Logger _log = LoggerFactory.getLogger(SystemResource.class);
+  private static final Logger _log = LoggerFactory.getLogger(GrantResource.class);
 
   // Json schema resource files.
-  private static final String FILE_SYSTEMS_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
+  private static final String FILE_GRANT_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/GrantCreateRequest.json";
 
   /* **************************************************************************** */
   /*                                    Fields                                    */
@@ -117,49 +102,42 @@ public class SystemResource
   /* **************************************************************************** */
 
   /**
-   * Create a system
+   * Create a user grant for a system
    * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
-   * @return response containing reference to created object
+   * @return basic response
    */
   @POST
+  @Path("/grant/{systemName}/user/{userName}")
   @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Create a system",
+    summary = "Create a grant in the Security Kernel giving a user permissions for a system",
     description =
-        "Create a system using a request body. " +
-        "System name must be unique within a tenant and can be composed of alphanumeric characters " +
-        "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
-        "and can be no more than 300 characters in length. " +
-        "Description is optional with a maximum length of 2048 characters.",
-    tags = "systems",
-// TODO
-//    parameters = {
-//      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-//                 description = "Pretty print the response")
-//    },
+        "Create a grant in the Security Kernel for a user using a request body. Requester must be owner of " +
+        "the system. Permissions that can be requested: read, write, execute or '*' to indicate all permisions.",
+    tags = "grant",
     requestBody =
       @RequestBody(
-        description = "A JSON object specifying information for the system to be created.",
+        description = "A JSON object specifying information for the grant to be created.",
         required = true,
-        content = @Content(schema = @Schema(implementation = ReqCreateSystem.class))
+        content = @Content(schema = @Schema(implementation = ReqCreateGrant.class))
       ),
     responses = {
-      @ApiResponse(responseCode = "201", description = "System created.",
-                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))
-      ),
+      @ApiResponse(responseCode = "200", description = "Grant created.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "401", description = "Not authorized.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "409", description = "System already exists.",
-                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
       @ApiResponse(responseCode = "500", description = "Server error.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
+  public Response createGrant(@PathParam("systemName") String systemName,
+                              @PathParam("userName") String userName,
+                              @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                              InputStream payloadStream)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -167,12 +145,12 @@ public class SystemResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createSystem",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createGrant",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
 
-    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
@@ -187,106 +165,82 @@ public class SystemResource
     try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
+      msg = MsgUtils.getMsg("SYSAPI_GRANT_JSON_ERROR", systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // Create validator specification and validate the json against the schema
-    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SYSTEMS_CREATE_REQUEST);
+    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_GRANT_CREATE_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
-      msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+      msg = MsgUtils.getMsg("SYSAPI_GRANT_JSON_INVALID", systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    String name, description, owner, host, bucketName, rootDir,
-           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes;
-    String accessMech, proxyHost;
-    // TODO: creds might need to be byte array
-    String accessCred;
-    int port, proxyPort;
-    boolean available, useProxy;
-
     JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
 
-    // ------------------------- Create System Object ---------------------
     systemsService = new SystemsServiceImpl();
-
-    // Extract top level properties: name, host, description, owner, ...
-    // Extract required values
-    name = obj.get("name").getAsString();
-    host = obj.get("host").getAsString();
-    // Extract optional values
-    description = ApiUtils.getValS(obj.get("description"), "");
-    owner = ApiUtils.getValS(obj.get("owner"), "");
-    bucketName = ApiUtils.getValS(obj.get("bucketName"), "");
-    rootDir = ApiUtils.getValS(obj.get("rootDir"), "");
-    jobInputDir = ApiUtils.getValS(obj.get("jobInputDir"), "");
-    jobOutputDir = (obj.has("jobOutputDir") ? obj.get("jobOutputDir").getAsString() : "");
-    workDir = (obj.has("workDir") ? obj.get("workDir").getAsString() : "");
-    scratchDir = (obj.has("scratchDir") ? obj.get("scratchDir").getAsString() : "");
-    effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
-    available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
-    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
-    tags = ApiUtils.getValS(obj.get("tags"), "{}");
-    notes = ApiUtils.getValS(obj.get("notes"), "{}");
-
-    //Extract Protocol information
-    accessMech = (obj.has("accessMechanism") ? obj.get("accessMechanism").getAsString() : "NONE");
-    port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
-    useProxy = (obj.has("useProxy") ? obj.get("useProxy").getAsBoolean() : false);
-    proxyHost = (obj.has("proxyHost") ? obj.get("proxyHost").getAsString() : "");
-    proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
-    // Extract list of supported transfer mechanisms contained in protocol
-    // If element is not there or the list is empty then build empty array "{}"
-    var mechsArr = new ArrayList<String>();
-    StringBuilder transferMechs = new StringBuilder("{");
-    JsonArray mechs = null;
-    if (obj.has("transferMechanisms")) mechs = obj.getAsJsonArray("transferMechanisms");
-    if (mechs != null && mechs.size() > 0)
+    // Check that the system exists
+    boolean systemExists;
+    try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
+    catch (Exception e)
     {
-      for (int i = 0; i < mechs.size()-1; i++)
-      {
-        transferMechs.append(mechs.get(i).toString()).append(",");
-        mechsArr.add(StringUtils.remove(mechs.get(i).toString(),'"'));
-      }
-      transferMechs.append(mechs.get(mechs.size()-1).toString());
-      mechsArr.add(StringUtils.remove(mechs.get(mechs.size()-1).toString(),'"'));
+      msg = ApiUtils.getMsg("SYSAPI_GRANT_CREATE_ERROR", null, systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    transferMechs.append("}");
+    if (!systemExists)
+    {
+      msg = MsgUtils.getMsg("SYSAPI_GRANT_NOSYSTEM", systemName, userName);
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // Get the system owner and verify that requester is the owner
+    String owner;
+    try { owner = systemsService.getSystemOwner(tenantName, systemName); }
+    catch (Exception e)
+    {
+      msg = MsgUtils.getMsg("SYSAPI_GET_OWNER_ERROR", systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (StringUtils.isBlank(owner))
+    {
+      msg = MsgUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", systemName);
+      _log.error(msg);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (!owner.equals(apiUserId))
+    {
+      msg = MsgUtils.getMsg("SYSAPI_NOT_OWNER", systemName, "createGrant");
+      _log.error(msg);
+      return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // Extract requested permissions from the request body
+    // Json schema validation should ensure we have at least 1 item
+    StringBuilder permsListSB = new StringBuilder();
+    JsonArray perms = null;
+    if (obj.has("permissions")) perms = obj.getAsJsonArray("permissions");
+    if (perms != null && perms.size() > 0)
+    {
+      for (int i = 0; i < perms.size()-1; i++)
+      {
+        permsListSB.append(perms.get(i).toString()).append(",");
+      }
+      permsListSB.append(perms.get(perms.size()-1).toString());
+    }
 
     // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
     msg = null;
-    // Check values. name, host, accessMech must be set. effectiveUserId is restricted.
-    // If transfer mechanism S3 is supported then bucketName must be set.
-    if (StringUtils.isBlank(name))
+    // Check values. We should have at least one permission
+    if (perms == null || perms.size() <= 0)
     {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
-    }
-    else if (StringUtils.isBlank(host))
-    {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
-    }
-    else if (StringUtils.isBlank(accessMech))
-    {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access mechanism.");
-    }
-    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT.name()) &&
-             !StringUtils.isBlank(owner) &&
-             !effectiveUserId.equals(owner) &&
-             !effectiveUserId.equals(APIUSERID_VAR) &&
-             !effectiveUserId.equals(OWNER_VAR))
-    {
-      // For SSH_CERT access the effectiveUserId cannot be static string other than owner
-      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
-    }
-    else if (mechsArr.contains(Protocol.TransferMechanism.S3.name()) && StringUtils.isBlank(bucketName))
-    {
-      // For S3 support bucketName must be set
-      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+      msg = MsgUtils.getMsg("SYSAPI_GRANT_NOPERMS", systemName, userName);
     }
 
     // If validation failed log error message and return response
@@ -296,35 +250,26 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // Make the service call to create the system
+    // Make the service call to create the grant
     try
     {
-      systemsService.createSystem(tenantName, apiUserId, name, description, owner, host, available, bucketName, rootDir,
-                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
-                                  accessCred, accessMech, transferMechs.toString(),
-                                  port, useProxy, proxyHost, proxyPort, json);
-    }
-    catch (IllegalStateException e)
-    {
-      // IllegalStateException indicates object exists - return 409 - Conflict
-      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
-      _log.warn(msg);
-      return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      systemsService.createUserGrant(tenantName, systemName, userName, permsListSB.toString());
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_GRANT_CREATE_ERROR", null, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success ------------------------------- 
     // Success means the object was created.
-    ResultResourceUrl respUrl = new ResultResourceUrl();
-    respUrl.url = _request.getRequestURL().toString() + "/" + name;
-    RespResourceUrl resp1 = new RespResourceUrl(respUrl);
-    return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp1)).build();
+    RespBasic resp1 = new RespBasic();
+    return Response.status(Status.CREATED)
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_GRANT_CREATED", null, systemName,
+                                                                   userName, permsListSB.toString()),
+                                                   prettyPrint, resp1))
+      .build();
   }
 
   /**

@@ -28,4 +28,8 @@ public interface SystemsService
   List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException;
 
   List<String> getSystemNames(String tenant) throws TapisException;
+
+  String getSystemOwner(String tenant, String name) throws TapisException;
+
+  void createUserGrant(String tenant, String systemName, String userName, String permissions) throws TapisException;
 }

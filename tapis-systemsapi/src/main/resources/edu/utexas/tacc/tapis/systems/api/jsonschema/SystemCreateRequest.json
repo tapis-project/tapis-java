@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
-  "description": "Top-level schema for a system create request",
+  "description": "Schema for a system create request",
   "additionalProperties": false,
   "type": "object",
   "properties": {

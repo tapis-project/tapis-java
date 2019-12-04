@@ -42,7 +42,7 @@ CREATE TABLE systems
 (
   id             SERIAL PRIMARY KEY,
   tenant         VARCHAR(24) NOT NULL,
-  name           VARCHAR(312) NOT NULL, -- max = 300 + strlen("SystemOwner_")
+  name           VARCHAR(307) NOT NULL, -- max = 300 + strlen("System_"), extra for building role names
   description    VARCHAR(2048) NOT NULL,
   owner          VARCHAR(60) NOT NULL,
   host           VARCHAR(256) NOT NULL,

@@ -56,6 +56,7 @@ public class ApiUtils
    */
   public static String getMsg(String key, Locale locale, Object... parms)
   {
+    // TODO: Pull tenant name from thread context and include it in the message
     String msgValue = null;
 
     if (locale == null) locale = Locale.getDefault();

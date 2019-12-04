@@ -549,6 +549,76 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     return list;
   }
 
+  /**
+   * getSystemOwner
+   * @param tenant
+   * @param name - name of the system
+   * @return Owner or null if no system found
+   * @throws TapisException
+   */
+  @Override
+  public String getTSystemOwner(String tenant, String name) throws TapisException
+  {
+    String owner = null;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.SELECT_SYSTEM_OWNER;
+
+      // Prepare the statement and fill in the placeholders.
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+
+      // Issue the call for the 1 row result set.
+      ResultSet rs = pstmt.executeQuery();
+      if (rs.next()) owner = rs.getString(1);
+
+      // Close out and commit
+      rs.close();
+      pstmt.close();
+      conn.commit();
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction.
+      try
+      {
+        if (conn != null) conn.rollback();
+      }
+      catch (Exception e1)
+      {
+        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+      }
+
+      String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
+      _log.error(msg, e);
+      throw new TapisException(msg, e);
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      try
+      {
+        if (conn != null) conn.close();
+      }
+      catch (Exception e)
+      {
+        // If commit worked, we can swallow the exception.
+        // If not, the commit exception will be thrown.
+        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+        _log.error(msg, e);
+      }
+    }
+    return owner;
+  }
+
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
