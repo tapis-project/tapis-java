@@ -38,8 +38,6 @@ public class SystemsServiceImpl implements SystemsService
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
-  private static final String SYSTEM_OWNER_ROLE = "SystemOwner";
-  private static final String SYSTEM_USER_ROLE = "SystemUser";
   private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
 
   // **************** Inject Dao singletons ****************
@@ -152,16 +150,17 @@ public class SystemsServiceImpl implements SystemsService
     var skClient = new SKClient(skURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":*:" + systemName;
-    String storePerm = "store:" + tenantName + ":*:" + systemName + ":*";
+    String storePerm = "files:" + tenantName + ":*:" + systemName + ":*";
 
     // TODO Refactor to private method
     // Create Role with perms and grant it to user
     // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly
-    String roleName = SYSTEM_OWNER_ROLE;
+    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
+    //       that will create a default role for a user. Use that when available.
+    String roleName = owner;
     try
     {
-      skClient.createRole(roleName, "System owner role");
+      skClient.createRole(roleName, "Role for user: " + owner);
       skClient.addRolePermission(roleName, sysPerm);
       skClient.addRolePermission(roleName, storePerm);
       skClient.grantUserRole(owner, roleName);
@@ -283,7 +282,7 @@ public class SystemsServiceImpl implements SystemsService
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
         StringUtils.isBlank(permissions))
     {
-      throw new IllegalArgumentException("An input parameter was null or empty");
+      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
 
     // TBD/TODO: Determine if all this lookup is needed. If yes put it in private method or utility method
@@ -333,18 +332,17 @@ public class SystemsServiceImpl implements SystemsService
     var skClient = new SKClient(skURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":" + permissions + ":" + systemName;
-    String storePerm = "store:" + tenantName + ":" + permissions + ":" + systemName + ":*";
 
     // TODO Refactor to private method
     // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly
+    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
+    //       that will create a default role for a user. Use that when available.
     // Create Role with perms and grant it to user
-    String roleName = SYSTEM_USER_ROLE;
+    String roleName = userName;
     try
     {
-      skClient.createRole(roleName, "System user role");
+      skClient.createRole(roleName, "Role for user: " + userName);
       skClient.addRolePermission(roleName, sysPerm);
-      skClient.addRolePermission(roleName, storePerm);
       skClient.grantUserRole(userName, roleName);
     }
     // TODO exception handling

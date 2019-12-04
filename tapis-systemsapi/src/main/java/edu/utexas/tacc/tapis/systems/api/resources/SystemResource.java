@@ -131,7 +131,7 @@ public class SystemResource
         "Create a system using a request body. " +
         "System name must be unique within a tenant and can be composed of alphanumeric characters " +
         "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
-        "and can be no more than 300 characters in length. " +
+        "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
 // TODO
