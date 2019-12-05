@@ -14,7 +14,7 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqCreatePerms;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
@@ -49,7 +49,7 @@ public class PermsResource
   private static final Logger _log = LoggerFactory.getLogger(PermsResource.class);
 
   // Json schema resource files.
-  private static final String FILE_PERMS_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/PermsCreateRequest.json";
+  private static final String FILE_PERMS_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/PermsRequest.json";
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -99,7 +99,7 @@ public class PermsResource
   // ************************************************************************
 
   /**
-   * Assign permissions for given system and user.
+   * Assign specified permissions for given system and user.
    * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
@@ -112,16 +112,16 @@ public class PermsResource
     summary = "Create permissions in the Security Kernel giving a user access to a system",
     description =
         "Create permissions in the Security Kernel for a user using a request body. Requester must be owner of " +
-        "the system. Permissions that can be requested: read, write, execute or '*' to indicate all permisions.",
+        "the system. Permissions: READ, MODIFY, DELETE or '*' to indicate all permissions.",
     tags = "permissions",
     requestBody =
       @RequestBody(
-        description = "A JSON object specifying information for the permissions to be created.",
+        description = "A JSON object specifying a list of permissions.",
         required = true,
-        content = @Content(schema = @Schema(implementation = ReqCreatePerms.class))
+        content = @Content(schema = @Schema(implementation = ReqPerms.class))
       ),
     responses = {
-      @ApiResponse(responseCode = "200", description = "Permissions created.",
+      @ApiResponse(responseCode = "200", description = "Permissions granted.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -131,10 +131,10 @@ public class PermsResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response createUserPerms(@PathParam("systemName") String systemName,
-                                  @PathParam("userName") String userName,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                  InputStream payloadStream)
+  public Response grantUserPerms(@PathParam("systemName") String systemName,
+                                 @PathParam("userName") String userName,
+                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 InputStream payloadStream)
   {
     systemsService = getSystemsService();
     String msg;
@@ -143,7 +143,7 @@ public class PermsResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createUserPerms",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "grantUserPerms",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -160,56 +160,13 @@ public class PermsResource
     // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "createUserPerms", true);
+    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "grantUserPerms", true);
     if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
-    // Read the payload into a string.
-    String json;
-    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
-    catch (Exception e)
-    {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", systemName, userName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
-    // Create validator specification and validate the json against the schema
-    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_PERMS_CREATE_REQUEST);
-    try { JsonValidator.validate(spec); }
-    catch (TapisJSONException e)
-    {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", systemName, userName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
-    JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-
-    // Extract requested permissions from the request body
     var permsList = new ArrayList<String>();
-    JsonArray perms = null;
-    if (obj.has("permissions")) perms = obj.getAsJsonArray("permissions");
-    if (perms != null && perms.size() > 0)
-    {
-      for (int i = 0; i < perms.size(); i++) { permsList.add(perms.get(i).toString()); }
-    }
-
-    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
-    msg = null;
-    // Check values. We should have at least one permission
-    if (perms == null || perms.size() <= 0)
-    {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
-    }
-
-    // If validation failed log error message and return response
-    if (msg != null)
-    {
-      _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
+    resp = checkAndExtractPayload(systemName, userName, prettyPrint, payloadStream, permsList);
+    if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to assign the permissions
@@ -219,16 +176,15 @@ public class PermsResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_CREATE_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success ------------------------------- 
-    // Success means the object was created.
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_CREATED", null, systemName,
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_GRANTED", null, systemName,
                                                                    userName, String.join(",", permsList)),
                                                    prettyPrint, resp1))
       .build();
@@ -265,7 +221,7 @@ public class PermsResource
                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = getSystemsService();
-    String msg = null;
+    String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
     // Trace this request.
@@ -283,7 +239,7 @@ public class PermsResource
 
     // Get tenant and apiUserId from context
     String tenantName = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+//    String apiUserId = threadContext.getUser();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
@@ -312,22 +268,31 @@ public class PermsResource
   }
 
   /**
-   * deleteUserPerms
+   * Revoke permissions for given system and user.
    * @param prettyPrint - pretty print the output
-   * @return - response with change count as the result
+   * @param payloadStream - request body
+   * @return basic response
    */
-/*
   @DELETE
-  @Path("/{name}")
+  @Path("/{systemName}/user/{userName}")
   @Produces(MediaType.APPLICATION_JSON)
+  @Consumes(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Delete a system given the system name",
-    description = "Delete a system given the system name. ",
-    tags = "systems",
+    summary = "Revoke specified permissions in the Security Kernel related to user access for a system",
+    description =
+      "Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of " +
+        "the system. Permissions: READ, MODIFY, DELETE or '*' to indicate all permissions.",
+    tags = "permissions",
+    requestBody =
+    @RequestBody(
+      description = "A JSON object specifying a list of permissions.",
+      required = true,
+      content = @Content(schema = @Schema(implementation = ReqPerms.class))
+    ),
     responses = {
-      @ApiResponse(responseCode = "200", description = "System deleted.",
-        content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
-      @ApiResponse(responseCode = "400", description = "Input error.",
+      @ApiResponse(responseCode = "200", description = "Permissions revoked.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "401", description = "Not authorized.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -335,51 +300,65 @@ public class PermsResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response deleteSystemByName(@PathParam("name") String name,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+  public Response revokeUserPerms(@PathParam("systemName") String systemName,
+                                 @PathParam("userName") String userName,
+                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 InputStream payloadStream)
   {
     systemsService = getSystemsService();
+    String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "deleteSystemByName",
-                                   "  " + _request.getRequestURL());
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "reovkeUserPerms",
+                            "  " + _request.getRequestURL());
       _log.trace(msg);
     }
 
-    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
+    String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-    int changeCount;
+    // ------------------------- Check authorization -------------------------
+    // ------------------------- Check prerequisites -------------------------
+    // Check that the system exists and that requester is owner
+    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerms", true);
+    if (resp != null) return resp;
+
+    // ------------------------- Extract and validate payload -------------------------
+    var permsList = new ArrayList<String>();
+    resp = checkAndExtractPayload(systemName, userName, prettyPrint, payloadStream, permsList);
+    if (resp != null) return resp;
+
+    // ------------------------- Perform the operation -------------------------
+    // Make the service call to revoke the permissions
     try
     {
-      changeCount = systemsService.deleteSystemByName(tenant, name);
+      systemsService.revokeUserPermissions(tenantName, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", null, name, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
       _log.error(msg, e);
-      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
-    // Success means we deleted the system.
-    // Return the number of objects impacted.
-    ResultChangeCount count = new ResultChangeCount();
-    count.changes = changeCount;
-    RespChangeCount resp1 = new RespChangeCount(count);
-    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp1)).build();
+    RespBasic resp1 = new RespBasic();
+    return Response.status(Status.CREATED)
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", null, systemName,
+                                                                   userName, String.join(",", permsList)),
+                                                   prettyPrint, resp1))
+      .build();
   }
-*/
+
 
   // ************************************************************************
   // *********************** Private Methods ********************************
@@ -453,6 +432,67 @@ public class PermsResource
       msg = MsgUtils.getMsg("SYSAPI_IS_OWNER", systemName, opName);
       _log.error(msg);
       return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    return resp;
+  }
+
+  /**
+   * Check json payload and extract permissions list.
+   * @param systemName - name of the system, for constructing response msg
+   * @param userName - name of user associated with the perms request, for constructing response msg
+   * @param prettyPrint - print flag used to construct response
+   * @param payloadStream - Stream for extracting request json
+   * @param permsList - List for resulting permissions extracted from payload
+   * @return - null if all checks OK else Response containing info
+   */
+  private Response checkAndExtractPayload(String systemName, String userName, boolean prettyPrint,
+                                          InputStream payloadStream, List<String> permsList)
+  {
+    Response resp = null;
+    String msg;
+    // Read the payload into a string.
+    String json;
+    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // Create validator specification and validate the json against the schema
+    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_PERMS_REQUEST);
+    try { JsonValidator.validate(spec); }
+    catch (TapisJSONException e)
+    {
+      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
+
+    // Extract permissions from the request body
+    JsonArray perms = null;
+    if (obj.has("permissions")) perms = obj.getAsJsonArray("permissions");
+    if (perms != null && perms.size() > 0)
+    {
+      for (int i = 0; i < perms.size(); i++) { permsList.add(perms.get(i).toString()); }
+    }
+
+    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
+    msg = null;
+    // Check values. We should have at least one permission
+    if (perms == null || perms.size() <= 0)
+    {
+      msg = MsgUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
+    }
+
+    // If validation failed log error message and return response
+    if (msg != null)
+    {
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     return resp;
   }
