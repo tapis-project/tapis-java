@@ -24,14 +24,15 @@ import static edu.utexas.tacc.tapis.systems.model.Protocol.DEFAULT_TRANSFER_MECH
  */
 public final class TSystem
 {
-  /* ********************************************************************** */
-  /*                               Constants                                */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Constants **************************************
+  // ************************************************************************
   // Allowed substitution variables
   public static final String APIUSERID_VAR = "${apiUserId}";
   public static final String OWNER_VAR = "${owner}";
   public static final String TENANT_VAR = "${tenant}";
   public static final String EFFUSERID_VAR = "${effectiveUserId}";
+  public static final String PERMS_WILDCARD = "*";
 
   // Default values
   public static final String DEFAULT_OWNER = APIUSERID_VAR;
@@ -45,10 +46,14 @@ public final class TSystem
   public static final String DEFAULT_TAGS = "{}";
   public static final String DEFAULT_NOTES = "{}";
 
+  // ************************************************************************
+  // *********************** Enums ******************************************
+  // ************************************************************************
+  public enum Permissions {READ, MODIFY, DELETE}
 
-  /* ********************************************************************** */
-  /*                                 Fields                                 */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Fields *****************************************
+  // ************************************************************************
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(TSystem.class);
 
@@ -78,9 +83,9 @@ public final class TSystem
   private Instant created; // UTC time for when record was created
   private Instant updated; // UTC time for when record was last updated
 
-  /* ********************************************************************** */
-  /*                               Constructors                             */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Constructors ***********************************
+  // ************************************************************************
   public TSystem(long id1, String tenant1, String name1, String description1,
                  String owner1, String host1, boolean available1, String bucketName1,
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
@@ -117,9 +122,9 @@ public final class TSystem
     updated = updated1;
   }
 
-  /* ********************************************************************** */
-  /*                               Accessors                                */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Accessors **************************************
+  // ************************************************************************
   public long getId() { return id; }
 
   public String getTenant() { return tenant; }

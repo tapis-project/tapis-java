@@ -33,7 +33,8 @@ public class SystemsServiceTest
   private static final String prot1TxfMechs = prot1.getTransferMechanismsAsStr();
   private static final String tags = "{\"key1\":\"a\", \"key2\":\"b\"}";
   private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
-  private static final String testPerms = "read,write,execute";
+  private static final List<String> testPerms = new ArrayList<>(List.of(TSystem.Permissions.READ.name(),TSystem.Permissions.MODIFY.name(),
+                                                                        TSystem.Permissions.DELETE.name()));
 
   private static final String[] sys1 = {tenantName, "Ssys1", "description 1", "owner1", "host1", "bucket1", "/root1",
     "jobInputDir1", "jobOutputDir1", "workDir1", "scratchDir1", "effUser1", tags, notes, "fakePassword1", prot1AccessMechName, prot1TxfMechs};
@@ -261,9 +262,9 @@ public class SystemsServiceTest
                      prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), "");
   }
 
-  // Test creating, reading and deleting a user grant for a system
+  // Test creating, reading and deleting user permissions for a system
   @Test
-  public void testUserGrant() throws Exception
+  public void testUserPerms() throws Exception
   {
     // Create a system
     String[] sys0 = sysA;
@@ -272,11 +273,18 @@ public class SystemsServiceTest
                                   sys0[15], sys0[16],
                                   prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(), "");
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    // Create user grant for the system
-    svc.createUserGrant(sys0[0], sys0[1], testUser2, testPerms);
-    // Get the system grants for the user and make sure permissions are there
-    // Remove grant for the user
-    // Get the system grants for the user and make sure permissions are gone.
+    // Create user perms for the system
+    svc.grantUserPermissions(sys0[0], sys0[1], testUser2, testPerms);
+    // Get the system perms for the user and make sure permissions are there
+    List<String> userPerms = svc.getUserPermissions(sys0[0], sys0[1], testUser2);
+    Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
+    Assert.assertEquals(userPerms.size(), testPerms.size(), "Incorrect number of perms returned.");
+    for (String perm: testPerms) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm); }
+    // Remove perms for the user
+    svc.revokeUserPermissions(sys0[0], sys0[1], testUser2, testPerms);
+    // Get the system perms for the user and make sure permissions are gone.
+    userPerms = svc.getUserPermissions(sys0[0], sys0[1], testUser2);
+    for (String perm: testPerms) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm); }
   }
 
 

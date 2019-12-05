@@ -11,7 +11,7 @@ import java.util.List;
  */
 public interface SystemsService
 {
-  int createSystem(String tenantName, String apiUserId, String name, String description, String owner, String host,
+  int createSystem(String tenantNameName, String apiUserId, String systemName, String description, String owner, String host,
                    boolean available, String bucketName, String rootDir, String jobInputDir,
                    String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
                    String notes, String accessCredential, String accessMechanism, String transferMechanisms,
@@ -19,17 +19,21 @@ public interface SystemsService
                    String rawRequest)
     throws TapisException, IllegalStateException;
 
-  int deleteSystemByName(String tenant, String name) throws TapisException;
+  int deleteSystemByName(String tenantName, String systemName) throws TapisException;
 
-  boolean checkForSystemByName(String tenant, String name) throws TapisException;
+  boolean checkForSystemByName(String tenantName, String systemName) throws TapisException;
 
-  TSystem getSystemByName(String tenant, String name, String apiUserId, boolean getCreds) throws TapisException;
+  TSystem getSystemByName(String tenantName, String systemName, String apiUserId, boolean getCreds) throws TapisException;
 
-  List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException;
+  List<TSystem> getSystems(String tenantName, String apiUserId) throws TapisException;
 
-  List<String> getSystemNames(String tenant) throws TapisException;
+  List<String> getSystemNames(String tenantName) throws TapisException;
 
-  String getSystemOwner(String tenant, String name) throws TapisException;
+  String getSystemOwner(String tenantName, String systemName) throws TapisException;
 
-  void createUserGrant(String tenant, String systemName, String userName, String permissions) throws TapisException;
+  void grantUserPermissions(String tenantName, String systemName, String userName, List<String> permissions) throws TapisException;
+
+  void revokeUserPermissions(String tenantName, String systemName, String userName, List<String> permissions) throws TapisException;
+
+  List<String> getUserPermissions(String tenantName, String systemName, String userName) throws TapisException;
 }

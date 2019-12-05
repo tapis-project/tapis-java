@@ -60,18 +60,18 @@ import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 @Path("/system")
 public class SystemResource
 {
-  /* **************************************************************************** */
-  /*                                   Constants                                  */
-  /* **************************************************************************** */
+  // ************************************************************************
+  // *********************** Constants **************************************
+  // ************************************************************************
   // Local logger.
   private static final Logger _log = LoggerFactory.getLogger(SystemResource.class);
 
   // Json schema resource files.
   private static final String FILE_SYSTEMS_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
 
-  /* **************************************************************************** */
-  /*                                    Fields                                    */
-  /* **************************************************************************** */
+  // ************************************************************************
+  // *********************** Fields *****************************************
+  // ************************************************************************
   /* Jax-RS context dependency injection allows implementations of these abstract
    * types to be injected (ch 9, jax-rs 2.0):
    *
@@ -112,9 +112,9 @@ public class SystemResource
 //  @com.google.inject.Inject
   private SystemsService systemsService;
 
-  /* **************************************************************************** */
-  /*                                Public Methods                                */
-  /* **************************************************************************** */
+  // ************************************************************************
+  // *********************** Public Methods *********************************
+  // ************************************************************************
 
   /**
    * Create a system
@@ -400,7 +400,7 @@ public class SystemResource
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // The specified job was not found for the tenant.
+    // Resource was not found.
     if (system == null)
     {
       String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, name);

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://tapis.tacc.utexas.edu/GrantCreateRequest",
-  "description": "Schema for a grant create request",
+  "$id": "http://tapis.tacc.utexas.edu/PermsCreateRequest",
+  "description": "Schema for a request to assign system permissions",
   "additionalProperties": false,
   "type": "object",
   "properties": {
@@ -14,8 +14,8 @@
         "uniqueItems": true,
         "enum": [
           "read",
-          "write",
-          "execute",
+          "modify",
+          "delete",
           "*"
         ]
       }

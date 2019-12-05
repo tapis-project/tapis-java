@@ -17,7 +17,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
@@ -32,21 +35,26 @@ import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 @Singleton
 public class SystemsServiceImpl implements SystemsService
 {
-  /* ********************************************************************** */
-  /*                               Constants                                */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Constants **************************************
+  // ************************************************************************
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
   private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
 
-  // **************** Inject Dao singletons ****************
-  @com.google.inject.Inject
+  // ************************************************************************
+  // *********************** Fields *****************************************
+  // ************************************************************************
+  // TODO *** Inject Dao singletons ***
+  SKClient skClient = null;
+
+//  @com.google.inject.Inject
   private SystemsDao dao;
 
-  /* ********************************************************************** */
-  /*                             Public Methods                             */
-  /* ********************************************************************** */
+  // ************************************************************************
+  // *********************** Public Methods *********************************
+  // ************************************************************************
   /**
    * Create a new system object
    *
@@ -103,51 +111,9 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO Store credentials in Security Kernel
 
-    // TBD/TODO: Determine if all this lookup is needed. If yes put it in private method or utility method
-    // Use Tenants service to lookup information we need to:
-    //  Access the tokens service associated with the tenant.
-    //  Access the security kernel service associated with the tenant.
-    // NOTE: The front-end is responsible for validating the JWT using the public key for the tenant.
-    //       See edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
+    // Get the Security Kernel client
+    skClient = getSKClient(tenantName, systemName);
 
-    // Tenants and tokens service URLs from the environment have precedence.
-    // NOTE: Tenants URL is a required parameter, so no need to check here
-    RuntimeParameters parms = RuntimeParameters.getInstance();
-
-//    String tenantsURL = "https://dev.develop.tapis.io";
-    String tenantsURL = parms.getTenantsSvcURL();
-    var tenantsClient = new TenantsClient(tenantsURL);
-    Tenant tenant1;
-    try {tenant1 = tenantsClient.getTenant(tenantName);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", systemName, e.getMessage()), e);}
-    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", systemName));
-
-    // Tokens service URL comes from env or the tenants service
-//    String tokensURL = "https://dev.develop.tapis.io";
-    String tokensURL = parms.getTokensSvcURL();
-    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
-    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", systemName));
-
-    // Get short term service JWT from tokens service
-    var tokClient = new TokensClient(tokensURL);
-    String svcJWT = null;
-    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", systemName, e.getMessage()), e);}
-    // Basic check of JWT
-    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", systemName));
-    System.out.println("Got svcJWT: " + svcJWT);
-    _log.error("Got svcJWT: " + svcJWT);
-
-    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
-//    String skURL = "https://dev.develop.tapis.io/v3";
-    String skURL = parms.getSkSvcURL();
-    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", systemName));
-    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
-    // Strip off everything after the /v3 so we have a valid SK base URL
-    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
-
-    var skClient = new SKClient(skURL, svcJWT);
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":*:" + systemName;
     String storePerm = "files:" + tenantName + ":*:" + systemName + ":*";
@@ -270,21 +236,147 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Create a user grant for a system
+   * Grant permissions to a user for a system
+   * NOTE: This only impacts the default user role
+   * Add each perm separately. This makes them easier to remove from the role.
+   * If any of the perms are the wildcard then all perms are given
+   * NOTE: If wildcard ("*") is given we still add perms individually so we
+   *       can more easily remove them in revokeUserPermissions().
    *
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void createUserGrant(String tenantName, String systemName, String userName, String permissions)
+  public void grantUserPermissions(String tenantName, String systemName, String userName, List<String> permissions)
     throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
-        StringUtils.isBlank(permissions))
+        permissions == null || permissions.isEmpty())
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
 
+    // Create a set of individual permSpec entries based on the list passed in
+    Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
+
+    // Get the Security Kernel client
+    skClient = getSKClient(tenantName, systemName);
+
+    // TODO Refactor to private method
+    // TODO: Role can only be 60 char max, need to figure out something else
+    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
+    //       that will create a default role for a user. Use that when available.
+    // Create Role with perms and grant it to user
+    String roleName = userName;
+    try
+    {
+      skClient.createRole(roleName, "Role for user: " + userName);
+      for (String permSpec : permSpecSet)
+      {
+        skClient.addRolePermission(roleName, permSpec);
+      }
+      skClient.grantUserRole(userName, roleName);
+    }
+    // TODO exception handling
+    catch (Exception e) { _log.error(e.toString()); throw e;}
+
+    // TODO *************** remove tests ********************
+    printRoleAndPermInfoForUser(skClient, roleName, userName);
+  }
+
+  /**
+   * Get list of system permissions for a user
+   * NOTE: This retrieves permissions from all roles.
+   *
+   * @return List of permissions
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public List<String> getUserPermissions(String tenantName, String systemName, String userName) throws TapisException
+  {
+    var userPerms = new ArrayList<String>();
+    // Use Security Kernel client to check for each permission in the enum list
+    skClient = getSKClient(tenantName, systemName);
+    for (TSystem.Permissions perm : TSystem.Permissions.values())
+    {
+      String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
+      try { if (skClient.isPermitted(userName, permSpec).isIsAuthorized()) userPerms.add(perm.name()); }
+      // TODO exception handling
+      catch (Exception e) { _log.error(e.toString()); throw e;}
+    }
+    return userPerms;
+  }
+
+  /**
+   * Revoke permissions from a user for a system
+   * NOTE: This only impacts the default user role
+   *
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public void revokeUserPermissions(String tenantName, String systemName, String userName, List<String> permissions)
+    throws TapisException
+  {
+    // Check inputs. If anything null or empty throw an exception
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
+      permissions == null || permissions.isEmpty())
+    {
+      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
+    }
+
+    // Create a set of individual permSpec entries based on the list passed in
+    Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
+
+    // Get the Security Kernel client
+    skClient = getSKClient(tenantName, systemName);
+
+    // TODO Refactor to private method
+    // TODO: Role can only be 60 char max, need to figure out something else
+    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
+    //       that will create a default role for a user. Use that when available.
+    // Remove perms from default user role
+    String roleName = userName;
+    try
+    {
+      for (String permSpec : permSpecSet)
+      {
+        skClient.addRemovePermission(roleName, permSpec);
+      }
+    }
+    // TODO exception handling
+    catch (Exception e) { _log.error(e.toString()); throw e;}
+
+    // TODO *************** remove tests ********************
+    printRoleAndPermInfoForUser(skClient, roleName, userName);
+  }
+
+  // ************************************************************************
+  // **************************  Private Methods  ***************************
+  // ************************************************************************
+
+  /**
+   * If effectiveUserId is dynamic then resolve it
+   * @param userId - effectiveUserId string, static or dynamic
+   * @return Resolved value for effective user.
+   */
+  private String resolveEffectiveUserId(String userId, String owner, String apiUserId)
+  {
+    if (StringUtils.isBlank(userId)) return userId;
+    else if (userId.equals(OWNER_VAR) && !StringUtils.isBlank(owner)) return owner;
+    else if (userId.equals(APIUSERID_VAR) && !StringUtils.isBlank(apiUserId)) return apiUserId;
+    else return userId;
+  }
+
+  /**
+   * Get client for Security Kernel
+   * @param tenantName
+   * @param systemName
+   * @return
+   * @throws TapisException
+   */
+  private SKClient getSKClient(String tenantName, String systemName) throws TapisException
+  {
+    if (skClient != null) return skClient;
     // TBD/TODO: Determine if all this lookup is needed. If yes put it in private method or utility method
     // Use Tenants service to lookup information we need to:
     //  Access the tokens service associated with the tenant.
@@ -317,8 +409,6 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", systemName, e.getMessage()), e);}
     // Basic check of JWT
     if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", systemName));
-    System.out.println("Got svcJWT: " + svcJWT);
-    _log.error("Got svcJWT: " + svcJWT);
 
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence
 //    String skURL = "https://dev.develop.tapis.io/v3";
@@ -330,48 +420,40 @@ public class SystemsServiceImpl implements SystemsService
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
     var skClient = new SKClient(skURL, svcJWT);
-    // TODO/TBD: Build perm specs here? review details
-    String sysPerm = "system:" + tenantName + ":" + permissions + ":" + systemName;
-
-    // TODO Refactor to private method
-    // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
-    //       that will create a default role for a user. Use that when available.
-    // Create Role with perms and grant it to user
-    String roleName = userName;
-    try
-    {
-      skClient.createRole(roleName, "Role for user: " + userName);
-      skClient.addRolePermission(roleName, sysPerm);
-      skClient.grantUserRole(userName, roleName);
-    }
-    // TODO exception handling
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-
-    // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, roleName, userName);
+    return skClient;
   }
-
-  /* ********************************************************************** */
-  /*                             Private Methods                            */
-  /* ********************************************************************** */
 
   /**
-   * If effectiveUserId is dynamic then resolve it
-   * @param userId - effectiveUserId string, static or dynamic
-   * @return Resolved value for effective user.
+   * Create a set of individual permSpec entries based on the list passed in
+   * For wildcard add all perms in the enum set
+   * @param permList
+   * @return
    */
-  private String resolveEffectiveUserId(String userId, String owner, String apiUserId)
+  private static Set<String> getPermSpecSet(String tenantName, String systemName, List<String> permList)
   {
-    if (StringUtils.isBlank(userId)) return userId;
-    else if (userId.equals(OWNER_VAR) && !StringUtils.isBlank(owner)) return owner;
-    else if (userId.equals(APIUSERID_VAR) && !StringUtils.isBlank(apiUserId)) return apiUserId;
-    else return userId;
+    var permSet = new HashSet<String>();
+    for (String permStr : permList)
+    {
+      if (StringUtils.trimToEmpty(permStr).equals(TSystem.PERMS_WILDCARD))
+      {
+        for (TSystem.Permissions perm : TSystem.Permissions.values())
+        {
+          String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
+          permSet.add(permSpec);
+        }
+      }
+      else
+      {
+        // TODO/TBD: should we check that the perm matches one in the enum, possibly trimming and ignoring case
+        String permSpec = "system:" + tenantName + ":" + permStr + ":" + systemName;
+        permSet.add(permSpec);
+      }
+    }
+    return permSet;
   }
 
-  // TODO *************** remove tests ********************
-  // TODO remove test method
-  private void printRoleAndPermInfoForUser(SKClient skClient, String roleName, String userName)
+  // TODO *************** remove debug output ********************
+  private static void printRoleAndPermInfoForUser(SKClient skClient, String roleName, String userName)
   {
     try {
       // Test by retrieving roles and permissions from SK
@@ -400,5 +482,4 @@ public class SystemsServiceImpl implements SystemsService
     } catch (Exception e) { _log.error(e.toString()); }
   }
   // TODO *************** remove tests ********************
-
 }
