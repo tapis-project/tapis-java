@@ -104,6 +104,31 @@ public final class ExtWildcardPermission
     /*                               Public Methods                                 */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
+    /* getRecursivePathIndex:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Return the index of the extended path part in the specified schema.  If not
+     * found because the schema is not extended, or if the schema does not define
+     * an extended path part in its last position, return -1.
+     * 
+     * @param schema the schema name, such as "files"
+     * @return the path part's index in the schema definition
+     */
+    public static int getRecursivePathIndex(String schema)
+    {
+        // Find the extended schema information in the static array that
+        // contains all supported extensions.  If the schema is found and
+        // it has a part defined to be a path, return the path's index.
+        for (var info : _extMatchInfo) 
+            if (schema.equals(info._schema))
+                for (var pair : info._extensions)
+                    if (pair.getLeft() == ExtMatchType._RECURSIVE_PATH)
+                        return pair.getRight();
+        
+        // Schema with path not found.
+        return -1;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* equals:                                                                      */
     /* ---------------------------------------------------------------------------- */
     @Override

@@ -58,6 +58,20 @@ public class SqlStatements
   
   public static final String ROLE_REMOVE_PERMISSION =
       "DELETE FROM sk_role_permission where tenant = ? and role_id = ? and permission = ?";
+  
+  // Get rows that match a permission prefix for all roles.
+  public static final String SELECT_PERMISSION_PREFIX = 
+      "SELECT id, tenant, role_id, permission "
+      + "FROM sk_role_permission " 
+      + "WHERE tenant = ? AND permission LIKE ? "
+      + "ORDER BY permission";     
+      
+  // Get rows that match a permission prefix with an optional role id constraint.
+  public static final String SELECT_PERMISSION_PREFIX_WITH_ROLE = 
+      "SELECT id, tenant, role_id, permission "
+      + "FROM sk_role_permission " 
+      + "WHERE tenant = ? AND permission LIKE ? AND role_id = ? "
+      + "ORDER BY permission";     
 
   /* ---------------------------------------------------------------------- */
   /* sk_role_tree:                                                          */

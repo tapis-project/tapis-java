@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/ReplacePathPrefixRequest",
-    "description": "Replace the prefix of permissions with a path extended attribute",
+    "$id": "http://tapis.tacc.utexas.edu/PreviewPathPrefixRequest",
+    "description": "Preview the prefix replacement of permissions with a path extended attribute",
     "additionalProperties": false,
     "type": "object",
         "properties": {
