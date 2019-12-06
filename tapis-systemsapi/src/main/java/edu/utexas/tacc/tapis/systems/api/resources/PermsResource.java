@@ -277,13 +277,15 @@ public class PermsResource
   @Path("/{systemName}/user/{userName}/{permission}")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Revoke specified permission in the Security Kernel related to user access for a system",
+    summary = "Revoke specified permission in the Security Kernel",
     description =
       "Revoke permission in the Security Kernel for a user. Requester must be owner of " +
         "the system. Permissions: READ, MODIFY or DELETE.",
     tags = "permissions",
     responses = {
       @ApiResponse(responseCode = "200", description = "Permission revoked.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "401", description = "Not authorized.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -294,6 +296,93 @@ public class PermsResource
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permission,
+                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 InputStream payloadStream)
+  {
+    systemsService = getSystemsService();
+    String msg;
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+
+    // Trace this request.
+    if (_log.isTraceEnabled())
+    {
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "reovkeUserPerm",
+                            "  " + _request.getRequestURL());
+      _log.trace(msg);
+    }
+
+    // Check that we have all we need from the context, tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get tenant and apiUserId from context
+    String tenantName = threadContext.getTenantId();
+    String apiUserId = threadContext.getUser();
+
+    // ------------------------- Check authorization -------------------------
+    // ------------------------- Check prerequisites -------------------------
+    // Check that the system exists and that requester is owner
+    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerm", true);
+    if (resp != null) return resp;
+
+    // ------------------------- Perform the operation -------------------------
+    // Make the service call to revoke the permissions
+    var permsList = new ArrayList<String>();
+    permsList.add(permission);
+    try
+    {
+      systemsService.revokeUserPermissions(tenantName, systemName, userName, permsList);
+    }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    RespBasic resp1 = new RespBasic();
+    return Response.status(Status.CREATED)
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", null, systemName,
+                                                                   userName, String.join(",", permsList)),
+                                                   prettyPrint, resp1))
+      .build();
+  }
+
+  /**
+   * Revoke permissions for given system and user.
+   * @param prettyPrint - pretty print the output
+   * @param payloadStream - request body
+   * @return basic response
+   */
+  @POST
+  @Path("/{systemName}/user/{userName}/revoke")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Operation(
+    summary = "Revoke system permissions in the Security Kernel using request body",
+    description =
+      "Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of " +
+        "the system. Permissions: READ, MODIFY, DELETE or '*' to indicate all permissions.",
+    tags = "permissions",
+    requestBody =
+    @RequestBody(
+      description = "A JSON object specifying a list of permissions.",
+      required = true,
+      content = @Content(schema = @Schema(implementation = ReqPerms.class))
+    ),
+    responses = {
+      @ApiResponse(responseCode = "200", description = "Permission revoked.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "401", description = "Not authorized.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+      @ApiResponse(responseCode = "500", description = "Server error.",
+        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+    }
+  )
+  public Response revokeUserPerms(@PathParam("systemName") String systemName,
+                                 @PathParam("userName") String userName,
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  InputStream payloadStream)
   {
@@ -321,13 +410,16 @@ public class PermsResource
     // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerm", true);
+    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerms", true);
+    if (resp != null) return resp;
+
+    // ------------------------- Extract and validate payload -------------------------
+    var permsList = new ArrayList<String>();
+    resp = checkAndExtractPayload(systemName, userName, prettyPrint, payloadStream, permsList);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to revoke the permissions
-    var permsList = new ArrayList<String>();
-    permsList.add(permission);
     try
     {
       systemsService.revokeUserPermissions(tenantName, systemName, userName, permsList);
