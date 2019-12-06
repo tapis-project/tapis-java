@@ -270,7 +270,6 @@ public class PermsResource
   /**
    * Revoke permission for given system and user.
    * @param prettyPrint - pretty print the output
-   * @param payloadStream - request body
    * @return basic response
    */
   @DELETE
@@ -476,7 +475,7 @@ public class PermsResource
     }
     if (!systemExists)
     {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_NOSYSTEM", systemName, userName);
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOSYSTEM", systemName, userName);
       _log.error(msg);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -490,26 +489,26 @@ public class PermsResource
     try { owner = systemsService.getSystemOwner(tenantName, systemName); }
     catch (Exception e)
     {
-      msg = MsgUtils.getMsg("SYSAPI_GET_OWNER_ERROR", systemName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if (StringUtils.isBlank(owner))
     {
-      msg = MsgUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", systemName);
+      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", systemName);
       _log.error(msg);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     // mustBeOwner flag indicates if we are checking that requester IS or IS NOT the owner
     if (mustBeOwner && !owner.equals(requesterName))
     {
-      msg = MsgUtils.getMsg("SYSAPI_NOT_OWNER", systemName, opName);
+      msg = ApiUtils.getMsg("SYSAPI_NOT_OWNER", systemName, opName);
       _log.error(msg);
       return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     else if ( !mustBeOwner && owner.equals(requesterName))
     {
-      msg = MsgUtils.getMsg("SYSAPI_IS_OWNER", systemName, opName);
+      msg = ApiUtils.getMsg("SYSAPI_IS_OWNER", systemName, opName);
       _log.error(msg);
       return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -535,7 +534,7 @@ public class PermsResource
     try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -545,7 +544,7 @@ public class PermsResource
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -565,7 +564,7 @@ public class PermsResource
     // Check values. We should have at least one permission
     if (perms == null || perms.size() <= 0)
     {
-      msg = MsgUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
     }
 
     // If validation failed log error message and return response
