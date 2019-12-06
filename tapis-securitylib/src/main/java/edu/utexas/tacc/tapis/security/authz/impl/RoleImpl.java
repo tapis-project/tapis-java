@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.security.authz.model.SkRolePermissionShort;
 import edu.utexas.tacc.tapis.security.authz.permissions.ExtWildcardPermission;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -476,6 +477,40 @@ public final class RoleImpl
         return transformer.getTransformations();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* updatePermissions:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public int updatePermissions(String tenant, List<Transformation> transList)
+     throws TapisException
+    {
+        // If there's nothing to do, let's not bother.
+        if (transList.isEmpty()) return 0;
+        
+        // Get the dao.
+        SkRolePermissionDao dao = null;
+        try {dao = getSkRolePermissionDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.updatePermissions(tenant, transList);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_PERM_UPDATE_LIST_ERROR", 
+                                         tenant, transList.size());
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST); 
+        }
+
+        return rows;
+    }
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* getPermissionSpec:                                                     */
     /* ---------------------------------------------------------------------- */

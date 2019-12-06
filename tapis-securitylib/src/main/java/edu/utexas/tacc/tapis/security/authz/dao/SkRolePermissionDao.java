@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkRolePermissionShort;
+import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
 import edu.utexas.tacc.tapis.security.authz.model.SkRolePermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -463,6 +464,84 @@ public final class SkRolePermissionDao
       }
       
       return list;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* updatePermissions:                                                     */
+  /* ---------------------------------------------------------------------- */
+  public int updatePermissions(String tenant, List<Transformation> transList)
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updatePermissions", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (transList == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updatePermissions", "transList");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // Easy case.
+      if (transList.isEmpty()) return 0;
+
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.UPDATE_PERMISSION_BY_ID;
+          
+          // Prepare the statement once and use multiple times.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          for (var transformation : transList) {
+          
+              // Prepare the statement and fill in the placeholders.
+              pstmt.setString(1, transformation.newPerm);
+              pstmt.setString(2, tenant);
+              pstmt.setInt(3, transformation.permId);
+
+              // Issue the call. 0 rows will be returned when a duplicate
+              // key conflict occurs--this is not considered an error.
+              rows += pstmt.executeUpdate();
+          }
+          
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_UPDATE_FAILURE", "sk_role_permission");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
   }
   
   /* ********************************************************************** */

@@ -71,7 +71,11 @@ public class SqlStatements
       "SELECT id, tenant, role_id, permission "
       + "FROM sk_role_permission " 
       + "WHERE tenant = ? AND permission LIKE ? AND role_id = ? "
-      + "ORDER BY permission";     
+      + "ORDER BY permission";  
+  
+  // Update the permission string.
+  public static final String UPDATE_PERMISSION_BY_ID = 
+      "UPDATE sk_role_permission SET permission = ? WHERE tenant = ? and id = ?";
 
   /* ---------------------------------------------------------------------- */
   /* sk_role_tree:                                                          */
