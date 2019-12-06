@@ -296,8 +296,7 @@ public class PermsResource
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permission,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 InputStream payloadStream)
+                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = getSystemsService();
     String msg;

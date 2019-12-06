@@ -134,7 +134,7 @@ paths:
     delete:
       tags:
         - permissions
-      summary: Revoke specified permission in the Security Kernel related to user access for a system
+      summary: Revoke specified permission in the Security Kernel
       description: 'Revoke permission in the Security Kernel for a user. Requester must be owner of the system. Permissions: READ, MODIFY or DELETE.'
       operationId: revokeUserPerm
       parameters:
@@ -158,11 +158,61 @@ paths:
           schema:
             type: boolean
             default: false
+      responses:
+        '200':
+          description: Permission revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '400':
+          description: Input error. Invalid JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/perms/{systemName}/user/{userName}/revoke':
+    post:
+      tags:
+        - permissions
+      summary: Revoke system permissions in the Security Kernel using request body
+      description: 'Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY, DELETE or ''*'' to indicate all permissions.'
+      operationId: revokeUserPerms
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
       requestBody:
+        description: A JSON object specifying a list of permissions.
         content:
-          '*/*':
+          application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/ReqPerms'
+        required: true
       responses:
         '200':
           description: Permission revoked.

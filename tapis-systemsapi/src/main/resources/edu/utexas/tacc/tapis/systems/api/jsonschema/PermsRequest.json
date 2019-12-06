@@ -16,6 +16,9 @@
           "READ",
           "MODIFY",
           "DELETE",
+          "read",
+          "modify",
+          "delete",
           "*"
         ]
       }

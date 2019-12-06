@@ -116,26 +116,32 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":*:" + systemName;
-    String storePerm = "files:" + tenantName + ":*:" + systemName + ":*";
 
-    // TODO Refactor to private method
     // Create Role with perms and grant it to user
     // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
-    //       that will create a default role for a user. Use that when available.
-    String roleName = owner;
+    // TODO: Can only grant roles, not perms directly, at least not yet.
+    // TODO: SK will be adding grantUserPerms() method that will create a default role for a user. Use that when available.
+    String roleName;
     try
     {
-      skClient.createRole(roleName, "Role for user: " + owner);
+      roleName = owner;
+      skClient.createRole(roleName, "Role for user: " + roleName);
       skClient.addRolePermission(roleName, sysPerm);
-      skClient.addRolePermission(roleName, storePerm);
       skClient.grantUserRole(owner, roleName);
+      // Grant same perms for effectiveUser unless effUser == apiUser or owner
+      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
+      {
+        roleName = effectiveUserId;
+        skClient.createRole(roleName, "Role for user: " + roleName);
+        skClient.addRolePermission(roleName, sysPerm);
+        skClient.grantUserRole(effectiveUserId, roleName);
+      }
     }
     // TODO exception handling, but consider how data integrity will be handled for distributed data
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, roleName, owner);
+    printRoleAndPermInfoForUser(skClient, owner, owner);
 
     return itemId;
   }
@@ -262,7 +268,6 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     skClient = getSKClient(tenantName, systemName);
 
-    // TODO Refactor to private method
     // TODO: Role can only be 60 char max, need to figure out something else
     // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
     //       that will create a default role for a user. Use that when available.
@@ -445,11 +450,17 @@ public class SystemsServiceImpl implements SystemsService
       else
       {
         // TODO/TBD: should we check that the perm matches one in the enum, possibly trimming and ignoring case
-        String permSpec = "system:" + tenantName + ":" + permStr + ":" + systemName;
+        // TODO/TBD: JSON validation at front-end can handle the check
+        String permSpec = "system:" + tenantName + ":" + permStr.toUpperCase() + ":" + systemName;
         permSet.add(permSpec);
       }
     }
     return permSet;
+  }
+
+  //
+  private static void addPermSpecToDefaultUserRole(SKClient skClient, String userName)
+  {
   }
 
   // TODO *************** remove debug output ********************
