@@ -478,10 +478,71 @@ public final class RoleImpl
     }
     
     /* ---------------------------------------------------------------------- */
+    /* replacePathPrefix:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Calculate the list of permission transformations and then apply them.
+     * 
+     * @param schema the 1st part of the permission
+     * @param roleName optional filter that restricts permission changes to one role
+     * @param oldSystemId the value of the current system id part
+     * @param newSystemId the value of the new system id part
+     * @param oldPrefix the value of the current path prefix
+     * @param newPrefix the value of the new path prefix
+     * @param tenant the tenant id
+     * @return a list of prospective transformations
+     * @throws TapisImplException on error
+     */
+    public int replacePathPrefix(String schema, String roleName, 
+                                 String oldSystemId, String newSystemId, 
+                                 String oldPrefix, String newPrefix,
+                                 String tenant)
+     throws TapisImplException
+    {
+        // Get the list of transformation to apply.
+        List<Transformation> transList = previewPathPrefix(schema, roleName, 
+                                                           oldSystemId, newSystemId, 
+                                                           oldPrefix, newPrefix, 
+                                                           tenant);
+        
+        // Update the selected permissions.
+        int rows = updatePermissions(tenant, transList);
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* queryDB:                                                               */
+    /* ---------------------------------------------------------------------- */
+    public int queryDB(String tableName) throws TapisImplException
+    {
+        // Get the dao.
+        SkRoleDao dao = null;
+        try {dao = getSkRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
+             }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.queryDB(tableName);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("DB_QUERY_DB_ERROR", tableName);
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
+         }
+
+        return rows;
+    }
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
     /* updatePermissions:                                                     */
     /* ---------------------------------------------------------------------- */
-    public int updatePermissions(String tenant, List<Transformation> transList)
-     throws TapisException
+    private int updatePermissions(String tenant, List<Transformation> transList)
+     throws TapisImplException
     {
         // If there's nothing to do, let's not bother.
         if (transList.isEmpty()) return 0;
@@ -508,9 +569,6 @@ public final class RoleImpl
         return rows;
     }
     
-    /* ********************************************************************** */
-    /*                            Private Methods                             */
-    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* getPermissionSpec:                                                     */
     /* ---------------------------------------------------------------------- */

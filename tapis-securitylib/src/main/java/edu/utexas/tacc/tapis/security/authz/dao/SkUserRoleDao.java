@@ -771,6 +771,12 @@ public final class SkUserRoleDao
           throw new TapisException(msg);
       }
       
+      // Prohibit permission specifications that would cause a full table scan.
+      if (permSpec.startsWith("%")) {
+          String msg = MsgUtils.getMsg("SK_PERM_UNRESTRICTED_SEARCH", tenant, permSpec);
+          throw new TapisException(msg);
+      }
+      
       // Initialize final result.
       ArrayList<String> users = new ArrayList<>();
       
@@ -891,8 +897,8 @@ public final class SkUserRoleDao
           pstmt.setString(1, tenant);
           pstmt.setString(2, roleName);
           pstmt.setString(3, description);
-          pstmt.setString(4, user);
-          pstmt.setString(5, user);
+          pstmt.setString(4, requestor);
+          pstmt.setString(5, requestor);
 
           // Issue the call which will fail if the role already exists.
           rows = pstmt.executeUpdate();

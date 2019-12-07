@@ -1132,12 +1132,14 @@ public final class UserResource
                "    files:mytenant:read,write:mysystems\n" +
                "" +
                "This method recognizes the percent sign (%) as a string wildcard only " + 
-               "in the context of database searching.  If a percent sign appears in the " +
+               "in the context of database searching.  If a percent sign (%) appears in the " +
                "permSpec it is interpreted as a zero or more character wildcard.  For example, " +
                "the following specification would match the first three of the above " +
                "example specifications but not the fourth:\n\n" +
                "" +
-               "    system:mytenant:%\n",
+               "    system:mytenant:%\n\n"
+               + ""
+               + "The wildcard character cannot appear as the first character in the permSpec.",
 
              tags = "user",
              responses = 

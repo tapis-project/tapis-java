@@ -1366,34 +1366,22 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Calculate the permissions that need to change.
-         List<Transformation> transList = null;
+         // Calculate the permissions that need to change and apply changes.
+         int rows = 0;
          try {
-                 transList = getRoleImpl().previewPathPrefix(schema, roleName, 
-                                                             oldSystemId, newSystemId, 
-                                                             oldPrefix, newPrefix, 
-                                                             threadContext.getTenantId());
+                 rows = getRoleImpl().replacePathPrefix(schema, roleName, 
+                                                        oldSystemId, newSystemId, 
+                                                        oldPrefix, newPrefix, 
+                                                        threadContext.getTenantId());
              }
              catch (Exception e) {
-                 String msg = MsgUtils.getMsg("SK_PERM_TRANSFORM_FAILED", schema, roleName,
+                 String msg = MsgUtils.getMsg("SK_PERM_UPDATE_FAILED", schema, roleName,
                                               oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                              threadContext.getTenantId());
+                                              threadContext.getTenantId(), e.getMessage());
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
              }
-         
-         // Update the selected permissions.
-         int rows = 0;
-         try {rows = getRoleImpl().updatePermissions(threadContext.getTenantId(), transList);}
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_PERM_UPDATE_FAILED", schema, roleName,
-                                          oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                          threadContext.getTenantId(), e.getMessage());
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
          
          // ---------------------------- Success ------------------------------- 
          // Success means we updated zero or more permissions. 

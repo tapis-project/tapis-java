@@ -1,5 +1,9 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.security.PermitAll;
@@ -74,6 +78,9 @@ public final class SecurityResource
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SecurityResource.class);
     
+    // Readiness check timeout.
+    private static final long READY_TIMEOUT_MS = 6000; // 6 seconds.
+    
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -121,6 +128,15 @@ public final class SecurityResource
      // Count the number of healthchecks requests received.
      private static final AtomicLong _healthChecks = new AtomicLong();
     
+     // Count the number of healthchecks requests received.
+     private static final AtomicLong _readyChecks = new AtomicLong();
+     
+     // The table name used during health or ready probes.
+     private static final ArrayList<String> _tableNames = initTableNames();
+     
+     // The flag set after the first successful readiness check.
+     private static final AtomicBoolean _readyOnce = new AtomicBoolean();
+     
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
@@ -163,25 +179,36 @@ public final class SecurityResource
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightwieght as possible.
    * It's intended as the endpoint that monitoring applications can use to check
-   * the responsiveness of the application.  In particular, kubernetes can use this
-   * endpoint as part of its pod health check.
+   * the liveness (i.e, no deadlocks) of the application.  In particular, 
+   * kubernetes can use this endpoint as part of its pod health check.
    * 
    * Note that no JWT is required on this call.
    * 
-   * @return a sucess response if all is ok
+   * A good synopsis of the difference between liveness and readiness checks:
+   * 
+   * ---------
+   * The probes have different meaning with different results:
+   * 
+   *    - failing liveness probes  -> restart pod
+   *    - failing readiness probes -> do not send traffic to that pod
+   *    
+   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   * ---------
+   * 
+   * @return a success response if all is ok
    */
   @GET
   @Path("/healthcheck")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght health check.",
+          description = "Lightwieght health check for liveness.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "500", description = "Server error.")}
+               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
       )
   public Response checkHealth()
   {
@@ -194,4 +221,123 @@ public final class SecurityResource
           MsgUtils.getMsg("TAPIS_HEALTHY", "Security Kernel"), false, r)).build();
   }
 
+  /* ---------------------------------------------------------------------------- */
+  /* ready:                                                                       */
+  /* ---------------------------------------------------------------------------- */
+  /** This method does no logging and is expected to be as lightwieght as possible.
+   * It's intended as the endpoint that monitoring applications can use to check
+   * whether the application is ready to accept traffic.  In particular, kubernetes 
+   * can use this endpoint as part of its pod readiness check.
+   * 
+   * Note that no JWT is required on this call.
+   * 
+   * A good synopsis of the difference between liveness and readiness checks:
+   * 
+   * ---------
+   * The probes have different meaning with different results:
+   * 
+   *    - failing liveness probes  -> restart pod
+   *    - failing readiness probes -> do not send traffic to that pod
+   *    
+   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   * ---------
+   * 
+   * @return a success response if all is ok
+   */
+  @GET
+  @Path("/ready")
+  @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
+  @Operation(
+          description = "Lightwieght readiness check.",
+          tags = "general",
+          responses = 
+              {@ApiResponse(responseCode = "200", description = "Service ready.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+      )
+  public Response ready()
+  {
+      // Get the current check count.
+      long checkNum = _readyChecks.incrementAndGet();
+      
+      // Test connectivity only if no success has ever been recorded.
+      // There could be a race condition here but the worst that could
+      // happen is an extra readiness check or two would query the db.
+      if (!_readyOnce.get()) {
+          boolean ready = queryDB(READY_TIMEOUT_MS);
+          if (ready) _readyOnce.set(true);
+            else {
+                // Failure case.
+                RespBasic r = new RespBasic("Readiness check " + checkNum + " failed.");
+                String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+                return Response.status(Status.SERVICE_UNAVAILABLE).
+                    entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+            }
+      }
+      
+      // ---------------------------- Success -------------------------------
+      // Create the response payload.
+      RespBasic r = new RespBasic("Readiness check " + checkNum + " received.");
+       
+      // Always return success. 
+      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_READY", "Security Kernel"), false, r)).build();
+  }
+
+  /* **************************************************************************** */
+  /*                               Private Methods                                */
+  /* **************************************************************************** */
+  /* ---------------------------------------------------------------------------- */
+  /* queryDB:                                                                     */
+  /* ---------------------------------------------------------------------------- */
+  /** Probe the database with a simple database query.
+   * 
+   * @param timeoutMillis millisecond limit for success
+   * @return true for success, false otherwise
+   */
+  private boolean queryDB(long timeoutMillis)
+  {
+      // Start optimistically.
+      boolean success = true;
+      
+      // Any db error or a time expiration fails the connectivity check.
+      try {
+          int index = ThreadLocalRandom.current().nextInt(_tableNames.size());
+          long startTime = Instant.now().toEpochMilli();
+          int result = getRoleImpl().queryDB(_tableNames.get(index));
+          
+          // Did the query take too long?
+          long elapsed = Instant.now().toEpochMilli() - startTime;
+          if (elapsed > timeoutMillis) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                           "Excessive query time (" + elapsed + " milliseconds)");
+              _log.error(msg);
+              success = false;
+          }
+      }
+      catch (Exception e) {
+          // Any exception causes us to report failure.
+          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
+          _log.error(msg, e);
+          success = false;
+      }
+      
+      return success;
+  }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* initTableNames:                                                              */
+  /* ---------------------------------------------------------------------------- */
+  private static ArrayList<String> initTableNames()
+  {
+      // Initialize list with SK's primary tables.
+      var list = new ArrayList<String>(4);
+      list.add("sk_role");
+      list.add("sk_role_permission");
+      list.add("sk_role_tree");
+      list.add("sk_user_role");
+      return list;
+  }
 }

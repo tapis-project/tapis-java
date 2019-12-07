@@ -10,12 +10,18 @@ package edu.utexas.tacc.tapis.security.authz.dao.sql;
 public class SqlStatements
 {
   /* ---------------------------------------------------------------------- */
+  /* any table:                                                             */
+  /* ---------------------------------------------------------------------- */
+  public static final String SELECT_1 =
+      "SELECT 1 FROM :table LIMIT 1";    
+    
+  /* ---------------------------------------------------------------------- */
   /* sk_role:                                                               */
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLE =
-          "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
-          + " FROM sk_role";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+      + " FROM sk_role";
   
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
