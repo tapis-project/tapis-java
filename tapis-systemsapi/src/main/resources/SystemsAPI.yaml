@@ -22,6 +22,216 @@ tags:
   - name: systems
     description: manage systems
 paths:
+  '/v3/systems/perms/{systemName}/user/{userName}':
+    get:
+      tags:
+        - permissions
+      summary: Retrieve system related permissions for given system and user
+      description: Retrieve all system related permissions for a given system and user.
+      operationId: getUserPerms
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespNameArray'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '404':
+          description: System not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+    post:
+      tags:
+        - permissions
+      summary: Create permissions in the Security Kernel giving a user access to a system
+      description: 'Create permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY, DELETE or ''*'' to indicate all permissions.'
+      operationId: grantUserPerms
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        description: A JSON object specifying a list of permissions.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqPerms'
+        required: true
+      responses:
+        '200':
+          description: Permissions granted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '400':
+          description: Input error. Invalid JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/perms/{systemName}/user/{userName}/{permission}':
+    delete:
+      tags:
+        - permissions
+      summary: Revoke specified permission in the Security Kernel
+      description: 'Revoke permission in the Security Kernel for a user. Requester must be owner of the system. Permissions: READ, MODIFY or DELETE.'
+      operationId: revokeUserPerm
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: permission
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Permission revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '400':
+          description: Input error. Invalid JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/perms/{systemName}/user/{userName}/revoke':
+    post:
+      tags:
+        - permissions
+      summary: Revoke system permissions in the Security Kernel using request body
+      description: 'Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY, DELETE or ''*'' to indicate all permissions.'
+      operationId: revokeUserPerms
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        description: A JSON object specifying a list of permissions.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqPerms'
+        required: true
+      responses:
+        '200':
+          description: Permission revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /v3/systems/system:
     get:
       tags:
@@ -64,7 +274,7 @@ paths:
       tags:
         - systems
       summary: Create a system
-      description: 'Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters: [-._~]. Name must begin with an alphabetic character and can be no more than 300 characters in length. Description is optional with a maximum length of 2048 characters.'
+      description: 'Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters: [-._~]. Name must begin with an alphabetic character and can be no more than 256 characters in length. Description is optional with a maximum length of 2048 characters.'
       operationId: createSystem
       parameters:
         - name: pretty
@@ -240,6 +450,42 @@ paths:
           description: Server error.
 components:
   schemas:
+    RespBasic:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          type: object
+    ReqPerms:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+    RespNameArray:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultNameArray'
+    ResultNameArray:
+      type: object
+      properties:
+        names:
+          type: array
+          items:
+            type: string
     RespResourceUrl:
       type: object
       properties:
@@ -256,17 +502,6 @@ components:
       properties:
         url:
           type: string
-    RespBasic:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          type: object
     ReqCreateSystem:
       type: object
       properties:
@@ -395,24 +630,6 @@ components:
           type: string
         updated:
           type: string
-    RespNameArray:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/ResultNameArray'
-    ResultNameArray:
-      type: object
-      properties:
-        names:
-          type: array
-          items:
-            type: string
     RespChangeCount:
       type: object
       properties:
