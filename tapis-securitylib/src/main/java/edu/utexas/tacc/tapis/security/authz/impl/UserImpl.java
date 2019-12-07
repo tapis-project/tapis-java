@@ -36,6 +36,9 @@ public final class UserImpl
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(UserImpl.class);
     
+    // Role name max characters allowed in database.
+    private static final int MAX_USER_NAME_LEN = 58;
+    
     /* **************************************************************************** */
     /*                                     Enums                                    */
     /* **************************************************************************** */
@@ -235,8 +238,73 @@ public final class UserImpl
     }
     
     /* ---------------------------------------------------------------------- */
+    /* grantUserPermission:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Grant a permission by assigning the permission to the user's default
+     * role, creating and granting that role to the user if it doesn't already
+     * exist.
+     * 
+     * @param tenant the user's tenant
+     * @param requestor the grantor
+     * @param user the grantee
+     * @param permSpec the permission specification
+     * @return the number of database updates
+     * @throws TapisImplException on general errors
+     */
+    public int grantUserPermission(String tenant, String requestor, 
+                                   String user, String permSpec)
+        throws TapisImplException
+    {
+        // Check user name length before using it to construct the user's default role.
+        if (user.length() > MAX_USER_NAME_LEN) {
+            String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", tenant, user, MAX_USER_NAME_LEN);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // Construct the user's default role name.
+        String roleName = getUserDefaultRolename(user);
+        
+        // Perform an optimistic assignment that works only if the user's 
+        // default role exists and has already been assigned to the user.
+        // If the first attempt fails, we try one more time after creating
+        // and assigning the user's default role.
+        int rows = 0;
+        for (int i = 0; i < 2; i++) {
+            try {
+                // See if we can assign the permission to the role.
+                rows += grantRoleWithPermission(tenant, requestor, user,
+                                                roleName, permSpec);
+                
+                // This try worked!
+                break;
+            } 
+            catch (TapisNotFoundException e) {
+                // The role does not exist, so let's create it and
+                // assign it to the user in one atomic operation.
+                // Any failure here aborts the whole operation.
+                rows = createAndAssignRole(tenant, requestor, user, roleName);
+            }
+        }
+        
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* grantRoleWithPermission:                                               */
     /* ---------------------------------------------------------------------- */
+    /** Grant an existing role to a user after inserting the permission into the
+     * role.
+     * 
+     * @param tenant the user's tenant
+     * @param requestor the grantor
+     * @param user the grantee
+     * @param roleName existing role name
+     * @param permSpec the permission specification
+     * @return the number of database updates
+     * @throws TapisImplException on general errors
+     * @throws TapisNotFoundException the role does not exist
+     */
     public int grantRoleWithPermission(String tenant, String requestor, 
                                        String user, String roleName, String permSpec)
         throws TapisImplException, TapisNotFoundException
@@ -595,5 +663,32 @@ public final class UserImpl
         
         // No match if we get here.
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* createAndAssignRole:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    private int createAndAssignRole(String tenant, String requestor, String user, 
+                                    String roleName) 
+     throws TapisImplException
+    {
+        // Get the dao.
+        SkUserRoleDao userDao = null;
+        try {userDao = getSkUserRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
+                _log.error(msg, e);
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR); 
+            }
+
+        // Create and assign the role.
+        String desc = "Default role for user " + user;
+        int rows = 0;
+        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc);}
+            catch (Exception e) {
+                // Interpret all errors as client request problems.
+                throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);
+            }
+        return rows;
     }
 }

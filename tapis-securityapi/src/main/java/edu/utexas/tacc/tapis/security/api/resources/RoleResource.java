@@ -273,7 +273,7 @@ public final class RoleResource
              description = "Create a role using a request body.  "
                            + "Role names are case sensitive, alpha-numeric "
                            + "strings that can also contain underscores.  Role names must "
-                           + "start with an alphbetic character and can be no more than 60 "
+                           + "start with an alphbetic character and can be no more than 58 "
                            + "characters in length.  The desciption can be no more than "
                            + "2048 characters long.  If the role already exists, this "
                            + "request has no effect.",
@@ -455,7 +455,7 @@ public final class RoleResource
              description = "Update an existing role using a request body.  "
                            + "Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
-                           + "character.  The limit on role name is 60 characters.",
+                           + "character.  The limit on role name is 58 characters.",
              tags = "role",
              requestBody = 
                  @RequestBody(

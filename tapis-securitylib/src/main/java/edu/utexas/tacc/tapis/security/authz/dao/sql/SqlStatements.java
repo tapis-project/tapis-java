@@ -41,6 +41,10 @@ public class SqlStatements
   public static final String ROLE_UPDATE_DESCRIPTION = 
       "UPDATE sk_role SET description = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
   
+  // Strict version of above commands that are not idempotent.
+  public static final String ROLE_INSERT_STRICT = 
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
+  
   /* ---------------------------------------------------------------------- */
   /* sk_role_permission:                                                    */
   /* ---------------------------------------------------------------------- */
@@ -216,4 +220,9 @@ public class SqlStatements
           "AND r.id = u.role_id AND r.id = pm.role_id " +
           "AND r.tenant = ? AND pm.permission :op ? " +
           "ORDER BY u.user_name";
+  
+  // Strict versions of above commands that are not idempotent.
+  public static final String USER_ADD_ROLE_BY_ID_STRICT =
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
+      "VALUES (?, ?, ?, ?, ?)";
 }
