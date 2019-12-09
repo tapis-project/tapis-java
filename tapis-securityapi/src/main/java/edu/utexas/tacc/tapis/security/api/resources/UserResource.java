@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
@@ -65,6 +66,8 @@ public final class UserResource
         "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleRequest.json";
     private static final String FILE_SK_GRANT_USER_ROLE_WITH_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleWithPermRequest.json";
+    private static final String FILE_SK_GRANT_USER_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserPermRequest.json";
     private static final String FILE_SK_REMOVE_USER_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserRoleRequest.json";
     private static final String FILE_SK_USER_HAS_ROLE_REQUEST = 
@@ -503,6 +506,119 @@ public final class UserResource
          // Success means we found the role. 
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles removed"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* grantRoleWithPermission:                                                     */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/grantUserPermission")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Grant a user the specified permission by assigning that permission to "
+                     + "to the user's default role.  If the user's default role does not exist,"
+                     + "this request will create that role and grant it to the user before "
+                     + "assigning the permission to the role.\n\n"
+                     + ""
+                     + "A user's default role is constructed by prepending '^^' to the user's name. "
+                     + "This implies the maximum length of a user name is 58 since role names are "
+                     + "limited to 60 characters.\n\n"
+                     + ""
+                     + "The change count returned can range from zero to three "
+                     + "depending on how many insertions and updates were actually required.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response grantUserPermission(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                         InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "grantRoleWithPermission", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqGrantUserPermission payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_GRANT_USER_PERM_REQUEST, 
+                                   ReqGrantUserPermission.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "grantRoleWithPermission", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+         // Fill in the parameter fields.
+         String user     = payload.user;
+         String permSpec = payload.permSpec;
+         
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantPermission", "permSpec");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------        
+         // Create the role and/or permission.
+         int rows = 0;
+         try {
+             rows = getUserImpl().grantUserPermission(threadContext.getTenantId(), 
+                                                      threadContext.getUser(), 
+                                                      user, permSpec);
+         } 
+             catch (Exception e) {
+                 // We assume a bad request for all other errors.
+                 String msg = MsgUtils.getMsg("SK_ADD_USER_PERMISSION_ERROR", 
+                                              threadContext.getTenantId(), threadContext.getUser(), 
+                                              permSpec, user);
+                 return getExceptionResponse(e, msg, prettyPrint);
+             }
+
+         // Populate the response.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " changes"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -1016,12 +1132,14 @@ public final class UserResource
                "    files:mytenant:read,write:mysystems\n" +
                "" +
                "This method recognizes the percent sign (%) as a string wildcard only " + 
-               "in the context of database searching.  If a percent sign appears in the " +
+               "in the context of database searching.  If a percent sign (%) appears in the " +
                "permSpec it is interpreted as a zero or more character wildcard.  For example, " +
                "the following specification would match the first three of the above " +
                "example specifications but not the fourth:\n\n" +
                "" +
-               "    system:mytenant:%\n",
+               "    system:mytenant:%\n\n"
+               + ""
+               + "The wildcard character cannot appear as the first character in the permSpec.",
 
              tags = "user",
              responses = 

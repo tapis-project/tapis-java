@@ -10,12 +10,18 @@ package edu.utexas.tacc.tapis.security.authz.dao.sql;
 public class SqlStatements
 {
   /* ---------------------------------------------------------------------- */
+  /* any table:                                                             */
+  /* ---------------------------------------------------------------------- */
+  public static final String SELECT_1 =
+      "SELECT 1 FROM :table LIMIT 1";    
+    
+  /* ---------------------------------------------------------------------- */
   /* sk_role:                                                               */
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLE =
-          "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
-          + " FROM sk_role";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+      + " FROM sk_role";
   
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
@@ -41,6 +47,10 @@ public class SqlStatements
   public static final String ROLE_UPDATE_DESCRIPTION = 
       "UPDATE sk_role SET description = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
   
+  // Strict version of above commands that are not idempotent.
+  public static final String ROLE_INSERT_STRICT = 
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
+  
   /* ---------------------------------------------------------------------- */
   /* sk_role_permission:                                                    */
   /* ---------------------------------------------------------------------- */
@@ -58,6 +68,24 @@ public class SqlStatements
   
   public static final String ROLE_REMOVE_PERMISSION =
       "DELETE FROM sk_role_permission where tenant = ? and role_id = ? and permission = ?";
+  
+  // Get rows that match a permission prefix for all roles.
+  public static final String SELECT_PERMISSION_PREFIX = 
+      "SELECT id, tenant, role_id, permission "
+      + "FROM sk_role_permission " 
+      + "WHERE tenant = ? AND permission LIKE ? "
+      + "ORDER BY permission";     
+      
+  // Get rows that match a permission prefix with an optional role id constraint.
+  public static final String SELECT_PERMISSION_PREFIX_WITH_ROLE = 
+      "SELECT id, tenant, role_id, permission "
+      + "FROM sk_role_permission " 
+      + "WHERE tenant = ? AND permission LIKE ? AND role_id = ? "
+      + "ORDER BY permission";  
+  
+  // Update the permission string.
+  public static final String UPDATE_PERMISSION_BY_ID = 
+      "UPDATE sk_role_permission SET permission = ? WHERE tenant = ? and id = ?";
 
   /* ---------------------------------------------------------------------- */
   /* sk_role_tree:                                                          */
@@ -198,4 +226,9 @@ public class SqlStatements
           "AND r.id = u.role_id AND r.id = pm.role_id " +
           "AND r.tenant = ? AND pm.permission :op ? " +
           "ORDER BY u.user_name";
+  
+  // Strict versions of above commands that are not idempotent.
+  public static final String USER_ADD_ROLE_BY_ID_STRICT =
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
+      "VALUES (?, ?, ?, ?, ?)";
 }

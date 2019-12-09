@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.requestBody;
 
-public final class ReqReplacePathPrefix 
+public final class ReqPreviewPathPrefix 
 {
     public String schema;
     public String roleName;

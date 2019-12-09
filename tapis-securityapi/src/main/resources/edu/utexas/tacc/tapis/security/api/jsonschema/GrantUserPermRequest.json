@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/GrantUserPermRequest",
+    "description": "Assign a permission to a user's default role.",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "user": {
+            "type": "string"
+          },
+          "permSpec": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "user",
+        "permSpec"
+    ]
+}
+
+

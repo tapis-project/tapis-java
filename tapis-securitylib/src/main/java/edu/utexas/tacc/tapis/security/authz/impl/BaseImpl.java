@@ -18,6 +18,13 @@ class BaseImpl
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(BaseImpl.class);
+    
+    // We reserve this character for SK generated names.  In particular, SK generated
+    // role names always begin this character and users cannot create such names.
+    public static final char RESERVED_NAME_CHAR = '^';
+    
+    // SK generated role names start with a reserved 2 character sequence.
+    public static final String USER_DEFAULT_ROLE_PREFIX = RESERVED_NAME_CHAR + "^";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -25,7 +32,7 @@ class BaseImpl
     // We share all dao's among all instances of this class.
     private static SkRoleDao           _roleDao;
     private static SkRoleTreeDao       _roleTreeDao;
-    private static SkRolePermissionDao _roleTreePermissionDao;
+    private static SkRolePermissionDao _rolePermissionDao;
     private static SkUserRoleDao       _userRoleDao;
     
     /* **************************************************************************** */
@@ -83,12 +90,12 @@ class BaseImpl
      throws TapisException
     {
         // Avoid synchronizing exception for initialization.
-        if (_roleTreePermissionDao == null) 
+        if (_rolePermissionDao == null) 
             synchronized (BaseImpl.class) {
-                if (_roleTreePermissionDao == null) _roleTreePermissionDao = new SkRolePermissionDao();
+                if (_rolePermissionDao == null) _rolePermissionDao = new SkRolePermissionDao();
            }
             
-        return _roleTreePermissionDao;
+        return _rolePermissionDao;
     }
 
     /* ---------------------------------------------------------------------------- */
@@ -154,4 +161,9 @@ class BaseImpl
         return roleId;
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* getUserDefaultRolename:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    public String getUserDefaultRolename(String user)
+    {return USER_DEFAULT_ROLE_PREFIX + user;}
 }

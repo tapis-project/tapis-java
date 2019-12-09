@@ -345,7 +345,7 @@ public class SystemsServiceImpl implements SystemsService
     {
       for (String permSpec : permSpecSet)
       {
-        skClient.addRemovePermission(roleName, permSpec);
+        skClient.removeRolePermission(roleName, permSpec);
       }
     }
     // TODO exception handling

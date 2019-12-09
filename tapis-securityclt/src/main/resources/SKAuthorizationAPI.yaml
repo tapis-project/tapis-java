@@ -66,7 +66,7 @@ paths:
     post:
       tags:
         - role
-      description: 'Create a role using a request body.  Role names are case sensitive, alpha-numeric strings that can also contain underscores.  Role names must start with an alphbetic character and can be no more than 60 characters in length.  The desciption can be no more than 2048 characters long.  If the role already exists, this request has no effect.'
+      description: 'Create a role using a request body.  Role names are case sensitive, alpha-numeric strings that can also contain underscores.  Role names must start with an alphbetic character and can be no more than 58 characters in length.  The desciption can be no more than 2048 characters long.  If the role already exists, this request has no effect.'
       operationId: createRole
       parameters:
         - name: pretty
@@ -105,6 +105,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  /security/role/replacePathPrefix:
+    post:
+      tags:
+        - role
+      description: |-
+        Replace the text in a permission specification when its last component defines an *extended path attribute*.  Extended path attributes enhance the standard Shiro matching algorithm with one that treats designated components in a permission specification as a path name, such as a posix file or directory path name.  This request is useful when files or directories have been renamed or moved and their authorizations need to be adjusted.  Consider, for example, permissions that conform to the following specification:
+
+              files:tenantId:op:systemId:path
+
+        By definition, the last component is an extended path attribute whose content can be changed by replacePathPrefix requests.  Specifically, paths that begin with the oldPrefix will have that prefix replaced with the newPrefix value.  Replacement only occurs on permissions that also match the schema and oldSystemId parameter values.  The systemId is required to be the next to last attribute and immediately preceding the path attribute.
+
+        Additionally, the oldSystemId is replaced with the newSystemId when a match is found.  If a roleName is provided, then replacement is limited to permissions defined only in that role.  Otherwise, permissions in all roles that meet the other matching criteria will be considered.
+
+        The optional parameters are roleName, oldPrefix and newPrefix. When roleName is specified then only permissions assigned to that role are processed. When oldPrefix is missing or the empty string, then it will match every permission in which the specified schema, tenant and oldSystemId appear. Every such match will prepend the newPrefix to the permission's path.
+
+        When newPrefix is missing or the empty string, then the oldPrefix is will be effectively removed from path and no new characters added. When both oldPrefix and newPrefix are missing or empty, the transformation is limited to the system IDs.
+
+        The previewPathPrefix request provides a way to do a dry run by using the same input as this request, calculating the permissions that would change and what their new values would be, but not actually changing those permissions.
+
+        Use a request body to pass parameters on this request.  The response indicates the number of changed permission specifications.
+      operationId: replacePathPrefix
+      parameters:
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: '#/components/schemas/ReqReplacePathPrefix'
+        required: true
+      responses:
+        '200':
+          description: Path prefixes replaced.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespChangeCount'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '404':
+          description: Named role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespName'
         '500':
           description: Server error.
           content:
@@ -204,7 +268,7 @@ paths:
     post:
       tags:
         - role
-      description: 'Update an existing role using a request body.  Role names are case sensitive, alphanumeric strings that can contain underscores but must begin with an alphabetic character.  The limit on role name is 60 characters.'
+      description: 'Update an existing role using a request body.  Role names are case sensitive, alphanumeric strings that can contain underscores but must begin with an alphabetic character.  The limit on role name is 58 characters.'
       operationId: updateRoleName
       parameters:
         - name: roleName
@@ -510,19 +574,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-  /security/role/replacePathPrefix:
+  /security/role/previewPathPrefix:
     post:
       tags:
         - role
       description: |-
-        Replace the text in a permission specification when its last component defines an *extended path attribute*.  Extended path attributes enhance the standard Shiro matching algorithm with one that treats designated components in a permission specification as a path name, such as a posix file or directory path name.  This request is useful when files or directories have been renamed or moved and their authorizations need to be adjusted.  Consider, for example, permissions that conform to the following specification:
+        This read-only endpoint previews the transformations that would take place if the same input was used on the replacePathPrefix POST call. It is implemented as a POST so that the replacePathPrefix input can be used, but this call changes nothing and has no side effects.
 
-              store:tenantId:op:systemId:path
+        One application of this call is to get an accounting of existing system/path combinations that match a certain specification. Such information would be useful when trying to duplicate a set of permissions. For example, one may want to copy a file subtree to another location and assign the same permissions to the new subtree as currently exist on the source subtree. One could use the information returned from this call to query the users that should be granted permission on the new subtree.
 
-        By convention, the last component is an extended path attribute whose content can be changed by replacePathPrefix requests.  Specifically, paths that begin with the oldPrefix will have that prefix replaced with the newPrefix value.  Replacement only occurs on permissions that also match the schema and oldSystemId parameter values.  The systemId is required to be the next to last attribute and immediately preceding the path attribute.  The oldSystemId is replaced with the newSystemId when a match is found.  If a roleName is provided, then replacement is limited to permissions defined only in that role.  Otherwise, permissions in all roles that meet the other matching criteria will be considered.
+        The optional parameters are roleName, oldPrefix and newPrefix. When roleName is specified then only permissions assigned to that role are processed. When oldPrefix is missing or the empty string, then it will match every permission in which the specified schema, tenant and oldSystemId appear. Every such match will prepend the newPrefix to the permission's path.
 
-        Use a request body to pass parameters on this request.  The response indicates the number of changed permission specifications.
-      operationId: replacePathPrefix
+        When newPrefix is missing or the empty string, then the oldPrefix is will be effectively removed from path and no new characters added. When both oldPrefix and newPrefix are missing or empty, the transformation is limited to the system IDs.
+
+        The object returned contains an array of transformation objects, each of which contains the unique permission sequence number, the existing permission that matched the search criteria and the permission if the specified transformations were applied.
+      operationId: previewPathPrefix
       parameters:
         - name: pretty
           in: query
@@ -533,15 +599,15 @@ paths:
         content:
           '*/*':
             schema:
-              $ref: '#/components/schemas/ReqReplacePathPrefix'
+              $ref: '#/components/schemas/ReqPreviewPathPrefix'
         required: true
       responses:
         '200':
-          description: Path prefixes replaced.
+          description: Path prefixes previewed.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RespChangeCount'
+                $ref: '#/components/schemas/RespPathPrefixes'
         '400':
           description: Input error.
           content:
@@ -566,6 +632,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
+  /security/ready:
+    get:
+      tags:
+        - general
+      description: Lightwieght readiness check.
+      operationId: ready
+      responses:
+        '200':
+          description: Service ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '503':
+          description: Service unavailable.
   /security/hello:
     get:
       tags:
@@ -593,7 +674,7 @@ paths:
     get:
       tags:
         - general
-      description: Lightwieght health check.
+      description: Lightwieght health check for liveness.
       operationId: checkHealth
       responses:
         '200':
@@ -602,8 +683,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
-        '500':
-          description: Server error.
+        '503':
+          description: Service unavailable.
   /security/user/hasRole:
     post:
       tags:
@@ -909,6 +990,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
+  /security/user/grantUserPermission:
+    post:
+      tags:
+        - user
+      description: |-
+        Grant a user the specified permission by assigning that permission to to the user's default role.  If the user's default role does not exist,this request will create that role and grant it to the user before assigning the permission to the role.
+
+        A user's default role is constructed by prepending '^^' to the user's name. This implies the maximum length of a user name is 58 since role names are limited to 60 characters.
+
+        The change count returned can range from zero to three depending on how many insertions and updates were actually required.
+      operationId: grantUserPermission
+      parameters:
+        - name: pretty
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: '#/components/schemas/ReqGrantUserPermission'
+        required: true
+      responses:
+        '200':
+          description: Permission assigned to user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespChangeCount'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   /security/user/hasRoleAny:
     post:
       tags:
@@ -1176,16 +1305,18 @@ paths:
     get:
       tags:
         - user
-      description: |
+      description: |-
         Get all users assigned a permission.  The permSpec parameter is a permission specification that uses colons as separators, the asterisk as a wildcard character and commas to define lists.  Here are examples of permission specifications:
 
             system:mytenant:read:mysystem
             system:mytenant:*:mysystem
             system:mytenant
             files:mytenant:read,write:mysystems
-        This method recognizes the percent sign (%) as a string wildcard only in the context of database searching.  If a percent sign appears in the permSpec it is interpreted as a zero or more character wildcard.  For example, the following specification would match the first three of the above example specifications but not the fourth:
+        This method recognizes the percent sign (%) as a string wildcard only in the context of database searching.  If a percent sign (%) appears in the permSpec it is interpreted as a zero or more character wildcard.  For example, the following specification would match the first three of the above example specifications but not the fourth:
 
             system:mytenant:%
+
+        The wildcard character cannot appear as the first character in the permSpec.
       operationId: getUsersWithPermission
       parameters:
         - name: permSpec
@@ -1259,6 +1390,54 @@ components:
           type: string
         description:
           type: string
+    RespChangeCount:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultChangeCount'
+    ResultChangeCount:
+      type: object
+      properties:
+        changes:
+          type: integer
+          format: int32
+    RespName:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        result:
+          $ref: '#/components/schemas/ResultName'
+    ResultName:
+      type: object
+      properties:
+        name:
+          type: string
+    ReqReplacePathPrefix:
+      type: object
+      properties:
+        schema:
+          type: string
+        roleName:
+          type: string
+        oldSystemId:
+          type: string
+        newSystemId:
+          type: string
+        oldPrefix:
+          type: string
+        newPrefix:
+          type: string
     RespNameArray:
       type: object
       properties:
@@ -1308,39 +1487,6 @@ components:
           type: string
         updatedby:
           type: string
-    RespName:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/ResultName'
-    ResultName:
-      type: object
-      properties:
-        name:
-          type: string
-    RespChangeCount:
-      type: object
-      properties:
-        status:
-          type: string
-        message:
-          type: string
-        version:
-          type: string
-        result:
-          $ref: '#/components/schemas/ResultChangeCount'
-    ResultChangeCount:
-      type: object
-      properties:
-        changes:
-          type: integer
-          format: int32
     ReqUpdateRoleName:
       type: object
       properties:
@@ -1379,7 +1525,30 @@ components:
           type: string
         childRoleName:
           type: string
-    ReqReplacePathPrefix:
+    RespPathPrefixes:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        version:
+          type: string
+        transformations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transformation'
+    Transformation:
+      type: object
+      properties:
+        permId:
+          type: integer
+          format: int32
+        oldPerm:
+          type: string
+        newPerm:
+          type: string
+    ReqPreviewPathPrefix:
       type: object
       properties:
         schema:
@@ -1437,6 +1606,13 @@ components:
         user:
           type: string
         roleName:
+          type: string
+        permSpec:
+          type: string
+    ReqGrantUserPermission:
+      type: object
+      properties:
+        user:
           type: string
         permSpec:
           type: string

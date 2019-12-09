@@ -1,7 +1,9 @@
 package edu.utexas.tacc.tapis.security.authz.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,10 +11,16 @@ import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
+import edu.utexas.tacc.tapis.security.authz.model.SkRolePermissionShort;
+import edu.utexas.tacc.tapis.security.authz.permissions.ExtWildcardPermission;
+import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer;
+import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shareddb.TapisDBUtils;
 
 /** This singleton class implements the backend role APIs.
  * 
@@ -376,5 +384,236 @@ public final class RoleImpl
         }
 
         return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* previewPathPrefix:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Calculate the list of permission transformations without actually 
+     * performing any changes to any permission.  The transformations are those
+     * that would be applied if the replacePathPrefix() method was called.
+     * 
+     * @param schema the 1st part of the permission
+     * @param roleName optional filter that restricts permission changes to one role
+     * @param oldSystemId the value of the current system id part
+     * @param newSystemId the value of the new system id part
+     * @param oldPrefix the value of the current path prefix
+     * @param newPrefix the value of the new path prefix
+     * @param tenant the tenant id
+     * @return a list of prospective transformations
+     * @throws TapisImplException on error
+     */
+    public List<Transformation> previewPathPrefix(String schema, String roleName, 
+                                                  String oldSystemId, String newSystemId, 
+                                                  String oldPrefix, String newPrefix,
+                                                  String tenant)
+     throws TapisImplException
+    {
+        // Make sure the schema is one that we know uses extended path semantics.
+        // The index can be no lower than 3 since the minimum schema to support
+        // path semantic must start with the schema name and also include the 
+        // tenant, system and path.  These 4 parts are always required.
+        int pathIndex = ExtWildcardPermission.getRecursivePathIndex(schema);
+        if (pathIndex < 3) {
+            String msg = MsgUtils.getMsg("SK_PERM_NO_PATH_SUPPORT", schema);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // Retrieve the role id if a role name is given.
+        SkRole role = null;
+        int roleId  = -1;
+        if (!StringUtils.isBlank(roleName)) {
+            role = getRoleByName(tenant, roleName);
+            if (role == null) {
+                String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+                _log.error(msg);
+                throw new TapisImplException(msg, Condition.BAD_REQUEST);
+            }
+            roleId = role.getId();
+        }
+        
+        // Create the permission search template.
+        String permSpec = getPermissionSpec(schema, tenant, oldSystemId, 
+                                            oldPrefix, pathIndex);
+        
+        // Get the dao.
+        SkRolePermissionDao dao = null;
+        try {dao = getSkRolePermissionDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Get the short records from the database.
+        List<SkRolePermissionShort> dblist = null;
+        try {dblist = dao.getMatchingPermissions(tenant, permSpec, roleId);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_PERM_SEARCH_ERROR", permSpec, roleId);
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        
+        // Maybe there's nothing to do.
+        if (dblist.isEmpty()) return new ArrayList<Transformation>(0);
+            
+        // Create a transformer object.  The index parameter is for the permission
+        // part that is before the path part (i.e., the system part).
+        String oldText = oldSystemId + ":" + oldPrefix;
+        String newText = newSystemId + ":" + newPrefix;
+        var transformer = new PermissionTransformer(pathIndex-1, oldText, newText);
+        
+        // Calculate the transformations. Exceptions indicate a bug.
+        try {transformer.addTransformations(dblist);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_PERM_TRANSFORM_ERROR", permSpec, 
+                                             oldText, newText, tenant);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Return the transformations.
+        return transformer.getTransformations();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* replacePathPrefix:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Calculate the list of permission transformations and then apply them.
+     * 
+     * @param schema the 1st part of the permission
+     * @param roleName optional filter that restricts permission changes to one role
+     * @param oldSystemId the value of the current system id part
+     * @param newSystemId the value of the new system id part
+     * @param oldPrefix the value of the current path prefix
+     * @param newPrefix the value of the new path prefix
+     * @param tenant the tenant id
+     * @return a list of prospective transformations
+     * @throws TapisImplException on error
+     */
+    public int replacePathPrefix(String schema, String roleName, 
+                                 String oldSystemId, String newSystemId, 
+                                 String oldPrefix, String newPrefix,
+                                 String tenant)
+     throws TapisImplException
+    {
+        // Get the list of transformation to apply.
+        List<Transformation> transList = previewPathPrefix(schema, roleName, 
+                                                           oldSystemId, newSystemId, 
+                                                           oldPrefix, newPrefix, 
+                                                           tenant);
+        
+        // Update the selected permissions.
+        int rows = updatePermissions(tenant, transList);
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* queryDB:                                                               */
+    /* ---------------------------------------------------------------------- */
+    public int queryDB(String tableName) throws TapisImplException
+    {
+        // Get the dao.
+        SkRoleDao dao = null;
+        try {dao = getSkRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
+             }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.queryDB(tableName);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("DB_QUERY_DB_ERROR", tableName);
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
+         }
+
+        return rows;
+    }
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* updatePermissions:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private int updatePermissions(String tenant, List<Transformation> transList)
+     throws TapisImplException
+    {
+        // If there's nothing to do, let's not bother.
+        if (transList.isEmpty()) return 0;
+        
+        // Get the dao.
+        SkRolePermissionDao dao = null;
+        try {dao = getSkRolePermissionDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.updatePermissions(tenant, transList);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_PERM_UPDATE_LIST_ERROR", 
+                                         tenant, transList.size());
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST); 
+        }
+
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getPermissionSpec:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Construct a permission search string that inserts SQL wildcards in parts 
+     * of the string that we allow any value to appear.
+     * 
+     * @param schema the permission schema
+     * @param tenant the permission tenant
+     * @param oldSystemId the search system
+     * @param oldPrefix the search path
+     * @param pathIndex the index in the schema of the path part
+     * @return the search string
+     */
+    private String getPermissionSpec(String schema, String tenant, String oldSystemId, 
+                                     String oldPrefix, int pathIndex)
+    {
+        // Create a buffer with reasonable initial capacity.
+        StringBuilder buf = new StringBuilder(150);
+        
+        // Add in the standard permission prefix that must apply
+        // to all extended path supporting permission schemas.
+        // We escape the tenant in case it contains an underscore.
+        buf.append(schema);
+        buf.append(":");
+        buf.append(TapisDBUtils.escapeSqlWildcards(tenant));
+        buf.append(":");
+        
+        // Add any intermediate permission parts as don't care search
+        // elements.  We use the SQL wildcard to indicate don't care.
+        // Parts with indexes 0 and 1 are already in the buffer.  The 
+        // last two parts are always the system id and path, so we only 
+        // need to fill in wildcard parts if they exist between the 
+        // beginning and end of the permission schema.  For example,
+        // in the files schema the only intervening part defines
+        // operations like read/write/execute.
+        for (int i = 2; i < pathIndex - 1; i++) buf.append("%:");
+    
+        // Append the escaped system and path parts.
+        buf.append(TapisDBUtils.escapeSqlWildcards(oldSystemId));
+        buf.append(":");
+        buf.append(TapisDBUtils.escapeSqlWildcards(oldPrefix));
+        
+        // Append the SQL wildcard.
+        buf.append("%");
+                
+        return buf.toString();
     }
 }

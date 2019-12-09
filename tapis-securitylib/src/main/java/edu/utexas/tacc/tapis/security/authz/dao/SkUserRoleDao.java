@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -770,6 +771,12 @@ public final class SkUserRoleDao
           throw new TapisException(msg);
       }
       
+      // Prohibit permission specifications that would cause a full table scan.
+      if (permSpec.startsWith("%")) {
+          String msg = MsgUtils.getMsg("SK_PERM_UNRESTRICTED_SEARCH", tenant, permSpec);
+          throw new TapisException(msg);
+      }
+      
       // Initialize final result.
       ArrayList<String> users = new ArrayList<>();
       
@@ -826,6 +833,150 @@ public final class SkUserRoleDao
       }
       
       return users;
+  }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* createAndAssignRole:                                                         */
+  /* ---------------------------------------------------------------------------- */
+  /** Create a role and assign it to a user in one atomic operation.  The role is
+   * not expected to exist and the method will fail if it does.
+   * 
+   * @param tenant the user's tenant
+   * @param requestor the role grantor
+   * @param user the grantee
+   * @param roleName the role name to be created.
+   * @return the number of changed db records
+   * @throws TapisImplException on error
+   */
+  public int createAndAssignRole(String tenant, String requestor, String user, 
+                                 String roleName, String description)
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "requestor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "roleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(description)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "description");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // -------------- 1. Create Role
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_INSERT_STRICT;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, roleName);
+          pstmt.setString(3, description);
+          pstmt.setString(4, requestor);
+          pstmt.setString(5, requestor);
+
+          // Issue the call which will fail if the role already exists.
+          rows = pstmt.executeUpdate();
+          
+          // Close the statement.
+          pstmt.close();
+          
+          // -------------- 2. Get Role ID
+          // Get the select command.
+          sql = SqlStatements.ROLE_SELECT_ID_BY_NAME;
+          
+          // Prepare the statement and fill in the placeholders.
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, roleName);
+                      
+          // Issue the call for the 1 row result set.
+          ResultSet rs = pstmt.executeQuery();
+          int id = 0;
+          if (rs.next()) id = rs.getInt(1);
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+          
+          // Make sure we got an id.
+          if (id == 0) {
+              String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+              _log.error(msg);
+              throw new TapisException(msg);
+          }
+          
+          // -------------- 3. Grant User Role
+          // Set the sql command.
+          sql = SqlStatements.USER_ADD_ROLE_BY_ID_STRICT;
+
+          // Prepare the statement and fill in the placeholders.
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, user);
+          pstmt.setInt(3, id);
+          pstmt.setString(4, requestor);
+          pstmt.setString(5, requestor);
+
+          // Issue the call which will fail if the user already has the role.
+          rows += pstmt.executeUpdate();
+
+          // Close the statement.
+          pstmt.close();
+
+          // Commit the transaction.
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("SK_CREATE_ASSIGN_ROLE_ERROR", tenant, user, 
+                                       roleName, e.getMessage());
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
   }
   
   /* ********************************************************************** */

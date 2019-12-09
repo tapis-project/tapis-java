@@ -29,13 +29,16 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqPreviewPathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
+import edu.utexas.tacc.tapis.security.api.responses.RespPathPrefixes;
 import edu.utexas.tacc.tapis.security.api.responses.RespRole;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
+import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -79,6 +82,8 @@ public final class RoleResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveRolePermissionRequest.json";
     private static final String FILE_SK_REMOVE_CHILD_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveChildRoleRequest.json";
+    private static final String FILE_SK_PREVIEW_PATH_PREFIX_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/PreviewPathPrefixRequest.json";
     private static final String FILE_SK_REPLACE_PATH_PREFIX_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/ReplacePathPrefixRequest.json";
 
@@ -268,7 +273,7 @@ public final class RoleResource
              description = "Create a role using a request body.  "
                            + "Role names are case sensitive, alpha-numeric "
                            + "strings that can also contain underscores.  Role names must "
-                           + "start with an alphbetic character and can be no more than 60 "
+                           + "start with an alphbetic character and can be no more than 58 "
                            + "characters in length.  The desciption can be no more than "
                            + "2048 characters long.  If the role already exists, this "
                            + "request has no effect.",
@@ -450,7 +455,7 @@ public final class RoleResource
              description = "Update an existing role using a request body.  "
                            + "Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
-                           + "character.  The limit on role name is 60 characters.",
+                           + "character.  The limit on role name is 58 characters.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -1073,6 +1078,158 @@ public final class RoleResource
      }
 
      /* ---------------------------------------------------------------------------- */
+     /* previewPathPrefix:                                                           */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/previewPathPrefix")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "This read-only endpoint previews the transformations that would take "
+                         + "place if the same input was used on the replacePathPrefix POST call. "
+                         + "It is implemented as a POST so that the replacePathPrefix input "
+                         + "can be used, but this call changes nothing and has no side effects.\n\n"
+                         + ""
+                         + "One application of this call is to get an accounting of existing "
+                         + "system/path combinations that match a certain specification. "
+                         + "Such information would be useful when trying to duplicate a set of "
+                         + "permissions. For example, one may want to copy a file subtree to "
+                         + "another location and assign the same permissions to the new subtree "
+                         + "as currently exist on the source subtree. One could use the information "
+                         + "returned from this call to query the users that should be granted "
+                         + "permission on the new subtree.\n\n"
+                         + ""
+                         + "The optional parameters are roleName, oldPrefix and newPrefix. When "
+                         + "roleName is specified then only permissions assigned to that role are "
+                         + "processed. "
+                         + "When oldPrefix is missing or the empty string, then it will match every "
+                         + "permission in which the specified schema, tenant and oldSystemId appear. "
+                         + "Every such match will prepend the newPrefix to the permission's path.\n\n"
+                         + ""
+                         + "When newPrefix is missing or the empty string, then the oldPrefix is "
+                         + "will be effectively removed from path and no new characters added. "
+                         + "When both oldPrefix and newPrefix are missing or empty, the transformation "
+                         + "is limited to the system IDs.\n\n"
+                         + ""
+                         + "The object returned contains an array of transformation objects, each of "
+                         + "which contains the unique permission sequence number, the existing "
+                         + "permission that matched the search criteria and the permission if "
+                         + "the specified transformations were applied.",
+             tags = "role",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqPreviewPathPrefix.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Path prefixes previewed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespPathPrefixes.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response previewPathPrefix(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                       InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "previewPathPrefix", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqPreviewPathPrefix payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_PREVIEW_PATH_PREFIX_REQUEST, 
+                                   ReqPreviewPathPrefix.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "previewPathPrefix", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String schema = payload.schema;
+         String roleName = payload.roleName;
+         String oldSystemId = payload.oldSystemId;
+         String newSystemId = payload.newSystemId;
+         String oldPrefix = payload.oldPrefix;
+         String newPrefix = payload.newPrefix;
+         
+         // Canonicalize blank prefix values.
+         if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
+         if (StringUtils.isBlank(newPrefix)) newPrefix = "";
+         
+         // Final checks for required parameters.
+         if (StringUtils.isBlank(schema)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "schema");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(oldSystemId)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "oldSystemId");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(newSystemId)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "newSystemId");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Get the list of transformations that would be appled by replacePathPrefix.
+         List<Transformation> transList = null;
+         try {
+                 transList = getRoleImpl().previewPathPrefix(schema, roleName, 
+                                                             oldSystemId, newSystemId, 
+                                                             oldPrefix, newPrefix, 
+                                                             threadContext.getTenantId());
+             }
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("SK_PERM_TRANSFORM_FAILED", schema, roleName,
+                                              oldSystemId, oldPrefix, newSystemId, newPrefix,
+                                              threadContext.getTenantId());
+                 _log.error(msg);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+         
+         // Create the result object with a properly sized transformation array.
+         var transArray = new Transformation[transList.size()];
+         transArray = transList.toArray(transArray);
+         RespPathPrefixes pathPrefixes = new RespPathPrefixes(transArray);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we calculated zero or more transformations. 
+         String s = oldSystemId + ":" + oldPrefix;
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_READ", "Permission", s), prettyPrint, pathPrefixes)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
      /* replacePathPrefix:                                                           */
      /* ---------------------------------------------------------------------------- */
      @POST
@@ -1090,16 +1247,35 @@ public final class RoleResource
                          + ""
                          + "      files:tenantId:op:systemId:path\n\n"
                          + ""
-                         + "By convention, the last component is an extended path attribute whose "
+                         + "By definition, the last component is an extended path attribute whose "
                          + "content can be changed by replacePathPrefix requests.  Specifically, paths "
                          + "that begin with the oldPrefix will have that prefix replaced with "
                          + "the newPrefix value.  Replacement only occurs on permissions "
                          + "that also match the schema and oldSystemId parameter values.  The systemId "
                          + "is required to be the next to last attribute and immediately preceding "
-                         + "the path attribute.  The oldSystemId is replaced with the newSystemId "
+                         + "the path attribute.\n\n"
+                         + ""
+                         + "Additionally, the oldSystemId is replaced with the newSystemId "
                          + "when a match is found.  If a roleName is provided, then replacement is "
                          + "limited to permissions defined only in that role.  Otherwise, permissions "
                          + "in all roles that meet the other matching criteria will be considered.\n\n"
+                         + ""
+                         + "The optional parameters are roleName, oldPrefix and newPrefix. When "
+                         + "roleName is specified then only permissions assigned to that role are "
+                         + "processed. "
+                         + "When oldPrefix is missing or the empty string, then it will match every "
+                         + "permission in which the specified schema, tenant and oldSystemId appear. "
+                         + "Every such match will prepend the newPrefix to the permission's path.\n\n"
+                         + ""
+                         + "When newPrefix is missing or the empty string, then the oldPrefix is "
+                         + "will be effectively removed from path and no new characters added. "
+                         + "When both oldPrefix and newPrefix are missing or empty, the transformation "
+                         + "is limited to the system IDs.\n\n"
+                         + ""
+                         + "The previewPathPrefix request provides a way to do a dry run by using the "
+                         + "same input as this request, calculating the permissions that would change "
+                         + "and what their new values would be, but not actually changing those "
+                         + "permissions.\n\n"
                          + ""
                          + "Use a request body to pass parameters on this request.  "
                          + "The response indicates the number of changed permission "
@@ -1138,18 +1314,18 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
-             // Parse and validate the json in the request payload, which must exist.
-             ReqReplacePathPrefix payload = null;
-             try {payload = getPayload(payloadStream, FILE_SK_REPLACE_PATH_PREFIX_REQUEST, 
-                                       ReqReplacePathPrefix.class);
-             } 
-             catch (Exception e) {
-                 String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                              "replacePathPrefix", e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-             }
+         // Parse and validate the json in the request payload, which must exist.
+         ReqReplacePathPrefix payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REPLACE_PATH_PREFIX_REQUEST, 
+                                   ReqReplacePathPrefix.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "replacePathPrefix", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
              
          // Fill in the parameter fields.
          String schema = payload.schema;
@@ -1158,6 +1334,10 @@ public final class RoleResource
          String newSystemId = payload.newSystemId;
          String oldPrefix = payload.oldPrefix;
          String newPrefix = payload.newPrefix;
+         
+         // Canonicalize blank prefix values.
+         if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
+         if (StringUtils.isBlank(newPrefix)) newPrefix = "";
          
          // Final checks for required parameters.
          if (StringUtils.isBlank(schema)) {
@@ -1178,40 +1358,38 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         if (StringUtils.isBlank(oldPrefix)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "oldPrefix");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(newPrefix)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "newPrefix");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         
-         // ***** DUMMY TEST Code
-         System.out.println("***** schema = " + schema);
-         System.out.println("***** roleName = " + roleName);
-         System.out.println("***** oldSystemId = " + oldSystemId);
-         System.out.println("***** newSystemId = " + newSystemId);
-         System.out.println("***** oldPrefix = " + oldPrefix);
-         System.out.println("***** newPrefix = " + newPrefix);
-         // ***** END DUMMY TEST Code
-         
-         // ***** DUMMY RESPONSE Code
-         ResultChangeCount count = new ResultChangeCount();
-         count.changes = 2;
-         RespChangeCount r = new RespChangeCount(count);
-         // ***** END DUMMY RESPONSE Code
+         // Calculate the permissions that need to change and apply changes.
+         int rows = 0;
+         try {
+                 rows = getRoleImpl().replacePathPrefix(schema, roleName, 
+                                                        oldSystemId, newSystemId, 
+                                                        oldPrefix, newPrefix, 
+                                                        threadContext.getTenantId());
+             }
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("SK_PERM_UPDATE_FAILED", schema, roleName,
+                                              oldSystemId, oldPrefix, newSystemId, newPrefix,
+                                              threadContext.getTenantId(), e.getMessage());
+                 _log.error(msg);
+                 return Response.status(Status.BAD_REQUEST).
+                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
          
          // ---------------------------- Success ------------------------------- 
-         // Success means we found the role. 
+         // Success means we updated zero or more permissions. 
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+         String s = oldSystemId + ":" + oldPrefix;
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "Permission", oldPrefix), prettyPrint, r)).build();
+             MsgUtils.getMsg("TAPIS_UPDATED", "Permission", s), prettyPrint, r)).build();
      }
-     
 }
