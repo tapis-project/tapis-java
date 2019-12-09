@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.client;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -15,8 +16,10 @@ import edu.utexas.tacc.tapis.security.client.gen.api.UserApi;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddChildRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqCreateRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqGrantUserRoleWithPermission;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqPreviewPathPrefix;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveChildRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.client.gen.model.ReqRemoveUserRole;
@@ -31,6 +34,7 @@ import edu.utexas.tacc.tapis.security.client.gen.model.RespAuthorized;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespBasic;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespChangeCount;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespNameArray;
+import edu.utexas.tacc.tapis.security.client.gen.model.RespPathPrefixes;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespResourceUrl;
 import edu.utexas.tacc.tapis.security.client.gen.model.RespRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultAuthorized;
@@ -38,8 +42,10 @@ import edu.utexas.tacc.tapis.security.client.gen.model.ResultChangeCount;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultResourceUrl;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
+import edu.utexas.tacc.tapis.security.client.gen.model.Transformation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+
 
 public class SKClient 
 {
@@ -421,6 +427,36 @@ public class SKClient
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* previewPathPrefix:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    public List<Transformation> previewPathPrefix(String schema, String roleName,
+                                                  String oldSystemId, String newSystemId,
+                                                  String oldPrefix, String newPrefix)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqPreviewPathPrefix();
+        body.setSchema(schema);
+        body.setRoleName(roleName);
+        body.setOldSystemId(oldSystemId);
+        body.setNewSystemId(newSystemId);
+        body.setOldPrefix(oldPrefix);
+        body.setNewPrefix(newPrefix);
+        
+        // Make the REST call.
+        RespPathPrefixes resp = null;
+        try {
+            // Get the API object using default networking.
+            RoleApi roleApi = new RoleApi();
+            resp = roleApi.previewPathPrefix(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* replacePathPrefix:                                                           */
     /* ---------------------------------------------------------------------------- */
     public ResultChangeCount replacePathPrefix(String schema, String roleName,
@@ -577,6 +613,30 @@ public class SKClient
             // Get the API object using default networking.
             var userApi = new UserApi();
             resp = userApi.grantRoleWithPermission(body, false);
+        }
+        catch (Exception e) {throwTapisClientException(e);}
+        
+        // Return result value.
+        return resp.getResult();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* grantRoleWithPermission:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    public ResultChangeCount grantUserPermission(String user, String permSpec)
+     throws TapisClientException
+    {
+        // Assign input body.
+        var body = new ReqGrantUserPermission();
+        body.setUser(user);
+        body.setPermSpec(permSpec);
+        
+        // Make the REST call.
+        RespChangeCount resp = null;
+        try {
+            // Get the API object using default networking.
+            var userApi = new UserApi();
+            resp = userApi.grantUserPermission(body, false);
         }
         catch (Exception e) {throwTapisClientException(e);}
         

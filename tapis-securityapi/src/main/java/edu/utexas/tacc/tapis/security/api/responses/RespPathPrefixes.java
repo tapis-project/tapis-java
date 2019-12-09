@@ -6,7 +6,7 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
 public final class RespPathPrefixes 
  extends RespAbstract
 {
-    public RespPathPrefixes(Transformation[] array){transformations = array;}
+    public RespPathPrefixes(Transformation[] array){result = array;}
     
-    public Transformation[] transformations;
+    public Transformation[] result;
 }
