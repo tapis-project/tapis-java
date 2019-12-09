@@ -349,9 +349,9 @@ public class SKClient
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* addRemovePermission:                                                         */
+    /* removeRolePermission:                                                        */
     /* ---------------------------------------------------------------------------- */
-    public ResultChangeCount addRemovePermission(String roleName, String permSpec)
+    public ResultChangeCount removeRolePermission(String roleName, String permSpec)
      throws TapisClientException
     {
         // Assign input body.
