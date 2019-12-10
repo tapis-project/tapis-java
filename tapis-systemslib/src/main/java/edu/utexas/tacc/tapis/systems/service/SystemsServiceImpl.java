@@ -128,6 +128,7 @@ public class SystemsServiceImpl implements SystemsService
       skClient.createRole(roleName, "Role for user: " + roleName);
       skClient.addRolePermission(roleName, sysPerm);
       skClient.grantUserRole(owner, roleName);
+      //skClient.grantUserPermissions(owner, sysPerm);
       // Grant same perms for effectiveUser unless effUser == apiUser or owner
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
       {
@@ -135,6 +136,7 @@ public class SystemsServiceImpl implements SystemsService
         skClient.createRole(roleName, "Role for user: " + roleName);
         skClient.addRolePermission(roleName, sysPerm);
         skClient.grantUserRole(effectiveUserId, roleName);
+        //skClient.grantUserPermissions(effectiveUserId, sysPerm);
       }
     }
     // TODO exception handling, but consider how data integrity will be handled for distributed data
@@ -279,6 +281,7 @@ public class SystemsServiceImpl implements SystemsService
       for (String permSpec : permSpecSet)
       {
         skClient.addRolePermission(roleName, permSpec);
+        //skClient.grantUserPermissions(userName, sysPerm);
       }
       skClient.grantUserRole(userName, roleName);
     }
