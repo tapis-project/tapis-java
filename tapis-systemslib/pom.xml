@@ -31,8 +31,8 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-securityclt</artifactId>
-      <version>${project.version}</version>
+      <artifactId>security-client</artifactId>
+      <version>${tapis-client-java.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
