@@ -117,26 +117,15 @@ public class SystemsServiceImpl implements SystemsService
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":*:" + systemName;
 
-    // Create Role with perms and grant it to user
-    // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly, at least not yet.
-    // TODO: SK will be adding grantUserPerms() method that will create a default role for a user. Use that when available.
-    String roleName;
+    // Give owner and possibly effectiveUser access to the system
+    // SK creates a default role for the user
     try
     {
-      roleName = owner;
-      skClient.createRole(roleName, "Role for user: " + roleName);
-      skClient.addRolePermission(roleName, sysPerm);
-      skClient.grantUserRole(owner, roleName);
-      //skClient.grantUserPermissions(owner, sysPerm);
+      skClient.grantUserPermission(owner, sysPerm);
       // Grant same perms for effectiveUser unless effUser == apiUser or owner
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
       {
-        roleName = effectiveUserId;
-        skClient.createRole(roleName, "Role for user: " + roleName);
-        skClient.addRolePermission(roleName, sysPerm);
-        skClient.grantUserRole(effectiveUserId, roleName);
-        //skClient.grantUserPermissions(effectiveUserId, sysPerm);
+        skClient.grantUserPermission(effectiveUserId, sysPerm);
       }
     }
     // TODO exception handling, but consider how data integrity will be handled for distributed data
@@ -270,26 +259,19 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     skClient = getSKClient(tenantName, systemName);
 
-    // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
-    //       that will create a default role for a user. Use that when available.
-    // Create Role with perms and grant it to user
-    String roleName = userName;
+    // Assign perms to user. SK creates a default role for the user
     try
     {
-      skClient.createRole(roleName, "Role for user: " + userName);
       for (String permSpec : permSpecSet)
       {
-        skClient.addRolePermission(roleName, permSpec);
-        //skClient.grantUserPermissions(userName, sysPerm);
+        skClient.grantUserPermission(userName, permSpec);
       }
-      skClient.grantUserRole(userName, roleName);
     }
     // TODO exception handling
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, roleName, userName);
+    printRoleAndPermInfoForUser(skClient, null, userName);
   }
 
   /**
@@ -308,7 +290,7 @@ public class SystemsServiceImpl implements SystemsService
     for (TSystem.Permissions perm : TSystem.Permissions.values())
     {
       String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
-      try { if (skClient.isPermitted(userName, permSpec).isIsAuthorized()) userPerms.add(perm.name()); }
+      try { if (skClient.isPermitted(userName, permSpec).getIsAuthorized()) userPerms.add(perm.name()); }
       // TODO exception handling
       catch (Exception e) { _log.error(e.toString()); throw e;}
     }
@@ -340,10 +322,10 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO Refactor to private method
     // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO: Can only grant roles, not perms directly, at least not yet. SK will be adding grantUserPerms() method
+    // TODO/TBD: Can only grant roles, not perms directly, at least not yet. SK will be adding revokeUserPerm() method ????
     //       that will create a default role for a user. Use that when available.
     // Remove perms from default user role
-    String roleName = userName;
+    String roleName = "^^" + userName;
     try
     {
       for (String permSpec : permSpecSet)
@@ -469,18 +451,23 @@ public class SystemsServiceImpl implements SystemsService
   // TODO *************** remove debug output ********************
   private static void printRoleAndPermInfoForUser(SKClient skClient, String roleName, String userName)
   {
+    if (skClient == null || userName == null) return;
     try {
+      ResultNameArray nameArray = null;
+      // If role provided get role info
       // Test by retrieving roles and permissions from SK
-      SkRole skRole = null;
-      skRole = skClient.getRoleByName(roleName);
-      _log.error("Found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-      // Test retrieving users with the role
-      ResultNameArray nameArray = skClient.getUsersWithRole(roleName);
-      List<String> names = nameArray.getNames();
-      if (names != null && names.contains(userName)) {
-        _log.error("User " + userName + " does have role " + skRole.getName());
-      } else {
-        _log.error("User " + userName + " does NOT have role " + skRole.getName());
+      if (roleName != null) {
+        SkRole skRole = null;
+        skRole = skClient.getRoleByName(roleName);
+        _log.error("Found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
+        // Test retrieving users with the role
+        nameArray = skClient.getUsersWithRole(roleName);
+        List<String> names = nameArray.getNames();
+        if (names != null && names.contains(userName)) {
+          _log.error("User " + userName + " does have role " + skRole.getName());
+        } else {
+          _log.error("User " + userName + " does NOT have role " + skRole.getName());
+        }
       }
 
       // Test retrieving all roles for a user
