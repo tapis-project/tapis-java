@@ -70,7 +70,7 @@ public final class TSystem
   private String jobOutputDir;
   private String workDir;
   private String scratchDir;
-  private String accessCredential;
+  private char[] accessCredential;
   private String effectiveUserId;
   private String tags; // Simple metadata as json containing key:val pairs for efficient searching
   private String notes; // Simple metadata as json
@@ -91,7 +91,7 @@ public final class TSystem
                  String rootDir1, String jobInputDir1, String jobOutputDir1, String workDir1, String scratchDir1,
                  String effectiveUserId1, String tags1, String notes1,
                  AccessMechanism accessMechanism1, List<TransferMechanism> transferMechanisms1,
-                 int port1, boolean useProxy1, String proxyHost1, int proxyPort1, String accessCredential1,
+                 int port1, boolean useProxy1, String proxyHost1, int proxyPort1, char[] accessCredential1,
                  Instant created1, Instant updated1)
   {
     id = id1;
@@ -172,8 +172,8 @@ public final class TSystem
 
   public List<TransferMechanism> getTransferMechanisms() { return transferMechanisms; }
 
-  public String getAccessCredential() { return accessCredential; }
-  public void setAccessCredential(String creds) {accessCredential = creds;}
+  public char[] getAccessCredential() { return accessCredential; }
+  public void setAccessCredential(char[] creds) {accessCredential = creds;}
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }

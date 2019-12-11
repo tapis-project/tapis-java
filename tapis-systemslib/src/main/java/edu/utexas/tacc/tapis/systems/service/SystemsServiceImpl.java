@@ -66,7 +66,7 @@ public class SystemsServiceImpl implements SystemsService
   public int createSystem(String tenantName, String apiUserId, String systemName, String description, String owner, String host,
                           boolean available, String bucketName, String rootDir, String jobInputDir,
                           String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
-                          String notes, String accessCredential, String accessMechanism, String transferMechanisms,
+                          String notes, char[] accessCredential, String accessMechanism, String transferMechanisms,
                           int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
                           String rawRequest)
           throws TapisException, IllegalStateException
@@ -110,6 +110,8 @@ public class SystemsServiceImpl implements SystemsService
     // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
 
     // TODO Store credentials in Security Kernel
+
+    // TODO Once credentials stored overwrite characters in memory
 
     // Get the Security Kernel client
     skClient = getSKClient(tenantName, systemName);
@@ -178,6 +180,7 @@ public class SystemsServiceImpl implements SystemsService
     // Resolve effectiveUserId if necessary
     result.setEffectiveUserId(resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId));
     // TODO If requested retrieve credentials from Security Kernel
+    // TODO Once local credentials var not needed overwrite characters in memory
     //result.setAccessCredential();
     return result;
   }
@@ -198,6 +201,7 @@ public class SystemsServiceImpl implements SystemsService
     {
       sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
       // TODO If requested retrieve credentials from Security Kernel
+      // TODO Once local credentials var not needed overwrite characters in memory
       //sys.setAccessCredential();
     }
     return result;
