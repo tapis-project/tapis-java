@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
@@ -68,6 +69,8 @@ public final class UserResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleWithPermRequest.json";
     private static final String FILE_SK_GRANT_USER_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserPermRequest.json";
+    private static final String FILE_SK_REMOVE_USER_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserPermRequest.json";
     private static final String FILE_SK_REMOVE_USER_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserRoleRequest.json";
     private static final String FILE_SK_USER_HAS_ROLE_REQUEST = 
@@ -406,13 +409,13 @@ public final class UserResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* removeRole:                                                                  */
+     /* revokeRole:                                                                  */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/removeRole")
+     @Path("/revokeRole")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a previously granted role from a user.",
+             description = "Revoke a previously granted role from a user.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -433,7 +436,7 @@ public final class UserResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response removeRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+     public Response revokeRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 InputStream payloadStream)
      {
          // Trace this request.
@@ -451,7 +454,7 @@ public final class UserResource
          } 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "removeRole", e.getMessage());
+                                          "revokeRole", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -463,13 +466,13 @@ public final class UserResource
          
          // Final checks.
          if (StringUtils.isBlank(user)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "user");
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeRole", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantRole", "roleName");
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -505,11 +508,11 @@ public final class UserResource
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles removed"), prettyPrint, r)).build();
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles revoked"), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* grantRoleWithPermission:                                                     */
+     /* grantUserPermission:                                                         */
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/grantUserPermission")
@@ -564,7 +567,7 @@ public final class UserResource
          } 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "grantRoleWithPermission", e.getMessage());
+                                          "grantUserPermission", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -610,6 +613,118 @@ public final class UserResource
                  return getExceptionResponse(e, msg, prettyPrint);
              }
 
+         // Populate the response.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " changes"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* revokeUserPermission:                                                        */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/revokeUserPermission")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Revoke the specified permission from the user's default role. "
+                     + "A user's default role is constructed by prepending '^^' to the "
+                     + "user's name. Default roles are created on demand. If the "
+                     + "role does not exist when this method is called no error is "
+                     + "reported and no changes occur.\n\n"
+                     + ""
+                     + "The change count returned can be zero or one "
+                     + "depending on how many permissions were revoked.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserPermission.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response revokeUserPermission(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                          InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "grantRoleWithPermission", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRemoveUserPermission payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_USER_PERM_REQUEST, 
+                                   ReqRemoveUserPermission.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "revokeUserPermission", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+             
+         // Fill in the parameter fields.
+         String user     = payload.user;
+         String permSpec = payload.permSpec;
+         
+         // Final checks.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeUserPermission", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(permSpec)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeUserPermission", "permSpec");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Construct the user's default role name.
+         String roleName = getRoleImpl().getUserDefaultRolename(user);
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------        
+         // Remove the permission from the role.
+         int rows = 0;
+         try {
+             rows = getRoleImpl().removeRolePermission(threadContext.getTenantId(), roleName, permSpec);
+         } catch (TapisNotFoundException e) {
+             // Default role not found is not considered an error.
+         } catch (Exception e) {
+             // A real error.
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          permSpec, roleName);
+             return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
+         }
+    
          // Populate the response.
          ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;

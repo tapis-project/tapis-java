@@ -849,7 +849,7 @@ public final class RoleResource
          try {
              rows = getRoleImpl().removeRolePermission(threadContext.getTenantId(), roleName, permSpec);
          } catch (Exception e) {
-             // This only occurs when the role name is not found.
+             // Role not found is an error in this case.
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
                                           threadContext.getTenantId(), threadContext.getUser(), 
                                           permSpec, roleName);
