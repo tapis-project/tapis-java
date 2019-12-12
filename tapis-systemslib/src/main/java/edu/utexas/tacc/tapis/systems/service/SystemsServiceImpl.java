@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.systems.service;
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
-import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -134,7 +133,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, owner, owner);
+    printPermInfoForUser(skClient, owner);
 
     return itemId;
   }
@@ -275,7 +274,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, null, userName);
+    printPermInfoForUser(skClient, userName);
   }
 
   /**
@@ -294,7 +293,11 @@ public class SystemsServiceImpl implements SystemsService
     for (TSystem.Permissions perm : TSystem.Permissions.values())
     {
       String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
-      try { if (skClient.isPermitted(userName, permSpec).getIsAuthorized()) userPerms.add(perm.name()); }
+      try
+      {
+        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
+        if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
+      }
       // TODO exception handling
       catch (Exception e) { _log.error(e.toString()); throw e;}
     }
@@ -324,24 +327,19 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     skClient = getSKClient(tenantName, systemName);
 
-    // TODO Refactor to private method
-    // TODO: Role can only be 60 char max, need to figure out something else
-    // TODO/TBD: Can only grant roles, not perms directly, at least not yet. SK will be adding revokeUserPerm() method ????
-    //       that will create a default role for a user. Use that when available.
     // Remove perms from default user role
-    String roleName = "^^" + userName;
     try
     {
       for (String permSpec : permSpecSet)
       {
-        skClient.removeRolePermission(roleName, permSpec);
+        skClient.revokeUserPermission(userName, permSpec);
       }
     }
     // TODO exception handling
     catch (Exception e) { _log.error(e.toString()); throw e;}
 
     // TODO *************** remove tests ********************
-    printRoleAndPermInfoForUser(skClient, roleName, userName);
+    printPermInfoForUser(skClient, userName);
   }
 
   // ************************************************************************
@@ -353,7 +351,7 @@ public class SystemsServiceImpl implements SystemsService
    * @param userId - effectiveUserId string, static or dynamic
    * @return Resolved value for effective user.
    */
-  private String resolveEffectiveUserId(String userId, String owner, String apiUserId)
+  private static String resolveEffectiveUserId(String userId, String owner, String apiUserId)
   {
     if (StringUtils.isBlank(userId)) return userId;
     else if (userId.equals(OWNER_VAR) && !StringUtils.isBlank(owner)) return owner;
@@ -447,33 +445,12 @@ public class SystemsServiceImpl implements SystemsService
     return permSet;
   }
 
-  //
-  private static void addPermSpecToDefaultUserRole(SKClient skClient, String userName)
-  {
-  }
-
   // TODO *************** remove debug output ********************
-  private static void printRoleAndPermInfoForUser(SKClient skClient, String roleName, String userName)
+  private static void printPermInfoForUser(SKClient skClient, String userName)
   {
     if (skClient == null || userName == null) return;
     try {
       ResultNameArray nameArray = null;
-      // If role provided get role info
-      // Test by retrieving roles and permissions from SK
-      if (roleName != null) {
-        SkRole skRole = null;
-        skRole = skClient.getRoleByName(roleName);
-        _log.error("Found SKRole with name: " + skRole.getName() + " Id: " + skRole.getId());
-        // Test retrieving users with the role
-        nameArray = skClient.getUsersWithRole(roleName);
-        List<String> names = nameArray.getNames();
-        if (names != null && names.contains(userName)) {
-          _log.error("User " + userName + " does have role " + skRole.getName());
-        } else {
-          _log.error("User " + userName + " does NOT have role " + skRole.getName());
-        }
-      }
-
       // Test retrieving all roles for a user
       ResultNameArray roleArray = skClient.getUserRoles(userName);
       List<String> roles = roleArray.getNames();
