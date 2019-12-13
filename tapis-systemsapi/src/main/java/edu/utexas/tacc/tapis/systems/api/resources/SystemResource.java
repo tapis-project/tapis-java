@@ -329,13 +329,13 @@ public class SystemResource
 
   /**
    * getSystemByName
-   * @param name - name of the system
+   * @param sysName - name of the system
    * @param prettyPrint - pretty print the output
    * @param getCreds - should credentials be included
    * @return Response with system object as the result
    */
   @GET
-  @Path("/{name}")
+  @Path("{sysName}")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
       summary = "Retrieve information for a system",
@@ -364,7 +364,7 @@ public class SystemResource
             content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
       }
   )
-  public Response getSystemByName(@PathParam("name") String name,
+  public Response getSystemByName(@PathParam("sysName") String sysName,
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds)
   {
@@ -391,11 +391,11 @@ public class SystemResource
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, name, apiUserId, getCreds);
+      system = systemsService.getSystemByName(tenant, sysName, apiUserId, getCreds);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, name, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -403,9 +403,9 @@ public class SystemResource
     // Resource was not found.
     if (system == null)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, name);
+      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, sysName);
       _log.warn(msg);
-      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", name),
+      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", sysName),
                                                prettyPrint)).build();
     }
 
@@ -413,7 +413,7 @@ public class SystemResource
     // Success means we retrieved the system information.
     RespSystem resp1 = new RespSystem(system);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "System", name), prettyPrint, resp1)).build();
+        MsgUtils.getMsg("TAPIS_FOUND", "System", sysName), prettyPrint, resp1)).build();
   }
 
   /**
@@ -488,12 +488,12 @@ public class SystemResource
 
   /**
    * deleteSystemByName
-   * @param name - name of the system to delete
+   * @param sysName - name of the system to delete
    * @param prettyPrint - pretty print the output
    * @return - response with change count as the result
    */
   @DELETE
-  @Path("/{name}")
+  @Path("{sysName}")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Delete a system given the system name",
@@ -515,7 +515,7 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response deleteSystemByName(@PathParam("name") String name,
+  public Response deleteSystemByName(@PathParam("sysName") String sysName,
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = new SystemsServiceImpl();
@@ -541,11 +541,11 @@ public class SystemResource
     int changeCount;
     try
     {
-      changeCount = systemsService.deleteSystemByName(tenant, name);
+      changeCount = systemsService.deleteSystemByName(tenant, sysName);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", null, name, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", null, sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -557,6 +557,6 @@ public class SystemResource
     count.changes = changeCount;
     RespChangeCount resp1 = new RespChangeCount(count);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_DELETED", "System", name), prettyPrint, resp1)).build();
+      MsgUtils.getMsg("TAPIS_DELETED", "System", sysName), prettyPrint, resp1)).build();
   }
 }
