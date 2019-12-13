@@ -205,8 +205,8 @@ public class SystemResource
     String name, description, owner, host, bucketName, rootDir,
            jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes;
     String accessMech, proxyHost;
-    // TODO: creds might need to be byte array
-    String accessCred;
+    // accessCred is a char array for security reasons. Local var data should be overwritten as soon as possible.
+    char[] accessCred;
     int port, proxyPort;
     boolean available, useProxy;
 
@@ -230,7 +230,7 @@ public class SystemResource
     scratchDir = (obj.has("scratchDir") ? obj.get("scratchDir").getAsString() : "");
     effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
-    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString() : "");
+    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
     tags = ApiUtils.getValS(obj.get("tags"), "{}");
     notes = ApiUtils.getValS(obj.get("notes"), "{}");
 

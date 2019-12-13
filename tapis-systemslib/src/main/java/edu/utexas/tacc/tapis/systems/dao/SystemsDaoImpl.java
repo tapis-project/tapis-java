@@ -679,7 +679,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getBoolean(20),
                             rs.getString(21),
                             rs.getInt(22),
-                           "fakeAccessCred1", // accessCred
+                           "fakeAccessCred1".toCharArray(), // accessCred
                             rs.getTimestamp(23).toInstant(), // created
                             rs.getTimestamp(24).toInstant()); // updated
     }
