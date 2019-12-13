@@ -198,9 +198,9 @@ public final class UserImpl
     }
 
     /* ---------------------------------------------------------------------- */
-    /* removeRole:                                                            */
+    /* revokeUserRole:                                                        */
     /* ---------------------------------------------------------------------- */
-    public int removeRole(String tenant, String user, String roleName) 
+    public int revokeUserRole(String tenant, String user, String roleName) 
       throws TapisImplException, TapisNotFoundException
     {
         // Get the role id.
