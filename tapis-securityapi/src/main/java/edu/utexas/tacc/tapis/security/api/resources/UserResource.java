@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission;
-import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserPermission;
-import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserPermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
@@ -69,10 +69,10 @@ public final class UserResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserRoleWithPermRequest.json";
     private static final String FILE_SK_GRANT_USER_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantUserPermRequest.json";
-    private static final String FILE_SK_REMOVE_USER_PERM_REQUEST = 
-            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserPermRequest.json";
-    private static final String FILE_SK_REMOVE_USER_ROLE_REQUEST = 
-            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveUserRoleRequest.json";
+    private static final String FILE_SK_REVOKE_USER_PERM_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RevokeUserPermRequest.json";
+    private static final String FILE_SK_REVOKE_USER_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RevokeUserRoleRequest.json";
     private static final String FILE_SK_USER_HAS_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserHasRoleRequest.json";
     private static final String FILE_SK_USER_IS_PERMITTED_REQUEST = 
@@ -409,19 +409,21 @@ public final class UserResource
      }
 
      /* ---------------------------------------------------------------------------- */
-     /* revokeRole:                                                                  */
+     /* revokeUserRole:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/revokeRole")
+     @Path("/revokeUserRole")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Revoke a previously granted role from a user.",
+             description = "Revoke a previously granted role from a user. No action "
+                     + "is taken if the user is not currently assigned the role. "
+                     + "This request is idempotent.",
              tags = "user",
              requestBody = 
                  @RequestBody(
                      required = true,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserRole.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserRole.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Role removed from user.",
                      content = @Content(schema = @Schema(
@@ -436,25 +438,25 @@ public final class UserResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response revokeRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                                InputStream payloadStream)
+     public Response revokeUserRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "removeRole", _request.getRequestURL());
+                                          "revokeUserRole", _request.getRequestURL());
              _log.trace(msg);
          }
          
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
-         ReqRemoveUserRole payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_USER_ROLE_REQUEST, 
-                                   ReqRemoveUserRole.class);
+         ReqRevokeUserRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REVOKE_USER_ROLE_REQUEST, 
+                                   ReqRevokeUserRole.class);
          } 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "revokeRole", e.getMessage());
+                                          "revokeUserRole", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -466,13 +468,13 @@ public final class UserResource
          
          // Final checks.
          if (StringUtils.isBlank(user)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeRole", "user");
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeUserRole", "user");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (StringUtils.isBlank(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeRole", "roleName");
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeUserRole", "roleName");
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -487,7 +489,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Remove the role from the user.
          int rows = 0;
-         try {rows = getUserImpl().removeRole(threadContext.getTenantId(), user, roleName);}
+         try {rows = getUserImpl().revokeUserRole(threadContext.getTenantId(), user, roleName);}
              catch (TapisNotFoundException e) {
                  // Remove calls are idempotent so we simply log the
                  // occurrence and let normal processing take place.
@@ -644,7 +646,7 @@ public final class UserResource
                  @RequestBody(
                      required = true,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveUserPermission.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserPermission.class))),
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Permission assigned to user.",
                      content = @Content(schema = @Schema(
@@ -665,15 +667,15 @@ public final class UserResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "grantRoleWithPermission", _request.getRequestURL());
+                                          "revokeUserPermission", _request.getRequestURL());
              _log.trace(msg);
          }
          
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
-         ReqRemoveUserPermission payload = null;
-         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_USER_PERM_REQUEST, 
-                                   ReqRemoveUserPermission.class);
+         ReqRevokeUserPermission payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REVOKE_USER_PERM_REQUEST, 
+                                   ReqRevokeUserPermission.class);
          } 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 

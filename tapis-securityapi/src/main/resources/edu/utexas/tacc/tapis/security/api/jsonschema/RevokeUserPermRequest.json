@@ -1,20 +1,20 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/RemoveUserRoleRequest",
-    "description": "Top-level schema for a request to remove a role from a user.",
+    "$id": "http://tapis.tacc.utexas.edu/RevokeUserPermRequest",
+    "description": "Revoke a permission from a user's default role.",
     "additionalProperties": false,
     "type": "object",
         "properties": {
           "user": {
             "type": "string"
           },
-          "roleName": {
+          "permSpec": {
             "type": "string"
           }
         },
     "required": [
-        "user", 
-        "roleName"
+        "user",
+        "permSpec"
     ]
 }
 
