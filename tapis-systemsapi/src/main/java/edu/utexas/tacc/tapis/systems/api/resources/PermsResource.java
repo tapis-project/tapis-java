@@ -556,7 +556,7 @@ public class PermsResource
     if (obj.has("permissions")) perms = obj.getAsJsonArray("permissions");
     if (perms != null && perms.size() > 0)
     {
-      for (int i = 0; i < perms.size(); i++) { permsList.add(perms.get(i).toString()); }
+      for (int i = 0; i < perms.size(); i++) { permsList.add(StringUtils.remove(perms.get(i).toString(),'"')); }
     }
 
     // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
