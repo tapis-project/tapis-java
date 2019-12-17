@@ -50,9 +50,9 @@ public final class SkRolePermissionDao
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* getRolePermissions:                                                    */
+  /* getAllRolePermissions:                                                 */
   /* ---------------------------------------------------------------------- */
-  public List<SkRolePermission> getRolePermissions() 
+  public List<SkRolePermission> getAllRolePermissions() 
     throws TapisException
   {
       // Initialize result.
@@ -66,7 +66,7 @@ public final class SkRolePermissionDao
           conn = getConnection();
           
           // Get the select command.
-          String sql = SqlStatements.SELECT_SKROLEPERMISSION;
+          String sql = SqlStatements.SELECT_ALL_PERMISSIONS;
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);

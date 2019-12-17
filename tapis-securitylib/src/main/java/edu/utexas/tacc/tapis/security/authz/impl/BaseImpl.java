@@ -21,10 +21,16 @@ class BaseImpl
     
     // We reserve this character for SK generated names.  In particular, SK generated
     // role names always begin this character and users cannot create such names.
-    public static final char RESERVED_NAME_CHAR = '^';
+    //
+    // To make our life easier, tapis reserved characters that might appear in a
+    // URL should be URL safe.  These include alphanumerics [0-9a-zA-Z], 
+    // special characters $-_.+!*'(), and URL reserved characters ; / ? : @ = &.
+    // In particular, these characters are not URL-safe and need to be escaped: 
+    // " < > # % { } | \ ^ ~ [ ] ` and space.
+    public static final char RESERVED_NAME_CHAR = '$';
     
     // SK generated role names start with a reserved 2 character sequence.
-    public static final String USER_DEFAULT_ROLE_PREFIX = RESERVED_NAME_CHAR + "^";
+    public static final String USER_DEFAULT_ROLE_PREFIX = RESERVED_NAME_CHAR + "$";
 
     /* **************************************************************************** */
     /*                                    Fields                                    */

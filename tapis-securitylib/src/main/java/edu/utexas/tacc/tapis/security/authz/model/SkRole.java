@@ -190,6 +190,31 @@ public final class SkRole
         return list;
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* getImmediatePermissions:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Get this list of permission values (i.e. constraint strings) directly 
+     * assigned to this role. The permission values are returned in alphabetic 
+     * order. 
+     * 
+     * @return non-null, ordered list of permissions associated with this role 
+     *         directly 
+     * @throws TapisException
+     */
+    @Schema(hidden = true)
+    public List<String> getImmediatePermissions() throws TapisException
+    {
+        List<String> list = null;
+        try {
+            SkRoleDao dao = new SkRoleDao();
+            list = dao.getImmediatePermissions(tenant, id);
+        } catch (Exception e) {
+            _log.error(e.getMessage()); // details already logged
+            throw e;
+        }
+        return list;
+    }
+    
     /* ********************************************************************** */
     /*                               Accessors                                */
     /* ********************************************************************** */

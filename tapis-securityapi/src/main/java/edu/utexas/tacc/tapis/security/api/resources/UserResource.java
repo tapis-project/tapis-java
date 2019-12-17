@@ -525,7 +525,7 @@ public final class UserResource
                      + "this request will create that role and grant it to the user before "
                      + "assigning the permission to the role.\n\n"
                      + ""
-                     + "A user's default role is constructed by prepending '^^' to the user's name. "
+                     + "A user's default role is constructed by prepending '$$' to the user's name. "
                      + "This implies the maximum length of a user name is 58 since role names are "
                      + "limited to 60 characters.\n\n"
                      + ""
@@ -634,7 +634,7 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Revoke the specified permission from the user's default role. "
-                     + "A user's default role is constructed by prepending '^^' to the "
+                     + "A user's default role is constructed by prepending '$$' to the "
                      + "user's name. Default roles are created on demand. If the "
                      + "role does not exist when this method is called no error is "
                      + "reported and no changes occur.\n\n"

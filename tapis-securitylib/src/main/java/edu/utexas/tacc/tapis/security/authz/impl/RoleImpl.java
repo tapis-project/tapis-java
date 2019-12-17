@@ -15,7 +15,6 @@ import edu.utexas.tacc.tapis.security.authz.model.SkRolePermissionShort;
 import edu.utexas.tacc.tapis.security.authz.permissions.ExtWildcardPermission;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -183,6 +182,65 @@ public final class RoleImpl
         }
 
         return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getRolePermissions:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Get a role's permissions.  Return permissions that are directly assigned
+     * to the role or transitively assigned to the role depending on the 
+     * immediate flag.  The role must exist in the tenant.
+     * 
+     * @param tenant the role's tenant
+     * @param roleName the name name
+     * @param immediate true means return only directly assigned permission,
+     *          false means return directly and transitively assigned permissions.
+     * @return the non-null list
+     * @throws TapisImplException on error
+     */
+    public List<String> getRolePermissions(String tenant, String roleName, 
+                                           boolean immediate) 
+     throws TapisImplException, TapisNotFoundException
+    {
+        // Get the dao.
+        SkRoleDao dao = null;
+        try {dao = getSkRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR); 
+            }
+        
+        // Create the role.
+        SkRole role = null;
+        try {role = dao.getRole(tenant, roleName);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", tenant, "<unknown>", 
+                                             roleName);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST); 
+            }
+
+        // We need a role.
+        if (role == null) {
+            String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+            _log.error(msg);
+            throw new TapisNotFoundException(msg, roleName);
+        }
+        
+        // Get requested set of permission.
+        List<String> perms = null;
+        if (immediate) 
+            try {perms = role.getImmediatePermissions();}
+            catch (Exception e) {
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        else 
+            try {perms = role.getTransitivePermissions();}
+            catch (Exception e) {
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        return perms;
     }
     
     /* ---------------------------------------------------------------------- */

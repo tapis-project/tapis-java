@@ -55,7 +55,7 @@ public class SqlStatements
   /* sk_role_permission:                                                    */
   /* ---------------------------------------------------------------------- */
   // Get all rows.
-  public static final String SELECT_SKROLEPERMISSION =
+  public static final String SELECT_ALL_PERMISSIONS =
       "SELECT id, tenant, role_id, permission, created, createdby, updated, updatedby"
       + " FROM sk_role_permission";
   
@@ -86,6 +86,12 @@ public class SqlStatements
   // Update the permission string.
   public static final String UPDATE_PERMISSION_BY_ID = 
       "UPDATE sk_role_permission SET permission = ? WHERE tenant = ? and id = ?";
+  
+  public static final String ROLE_GET_IMMEDIATE_PERMISSIONS =
+      "SELECT permission "
+      + "FROM sk_role_permission "
+      + "WHERE tenant = ? AND role_id = ? "
+      + "ORDER BY permission";
 
   /* ---------------------------------------------------------------------- */
   /* sk_role_tree:                                                          */

@@ -446,6 +446,76 @@ public final class RoleResource
      }
      
      /* ---------------------------------------------------------------------------- */
+     /* getRolePermissions:                                                          */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/{roleName}/perms")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+         description = "Get the named role's permissions.  By default, all permissions "
+                 + "assigned to the role, whether directly and transitively through "
+                 + "child roles, are returned.  Set the immediate query parameter to "
+                 + "only retrieve permissions directly assigned to the role.",
+         tags = "role",
+         responses = 
+             {@ApiResponse(responseCode = "200", description = "Named role returned.",
+               content = @Content(schema = @Schema(
+                   implementation = edu.utexas.tacc.tapis.security.api.responses.RespRole.class))),
+              @ApiResponse(responseCode = "400", description = "Input error.",
+               content = @Content(schema = @Schema(
+                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+              @ApiResponse(responseCode = "401", description = "Not authorized.",
+               content = @Content(schema = @Schema(
+                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+              @ApiResponse(responseCode = "404", description = "Named role not found.",
+                content = @Content(schema = @Schema(
+                   implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+              @ApiResponse(responseCode = "500", description = "Server error.",
+                content = @Content(schema = @Schema(
+                   implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+     )
+     public Response getRolePermissions(@PathParam("roleName") String roleName,
+                                        @DefaultValue("false") @QueryParam("immediate") boolean immediate,
+                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getRolePermissions", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Create the role.
+         List<String> list = null;
+         try {
+             list = getRoleImpl().getRolePermissions(threadContext.getTenantId(), roleName, immediate);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_PERMISSIONS_ERROR", 
+                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          roleName);
+             return getExceptionResponse(e, msg, prettyPrint);
+         }
+
+         // Assign result.
+         ResultNameArray names = new ResultNameArray();
+         names.names = list.toArray(new String[list.size()]);
+         RespNameArray r = new RespNameArray(names);
+
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         int cnt = names.names.length;
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Permissions", cnt + " permissions"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
      /* updateRoleName:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
