@@ -117,41 +117,10 @@ public class SystemsResource
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
-  @GET
-  @Path("/hello")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-      description = "Connectivity test.",
-      tags = "general",
-      responses = {
-          @ApiResponse(responseCode = "200", description = "Message received.",
-            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-          @ApiResponse(responseCode = "401", description = "Not authorized."),
-          @ApiResponse(responseCode = "500", description = "Server error.")
-      }
-  )
-  public Response getHello()
-  {
-    // Trace this request.
-    if (_log.isTraceEnabled())
-    {
-      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hello",
-                                   "  " + _request.getRequestURL());
-      _log.trace(msg);
-    }
-
-    // ---------------------------- Success -------------------------------
-    // Success means we are alive
-    ResultName result = new ResultName();
-    result.name = "Hello from Tapis Systems Service";
-    RespName resp = new RespName(result);
-    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_FOUND", "hello", "no items"), true, resp)).build();
-  }
 
   /**
    * Lightweight non-authenticated health check endpoint.
-   * Note that no JWT is required on this call
+   * Note that no JWT is required on this call and no logging is done.
    * @return a success response if all is ok
    */
   @GET

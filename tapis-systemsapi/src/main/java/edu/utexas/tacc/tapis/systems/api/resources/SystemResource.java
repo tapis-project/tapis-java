@@ -57,7 +57,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 
-@Path("/system")
+@Path("/")
 public class SystemResource
 {
   // ************************************************************************

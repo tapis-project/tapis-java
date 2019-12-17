@@ -31,8 +31,35 @@ SET search_path TO tapis_sys;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tapis_sys TO tapis_sys;
 
 -- Types
-CREATE TYPE access_mech_type AS ENUM ('NONE', 'ANONYMOUS', 'SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
-CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3', 'LOCAL');
+CREATE TYPE access_mech_type AS ENUM ('SSH_PASSWORD', 'SSH_KEYS', 'SSH_CERT');
+CREATE TYPE transfer_mech_type AS ENUM ('SFTP', 'S3');
+CREATE TYPE capability_type AS ENUM ('OS', 'HARDWARE', 'SOFTWARE', 'MISC');
+
+-- ----------------------------------------------------------------------------------------
+--                               CAPABILITIES
+-- ----------------------------------------------------------------------------------------
+-- Capabilities table
+-- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
+CREATE TABLE capabilities
+(
+    id         SERIAL PRIMARY KEY,
+    tenant         VARCHAR(24) NOT NULL,
+    system SERIAL references systems(id),
+    type  capability_type NOT NULL,
+    name VARCHAR(256) NOT NULL DEFAULT '',
+    value VARCHAR(256) NOT NULL DEFAULT '',
+    created   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    updated   TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+  UNIQUE (tenant, system, type, name)
+);
+ALTER TABLE capabilities OWNER TO tapis;
+COMMENT ON COLUMN capabilities.id IS 'Capability id';
+COMMENT ON COLUMN capabilities.tenant IS 'Name of tenant';
+COMMENT ON COLUMN capabilities.system IS 'Name of system';
+COMMENT ON COLUMN capabilities.type IS 'Type or category of capability';
+COMMENT ON COLUMN capabilities.name IS 'Name of capability';
+COMMENT ON COLUMN capabilities.created IS 'UTC time for when record was created';
+COMMENT ON COLUMN capabilities.updated IS 'UTC time for when record was last updated';
 
 -- ----------------------------------------------------------------------------------------
 --                                     SYSTEMS
@@ -112,3 +139,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER system_updated
   BEFORE UPDATE ON systems
   EXECUTE PROCEDURE trigger_set_updated();
+CREATE TRIGGER capability_updated
+    BEFORE UPDATE ON capabilities
+EXECUTE PROCEDURE trigger_set_updated();
