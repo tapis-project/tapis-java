@@ -140,14 +140,41 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Delete a system record given the system name.
+   * Also remove permissions and credentials from the Security Kernel
    *
    */
   @Override
-  public int deleteSystemByName(String tenant, String systemName) throws TapisException
+  public int deleteSystemByName(String tenantName, String systemName) throws TapisException
   {
+    // TODO: Remove all credentials associated with the system
+
+    // TODO: See if it makes sense to have a SK method to do this in one operation
+    // Remove all permissions associated with the system
+    // Build list of all perms
+    var userPerms = new ArrayList<String>();
+    for (TSystem.Permissions perm : TSystem.Permissions.values()) {
+      userPerms.add(perm.name());
+    }
+    // Use Security Kernel client to find all users with perms associated with the system.
+    // Get the Security Kernel client
+    skClient = getSKClient(tenantName, systemName);
+    String permSpec = "system:" + tenantName + ":%:" + systemName;
+    var userNames = skClient.getUsersWithPermission(permSpec).getNames();
+    // Revoke all perms for all users
+    for (String userName : userNames) {
+      revokeUserPermissions(tenantName, systemName, userName, userPerms);
+      // TODO/TBD: It is currently needed but how to make sure all perms for a system are removed?
+      // Remove the "*" permission
+      permSpec = "system:" + tenantName + ":*:" + systemName;
+      skClient.revokeUserPermission(userName, permSpec);
+      // TODO *************** remove debug output ********************
+      printPermInfoForUser(skClient, userName);
+    }
+
+    // Delete the system
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     dao = new SystemsDaoImpl();
-    return dao.deleteTSystem(tenant, systemName);
+    return dao.deleteTSystem(tenantName, systemName);
   }
 
   /**
@@ -361,6 +388,9 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get client for Security Kernel
+   * TODO/TBD: We do not need or want systemName passed in. Client is independent of systemName
+   * TODO: We need to cache the SK client by tenant name. Need one client per tenant.
+   * TODO: Also need to update error messages. They are no longer correct.
    * @param tenantName
    * @param systemName
    * @return
