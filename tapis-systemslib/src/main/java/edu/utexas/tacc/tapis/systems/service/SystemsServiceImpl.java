@@ -17,8 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
@@ -45,9 +47,10 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
-  // TODO *** Inject Dao singletons ***
-  SKClient skClient = null;
+  // TODO: thread safety
+  Map<String, SKClient> skClientMap = new HashMap<>();
 
+  // TODO *** Inject Dao singletons ***
 //  @com.google.inject.Inject
   private SystemsDao dao;
 
@@ -113,7 +116,7 @@ public class SystemsServiceImpl implements SystemsService
     // TODO Once credentials stored overwrite characters in memory
 
     // Get the Security Kernel client
-    skClient = getSKClient(tenantName, systemName);
+    var skClient = getSKClient(tenantName);
 
     // TODO/TBD: Build perm specs here? review details
     String sysPerm = "system:" + tenantName + ":*:" + systemName;
@@ -157,7 +160,7 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Use Security Kernel client to find all users with perms associated with the system.
     // Get the Security Kernel client
-    skClient = getSKClient(tenantName, systemName);
+    var skClient = getSKClient(tenantName);
     String permSpec = "system:" + tenantName + ":%:" + systemName;
     var userNames = skClient.getUsersWithPermission(permSpec).getNames();
     // Revoke all perms for all users
@@ -287,7 +290,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    skClient = getSKClient(tenantName, systemName);
+    var skClient = getSKClient(tenantName);
 
     // Assign perms to user. SK creates a default role for the user
     try
@@ -316,7 +319,7 @@ public class SystemsServiceImpl implements SystemsService
   {
     var userPerms = new ArrayList<String>();
     // Use Security Kernel client to check for each permission in the enum list
-    skClient = getSKClient(tenantName, systemName);
+    var skClient = getSKClient(tenantName);
     for (TSystem.Permissions perm : TSystem.Permissions.values())
     {
       String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
@@ -352,7 +355,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    skClient = getSKClient(tenantName, systemName);
+    var skClient = getSKClient(tenantName);
 
     // Remove perms from default user role
     try
@@ -387,17 +390,17 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Get client for Security Kernel
-   * TODO/TBD: We do not need or want systemName passed in. Client is independent of systemName
-   * TODO: We need to cache the SK client by tenant name. Need one client per tenant.
-   * TODO: Also need to update error messages. They are no longer correct.
+   * Get Security Kernel client associated with specified tenant
+   * TODO: thread safety?
+   * TODO: or worst case it creates some clients a few extra times.
+   * Cache the SK clients in a map by tenant name.
    * @param tenantName
-   * @param systemName
    * @return
    * @throws TapisException
    */
-  private SKClient getSKClient(String tenantName, String systemName) throws TapisException
+  private SKClient getSKClient(String tenantName) throws TapisException
   {
+    var skClient = skClientMap.get(tenantName);
     if (skClient != null) return skClient;
     // TBD/TODO: Determine if all this lookup is needed. If yes put it in private method or utility method
     // Use Tenants service to lookup information we need to:
@@ -415,33 +418,34 @@ public class SystemsServiceImpl implements SystemsService
     var tenantsClient = new TenantsClient(tenantsURL);
     Tenant tenant1 = null;
     try {tenant1 = tenantsClient.getTenant(tenantName);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", systemName, e.getMessage()), e);}
-    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", systemName));
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", tenantName, e.getMessage()), e);}
+    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", tenantName));
 
     // Tokens service URL comes from env or the tenants service
 //    String tokensURL = "https://dev.develop.tapis.io";
     String tokensURL = parms.getTokensSvcURL();
     if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
-    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", systemName));
+    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
 
     // Get short term service JWT from tokens service
     var tokClient = new TokensClient(tokensURL);
     String svcJWT = null;
     try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", systemName, e.getMessage()), e);}
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
     // Basic check of JWT
-    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", systemName));
+    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
 
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence
 //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = parms.getSkSvcURL();
     if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", systemName));
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
-    var skClient = new SKClient(skURL, svcJWT);
+    skClient = new SKClient(skURL, svcJWT);
+    skClientMap.put(tenantName, skClient);
     return skClient;
   }
 

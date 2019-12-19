@@ -11,9 +11,6 @@ import org.testng.annotations.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO Update tests to check "tags" value
-// TODO Update tests to check "notes" value
-
 /**
  * Test the SystemsService implementation class against a DB running locally
  */
@@ -31,8 +28,8 @@ public class SystemsServiceTest
   private static final String prot1AccessMechName = prot1.getAccessMechanism().name();
   private static final String accessMechNameSSH_CERT = AccessMechanism.SSH_CERT.name();
   private static final String prot1TxfMechs = prot1.getTransferMechanismsAsStr();
-  private static final String tags = "{\"key1\":\"a\", \"key2\":\"b\"}";
-  private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
+  private static final String tags = "{\"key1\": \"a\", \"key2\": \"b\"}";
+  private static final String notes = "{\"project\": \"myproj1\", \"testdata\": \"abc\"}";
   private static final List<String> testPerms = new ArrayList<>(List.of(TSystem.Permissions.READ.name(),TSystem.Permissions.MODIFY.name(),
                                                                         TSystem.Permissions.DELETE.name()));
 
@@ -105,6 +102,8 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[11]);
     System.out.println("Found tags: " + tmpSys.getTags());
     System.out.println("Found notes: " + tmpSys.getNotes());
+    Assert.assertEquals(tmpSys.getTags(), tags);
+    Assert.assertEquals(tmpSys.getNotes(), notes);
     Assert.assertEquals(tmpSys.getAccessMechanism(), prot0.getAccessMechanism());
     Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
