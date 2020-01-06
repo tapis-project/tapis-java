@@ -56,6 +56,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                                         email = "cicsupport@tacc.utexas.edu")),
         tags = {@Tag(name = "role", description = "manage roles and permissions"),
                 @Tag(name = "user", description = "assign roles and permissions to users"),
+                @Tag(name = "secret", description = "manage application and user secrets"),
                 @Tag(name = "general", description = "informational endpoints")},
         servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",

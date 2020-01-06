@@ -11,6 +11,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
+
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
@@ -183,6 +185,10 @@ class AbstractResource
         }
         else if (e instanceof TapisImplException) {
             return Response.status(SKApiUtils.toHttpStatus(((TapisImplException)e).condition)).
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+        } 
+        else if (e instanceof VaultException) {
+            return Response.status(((VaultException)e).getHttpStatusCode()).
                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         } 
         else {

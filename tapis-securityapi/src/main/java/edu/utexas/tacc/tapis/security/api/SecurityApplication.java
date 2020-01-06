@@ -4,6 +4,8 @@ import javax.ws.rs.ApplicationPath;
 
 import org.glassfish.jersey.server.ResourceConfig;
 
+import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
@@ -32,5 +34,8 @@ public class SecurityApplication
         // included as a maven dependency.
         packages("edu.utexas.tacc.tapis");
         setApplicationName("security"); 
+        
+        // Force runtime initialization of vault.
+        SecretsManager.getInstance(RuntimeParameters.getInstance());
     }
 }
