@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,6 +24,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -79,8 +78,12 @@ public final class SecurityResource
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SecurityResource.class);
     
-    // Readiness check timeout.
-    private static final long READY_TIMEOUT_MS = 6000; // 6 seconds.
+    // Database check timeouts.
+    private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
+    private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
+    
+    // The table we query during readiness checks.
+    private static final String QUERY_TABLE = "sk_role";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -131,9 +134,6 @@ public final class SecurityResource
     
      // Count the number of healthchecks requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
-     
-     // The table name used during health or ready probes.
-     private static final ArrayList<String> _tableNames = initTableNames();
      
      // The flag set after the first successful readiness check.
      private static final AtomicBoolean _readyOnce = new AtomicBoolean();
@@ -213,11 +213,32 @@ public final class SecurityResource
       )
   public Response checkHealth()
   {
-      // Create the response payload.
-      RespBasic r = new RespBasic("Healthcheck " + _healthChecks.incrementAndGet() + " received.");
-         
+      // Get the current check count.
+      long checkNum = _healthChecks.incrementAndGet();
+      
+      // Check the database only after a DB readiness check has succeeded.
+      if (_readyOnce.get()) 
+          if (!queryDB(DB_HEALTH_TIMEOUT_MS)) {
+              // Failure case.
+              RespBasic r = new RespBasic("Health DB check " + checkNum + " failed.");
+              String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
+              return Response.status(Status.SERVICE_UNAVAILABLE).
+                  entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+          }
+      
+      // Check the health of vault.
+      var secretsMgr = SecretsManager.getInstance(true);
+      if (secretsMgr == null || !secretsMgr.isHealthy()) {
+          // Failure case.
+          RespBasic r = new RespBasic("Health secrets check " + checkNum + " failed.");
+          String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
+          return Response.status(Status.SERVICE_UNAVAILABLE).
+              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      }
+      
       // ---------------------------- Success ------------------------------- 
-      // Always return success. 
+      // Create the response payload.
+      RespBasic r = new RespBasic("Healthcheck " + checkNum + " received.");
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_HEALTHY", "Security Kernel"), false, r)).build();
   }
@@ -266,23 +287,29 @@ public final class SecurityResource
       // Test connectivity only if no success has ever been recorded.
       // There could be a race condition here but the worst that could
       // happen is an extra readiness check or two would query the db.
-      if (!_readyOnce.get()) {
-          boolean ready = queryDB(READY_TIMEOUT_MS);
-          if (ready) _readyOnce.set(true);
+      if (!_readyOnce.get()) 
+          if (queryDB(DB_READY_TIMEOUT_MS)) _readyOnce.set(true);
             else {
                 // Failure case.
-                RespBasic r = new RespBasic("Readiness check " + checkNum + " failed.");
+                RespBasic r = new RespBasic("Readiness DB check " + checkNum + " failed.");
                 String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
                 return Response.status(Status.SERVICE_UNAVAILABLE).
                     entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
             }
+      
+      // Check the readiness of vault.
+      var secretsMgr = SecretsManager.getInstance(true);
+      if (secretsMgr == null || !secretsMgr.isReady()) {
+          // Failure case.
+          RespBasic r = new RespBasic("Readiness secrets check " + checkNum + " failed.");
+          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+          return Response.status(Status.SERVICE_UNAVAILABLE).
+              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
       }
       
       // ---------------------------- Success -------------------------------
       // Create the response payload.
       RespBasic r = new RespBasic("Readiness check " + checkNum + " received.");
-       
-      // Always return success. 
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_READY", "Security Kernel"), false, r)).build();
   }
@@ -305,9 +332,9 @@ public final class SecurityResource
       
       // Any db error or a time expiration fails the connectivity check.
       try {
-          int index = ThreadLocalRandom.current().nextInt(_tableNames.size());
+          // Try to run a simple query.
           long startTime = Instant.now().toEpochMilli();
-          int result = getRoleImpl().queryDB(_tableNames.get(index));
+          int result = getRoleImpl().queryDB(QUERY_TABLE);
           
           // Did the query take too long?
           long elapsed = Instant.now().toEpochMilli() - startTime;
@@ -326,19 +353,5 @@ public final class SecurityResource
       }
       
       return success;
-  }
-  
-  /* ---------------------------------------------------------------------------- */
-  /* initTableNames:                                                              */
-  /* ---------------------------------------------------------------------------- */
-  private static ArrayList<String> initTableNames()
-  {
-      // Initialize list with SK's primary tables.
-      var list = new ArrayList<String>(4);
-      list.add("sk_role");
-      list.add("sk_role_permission");
-      list.add("sk_role_tree");
-      list.add("sk_user_role");
-      return list;
   }
 }

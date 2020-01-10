@@ -7,12 +7,14 @@ package edu.utexas.tacc.tapis.security.secrets;
 public interface ISecretsManagerParms 
 {
     public boolean isVaultDisabled();
-    public String getVaultAddress();
-    public String getVaultRoleId();
-    public String getVaultSecretId();
-    public int getVaultOpenTimeout();
-    public int getVaultReadTimeout();
+    public String  getVaultAddress();
+    public String  getVaultRoleId();
+    public String  getVaultSecretId();
+    public int     getVaultOpenTimeout();
+    public int     getVaultReadTimeout();
     public boolean isVaultSslVerify();
-    public String getVaultSslCertFile();
-    public String getVaultSkKeyPemFile();
+    public String  getVaultSslCertFile();
+    public String  getVaultSkKeyPemFile();
+    public int     getVaultRenewSeconds();
+    public int     getVaultRenewThreshold();
 }
