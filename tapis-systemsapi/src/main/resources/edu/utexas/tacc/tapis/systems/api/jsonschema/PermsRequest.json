@@ -1,6 +1,6 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://tapis.tacc.utexas.edu/PermsRequest",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
   "description": "Schema for a permissions request - grant or revoke",
   "additionalProperties": false,
   "type": "object",
@@ -12,15 +12,7 @@
         "minItems": 1,
         "maxItems": 3,
         "uniqueItems": true,
-        "enum": [
-          "READ",
-          "MODIFY",
-          "DELETE",
-          "read",
-          "modify",
-          "delete",
-          "*"
-        ]
+        "enum": ["READ","MODIFY","DELETE","read","modify","delete","*"]
       }
     }
   },

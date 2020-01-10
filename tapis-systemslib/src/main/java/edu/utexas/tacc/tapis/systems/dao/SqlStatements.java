@@ -8,18 +8,19 @@ final class SqlStatements
   // Fields id, created, updated are handled by DB.
   // Fields "tags" and "notes" contain JSON type data
   static final String CREATE_SYSTEM =
-    "INSERT INTO systems (tenant, name, description, owner, host, available, bucket_name, root_dir, job_input_dir, " +
-      "job_output_dir, work_dir, scratch_dir, effective_user_id, tags, notes, access_mechanism, transfer_mechanisms, " +
-      "port, use_proxy, proxy_host, proxy_port, raw_req) " +
-      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::access_mech_type, ?::transfer_mech_type[], ?, ?, ?, ?, ?) " +
+    "INSERT INTO systems (tenant, name, description, system_type, owner, host, available, effective_user_id, " +
+      "access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
+      "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
+      "tags, notes, raw_req) " +
+      "VALUES (?, ?, ?, ?::system_type_type, ?, ?, ?, ?, ?::access_meth_type, ?, ?, ?::transfer_meth_type[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "RETURNING id";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =
-    "SELECT id, tenant, name, description, owner, host, available, bucket_name, root_dir, " +
-      "job_input_dir, job_output_dir, work_dir, scratch_dir, effective_user_id, tags, notes, " +
-      "access_mechanism, transfer_mechanisms, port, use_proxy, proxy_host, " +
-      "proxy_port, created, updated " +
+    "SELECT id, tenant, name, description, system_type, owner, host, available, effective_user_id, " +
+      "access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
+      "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
+      "tags, notes, created, updated " +
       "FROM systems " +
       "WHERE tenant = ?";
 
@@ -29,10 +30,10 @@ final class SqlStatements
 
   // Get a specific row.
   public static final String SELECT_SYSTEM_BY_NAME =
-    "SELECT id, tenant, name, description, owner, host, available, bucket_name, root_dir, " +
-      "job_input_dir, job_output_dir, work_dir, scratch_dir, effective_user_id, tags, notes, " +
-      "access_mechanism, transfer_mechanisms, port, use_proxy, proxy_host, " +
-      "proxy_port, created, updated " +
+    "SELECT id, tenant, name, description, system_type, owner, host, available, effective_user_id, " +
+      "access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
+      "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
+      "tags, notes, created, updated " +
       "FROM systems " +
       "WHERE tenant = ? AND name = ?";
 

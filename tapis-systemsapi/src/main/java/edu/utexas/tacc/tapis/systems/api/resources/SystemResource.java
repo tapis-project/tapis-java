@@ -57,6 +57,12 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 
+/*
+ * JAX-RS REST resource for a Tapis System (edu.utexas.tacc.tapis.systems.model.TSystem)
+ * Contains annotations which generate the OpenAPI specification documents.
+ * Annotations map HTTP verb + endpoint to method invocation.
+ *
+ */
 @Path("/")
 public class SystemResource
 {
@@ -134,7 +140,8 @@ public class SystemResource
         "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
-// TODO
+// TODO Including parameter info here and in method sig results in duplicates in openapi spec.
+// TODO    JAX-RS appears to require the annotations in the method sig
 //    parameters = {
 //      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
 //                 description = "Pretty print the response")
@@ -183,8 +190,8 @@ public class SystemResource
 
     // ------------------------- Validate Payload -------------------------
     // Read the payload into a string.
-    String json;
-    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    String rawJson;
+    try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
@@ -193,7 +200,7 @@ public class SystemResource
     }
 
     // Create validator specification and validate the json against the schema
-    JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_SYSTEMS_CREATE_REQUEST);
+    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEMS_CREATE_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
@@ -202,61 +209,76 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    String name, description, owner, host, bucketName, rootDir,
-           jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes;
-    String accessMech, proxyHost;
+    // Get the Json object and prepare to extract info from it
+    JsonObject obj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+
+    String name, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
+           proxyHost, tags, notes;
+    String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
     // accessCred is a char array for security reasons. Local var data should be overwritten as soon as possible.
     char[] accessCred;
     int port, proxyPort;
-    boolean available, useProxy;
-
-    JsonObject obj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-
-    // ------------------------- Create System Object ---------------------
-    systemsService = new SystemsServiceImpl();
+    boolean available, useProxy, jobCanExec;
 
     // Extract top level properties: name, host, description, owner, ...
     // Extract required values
     name = obj.get("name").getAsString();
+    systemType = obj.get("systemType").getAsString();
     host = obj.get("host").getAsString();
+    accessMethod = obj.get("accessMethod").getAsString();
+    jobCanExec =  obj.get("jobCanExec").getAsBoolean();
     // Extract optional values
     description = ApiUtils.getValS(obj.get("description"), "");
     owner = ApiUtils.getValS(obj.get("owner"), "");
+    available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
+    effectiveUserId = ApiUtils.getValS(obj.get("effectiveUserId"), "");
+    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
     bucketName = ApiUtils.getValS(obj.get("bucketName"), "");
     rootDir = ApiUtils.getValS(obj.get("rootDir"), "");
-    jobInputDir = ApiUtils.getValS(obj.get("jobInputDir"), "");
-    jobOutputDir = (obj.has("jobOutputDir") ? obj.get("jobOutputDir").getAsString() : "");
-    workDir = (obj.has("workDir") ? obj.get("workDir").getAsString() : "");
-    scratchDir = (obj.has("scratchDir") ? obj.get("scratchDir").getAsString() : "");
-    effectiveUserId = (obj.has("effectiveUserId") ? obj.get("effectiveUserId").getAsString(): "");
-    available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
-    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
+    port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
+    useProxy = (obj.has("useProxy") ? obj.get("useProxy").getAsBoolean() : false);
+    proxyHost = ApiUtils.getValS(obj.get("proxyHost"), "");
+    proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
+
+    jobLocalWorkingDir = ApiUtils.getValS(obj.get("jobLocalWorkingDir"), "");
+    jobLocalArchiveDir = ApiUtils.getValS(obj.get("jobLocalArchiveDir"), "");
+    jobRemoteArchiveSystem = ApiUtils.getValS(obj.get("jobRemoteArchiveSystem"), "");
+    jobRemoteArchiveDir = ApiUtils.getValS(obj.get("jobRemoteArchiveDir"), "");
     tags = ApiUtils.getValS(obj.get("tags"), "{}");
     notes = ApiUtils.getValS(obj.get("notes"), "{}");
 
-    //Extract Protocol information
-    accessMech = (obj.has("accessMechanism") ? obj.get("accessMechanism").getAsString() : "NONE");
-    port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
-    useProxy = (obj.has("useProxy") ? obj.get("useProxy").getAsBoolean() : false);
-    proxyHost = (obj.has("proxyHost") ? obj.get("proxyHost").getAsString() : "");
-    proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
-    // Extract list of supported transfer mechanisms contained in protocol
+    // Extract list of supported transfer methods
     // If element is not there or the list is empty then build empty array "{}"
-    var mechsArr = new ArrayList<String>();
-    StringBuilder transferMechs = new StringBuilder("{");
-    JsonArray mechs = null;
-    if (obj.has("transferMechanisms")) mechs = obj.getAsJsonArray("transferMechanisms");
-    if (mechs != null && mechs.size() > 0)
+    var txfrMethodsArr = new ArrayList<String>();
+    StringBuilder transferMethodsSB = new StringBuilder("{");
+    JsonArray txfrMethodsJson = null;
+    if (obj.has("transferMethods")) txfrMethodsJson = obj.getAsJsonArray("transferMethods");
+    if (txfrMethodsJson != null && txfrMethodsJson.size() > 0)
     {
-      for (int i = 0; i < mechs.size()-1; i++)
+      for (int i = 0; i < txfrMethodsJson.size()-1; i++)
       {
-        transferMechs.append(mechs.get(i).toString()).append(",");
-        mechsArr.add(StringUtils.remove(mechs.get(i).toString(),'"'));
+        transferMethodsSB.append(txfrMethodsJson.get(i).toString()).append(",");
+        txfrMethodsArr.add(StringUtils.remove(txfrMethodsJson.get(i).toString(),'"'));
       }
-      transferMechs.append(mechs.get(mechs.size()-1).toString());
-      mechsArr.add(StringUtils.remove(mechs.get(mechs.size()-1).toString(),'"'));
+      transferMethodsSB.append(txfrMethodsJson.get(txfrMethodsJson.size()-1).toString());
+      txfrMethodsArr.add(StringUtils.remove(txfrMethodsJson.get(txfrMethodsJson.size()-1).toString(),'"'));
     }
-    transferMechs.append("}");
+    transferMethodsSB.append("}");
+
+    // Extract list of job capabilities
+    // If element is not there or the list is empty then build empty array "{}"
+    StringBuilder jobCapsSB = new StringBuilder("{");
+    JsonArray jobCapsJson = null;
+    if (obj.has("jobCapabilities")) jobCapsJson = obj.getAsJsonArray("jobCapabilities");
+    if (jobCapsJson != null && jobCapsJson.size() > 0)
+    {
+      for (int i = 0; i < jobCapsJson.size()-1; i++)
+      {
+        jobCapsSB.append(jobCapsJson.get(i).toString()).append(",");
+      }
+      jobCapsSB.append(jobCapsJson.get(jobCapsJson.size()-1).toString());
+    }
+    jobCapsSB.append("}");
 
     // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
     msg = null;
@@ -266,24 +288,28 @@ public class SystemResource
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
     }
+    else if (StringUtils.isBlank(systemType))
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty system type.");
+    }
     else if (StringUtils.isBlank(host))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
     }
-    else if (StringUtils.isBlank(accessMech))
+    else if (StringUtils.isBlank(accessMethod))
     {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access mechanism.");
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
     }
-    else if (accessMech.equals(Protocol.AccessMechanism.SSH_CERT.name()) &&
+    else if (accessMethod.equals(Protocol.AccessMethod.CERT.name()) &&
              !StringUtils.isBlank(owner) &&
              !effectiveUserId.equals(owner) &&
              !effectiveUserId.equals(APIUSERID_VAR) &&
              !effectiveUserId.equals(OWNER_VAR))
     {
-      // For SSH_CERT access the effectiveUserId cannot be static string other than owner
+      // For CERT access the effectiveUserId cannot be static string other than owner
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
     }
-    else if (mechsArr.contains(Protocol.TransferMechanism.S3.name()) && StringUtils.isBlank(bucketName))
+    else if (txfrMethodsArr.contains(Protocol.TransferMethod.S3.name()) && StringUtils.isBlank(bucketName))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
@@ -297,12 +323,14 @@ public class SystemResource
     }
 
     // Make the service call to create the system
+    systemsService = new SystemsServiceImpl();
     try
     {
-      systemsService.createSystem(tenantName, apiUserId, name, description, owner, host, available, bucketName, rootDir,
-                                  jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
-                                  accessCred, accessMech, transferMechs.toString(),
-                                  port, useProxy, proxyHost, proxyPort, json);
+      systemsService.createSystem(tenantName, apiUserId, name, description, systemType, owner, host, available,
+                                  effectiveUserId, accessMethod, accessCred, bucketName, rootDir,
+                                  transferMethodsSB.toString(), port, useProxy, proxyHost, proxyPort,
+                                  jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
+                                  jobRemoteArchiveDir, jobCapsSB.toString(), tags, notes, rawJson);
     }
     catch (IllegalStateException e)
     {
@@ -344,7 +372,8 @@ public class SystemResource
           "Use query parameter returnCredentials = true to have the user access credentials " +
           "included in the response.",
       tags = "systems",
-// TODO
+// TODO Including parameter info here and in method sig results in duplicates in openapi spec.
+// TODO    JAX-RS appears to require the annotations in the method sig
 //      parameters = {
 //          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
 //              description = "Pretty print the response"),

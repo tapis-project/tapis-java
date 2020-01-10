@@ -65,12 +65,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createSystem(String tenantName, String apiUserId, String systemName, String description, String owner, String host,
-                          boolean available, String bucketName, String rootDir, String jobInputDir,
-                          String jobOutputDir, String workDir, String scratchDir, String effectiveUserId, String tags,
-                          String notes, char[] accessCredential, String accessMechanism, String transferMechanisms,
-                          int protocolPort, boolean protocolUseProxy, String protocolProxyHost, int protocolProxyPort,
-                          String rawRequest)
+  public int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
+                          String owner, String host, boolean available, String effectiveUserId, String accessMethod,
+                          char[] accessCredential, String bucketName, String rootDir, String transferMethods,
+                          int port, boolean useProxy, String proxyHost, int proxyPort,
+                          boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
+                          String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
+                          String tags, String notes, String rawJson)
           throws TapisException, IllegalStateException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
@@ -82,8 +83,8 @@ public class SystemsServiceImpl implements SystemsService
     // TODO/TBD do this check here? it is already being done in systemsapi front-end. If we are going to support
     //   other front-ends over which we have less control then a lot more checking needs to be done here as well.
     // Check for valid effectiveUserId
-    // For SSH_CERT access the effectiveUserId cannot be static string other than owner
-//    if (accessMechanism != null && accessMechanism.equals(Protocol.AccessMechanism.SSH_CERT) &&
+    // For CERT access the effectiveUserId cannot be static string other than owner
+//    if (accessMechanism != null && accessMechanism.equals(Protocol.AccessMethod.CERT) &&
 //        !effectiveUserId.equals(owner) &&
 //        !effectiveUserId.equals(APIUSERID_VAR) &&
 //        !effectiveUserId.equals(OWNER_VAR))
@@ -97,15 +98,16 @@ public class SystemsServiceImpl implements SystemsService
     String[] allVarSubstitutions = {apiUserId, owner, tenantName};
     bucketName = StringUtils.replaceEach(bucketName, ALL_VARS, allVarSubstitutions);
     rootDir = StringUtils.replaceEach(rootDir, ALL_VARS, allVarSubstitutions);
-    jobInputDir = StringUtils.replaceEach(jobInputDir, ALL_VARS, allVarSubstitutions);
-    jobOutputDir = StringUtils.replaceEach(jobOutputDir, ALL_VARS, allVarSubstitutions);
-    workDir = StringUtils.replaceEach(workDir, ALL_VARS, allVarSubstitutions);
-    scratchDir = StringUtils.replaceEach(scratchDir, ALL_VARS, allVarSubstitutions);
+    jobLocalWorkingDir = StringUtils.replaceEach(jobLocalWorkingDir, ALL_VARS, allVarSubstitutions);
+    jobLocalArchiveDir = StringUtils.replaceEach(jobLocalArchiveDir, ALL_VARS, allVarSubstitutions);
+    jobRemoteArchiveDir = StringUtils.replaceEach(jobRemoteArchiveDir, ALL_VARS, allVarSubstitutions);
 
-    int itemId = dao.createTSystem(tenantName, systemName, description, owner, host, available, bucketName, rootDir,
-                                   jobInputDir, jobOutputDir, workDir, scratchDir, effectiveUserId, tags, notes,
-                                   accessMechanism, transferMechanisms, protocolPort, protocolUseProxy,
-                                   protocolProxyHost, protocolProxyPort, rawRequest);
+    int itemId = dao.createTSystem(tenantName, systemName, description, systemType, owner, host, available,
+                                   effectiveUserId, accessMethod, bucketName, rootDir, transferMethods,
+                                   port, useProxy, proxyHost, proxyPort,
+                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
+                                   jobRemoteArchiveDir, jobCapabilities,
+                                   tags, notes, rawJson);
 
     // TODO: Remove debug System.out statements
 

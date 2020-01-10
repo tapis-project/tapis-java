@@ -6,23 +6,26 @@ public final class ReqCreateSystem
 {
   public String name;
   public String description;
+  public String systemType;
   public String owner;
   public String host;
   public boolean available;
+  public String effectiveUserId;
+  public String accessMethod;
+  public String accessCredential;
   public String bucketName;
   public String rootDir;
-  public String jobInputDir;
-  public String jobOutputDir;
-  public String scratchDir;
-  public String workDir;
-  public String effectiveUserId;
-  public String accessCredential;
-  public String tags;
-  public String notes;
-  public String accessMechanism;
-  public List<String> transferMechanisms;
+  public List<String> transferMethods;
   public int port;
   public boolean useProxy;
   public String proxyHost;
   public int proxyPort;
+  public boolean jobCanExec;
+  public String jobLocalWorkingDir;
+  public String jobLocalArchiveDir;
+  public String jobRemoteArchiveSystem;
+  public String jobRemoteArchiveDir;
+  public List<String> jobCapabilities;
+  public String tags;
+  public String notes;
 }

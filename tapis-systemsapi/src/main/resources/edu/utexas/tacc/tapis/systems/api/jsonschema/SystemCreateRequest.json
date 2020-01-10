@@ -1,76 +1,78 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
   "description": "Schema for a system create request",
   "additionalProperties": false,
+
+  "definitions": {
+    "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
+    "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","CERT","ACCESS_KEY"] }
+  },
+
   "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 256
-    },
+    "name": { "$ref": "#/definitions/systemName" },
     "description": {
       "type": "string",
       "maxLength": 2048,
       "default": ""
     },
-    "owner": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 60,
-      "default": "${apiUserId}"
-    },
-    "host": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 256
-    },
+    "systemType": { "$ref": "#/definitions/systemTypeEnum" },
+    "owner": { "$ref": "#/definitions/userName" },
+    "host": { "$ref": "#/definitions/hostName" },
     "available": {
       "type": "boolean",
       "default": true
+    },
+    "effectiveUserId": { "$ref": "#/definitions/userName" },
+    "accessMethod": { "$ref": "#/definitions/accessMethodEnum" },
+    "accessCredential": {
+      "type": "object",
+      "properties": {
+        "system": { "$ref": "#/definitions/systemName" },
+        "user": { "$ref": "#/definitions/userName" },
+        "systemType": { "$ref": "#/definitions/systemTypeEnum" },
+        "accessMethod": { "$ref": "#/definitions/accessMethodEnum" },
+        "password": { "type":  "string" },
+        "privateKey": { "type":  "string" },
+        "publicKey": { "type":  "string" },
+        "certificate": { "type":  "string" },
+        "accessKey": { "type":  "string" },
+        "accessSecret": { "type":  "string" }
+      }
     },
     "bucketName": {
       "type": "string",
       "maxLength": 63,
       "default": ""
     },
-    "rootDir": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "default": "/"
+    "rootDir": { "$ref": "#/definitions/dirPath" },
+    "transferMethods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["SFTP","S3"]
+      }
     },
-    "jobInputDir": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "default": "/input"
+    "port": { "type": "integer" },
+    "useProxy": { "type": "boolean" },
+    "proxyHost": { "$ref": "#/definitions/hostName" },
+    "proxyPort": { "type": "integer" },
+
+    "jobCanExec": { "type": "boolean" },
+    "jobLocalWorkingDir": { "$ref": "#/definitions/dirPath" },
+    "jobLocalArchiveDir": { "$ref": "#/definitions/dirPath" },
+    "jobRemoteArchiveSystem": { "$ref": "#/definitions/systemName" },
+    "jobRemoteArchiveDir": { "$ref": "#/definitions/dirPath" },
+    "jobCapabilities": {
+      "type": "array",
+      "items": { "type": "string" }
     },
-    "jobOutputDir": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "default": "/output"
-    },
-    "workDir": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "default": "/data"
-    },
-    "scratchDir": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 1024,
-      "default": "/scratch"
-    },
-    "effectiveUserId": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 60,
-      "default": "${apiUserId}"
-    },
+
     "tags": {
       "type": "string",
       "default": "{}"
@@ -78,54 +80,13 @@
     "notes": {
       "type": "string",
       "default": "{}"
-    },
-    "accessCredential": {
-      "type": "string",
-      "minLength": 1,
-      "default": ""
-    },
-    "accessMechanism": {
-      "type": "string",
-      "enum": [
-        "NONE",
-        "ANONYMOUS",
-        "SSH_PASSWORD",
-        "SSH_KEYS",
-        "SSH_CERT"
-      ]
-    },
-    "transferMechanisms": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "SFTP",
-          "S3",
-          "LOCAL"
-        ]
-      }
-    },
-    "port": {
-      "type": "integer",
-      "default": -1
-    },
-    "useProxy": {
-      "type": "boolean",
-      "default": false
-    },
-    "proxyHost": {
-      "type": "string",
-      "maxLength": 256,
-      "default": ""
-    },
-    "proxyPort": {
-      "type": "integer",
-      "default": -1
     }
   },
   "required": [
     "name",
+    "systemType",
     "host",
-    "accessMechanism"
+    "accessMethod",
+    "jobCanExec"
   ]
 }

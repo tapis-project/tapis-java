@@ -7,11 +7,13 @@ import java.util.List;
 
 public interface SystemsDao
 {
-  int createTSystem(String tenant, String name, String description, String owner, String host,
-                    boolean available, String bucketName, String rootDir,
-                    String jobInputDir, String jobOutputDir, String workDir, String scratchDir,
-                    String effectiveUserId, String tags, String notes, String accessMechanism,String transferMechanisms,
-                    int port, boolean useProxy, String proxyHost, int proxyPort, String rawRequest)
+  int createTSystem(String tenantName, String systemName, String description, String systemType,
+                    String owner, String host, boolean available, String effectiveUserId, String accessMethod,
+                    String bucketName, String rootDir, String transferMethods,
+                    int port, boolean useProxy, String proxyHost, int proxyPort,
+                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
+                    String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
+                    String tags, String notes, String rawJson)
     throws TapisException, IllegalStateException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;
