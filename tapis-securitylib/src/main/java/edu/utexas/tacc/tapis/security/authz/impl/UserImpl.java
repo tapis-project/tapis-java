@@ -1,9 +1,11 @@
 package edu.utexas.tacc.tapis.security.authz.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +135,8 @@ public final class UserImpl
     /* ---------------------------------------------------------------------- */
     /* getUserPerms:                                                          */
     /* ---------------------------------------------------------------------- */
-    public List<String> getUserPerms(String tenant, String user) throws TapisImplException
+    public List<String> getUserPerms(String tenant, String user, String match) 
+     throws TapisImplException
     {
         // Get the dao.
         SkUserRoleDao dao = null;
@@ -154,6 +157,9 @@ public final class UserImpl
                 throw new TapisImplException(msg, e, Condition.BAD_REQUEST);            
             }
 
+        // Optionally filter the list of permissions.
+        if (!StringUtils.isBlank(match)) filterPermissions(perms, match);
+        
         return perms;
     }
 
@@ -690,5 +696,39 @@ public final class UserImpl
                 throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);
             }
         return rows;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* filterPermissions:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Remove permission from the list that don't match the specified permission
+     * string.  The result is a possibly altered permissions list.
+     * 
+     * @param perms List of permissions to be filtered
+     * @param match a permission string to match against.
+     */
+    private void filterPermissions(List<String> perms, String match)
+    {
+        // Is there anything to do?
+        if (perms.isEmpty()) return;
+        
+        // Put the match filter in a list.
+        var matchList = new ArrayList<String>(1);
+        matchList.add(match);
+        
+        // Create a permission cache that allows us to allocate at most
+        // one wildcard object for the match permission.  The cache
+        // is only useful if more than 1 permission might get tested.
+        HashMap<String,ExtWildcardPermission> matchPermMap;
+        if (perms.size() > 1) 
+            matchPermMap = new HashMap<>(3);
+          else matchPermMap = null;
+        
+        // Iterate through the list removing permissions that don't match.
+        var it = perms.listIterator();
+        while (it.hasNext()) {
+            String curPerm = it.next();
+            if (!matchPermission(curPerm, matchList, matchPermMap)) it.remove();
+        }
     }
 }

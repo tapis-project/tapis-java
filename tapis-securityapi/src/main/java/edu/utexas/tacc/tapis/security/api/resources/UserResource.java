@@ -255,7 +255,10 @@ public final class UserResource
      @Path("/perms/{user}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the permissions assigned to a user, including those assigned transively.",
+             description = "Get the permissions assigned to a user, including those assigned transively. "
+                     + "The optional match query parameter is used as a filter on the result list "
+                     + "of permissions: Only those permissions that are implied by the match permission "
+                     + "are returned.",
              tags = "user",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
@@ -272,6 +275,7 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUserPerms(@PathParam("user") String user,
+                                  @DefaultValue("") @QueryParam("match") String match,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
@@ -290,7 +294,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> perms = null;
-         try {perms = getUserImpl().getUserPerms(threadContext.getTenantId(), user);}
+         try {perms = getUserImpl().getUserPerms(threadContext.getTenantId(), user, match);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
