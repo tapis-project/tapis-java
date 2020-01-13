@@ -70,6 +70,13 @@ public final class RuntimeParameters
     private static final int DEFAULT_VAULT_OPEN_TIMEOUT_SECS = 20;
     private static final int DEFAULT_VAULT_READ_TIMEOUT_SECS = 20;
      
+    // Vault token renewal defaults.
+    private static final int DEFAULT_VAULT_TOKEN_SECONDS = 28800; // 4 hours
+    private static final int MIN_VAULT_TOKEN_SECONDS = 60;        // 1 minute
+    private static final int DEFAULT_VAULT_TOKEN_THRESHOLD = 50;  // percent 
+    private static final int MIN_VAULT_TOKEN_THRESHOLD = 20;      // percent 
+    private static final int MAX_VAULT_TOKEN_THRESHOLD = 80;      // percent
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -121,6 +128,9 @@ public final class RuntimeParameters
 	private boolean vaultSslVerify;      // whether to use http or https
 	private String  vaultSslCertFile;    // certificate file containing vault's public key
 	private String  vaultSkKeyPemFile;   // PEM file containing SK's private key 
+	private int     vaultRenewSeconds;   // expiration time in seconds of SK token
+	private int     vaultRenewThreshold; // point at which token renewal begins,
+	                                     //   expressed as percent of expiration time
 	
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -500,10 +510,69 @@ public final class RuntimeParameters
           throw new TapisRuntimeException(msg);
         }
     
+    // Assign the expiration time on tokens we acquire. This duration can be no longer
+    // than what's configured in the sk-role.json file.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_SK_VAULT_TOKEN_RENEWAL_SECONDS.getEnvName());
+    if (StringUtils.isBlank(parm)) setVaultRenewSeconds(DEFAULT_VAULT_TOKEN_SECONDS);
+      else 
+          try {
+              int expiry = Integer.valueOf(parm);
+              if (expiry < MIN_VAULT_TOKEN_SECONDS) {
+                  String msg = MsgUtils.getMsg("TAPIS_PARAMETER_LESS_THAN_MIN",
+                                               EnvVar.TAPIS_SK_VAULT_TOKEN_RENEWAL_SECONDS.getEnvName(),
+                                               expiry,
+                                               MIN_VAULT_TOKEN_SECONDS);
+                   throw new IllegalArgumentException(msg);
+              }
+
+              // We're good.
+              setVaultRenewSeconds(expiry);
+          }
+          catch (Exception e) {
+              // Stop on bad input.
+              String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                           TapisConstants.SERVICE_NAME_SECURITY,
+                                           "vaultTokenSeconds",
+                                           e.getMessage());
+              _log.error(msg, e);
+              throw new TapisRuntimeException(msg, e);
+          }
+  
+    // Get the threshold after which we try to renew our token. The threshold is expressed
+    // as a percentage of the total ttl of the token.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_SK_VAULT_TOKEN_RENEWAL_THRESHOLD.getEnvName());
+    if (StringUtils.isBlank(parm)) setVaultRenewThreshold(DEFAULT_VAULT_TOKEN_THRESHOLD);
+      else 
+          try {
+              // Check that the parameter is an integer in range.
+              int threshold = Integer.valueOf(parm);
+              if (threshold < MIN_VAULT_TOKEN_THRESHOLD || 
+                  threshold > MAX_VAULT_TOKEN_THRESHOLD) {
+                  String msg = MsgUtils.getMsg("TAPIS_PARAMETER_OUT_OF_RANGE",
+                                               EnvVar.TAPIS_SK_VAULT_TOKEN_RENEWAL_THRESHOLD.getEnvName(),
+                                               threshold,
+                                               MIN_VAULT_TOKEN_THRESHOLD,
+                                               MAX_VAULT_TOKEN_THRESHOLD);
+                   throw new IllegalArgumentException(msg);
+              }
+                  
+              // We're good.
+              setVaultRenewThreshold(threshold);
+          }
+          catch (Exception e) {
+              // Stop on bad input.
+             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                          TapisConstants.SERVICE_NAME_SECURITY,
+                                          "vaultTokenThreshold",
+                                          e.getMessage());
+              _log.error(msg, e);
+              throw new TapisRuntimeException(msg, e);
+          }
+    
     // Determine if a private key file has been specified.
     // TODO: we'll probably need to adjust this when mutual auth is actually used.
     parm = inputProperties.getProperty(EnvVar.TAPIS_SK_VAULT_SK_KEY_PEM_FILE.getEnvName());
-    if (!StringUtils.isBlank(parm)) setVaultSkKeyPemFile(parm);
+    if (StringUtils.isBlank(parm)) setVaultSkKeyPemFile(parm);
    }
 	
     /* ---------------------------------------------------------------------- */
@@ -558,6 +627,10 @@ public final class RuntimeParameters
         buf.append(this.getVaultSslCertFile());
         buf.append("\ntapis.sk.vault.sk.key.pem.file: ");
         buf.append(this.getVaultSkKeyPemFile());
+        buf.append("\ntapis.sk.vault.token.seconds: ");
+        buf.append(this.getVaultRenewSeconds());
+        buf.append("\ntapis.sk.vault.token.renewal.threshold: ");
+        buf.append(this.getVaultRenewThreshold());
         
 	    buf.append("\n------- Email Configuration -----------------------");
 	    buf.append("\ntapis.mail.provider: ");
@@ -952,5 +1025,21 @@ public final class RuntimeParameters
 
     public void setVaultSkKeyPemFile(String vaultSkKeyPemFile) {
         this.vaultSkKeyPemFile = vaultSkKeyPemFile;
+    }
+
+    public int getVaultRenewSeconds() {
+        return vaultRenewSeconds;
+    }
+
+    public void setVaultRenewSeconds(int vaultRenewSeconds) {
+        this.vaultRenewSeconds = vaultRenewSeconds;
+    }
+
+    public int getVaultRenewThreshold() {
+        return vaultRenewThreshold;
+    }
+
+    public void setVaultRenewThreshold(int vaultRenewThreshold) {
+        this.vaultRenewThreshold = vaultRenewThreshold;
     }
 }

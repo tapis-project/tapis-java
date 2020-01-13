@@ -581,7 +581,7 @@ public final class RoleImpl
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
              }
         
-        // Create the role.
+        // Access the table.
         int rows = 0;
         try {rows = dao.queryDB(tableName);}
         catch (Exception e) {
