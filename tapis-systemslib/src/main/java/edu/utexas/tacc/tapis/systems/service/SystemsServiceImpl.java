@@ -491,7 +491,7 @@ public class SystemsServiceImpl implements SystemsService
       _log.error("User " + userName + " has the following roles: ");
       for (String role : roles) { _log.error("  role: " + role); }
       // Test retrieving all perms for a user
-      ResultNameArray permArray = skClient.getUserPerms(userName);
+      ResultNameArray permArray = skClient.getUserPerms(userName, null);
       List<String> perms = permArray.getNames();
       _log.error("User " + userName + " has the following permissions: ");
       for (String perm : perms) { _log.error("  perm: " + perm); }
