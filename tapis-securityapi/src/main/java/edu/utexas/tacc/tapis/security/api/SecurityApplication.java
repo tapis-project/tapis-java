@@ -6,7 +6,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
-import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
@@ -26,7 +25,6 @@ public class SecurityApplication
         // documentation endpoints to be automatically generated.
         register(OpenApiResource.class);
         register(AcceptHeaderOpenApiResource.class);
-        register(TapisExceptionMapper.class);
         
         // We specify what packages JAX-RS should recursively scan
         // to find annotations.  By setting the value to the top-level
@@ -38,6 +36,12 @@ public class SecurityApplication
         setApplicationName("security"); 
         
         // Force runtime initialization of vault.
-        SecretsManager.getInstance(RuntimeParameters.getInstance());
+        try {SecretsManager.getInstance(RuntimeParameters.getInstance());}
+        catch (Exception e) {
+            // We don't depend on the logging subsystem.
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi ****");
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
