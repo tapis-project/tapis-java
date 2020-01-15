@@ -51,7 +51,7 @@
         <option name="PROGRAM_PARAMETERS" value="" />
       </SHUTDOWN>
       <EnvironmentVariables>
-        <option name="NAME" value="TAPIS_ENVONLY_ALLOW_TEST_QUERY_PARMS" />
+        <option name="NAME" value="TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS" />
         <option name="VALUE" value="true" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
@@ -72,7 +72,22 @@
       </EnvironmentVariables>
       <EnvironmentVariables>
         <option name="NAME" value="TAPIS_REQUEST_LOGGING_FILTER_PREFIXES" />
-        <option name="VALUE" value="/systems/v3" />
+        <option name="VALUE" value="/v3/systems" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS" />
+        <option name="VALUE" value="true" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_URL_TOKENS" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
+        <option name="IS_PREDEFINED" value="false" />
+      </EnvironmentVariables>
+      <EnvironmentVariables>
+        <option name="NAME" value="TAPIS_SVC_URL_TENANTS" />
+        <option name="VALUE" value="https://dev.develop.tapis.io" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
     </ConfigurationWrapper>
@@ -116,12 +131,12 @@
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
       <EnvironmentVariables>
-        <option name="NAME" value="TAPIS_SVC_TOKENS_URL" />
+        <option name="NAME" value="TAPIS_SVC_URL_TOKENS" />
         <option name="VALUE" value="https://dev.develop.tapis.io" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>
       <EnvironmentVariables>
-        <option name="NAME" value="TAPIS_SVC_TENANTS_URL" />
+        <option name="NAME" value="TAPIS_SVC_URL_TENANTS" />
         <option name="VALUE" value="https://dev.develop.tapis.io" />
         <option name="IS_PREDEFINED" value="false" />
       </EnvironmentVariables>

@@ -73,7 +73,7 @@ public class SystemResource
   private static final Logger _log = LoggerFactory.getLogger(SystemResource.class);
 
   // Json schema resource files.
-  private static final String FILE_SYSTEMS_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
+  private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -200,7 +200,7 @@ public class SystemResource
     }
 
     // Create validator specification and validate the json against the schema
-    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEMS_CREATE_REQUEST);
+    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_CREATE_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
@@ -215,12 +215,12 @@ public class SystemResource
     String name, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
-    // accessCred is a char array for security reasons. Local var data should be overwritten as soon as possible.
+    // TODO accessCred is a char array for security reasons. Local var data should be overwritten as soon as possible.
     char[] accessCred;
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
 
-    // Extract top level properties: name, host, description, owner, ...
+    // Extract top level properties: name, systemType, host, description, owner, ...
     // Extract required values
     name = obj.get("name").getAsString();
     systemType = obj.get("systemType").getAsString();
@@ -232,7 +232,6 @@ public class SystemResource
     owner = ApiUtils.getValS(obj.get("owner"), "");
     available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
     effectiveUserId = ApiUtils.getValS(obj.get("effectiveUserId"), "");
-    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
     bucketName = ApiUtils.getValS(obj.get("bucketName"), "");
     rootDir = ApiUtils.getValS(obj.get("rootDir"), "");
     port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
@@ -246,6 +245,10 @@ public class SystemResource
     jobRemoteArchiveDir = ApiUtils.getValS(obj.get("jobRemoteArchiveDir"), "");
     tags = ApiUtils.getValS(obj.get("tags"), "{}");
     notes = ApiUtils.getValS(obj.get("notes"), "{}");
+
+    // TODO: Extract the access credential if provided
+//    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
+    accessCred = "".toCharArray();
 
     // Extract list of supported transfer methods
     // If element is not there or the list is empty then build empty array "{}"

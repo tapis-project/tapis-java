@@ -14,6 +14,11 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 //       in IntelliJ IDE as well as from a docker container.
 // NOTE: When running from IntelliJ IDE the live openapi docs contain /v3/systems in the URL
 //       but when running from a docker container they do not.
+// NOTE: When running from IntelliJ IDE the live openapi docs do not contain the top level paths
+//       GET /v3/systems, POST /v3/systems, GET /v3/systems/{sysName} and POST /v3/systems/{sysName}
+//       but the file on disk (tapis-systemsapi/src/main/resources/openapi.json) does contains the paths.
+// NOTE: All the paths in the openapi file on disk (tapis-systemsapi/src/main/resources/openapi.json) are
+//       missing the prefix /v3/systems
 @ApplicationPath("v3/systems")
 public class SystemsApplication extends ResourceConfig
 {

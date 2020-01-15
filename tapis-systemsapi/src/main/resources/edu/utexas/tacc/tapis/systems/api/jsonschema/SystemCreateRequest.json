@@ -1,42 +1,25 @@
 {
   "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
-  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Schema for a system create request",
   "additionalProperties": false,
-
-  "definitions": {
-    "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
-    "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
-    "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
-    "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","CERT","ACCESS_KEY"] }
-  },
-
   "type": "object",
   "properties": {
-    "name": { "$ref": "#/definitions/systemName" },
-    "description": {
-      "type": "string",
-      "maxLength": 2048,
-      "default": ""
-    },
-    "systemType": { "$ref": "#/definitions/systemTypeEnum" },
-    "owner": { "$ref": "#/definitions/userName" },
-    "host": { "$ref": "#/definitions/hostName" },
-    "available": {
-      "type": "boolean",
-      "default": true
-    },
-    "effectiveUserId": { "$ref": "#/definitions/userName" },
-    "accessMethod": { "$ref": "#/definitions/accessMethodEnum" },
+    "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+    "description": { "type": "string", "maxLength": 2048 },
+    "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
+    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "available": { "type": "boolean", "default": true },
+    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+    "accessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
     "accessCredential": {
       "type": "object",
       "properties": {
-        "system": { "$ref": "#/definitions/systemName" },
-        "user": { "$ref": "#/definitions/userName" },
-        "systemType": { "$ref": "#/definitions/systemTypeEnum" },
-        "accessMethod": { "$ref": "#/definitions/accessMethodEnum" },
+        "system": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+        "user": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+        "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
+        "accessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
         "password": { "type":  "string" },
         "privateKey": { "type":  "string" },
         "publicKey": { "type":  "string" },
@@ -45,42 +28,27 @@
         "accessSecret": { "type":  "string" }
       }
     },
-    "bucketName": {
-      "type": "string",
-      "maxLength": 63,
-      "default": ""
-    },
-    "rootDir": { "$ref": "#/definitions/dirPath" },
+    "bucketName": { "type": "string", "maxLength": 63 },
+    "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "transferMethods": {
       "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["SFTP","S3"]
-      }
+      "items": { "type": "string", "enum": ["SFTP","S3"] }
     },
     "port": { "type": "integer" },
-    "useProxy": { "type": "boolean" },
-    "proxyHost": { "$ref": "#/definitions/hostName" },
+    "useProxy": { "type": "boolean", "default": false },
+    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
     "proxyPort": { "type": "integer" },
-
     "jobCanExec": { "type": "boolean" },
-    "jobLocalWorkingDir": { "$ref": "#/definitions/dirPath" },
-    "jobLocalArchiveDir": { "$ref": "#/definitions/dirPath" },
-    "jobRemoteArchiveSystem": { "$ref": "#/definitions/systemName" },
-    "jobRemoteArchiveDir": { "$ref": "#/definitions/dirPath" },
+    "jobLocalWorkingDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "jobLocalArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "jobRemoteArchiveSystem": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+    "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "jobCapabilities": {
       "type": "array",
       "items": { "type": "string" }
     },
-
-    "tags": {
-      "type": "string",
-      "default": "{}"
-    },
-    "notes": {
-      "type": "string",
-      "default": "{}"
-    }
+    "tags": { "type": "string", "default": "{}" },
+    "notes": { "type": "string", "default": "{}" }
   },
   "required": [
     "name",
