@@ -20,14 +20,14 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * 
  * @author rcardone
  */
-public final class SecretsNoOpLoader 
+public final class VaultNoOpLoader 
  extends EnvironmentLoader
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SecretsNoOpLoader.class);
+    private static final Logger _log = LoggerFactory.getLogger(VaultNoOpLoader.class);
     
     // Serialization nonsense.
     private static final long serialVersionUID = -3963065000239599240L;

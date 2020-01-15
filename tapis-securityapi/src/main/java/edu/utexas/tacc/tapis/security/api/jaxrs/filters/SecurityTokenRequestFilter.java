@@ -14,7 +14,7 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -66,7 +66,7 @@ implements ContainerRequestFilter
        if (!relativePath.startsWith(SECRETS_PATH_PREFIX)) return;
        
        // Do we have Vault access.
-       var secretsMgr = SecretsManager.getInstance(true);
+       var secretsMgr = VaultManager.getInstance(true);
        if (secretsMgr == null || secretsMgr.getSkToken() == null) {
            String msg = MsgUtils.getMsg("SK_VAULT_NOT_AVAILABLE", requestContext.getMethod());
            _log.error(msg);
