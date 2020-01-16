@@ -34,6 +34,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
+import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -41,9 +42,11 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -256,9 +259,39 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get the permissions assigned to a user, including those assigned transively. "
-                     + "The optional match query parameter is used as a filter on the result list "
-                     + "of permissions: Only those permissions that are implied by the match permission "
-                     + "are returned.",
+                     + "The result list can be optionally filtered by the one or both of the query "
+                     + "parameters, implies and impliedBy.\n\n"
+                     + ""
+                     + "The implied parameter removes permissions from the result list "
+                     + "that the specified permission do not imply. The impliedBy parameter "
+                     + "removes permissions from the result list that the specified permission "
+                     + "are not implied by. Below are some examples."
+                     + ""
+                     + "Consider a user that is assigned these permissions:\n\n"
+                     + ""
+                     + "    stream:dev:read:project1\n"
+                     + "    stream:dev:read,write:project1\n"
+                     + "    stream:dev:read,write,exec:project1\n\n"
+                     + ""
+                     + "**Using the *implies* Query Parameter**\n\n"
+                     + ""
+                     + "When _implies=stream:dev:*:project1_, this endpoint returns:\n\n"
+                     + ""
+                     + "    stream:dev:read:project1\n"
+                     + "    stream:dev:read,write:project1\n"
+                     + "    stream:dev:read,write,exec:project1\n\n"
+                     + ""
+                     + "When _implies=stream:dev:write:project1_, this endpoint returns an empty list.\n\n"
+                     + ""
+                     + "**Using the *impliedBy* Query Parameter**\n\n"
+                     + ""
+                     + "When _impliedBy=stream:dev:*:project1_, this endpoint returns an empty list.\n\n"
+                     + ""
+                     + "When _impliedBy=stream:dev:write:project1_, this endpoint returns:\n\n"
+                     + ""
+                     + "    stream:dev:read,write:project1\n"
+                     + "    stream:dev:read,write,exec:project1\n\n"
+                     + "",
              tags = "user",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
@@ -275,7 +308,8 @@ public final class UserResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response getUserPerms(@PathParam("user") String user,
-                                  @DefaultValue("") @QueryParam("match") String match,
+                                  @DefaultValue("") @QueryParam("implies") String implies,
+                                  @DefaultValue("") @QueryParam("impliedBy") String impliedBy,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
@@ -294,10 +328,13 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> perms = null;
-         try {perms = getUserImpl().getUserPerms(threadContext.getTenantId(), user, match);}
-             catch (Exception e) {
-                 return getExceptionResponse(e, null, prettyPrint);
-             }
+         try {
+             perms = getUserImpl().getUserPerms(threadContext.getTenantId(), 
+                                                user, implies, impliedBy);
+         }
+         catch (Exception e) {
+             return getExceptionResponse(e, null, prettyPrint);
+         }
          
          // Populate response.
          ResultNameArray names = new ResultNameArray();
@@ -529,9 +566,8 @@ public final class UserResource
                      + "this request will create that role and grant it to the user before "
                      + "assigning the permission to the role.\n\n"
                      + ""
-                     + "A user's default role is constructed by prepending '$$' to the user's name. "
-                     + "This implies the maximum length of a user name is 58 since role names are "
-                     + "limited to 60 characters.\n\n"
+                     + "A user's default role name is discoverable by calling either of the "
+                     + "user/defaultRole or role/defaultRole endpoints.\n\n"
                      + ""
                      + "The change count returned can range from zero to three "
                      + "depending on how many insertions and updates were actually required.",
@@ -1312,6 +1348,92 @@ public final class UserResource
          int cnt = names.names.length;
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_FOUND", "Users", cnt + " items"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* getDefaultUserRole:                                                          */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/defaultRole/{user}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = 
+               "Get a user's default role. The default role can be explicitly created "
+               + "by a POST call or implicitly by the system whenever it's needed and "
+               + "it doesn't already exist. "
+               + ""
+               + "A user's default role is *currently* constructed by prepending '$$' to the "
+               + "user's name.  This implies the maximum length of a user name is 58 since "
+               + "role names are limited to 60 characters.\n\n"
+               + ""
+               + "Since the default role name may be constructed differently in the future, "
+               + "this API is the recommended way to determine the default role."
+               + "",
+
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "The user's default role name.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response getDefaultUserRole(@PathParam("user") String user,
+                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getDefaultUserRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------- Input Processing -------------------------
+         // Check input.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDefaultUserRole", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (user.length() > UserImpl.MAX_USER_NAME_LEN) {
+             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getTenantId(), 
+                                          user, UserImpl.MAX_USER_NAME_LEN);
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         // Construct the role name.
+         String name = null;
+         try {name = getUserImpl().getUserDefaultRolename(user);}
+         catch (Exception e) {
+             return getExceptionResponse(e, null, prettyPrint);
+         }
+         
+         // Fill in the response.
+         ResultName dftName = new ResultName();
+         dftName.name = name;
+         RespName r = new RespName(dftName);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Role", name), prettyPrint, r)).build();
      }
 
      /* **************************************************************************** */

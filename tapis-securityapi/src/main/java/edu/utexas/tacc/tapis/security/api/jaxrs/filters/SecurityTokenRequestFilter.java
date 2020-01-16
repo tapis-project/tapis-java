@@ -37,7 +37,7 @@ implements ContainerRequestFilter
    private static final Logger _log = LoggerFactory.getLogger(SecurityTokenRequestFilter.class);
    
    // The secrets api path prefix.
-   private static final String SECRETS_PATH_PREFIX = "/v3/security/secret";
+   private static final String VAULT_PATH_PREFIX = "/v3/security/vault";
 
    /* ********************************************************************** */
    /*                                Fields                                  */
@@ -63,7 +63,7 @@ implements ContainerRequestFilter
        String relativePath = requestContext.getUriInfo().getRequestUri().getPath();
        
        // We only care about secrets calls.
-       if (!relativePath.startsWith(SECRETS_PATH_PREFIX)) return;
+       if (!relativePath.startsWith(VAULT_PATH_PREFIX)) return;
        
        // Do we have Vault access.
        var secretsMgr = VaultManager.getInstance(true);

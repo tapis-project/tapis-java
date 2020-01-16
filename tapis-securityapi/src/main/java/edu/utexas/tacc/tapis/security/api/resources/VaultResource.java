@@ -126,7 +126,7 @@ public final class VaultResource
                            + "The response object includes the map of zero or more key/value "
                            + "pairs and metadata that describes the secret, including which version of "
                            + "the secret was returned.",
-             tags = "secret",
+             tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
                       content = @Content(schema = @Schema(
@@ -255,7 +255,7 @@ public final class VaultResource
                            + "If the index is greater than zero the write will only be allowed if "
                            + "the key’s current version matches the version specified in the cas "
                            + "parameter.",
-             tags = "secret",
+             tags = "vault",
              requestBody = 
                  @RequestBody(
                      required = true,

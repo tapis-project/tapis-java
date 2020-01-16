@@ -37,6 +37,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
 import edu.utexas.tacc.tapis.security.api.responses.RespPathPrefixes;
 import edu.utexas.tacc.tapis.security.api.responses.RespRole;
+import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -1469,4 +1470,91 @@ public final class RoleResource
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Permission", s), prettyPrint, r)).build();
      }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* getDefaultUserRole:                                                          */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/defaultRole/{user}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = 
+               "Get a user's default role. The default role can be explicitly created "
+               + "by a POST call or implicitly by the system whenever it's needed and "
+               + "it doesn't already exist. "
+               + ""
+               + "A user's default role is *currently* constructed by prepending '$$' to the "
+               + "user's name.  This implies the maximum length of a user name is 58 since "
+               + "role names are limited to 60 characters.\n\n"
+               + ""
+               + "Since the default role name may be constructed differently in the future, "
+               + "this API is the recommended way to determine the default role."
+               + "",
+
+             tags = "role",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "The user's default role name.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response getDefaultUserRole(@PathParam("user") String user,
+                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getDefaultUserRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------- Input Processing -------------------------
+         // Check input.
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDefaultUserRole", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (user.length() > RoleImpl.MAX_USER_NAME_LEN) {
+             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getTenantId(), 
+                                          user, RoleImpl.MAX_USER_NAME_LEN);
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------ Request Processing ------------------------
+         // Construct the role name.
+         String name = null;
+         try {name = getUserImpl().getUserDefaultRolename(user);}
+         catch (Exception e) {
+             return getExceptionResponse(e, null, prettyPrint);
+         }
+         
+         // Fill in the response.
+         ResultName dftName = new ResultName();
+         dftName.name = name;
+         RespName r = new RespName(dftName);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the tenant's role names.
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_FOUND", "Role", name), prettyPrint, r)).build();
+     }
+
 }
