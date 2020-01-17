@@ -3,6 +3,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Schema for a system create request",
   "additionalProperties": false,
+
   "type": "object",
   "properties": {
     "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
@@ -16,10 +17,6 @@
     "accessCredential": {
       "type": "object",
       "properties": {
-        "system": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
-        "user": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-        "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
-        "accessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
         "password": { "type":  "string" },
         "privateKey": { "type":  "string" },
         "publicKey": { "type":  "string" },
@@ -50,6 +47,7 @@
     "tags": { "type": "string", "default": "{}" },
     "notes": { "type": "string", "default": "{}" }
   },
+
   "required": [
     "name",
     "systemType",

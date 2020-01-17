@@ -7,6 +7,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
+import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
@@ -44,6 +45,9 @@ public class SystemsServiceImpl implements SystemsService
 
   private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
 
+  private static final List<String> ALL_PERMS = new ArrayList<>(List.of("*"));
+  private static final String PERM_SPEC_PREFIX = "system:";
+
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
@@ -57,6 +61,10 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Public Methods *********************************
   // ************************************************************************
+
+  // -----------------------------------------------------------------------
+  // ------------------------- Systems -------------------------------------
+  // -----------------------------------------------------------------------
   /**
    * Create a new system object
    *
@@ -67,7 +75,8 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
                           String owner, String host, boolean available, String effectiveUserId, String accessMethod,
-                          char[] accessCredential, String bucketName, String rootDir, String transferMethods,
+                          char[] password, char[] cert, char[] privKey, char[] pubKey, char[] accKey, char[] accSecret,
+                          String bucketName, String rootDir, String transferMethods,
                           int port, boolean useProxy, String proxyHost, int proxyPort,
                           boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
                           String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
@@ -92,7 +101,7 @@ public class SystemsServiceImpl implements SystemsService
 //
 //    }
 
-    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobInputDir, jobOutputDir, workDir, scratchDir
+    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobLocalWorkingDir, jobLocalArchiveDir
     // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
     //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
     String[] allVarSubstitutions = {apiUserId, owner, tenantName};
@@ -109,33 +118,25 @@ public class SystemsServiceImpl implements SystemsService
                                    jobRemoteArchiveDir, jobCapabilities,
                                    tags, notes, rawJson);
 
-    // TODO: Remove debug System.out statements
-
     // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
 
     // TODO Store credentials in Security Kernel
-
     // TODO Once credentials stored overwrite characters in memory
 
-    // Get the Security Kernel client
-    var skClient = getSKClient(tenantName);
-
-    // TODO/TBD: Build perm specs here? review details
-    String sysPerm = "system:" + tenantName + ":*:" + systemName;
-
     // Give owner and possibly effectiveUser access to the system
-    // SK creates a default role for the user
-    try
+    grantUserPermissions(tenantName, systemName, owner, ALL_PERMS);
+    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
     {
-      skClient.grantUserPermission(owner, sysPerm);
-      // Grant same perms for effectiveUser unless effUser == apiUser or owner
-      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
-      {
-        skClient.grantUserPermission(effectiveUserId, sysPerm);
-      }
+      grantUserPermissions(tenantName, systemName, effectiveUserId, ALL_PERMS);
     }
-    // TODO exception handling, but consider how data integrity will be handled for distributed data
-    catch (Exception e) { _log.error(e.toString()); throw e;}
+
+    // TODO *************** remove tests ********************
+    var skClient = getSKClient(tenantName);
+    // TODO/TBD: remove addition of files related permSpec
+    // Give owner/effectiveUser files service related permission for root directory
+    String permSpec = "files:" + tenantName + ":*:" +  systemName;
+    skClient.grantUserPermission(owner, permSpec);
+    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(effectiveUserId, permSpec);
 
     // TODO *************** remove tests ********************
     printPermInfoForUser(skClient, owner);
@@ -154,24 +155,15 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Remove all credentials associated with the system
 
     // TODO: See if it makes sense to have a SK method to do this in one operation
-    // Remove all permissions associated with the system
-    // Build list of all perms
-    var userPerms = new ArrayList<String>();
-    for (TSystem.Permissions perm : TSystem.Permissions.values()) {
-      userPerms.add(perm.name());
-    }
     // Use Security Kernel client to find all users with perms associated with the system.
     // Get the Security Kernel client
     var skClient = getSKClient(tenantName);
-    String permSpec = "system:" + tenantName + ":%:" + systemName;
+    String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
     var userNames = skClient.getUsersWithPermission(permSpec).getNames();
     // Revoke all perms for all users
     for (String userName : userNames) {
-      revokeUserPermissions(tenantName, systemName, userName, userPerms);
-      // TODO/TBD: It is currently needed but how to make sure all perms for a system are removed?
-      // Remove the "*" permission
-      permSpec = "system:" + tenantName + ":*:" + systemName;
-      skClient.revokeUserPermission(userName, permSpec);
+      revokeUserPermissions(tenantName, systemName, userName, ALL_PERMS);
+      // TODO/TBD: How to make sure all perms for a system are removed?
       // TODO *************** remove debug output ********************
       printPermInfoForUser(skClient, userName);
     }
@@ -267,13 +259,13 @@ public class SystemsServiceImpl implements SystemsService
     return dao.getTSystemOwner(tenant, systemName);
   }
 
+  // -----------------------------------------------------------------------
+  // --------------------------- Permissions -------------------------------
+  // -----------------------------------------------------------------------
+
   /**
    * Grant permissions to a user for a system
    * NOTE: This only impacts the default user role
-   * Add each perm separately. This makes them easier to remove from the role.
-   * If any of the perms are the wildcard then all perms are given
-   * NOTE: If wildcard ("*") is given we still add perms individually so we
-   *       can more easily remove them in revokeUserPermissions().
    *
    * @throws TapisException - for Tapis related exceptions
    */
@@ -307,33 +299,6 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO *************** remove tests ********************
     printPermInfoForUser(skClient, userName);
-  }
-
-  /**
-   * Get list of system permissions for a user
-   * NOTE: This retrieves permissions from all roles.
-   *
-   * @return List of permissions
-   * @throws TapisException - for Tapis related exceptions
-   */
-  @Override
-  public List<String> getUserPermissions(String tenantName, String systemName, String userName) throws TapisException
-  {
-    var userPerms = new ArrayList<String>();
-    // Use Security Kernel client to check for each permission in the enum list
-    var skClient = getSKClient(tenantName);
-    for (TSystem.Permissions perm : TSystem.Permissions.values())
-    {
-      String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
-      try
-      {
-        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
-        if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
-      }
-      // TODO exception handling
-      catch (Exception e) { _log.error(e.toString()); throw e;}
-    }
-    return userPerms;
   }
 
   /**
@@ -372,6 +337,121 @@ public class SystemsServiceImpl implements SystemsService
 
     // TODO *************** remove tests ********************
     printPermInfoForUser(skClient, userName);
+  }
+
+  /**
+   * Get list of system permissions for a user
+   * NOTE: This retrieves permissions from all roles.
+   *
+   * @return List of permissions
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public List<String> getUserPermissions(String tenantName, String systemName, String userName) throws TapisException
+  {
+    var userPerms = new ArrayList<String>();
+    // Use Security Kernel client to check for each permission in the enum list
+    var skClient = getSKClient(tenantName);
+    for (TSystem.Permissions perm : TSystem.Permissions.values())
+    {
+      String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
+      try
+      {
+        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
+        if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
+      }
+      // TODO exception handling
+      catch (Exception e) { _log.error(e.toString()); throw e;}
+    }
+    return userPerms;
+  }
+
+  // -----------------------------------------------------------------------
+  // ---------------------------- Credentials ------------------------------
+  // -----------------------------------------------------------------------
+
+  /**
+   * Store or update credential for given system and user.
+   *
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public void createUserCredential(String tenantName, String systemName, String userName, Credential credential)
+          throws TapisException
+  {
+    // Check inputs. If anything null or empty throw an exception
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
+            credential == null)
+    {
+      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
+    }
+
+    // Get the Security Kernel client
+    var skClient = getSKClient(tenantName);
+
+//    // Assign perms to user. SK creates a default role for the user
+//    try
+//    {
+//    }
+//    // TODO exception handling
+//    catch (Exception e) { _log.error(e.toString()); throw e;}
+  }
+
+  /**
+   * Delete credential for given system and user
+   *
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public void deleteUserCredential(String tenantName, String systemName, String userName)
+          throws TapisException
+  {
+    // Check inputs. If anything null or empty throw an exception
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+    {
+      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
+    }
+
+    // Get the Security Kernel client
+    var skClient = getSKClient(tenantName);
+
+//    // Remove perms from default user role
+//    try
+//    {
+//      for (String permSpec : permSpecSet)
+//      {
+//        skClient.revokeUserPermission(userName, permSpec);
+//      }
+//    }
+//    // TODO exception handling
+//    catch (Exception e) { _log.error(e.toString()); throw e;}
+  }
+
+  /**
+   * Get credential for given system and user
+   *
+   * @return Credential
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public Credential getUserCredential(String tenantName, String systemName, String userName) throws TapisException
+  {
+    Credential credential = null;
+    // Use Security Kernel client to retrieve credential
+    var skClient = getSKClient(tenantName);
+
+//    for (TSystem.Permissions perm : TSystem.Permissions.values())
+//    {
+//      String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
+//      try
+//      {
+//        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
+//        if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
+//      }
+//      // TODO exception handling
+//      catch (Exception e) { _log.error(e.toString()); throw e;}
+//    }
+    return credential;
   }
 
   // ************************************************************************
@@ -453,7 +533,6 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Create a set of individual permSpec entries based on the list passed in
-   * For wildcard add all perms in the enum set
    * @param permList
    * @return
    */
@@ -462,21 +541,10 @@ public class SystemsServiceImpl implements SystemsService
     var permSet = new HashSet<String>();
     for (String permStr : permList)
     {
-      if (StringUtils.trimToEmpty(permStr).equals(TSystem.PERMS_WILDCARD))
-      {
-        for (TSystem.Permissions perm : TSystem.Permissions.values())
-        {
-          String permSpec = "system:" + tenantName + ":" + perm.name() + ":" + systemName;
-          permSet.add(permSpec);
-        }
-      }
-      else
-      {
-        // TODO/TBD: should we check that the perm matches one in the enum, possibly trimming and ignoring case
-        // TODO/TBD: JSON validation at front-end can handle the check
-        String permSpec = "system:" + tenantName + ":" + permStr.toUpperCase() + ":" + systemName;
-        permSet.add(permSpec);
-      }
+      // TODO/TBD: should we check that the perm matches one in the enum, possibly trimming and ignoring case
+      // TODO/TBD: JSON validation at front-end can handle the check
+      String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + permStr.toUpperCase() + ":" + systemName;
+      permSet.add(permSpec);
     }
     return permSet;
   }

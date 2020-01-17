@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,4 +116,74 @@ public class ApiUtils
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
   }
+
+  /**
+   * Check that systems exists and apiUser IS or IS NOT the owner.
+   * @param tenantName - name of the tenant
+   * @param systemName - name of the system to check
+   * @param userName - name of user associated with the perms request, for constructing response msg
+   * @param prettyPrint - print flag used to construct response
+   * @param requesterName - name of the requester, null if check should be skipped
+   * @param opName - operation name, for constructing response msg
+   * @param mustBeOwner - flag indicating to check if requester IS or IS NOT the owner
+   * @return - null if all checks OK else Response containing info
+   */
+  public static Response checkSystemAndOwner(SystemsService systemsService, String tenantName, String systemName,
+                                             String userName, boolean prettyPrint, String requesterName, String opName, boolean mustBeOwner)
+  {
+    Response resp = null;
+    String msg;
+    // Check if system exists
+    boolean systemExists;
+    try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (!systemExists)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, userName);
+      _log.error(msg);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // If we are skipping owner check then we are done
+    if (requesterName == null) return resp;
+
+    // Check if requester IS or IS NOT owner of the system
+    // Get the system owner and verify that requester IS or IS NOT the owner
+    String owner;
+    try { owner = systemsService.getSystemOwner(tenantName, systemName); }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", opName, systemName, userName, requesterName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if (StringUtils.isBlank(owner))
+    {
+      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", opName, systemName, userName, requesterName);
+      _log.error(msg);
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    // mustBeOwner flag indicates if we are checking that requester IS or IS NOT the owner
+    if (mustBeOwner && !owner.equals(requesterName))
+    {
+      msg = ApiUtils.getMsg("SYSAPI_NOT_OWNER", opName, systemName, userName, requesterName);
+      _log.error(msg);
+      return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    else if ( !mustBeOwner && owner.equals(requesterName))
+    {
+      msg = ApiUtils.getMsg("SYSAPI_IS_OWNER", opName, systemName, userName, requesterName);
+      _log.error(msg);
+      return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    return resp;
+  }
+
+
+
 }

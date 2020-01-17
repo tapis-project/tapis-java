@@ -39,6 +39,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/*
+ * JAX-RS REST resource for Tapis System permissions
+ * Contains annotations which generate the OpenAPI specification documents.
+ * Annotations map HTTP verb + endpoint to method invocation.
+ * Permissions are stored in the Security Kernel
+ *
+ */
 @Path("/perms")
 public class PermsResource
 {
@@ -160,7 +167,8 @@ public class PermsResource
     // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "grantUserPerms", true);
+    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+            "grantUserPerms", true);
     if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
@@ -227,7 +235,7 @@ public class PermsResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSystemByName",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getUserPerms",
                                    "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -242,8 +250,9 @@ public class PermsResource
 //    String apiUserId = threadContext.getUser();
 
     // ------------------------- Check prerequisites -------------------------
-    // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, null, "getUserPerms", false);
+    // Check that the system exists
+    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, null,
+            "getUserPerms", false);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -252,7 +261,7 @@ public class PermsResource
     try { permNames = systemsService.getUserPermissions(tenantName, systemName, userName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_GET_ERROR", null, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -304,7 +313,7 @@ public class PermsResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "reovkeUserPerm",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "revokeUserPerm",
                             "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -321,7 +330,8 @@ public class PermsResource
     // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerm", true);
+    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+            "revokeUserPerm", true);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -391,7 +401,7 @@ public class PermsResource
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "reovkeUserPerms",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "revokeUserPerms",
                             "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -408,7 +418,8 @@ public class PermsResource
     // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
-    resp = checkSystemAndOwner(tenantName, systemName, userName, prettyPrint, apiUserId, "revokeUserPerms", true);
+    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+            "revokeUserPerms", true);
     if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
@@ -447,72 +458,6 @@ public class PermsResource
   {
     if (systemsService != null) return systemsService;
     return new SystemsServiceImpl();
-  }
-
-  /**
-   * Check that systems exists and apiUser IS or IS NOT the owner.
-   * @param tenantName - name of the tenant
-   * @param systemName - name of the system to check
-   * @param userName - name of user associated with the perms request, for constructing response msg
-   * @param prettyPrint - print flag used to construct response
-   * @param requesterName - name of the requester, null if check should be skipped
-   * @param opName - operation name, for constructing response msg
-   * @param mustBeOwner - flag indicating to check if requester IS or IS NOT the owner
-   * @return - null if all checks OK else Response containing info
-   */
-  private Response checkSystemAndOwner(String tenantName, String systemName, String userName, boolean prettyPrint,
-                                       String requesterName, String opName, boolean mustBeOwner)
-  {
-    Response resp = null;
-    String msg;
-    boolean systemExists;
-    try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
-    catch (Exception e)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_CHECK_ERROR", null, systemName, userName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    if (!systemExists)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOSYSTEM", systemName, userName);
-      _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
-    // If we are skipping owner check then we are done
-    if (requesterName == null) return resp;
-
-    // Check if requester IS or IS NOT owner of the system
-    // Get the system owner and verify that requester IS or IS NOT the owner
-    String owner;
-    try { owner = systemsService.getSystemOwner(tenantName, systemName); }
-    catch (Exception e)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", systemName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    if (StringUtils.isBlank(owner))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", systemName);
-      _log.error(msg);
-      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    // mustBeOwner flag indicates if we are checking that requester IS or IS NOT the owner
-    if (mustBeOwner && !owner.equals(requesterName))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_NOT_OWNER", systemName, opName);
-      _log.error(msg);
-      return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    else if ( !mustBeOwner && owner.equals(requesterName))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_IS_OWNER", systemName, opName);
-      _log.error(msg);
-      return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    return resp;
   }
 
   /**

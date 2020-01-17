@@ -18,8 +18,13 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
@@ -27,10 +32,13 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,14 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
-
-import edu.utexas.tacc.tapis.systems.model.TSystem;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
@@ -215,8 +215,9 @@ public class SystemResource
     String name, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
-    // TODO accessCred is a char array for security reasons. Local var data should be overwritten as soon as possible.
-    char[] accessCred;
+    // TODO Some fields in accessCred are of type char[] for security reasons. Local var data should be overwritten as soon as possible.
+    Credential accessCred = new Credential(null, null, null, null, null,
+                                         null, null, null, null, null, null);
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
 
@@ -246,9 +247,8 @@ public class SystemResource
     tags = ApiUtils.getValS(obj.get("tags"), "{}");
     notes = ApiUtils.getValS(obj.get("notes"), "{}");
 
-    // TODO: Extract the access credential if provided
-//    accessCred = (obj.has("accessCredential") ? obj.get("accessCredential").getAsString().toCharArray() : "".toCharArray());
-    accessCred = "".toCharArray();
+    // Extract access credential if provided and effectiveUserId is not dynamic
+    if (obj.has("accessCredential") &&  !effectiveUserId.equals(APIUSERID_VAR)) accessCred = extractAccessCred(obj);
 
     // Extract list of supported transfer methods
     // If element is not there or the list is empty then build empty array "{}"
@@ -285,7 +285,7 @@ public class SystemResource
 
     // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
     msg = null;
-    // Check values. name, host, accessMech must be set. effectiveUserId is restricted.
+    // Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
     // If transfer mechanism S3 is supported then bucketName must be set.
     if (StringUtils.isBlank(name))
     {
@@ -304,10 +304,10 @@ public class SystemResource
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
     }
     else if (accessMethod.equals(Protocol.AccessMethod.CERT.name()) &&
-             !StringUtils.isBlank(owner) &&
-             !effectiveUserId.equals(owner) &&
-             !effectiveUserId.equals(APIUSERID_VAR) &&
-             !effectiveUserId.equals(OWNER_VAR))
+            !effectiveUserId.equals(APIUSERID_VAR) &&
+            !effectiveUserId.equals(OWNER_VAR) &&
+            !StringUtils.isBlank(owner) &&
+            !effectiveUserId.equals(owner))
     {
       // For CERT access the effectiveUserId cannot be static string other than owner
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
@@ -316,6 +316,11 @@ public class SystemResource
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+    }
+    else if (obj.has("accessCredential") && effectiveUserId.equals(APIUSERID_VAR))
+    {
+      // If effectiveUserId is dynamic then providing credentials is disallowed
+      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
     }
 
     // If validation failed log error message and return response
@@ -330,8 +335,11 @@ public class SystemResource
     try
     {
       systemsService.createSystem(tenantName, apiUserId, name, description, systemType, owner, host, available,
-                                  effectiveUserId, accessMethod, accessCred, bucketName, rootDir,
-                                  transferMethodsSB.toString(), port, useProxy, proxyHost, proxyPort,
+                                  effectiveUserId, accessMethod,
+                                  accessCred.getPassword(), accessCred.getPrivateKey(), accessCred.getPublicKey(),
+                                  accessCred.getCert(), accessCred.getAccessKey(), accessCred.getAccessSecret(),
+                                  bucketName, rootDir, transferMethodsSB.toString(),
+                                  port, useProxy, proxyHost, proxyPort,
                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
                                   jobRemoteArchiveDir, jobCapsSB.toString(), tags, notes, rawJson);
     }
@@ -437,8 +445,7 @@ public class SystemResource
     {
       String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, sysName);
       _log.warn(msg);
-      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("TAPIS_NOT_FOUND", "System", sysName),
-                                               prettyPrint)).build();
+      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
     // ---------------------------- Success -------------------------------
@@ -590,5 +597,28 @@ public class SystemResource
     RespChangeCount resp1 = new RespChangeCount(count);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
       MsgUtils.getMsg("TAPIS_DELETED", "System", sysName), prettyPrint, resp1)).build();
+  }
+
+  /* **************************************************************************** */
+  /*                                Private Methods                               */
+  /* **************************************************************************** */
+
+  /**
+   * Extract AccessCredential details from the top level Json object
+   * @param obj Top level Json object from request
+   * @return A partially populated Credential object
+   */
+  private Credential extractAccessCred(JsonObject obj)
+  {
+    char[] password, privateKey, publicKey, sshCert, accessKey, accessSecret;
+    JsonObject credObj = obj.getAsJsonObject("accessCredential");
+    password = ApiUtils.getValS(credObj.get("password"), "").toCharArray();
+    privateKey = ApiUtils.getValS(credObj.get("privateKey"), "").toCharArray();
+    publicKey = ApiUtils.getValS(credObj.get("publicKey"), "").toCharArray();
+    sshCert = ApiUtils.getValS(credObj.get("sshCert"), "").toCharArray();
+    accessKey = ApiUtils.getValS(credObj.get("accessKey"), "").toCharArray();
+    accessSecret = ApiUtils.getValS(credObj.get("accessSecret"), "").toCharArray();
+    return new Credential(null, null, null, null, null,
+                          password, privateKey, publicKey, sshCert, accessKey, accessSecret);
   }
 }

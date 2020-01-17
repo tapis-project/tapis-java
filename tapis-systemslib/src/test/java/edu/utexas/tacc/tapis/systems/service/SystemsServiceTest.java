@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.systems.model.Credential;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -30,6 +31,8 @@ public class SystemsServiceTest
   private static final String testUser2 = "testuser2";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
   private static final Protocol prot1 = new Protocol(AccessMethod.PASSWORD, txfrMethodsList, -1, false, "",-1);
+  private static final Credential cred1 = new Credential(null, null, null, null, null, null,
+                                                      null, null, null, null, null);
   private static final String prot1AccessMethName = prot1.getAccessMethod().name();
   private static final String accessMethName_CERT = AccessMethod.CERT.name();
   private static final String prot1TxfrMethods = prot1.getTransferMethodsAsStr();
@@ -81,10 +84,11 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys1;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
@@ -94,10 +98,11 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys2;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = svc.getSystemByName(sys0[0], sys0[1], apiUser, false);
@@ -139,10 +144,11 @@ public class SystemsServiceTest
     // TODO
     String[] sys0 = sys8;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = svc.getSystemByName(sys0[0], sys0[1], apiUser, false);
@@ -189,18 +195,19 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys3;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[14].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
     prot0 = prot1;
     pass0 = sys0[8].toCharArray();
-    itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<String> systemNames = svc.getSystemNames(tenantName);
@@ -216,10 +223,11 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys5;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<TSystem> systems = svc.getSystems(tenantName, apiUser);
@@ -234,10 +242,11 @@ public class SystemsServiceTest
     // Create the system
     String[] sys0 = sys6;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
 
@@ -255,33 +264,35 @@ public class SystemsServiceTest
     // After creating system we should get true
     String[] sys0 = sys7;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     Assert.assertTrue(svc.checkForSystemByName(sys7[0], sys7[1]));
   }
 
-  // Check that if systems already exists we get an IllegalStateException
+  // Check that if systems already exists we get an IllegalStateException when attempting to create
   @Test(expectedExceptions = {IllegalStateException.class})
-  public void testSystemAlreadyExists() throws Exception
+  public void testCreateSystemAlreadyExists() throws Exception
   {
     // Create the system
     String[] sys0 = sys9;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     Assert.assertTrue(svc.checkForSystemByName(sys9[0], sys9[1]));
     // Now attempt to create again, should get IllegalStateException
-    svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
   }
 
@@ -292,10 +303,11 @@ public class SystemsServiceTest
     // Create a system
     String[] sys0 = sysA;
     Protocol prot0 = prot1;
+    Credential cred0 = cred1;
     char[] pass0 = sys0[8].toCharArray();
-    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            sys0[7], pass0, sys0[9], sys0[10], sys0[11],
-            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
+            cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCert(), cred0.getAccessKey(), cred0.getAccessSecret(),
+            sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Create user perms for the system
