@@ -4,7 +4,7 @@ package edu.utexas.tacc.tapis.security.secrets;
  * 
  * @author rcardone
  */
-public interface ISecretsManagerParms 
+public interface IVaultManagerParms 
 {
     public boolean isVaultDisabled();
     public String  getVaultAddress();

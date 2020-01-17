@@ -38,9 +38,6 @@ public final class UserImpl
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(UserImpl.class);
     
-    // Role name max characters allowed in database.
-    private static final int MAX_USER_NAME_LEN = 58;
-    
     /* **************************************************************************** */
     /*                                     Enums                                    */
     /* **************************************************************************** */
@@ -135,7 +132,8 @@ public final class UserImpl
     /* ---------------------------------------------------------------------- */
     /* getUserPerms:                                                          */
     /* ---------------------------------------------------------------------- */
-    public List<String> getUserPerms(String tenant, String user, String match) 
+    public List<String> getUserPerms(String tenant, String user, String implies,
+                                     String impliedBy) 
      throws TapisImplException
     {
         // Get the dao.
@@ -158,7 +156,8 @@ public final class UserImpl
             }
 
         // Optionally filter the list of permissions.
-        if (!StringUtils.isBlank(match)) filterPermissions(perms, match);
+        if (!StringUtils.isBlank(implies)) filterImpliesPermissions(perms, implies);
+        if (!StringUtils.isBlank(impliedBy)) filterImpliedByPermissions(perms, impliedBy);
         
         return perms;
     }
@@ -699,36 +698,64 @@ public final class UserImpl
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* filterPermissions:                                                           */
+    /* filterImpliesPermissions:                                                    */
     /* ---------------------------------------------------------------------------- */
-    /** Remove permission from the list that don't match the specified permission
-     * string.  The result is a possibly altered permissions list.
+    /** Remove permissions from the list that are not implied by the implies 
+     * permission parameter.  The result is a possibly altered permissions list.
      * 
      * @param perms List of permissions to be filtered
-     * @param match a permission string to match against.
+     * @param implies a permission string that implies each entry in the final perms list
      */
-    private void filterPermissions(List<String> perms, String match)
+    private void filterImpliesPermissions(List<String> perms, String implies)
     {
         // Is there anything to do?
         if (perms.isEmpty()) return;
         
         // Put the match filter in a list.
-        var matchList = new ArrayList<String>(1);
-        matchList.add(match);
+        var impliesList = new ArrayList<String>(1);
+        impliesList.add(implies);
         
         // Create a permission cache that allows us to allocate at most
         // one wildcard object for the match permission.  The cache
         // is only useful if more than 1 permission might get tested.
-        HashMap<String,ExtWildcardPermission> matchPermMap;
-        if (perms.size() > 1) 
-            matchPermMap = new HashMap<>(3);
-          else matchPermMap = null;
+        HashMap<String,ExtWildcardPermission> impliesPermMap;
+        if (perms.size() > 1) impliesPermMap = new HashMap<>(3);
+          else impliesPermMap = null;
         
         // Iterate through the list removing permissions that don't match.
         var it = perms.listIterator();
         while (it.hasNext()) {
             String curPerm = it.next();
-            if (!matchPermission(curPerm, matchList, matchPermMap)) it.remove();
+            if (!matchPermission(curPerm, impliesList, impliesPermMap)) it.remove();
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* filterImpliedByPermissions:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Remove permissions from the list that don't imply the impliedBy permission
+     * parameter.  The result is a possibly altered permissions list.  
+     * 
+     * Note that no caching of permission objects occurs on this path. If this becomes
+     * a problem, we should only create the impliedBy permission object once. 
+     * 
+     * @param perms List of permissions to be filtered
+     * @param impliedBy a permission string that is implied by each entry in the final perms list
+     */
+    private void filterImpliedByPermissions(List<String> perms, String impliedBy)
+    {
+        // Is there anything to do?
+        if (perms.isEmpty()) return;
+        
+        // For each permission in the perms list, see if it implies 
+        // the impliedBy permission parameter.
+        var impliesList = new ArrayList<String>(1);  
+        var it = perms.listIterator();
+        while (it.hasNext()) {
+            String curPerm = it.next();
+            impliesList.clear();
+            impliesList.add(curPerm);
+            if (!matchPermission(impliedBy, impliesList, null)) it.remove();
         }
     }
 }

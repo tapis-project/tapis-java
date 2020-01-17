@@ -14,7 +14,7 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -37,7 +37,7 @@ implements ContainerRequestFilter
    private static final Logger _log = LoggerFactory.getLogger(SecurityTokenRequestFilter.class);
    
    // The secrets api path prefix.
-   private static final String SECRETS_PATH_PREFIX = "/v3/security/secret";
+   private static final String VAULT_PATH_PREFIX = "/v3/security/vault";
 
    /* ********************************************************************** */
    /*                                Fields                                  */
@@ -63,10 +63,10 @@ implements ContainerRequestFilter
        String relativePath = requestContext.getUriInfo().getRequestUri().getPath();
        
        // We only care about secrets calls.
-       if (!relativePath.startsWith(SECRETS_PATH_PREFIX)) return;
+       if (!relativePath.startsWith(VAULT_PATH_PREFIX)) return;
        
        // Do we have Vault access.
-       var secretsMgr = SecretsManager.getInstance(true);
+       var secretsMgr = VaultManager.getInstance(true);
        if (secretsMgr == null || secretsMgr.getSkToken() == null) {
            String msg = MsgUtils.getMsg("SK_VAULT_NOT_AVAILABLE", requestContext.getMethod());
            _log.error(msg);

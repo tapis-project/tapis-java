@@ -32,6 +32,9 @@ class BaseImpl
     // SK generated role names start with a reserved 2 character sequence.
     public static final String USER_DEFAULT_ROLE_PREFIX = RESERVED_NAME_CHAR + "$";
 
+    // Role name max characters allowed in database.
+    public static final int MAX_USER_NAME_LEN = 58;
+    
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */

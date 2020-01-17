@@ -9,7 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.secrets.ISecretsManagerParms;
+import edu.utexas.tacc.tapis.security.secrets.IVaultManagerParms;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -40,7 +40,7 @@ import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
  * @author rcardone
  */
 public final class RuntimeParameters 
- implements EmailClientParameters, ISecretsManagerParms
+ implements EmailClientParameters, IVaultManagerParms
 {
     /* ********************************************************************** */
     /*                               Constants                                */

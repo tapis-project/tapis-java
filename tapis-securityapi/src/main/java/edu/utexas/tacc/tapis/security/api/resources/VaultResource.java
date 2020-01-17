@@ -29,7 +29,7 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqWriteSecret;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecret;
-import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -42,15 +42,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
-@Path("/secret")
-public final class SecretResource
+@Path("/vault")
+public final class VaultResource
  extends AbstractResource
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(SecretResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(VaultResource.class);
 
     // Json schema resource files.
     private static final String FILE_SK_WRITE_SECRET_REQUEST = 
@@ -107,7 +107,7 @@ public final class SecretResource
      /* readSecret:                                                                  */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("{secretName}")
+     @Path("/secret/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Read a versioned secret. "
@@ -126,7 +126,7 @@ public final class SecretResource
                            + "The response object includes the map of zero or more key/value "
                            + "pairs and metadata that describes the secret, including which version of "
                            + "the secret was returned.",
-             tags = "secret",
+             tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
                       content = @Content(schema = @Schema(
@@ -171,7 +171,7 @@ public final class SecretResource
          // Issue the vault call.
          LogicalResponse logicalResp = null;
          try {
-             var logical = SecretsManager.getInstance().getVault().logical();
+             var logical = VaultManager.getInstance().getVault().logical();
              logicalResp = logical.read(secretPath, Boolean.TRUE, version);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_VAULT_READ_SECRET_ERROR", 
@@ -226,7 +226,7 @@ public final class SecretResource
      /* writeSecret:                                                                */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("{secretName}")
+     @Path("/secret/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create or update a secret. "
@@ -255,7 +255,7 @@ public final class SecretResource
                            + "If the index is greater than zero the write will only be allowed if "
                            + "the key’s current version matches the version specified in the cas "
                            + "parameter.",
-             tags = "secret",
+             tags = "vault",
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -323,7 +323,7 @@ public final class SecretResource
          // Issue the vault call.
          LogicalResponse logicalResp = null;
          try {
-             var logical = SecretsManager.getInstance().getVault().logical();
+             var logical = VaultManager.getInstance().getVault().logical();
              logicalResp = logical.write(secretPath, secretMap);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_VAULT_WRITE_SECRET_ERROR", 

@@ -24,7 +24,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -55,7 +55,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                                         email = "cicsupport@tacc.utexas.edu")),
         tags = {@Tag(name = "role", description = "manage roles and permissions"),
                 @Tag(name = "user", description = "assign roles and permissions to users"),
-                @Tag(name = "secret", description = "manage application and user secrets"),
+                @Tag(name = "vault", description = "manage application and user secrets"),
                 @Tag(name = "general", description = "informational endpoints")},
         servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
@@ -227,8 +227,8 @@ public final class SecurityResource
           }
       
       // Check the health of vault.
-      var secretsMgr = SecretsManager.getInstance(true);
-      if (secretsMgr == null || !secretsMgr.isHealthy()) {
+      var vaultMgr = VaultManager.getInstance(true);
+      if (vaultMgr == null || !vaultMgr.isHealthy()) {
           // Failure case.
           RespBasic r = new RespBasic("Health secrets check " + checkNum + " failed.");
           String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
@@ -298,8 +298,8 @@ public final class SecurityResource
             }
       
       // Check the readiness of vault.
-      var secretsMgr = SecretsManager.getInstance(true);
-      if (secretsMgr == null || !secretsMgr.isReady()) {
+      var vaultMgr = VaultManager.getInstance(true);
+      if (vaultMgr == null || !vaultMgr.isReady()) {
           // Failure case.
           RespBasic r = new RespBasic("Readiness secrets check " + checkNum + " failed.");
           String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");

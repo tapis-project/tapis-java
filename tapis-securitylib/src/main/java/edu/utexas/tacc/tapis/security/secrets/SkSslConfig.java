@@ -12,6 +12,6 @@ public final class SkSslConfig
     // Construct all instances with our custom environment loader.
     public SkSslConfig()
     {
-        environmentLoader(new SecretsNoOpLoader());
+        environmentLoader(new VaultNoOpLoader());
     }
 }

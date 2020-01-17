@@ -5,7 +5,7 @@ import javax.ws.rs.ApplicationPath;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
-import edu.utexas.tacc.tapis.security.secrets.SecretsManager;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
@@ -36,7 +36,7 @@ public class SecurityApplication
         setApplicationName("security"); 
         
         // Force runtime initialization of vault.
-        try {SecretsManager.getInstance(RuntimeParameters.getInstance());}
+        try {VaultManager.getInstance(RuntimeParameters.getInstance());}
         catch (Exception e) {
             // We don't depend on the logging subsystem.
             System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi ****");

@@ -14,14 +14,14 @@ import com.bettercloud.vault.response.AuthResponse;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SecretsManager
+public final class VaultManager
   implements Thread.UncaughtExceptionHandler
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SecretsManager.class);
+    private static final Logger _log = LoggerFactory.getLogger(VaultManager.class);
     
     // The secrets engine version we use by default.
     private static final int DEFAULT_SECRETS_ENGINE_VERSION = 2;
@@ -41,10 +41,10 @@ public final class SecretsManager
     /*                                 Fields                                 */
     /* ********************************************************************** */
     // Singleton instance of this class.
-    private static SecretsManager _instance;
+    private static VaultManager _instance;
     
     // Save the parms object.
-    private final ISecretsManagerParms _parms;
+    private final IVaultManagerParms _parms;
     
     // SK's vault token authentication response that contains its token.
     private AuthResponse _tokenAuth;
@@ -61,7 +61,7 @@ public final class SecretsManager
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
-    private SecretsManager(ISecretsManagerParms parms)
+    private VaultManager(IVaultManagerParms parms)
      throws TapisRuntimeException
     {
         // Save the parms object before initialization.
@@ -81,12 +81,12 @@ public final class SecretsManager
      * @param secretId the short-lived approle secret assigned by vault
      * @return the singleton instance
      */
-    public static synchronized SecretsManager getInstance(ISecretsManagerParms parms)
+    public static synchronized VaultManager getInstance(IVaultManagerParms parms)
      throws TapisRuntimeException
     {
         // Create the instance if necessary.
         if (_instance == null) 
-            _instance = new SecretsManager(parms);
+            _instance = new VaultManager(parms);
         
         return _instance;
     }
@@ -100,7 +100,7 @@ public final class SecretsManager
      * @return the singleton instance
      * @throws TapisRuntimeException when the singleton does not exist
      */
-    public static SecretsManager getInstance()  
+    public static VaultManager getInstance()  
      throws TapisRuntimeException
     {
         return getInstance(false);
@@ -119,7 +119,7 @@ public final class SecretsManager
      * @throws TapisRuntimeException when the singleton doesn't exist and 
      *           allowNullResult is false
      */
-    public static SecretsManager getInstance(boolean allowNullResult)
+    public static VaultManager getInstance(boolean allowNullResult)
      throws TapisRuntimeException
     {
         // Make sure we have an initialed instance.
@@ -184,7 +184,7 @@ public final class SecretsManager
      throws TapisRuntimeException
     {
         // Use our custom loader to cut off any automatic environment loading by the driver.
-        var loader = new SecretsNoOpLoader();
+        var loader = new VaultNoOpLoader();
         
         // -------------------------- Vault Disabled --------------------------
         // Handle the simple case in which vault disabled.
