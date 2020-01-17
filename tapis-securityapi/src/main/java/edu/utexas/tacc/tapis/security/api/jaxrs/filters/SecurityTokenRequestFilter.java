@@ -54,9 +54,9 @@ implements ContainerRequestFilter
    @Override
    public void filter(ContainerRequestContext requestContext) throws IOException 
    {
-       // Tracing.
-       if (_log.isTraceEnabled())
-           _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
+       // Tracing.  Normally turned off to avoid the I/O overhead.
+//       if (_log.isTraceEnabled())
+//           _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
        
        // Get the service-specific path, which is the path after the host:port 
        // segment and includes a leading slash.  
@@ -66,10 +66,16 @@ implements ContainerRequestFilter
        if (!relativePath.startsWith(VAULT_PATH_PREFIX)) return;
        
        // Do we have Vault access.
-       var secretsMgr = VaultManager.getInstance(true);
+       Throwable ex = null;
+       VaultManager secretsMgr = null;
+       try {secretsMgr = VaultManager.getInstance(true);}
+           catch (Throwable e) {ex = e;}
+       
+       // Are we ok?
        if (secretsMgr == null || secretsMgr.getSkToken() == null) {
            String msg = MsgUtils.getMsg("SK_VAULT_NOT_AVAILABLE", requestContext.getMethod());
-           _log.error(msg);
+           if (ex == null) _log.error(msg);
+             else _log.error(msg, ex);
            requestContext.abortWith(Response.status(Status.SERVICE_UNAVAILABLE).entity(msg).build());
        }
    }
