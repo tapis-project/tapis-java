@@ -111,7 +111,7 @@ public final class VaultManager
     /* ---------------------------------------------------------------------- */
     /** Return the singleton instance with custom exception handling.  If the
      * boolean parameter is true, then a null singleton can be returned. 
-     * Otherwise, a runtime execption is thrown.  
+     * Otherwise, a runtime exception is thrown.  
      * 
      * @param allowNullResult true allows a null return instead of an exception
      *           when the singleton doesn't exist.
