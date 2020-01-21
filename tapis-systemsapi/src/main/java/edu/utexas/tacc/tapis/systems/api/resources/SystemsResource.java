@@ -46,7 +46,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
     info = @Info(
         title = "Tapis Systems API",
         version = "0.1",
-        description = "The Tapis Systems API provides for management of Tapis Systems including access and transfer protocols and credentials.",
+        description = "The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.",
         license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
         contact = @Contact(name = "CICSupport", email = "cicsupport@tacc.utexas.edu")),
     tags = {

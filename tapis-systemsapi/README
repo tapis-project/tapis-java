@@ -108,3 +108,37 @@ Configure Run configuration in IntelliJ
       TAPIS_ENVONLY_SKIP_JWT_VERIFY         TRUE
       TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
 
+------------------------------------------------------------------------------
+Updating OpenAPI spec published to live-docs
+------------------------------------------------------------------------------
+1. Run mvn clean install
+2. Copy entire contents of file tapis-java/tapis-systemsapi/src/main/resources/openapi.json into clipboard.
+3. Visit https://editor.swagger.io
+4. Replace contents with clipboard, convert from JSON to YAML.
+5. Check display to see if all looks correct.
+6. Copy swagger editor generated yaml to clipboard.
+7. Paste clipboard to tapis-client-java/systems-client/SystemsAPI.yaml.
+8. Edit SystemsAPI.yaml to update all paths to begin with '/v3/systems'
+   Note: all paths should be surrounded by single quotes. Some paths have them and some do not.
+9. Push tapis-client-java to master branch.
+10. Updates should be reflected in live-docs (https://tapis-project.github.io/live-docs/)
+      within a few minutes.
+
+------------------------------------------------------------------------------
+Updating Systems server running in k8s dev environment
+------------------------------------------------------------------------------
+1. (optional) Wipe out DB. Reset by running drop and init sql against postgres running in k8s dev.
+psql --host=c005.rodeo.tacc.utexas.edu --port 31236 --username=tapis --dbname=tapissysdb -q -f tapis-systemslib/src/main/resources/sql/drop.sql
+psql --host=c005.rodeo.tacc.utexas.edu --port 31236 --username=tapis --dbname=tapissysdb -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
+  NOTE: c005 url above appears to be for a postgres installed by scblack for dev, it is not the official dev systems dB
+    Login to pgadmin at http://c002.rodeo.tacc.utexas.edu:31114/browser/ to run the scripts, username=wow@example.com, see Mike P for password.
+
+2. Run jenkins job to build and push latest docker image
+   Tapis jobs -> DEV -> Systems-DEV-Build-Test-Publish-Images
+
+3. Run jenkins job to re-deploy k8s service
+   Tapis jobs -> DEV -> Systems-Deploy-DEV
+   NOTE: Might need to wait a bit for docker image to be refreshed. At least once it appeared to take a few minutes.
+
+4. If changes impact tapis-client-java, then update and test client. Then run
+   Tapis jobs -> DEV -> Client-Java-Build-Publish
