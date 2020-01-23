@@ -28,6 +28,7 @@ public final class TSystem
   // ************************************************************************
   // *********************** Constants **************************************
   // ************************************************************************
+
   // Allowed substitution variables
   public static final String APIUSERID_VAR = "${apiUserId}";
   public static final String OWNER_VAR = "${owner}";
@@ -37,7 +38,7 @@ public final class TSystem
 
   // Default values
   public static final String DEFAULT_OWNER = APIUSERID_VAR;
-  public static final boolean DEFAULT_AVAILABLE_ = true;
+  public static final boolean DEFAULT_AVAILABLE = true;
   public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
   public static final boolean DEFAULT_USEPROXY = false;
   public static final String DEFAULT_TAGS = "{}";

@@ -21,12 +21,9 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
  */
 public final class Credential
 {
-
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
-//  private static final String EMPTY_TRANSFER_METHODS_STR = "{}";
-//  public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
 
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -42,13 +39,35 @@ public final class Credential
   private final char[] password; // Password for when accessMethod is PASSWORD
   private final char[] privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
   private final char[] publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
-  private final char[] cert; // SSH certificate for accessMethod is CERT
+  private final char[] certificate; // SSH certificate for accessMethod is CERT
   private final char[] accessKey; // Access key for when accessMethod is ACCESS_KEY
   private final char[] accessSecret; // Access secret for when accessMethod is ACCESS_KEY
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
+
+  /**
+   * Default constructor sets all attributes to null
+   */
+  public Credential()
+  {
+    tenant = null;
+    system = null;
+    user = null;
+    systemType = null;
+    accessMethod = null;
+    password = null;
+    privateKey = null;
+    publicKey = null;
+    certificate = null;
+    accessKey = null;
+    accessSecret = null;
+  }
+
+  /**
+   * Simple constructor to populate all attributes
+   */
   public Credential(String tenant1, String system1, String user1, SystemType systemType1, AccessMethod accessMethod1,
                     char[] password1, char[] privateKey1, char[] publicKey1, char[] cert1,
                     char[] accessKey1, char[] accessSecret1)
@@ -61,7 +80,7 @@ public final class Credential
     password = password1;
     privateKey = privateKey1;
     publicKey = publicKey1;
-    cert = cert1;
+    certificate = cert1;
     accessKey = accessKey1;
     accessSecret = accessSecret1;
   }
@@ -77,7 +96,7 @@ public final class Credential
   public char[] getPassword() { return password; }
   public char[] getPrivateKey() { return privateKey; }
   public char[] getPublicKey() { return publicKey; }
-  public char[] getCert() { return cert; }
+  public char[] getCertificate() { return certificate; }
   public char[] getAccessKey() { return accessKey; }
   public char[] getAccessSecret() { return accessSecret; }
 

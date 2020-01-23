@@ -70,6 +70,14 @@ public class CredentialResource
   // Json schema resource files.
   private static final String FILE_CRED_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/CredentialCreateRequest.json";
 
+  // Field names used in Json
+  public static final String PASSWORD_FIELD = "password";
+  public static final String PRIVATE_KEY_FIELD = "privateKey";
+  public static final String PUBLIC_KEY_FIELD = "publicKey";
+  public static final String CERTIFICATE_FIELD = "certificate";
+  public static final String ACCESS_KEY_FIELD = "accessKey";
+  public static final String ACCESS_SECRET_FIELD = "accessSecret";
+
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
@@ -207,12 +215,12 @@ public class CredentialResource
     char[] password, privateKey, publicKey, cert, accessKey, accessSecret;
     JsonObject credObj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     // Extract credential attributes from the request body
-    password = ApiUtils.getValS(credObj.get("password"), "").toCharArray();
-    privateKey = ApiUtils.getValS(credObj.get("privateKey"), "").toCharArray();
-    publicKey = ApiUtils.getValS(credObj.get("publicKey"), "").toCharArray();
-    cert = ApiUtils.getValS(credObj.get("sshCert"), "").toCharArray();
-    accessKey = ApiUtils.getValS(credObj.get("accessKey"), "").toCharArray();
-    accessSecret = ApiUtils.getValS(credObj.get("accessSecret"), "").toCharArray();
+    password = ApiUtils.getValS(credObj.get(PASSWORD_FIELD), "").toCharArray();
+    privateKey = ApiUtils.getValS(credObj.get(PRIVATE_KEY_FIELD), "").toCharArray();
+    publicKey = ApiUtils.getValS(credObj.get(PUBLIC_KEY_FIELD), "").toCharArray();
+    cert = ApiUtils.getValS(credObj.get(CERTIFICATE_FIELD), "").toCharArray();
+    accessKey = ApiUtils.getValS(credObj.get(ACCESS_KEY_FIELD), "").toCharArray();
+    accessSecret = ApiUtils.getValS(credObj.get(ACCESS_SECRET_FIELD), "").toCharArray();
     Credential credential = new Credential(null, null, null, null, null,
             password, privateKey, publicKey, cert, accessKey, accessSecret);
 

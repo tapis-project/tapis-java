@@ -54,9 +54,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 
-import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
-
 /*
  * JAX-RS REST resource for a Tapis System (edu.utexas.tacc.tapis.systems.model.TSystem)
  * Contains annotations which generate the OpenAPI specification documents.
@@ -74,6 +71,35 @@ public class SystemResource
 
   // Json schema resource files.
   private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
+  // String used to mask secrets in json
+  private static final String SECRETS_MASK = "***";
+
+  // Field names used in Json
+  private static final String NAME_FIELD = "name";
+  private static final String DESCRIPTION_FIELD = "description";
+  private static final String SYSTEM_TYPE_FIELD = "systemType";
+  private static final String OWNER_FIELD = "owner";
+  private static final String HOST_FIELD = "host";
+  private static final String AVAILABLE_FIELD = "available";
+  private static final String EFFECTIVE_USERID_FIELD = "effectiveUserId";
+  private static final String ACCESS_METHOD_FIELD = "accessMethod";
+  private static final String ACCESS_CREDENTIAL_FIELD = "accessCredential";
+  private static final String BUCKET_NAME_FIELD = "bucketName";
+  private static final String ROOT_DIR_FIELD = "rootDir";
+  private static final String TRANSFER_METHODS_FIELD = "transferMethods";
+  private static final String PORT_FIELD = "port";
+  private static final String USE_PROXY_FIELD = "userProxy";
+  private static final String PROXY_HOST_FIELD = "proxyHost";
+  private static final String PROXY_PORT_FIELD = "proxyPort";
+  private static final String JOB_CAN_EXEC_FIELD = "jobCanExec";
+  private static final String JOB_LOCAL_WORKING_DIR_FIELD = "jobLocalWorkingDir";
+  private static final String JOB_LOCAL_ARCHIVE_DIR_FIELD = "jobLocalArchiveDir";
+  private static final String JOB_REMOTE_ARCHIVE_SYSTEM_FIELD = "jobRemoteArchiveSystem";
+  private static final String JOB_REMOTE_ARCHIVE_DIR_FIELD = "jobRemoteArchiveDir";
+  private static final String JOB_CAPABILITIES_FIELD = "jobCapabilities";
+  private static final String TAGS_FIELD = "tags";
+  private static final String NOTES_FIELD = "notes";
+
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -200,6 +226,7 @@ public class SystemResource
     }
 
     // Create validator specification and validate the json against the schema
+    // TODO Json may contain secrets. Does validator do logging?
     JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_CREATE_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
@@ -216,46 +243,48 @@ public class SystemResource
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
     // TODO Some fields in accessCred are of type char[] for security reasons. Local var data should be overwritten as soon as possible.
-    Credential accessCred = new Credential(null, null, null, null, null,
-                                         null, null, null, null, null, null);
+    Credential accessCred = new Credential();
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
 
     // Extract top level properties: name, systemType, host, description, owner, ...
     // Extract required values
-    name = obj.get("name").getAsString();
-    systemType = obj.get("systemType").getAsString();
-    host = obj.get("host").getAsString();
-    accessMethod = obj.get("accessMethod").getAsString();
-    jobCanExec =  obj.get("jobCanExec").getAsBoolean();
+    name = obj.get(NAME_FIELD).getAsString();
+    systemType = obj.get(SYSTEM_TYPE_FIELD).getAsString();
+    host = obj.get(HOST_FIELD).getAsString();
+    accessMethod = obj.get(ACCESS_METHOD_FIELD).getAsString();
+    jobCanExec =  obj.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
     // Extract optional values
-    description = ApiUtils.getValS(obj.get("description"), "");
-    owner = ApiUtils.getValS(obj.get("owner"), "");
-    available = (obj.has("available") ? obj.get("available").getAsBoolean() : true);
-    effectiveUserId = ApiUtils.getValS(obj.get("effectiveUserId"), "");
-    bucketName = ApiUtils.getValS(obj.get("bucketName"), "");
-    rootDir = ApiUtils.getValS(obj.get("rootDir"), "");
-    port = (obj.has("port") ? obj.get("port").getAsInt() : -1);
-    useProxy = (obj.has("useProxy") ? obj.get("useProxy").getAsBoolean() : false);
-    proxyHost = ApiUtils.getValS(obj.get("proxyHost"), "");
-    proxyPort = (obj.has("proxyPort") ? obj.get("proxyPort").getAsInt() : -1);
+    description = ApiUtils.getValS(obj.get(DESCRIPTION_FIELD), "");
+    owner = ApiUtils.getValS(obj.get(OWNER_FIELD), "");
+    available = (obj.has(AVAILABLE_FIELD) ? obj.get(AVAILABLE_FIELD).getAsBoolean() : TSystem.DEFAULT_AVAILABLE);
+    effectiveUserId = ApiUtils.getValS(obj.get(EFFECTIVE_USERID_FIELD), "");
+    bucketName = ApiUtils.getValS(obj.get(BUCKET_NAME_FIELD), "");
+    rootDir = ApiUtils.getValS(obj.get(ROOT_DIR_FIELD), "");
+    port = (obj.has(PORT_FIELD) ? obj.get(PORT_FIELD).getAsInt() : -1);
+    useProxy = (obj.has(USE_PROXY_FIELD) ? obj.get(USE_PROXY_FIELD).getAsBoolean() : TSystem.DEFAULT_USEPROXY);
+    proxyHost = ApiUtils.getValS(obj.get(PROXY_HOST_FIELD), "");
+    proxyPort = (obj.has(PROXY_PORT_FIELD) ? obj.get(PROXY_PORT_FIELD).getAsInt() : -1);
 
-    jobLocalWorkingDir = ApiUtils.getValS(obj.get("jobLocalWorkingDir"), "");
-    jobLocalArchiveDir = ApiUtils.getValS(obj.get("jobLocalArchiveDir"), "");
-    jobRemoteArchiveSystem = ApiUtils.getValS(obj.get("jobRemoteArchiveSystem"), "");
-    jobRemoteArchiveDir = ApiUtils.getValS(obj.get("jobRemoteArchiveDir"), "");
-    tags = ApiUtils.getValS(obj.get("tags"), "{}");
-    notes = ApiUtils.getValS(obj.get("notes"), "{}");
+    jobLocalWorkingDir = ApiUtils.getValS(obj.get(JOB_LOCAL_WORKING_DIR_FIELD), "");
+    jobLocalArchiveDir = ApiUtils.getValS(obj.get(JOB_LOCAL_ARCHIVE_DIR_FIELD), "");
+    jobRemoteArchiveSystem = ApiUtils.getValS(obj.get(JOB_REMOTE_ARCHIVE_SYSTEM_FIELD), "");
+    jobRemoteArchiveDir = ApiUtils.getValS(obj.get(JOB_REMOTE_ARCHIVE_DIR_FIELD), "");
+    tags = ApiUtils.getValS(obj.get(TAGS_FIELD), TSystem.DEFAULT_TAGS);
+    notes = ApiUtils.getValS(obj.get(NOTES_FIELD), TSystem.DEFAULT_NOTES);
 
     // Extract access credential if provided and effectiveUserId is not dynamic
-    if (obj.has("accessCredential") &&  !effectiveUserId.equals(APIUSERID_VAR)) accessCred = extractAccessCred(obj);
+    if (obj.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    {
+      accessCred = extractAccessCred(obj);
+    }
 
     // Extract list of supported transfer methods
     // If element is not there or the list is empty then build empty array "{}"
     var txfrMethodsArr = new ArrayList<String>();
     StringBuilder transferMethodsSB = new StringBuilder("{");
     JsonArray txfrMethodsJson = null;
-    if (obj.has("transferMethods")) txfrMethodsJson = obj.getAsJsonArray("transferMethods");
+    if (obj.has(TRANSFER_METHODS_FIELD)) txfrMethodsJson = obj.getAsJsonArray(TRANSFER_METHODS_FIELD);
     if (txfrMethodsJson != null && txfrMethodsJson.size() > 0)
     {
       for (int i = 0; i < txfrMethodsJson.size()-1; i++)
@@ -272,7 +301,7 @@ public class SystemResource
     // If element is not there or the list is empty then build empty array "{}"
     StringBuilder jobCapsSB = new StringBuilder("{");
     JsonArray jobCapsJson = null;
-    if (obj.has("jobCapabilities")) jobCapsJson = obj.getAsJsonArray("jobCapabilities");
+    if (obj.has(JOB_CAPABILITIES_FIELD)) jobCapsJson = obj.getAsJsonArray(JOB_CAPABILITIES_FIELD);
     if (jobCapsJson != null && jobCapsJson.size() > 0)
     {
       for (int i = 0; i < jobCapsJson.size()-1; i++)
@@ -304,8 +333,8 @@ public class SystemResource
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
     }
     else if (accessMethod.equals(Protocol.AccessMethod.CERT.name()) &&
-            !effectiveUserId.equals(APIUSERID_VAR) &&
-            !effectiveUserId.equals(OWNER_VAR) &&
+            !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
+            !effectiveUserId.equals(TSystem.OWNER_VAR) &&
             !StringUtils.isBlank(owner) &&
             !effectiveUserId.equals(owner))
     {
@@ -317,7 +346,7 @@ public class SystemResource
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
     }
-    else if (obj.has("accessCredential") && effectiveUserId.equals(APIUSERID_VAR))
+    else if (obj.has(ACCESS_CREDENTIAL_FIELD) && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
@@ -330,6 +359,9 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    // Mask any secret info that might be contained in rawJson
+    String scrubbedJson = maskCredSecrets(obj);
+
     // Make the service call to create the system
     systemsService = new SystemsServiceImpl();
     try
@@ -337,11 +369,11 @@ public class SystemResource
       systemsService.createSystem(tenantName, apiUserId, name, description, systemType, owner, host, available,
                                   effectiveUserId, accessMethod,
                                   accessCred.getPassword(), accessCred.getPrivateKey(), accessCred.getPublicKey(),
-                                  accessCred.getCert(), accessCred.getAccessKey(), accessCred.getAccessSecret(),
+                                  accessCred.getCertificate(), accessCred.getAccessKey(), accessCred.getAccessSecret(),
                                   bucketName, rootDir, transferMethodsSB.toString(),
                                   port, useProxy, proxyHost, proxyPort,
                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
-                                  jobRemoteArchiveDir, jobCapsSB.toString(), tags, notes, rawJson);
+                                  jobRemoteArchiveDir, jobCapsSB.toString(), tags, notes, scrubbedJson);
     }
     catch (IllegalStateException e)
     {
@@ -611,14 +643,49 @@ public class SystemResource
   private Credential extractAccessCred(JsonObject obj)
   {
     char[] password, privateKey, publicKey, sshCert, accessKey, accessSecret;
-    JsonObject credObj = obj.getAsJsonObject("accessCredential");
-    password = ApiUtils.getValS(credObj.get("password"), "").toCharArray();
-    privateKey = ApiUtils.getValS(credObj.get("privateKey"), "").toCharArray();
-    publicKey = ApiUtils.getValS(credObj.get("publicKey"), "").toCharArray();
-    sshCert = ApiUtils.getValS(credObj.get("sshCert"), "").toCharArray();
-    accessKey = ApiUtils.getValS(credObj.get("accessKey"), "").toCharArray();
-    accessSecret = ApiUtils.getValS(credObj.get("accessSecret"), "").toCharArray();
+    JsonObject credObj = obj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
+    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "").toCharArray();
+    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "").toCharArray();
+    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "").toCharArray();
+    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "").toCharArray();
+    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "").toCharArray();
+    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "").toCharArray();
     return new Credential(null, null, null, null, null,
                           password, privateKey, publicKey, sshCert, accessKey, accessSecret);
+  }
+
+  /**
+   * AccessCredential details can contain secrets. Mask any secrets given
+   * and return a string containing the final Json.
+   * @param obj1 Top level Json object from request
+   * @return A string with any secrets masked out
+   */
+  private String maskCredSecrets(JsonObject obj1)
+  {
+    if (!obj1.has(ACCESS_CREDENTIAL_FIELD)) return obj1.getAsString();
+    // Leave the incoming object alone
+    var obj2 = obj1.deepCopy();
+    var credObj = obj2.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
+    maskSecret(credObj, CredentialResource.PASSWORD_FIELD);
+    maskSecret(credObj, CredentialResource.PRIVATE_KEY_FIELD);
+    maskSecret(credObj, CredentialResource.PUBLIC_KEY_FIELD);
+    maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
+    maskSecret(credObj, CredentialResource.ACCESS_KEY_FIELD);
+    maskSecret(credObj, CredentialResource.ACCESS_SECRET_FIELD);
+    obj2.remove(ACCESS_CREDENTIAL_FIELD);
+    obj2.add(ACCESS_CREDENTIAL_FIELD, credObj);
+    return obj2.toString();
+  }
+
+  /**
+   * If the Json object contains a non-blank value for the field then replace the value with the mask value.
+   */
+  private void maskSecret(JsonObject credObj, String field)
+  {
+    if (!StringUtils.isBlank(ApiUtils.getValS(credObj.get(field), "")))
+    {
+      credObj.remove(field);
+      credObj.addProperty(field, SECRETS_MASK);
+    }
   }
 }

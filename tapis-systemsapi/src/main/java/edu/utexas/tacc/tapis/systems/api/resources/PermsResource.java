@@ -58,6 +58,9 @@ public class PermsResource
   // Json schema resource files.
   private static final String FILE_PERMS_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/PermsRequest.json";
 
+  // Field names used in Json
+  private static final String PERMISSIONS_FIELD = "permissions";
+
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
@@ -498,7 +501,7 @@ public class PermsResource
 
     // Extract permissions from the request body
     JsonArray perms = null;
-    if (obj.has("permissions")) perms = obj.getAsJsonArray("permissions");
+    if (obj.has(PERMISSIONS_FIELD)) perms = obj.getAsJsonArray(PERMISSIONS_FIELD);
     if (perms != null && perms.size() > 0)
     {
       for (int i = 0; i < perms.size(); i++) { permsList.add(StringUtils.remove(perms.get(i).toString(),'"')); }

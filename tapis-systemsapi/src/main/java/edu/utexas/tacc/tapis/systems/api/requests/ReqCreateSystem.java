@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.systems.api.requests;
 
+import edu.utexas.tacc.tapis.systems.model.Credential;
+
 import java.util.List;
 
 public final class ReqCreateSystem
@@ -12,7 +14,7 @@ public final class ReqCreateSystem
   public boolean available;
   public String effectiveUserId;
   public String accessMethod;
-  public String accessCredential;
+  public Credential accessCredential;
   public String bucketName;
   public String rootDir;
   public List<String> transferMethods;
