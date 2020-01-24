@@ -44,8 +44,8 @@
             <artifactId>snakeyaml</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.bettercloud</groupId>
-            <artifactId>vault-java-driver</artifactId>
+            <groupId>edu.utexas.tacc.tapis</groupId>
+            <artifactId>tapis-vault-java-driver</artifactId>
         </dependency>
 	</dependencies>
 	

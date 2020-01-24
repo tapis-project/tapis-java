@@ -1,10 +1,14 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -24,16 +28,20 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.bettercloud.vault.response.LogicalResponse;
-import com.google.gson.JsonObject;
-
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqVersions;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqWriteSecret;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecret;
-import edu.utexas.tacc.tapis.security.secrets.VaultManager;
+import edu.utexas.tacc.tapis.security.api.responses.RespSecretList;
+import edu.utexas.tacc.tapis.security.api.responses.RespSecretMeta;
+import edu.utexas.tacc.tapis.security.api.responses.RespSecretVersionMetadata;
+import edu.utexas.tacc.tapis.security.api.responses.RespVersions;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecret;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersionMetadata;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +50,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
+/** Endpoints that communicate with Hashicorp Vault.
+ * 
+ *  Driver enhancements:
+ *      1. Add secrets v2 options object to create (write).
+ *      2. Add readMeta 
+ *      3. Add updateMeta
+ *      4. deleteLast - soft delete of latest version 
+ * 
+ * @author rcardone
+ */
 @Path("/vault")
 public final class VaultResource
  extends AbstractResource
@@ -55,6 +73,8 @@ public final class VaultResource
     // Json schema resource files.
     private static final String FILE_SK_WRITE_SECRET_REQUEST = 
         "/edu/utexas/tacc/tapis/security/api/jsonschema/WriteSecretRequest.json";
+    private static final String FILE_SK_SECRET_VERSION_REQUEST = 
+        "/edu/utexas/tacc/tapis/security/api/jsonschema/SecretVersionRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -121,7 +141,7 @@ public final class VaultResource
                            + "The 'version' parameter should be passed as an integer. Zero "
                            + "indicates that the latest version of the secret should be "
                            + "returned. A NOT FOUND status code is returned if the secret does not "
-                           + "exist.\n\n"
+                           + "exist or if it's deleted or destroyed.\n\n"
                            + ""
                            + "The response object includes the map of zero or more key/value "
                            + "pairs and metadata that describes the secret, including which version of "
@@ -165,57 +185,19 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Construct the secret's full path that include tenant and user.
-         String secretPath = getSecretPath(threadContext, secretName);
-         
          // Issue the vault call.
-         LogicalResponse logicalResp = null;
+         SkSecret skSecret = null;
          try {
-             var logical = VaultManager.getInstance().getVault().logical();
-             logicalResp = logical.read(secretPath, Boolean.TRUE, version);
+             skSecret = getVaultImpl().secretRead(threadContext.getTenantId(), threadContext.getUser(), 
+                                                  secretName, version);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_VAULT_READ_SECRET_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          secretPath, version, e.getMessage());
-             return getExceptionResponse(e, msg, prettyPrint);
-         }
-         
-         // The rest response field is non-null if we get here.
-         var restResp = logicalResp.getRestResponse();
-         int vaultStatus = restResp.getStatus();
-         String vaultBody = restResp.getBody() == null ? "{}" : new String(restResp.getBody());
-         
-         // Did vault encounter a problem?
-         if (vaultStatus >= 400) {
-             String msg = MsgUtils.getMsg("SK_VAULT_READ_SECRET_ERROR", 
-                     threadContext.getTenantId(), threadContext.getUser(), 
-                     secretPath, version, vaultBody);
-             _log.error(msg);
-             return Response.status(vaultStatus).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
          }
          
          // ------------------------ Request Output ----------------------------
          // Create the response object.
-         var respSecret = new RespSecret();
-         
-         // Get the outer data contains everything we're interested in.
-         var bodyJson = TapisGsonUtils.getGson().fromJson(vaultBody, JsonObject.class);
-         JsonObject dataObj = (JsonObject) bodyJson.get("data");
-         if (dataObj != null) {
-             // The inner data object is a map of zero or more key/value pairs.
-             JsonObject mapObj = (JsonObject) dataObj.get("data");
-             if (mapObj != null) {
-                 for (var entry : mapObj.entrySet()) {
-                     respSecret.secretMap.put(entry.getKey(), entry.getValue().getAsString());
-                 }
-             }
-             
-             // Get the secret metadata.
-             JsonObject metaObj = (JsonObject) dataObj.get("metadata");
-             if (metaObj != null) 
-                 respSecret.metadata = TapisGsonUtils.getGson().fromJson(metaObj, RespSecret.SecretMetadata.class); 
-         }
+         var respSecret = new RespSecret(skSecret);
          
          // Success.
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
@@ -227,6 +209,7 @@ public final class VaultResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/secret/{secretName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create or update a secret. "
@@ -264,7 +247,7 @@ public final class VaultResource
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespSecretMeta.class))),
                   @ApiResponse(responseCode = "204", description = "No content.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -294,6 +277,8 @@ public final class VaultResource
          
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
+         // Note that the secret values in the payload will only be string values,
+         // which is more restrictive typing than Vault.
          ReqWriteSecret payload = null;
          try {payload = getPayload(payloadStream, FILE_SK_WRITE_SECRET_REQUEST, 
                                    ReqWriteSecret.class);
@@ -317,58 +302,491 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Construct the secret's full path that include tenant and user.
-         String secretPath = getSecretPath(threadContext, secretName);
-         
          // Issue the vault call.
-         LogicalResponse logicalResp = null;
+         SkSecretMetadata skSecretMeta = null;
          try {
-             var logical = VaultManager.getInstance().getVault().logical();
-             logicalResp = logical.write(secretPath, secretMap);
+             skSecretMeta = getVaultImpl().secretWrite(threadContext.getTenantId(), 
+                                                       threadContext.getUser(), 
+                                                       secretName, secretMap);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_VAULT_WRITE_SECRET_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
-                                          secretPath, e.getMessage());
-             return getExceptionResponse(e, msg, prettyPrint);
-         }
-         
-         // The rest response field is non-null if we get here.
-         var restResp = logicalResp.getRestResponse();
-         int vaultStatus = restResp.getStatus();
-         String vaultBody = restResp.getBody() == null ? "{}" : new String(restResp.getBody());
-         
-         // Did vault encounter a problem?
-         if (vaultStatus >= 400) {
-             String msg = MsgUtils.getMsg("SK_VAULT_WRITE_SECRET_ERROR", 
-                     threadContext.getTenantId(), threadContext.getUser(), 
-                     secretPath, vaultBody);
-             _log.error(msg);
-             return Response.status(vaultStatus).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
          }
          
          // Return the data portion of the vault response.
-         var bodyJson = TapisGsonUtils.getGson().fromJson(vaultBody, JsonObject.class);
-         RespBasic r = new RespBasic(bodyJson.get("data"));
+         RespSecretMeta r = new RespSecretMeta(skSecretMeta);
          return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_CREATED", "Secret", secretName), prettyPrint, r)).build();
      }
      
-     /* **************************************************************************** */
-     /*                               Private Methods                                */
-     /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
-     /* getSecretPath:                                                               */
+     /* deleteSecret:                                                                */
      /* ---------------------------------------------------------------------------- */
-     /** Construct the vault v2 secret pathname.
-      * 
-      * @param threadContext the caller's information
-      * @param secretName the user-specified secret
-      * @return the full secret path
-      */
-     private String getSecretPath(TapisThreadContext threadContext, String secretName)
+     @POST
+     @Path("/secret/delete/{secretName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Soft delete one or more versions of a secret. "
+                           + "Each version can be deleted individually or as part of a "
+                           + "group specified in the input array. Deletion can be "
+                           + "reversed using the undelete endpoint, which is what make "
+                           + "deletion _soft_.\n\n"
+                           + ""
+                           + "The input versions array is interpreted as follows:\n\n"
+                           + ""
+                           + "   * []  - delete all versions"
+                           + "   * [0] - delete only the latest version"
+                           + "   * [1, 3, ...] - delete the specified versions"
+                           + "",
+             tags = "vault",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqVersions.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret deleted.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespVersions.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "Secret not found.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response deleteSecret(@PathParam("secretName") String secretName,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                  InputStream payloadStream)
      {
-         return "secret/tapis/" + threadContext.getTenantId() + "/" + threadContext.getUser() +
-                "/" + secretName;
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "deleteSecret", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqVersions payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_SECRET_VERSION_REQUEST, 
+                                   ReqVersions.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "deleteSecret", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Massage the input.
+         if (payload.versions == null) payload.versions = new ArrayList<>();
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         List<Integer> deletedVersions = null;
+         try {
+             deletedVersions = getVaultImpl().secretDelete(threadContext.getTenantId(), 
+                                                           threadContext.getUser(), 
+                                                           secretName, payload.versions);
+         } catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         RespVersions r = new RespVersions(deletedVersions);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
      }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* undeleteSecret:                                                              */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/secret/undelete/{secretName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Restore one or more versions of a secret that have previously been deleted. "
+                           + "This endpoint undoes soft deletions performed using the delete endpoint. "
+                           + ""
+                           + "The input versions array is interpreted as follows:\n\n"
+                           + ""
+                           + "   * []  - undelete all versions"
+                           + "   * [0] - undelete only the latest version"
+                           + "   * [1, 3, ...] - undelete the specified versions"
+                           + "",
+             tags = "vault",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqVersions.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret written.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespVersions.class))),
+                  @ApiResponse(responseCode = "204", description = "No content.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response undeleteSecret(@PathParam("secretName") String secretName,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "undeleteSecret", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Parse and validate the json in the request payload, which must exist.
+         ReqVersions payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_SECRET_VERSION_REQUEST, 
+                                   ReqVersions.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "undeleteSecret", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Massage the input.
+         if (payload.versions == null) payload.versions = new ArrayList<>();
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         List<Integer> undeletedVersions = null;
+         try {
+             undeletedVersions = getVaultImpl().secretUndelete(threadContext.getTenantId(), 
+                                                               threadContext.getUser(), 
+                                                               secretName, payload.versions);
+         } catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         RespVersions r = new RespVersions(undeletedVersions);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_UNDELETED", "Secret", secretName), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* destroySecret:                                                               */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/secret/destroy/{secretName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Destroy one or more versions of a secret, which is a hard "
+                           + "delete that cannot be undone. It doesn not, however, remove "
+                           + "the versions' metadata.\n\n"
+                           + ""
+                           + "The input versions array is interpreted as follows:\n\n"
+                           + ""
+                           + "   * []  - destroy all versions"
+                           + "   * [0] - destroy only the latest version"
+                           + "   * [1, 3, ...] - destroy the specified versions"
+                           + "",
+             tags = "vault",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqVersions.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret written.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespVersions.class))),
+                  @ApiResponse(responseCode = "204", description = "No content.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response destroySecret(@PathParam("secretName") String secretName,
+                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                   InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "destroySecret", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqVersions payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_SECRET_VERSION_REQUEST, 
+                                   ReqVersions.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "destroySecret", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Massage the input.
+         if (payload.versions == null) payload.versions = new ArrayList<>();
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         List<Integer> destroyedVersions = null;
+         try {
+             destroyedVersions = getVaultImpl().secretDestroy(threadContext.getTenantId(), 
+                                                              threadContext.getUser(), 
+                                                              secretName, payload.versions);
+         } catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         RespVersions r = new RespVersions(destroyedVersions);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* readSecretMetadata:                                                          */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/secret/read/meta/{secretName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "List a secret's metadata including version information. "
+                         + "The input must be a secret name, not a folder. "
+                         + "The result indicates which version of the secret is the latest."
+                         + "",
+             tags = "vault",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret read.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespSecretVersionMetadata.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response readSecretMeta(@PathParam("secretName") String secretName,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "readSecretMeta", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         SkSecretVersionMetadata info = null;
+         try {
+             info = getVaultImpl().secretReadMeta(threadContext.getTenantId(), threadContext.getUser(), 
+                                                  secretName);
+         } catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         var r = new RespSecretVersionMetadata(info);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretName), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* listSecretMeta:                                                              */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/secret/list/meta")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "List the secret names at the specified path. "
+                           + "The path must represent a folder, not an actual secret name. "
+                           + "If the path does not have a trailing slash one will be inserted. "
+                           + "Secret names should not encode private information."
+                           + "",
+             tags = "vault",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secrets listed.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.responses.RespSecretList.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response listSecretMeta(@PathParam("secretName") String secretName,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "listSecretMeta", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         SkSecretList info = null;
+         try {
+             info = getVaultImpl().secretListMeta(threadContext.getTenantId(), threadContext.getUser(),
+                                                  secretName);
+         } catch (Exception e) {                  
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         var r = new RespSecretList(info);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", info.secretPath), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* destroySecretMeta:                                                           */
+     /* ---------------------------------------------------------------------------- */
+     @DELETE
+     @Path("/secret/destroy/meta/{secretName}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Erase all traces of a secret, its versions and its metadata. "
+                         + "The secretName can also be a folder.",
+             tags = "vault",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret completely removed.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response destroySecretMeta(@PathParam("secretName") String secretName,
+                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "readSecretMeta", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Issue the vault call.
+         try {
+             getVaultImpl().secretDestroyMeta(threadContext.getTenantId(), 
+                                              threadContext.getUser(), 
+                                              secretName);
+         } catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return getExceptionResponse(e, e.getMessage(), prettyPrint);
+         }
+         
+         // Return the data portion of the vault response.
+         var r = new RespBasic();
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+     }
+     
 }

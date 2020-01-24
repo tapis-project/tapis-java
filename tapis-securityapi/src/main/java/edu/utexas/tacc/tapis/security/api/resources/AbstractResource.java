@@ -16,6 +16,7 @@ import com.bettercloud.vault.VaultException;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
+import edu.utexas.tacc.tapis.security.authz.impl.VaultImpl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
@@ -105,6 +106,11 @@ class AbstractResource
     /* getUserImpl:                                                                 */
     /* ---------------------------------------------------------------------------- */
     protected UserImpl getUserImpl() {return UserImpl.getInstance();}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getRoleImpl:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    protected VaultImpl getVaultImpl() {return VaultImpl.getInstance();}
     
     /* ---------------------------------------------------------------------------- */
     /* checkTenantUser:                                                             */
