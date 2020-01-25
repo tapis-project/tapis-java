@@ -131,21 +131,21 @@ public final class VaultResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Read a versioned secret. "
-                           + "A secret is read from a path name constructed using the "
-                           + "secretName URL path parameter. The path name also includes the tenant "
-                           + "and user who owns the secret.\n\n"
+                           + "A secret is read from a path name constructed from the "
+                           + "*secretName* parameter. The constructed path name always "
+                           + "includes the tenant and user who owns the secret.\n\n"
                            + ""
                            + "By default, the "
-                           + "latest version of the secret is read. If the 'version' query parameter "
-                           + "is specified then that version of the secret is read if it exists. "
-                           + "The 'version' parameter should be passed as an integer. Zero "
+                           + "latest version of the secret is read. If the *version* query parameter "
+                           + "is specified then that version of the secret is read. "
+                           + "The *version* parameter should be passed as an integer. Zero "
                            + "indicates that the latest version of the secret should be "
-                           + "returned. A NOT FOUND status code is returned if the secret does not "
-                           + "exist or if it's deleted or destroyed.\n\n"
+                           + "returned. A NOT FOUND status code is returned if the secret version "
+                           + "does not exist or if it's deleted or destroyed.\n\n"
                            + ""
                            + "The response object includes the map of zero or more key/value "
-                           + "pairs and metadata that describes the secret, including which version of "
-                           + "the secret was returned.",
+                           + "pairs and metadata that describes the secret. The metadata includes "
+                           + "which version of the secret was returned.",
              tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
@@ -213,30 +213,30 @@ public final class VaultResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create or update a secret. "
-                           + "A secret is assigned a path name constructed using the "
-                           + "secretName URL path parameter. The path name also includes the tenant "
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretName* parameter. The path name also includes the tenant "
                            + "and user on behalf of whom the the secret is being saved. At the "
-                           + "top-level, the JSON payload may contain an optional 'options' object "
-                           + "and a required 'data' object.\n\n"
+                           + "top-level, the JSON payload contains an optional *options* object "
+                           + "and a required *data* object.\n\n"
                            + ""
-                           + "The 'data' object is a JSON object that contains one or more key/value "
+                           + "The *data* object is a JSON object that contains one or more key/value "
                            + "pairs in which both the key and value are strings. These are the "
                            + "individual secrets that are saved under the path name. The secrets are "
                            + "automatically versioned, which allows a pre-configured number of past "
                            + "secret values to be accessible even after new values are assigned. See "
-                           + "the various read operations for details on how to access different "
-                           + "versions of a secret.\n\n"
+                           + "the various GET operations for details on how to access different "
+                           + "aspects of secrets.\n\n"
                            + ""
-                           + "NOTE: The 'cas' option is currently ignored but documented here for "
+                           + "NOTE: The *cas* option is currently ignored but documented here for "
                            + "future reference.\n\n"
                            + ""
-                           + "The options object can contains a 'cas' key and with an integer "
-                           + "value that represents as secret version.  CAS stands for "
+                           + "The *options* object can contain a *cas* key and with an integer "
+                           + "value that represents a secret version.  CAS stands for "
                            + "check-and-set and will check an existing secret's version before "
                            + "updating.  If cas is not set the write will be always be allowed. "
                            + "If set to 0, a write will only be allowed if the key doesn’t exist. "
-                           + "If the index is greater than zero the write will only be allowed if "
-                           + "the key’s current version matches the version specified in the cas "
+                           + "If the index is greater than zero, then the write will only be allowed "
+                           + "if the key’s current version matches the version specified in the cas "
                            + "parameter.",
              tags = "vault",
              requestBody = 
@@ -324,19 +324,20 @@ public final class VaultResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/secret/delete/{secretName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Soft delete one or more versions of a secret. "
                            + "Each version can be deleted individually or as part of a "
                            + "group specified in the input array. Deletion can be "
-                           + "reversed using the undelete endpoint, which is what make "
-                           + "deletion _soft_.\n\n"
+                           + "reversed using the *secret/undelete/{secretName}* "
+                           + "endpoint, which make this a _soft_ deletion operation.\n\n"
                            + ""
                            + "The input versions array is interpreted as follows:\n\n"
                            + ""
-                           + "   * []  - delete all versions"
-                           + "   * [0] - delete only the latest version"
-                           + "   * [1, 3, ...] - delete the specified versions"
+                           + "   * [ ] - empty = delete all versions\n"
+                           + "   * [0] - zero = delete only the latest version\n"
+                           + "   * [1, 3, ...] - list = delete the specified versions\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -421,16 +422,18 @@ public final class VaultResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/secret/undelete/{secretName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Restore one or more versions of a secret that have previously been deleted. "
-                           + "This endpoint undoes soft deletions performed using the delete endpoint. "
+                           + "This endpoint undoes soft deletions performed using the "
+                           + "*secret/delete/{secretName}* endpoint.\n\n"
                            + ""
                            + "The input versions array is interpreted as follows:\n\n"
                            + ""
-                           + "   * []  - undelete all versions"
-                           + "   * [0] - undelete only the latest version"
-                           + "   * [1, 3, ...] - undelete the specified versions"
+                           + "   * [ ] - empty = undelete all versions\n"
+                           + "   * [0] - zero = undelete only the latest version\n"
+                           + "   * [1, 3, ...] - list = undelete the specified versions\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -514,17 +517,18 @@ public final class VaultResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/secret/destroy/{secretName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Destroy one or more versions of a secret, which is a hard "
-                           + "delete that cannot be undone. It doesn not, however, remove "
-                           + "the versions' metadata.\n\n"
+             description = "Destroy one or more versions of a secret. Destroy implements "
+                           + "a hard delete which delete that cannot be undone. It does "
+                           + "not, however, remove any metadata associated with the secret.\n\n"
                            + ""
                            + "The input versions array is interpreted as follows:\n\n"
                            + ""
-                           + "   * []  - destroy all versions"
-                           + "   * [0] - destroy only the latest version"
-                           + "   * [1, 3, ...] - destroy the specified versions"
+                           + "   * [ ] - empty = destroy all versions\n"
+                           + "   * [0] - zero = destroy only the latest version\n"
+                           + "   * [1, 3, ...] - list = destroy the specified versions\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -611,9 +615,9 @@ public final class VaultResource
      @Path("/secret/read/meta/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "List a secret's metadata including version information. "
-                         + "The input must be a secret name, not a folder. "
-                         + "The result indicates which version of the secret is the latest."
+             description = "List a secret's metadata including its version information. "
+                         + "The input parameter must be a secret name, not a folder. "
+                         + "The result includes which version of the secret is the latest."
                          + "",
              tags = "vault",
              responses = 
@@ -736,8 +740,9 @@ public final class VaultResource
      @Path("/secret/destroy/meta/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Erase all traces of a secret, its versions and its metadata. "
-                         + "The secretName can also be a folder.",
+             description = "Erase all traces of a secret: its key, all versions of its "
+                           + "value and all its metadata. "
+                           + "Specifying a folder erases all secrets in that folder.",
              tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret completely removed.",
@@ -788,5 +793,4 @@ public final class VaultResource
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
      }
-     
 }

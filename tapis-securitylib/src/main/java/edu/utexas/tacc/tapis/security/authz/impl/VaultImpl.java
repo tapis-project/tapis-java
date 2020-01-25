@@ -866,7 +866,7 @@ public final class VaultImpl
     * @param versions the versions of the secret to be undeleted, can be null
     *                 or empty
     * @return the scrubbed array of version numbers
- * @throws TapisImplException 
+    * @throws TapisImplException 
     */
    private int[] calculateVersionArray(String tenant, String user, String path,
                                        List<Integer> versions,
