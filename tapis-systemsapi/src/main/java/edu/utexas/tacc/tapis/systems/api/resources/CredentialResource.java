@@ -10,7 +10,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
@@ -49,7 +48,6 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 
 /*
  * JAX-RS REST resource for Tapis System credentials
@@ -212,31 +210,16 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    char[] password, privateKey, publicKey, cert, accessKey, accessSecret;
+    String password, privateKey, publicKey, cert, accessKey, accessSecret;
     JsonObject credObj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     // Extract credential attributes from the request body
-    password = ApiUtils.getValS(credObj.get(PASSWORD_FIELD), "").toCharArray();
-    privateKey = ApiUtils.getValS(credObj.get(PRIVATE_KEY_FIELD), "").toCharArray();
-    publicKey = ApiUtils.getValS(credObj.get(PUBLIC_KEY_FIELD), "").toCharArray();
-    cert = ApiUtils.getValS(credObj.get(CERTIFICATE_FIELD), "").toCharArray();
-    accessKey = ApiUtils.getValS(credObj.get(ACCESS_KEY_FIELD), "").toCharArray();
-    accessSecret = ApiUtils.getValS(credObj.get(ACCESS_SECRET_FIELD), "").toCharArray();
-    Credential credential = new Credential(null, null, null, null, null,
-            password, privateKey, publicKey, cert, accessKey, accessSecret);
-
-    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
-//    msg = null;
-//    // Check values. We should have at least one permission
-////    if (perms == null || perms.size() <= 0)
-////    {
-////      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
-////    }
-//    // If validation failed log error message and return response
-//    if (msg != null)
-//    {
-//      _log.error(msg);
-//      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//    }
+    password = ApiUtils.getValS(credObj.get(PASSWORD_FIELD), "");
+    privateKey = ApiUtils.getValS(credObj.get(PRIVATE_KEY_FIELD), "");
+    publicKey = ApiUtils.getValS(credObj.get(PUBLIC_KEY_FIELD), "");
+    cert = ApiUtils.getValS(credObj.get(CERTIFICATE_FIELD), "");
+    accessKey = ApiUtils.getValS(credObj.get(ACCESS_KEY_FIELD), "");
+    accessSecret = ApiUtils.getValS(credObj.get(ACCESS_SECRET_FIELD), "");
+    Credential credential = new Credential(password, privateKey, publicKey, cert, accessKey, accessSecret);
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to create or update the credential
@@ -273,7 +256,7 @@ public class CredentialResource
       tags = "credentials",
       responses = {
           @ApiResponse(responseCode = "200", description = "Success.",
-            content = @Content(schema = @Schema(implementation = RespNameArray.class))),
+            content = @Content(schema = @Schema(implementation = RespCredential.class))),
           @ApiResponse(responseCode = "400", description = "Input error.",
             content = @Content(schema = @Schema(implementation = RespBasic.class))),
           @ApiResponse(responseCode = "404", description = "System not found.",
@@ -355,7 +338,7 @@ public class CredentialResource
       "Remove credential from the Security Kernel for given system and user. Requester must be owner of the system.",
     tags = "credentials",
     responses = {
-      @ApiResponse(responseCode = "200", description = "Permission revoked.",
+      @ApiResponse(responseCode = "200", description = "Credential removed.",
         content = @Content(schema = @Schema(implementation = RespBasic.class))),
       @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
         content = @Content(schema = @Schema(implementation = RespBasic.class))),

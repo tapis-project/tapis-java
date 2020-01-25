@@ -2,8 +2,6 @@ package edu.utexas.tacc.tapis.systems.api.requests;
 
 public final class ReqCreateCredential
 {
-  public String system;
-  public String user;
   public String password;
   public String privateKey;
   public String publicKey;

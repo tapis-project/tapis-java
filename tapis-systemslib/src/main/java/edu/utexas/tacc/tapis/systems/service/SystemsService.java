@@ -14,7 +14,7 @@ public interface SystemsService
 {
   int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
                    String owner, String host, boolean available, String effectiveUserId, String accessMethod,
-                   char[] password, char[] cert, char[] privKey, char[] pubKey, char[] accKey, char[] accSecret,
+                   String password, String cert, String privKey, String pubKey, String accKey, String accSecret,
                    String bucketName, String rootDir, String transferMethods,
                    int port, boolean useProxy, String proxyHost, int proxyPort,
                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,

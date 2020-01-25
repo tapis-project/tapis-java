@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
@@ -31,8 +33,7 @@ public class SystemsServiceTest
   private static final String testUser2 = "testuser2";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
   private static final Protocol prot1 = new Protocol(AccessMethod.PASSWORD, txfrMethodsList, -1, false, "",-1);
-  private static final Credential cred1 = new Credential(null, null, null, null, null, null,
-                                                      null, null, null, null, null);
+  private static final Credential cred1 = new Credential();
   private static final String prot1AccessMethName = prot1.getAccessMethod().name();
   private static final String accessMethName_CERT = AccessMethod.CERT.name();
   private static final String prot1TxfrMethods = prot1.getTransferMethodsAsStr();
@@ -85,7 +86,6 @@ public class SystemsServiceTest
     String[] sys0 = sys1;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -99,7 +99,6 @@ public class SystemsServiceTest
     String[] sys0 = sys2;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -121,10 +120,6 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getJobLocalArchiveDir(), sys0[13]);
     Assert.assertEquals(tmpSys.getJobRemoteArchiveSystem(), sys0[14]);
     Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), sys0[15]);
-    System.out.println("Found tags: " + tmpSys.getTags());
-    System.out.println("Found notes: " + tmpSys.getNotes());
-    Assert.assertEquals(tmpSys.getTags(), tags);
-    Assert.assertEquals(tmpSys.getNotes(), notes);
     Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
@@ -133,6 +128,23 @@ public class SystemsServiceTest
     Assert.assertNotNull(txfrMethodsList);
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.S3), "List of transfer methods did not contain: " + TransferMethod.S3.name());
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.SFTP), "List of transfer methods did not contain: " + TransferMethod.SFTP.name());
+    // Retrieve tags, convert to json, verify keys and values
+    String tags = tmpSys.getTags();
+    System.out.println("Found tags: " + tags);
+    // Get the Json object and prepare to extract info from it
+    JsonObject obj = TapisGsonUtils.getGson().fromJson(tags, JsonObject.class);
+    Assert.assertTrue(obj.has("key1"));
+    Assert.assertEquals(obj.get("key1").getAsString(), "a");
+    Assert.assertTrue(obj.has("key2"));
+    Assert.assertEquals(obj.get("key2").getAsString(), "b");
+    // Retrieve notes, convert to json, verify elements
+    String notes = tmpSys.getNotes();
+    System.out.println("Found notes: " + notes);
+    obj = TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);
+    Assert.assertTrue(obj.has("project"));
+    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
+    Assert.assertTrue(obj.has("testdata"));
+    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -141,11 +153,9 @@ public class SystemsServiceTest
   @Test
   public void testGetSystemByNameWithVariables() throws Exception
   {
-    // TODO
     String[] sys0 = sys8;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -196,7 +206,6 @@ public class SystemsServiceTest
     String[] sys0 = sys3;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[14].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -204,7 +213,6 @@ public class SystemsServiceTest
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
     prot0 = prot1;
-    pass0 = sys0[8].toCharArray();
     itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -224,7 +232,6 @@ public class SystemsServiceTest
     String[] sys0 = sys5;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -243,7 +250,6 @@ public class SystemsServiceTest
     String[] sys0 = sys6;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -265,7 +271,6 @@ public class SystemsServiceTest
     String[] sys0 = sys7;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -282,7 +287,6 @@ public class SystemsServiceTest
     String[] sys0 = sys9;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
@@ -304,7 +308,6 @@ public class SystemsServiceTest
     String[] sys0 = sysA;
     Protocol prot0 = prot1;
     Credential cred0 = cred1;
-    char[] pass0 = sys0[8].toCharArray();
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], sys0[7],
             cred0.getPassword(), cred0.getPrivateKey(), cred0.getPublicKey(), cred0.getCertificate(), cred0.getAccessKey(), cred0.getAccessSecret(),
             sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),

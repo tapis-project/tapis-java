@@ -65,6 +65,7 @@ public class SystemsServiceImpl implements SystemsService
   // -----------------------------------------------------------------------
   // ------------------------- Systems -------------------------------------
   // -----------------------------------------------------------------------
+
   /**
    * Create a new system object
    *
@@ -75,7 +76,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
                           String owner, String host, boolean available, String effectiveUserId, String accessMethod,
-                          char[] password, char[] cert, char[] privKey, char[] pubKey, char[] accKey, char[] accSecret,
+                          String password, String cert, String privKey, String pubKey, String accKey, String accSecret,
                           String bucketName, String rootDir, String transferMethods,
                           int port, boolean useProxy, String proxyHost, int proxyPort,
                           boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
@@ -389,7 +390,7 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     var skClient = getSKClient(tenantName);
 
-//    // Assign perms to user. SK creates a default role for the user
+//  TODO Create/update the credential
 //    try
 //    {
 //    }
@@ -415,7 +416,7 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     var skClient = getSKClient(tenantName);
 
-//    // Remove perms from default user role
+//    TODO Remove the credential
 //    try
 //    {
 //      for (String permSpec : permSpecSet)
@@ -440,9 +441,7 @@ public class SystemsServiceImpl implements SystemsService
     // Use Security Kernel client to retrieve credential
     var skClient = getSKClient(tenantName);
 
-//    for (TSystem.Permissions perm : TSystem.Permissions.values())
-//    {
-//      String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
+    // TODO
 //      try
 //      {
 //        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
@@ -484,7 +483,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     var skClient = skClientMap.get(tenantName);
     if (skClient != null) return skClient;
-    // TBD/TODO: Determine if all this lookup is needed. If yes put it in private method or utility method
     // Use Tenants service to lookup information we need to:
     //  Access the tokens service associated with the tenant.
     //  Access the security kernel service associated with the tenant.

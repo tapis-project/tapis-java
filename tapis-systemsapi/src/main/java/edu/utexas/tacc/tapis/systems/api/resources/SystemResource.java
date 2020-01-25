@@ -242,7 +242,6 @@ public class SystemResource
     String name, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
-    // TODO Some fields in accessCred are of type char[] for security reasons. Local var data should be overwritten as soon as possible.
     Credential accessCred = new Credential();
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
@@ -312,25 +311,29 @@ public class SystemResource
     }
     jobCapsSB.append("}");
 
-    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
-    msg = null;
     // Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
     // If transfer mechanism S3 is supported then bucketName must be set.
+    // Collect and report as many errors as possible so they can all be fixed before next attempt
+    var errMessages = new ArrayList<String>();
     if (StringUtils.isBlank(name))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
+      errMessages.add(msg);
     }
-    else if (StringUtils.isBlank(systemType))
+    if (StringUtils.isBlank(systemType))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty system type.");
+      errMessages.add(msg);
     }
     else if (StringUtils.isBlank(host))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
+      errMessages.add(msg);
     }
     else if (StringUtils.isBlank(accessMethod))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
+      errMessages.add(msg);
     }
     else if (accessMethod.equals(Protocol.AccessMethod.CERT.name()) &&
             !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
@@ -340,23 +343,28 @@ public class SystemResource
     {
       // For CERT access the effectiveUserId cannot be static string other than owner
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
+      errMessages.add(msg);
     }
     else if (txfrMethodsArr.contains(Protocol.TransferMethod.S3.name()) && StringUtils.isBlank(bucketName))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+      errMessages.add(msg);
     }
     else if (obj.has(ACCESS_CREDENTIAL_FIELD) && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
+      errMessages.add(msg);
     }
 
     // If validation failed log error message and return response
-    if (msg != null)
+    if (!errMessages.isEmpty())
     {
-      _log.error(msg);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      // Construct message reporting all errors
+      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages);
+      _log.error(allErrors);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
 
     // Mask any secret info that might be contained in rawJson
@@ -642,16 +650,15 @@ public class SystemResource
    */
   private Credential extractAccessCred(JsonObject obj)
   {
-    char[] password, privateKey, publicKey, sshCert, accessKey, accessSecret;
+    String password, privateKey, publicKey, sshCert, accessKey, accessSecret;
     JsonObject credObj = obj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
-    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "").toCharArray();
-    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "").toCharArray();
-    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "").toCharArray();
-    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "").toCharArray();
-    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "").toCharArray();
-    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "").toCharArray();
-    return new Credential(null, null, null, null, null,
-                          password, privateKey, publicKey, sshCert, accessKey, accessSecret);
+    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "");
+    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "");
+    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "");
+    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "");
+    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "");
+    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "");
+    return new Credential(password, privateKey, publicKey, sshCert, accessKey, accessSecret);
   }
 
   /**
@@ -662,7 +669,7 @@ public class SystemResource
    */
   private String maskCredSecrets(JsonObject obj1)
   {
-    if (!obj1.has(ACCESS_CREDENTIAL_FIELD)) return obj1.getAsString();
+    if (!obj1.has(ACCESS_CREDENTIAL_FIELD)) return obj1.toString();
     // Leave the incoming object alone
     var obj2 = obj1.deepCopy();
     var credObj = obj2.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
@@ -687,5 +694,19 @@ public class SystemResource
       credObj.remove(field);
       credObj.addProperty(field, SECRETS_MASK);
     }
+  }
+
+  /**
+   * Construct message containing list of errors
+   */
+  private String getListOfErrors(String firstLineKey, List<String> msgList) {
+    if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
+    var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey));
+    sb.append(System.lineSeparator());
+    for (String msg : msgList)
+    {
+      sb.append("  ").append(msg).append(System.lineSeparator());
+    }
+    return sb.toString();
   }
 }

@@ -14,17 +14,7 @@
     "available": { "type": "boolean", "default": true },
     "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
     "accessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
-    "accessCredential": {
-      "type": "object",
-      "properties": {
-        "password": { "type":  "string" },
-        "privateKey": { "type":  "string" },
-        "publicKey": { "type":  "string" },
-        "certificate": { "type":  "string" },
-        "accessKey": { "type":  "string" },
-        "accessSecret": { "type":  "string" }
-      }
-    },
+    "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/CredentialCreateRequest.json#/" },
     "bucketName": { "type": "string", "maxLength": 63 },
     "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "transferMethods": {
