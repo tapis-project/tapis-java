@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -269,6 +270,7 @@ public final class RoleResource
      /* createRole:                                                                  */
      /* ---------------------------------------------------------------------------- */
      @POST
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create a role using a request body.  "
@@ -521,6 +523,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/updateName/{roleName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using a request body.  "
@@ -623,6 +626,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/updateDesc/{roleName}")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using a request body.  "
@@ -718,6 +722,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/addPerm")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Add a permission to an existing role using a request body.  "
@@ -840,6 +845,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/removePerm")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Remove a permission from a role using a request body.",
@@ -943,6 +949,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/addChild")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Add a child role to another role using a request body.  "
@@ -1050,6 +1057,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/removeChild")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Remove a child role from a parent role using a request body.",
@@ -1153,6 +1161,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/previewPathPrefix")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "This read-only endpoint previews the transformations that would take "
@@ -1309,6 +1318,7 @@ public final class RoleResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/replacePathPrefix")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Replace the text in a permission specification when its last component "

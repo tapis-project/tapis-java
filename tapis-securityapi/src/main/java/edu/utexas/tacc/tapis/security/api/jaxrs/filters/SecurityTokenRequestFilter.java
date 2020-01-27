@@ -20,7 +20,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** This jax-rs filter performs the following:
  * 
- * 
  * This filter is expected to run after all other authentication filters.
  * 
  * @author rcardone

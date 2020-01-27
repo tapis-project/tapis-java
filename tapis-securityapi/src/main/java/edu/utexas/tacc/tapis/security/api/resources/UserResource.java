@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -354,6 +355,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/grantRole")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the specified role.",
@@ -454,6 +456,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/revokeUserRole")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Revoke a previously granted role from a user. No action "
@@ -559,6 +562,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/grantUserPermission")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the specified permission by assigning that permission to "
@@ -671,6 +675,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/revokeUserPermission")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Revoke the specified permission from the user's default role. "
@@ -783,6 +788,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/grantRoleWithPerm")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the specified role containing the specified permission.  "
@@ -900,6 +906,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/hasRole")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user has been assigned the specified role, "
@@ -970,6 +977,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/hasRoleAny")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user has been assigned any of the roles "
@@ -1013,6 +1021,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/hasRoleAll")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user has been assigned all of the roles "
@@ -1056,6 +1065,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/isPermitted")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether specified permission matches a permission "
@@ -1126,6 +1136,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/isPermittedAny")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user's permissions satisfy any of the "
@@ -1169,6 +1180,7 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/isPermittedAll")
+     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user's permissions satisfy all of the "

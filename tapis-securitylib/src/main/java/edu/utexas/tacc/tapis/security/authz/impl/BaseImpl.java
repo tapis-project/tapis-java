@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-class BaseImpl 
+abstract class BaseImpl 
 {
     /* ********************************************************************** */
     /*                               Constants                                */
