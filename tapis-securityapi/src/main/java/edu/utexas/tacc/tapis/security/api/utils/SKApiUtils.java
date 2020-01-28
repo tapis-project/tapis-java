@@ -14,13 +14,8 @@ public class SKApiUtils
     /* ---------------------------------------------------------------------------- */
     public static Status toHttpStatus(Condition condition)
     {
-        // Map all possible TapisImplException condition codes to http status codes.
-        switch (condition) 
-        {
-            case BAD_REQUEST:           return Status.BAD_REQUEST;
-            case INTERNAL_SERVER_ERROR: return Status.INTERNAL_SERVER_ERROR;
-            
-            default:                    return Status.INTERNAL_SERVER_ERROR;
-        }
+        // Conditions are expected to have the exact same names as statuses.
+        try {return Status.valueOf(condition.name());}
+        catch (Exception e) {return Status.INTERNAL_SERVER_ERROR;}     
     }
 }

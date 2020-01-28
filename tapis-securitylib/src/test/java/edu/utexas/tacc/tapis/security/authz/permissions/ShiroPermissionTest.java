@@ -180,4 +180,63 @@ public class ShiroPermissionTest
         boolean implies = wcPerm.implies(new WildcardPermission("a:p:c,d"));
         Assert.assertTrue(implies, "Expected " + wcPerm + " to imply a:p:c,d");
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* DBTest:                                                                */
+    /* ---------------------------------------------------------------------- */
+    @Test
+    public void DBTest()
+    {
+      // The required permission spec.
+      WildcardPermission wcPerm = new WildcardPermission("meta:dev:GET,POST,PUT:streamdb");
+      
+      boolean implies = wcPerm.implies(new WildcardPermission("meta:dev:GET:streamdb:coll1"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:GET:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:POST:streamdb:coll1"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:POST:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:PUT:streamdb:coll1"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:PUT:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:coll1"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DEL:streamdb:coll1");
+      
+      // New perm.
+      wcPerm = new WildcardPermission("meta:dev:DEL:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:coll1"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:DEL:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DEL:streamdb");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:GET:streamdb:coll1"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:GET:streamdb:coll1");
+      
+      // New perm.
+      wcPerm = new WildcardPermission("meta:dev:DEL:streamdb:collection");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:collection:coll1"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:DEL:streamdb:collection:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:collection"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:DEL:streamdb:collection");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:collection:*"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:DEL:streamdb:collection:*");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DEL:streamdb");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb:coll1"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DEL:streamdb:coll1");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:DEL:streamdb"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DEL:streamdb");
+      
+      implies = wcPerm.implies(new WildcardPermission("meta:dev:GET:streamdb:coll1"));
+      Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:GET:streamdb:coll1");
+    }
+
 }

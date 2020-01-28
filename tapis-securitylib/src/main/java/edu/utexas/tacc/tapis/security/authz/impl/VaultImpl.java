@@ -141,8 +141,7 @@ public final class VaultImpl
                                         tenant, user, secretPath, version, 
                                         vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // ------------------------ Request Output ----------------------------
@@ -249,8 +248,7 @@ public final class VaultImpl
            String msg = MsgUtils.getMsg("SK_VAULT_WRITE_SECRET_ERROR", 
                                         tenant, user, secretPath, vaultBody);
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
        }
        
        // Return the data portion of the vault response.
@@ -346,8 +344,7 @@ public final class VaultImpl
                                         tenant, user, secretPath, 
                                         Arrays.toString(versionArray), vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // Put the version array into a list.
@@ -435,8 +432,7 @@ public final class VaultImpl
                                         tenant, user, secretPath, 
                                         Arrays.toString(versionArray), vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // Put the version array into a list.
@@ -522,8 +518,7 @@ public final class VaultImpl
                                         tenant, user, secretPath, 
                                         Arrays.toString(versionArray), vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // Put the version array into a list.
@@ -590,8 +585,7 @@ public final class VaultImpl
            String msg = MsgUtils.getMsg("SK_VAULT_READ_SECRET_METADATA_ERROR", 
                                         tenant, user, secretPath, vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // ------------------------ Request Output ----------------------------
@@ -708,8 +702,7 @@ public final class VaultImpl
            String msg = MsgUtils.getMsg("SK_VAULT_LIST_SECRET_METADATA_ERROR", 
                                         tenant, user, secretPath, vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
        
        // ------------------------ Request Output ----------------------------
@@ -792,8 +785,7 @@ public final class VaultImpl
            String msg = MsgUtils.getMsg("SK_VAULT_DESTROY_SECRET_METADATA_ERROR", 
                                         tenant, user, secretPath, vaultBody); // this is never a secret
            _log.error(msg);
-           var cond = vaultStatus >= 500 ? Condition.INTERNAL_SERVER_ERROR : Condition.BAD_REQUEST;
-           throw new TapisImplException(msg, cond);       
+           throw new TapisImplException(msg, vaultStatus);       
         }
    }
    
