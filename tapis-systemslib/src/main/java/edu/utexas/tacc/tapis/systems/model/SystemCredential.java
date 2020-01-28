@@ -6,6 +6,7 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO/TBD: Remove this class? not needed? might be from early dev work
 /*
  * Credential class representing an access credential provided when creating a TSystem.
  * In this case the credential is for a static effectiveUserId and

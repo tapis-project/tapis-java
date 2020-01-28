@@ -32,7 +32,7 @@
     "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "jobCapabilities": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
     },
     "tags": { "type": "string", "default": "{}" },
     "notes": { "type": "string", "default": "{}" }

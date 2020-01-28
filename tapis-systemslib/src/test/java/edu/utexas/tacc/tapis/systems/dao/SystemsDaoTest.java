@@ -67,7 +67,7 @@ public class SystemsDaoTest
     String[] sys0 = sys1;
     Protocol prot0 = prot1;
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-                                   prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+                                   prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
                                    prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
                                    false, sys0[9], sys0[10], sys0[11], sys0[12], null,
                                     sys0[13], sys0[14], sys0[15]);
@@ -80,7 +80,7 @@ public class SystemsDaoTest
     String[] sys0 = sys2;
     Protocol prot0 = prot2;
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
             prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[9], sys0[10], sys0[11], sys0[12], null,
             sys0[13], sys0[14], sys0[15]);
@@ -119,7 +119,7 @@ public class SystemsDaoTest
     String[] sys0 = sys3;
     Protocol prot0 = prot3;
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
             prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[9], sys0[10], sys0[11], sys0[12], null,
             sys0[13], sys0[14], sys0[15]);
@@ -127,7 +127,7 @@ public class SystemsDaoTest
     sys0 = sys4;
     prot0 = prot4;
     itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
             prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[9], sys0[10], sys0[11], sys0[12], null,
             sys0[13], sys0[14], sys0[15]);
@@ -146,7 +146,7 @@ public class SystemsDaoTest
     String[] sys0 = sys5;
     Protocol prot0 = prot5;
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
             prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[9], sys0[10], sys0[11], sys0[12], null,
             sys0[13], sys0[14], sys0[15]);
@@ -163,7 +163,7 @@ public class SystemsDaoTest
     String[] sys0 = sys6;
     Protocol prot0 = prot6;
     int itemId = dao.createTSystem(sys0[0], sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6],
-            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsStr(),
+            prot0.getAccessMethod().name(), sys0[7], sys0[8], prot0.getTransferMethodsAsString(),
             prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[9], sys0[10], sys0[11], sys0[12], null,
             sys0[13], sys0[14], sys0[15]);

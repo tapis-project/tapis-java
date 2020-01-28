@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.gson.JsonElement;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -36,6 +37,8 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Capability;
+import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.Protocol;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
@@ -97,6 +100,9 @@ public class SystemResource
   private static final String JOB_REMOTE_ARCHIVE_SYSTEM_FIELD = "jobRemoteArchiveSystem";
   private static final String JOB_REMOTE_ARCHIVE_DIR_FIELD = "jobRemoteArchiveDir";
   private static final String JOB_CAPABILITIES_FIELD = "jobCapabilities";
+  private static final String JOB_CAPABILITY_CATEGORY_FIELD = "category";
+  private static final String JOB_CAPABILITY_NAME_FIELD = "name";
+  private static final String JOB_CAPABILITY_VALUE_FIELD = "value";
   private static final String TAGS_FIELD = "tags";
   private static final String NOTES_FIELD = "notes";
 
@@ -237,9 +243,9 @@ public class SystemResource
     }
 
     // Get the Json object and prepare to extract info from it
-    JsonObject obj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+    JsonObject jsonObject = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
 
-    String name, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
+    String systemName, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
     Credential accessCred = new Credential();
@@ -248,42 +254,42 @@ public class SystemResource
 
     // Extract top level properties: name, systemType, host, description, owner, ...
     // Extract required values
-    name = obj.get(NAME_FIELD).getAsString();
-    systemType = obj.get(SYSTEM_TYPE_FIELD).getAsString();
-    host = obj.get(HOST_FIELD).getAsString();
-    accessMethod = obj.get(ACCESS_METHOD_FIELD).getAsString();
-    jobCanExec =  obj.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
+    systemName = jsonObject.get(NAME_FIELD).getAsString();
+    systemType = jsonObject.get(SYSTEM_TYPE_FIELD).getAsString();
+    host = jsonObject.get(HOST_FIELD).getAsString();
+    accessMethod = jsonObject.get(ACCESS_METHOD_FIELD).getAsString();
+    jobCanExec =  jsonObject.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
     // Extract optional values
-    description = ApiUtils.getValS(obj.get(DESCRIPTION_FIELD), "");
-    owner = ApiUtils.getValS(obj.get(OWNER_FIELD), "");
-    available = (obj.has(AVAILABLE_FIELD) ? obj.get(AVAILABLE_FIELD).getAsBoolean() : TSystem.DEFAULT_AVAILABLE);
-    effectiveUserId = ApiUtils.getValS(obj.get(EFFECTIVE_USERID_FIELD), "");
-    bucketName = ApiUtils.getValS(obj.get(BUCKET_NAME_FIELD), "");
-    rootDir = ApiUtils.getValS(obj.get(ROOT_DIR_FIELD), "");
-    port = (obj.has(PORT_FIELD) ? obj.get(PORT_FIELD).getAsInt() : -1);
-    useProxy = (obj.has(USE_PROXY_FIELD) ? obj.get(USE_PROXY_FIELD).getAsBoolean() : TSystem.DEFAULT_USEPROXY);
-    proxyHost = ApiUtils.getValS(obj.get(PROXY_HOST_FIELD), "");
-    proxyPort = (obj.has(PROXY_PORT_FIELD) ? obj.get(PROXY_PORT_FIELD).getAsInt() : -1);
+    description = ApiUtils.getValS(jsonObject.get(DESCRIPTION_FIELD), "");
+    owner = ApiUtils.getValS(jsonObject.get(OWNER_FIELD), "");
+    available = (jsonObject.has(AVAILABLE_FIELD) ? jsonObject.get(AVAILABLE_FIELD).getAsBoolean() : TSystem.DEFAULT_AVAILABLE);
+    effectiveUserId = ApiUtils.getValS(jsonObject.get(EFFECTIVE_USERID_FIELD), "");
+    bucketName = ApiUtils.getValS(jsonObject.get(BUCKET_NAME_FIELD), "");
+    rootDir = ApiUtils.getValS(jsonObject.get(ROOT_DIR_FIELD), "");
+    port = (jsonObject.has(PORT_FIELD) ? jsonObject.get(PORT_FIELD).getAsInt() : -1);
+    useProxy = (jsonObject.has(USE_PROXY_FIELD) ? jsonObject.get(USE_PROXY_FIELD).getAsBoolean() : TSystem.DEFAULT_USEPROXY);
+    proxyHost = ApiUtils.getValS(jsonObject.get(PROXY_HOST_FIELD), "");
+    proxyPort = (jsonObject.has(PROXY_PORT_FIELD) ? jsonObject.get(PROXY_PORT_FIELD).getAsInt() : -1);
 
-    jobLocalWorkingDir = ApiUtils.getValS(obj.get(JOB_LOCAL_WORKING_DIR_FIELD), "");
-    jobLocalArchiveDir = ApiUtils.getValS(obj.get(JOB_LOCAL_ARCHIVE_DIR_FIELD), "");
-    jobRemoteArchiveSystem = ApiUtils.getValS(obj.get(JOB_REMOTE_ARCHIVE_SYSTEM_FIELD), "");
-    jobRemoteArchiveDir = ApiUtils.getValS(obj.get(JOB_REMOTE_ARCHIVE_DIR_FIELD), "");
-    tags = ApiUtils.getValS(obj.get(TAGS_FIELD), TSystem.DEFAULT_TAGS);
-    notes = ApiUtils.getValS(obj.get(NOTES_FIELD), TSystem.DEFAULT_NOTES);
+    jobLocalWorkingDir = ApiUtils.getValS(jsonObject.get(JOB_LOCAL_WORKING_DIR_FIELD), "");
+    jobLocalArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_LOCAL_ARCHIVE_DIR_FIELD), "");
+    jobRemoteArchiveSystem = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_SYSTEM_FIELD), "");
+    jobRemoteArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_DIR_FIELD), "");
+    tags = ApiUtils.getValS(jsonObject.get(TAGS_FIELD), TSystem.DEFAULT_TAGS);
+    notes = ApiUtils.getValS(jsonObject.get(NOTES_FIELD), TSystem.DEFAULT_NOTES);
 
-    // Extract access credential if provided and effectiveUserId is not dynamic
-    if (obj.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    // Extract access credential if provided and effectiveUserId is not dynamic. This is a model.Credential object.
+    if (jsonObject.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
-      accessCred = extractAccessCred(obj);
+      accessCred = extractAccessCred(jsonObject);
     }
 
-    // Extract list of supported transfer methods
+    // Extract list of supported transfer methods. This is a list of Enums. Json schema enforces allowed enum values.
     // If element is not there or the list is empty then build empty array "{}"
     var txfrMethodsArr = new ArrayList<String>();
     StringBuilder transferMethodsSB = new StringBuilder("{");
     JsonArray txfrMethodsJson = null;
-    if (obj.has(TRANSFER_METHODS_FIELD)) txfrMethodsJson = obj.getAsJsonArray(TRANSFER_METHODS_FIELD);
+    if (jsonObject.has(TRANSFER_METHODS_FIELD)) txfrMethodsJson = jsonObject.getAsJsonArray(TRANSFER_METHODS_FIELD);
     if (txfrMethodsJson != null && txfrMethodsJson.size() > 0)
     {
       for (int i = 0; i < txfrMethodsJson.size()-1; i++)
@@ -296,26 +302,26 @@ public class SystemResource
     }
     transferMethodsSB.append("}");
 
-    // Extract list of job capabilities
-    // If element is not there or the list is empty then build empty array "{}"
-    StringBuilder jobCapsSB = new StringBuilder("{");
+    // Extract list of job capabilities. This is a list of Capability objects.
+    var jobCaps = new ArrayList<Capability>();
     JsonArray jobCapsJson = null;
-    if (obj.has(JOB_CAPABILITIES_FIELD)) jobCapsJson = obj.getAsJsonArray(JOB_CAPABILITIES_FIELD);
+    if (jsonObject.has(JOB_CAPABILITIES_FIELD)) jobCapsJson = jsonObject.getAsJsonArray(JOB_CAPABILITIES_FIELD);
     if (jobCapsJson != null && jobCapsJson.size() > 0)
     {
-      for (int i = 0; i < jobCapsJson.size()-1; i++)
+      Capability cap = null;
+      for (JsonElement jsonElement : jobCapsJson)
       {
-        jobCapsSB.append(jobCapsJson.get(i).toString()).append(",");
+        // Extract capability from the json object
+        cap = extractCapability(tenantName, systemName, jsonElement.getAsJsonObject());
       }
-      jobCapsSB.append(jobCapsJson.get(jobCapsJson.size()-1).toString());
+      jobCaps.add(cap);
     }
-    jobCapsSB.append("}");
 
     // Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
     // If transfer mechanism S3 is supported then bucketName must be set.
     // Collect and report as many errors as possible so they can all be fixed before next attempt
     var errMessages = new ArrayList<String>();
-    if (StringUtils.isBlank(name))
+    if (StringUtils.isBlank(systemName))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty name.");
       errMessages.add(msg);
@@ -351,7 +357,7 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
-    else if (obj.has(ACCESS_CREDENTIAL_FIELD) && effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    else if (jsonObject.has(ACCESS_CREDENTIAL_FIELD) && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
@@ -368,31 +374,29 @@ public class SystemResource
     }
 
     // Mask any secret info that might be contained in rawJson
-    String scrubbedJson = maskCredSecrets(obj);
+    String scrubbedJson = maskCredSecrets(jsonObject);
 
     // Make the service call to create the system
     systemsService = new SystemsServiceImpl();
     try
     {
-      systemsService.createSystem(tenantName, apiUserId, name, description, systemType, owner, host, available,
-                                  effectiveUserId, accessMethod,
-                                  accessCred.getPassword(), accessCred.getPrivateKey(), accessCred.getPublicKey(),
-                                  accessCred.getCertificate(), accessCred.getAccessKey(), accessCred.getAccessSecret(),
+      systemsService.createSystem(tenantName, apiUserId, systemName, description, systemType, owner, host, available,
+                                  effectiveUserId, accessMethod, accessCred,
                                   bucketName, rootDir, transferMethodsSB.toString(),
                                   port, useProxy, proxyHost, proxyPort,
                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
-                                  jobRemoteArchiveDir, jobCapsSB.toString(), tags, notes, scrubbedJson);
+                                  jobRemoteArchiveDir, jobCaps, tags, notes, scrubbedJson);
     }
     catch (IllegalStateException e)
     {
       // IllegalStateException indicates object exists - return 409 - Conflict
-      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, name);
+      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, systemName);
       _log.warn(msg);
       return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, name, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -400,10 +404,10 @@ public class SystemResource
     // ---------------------------- Success ------------------------------- 
     // Success means the object was created.
     ResultResourceUrl respUrl = new ResultResourceUrl();
-    respUrl.url = _request.getRequestURL().toString() + "/" + name;
+    respUrl.url = _request.getRequestURL().toString() + "/" + systemName;
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", null, name), prettyPrint, resp1)).build();
+      ApiUtils.getMsg("SYSAPI_CREATED", null, systemName), prettyPrint, resp1)).build();
   }
 
   /**
@@ -644,11 +648,36 @@ public class SystemResource
   /* **************************************************************************** */
 
   /**
+   * Extract Capability from a Json object
+   * @param obj Json object from request
+   * @return A Capability object
+   */
+  private static Capability extractCapability(String tenantName, String systemName, JsonObject obj)
+  {
+    String name, value;
+    Category category = null;
+    String categoryStr = ApiUtils.getValS(obj.get(JOB_CAPABILITY_CATEGORY_FIELD), "");
+    if (!StringUtils.isBlank(categoryStr))
+    {
+      // If Enums defined correctly an exception should never be thrown, but just in case.
+      try { category =  Category.valueOf(categoryStr); }
+      catch (IllegalArgumentException e)
+      {
+        String msg = MsgUtils.getMsg("SYSAPI_CAP_ENUM_ERROR", e.getMessage());
+        _log.error(msg, categoryStr, systemName, msg);
+      }
+    }
+    name = ApiUtils.getValS(obj.get(JOB_CAPABILITY_NAME_FIELD), "");
+    value = ApiUtils.getValS(obj.get(JOB_CAPABILITY_VALUE_FIELD), "");
+    return new Capability(tenantName, systemName, category, name, value);
+  }
+
+  /**
    * Extract AccessCredential details from the top level Json object
    * @param obj Top level Json object from request
    * @return A partially populated Credential object
    */
-  private Credential extractAccessCred(JsonObject obj)
+  private static Credential extractAccessCred(JsonObject obj)
   {
     String password, privateKey, publicKey, sshCert, accessKey, accessSecret;
     JsonObject credObj = obj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
@@ -667,7 +696,7 @@ public class SystemResource
    * @param obj1 Top level Json object from request
    * @return A string with any secrets masked out
    */
-  private String maskCredSecrets(JsonObject obj1)
+  private static String maskCredSecrets(JsonObject obj1)
   {
     if (!obj1.has(ACCESS_CREDENTIAL_FIELD)) return obj1.toString();
     // Leave the incoming object alone
@@ -687,7 +716,7 @@ public class SystemResource
   /**
    * If the Json object contains a non-blank value for the field then replace the value with the mask value.
    */
-  private void maskSecret(JsonObject credObj, String field)
+  private static void maskSecret(JsonObject credObj, String field)
   {
     if (!StringUtils.isBlank(ApiUtils.getValS(credObj.get(field), "")))
     {
@@ -699,7 +728,7 @@ public class SystemResource
   /**
    * Construct message containing list of errors
    */
-  private String getListOfErrors(String firstLineKey, List<String> msgList) {
+  private static String getListOfErrors(String firstLineKey, List<String> msgList) {
     if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
     var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey));
     sb.append(System.lineSeparator());

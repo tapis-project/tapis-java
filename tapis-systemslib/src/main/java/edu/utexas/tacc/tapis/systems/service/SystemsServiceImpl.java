@@ -7,6 +7,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
+import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
@@ -76,12 +77,11 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
                           String owner, String host, boolean available, String effectiveUserId, String accessMethod,
-                          String password, String cert, String privKey, String pubKey, String accKey, String accSecret,
-                          String bucketName, String rootDir, String transferMethods,
+                          Credential credential, String bucketName, String rootDir, String transferMethods,
                           int port, boolean useProxy, String proxyHost, int proxyPort,
                           boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
-                          String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
-                          String tags, String notes, String rawJson)
+                          String jobRemoteArchiveSystem, String jobRemoteArchiveDir,
+                          List<Capability> jobCapabilities, String tags, String notes, String rawJson)
           throws TapisException, IllegalStateException
   {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
@@ -131,7 +131,6 @@ public class SystemsServiceImpl implements SystemsService
       grantUserPermissions(tenantName, systemName, effectiveUserId, ALL_PERMS);
     }
 
-    // TODO *************** remove tests ********************
     var skClient = getSKClient(tenantName);
     // TODO/TBD: remove addition of files related permSpec
     // Give owner/effectiveUser files service related permission for root directory
@@ -353,7 +352,7 @@ public class SystemsServiceImpl implements SystemsService
     var userPerms = new ArrayList<String>();
     // Use Security Kernel client to check for each permission in the enum list
     var skClient = getSKClient(tenantName);
-    for (TSystem.Permissions perm : TSystem.Permissions.values())
+    for (TSystem.Permission perm : TSystem.Permission.values())
     {
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
       try
@@ -525,6 +524,12 @@ public class SystemsServiceImpl implements SystemsService
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
     skClient = new SKClient(skURL, svcJWT);
+    // Service to Service calls require user header, set it to be the same as the service name
+    // TODO Get string constants from shared code when available
+    String TAPIS_USER_HEADER = "X-Tapis-User";
+    String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
+    skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
+    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
     skClientMap.put(tenantName, skClient);
     return skClient;
   }

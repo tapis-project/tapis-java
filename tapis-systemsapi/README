@@ -36,7 +36,21 @@ psql -h localhost -U tapis -d tapissysdb -q -f tapis-systemslib/src/main/resourc
 psql -h localhost -U tapis -d tapissysdb -q -f tapis-systemslib/src/main/resources/sql/V001__init.sql
 
 
-
+------------
+ENUMs
+------------
+In general enumeration defintions may exist in up to three places
+  - In the JsonSchema file that validates incoming requests.
+  - In the model class representing the object (e.g. edu.utexas.tacc.tapis.systems.model.TSystem, Capability)
+  - In the sql initializing the DB schema.
+Here are the current enumerations and the locations where they are defined. Note that this list may not be up to date.
+  Enumeration         Json Schema               Model class       Init SQL
+  ===========         ================          ==============    =============
+  SystemType          Definitions.json          model.TSystem     Yes
+  Permission          PermsRequest.json         model.TSystem     No
+  AccessMethod        Definitions.json          model.Protocol    Yes
+  TransferMethod      SystemCreateRequest.json  model.Protocol    Yes
+  CapabilityCategory  Definitions.json          model.Capability  Yes
 
 ------------
 Server Usage

@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 
@@ -14,12 +15,11 @@ public interface SystemsService
 {
   int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
                    String owner, String host, boolean available, String effectiveUserId, String accessMethod,
-                   String password, String cert, String privKey, String pubKey, String accKey, String accSecret,
-                   String bucketName, String rootDir, String transferMethods,
+                   Credential credential, String bucketName, String rootDir, String transferMethods,
                    int port, boolean useProxy, String proxyHost, int proxyPort,
                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
-                   String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
-                   String tags, String notes, String rawJson)
+                   String jobRemoteArchiveSystem, String jobRemoteArchiveDir,
+                   List<Capability> jobCapabilities, String tags, String notes, String rawJson)
     throws TapisException, IllegalStateException;
 
   int deleteSystemByName(String tenantName, String systemName) throws TapisException;

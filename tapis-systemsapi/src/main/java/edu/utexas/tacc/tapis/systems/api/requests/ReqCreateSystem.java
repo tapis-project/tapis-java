@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.api.requests;
 
+import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public final class ReqCreateSystem
   public String jobLocalArchiveDir;
   public String jobRemoteArchiveSystem;
   public String jobRemoteArchiveDir;
-  public List<String> jobCapabilities;
+  public List<Capability> jobCapabilities;
   public String tags;
   public String notes;
 }

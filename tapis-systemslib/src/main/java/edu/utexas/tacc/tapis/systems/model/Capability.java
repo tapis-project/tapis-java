@@ -4,6 +4,8 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /*
  * Capability class representing a capability supported by a TSystem, such as what job schedulers the system supports,
  *   what software is on the system, the hardware on which the system is running, the type of OS the system is running,
@@ -19,12 +21,12 @@ import org.slf4j.LoggerFactory;
  */
 public final class Capability
 {
-  public enum CapType {SCHEDULER, OS, HARDWARE, SOFTWARE, COMPILER, MODULES, JOB, CONTAINER}
+  public enum Category {SCHEDULER, OS, HARDWARE, SOFTWARE, JOB, CONTAINER, MISC, CUSTOM}
 
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
-//  private static final String EMPTY_TRANSFER_METHODS_STR = "{}";
+  private static final String EMPTY_CAPABILITY_LIST_STR = "{}";
 //  public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
 
   /* ********************************************************************** */
@@ -33,20 +35,20 @@ public final class Capability
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(Capability.class);
 
-  private final String tenant; // Name of the tenant. Tenant + system + type + name must be unique.
+  private final String tenant; // Name of the tenant. Tenant + system + category + name must be unique.
   private final String system; // Name of the system that supports the capability
-  private final CapType capType; // Type or category of capability
+  private final Category category; // Type or category of capability
   private final String name;   // Name of the capability
   private final String value;  // Value or range of values
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  public Capability(String tenant1, String system1, CapType capType1, String name1, String value1)
+  public Capability(String tenant1, String system1, Category category1, String name1, String value1)
   {
     tenant = tenant1;
     system = system1;
-    capType = capType1;
+    category = category1;
     name = name1;
     value = value1;
   }
@@ -56,7 +58,7 @@ public final class Capability
   /* ********************************************************************** */
   public String getTenant() { return tenant; }
   public String getSystem() { return system; }
-  public CapType getCapType() { return capType; }
+  public Category getCategory() { return category; }
   public String getName() { return name; }
   public String getValue() { return value; }
 

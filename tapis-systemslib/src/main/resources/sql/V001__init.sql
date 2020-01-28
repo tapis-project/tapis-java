@@ -34,7 +34,7 @@ SET search_path TO tapis_sys;
 CREATE TYPE system_type_type AS ENUM ('LINUX', 'OBJECT_STORE');
 CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'CERT', 'ACCESS_KEY');
 CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
-CREATE TYPE capability_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
+CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
 
 -- ----------------------------------------------------------------------------------------
 --                                     SYSTEMS
@@ -110,20 +110,21 @@ CREATE TABLE capabilities
 (
     id     SERIAL PRIMARY KEY,
     tenant VARCHAR(24) NOT NULL,
-    system SERIAL references systems(id),
-    type   capability_type NOT NULL,
+    system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
+    category   capability_category_type NOT NULL,
     name   VARCHAR(256) NOT NULL DEFAULT '',
     value  VARCHAR(256) NOT NULL DEFAULT '',
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     updated TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    UNIQUE (tenant, system, type, name)
+    UNIQUE (tenant, system_id, category, name)
 );
 ALTER TABLE capabilities OWNER TO tapis;
 COMMENT ON COLUMN capabilities.id IS 'Capability id';
 COMMENT ON COLUMN capabilities.tenant IS 'Name of tenant';
-COMMENT ON COLUMN capabilities.system IS 'Name of system';
-COMMENT ON COLUMN capabilities.type IS 'Type or category of capability';
+COMMENT ON COLUMN capabilities.system_id IS 'Id of system supporting the capability';
+COMMENT ON COLUMN capabilities.category IS 'Category for grouping of capabilities';
 COMMENT ON COLUMN capabilities.name IS 'Name of capability';
+COMMENT ON COLUMN capabilities.value IS 'Value for the capability';
 COMMENT ON COLUMN capabilities.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN capabilities.updated IS 'UTC time for when record was last updated';
 

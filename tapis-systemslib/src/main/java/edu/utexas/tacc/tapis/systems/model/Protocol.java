@@ -72,7 +72,7 @@ public final class Protocol
    * Return List of transfer methods as a comma delimited list of strings surrounded by curly braces.
    * @return
    */
-  public String getTransferMethodsAsStr()
+  public String getTransferMethodsAsString()
   {
     if (transferMethods == null || transferMethods.size() == 0) return EMPTY_TRANSFER_METHODS_STR;
     StringBuilder sb = new StringBuilder("{");

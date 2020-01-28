@@ -48,7 +48,7 @@ public final class TSystem
   // *********************** Enums ******************************************
   // ************************************************************************
   public enum SystemType {LINUX, OBJECT_STORE}
-  public enum Permissions {READ, MODIFY, DELETE}
+  public enum Permission {READ, MODIFY, DELETE}
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -124,7 +124,7 @@ public final class TSystem
     jobLocalArchiveDir = jobLocalArchiveDir1;
     jobRemoteArchiveSystem = jobRemoteArchiveSystem1;
     jobRemoteArchiveDir = jobRemoteArchiveDir1;
-    if (jobCapabilities != null) jobCapabilities = jobCapabilities1;
+    if (jobCapabilities1 != null) jobCapabilities = jobCapabilities1;
     else jobCapabilities = new ArrayList<>();
     tags = tags1;
     notes = notes1;

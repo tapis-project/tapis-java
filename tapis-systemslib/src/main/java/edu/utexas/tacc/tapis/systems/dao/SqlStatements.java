@@ -38,7 +38,7 @@ final class SqlStatements
       "WHERE tenant = ? AND name = ?";
 
   // Delete a system given the name
-  public static final String DELETE_SYSTEM_BY_NAME =
+  public static final String DELETE_SYSTEM_BY_NAME_CASCADE =
     "DELETE FROM systems where tenant = ? AND name = ?";
 
   // Check for a existence of a record
@@ -47,5 +47,13 @@ final class SqlStatements
 
   // Get system owner
   public static final String SELECT_SYSTEM_OWNER =
+
     "SELECT owner FROM systems WHERE tenant = ? AND name = ?";
+
+  // -------------------------
+  // ------ Capabilities -----
+  // -------------------------
+  static final String ADD_CAPABILITY =
+          "INSERT INTO capabilities (tenant, system_id, category, name, value) " +
+            "VALUES (?, ?, ?::capability_category_type, ?, ?) ";
 }

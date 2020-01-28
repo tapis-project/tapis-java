@@ -51,8 +51,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                            String bucketName, String rootDir, String transferMethods,
                            int port, boolean useProxy, String proxyHost, int proxyPort,
                            boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
-                           String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String jobCapabilities,
-                           String tags, String notes, String rawJson)
+                           String jobRemoteArchiveSystem, String jobRemoteArchiveDir,
+                           List<Capability> jobCapabilities, String tags, String notes, String rawJson)
           throws TapisException, IllegalStateException
   {
     // Generated sequence id
@@ -153,6 +153,21 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       itemId = rs.getInt(1);
 
       // TODO Persist job capabilities
+      if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
+        sql = SqlStatements.ADD_CAPABILITY;
+        for (Capability cap : jobCapabilities) {
+          String valStr = "";
+          if (cap.getValue() != null ) valStr = cap.getValue();
+          // Prepare the statement and execute it
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenantName);
+          pstmt.setInt(2, itemId);
+          pstmt.setString(3, cap.getCategory().name());
+          pstmt.setString(4, cap.getName());
+          pstmt.setString(5, valStr);
+          pstmt.execute();
+        }
+      }
 
       // Close out and commit
       pstmt.close();
@@ -226,7 +241,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
 
       // Set the sql command.
-      String sql = SqlStatements.DELETE_SYSTEM_BY_NAME;
+      String sql = SqlStatements.DELETE_SYSTEM_BY_NAME_CASCADE;
 
       // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);

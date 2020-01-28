@@ -9,5 +9,15 @@
   "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
   "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
   "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
-  "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","CERT","ACCESS_KEY"] }
+  "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","CERT","ACCESS_KEY"] },
+  "capabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
+  "capability": {
+    "type": "object",
+    "properties": {
+      "category": { "$ref": "#/capabilityCategoryEnum" },
+      "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "value": { "type": "string", "maxLength": 256 }
+    },
+    "required": [ "category", "name" ]
+  }
 }
