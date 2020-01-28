@@ -160,7 +160,7 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     var skClient = getSKClient(tenantName);
     String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
-    var userNames = skClient.getUsersWithPermission(permSpec).getNames();
+    var userNames = skClient.getUsersWithPermission(permSpec);
     // Revoke all perms for all users
     for (String userName : userNames) {
       revokeUserPermissions(tenantName, systemName, userName, ALL_PERMS);
@@ -358,7 +358,7 @@ public class SystemsServiceImpl implements SystemsService
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
       try
       {
-        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
+        Boolean isAuthorized = skClient.isPermitted(userName, permSpec);
         if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
       }
       // TODO exception handling
@@ -554,13 +554,11 @@ public class SystemsServiceImpl implements SystemsService
     try {
       ResultNameArray nameArray = null;
       // Test retrieving all roles for a user
-      ResultNameArray roleArray = skClient.getUserRoles(userName);
-      List<String> roles = roleArray.getNames();
+      List<String> roles = skClient.getUserRoles(userName);
       _log.error("User " + userName + " has the following roles: ");
       for (String role : roles) { _log.error("  role: " + role); }
       // Test retrieving all perms for a user
-      ResultNameArray permArray = skClient.getUserPerms(userName, null, null);
-      List<String> perms = permArray.getNames();
+      List<String> perms = skClient.getUserPerms(userName, null, null);
       _log.error("User " + userName + " has the following permissions: ");
       for (String perm : perms) { _log.error("  perm: " + perm); }
     } catch (Exception e) { _log.error(e.toString()); }
