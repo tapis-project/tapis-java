@@ -313,8 +313,8 @@ public class SystemResource
       {
         // Extract capability from the json object
         cap = extractCapability(tenantName, systemName, jsonElement.getAsJsonObject());
+        jobCaps.add(cap);
       }
-      jobCaps.add(cap);
     }
 
     // Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
