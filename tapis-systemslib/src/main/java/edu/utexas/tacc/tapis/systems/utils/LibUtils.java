@@ -1,8 +1,14 @@
 package edu.utexas.tacc.tapis.systems.utils;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -85,5 +91,60 @@ public class LibUtils
       msgValue = sb.toString();
     }
     return msgValue;
+  }
+
+  /**
+   * Close any DB connection related artifacts that are not null
+   * @throws SQLException - on sql error
+   */
+  public static void closeAndCommitDB(Connection conn, PreparedStatement pstmt, ResultSet rs) throws SQLException
+  {
+    if (rs != null) rs.close();
+    if (pstmt != null) pstmt.close();
+    if (conn != null) conn.commit();
+  }
+
+  /**
+   * Roll back a DB transaction and throw an exception
+   * This method always throws an exception, either IllegalStateException or TapisException
+   */
+  public static void rollbackDB(Connection conn, Exception e, String msgKey, Object... parms) throws TapisException
+  {
+    try
+    {
+      if (conn != null) conn.rollback();
+    }
+    catch (Exception e1)
+    {
+      _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
+    }
+
+    // If IllegalStateException or TapisException pass it back up
+    if (e instanceof IllegalStateException) throw (IllegalStateException) e;
+    if (e instanceof TapisException) throw (TapisException) e;
+
+    // Log the exception.
+    String msg = MsgUtils.getMsg(msgKey, parms);
+    _log.error(msg, e);
+    throw new TapisException(msg, e);
+  }
+
+  /**
+   * Close DB connection, typically called from finally block
+   */
+  public static void finalCloseDB(Connection conn)
+  {
+    // Always return the connection back to the connection pool.
+    try
+    {
+      if (conn != null) conn.close();
+    }
+    catch (Exception e)
+    {
+      // If commit worked, we can swallow the exception.
+      // If not, the commit exception will have been thrown.
+      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+      _log.error(msg, e);
+    }
   }
 }

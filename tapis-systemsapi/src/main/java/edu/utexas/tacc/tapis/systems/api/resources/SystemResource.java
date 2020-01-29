@@ -669,7 +669,7 @@ public class SystemResource
     }
     name = ApiUtils.getValS(obj.get(JOB_CAPABILITY_NAME_FIELD), "");
     value = ApiUtils.getValS(obj.get(JOB_CAPABILITY_VALUE_FIELD), "");
-    return new Capability(tenantName, systemName, category, name, value);
+    return new Capability(category, name, value);
   }
 
   /**

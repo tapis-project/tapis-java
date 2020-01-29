@@ -122,7 +122,6 @@ public class SystemsServiceImpl implements SystemsService
     // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
 
     // TODO Store credentials in Security Kernel
-    // TODO Once credentials stored overwrite characters in memory
 
     // Give owner and possibly effectiveUser access to the system
     grantUserPermissions(tenantName, systemName, owner, ALL_PERMS);
@@ -203,7 +202,6 @@ public class SystemsServiceImpl implements SystemsService
     // Resolve effectiveUserId if necessary
     result.setEffectiveUserId(resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId));
     // TODO If requested retrieve credentials from Security Kernel
-    // TODO Once local credentials var not needed overwrite characters in memory
     //result.setAccessCredential();
     return result;
   }
@@ -224,7 +222,6 @@ public class SystemsServiceImpl implements SystemsService
     {
       sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
       // TODO If requested retrieve credentials from Security Kernel
-      // TODO Once local credentials var not needed overwrite characters in memory
       //sys.setAccessCredential();
     }
     return result;

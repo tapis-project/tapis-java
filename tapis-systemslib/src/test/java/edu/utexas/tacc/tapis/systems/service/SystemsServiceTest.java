@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.service;
 import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
+import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
@@ -74,13 +75,13 @@ public class SystemsServiceTest
           "effUserA", prot1AccessMethName, "fakePasswordA", "bucketA", "/rootA", prot1TxfrMethods,
           "jobLocalWorkDirA", "jobLocalArchDirA", "jobRemoteArchSystemA", "jobRemoteArchDirA", tags, notes, "{}"};
 
-  private static final Capability capA1 = new Capability(tenantName, sys1[1], Capability.Category.SCHEDULER, "Type", "Slurm");
-  private static final Capability capB1 = new Capability(tenantName, sys1[1], Capability.Category.HARDWARE, "CoresPerNode", "4");
-  private static final Capability capC1 = new Capability(tenantName, sys1[1], Capability.Category.SOFTWARE, "OpenMP", "4.5");
-  private static final Capability capA2 = new Capability(tenantName, sys2[1], Capability.Category.SCHEDULER, "Type", "Slurm");
-  private static final Capability capB2 = new Capability(tenantName, sys2[1], Capability.Category.HARDWARE, "CoresPerNode", "4");
-  private static final Capability capC2 = new Capability(tenantName, sys2[1], Capability.Category.SOFTWARE, "OpenMP", "4.5");
-  private static final Capability capD2 = new Capability(tenantName, sys2[1], Capability.Category.CONTAINER, "Singularity", null);
+  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
+  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
+  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+  private static final Capability capA2 = new Capability(Category.SCHEDULER, "Type", "Slurm");
+  private static final Capability capB2 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
+  private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+  private static final Capability capD2 = new Capability(Category.CONTAINER, "Singularity", null);
   private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
   private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2, capD2));
 
@@ -133,13 +134,21 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
     Assert.assertEquals(tmpSys.getProxyPort(), prot0.getProxyPort());
+    // Verify transfer methods
     List<TransferMethod> txfrMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(txfrMethodsList);
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.S3), "List of transfer methods did not contain: " + TransferMethod.S3.name());
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.SFTP), "List of transfer methods did not contain: " + TransferMethod.SFTP.name());
-    // TODO: Verify capabilities
+    // Verify capabilities
     List<Capability> jobCaps = tmpSys.getJobCapabilities();
-
+    Assert.assertNotNull(jobCaps);
+    Assert.assertEquals(jobCaps.size(), cap2List.size());
+    var capNamesFound = new ArrayList<String>();
+    for (Capability capFound : jobCaps) {capNamesFound.add(capFound.getName());}
+    for (Capability capSeed : cap2List)
+    {
+      Assert.assertTrue(capNamesFound.contains(capSeed.getName()), "List of capabilities did not contain a capability named: " + capSeed.getName());
+    }
     // Retrieve tags, convert to json, verify keys and values
     String tags = tmpSys.getTags();
     System.out.println("Found tags: " + tags);

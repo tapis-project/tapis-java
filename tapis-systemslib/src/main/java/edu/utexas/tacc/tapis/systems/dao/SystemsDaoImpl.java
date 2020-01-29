@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.systems.model.Capability;
+import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,7 +44,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * Create a new system object.
    *
    * @return Sequence id of object created
-   * @throws TapisException
+   * @throws TapisException - on error
    */
   @Override
   public int createTSystem(String tenantName, String systemName, String description, String systemType,
@@ -56,7 +57,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           throws TapisException, IllegalStateException
   {
     // Generated sequence id
-    int itemId;
+    int systemId = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenantName)) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenantName");
@@ -92,18 +93,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
 
       // Check to see if system exists. If yes then throw IllegalStateException
+      // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenantName);
       pstmt.setString(2, systemName);
+      ResultSet rs = pstmt.executeQuery();
       // Should get one row back. If not assume system does not exist
       boolean doesExist = false;
-      ResultSet rs = pstmt.executeQuery();
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", systemName));
-
-      // Set the sql command.
-      sql = SqlStatements.CREATE_SYSTEM;
 
       // Convert tags and notes to jsonb objects
       var tagsJson = new PGobject();
@@ -113,7 +112,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       notesJson.setType("jsonb");
       notesJson.setValue(notes);
 
-      // Prepare the statement and fill in the placeholders.
+      // Prepare the statement, fill in placeholders and execute
+      sql = SqlStatements.CREATE_SYSTEM;
       pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenantName);
       pstmt.setString(2, systemName);
@@ -139,20 +139,20 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setObject(22, tagsJson);
       pstmt.setObject(23, notesJson);
       pstmt.setString(24, rawJson);
-
-      // Issue the call.
       pstmt.execute();
       // The generated sequence id should come back in the doesExist
       rs = pstmt.getResultSet();
-      if (!rs.next())
+      if (rs == null || !rs.next())
       {
         String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
         _log.error(msg);
         throw new TapisException(msg);
       }
-      itemId = rs.getInt(1);
+      systemId = rs.getInt(1);
+      rs.close();
+      rs = null;
 
-      // TODO Persist job capabilities
+      // Persist job capabilities
       if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
         sql = SqlStatements.ADD_CAPABILITY;
         for (Capability cap : jobCapabilities) {
@@ -161,7 +161,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           // Prepare the statement and execute it
           pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenantName);
-          pstmt.setInt(2, itemId);
+          pstmt.setInt(2, systemId);
           pstmt.setString(3, cap.getCategory().name());
           pstmt.setString(4, cap.getName());
           pstmt.setString(5, valStr);
@@ -170,46 +170,19 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       }
 
       // Close out and commit
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      // If IllegalStateException pass it back up
-      if (e instanceof IllegalStateException) throw (IllegalStateException) e;
-
-      // Log the exception.
-      String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems_tbl");
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_INSERT_FAILURE", "systems");
     }
     finally
     {
-      // Conditionally return the connection back to the connection pool.
-      if (conn != null)
-        try
-        {
-          conn.close();
-        }
-        catch (Exception e)
-        {
-          // If commit worked, we can swallow the exception.
-          // If not, the commit exception will be thrown.
-          String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-          _log.error(msg, e);
-        }
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
     }
-    return itemId;
+    return systemId;
   }
 
   /**
@@ -240,62 +213,34 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-      // Set the sql command.
+      // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.DELETE_SYSTEM_BY_NAME_CASCADE;
-
-      // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
-
-      // Issue the call.
       rows = pstmt.executeUpdate();
 
       // Close out and commit
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, null);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      // Log the exception.
-      String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "systems");
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
     }
     finally
     {
-      // Conditionally return the connection back to the connection pool.
-      if (conn != null)
-        try
-        {
-          conn.close();
-        }
-        catch (Exception e)
-        {
-          // If commit worked, we can swallow the exception.
-          // If not, the commit exception will be thrown.
-          String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-          _log.error(msg, e);
-        }
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
     }
     return rows;
   }
 
   /**
    * checkForSystemByName
-   * @param name
+   * @param name - system name
    * @return true if found else false
-   * @throws TapisException
+   * @throws TapisException - on error
    */
   @Override
   public boolean checkForTSystemByName(String tenant, String name) throws TapisException {
@@ -309,65 +254,39 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-      // Get the select command.
-      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
 
-      // Prepare the statement and fill in the placeholders.
+      // Prepare the statement, fill in placeholders and execute
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
-
-      // Should get one row back. If not return null.
       ResultSet rs = pstmt.executeQuery();
       if (rs != null && rs.next()) result = rs.getBoolean(1);
 
       // Close out and commit
-      rs.close();
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      String msg = MsgUtils.getMsg("DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
     }
     finally
     {
       // Always return the connection back to the connection pool.
-      try
-      {
-        if (conn != null) conn.close();
-      }
-      catch (Exception e)
-      {
-        // If commit worked, we can swallow the exception.
-        // If not, the commit exception will be thrown.
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        _log.error(msg, e);
-      }
+      LibUtils.finalCloseDB(conn);
     }
     return result;
   }
 
   /**
    * getSystemByName
-   * @param name
+   * @param systemName - system name
    * @return System object if found, null if not found
-   * @throws TapisException
+   * @throws TapisException - on error
    */
   @Override
-  public TSystem getTSystemByName(String tenant, String name) throws TapisException {
+  public TSystem getTSystemByName(String tenant, String systemName) throws TapisException {
     // Initialize result.
     TSystem result = null;
 
@@ -378,70 +297,56 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-      // Get the select command.
+      // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.SELECT_SYSTEM_BY_NAME;
-
-      // Prepare the statement and fill in the placeholders.
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
+      pstmt.setString(2, systemName);
+      ResultSet rsSys = pstmt.executeQuery();
+      // Should get one row back. If not close out and return.
+      if (rsSys == null || !rsSys.next())
+      {
+        LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
+        return null;
+      }
 
-      // Should get one row back. If not return null.
-      // Use result to populate system object
-      ResultSet rs = pstmt.executeQuery();
+      // Pull out the system id so we can use it to get capabilities
+      int systemId = rsSys.getInt(1);
 
-      // TODO: What about credentials?
+      // Retrieve capabilities
+      List<Capability> jobCaps = new ArrayList<>();
+      sql = SqlStatements.SELECT_SYSTEM_CAPS;
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setInt(2, systemId);
+      ResultSet rsCaps = pstmt.executeQuery();
+      // Iterate over results
+      if (rsCaps != null)
+      {
+        while (rsCaps.next())
+        {
+          Capability cap = populateCapability(rsCaps);
+          if (cap != null) jobCaps.add(cap);
+        }
+      }
 
-      // TODO Populate capabilities, then pass in to method populateTSystem()
-//      List<Capability> jobCapsList = new ArrayList<>();
-//      String txfrMethodsStr = rs.getString();
-//      if (txfrMethodsStr != null && !StringUtils.isBlank(txfrMethodsStr))
-//      {
-//        // Strip off surrounding braces and convert strings to enums
-//        // NOTE: All values should be valid due to enforcement of type in DB and json schema validation
-//        String[] txfrMethodsStrArray = (txfrMethodsStr.substring(1, txfrMethodsStr.length() - 1)).split(",");
-//        for (String tmech : txfrMethodsStrArray)
-//        {
-//          if (!StringUtils.isBlank(tmech)) txfrMethodsList.add(TransferMethod.valueOf(tmech));
-//        }
-//      }
-      if (rs != null && rs.next()) result = populateTSystem(rs, null, null);
+      // TODO: If needed retrieve credentials
+
+      // Use results to populate system object
+      result = populateTSystem(rsSys, jobCaps, null);
 
       // Close out and commit
-      rs.close();
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      String msg = MsgUtils.getMsg("DB_SELECT_NAME_ERROR", "System", tenant, name, e.getMessage());
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_SELECT_NAME_ERROR", "System", tenant, systemName, e.getMessage());
     }
     finally
     {
       // Always return the connection back to the connection pool.
-      try
-      {
-        if (conn != null) conn.close();
-      }
-      catch (Exception e)
-      {
-        // If commit worked, we can swallow the exception.
-        // If not, the commit exception will be thrown.
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        _log.error(msg, e);
-      }
+      LibUtils.finalCloseDB(conn);
     }
 
     return result;
@@ -449,9 +354,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * getSystems
-   * @param tenant
-   * @return
-   * @throws TapisException
+   * @param tenant - tenant name
+   * @return - list of TSystem objects
+   * @throws TapisException - on error
    */
   @Override
   public List<TSystem> getTSystems(String tenant) throws TapisException
@@ -469,12 +374,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get the select command.
       String sql = SqlStatements.SELECT_ALL_SYSTEMS;
 
-      // Prepare the statement and fill in the placeholders.
+      // Prepare the statement, fill in placeholders and execute
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
-
-      // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
+      // Iterate over results
       if (rs != null)
       {
         while (rs.next())
@@ -487,40 +391,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       }
 
       // Close out and commit
-      rs.close();
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
     }
     finally
     {
       // Always return the connection back to the connection pool.
-      try
-      {
-        if (conn != null) conn.close();
-      }
-      catch (Exception e)
-      {
-        // If commit worked, we can swallow the exception.
-        // If not, the commit exception will be thrown.
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        _log.error(msg, e);
-      }
+      LibUtils.finalCloseDB(conn);
     }
 
     return list;
@@ -528,9 +409,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * getSystemNames
-   * @param tenant
-   * @return
-   * @throws TapisException
+   * @param tenant - tenant name
+   * @return - List of system names
+   * @throws TapisException - on error
    */
   @Override
   public List<String> getTSystemNames(String tenant) throws TapisException
@@ -548,49 +429,25 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get the select command.
       String sql = SqlStatements.SELECT_ALL_SYSTEM_NAMES;
 
-      // Prepare the statement and fill in the placeholders.
+      // Prepare the statement, fill in placeholders and execute
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
-
-      // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
+      // Iterate over result
       while (rs.next()) list.add(rs.getString(1));
 
       // Close out and commit
-      rs.close();
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
     }
     finally
     {
       // Always return the connection back to the connection pool.
-      try
-      {
-        if (conn != null) conn.close();
-      }
-      catch (Exception e)
-      {
-        // If commit worked, we can swallow the exception.
-        // If not, the commit exception will be thrown.
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        _log.error(msg, e);
-      }
+      LibUtils.finalCloseDB(conn);
     }
 
     return list;
@@ -598,10 +455,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * getSystemOwner
-   * @param tenant
-   * @param name - name of the system
+   * @param tenant - name of tenant
+   * @param name - name of system
    * @return Owner or null if no system found
-   * @throws TapisException
+   * @throws TapisException - on error
    */
   @Override
   public String getTSystemOwner(String tenant, String name) throws TapisException
@@ -618,50 +475,25 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get the select command.
       String sql = SqlStatements.SELECT_SYSTEM_OWNER;
 
-      // Prepare the statement and fill in the placeholders.
+      // Prepare the statement, fill in placeholders and execute
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
-
-      // Issue the call for the 1 row result set.
       ResultSet rs = pstmt.executeQuery();
       if (rs.next()) owner = rs.getString(1);
 
       // Close out and commit
-      rs.close();
-      pstmt.close();
-      conn.commit();
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
     catch (Exception e)
     {
-      // Rollback transaction.
-      try
-      {
-        if (conn != null) conn.rollback();
-      }
-      catch (Exception e1)
-      {
-        _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);
-      }
-
-      String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "samples", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisException(msg, e);
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
     }
     finally
     {
       // Always return the connection back to the connection pool.
-      try
-      {
-        if (conn != null) conn.close();
-      }
-      catch (Exception e)
-      {
-        // If commit worked, we can swallow the exception.
-        // If not, the commit exception will be thrown.
-        String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-        _log.error(msg, e);
-      }
+      LibUtils.finalCloseDB(conn);
     }
     return owner;
   }
@@ -677,9 +509,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    * @param rs the result set containing one or more items, cursor at desired item
    * @return the new, fully populated job object or null if there is a problem
-   * @throws TapisJDBCException
+   * @throws TapisJDBCException - on error
    */
-  private TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps, Credential accessCred) throws TapisJDBCException
+  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps, Credential accessCred) throws TapisJDBCException
   {
     // Quick check.
     if (rs == null) return null;
@@ -738,5 +570,36 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       throw new TapisJDBCException(msg, e);
     }
     return tSystem;
+  }
+
+  /**
+   * populateCapability
+   * Instantiate and populate an object using a result set. The cursor for the
+   *   ResultSet must be advanced to the desired result.
+   *
+   * @param rs the result set containing one or more items, cursor at desired item
+   * @return the new, fully populated job object or null if there is a problem
+   * @throws TapisJDBCException - on error
+   */
+  private static Capability populateCapability(ResultSet rs) throws TapisJDBCException
+  {
+    // Quick check.
+    if (rs == null) return null;
+
+    Capability capability;
+    try
+    {
+      // Create the Capability
+      capability = new Capability(Category.valueOf(rs.getString(1)), // category
+                                  rs.getString(2), // name
+                                  rs.getString(3)); // value
+    }
+    catch (Exception e)
+    {
+      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
+      _log.error(msg, e);
+      throw new TapisJDBCException(msg, e);
+    }
+    return capability;
   }
 }

@@ -47,13 +47,17 @@ final class SqlStatements
 
   // Get system owner
   public static final String SELECT_SYSTEM_OWNER =
-
     "SELECT owner FROM systems WHERE tenant = ? AND name = ?";
 
   // -------------------------
   // ------ Capabilities -----
   // -------------------------
   static final String ADD_CAPABILITY =
-          "INSERT INTO capabilities (tenant, system_id, category, name, value) " +
-            "VALUES (?, ?, ?::capability_category_type, ?, ?) ";
+    "INSERT INTO capabilities (tenant, system_id, category, name, value) " +
+      "VALUES (?, ?, ?::capability_category_type, ?, ?) ";
+
+  public static final String SELECT_SYSTEM_CAPS =
+    "SELECT category, name, value, created, updated " +
+      "FROM capabilities " +
+      "WHERE tenant = ? AND system_id = ?";
 }
