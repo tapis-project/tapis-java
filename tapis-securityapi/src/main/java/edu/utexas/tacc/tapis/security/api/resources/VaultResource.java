@@ -600,7 +600,7 @@ public final class VaultResource
      @Operation(
              description = "Restore one or more versions of a secret that have previously been deleted. "
                            + "This endpoint undoes soft deletions performed using the "
-                           + "*secret/delete/{secretName}* endpoint.\n\n"
+                           + "*secret/delete/{secretType}/{secretName}* endpoint.\n\n"
                            + ""
                            + "The input versions array is interpreted as follows:\n\n"
                            + ""
