@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -39,6 +40,10 @@ import edu.utexas.tacc.tapis.security.authz.model.SkSecret;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersionMetadata;
+import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
+import edu.utexas.tacc.tapis.security.secrets.SecretType;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -119,6 +124,9 @@ public final class VaultResource
   
      @Context
      private HttpServletRequest _request;
+     
+     // Map of url secret type text to secret type enum.
+     private static final HashMap<String,SecretType> _secretTypeMap = initSecretTypeMap();
     
      /* **************************************************************************** */
      /*                                Public Methods                                */
@@ -127,25 +135,55 @@ public final class VaultResource
      /* readSecret:                                                                  */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/secret/{secretName}")
+     @Path("/secret/{secretType}/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Read a versioned secret. "
-                           + "A secret is read from a path name constructed from the "
-                           + "*secretName* parameter. The constructed path name always "
-                           + "includes the tenant and user who owns the secret.\n\n"
-                           + ""
-                           + "By default, the "
-                           + "latest version of the secret is read. If the *version* query parameter "
-                           + "is specified then that version of the secret is read. "
-                           + "The *version* parameter should be passed as an integer. Zero "
-                           + "indicates that the latest version of the secret should be "
-                           + "returned. A NOT FOUND status code is returned if the secret version "
-                           + "does not exist or if it's deleted or destroyed.\n\n"
+                           + "By default, the latest version of the secret is read. If the "
+                           + "*version* query parameter is specified then that version of the "
+                           + "secret is read.  The *version* parameter should be passed as an "
+                           + "integer with zero indicating the latest version of the secret. "
+                           + "A NOT FOUND status code is returned if the secret version does "
+                           + "not exist or if it's deleted or destroyed.\n\n"
                            + ""
                            + "The response object includes the map of zero or more key/value "
                            + "pairs and metadata that describes the secret. The metadata includes "
-                           + "which version of the secret was returned.",
+                           + "which version of the secret was returned.\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
+                           + "",
              tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
@@ -167,9 +205,18 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response readSecret(@PathParam("secretName") String secretName,
+     public Response readSecret(@PathParam("secretType") String secretType,
+                                @PathParam("secretName") String secretName,
                                 @DefaultValue("0") @QueryParam("version") int version,
-                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                /* Query parameters used to construct the secret path in vault */
+                                @QueryParam("sysid")    String sysId,
+                                @QueryParam("sysowner") String sysOwner,
+                                @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                @QueryParam("dbhost")   String dbHost,
+                                @QueryParam("dbname")   String dbName,
+                                @QueryParam("service")  String service)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -184,12 +231,26 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          SkSecret skSecret = null;
          try {
              skSecret = getVaultImpl().secretRead(threadContext.getTenantId(), threadContext.getUser(), 
-                                                  secretName, version);
+                                                  secretPathParms, version);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -208,16 +269,13 @@ public final class VaultResource
      /* writeSecret:                                                                */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/secret/{secretName}")
+     @Path("/secret/{secretType}/{secretName}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Create or update a secret. "
-                           + "A secret is assigned a path name constructed from the "
-                           + "*secretName* parameter. The path name also includes the tenant "
-                           + "and user on behalf of whom the the secret is being saved. At the "
-                           + "top-level, the JSON payload contains an optional *options* object "
-                           + "and a required *data* object.\n\n"
+                           + "The JSON payload contains a required *data* object and an optional "
+                           + "*options* object.\n\n"
                            + ""
                            + "The *data* object is a JSON object that contains one or more key/value "
                            + "pairs in which both the key and value are strings. These are the "
@@ -237,7 +295,42 @@ public final class VaultResource
                            + "If set to 0, a write will only be allowed if the key doesn’t exist. "
                            + "If the index is greater than zero, then the write will only be allowed "
                            + "if the key’s current version matches the version specified in the cas "
-                           + "parameter.",
+                           + "parameter.\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
+                           + "",
              tags = "vault",
              requestBody = 
                  @RequestBody(
@@ -264,8 +357,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response writeSecret(@PathParam("secretName") String secretName,
+     public Response writeSecret(@PathParam("secretType") String secretType,
+                                 @PathParam("secretName") String secretName,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                 /* Query parameters used to construct the secret path in vault */
+                                 @QueryParam("sysid")    String sysId,
+                                 @QueryParam("sysowner") String sysOwner,
+                                 @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                 @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                 @QueryParam("dbhost")   String dbHost,
+                                 @QueryParam("dbname")   String dbName,
+                                 @QueryParam("service")  String service,
                                  InputStream payloadStream)
      {
          // Trace this request.
@@ -301,13 +403,27 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          SkSecretMetadata skSecretMeta = null;
          try {
              skSecretMeta = getVaultImpl().secretWrite(threadContext.getTenantId(), 
                                                        threadContext.getUser(), 
-                                                       secretName, secretMap);
+                                                       secretPathParms, secretMap);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -323,7 +439,7 @@ public final class VaultResource
      /* deleteSecret:                                                                */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/secret/delete/{secretName}")
+     @Path("/secret/delete/{secretType}/{secretName}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -338,6 +454,40 @@ public final class VaultResource
                            + "   * [ ] - empty = delete all versions\n"
                            + "   * [0] - zero = delete only the latest version\n"
                            + "   * [1, 3, ...] - list = delete the specified versions\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -365,8 +515,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response deleteSecret(@PathParam("secretName") String secretName,
+     public Response deleteSecret(@PathParam("secretType") String secretType,
+                                  @PathParam("secretName") String secretName,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                  /* Query parameters used to construct the secret path in vault */
+                                  @QueryParam("sysid")    String sysId,
+                                  @QueryParam("sysowner") String sysOwner,
+                                  @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                  @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                  @QueryParam("dbhost")   String dbHost,
+                                  @QueryParam("dbname")   String dbName,
+                                  @QueryParam("service")  String service,
                                   InputStream payloadStream)
      {
          // Trace this request.
@@ -399,13 +558,27 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          List<Integer> deletedVersions = null;
          try {
              deletedVersions = getVaultImpl().secretDelete(threadContext.getTenantId(), 
                                                            threadContext.getUser(), 
-                                                           secretName, payload.versions);
+                                                           secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -421,7 +594,7 @@ public final class VaultResource
      /* undeleteSecret:                                                              */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/secret/undelete/{secretName}")
+     @Path("/secret/undelete/{secretType}/{secretName}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -434,6 +607,40 @@ public final class VaultResource
                            + "   * [ ] - empty = undelete all versions\n"
                            + "   * [0] - zero = undelete only the latest version\n"
                            + "   * [1, 3, ...] - list = undelete the specified versions\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -461,8 +668,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response undeleteSecret(@PathParam("secretName") String secretName,
+     public Response undeleteSecret(@PathParam("secretType") String secretType,
+                                    @PathParam("secretName") String secretName,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    /* Query parameters used to construct the secret path in vault */
+                                    @QueryParam("sysid")    String sysId,
+                                    @QueryParam("sysowner") String sysOwner,
+                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                    @QueryParam("dbhost")   String dbHost,
+                                    @QueryParam("dbname")   String dbName,
+                                    @QueryParam("service")  String service,
                                     InputStream payloadStream)
      {
          // Trace this request.
@@ -494,13 +710,27 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          List<Integer> undeletedVersions = null;
          try {
              undeletedVersions = getVaultImpl().secretUndelete(threadContext.getTenantId(), 
                                                                threadContext.getUser(), 
-                                                               secretName, payload.versions);
+                                                               secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -516,7 +746,7 @@ public final class VaultResource
      /* destroySecret:                                                               */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/secret/destroy/{secretName}")
+     @Path("/secret/destroy/{secretType}/{secretName}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -529,6 +759,40 @@ public final class VaultResource
                            + "   * [ ] - empty = destroy all versions\n"
                            + "   * [0] - zero = destroy only the latest version\n"
                            + "   * [1, 3, ...] - list = destroy the specified versions\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -556,8 +820,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response destroySecret(@PathParam("secretName") String secretName,
+     public Response destroySecret(@PathParam("secretType") String secretType,
+                                   @PathParam("secretName") String secretName,
                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                   /* Query parameters used to construct the secret path in vault */
+                                   @QueryParam("sysid")    String sysId,
+                                   @QueryParam("sysowner") String sysOwner,
+                                   @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                   @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                   @QueryParam("dbhost")   String dbHost,
+                                   @QueryParam("dbname")   String dbName,
+                                   @QueryParam("service")  String service,
                                    InputStream payloadStream)
      {
          // Trace this request.
@@ -590,13 +863,27 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          List<Integer> destroyedVersions = null;
          try {
              destroyedVersions = getVaultImpl().secretDestroy(threadContext.getTenantId(), 
                                                               threadContext.getUser(), 
-                                                              secretName, payload.versions);
+                                                              secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -612,12 +899,46 @@ public final class VaultResource
      /* readSecretMetadata:                                                          */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/secret/read/meta/{secretName}")
+     @Path("/secret/read/meta/{secretType}/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "List a secret's metadata including its version information. "
                          + "The input parameter must be a secret name, not a folder. "
-                         + "The result includes which version of the secret is the latest."
+                         + "The result includes which version of the secret is the latest.\n"
+                         + ""
+                         + "### Naming Secrets\n"
+                         + ""
+                         + "Secrets can be arranged hierarchically by using the \"+\" "
+                         + "characters in the *secretName*.  These characters will be "
+                         + "converted to slashes upon receipt, allowing secrets to be "
+                         + "arranged in folders.\n\n"
+                         + ""
+                         + "A secret is assigned a path name constructed from the "
+                         + "*secretType* and *secretName* path parameters and, optionally, "
+                         + "from query parameters determined by the *secretType*. Each "
+                         + "*secretType* determines a specific transformation from the url "
+                         + "path to a path in the vault.  The *secretType* may require "
+                         + "certain query parameters to be present on the request "
+                         + "in order to construct the vault path.  See the next "
+                         + "section for details.\n"
+                         + ""
+                         + "### Secret Types\n"
+                         + ""
+                         + "The list below documents each *secretType* and their applicable "
+                         + "query parameters. Highlighted parameter names indicate required "
+                         + "parameters. When present, default values are listed first and also "
+                         + "highlighted.\n\n"
+                         + "  - **system**\n"
+                         + "    - *sysid*: the unique system id\n"
+                         + "    - sysowner: the system owner (required when !dynamickey)\n"
+                         + "    - dynamickey: *false* | true\n"
+                         + "    - keytype: *sshkey* | password\n"
+                         + "  - **dbcred**\n"
+                         + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                         + "    - *dbname*:  the database name or alias\n"
+                         + "    - *service*: service name\n"
+                         + "  - **jwtsigning** *no query parameters*\n"
+                         + "  - **user** *no query parameters*\n"
                          + "",
              tags = "vault",
              responses = 
@@ -637,8 +958,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response readSecretMeta(@PathParam("secretName") String secretName,
-                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response readSecretMeta(@PathParam("secretType") String secretType,
+                                    @PathParam("secretName") String secretName,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    /* Query parameters used to construct the secret path in vault */
+                                    @QueryParam("sysid")    String sysId,
+                                    @QueryParam("sysowner") String sysOwner,
+                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                    @QueryParam("dbhost")   String dbHost,
+                                    @QueryParam("dbname")   String dbName,
+                                    @QueryParam("service")  String service)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -653,12 +983,26 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          SkSecretVersionMetadata info = null;
          try {
              info = getVaultImpl().secretReadMeta(threadContext.getTenantId(), threadContext.getUser(), 
-                                                  secretName);
+                                                  secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -674,13 +1018,47 @@ public final class VaultResource
      /* listSecretMeta:                                                              */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/secret/list/meta")
+     @Path("/secret/list/meta/{secretType}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "List the secret names at the specified path. "
                            + "The path must represent a folder, not an actual secret name. "
                            + "If the path does not have a trailing slash one will be inserted. "
-                           + "Secret names should not encode private information."
+                           + "Secret names should not encode private information.\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the secret name.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* path parameter and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
                            + "",
              tags = "vault",
              responses = 
@@ -700,8 +1078,16 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response listSecretMeta(@PathParam("secretName") String secretName,
-                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response listSecretMeta(@PathParam("secretType") String secretType,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    /* Query parameters used to construct the secret path in vault */
+                                    @QueryParam("sysid")    String sysId,
+                                    @QueryParam("sysowner") String sysOwner,
+                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                    @QueryParam("dbhost")   String dbHost,
+                                    @QueryParam("dbname")   String dbName,
+                                    @QueryParam("service")  String service)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -716,12 +1102,23 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, null, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          SkSecretList info = null;
          try {
              info = getVaultImpl().secretListMeta(threadContext.getTenantId(), threadContext.getUser(),
-                                                  secretName);
+                                                  secretPathParms);
          } catch (Exception e) {                  
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -737,12 +1134,47 @@ public final class VaultResource
      /* destroySecretMeta:                                                           */
      /* ---------------------------------------------------------------------------- */
      @DELETE
-     @Path("/secret/destroy/meta/{secretName}")
+     @Path("/secret/destroy/meta/{secretType}/{secretName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Erase all traces of a secret: its key, all versions of its "
                            + "value and all its metadata. "
-                           + "Specifying a folder erases all secrets in that folder.",
+                           + "Specifying a folder erases all secrets in that folder.\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "A secret is assigned a path name constructed from the "
+                           + "*secretType* and *secretName* path parameters and, optionally, "
+                           + "from query parameters determined by the *secretType*. Each "
+                           + "*secretType* determines a specific transformation from the url "
+                           + "path to a path in the vault.  The *secretType* may require "
+                           + "certain query parameters to be present on the request "
+                           + "in order to construct the vault path.  See the next "
+                           + "section for details.\n"
+                           + ""
+                           + "### Secret Types\n"
+                           + ""
+                           + "The list below documents each *secretType* and their applicable "
+                           + "query parameters. Highlighted parameter names indicate required "
+                           + "parameters. When present, default values are listed first and also "
+                           + "highlighted.\n\n"
+                           + "  - **system**\n"
+                           + "    - *sysid*: the unique system id\n"
+                           + "    - sysowner: the system owner (required when !dynamickey)\n"
+                           + "    - dynamickey: *false* | true\n"
+                           + "    - keytype: *sshkey* | password\n"
+                           + "  - **dbcred**\n"
+                           + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
+                           + "    - *dbname*:  the database name or alias\n"
+                           + "    - *service*: service name\n"
+                           + "  - **jwtsigning** *no query parameters*\n"
+                           + "  - **user** *no query parameters*\n"
+                           + "",
              tags = "vault",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret completely removed.",
@@ -761,8 +1193,17 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response destroySecretMeta(@PathParam("secretName") String secretName,
-                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response destroySecretMeta(@PathParam("secretType") String secretType,
+                                       @PathParam("secretName") String secretName,
+                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                       /* Query parameters used to construct the secret path in vault */
+                                       @QueryParam("sysid")    String sysId,
+                                       @QueryParam("sysowner") String sysOwner,
+                                       @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                       @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
+                                       @QueryParam("dbhost")   String dbHost,
+                                       @QueryParam("dbname")   String dbName,
+                                       @QueryParam("service")  String service)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -777,12 +1218,26 @@ public final class VaultResource
          Response resp = checkTenantUser(threadContext, prettyPrint);
          if (resp != null) return resp;
          
+         // ------------------------- Path Processing --------------------------
+         // Translate the "+" sign into slashes to allow for subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
+         // Null response means the secret type and its required parameters are present.
+         SecretPathMapperParms secretPathParms;
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
+                                                   dynamicKey, keyType, dbHost, dbName,
+                                                   service);}
+             catch (Exception e) {
+                 _log.error(e.getMessage(), e);
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          try {
              getVaultImpl().secretDestroyMeta(threadContext.getTenantId(), 
                                               threadContext.getUser(), 
-                                              secretName);
+                                              secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -792,5 +1247,63 @@ public final class VaultResource
          var r = new RespBasic();
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+     }
+     
+     /* **************************************************************************** */
+     /*                               Private Methods                                */
+     /* **************************************************************************** */
+     /* ---------------------------------------------------------------------------- */
+     /* getSecretPathParms:                                                          */
+     /* ---------------------------------------------------------------------------- */
+     private SecretPathMapperParms getSecretPathParms(String secretType, String secretName, 
+                                         String sysId, String sysOwner, boolean dynamicKey, 
+                                         String keyType, String dbHost, String dbName,
+                                         String service) 
+      throws TapisImplException
+     {
+         // Assign the secret type.
+         var secretTypeEnum = _secretTypeMap.get(secretType.toLowerCase());
+         if (secretTypeEnum == null) {
+             var typeArray = new ArrayList<String>(_secretTypeMap.keySet());
+             Collections.sort(typeArray);
+             
+             // Throw the exception.
+             String msg = MsgUtils.getMsg("TAPIS_SECURITY_INVALID_SECRET_TYPE",
+                                          secretType, typeArray.toString());
+             _log.error(msg);
+             throw new TapisImplException(msg, Condition.BAD_REQUEST);
+         }
+
+         // Create the parm container object.
+         SecretPathMapperParms parms = new SecretPathMapperParms(secretTypeEnum);
+         
+         // Assign the rest of the parm fields.
+         parms.setSecretName(secretName);
+         parms.setSysId(sysId);
+         parms.setSysOwner(sysOwner);
+         parms.setDynamicKey(dynamicKey);
+         parms.setKeyType(keyType);
+         parms.setDbHost(dbHost);
+         parms.setDbName(dbName);
+         parms.setService(service);
+         
+         return parms;
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* initSecretTypeMap:                                                           */
+     /* ---------------------------------------------------------------------------- */
+     /** Initialize a map with key secret type url text and value SecretType enumeration. 
+      * 
+      * @return the map of text to enum
+      */
+     private static HashMap<String,SecretType> initSecretTypeMap()
+     {
+         // Get a map of secret type text to secret type enum. The secret
+         // type text is what should appear in url paths.
+         SecretType[] types = SecretType.values();
+         var map = new HashMap<String,SecretType>(1 + types.length * 2);
+         for (int i = 0; i < types.length; i++) map.put(types[i].getUrlText(), types[i]);
+         return map;
      }
 }

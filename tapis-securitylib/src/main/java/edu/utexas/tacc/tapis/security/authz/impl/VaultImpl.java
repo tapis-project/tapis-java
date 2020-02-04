@@ -19,6 +19,8 @@ import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersion;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersionMetadata;
+import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper;
+import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -87,8 +89,8 @@ public final class VaultImpl
     * @return the versioned secret if it exists
     * @throws TapisImplException on error
     */
-   public SkSecret secretRead(String tenant, String user, String path, 
-                              Integer version)
+   public SkSecret secretRead(String tenant, String user, 
+                              SecretPathMapperParms pathParms, Integer version)
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
@@ -102,8 +104,13 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(path)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretRead", "path");
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretRead", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretRead", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
@@ -114,8 +121,8 @@ public final class VaultImpl
        }
        
        // ------------------------ Request Processing ------------------------
-       // Calculate the secret path.
-       String secretPath = getSecretPath(tenant, user, path);
+       // Calculate the secret path.  An exception can be thrown here.
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -194,7 +201,8 @@ public final class VaultImpl
     * @return information about the newly written secret
     * @throws TapisImplException on error
     */
-   public SkSecretMetadata secretWrite(String tenant, String user, String path, 
+   public SkSecretMetadata secretWrite(String tenant, String user, 
+                                       SecretPathMapperParms pathParms, 
                                        Map<String, Object> secretMap)
     throws TapisImplException
    {
@@ -209,8 +217,13 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(path)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretWrite", "path");
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretWrite", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretWrite", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
@@ -222,7 +235,7 @@ public final class VaultImpl
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, path);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -284,7 +297,8 @@ public final class VaultImpl
     * @return the list of deleted versions
     * @throws TapisImplException
     */
-   public List<Integer> secretDelete(String tenant, String user, String path,
+   public List<Integer> secretDelete(String tenant, String user, 
+                                     SecretPathMapperParms pathParms,
                                      List<Integer> versions)
     throws TapisImplException
    {
@@ -299,8 +313,13 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(path)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "path");
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
@@ -311,14 +330,14 @@ public final class VaultImpl
            t -> StringUtils.isBlank(t.deletion_time) && !t.destroyed;
        
        // The finalized versions that get processed and returned. 
-       int[] versionArray = calculateVersionArray(tenant, user, path, versions, f);
+       int[] versionArray = calculateVersionArray(tenant, user, pathParms, versions, f);
        
        // Maybe there's nothing to do.
        if (versionArray.length == 0) return Collections.emptyList();
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, path);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -372,7 +391,8 @@ public final class VaultImpl
     * @return the list of undeleted versions
     * @throws TapisImplException
     */
-   public List<Integer> secretUndelete(String tenant, String user, String path,
+   public List<Integer> secretUndelete(String tenant, String user, 
+                                       SecretPathMapperParms pathParms,
                                        List<Integer> versions)
     throws TapisImplException
    {
@@ -387,8 +407,13 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(path)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretUndelete", "path");
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretUndelete", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretUndelete", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
@@ -399,14 +424,14 @@ public final class VaultImpl
            t -> StringUtils.isNotBlank(t.deletion_time) && !t.destroyed;
            
        // The finalized versions that get processed and returned. 
-       int[] versionArray = calculateVersionArray(tenant, user, path, versions, f);
+       int[] versionArray = calculateVersionArray(tenant, user, pathParms, versions, f);
        
        // Maybe there's nothing to do.
        if (versionArray.length == 0) return Collections.emptyList();
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, path);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -459,23 +484,29 @@ public final class VaultImpl
     * @return the list of destroyed versions
     * @throws TapisImplException
     */
-   public List<Integer> secretDestroy(String tenant, String user, String path,
+   public List<Integer> secretDestroy(String tenant, String user, 
+                                      SecretPathMapperParms pathParms,
                                       List<Integer> versions)
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
        if (StringUtils.isBlank(tenant)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "tenant");
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroy", "tenant");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
        if (StringUtils.isBlank(user)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "user");
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroy", "user");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(path)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDelete", "path");
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroy", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroy", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
@@ -485,14 +516,14 @@ public final class VaultImpl
        Function <SkSecretVersion, Boolean> f = t -> !t.destroyed;
        
        // The finalized versions that get processed and returned. 
-       int[] versionArray = calculateVersionArray(tenant, user, path, versions, f);
+       int[] versionArray = calculateVersionArray(tenant, user, pathParms, versions, f);
        
        // Maybe there's nothing to do.
        if (versionArray.length == 0) return Collections.emptyList();
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, path);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -539,7 +570,8 @@ public final class VaultImpl
     * @return metadata information about all versions of the secret
     * @throws TapisImplException
     */
-   public SkSecretVersionMetadata secretReadMeta(String tenant, String user, String secretName)
+   public SkSecretVersionMetadata secretReadMeta(String tenant, String user, 
+                                                 SecretPathMapperParms pathParms)
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
@@ -553,7 +585,12 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(secretName)) {
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretReadMeta", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretReadMeta", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
@@ -561,7 +598,7 @@ public final class VaultImpl
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, secretName);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -647,7 +684,12 @@ public final class VaultImpl
    /* ---------------------------------------------------------------------- */
    /** List the secrets names defined at the specified path.  The path must
     * represent a folder.  A trailing slash will be appended if one is not 
-    * present.
+    * present.  
+    * 
+    * Note this method may canonicalize the pathParms.secretName and in doing
+    * so change the contents of pathParms.  The change does not affect the
+    * reusability of the object (i.e., it can be resubmitted to generate the
+    * same result).
     * 
     * @param tenant the callers tenant
     * @param user the caller
@@ -655,7 +697,7 @@ public final class VaultImpl
     * @return metadata the list of secrets defined at the path
     * @throws TapisImplException on error
     */
-   public SkSecretList secretListMeta(String tenant, String user, String path)
+   public SkSecretList secretListMeta(String tenant, String user, SecretPathMapperParms pathParms)
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
@@ -673,12 +715,14 @@ public final class VaultImpl
        // ------------------------ Request Processing ------------------------
        // No path is allowed as it will assigned a prefix with a trailing slash.
        // All paths ultimately need to end with a slash so that the vault driver
-       // correctly triggers a vault LIST call (rather than GET).
-       if (path == null) path = "";
-        else if (!path.endsWith("/")) path += "/";
+       // correctly triggers a vault LIST call (rather than GET). The input 
+       // parameter content may be changed here.
+       var secretName = pathParms.getSecretName();
+       if (secretName == null) pathParms.setSecretName("");
+        else if (!secretName.endsWith("/")) pathParms.setSecretName(secretName + "/");
        
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, path);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -739,7 +783,7 @@ public final class VaultImpl
     * @param secretName the secret name
     * @throws TapisImplException
     */
-   public void secretDestroyMeta(String tenant, String user, String secretName)
+   public void secretDestroyMeta(String tenant, String user, SecretPathMapperParms pathParms)
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
@@ -753,7 +797,12 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (StringUtils.isBlank(secretName)) {
+       if (pathParms == null) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroyMeta", "pathParms");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       if (StringUtils.isBlank(pathParms.getSecretName())) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretDestroyMeta", "secretName");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
@@ -761,7 +810,7 @@ public final class VaultImpl
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.
-       String secretPath = getSecretPath(tenant, user, secretName);
+       String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.
        LogicalResponse logicalResp = null;
@@ -793,24 +842,10 @@ public final class VaultImpl
    /*                               Private Methods                                */
    /* **************************************************************************** */
    /* ---------------------------------------------------------------------------- */
-   /* getSecretPath:                                                               */
-   /* ---------------------------------------------------------------------------- */
-   /** Construct the vault v2 secret pathname.
-    * 
-    * @param tenant the caller's tenant
-    * @param user the caller userid
-    * @param secretName the user-specified secret
-    * @return the full secret path
-    */
-   private String getSecretPath(String tenant, String user, String secretName)
-   {
-       return "secret/tapis/" + tenant + "/" + user + "/" + secretName;
-   } 
-   
-   /* ---------------------------------------------------------------------------- */
    /* getSecretLatestVersionNumber:                                                */
    /* ---------------------------------------------------------------------------- */
-   private int getSecretLatestVersionNumber(String tenant, String user, String path) 
+   private int getSecretLatestVersionNumber(String tenant, String user, 
+                                            SecretPathMapperParms pathParms) 
     throws TapisImplException
    {
        // Get the current latest version of the named secret.
@@ -818,21 +853,22 @@ public final class VaultImpl
        // reason, we let the exception pass through.
        //
        // Note that the latest version may be deleted or destroyed.
-       SkSecretVersionMetadata meta = secretReadMeta(tenant, user, path);
+       SkSecretVersionMetadata meta = secretReadMeta(tenant, user, pathParms);
        return meta.current_version;
    }
    
    /* ---------------------------------------------------------------------------- */
    /* getSecretFilteredVersionNumbers:                                             */
    /* ---------------------------------------------------------------------------- */
-   private int[] getSecretFilteredVersionNumbers(String tenant, String user, String path,
+   private int[] getSecretFilteredVersionNumbers(String tenant, String user, 
+                                                 SecretPathMapperParms pathParms,
                                                  Function<SkSecretVersion, Boolean> f) 
     throws TapisImplException
    {
        // Get the current latest versions of the named secret.
        // If the secret doesn't exist or the call fails for any
        // reason, we let the exception pass through.
-       SkSecretVersionMetadata meta = secretReadMeta(tenant, user, path);
+       SkSecretVersionMetadata meta = secretReadMeta(tenant, user, pathParms);
        
        // Find all undeleted/undestroyed versions.  Time fields can be null or empty.
        var list = new ArrayList<Integer>(meta.versions.size());
@@ -860,7 +896,8 @@ public final class VaultImpl
     * @return the scrubbed array of version numbers
     * @throws TapisImplException 
     */
-   private int[] calculateVersionArray(String tenant, String user, String path,
+   private int[] calculateVersionArray(String tenant, String user, 
+                                       SecretPathMapperParms pathParms,
                                        List<Integer> versions,
                                        Function<SkSecretVersion, Boolean> f) 
      throws TapisImplException
@@ -870,7 +907,7 @@ public final class VaultImpl
        
        // Empty or null version input means delete all versions.
        if (versions == null || versions.isEmpty()) {
-           versionArray = getSecretFilteredVersionNumbers(tenant, user, path, f);
+           versionArray = getSecretFilteredVersionNumbers(tenant, user, pathParms, f);
        } else {
            // Scrub the input list of all zero elements.
            var vlist = new ArrayList<Integer>(versions);
@@ -880,7 +917,7 @@ public final class VaultImpl
            if (vlist.isEmpty()) {
                // The input list contained only zeros before scrubbing.
                versionArray = new int[1];
-               versionArray[0] = getSecretLatestVersionNumber(tenant, user, path);
+               versionArray[0] = getSecretLatestVersionNumber(tenant, user, pathParms);
            } else {
                // Use what the user specified ignoring zero if it's present.
                // If we get here, there's at least one non-zero version specified.
