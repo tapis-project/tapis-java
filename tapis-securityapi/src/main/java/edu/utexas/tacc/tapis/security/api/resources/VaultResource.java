@@ -181,8 +181,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              responses = 
@@ -328,8 +329,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -486,8 +488,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -639,8 +642,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -791,8 +795,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              requestBody = 
@@ -937,8 +942,9 @@ public final class VaultResource
                          + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                          + "    - *dbname*:  the database name or alias\n"
                          + "    - *service*: service name\n"
-                         + "  - **jwtsigning** *no query parameters*\n"
-                         + "  - **user** *no query parameters*\n"
+                         + "  - **jwtsigning** - *no query parameters*\n"
+                         + "  - **user** - *no query parameters*\n"
+                         + "  - **service** - *no query parameters*\n"
                          + "",
              tags = "vault",
              responses = 
@@ -1057,8 +1063,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              responses = 
@@ -1172,8 +1179,9 @@ public final class VaultResource
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
                            + "    - *service*: service name\n"
-                           + "  - **jwtsigning** *no query parameters*\n"
-                           + "  - **user** *no query parameters*\n"
+                           + "  - **jwtsigning** - *no query parameters*\n"
+                           + "  - **user** - *no query parameters*\n"
+                           + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
              responses = 

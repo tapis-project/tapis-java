@@ -51,6 +51,12 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  *  /tapis/tenant/<tenant>/user/<user>/kv/<secretName>
  * </pre>
  * 
+ * <p>service:
+ * 
+ * <pre>
+ *  /tapis/tenant/<tenant>/service/<service>/password/<secretName>
+ * </pre>
+ * 
  * @author rcardone
  */
 public final class SecretPathMapper 
@@ -126,6 +132,9 @@ public final class SecretPathMapper
             case JWTSigning:
                 secretPath = getJWTSigningPath(tenant);
                 break;
+            case ServicePwd:
+                secretPath = getServicePath(tenant, user);
+                break;
             default:
                 // This should never happen as long as all cases are covered.
                 var secretTypes = new ArrayList<String>();
@@ -158,6 +167,28 @@ public final class SecretPathMapper
     {
         // Return the path for this secret type.
         return "secret/tapis/tenant/" + tenant + "/user/" + user + "/kv/" + 
+               _parms.secretName;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getServicePath:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Construct the tapis service secret path. 
+     * 
+     * <pre>
+     *  /tapis/tenant/<tenant>/service/<user>/kv/<secretName>
+     * </pre>
+     *  
+     * @param tenant the request tenant
+     * @param user the request user, which is expected to be a service name
+     * @return the Vault secret engine path
+     * @throws TapisImplException missing or invalid query parameters
+     */
+    private String getServicePath(String tenant, String user) 
+     throws TapisImplException 
+    {
+        // Return the path for this secret type.
+        return "secret/tapis/tenant/" + tenant + "/service/" + user + "/kv/" + 
                _parms.secretName;
     }
 
