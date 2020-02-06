@@ -21,6 +21,7 @@ import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersion;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersionMetadata;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
+import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -38,6 +39,10 @@ public final class VaultImpl
    /* ********************************************************************** */
    // Tracing.
    private static final Logger _log = LoggerFactory.getLogger(VaultImpl.class);
+   
+   // The name used to build the path to service passwords.
+   private static final String DEFAULT_SERVICE_SECRET_NAME = "password";
+   private static final String SERVICE_SECRET_PASSWORD_KEY = "password";
 
    /* ********************************************************************** */
    /*                                Fields                                  */
@@ -836,6 +841,55 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, vaultStatus);       
         }
+   }
+   
+   /* ---------------------------------------------------------------------------- */
+   /* validateServicePwd:                                                          */
+   /* ---------------------------------------------------------------------------- */
+   /** Return true only if the password parameter exactly matches the service's 
+    * password in vault.  Otherwise, false is returned.
+    * 
+    * @param tenant the service's tenant
+    * @param serviceName the service name
+    * @param password the password to be validated
+    * @return true if the password parameter exactly matches the password in vault, 
+    *         false otherwise.
+    * @throws TapisImplException on error
+    */
+   public boolean validateServicePwd(String tenant, String serviceName, String password) 
+    throws TapisImplException
+   {
+       // ------------------------ Input Checking ----------------------------
+       // The read method will check the first two parameters.
+       if (StringUtils.isBlank(password)) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateServicePwd", "password");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       
+       // ------------------------ Request Processing ------------------------
+       // Fill in the parameter object as required by secretRead.
+       var pathParms = new SecretPathMapperParms(SecretType.ServicePwd);
+       pathParms.setSecretName(DEFAULT_SERVICE_SECRET_NAME);
+       
+       // Let the read method do the heavy lifting by reading the 
+       // latest version of the secret.
+       SkSecret secret;
+       try {secret = secretRead(tenant, serviceName, pathParms, 0);}
+           catch (Exception e) {
+               String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
+                                            tenant, serviceName);
+               _log.error(msg, e);
+               throw e;
+           }
+       
+       // Get the password if it exists.
+       String vaultPassword = secret.secretMap.get(SERVICE_SECRET_PASSWORD_KEY);
+       if (StringUtils.isBlank(vaultPassword)) return false;
+       if (!vaultPassword.equals(password))    return false;
+       
+       // A match.
+       return true;
    }
    
    /* **************************************************************************** */

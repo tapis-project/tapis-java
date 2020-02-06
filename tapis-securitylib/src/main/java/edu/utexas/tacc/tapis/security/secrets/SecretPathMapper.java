@@ -40,9 +40,10 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * <p>system:
  * 
  * <pre>
- *  /tapis/tenant/<tenantId>/system/<systemId>/user/<owner>/sshkey/<secretName>
+ *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/sshkey/<secretName>
  *  /tapis/tenant/<tenantId>/system/<systemId>/dynamicUserId/sshkey/<secretName>
- *  /tapis/tenant/<tenantId>/system/<systemId>/user/<owner>/password/<secretName>
+ *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/password/<secretName>
+ *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/accesskey/<secretName>
  * </pre> 
  * 
  * <p>user:
@@ -71,7 +72,7 @@ public final class SecretPathMapper
     /*                                 Enums                                  */
     /* ********************************************************************** */
     // The valid types as expected on input.
-    private enum KeyType {sshkey, password}
+    private enum KeyType {sshkey, password, accesskey, cert}
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -198,9 +199,10 @@ public final class SecretPathMapper
     /** Construct the system secret path.
      * 
      * <pre>
-     *  /tapis/tenant/<tenantId>/system/<systemId>/user/<owner>/sshkey/<secretName>
+     *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/sshkey/<secretName>
      *  /tapis/tenant/<tenantId>/system/<systemId>/dynamicUserId/sshkey/<secretName>
-     *  /tapis/tenant/<tenantId>/system/<systemId>/user/<owner>/password/<secretName>
+     *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/password/<secretName>
+     *  /tapis/tenant/<tenantId>/system/<systemId>/user/<user>/accesskey/<secretName>
      * </pre>
      * 
      * @param tenant the request tenant
@@ -217,12 +219,6 @@ public final class SecretPathMapper
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
-        // Optional only when using trusted CA. 
-        if (!_parms.isDynamicKey() && StringUtils.isBlank(_parms.getSysOwner())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getSystemPath", "sysOwner");
-            _log.error(msg);
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
         
         // The key type must always be valid.
         KeyType keyType;
@@ -236,22 +232,41 @@ public final class SecretPathMapper
                 throw new TapisImplException(msg, Condition.BAD_REQUEST);
             }
         
+        // Optional only when using trusted CA. 
+        if ((keyType != KeyType.cert) && StringUtils.isBlank(_parms.getSysUser())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getSystemPath", "sysUser");
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
         // The type of key determines it's path.
-        if (_parms.isDynamicKey()) {
-            // Trusted CA case.
-            return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
-                   "/dynamicUserId/sshkeys/" + _parms.getSecretName(); 
-            
-        } else if (keyType == KeyType.sshkey) {
+        if (keyType == KeyType.sshkey) {
             // Distributed key case.
             return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
-                    "/user/" + _parms.getSysOwner() + "/sshkey/" +
+                    "/user/" + _parms.getSysUser() + "/sshkey/" +
                     _parms.getSecretName();
-        } else {
+        } else if (keyType == KeyType.password) {
             // Password case.
             return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
-                    "/user/" + _parms.getSysOwner() + "/password/" +
+                    "/user/" + _parms.getSysUser() + "/password/" +
                     _parms.getSecretName();
+        } else if (keyType == KeyType.accesskey) {
+            // Access key case.
+            return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
+                    "/user/" + _parms.getSysUser() + "/accesskey/" +
+                    _parms.getSecretName();
+        } else if (keyType == KeyType.cert){
+            // Trusted CA case.
+            return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
+                   "/dynamicUserId/sshkey/" + _parms.getSecretName(); 
+        } else {
+            // This should never happen as long as all cases are covered.
+            var keyTypes = new ArrayList<String>();
+            for (KeyType t : KeyType.values()) keyTypes.add(t.name());
+            String msg =  MsgUtils.getMsg("SK_VAULT_INVALID_KEYTYPE", 
+                                          _parms.keyType, keyTypes);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -340,8 +355,7 @@ public final class SecretPathMapper
         private final SecretType secretType;
         private String           secretName;
         private String           sysId;
-        private String           sysOwner;
-        private boolean          dynamicKey;
+        private String           sysUser;
         private String           keyType;
         private String           dbHost;
         private String           dbName;
@@ -352,10 +366,8 @@ public final class SecretPathMapper
         public void setSecretName(String secretName) {this.secretName = secretName;}
         public String getSysId() {return sysId;}
         public void setSysId(String sysId) {this.sysId = sysId;}
-        public String getSysOwner() {return sysOwner;}
-        public void setSysOwner(String sysOwner) {this.sysOwner = sysOwner;}
-        public boolean isDynamicKey() {return dynamicKey;}
-        public void setDynamicKey(boolean dynamicKey) {this.dynamicKey = dynamicKey;}
+        public String getSysUser() {return sysUser;}
+        public void setSysUser(String sysUser) {this.sysUser = sysUser;}
         public String getKeyType() {return keyType;}
         public void setKeyType(String keyType) {this.keyType = keyType;}
         public String getDbHost() {return dbHost;}

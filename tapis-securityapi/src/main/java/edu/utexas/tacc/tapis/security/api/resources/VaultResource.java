@@ -26,9 +26,11 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqValidateServicePwd;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqVersions;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqWriteSecret;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecret;
@@ -47,7 +49,9 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -80,6 +84,8 @@ public final class VaultResource
         "/edu/utexas/tacc/tapis/security/api/jsonschema/WriteSecretRequest.json";
     private static final String FILE_SK_SECRET_VERSION_REQUEST = 
         "/edu/utexas/tacc/tapis/security/api/jsonschema/SecretVersionRequest.json";
+    private static final String FILE_SK_VALIDATE_SERVICE_PWD_REQUEST = 
+        "/edu/utexas/tacc/tapis/security/api/jsonschema/ValidateServicePwdRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -174,9 +180,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -212,8 +217,7 @@ public final class VaultResource
                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 /* Query parameters used to construct the secret path in vault */
                                 @QueryParam("sysid")    String sysId,
-                                @QueryParam("sysowner") String sysOwner,
-                                @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                @QueryParam("sysuser") String sysUser,
                                 @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                 @QueryParam("dbhost")   String dbHost,
                                 @QueryParam("dbname")   String dbName,
@@ -238,9 +242,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -322,9 +325,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -364,8 +366,7 @@ public final class VaultResource
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                  /* Query parameters used to construct the secret path in vault */
                                  @QueryParam("sysid")    String sysId,
-                                 @QueryParam("sysowner") String sysOwner,
-                                 @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                 @QueryParam("sysuser") String sysUser,
                                  @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                  @QueryParam("dbhost")   String dbHost,
                                  @QueryParam("dbname")   String dbName,
@@ -411,9 +412,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -481,9 +481,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -523,8 +522,7 @@ public final class VaultResource
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                   /* Query parameters used to construct the secret path in vault */
                                   @QueryParam("sysid")    String sysId,
-                                  @QueryParam("sysowner") String sysOwner,
-                                  @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                  @QueryParam("sysuser") String sysUser,
                                   @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                   @QueryParam("dbhost")   String dbHost,
                                   @QueryParam("dbname")   String dbName,
@@ -567,9 +565,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -635,9 +632,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -677,8 +673,7 @@ public final class VaultResource
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysowner") String sysOwner,
-                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @QueryParam("sysuser") String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -720,9 +715,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -788,9 +782,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -830,8 +823,7 @@ public final class VaultResource
                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                    /* Query parameters used to construct the secret path in vault */
                                    @QueryParam("sysid")    String sysId,
-                                   @QueryParam("sysowner") String sysOwner,
-                                   @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                   @QueryParam("sysuser") String sysUser,
                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                    @QueryParam("dbhost")   String dbHost,
                                    @QueryParam("dbname")   String dbName,
@@ -874,9 +866,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -935,9 +926,8 @@ public final class VaultResource
                          + "highlighted.\n\n"
                          + "  - **system**\n"
                          + "    - *sysid*: the unique system id\n"
-                         + "    - sysowner: the system owner (required when !dynamickey)\n"
-                         + "    - dynamickey: *false* | true\n"
-                         + "    - keytype: *sshkey* | password\n"
+                         + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                         + "    - keytype: *sshkey* | password | accesskey | cert\n"
                          + "  - **dbcred**\n"
                          + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                          + "    - *dbname*:  the database name or alias\n"
@@ -969,8 +959,7 @@ public final class VaultResource
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysowner") String sysOwner,
-                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @QueryParam("sysuser") String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -995,9 +984,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1056,9 +1044,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -1089,8 +1076,7 @@ public final class VaultResource
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysowner") String sysOwner,
-                                    @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                    @QueryParam("sysuser") String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -1112,9 +1098,8 @@ public final class VaultResource
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, null, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, null, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1172,9 +1157,8 @@ public final class VaultResource
                            + "highlighted.\n\n"
                            + "  - **system**\n"
                            + "    - *sysid*: the unique system id\n"
-                           + "    - sysowner: the system owner (required when !dynamickey)\n"
-                           + "    - dynamickey: *false* | true\n"
-                           + "    - keytype: *sshkey* | password\n"
+                           + "    - *sysuser*: the accessing user (except when keytype=cert)\n"
+                           + "    - keytype: *sshkey* | password | accesskey | cert\n"
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
@@ -1206,8 +1190,7 @@ public final class VaultResource
                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        /* Query parameters used to construct the secret path in vault */
                                        @QueryParam("sysid")    String sysId,
-                                       @QueryParam("sysowner") String sysOwner,
-                                       @DefaultValue("false")  @QueryParam("dynamickey") boolean dynamicKey,
+                                       @QueryParam("sysuser") String sysUser,
                                        @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                        @QueryParam("dbhost")   String dbHost,
                                        @QueryParam("dbname")   String dbName,
@@ -1232,9 +1215,8 @@ public final class VaultResource
          
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
-         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysOwner,
-                                                   dynamicKey, keyType, dbHost, dbName,
-                                                   service);}
+         try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
+                                                   keyType, dbHost, dbName, service);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1257,6 +1239,103 @@ public final class VaultResource
                  MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
      }
      
+     /* ---------------------------------------------------------------------------- */
+     /* validateServicePassword:                                                     */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/secret/validateServicePassword/{serviceName}")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Validate a service's password. "
+                           + "The JSON payload contains the password that needs to be validated "
+                           + "against the password stored in the vault for the named service.\n\n"
+                           + "",
+             tags = "vault",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqValidateServicePwd.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Secret written.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response validateServicePassword(@PathParam("serviceName") String serviceName,
+                         @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                         InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "writeSecret", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         // Note that the secret values in the payload will only be string values,
+         // which is more restrictive typing than Vault.
+         ReqValidateServicePwd payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_VALIDATE_SERVICE_PWD_REQUEST, 
+                                   ReqValidateServicePwd.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "validateServicePassword", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Null means the tenant and user are both assigned.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         Response resp = checkTenantUser(threadContext, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Get the names.
+         boolean authorized;
+         try {authorized = getVaultImpl().validateServicePwd(threadContext.getTenantId(), 
+                                                             serviceName, payload.password);}
+             catch (Exception e) {
+                 // Already logged.
+                 return getExceptionResponse(e, e.getMessage(), prettyPrint);
+             }
+         
+         // Password was not matched.
+         if (!authorized) {
+             String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
+                                          threadContext.getTenantId(), serviceName);
+             _log.warn(msg);
+             return Response.status(Status.FORBIDDEN).
+                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Set the result payload on success.
+         ResultAuthorized authResp = new ResultAuthorized();
+         authResp.isAuthorized = true;
+         RespAuthorized r = new RespAuthorized(authResp);
+         
+         // Return the data portion of the vault response.
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("TAPIS_AUTHORIZED", "Service", serviceName), prettyPrint, r)).build();
+     }
+     
      /* **************************************************************************** */
      /*                               Private Methods                                */
      /* **************************************************************************** */
@@ -1264,9 +1343,8 @@ public final class VaultResource
      /* getSecretPathParms:                                                          */
      /* ---------------------------------------------------------------------------- */
      private SecretPathMapperParms getSecretPathParms(String secretType, String secretName, 
-                                         String sysId, String sysOwner, boolean dynamicKey, 
-                                         String keyType, String dbHost, String dbName,
-                                         String service) 
+                                         String sysId, String sysUser, String keyType, 
+                                         String dbHost, String dbName, String service) 
       throws TapisImplException
      {
          // Assign the secret type.
@@ -1288,8 +1366,7 @@ public final class VaultResource
          // Assign the rest of the parm fields.
          parms.setSecretName(secretName);
          parms.setSysId(sysId);
-         parms.setSysOwner(sysOwner);
-         parms.setDynamicKey(dynamicKey);
+         parms.setSysUser(sysUser);
          parms.setKeyType(keyType);
          parms.setDbHost(dbHost);
          parms.setDbName(dbName);
