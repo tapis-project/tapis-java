@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
 import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -244,6 +246,7 @@ public class CredentialResource
 
   /**
    * getUserCredential
+   * @param accessMethodStr - access method to use instead of default
    * @param prettyPrint - pretty print the output
    * @return Response
    */
@@ -252,7 +255,8 @@ public class CredentialResource
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
       summary = "Retrieve credential for given system and user",
-      description = "Retrieve credential for given system and user. Requester must be owner of the system.",
+      description = "Retrieve credential for given system and user. Requester must be owner of the system. " +
+                    "Use query parameter accessMethod=<method> to override default access method.",
       tags = "credentials",
       responses = {
           @ApiResponse(responseCode = "200", description = "Success.",
@@ -269,6 +273,7 @@ public class CredentialResource
   )
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
+                                    @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = getSystemsService();
@@ -292,6 +297,17 @@ public class CredentialResource
     String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
+    // Check that accessMethodStr is valid if is passed in
+    AccessMethod accessMethod = null;
+    try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
+    catch (IllegalArgumentException e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists and that requester is owner
     resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
@@ -301,7 +317,7 @@ public class CredentialResource
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the permissions
     Credential credential;
-    try { credential = systemsService.getUserCredential(tenantName, systemName, userName); }
+    try { credential = systemsService.getUserCredential(tenantName, systemName, userName, accessMethod); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", null, systemName, userName, e.getMessage());

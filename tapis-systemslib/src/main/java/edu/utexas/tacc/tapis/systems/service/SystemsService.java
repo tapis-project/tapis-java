@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.service;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
 public interface SystemsService
 {
   int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
-                   String owner, String host, boolean available, String effectiveUserId, String accessMethod,
+                   String owner, String host, boolean available, String effectiveUserId, AccessMethod accessMethod,
                    Credential credential, String bucketName, String rootDir, String transferMethods,
                    int port, boolean useProxy, String proxyHost, int proxyPort,
                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
@@ -26,7 +27,7 @@ public interface SystemsService
 
   boolean checkForSystemByName(String tenantName, String systemName) throws TapisException;
 
-  TSystem getSystemByName(String tenantName, String systemName, String apiUserId, boolean getCreds) throws TapisException;
+  TSystem getSystemByName(String tenantName, String systemName, String apiUserId, boolean getCreds, AccessMethod accessMethod) throws TapisException;
 
   List<TSystem> getSystems(String tenantName, String apiUserId) throws TapisException;
 
@@ -44,5 +45,5 @@ public interface SystemsService
 
   void deleteUserCredential(String tenantName, String systemName, String userName) throws TapisException;
 
-  Credential getUserCredential(String tenantName, String systemName, String userName) throws TapisException;
+  Credential getUserCredential(String tenantName, String systemName, String userName, AccessMethod accessMethod) throws TapisException;
 }

@@ -40,7 +40,8 @@ import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.Protocol;
+import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMethod;
+import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
@@ -245,10 +246,9 @@ public class SystemResource
     // Get the Json object and prepare to extract info from it
     JsonObject jsonObject = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
 
-    String systemName, description, systemType, owner, host, effectiveUserId, accessMethod, bucketName, rootDir,
+    String systemName, description, systemType, owner, host, effectiveUserId, accessMethodStr, bucketName, rootDir,
            proxyHost, tags, notes;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
-    Credential accessCred = new Credential();
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
 
@@ -257,7 +257,7 @@ public class SystemResource
     systemName = jsonObject.get(NAME_FIELD).getAsString();
     systemType = jsonObject.get(SYSTEM_TYPE_FIELD).getAsString();
     host = jsonObject.get(HOST_FIELD).getAsString();
-    accessMethod = jsonObject.get(ACCESS_METHOD_FIELD).getAsString();
+    accessMethodStr = jsonObject.get(ACCESS_METHOD_FIELD).getAsString();
     jobCanExec =  jsonObject.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
     // Extract optional values
     description = ApiUtils.getValS(jsonObject.get(DESCRIPTION_FIELD), "");
@@ -279,6 +279,7 @@ public class SystemResource
     notes = ApiUtils.getValS(jsonObject.get(NOTES_FIELD), TSystem.DEFAULT_NOTES);
 
     // Extract access credential if provided and effectiveUserId is not dynamic. This is a model.Credential object.
+    Credential accessCred = null;
     if (jsonObject.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       accessCred = extractAccessCred(jsonObject);
@@ -308,11 +309,11 @@ public class SystemResource
     if (jsonObject.has(JOB_CAPABILITIES_FIELD)) jobCapsJson = jsonObject.getAsJsonArray(JOB_CAPABILITIES_FIELD);
     if (jobCapsJson != null && jobCapsJson.size() > 0)
     {
-      Capability cap = null;
+      Capability cap;
       for (JsonElement jsonElement : jobCapsJson)
       {
         // Extract capability from the json object
-        cap = extractCapability(tenantName, systemName, jsonElement.getAsJsonObject());
+        cap = extractCapability(systemName, jsonElement.getAsJsonObject());
         jobCaps.add(cap);
       }
     }
@@ -336,12 +337,12 @@ public class SystemResource
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
       errMessages.add(msg);
     }
-    else if (StringUtils.isBlank(accessMethod))
+    else if (StringUtils.isBlank(accessMethodStr))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
       errMessages.add(msg);
     }
-    else if (accessMethod.equals(Protocol.AccessMethod.CERT.name()) &&
+    else if (accessMethodStr.equals(AccessMethod.CERT.name()) &&
             !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
             !effectiveUserId.equals(TSystem.OWNER_VAR) &&
             !StringUtils.isBlank(owner) &&
@@ -351,7 +352,7 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (txfrMethodsArr.contains(Protocol.TransferMethod.S3.name()) && StringUtils.isBlank(bucketName))
+    else if (txfrMethodsArr.contains(TransferMethod.S3.name()) && StringUtils.isBlank(bucketName))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
@@ -373,6 +374,18 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
 
+    // Convert access method string to enum
+    // If Enums defined correctly an exception should never be thrown, but just in case.
+    AccessMethod accessMethod;
+    try { accessMethod =  AccessMethod.valueOf(accessMethodStr); }
+    catch (IllegalArgumentException e)
+    {
+      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = maskCredSecrets(jsonObject);
 
@@ -390,13 +403,13 @@ public class SystemResource
     catch (IllegalStateException e)
     {
       // IllegalStateException indicates object exists - return 409 - Conflict
-      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", null, systemName);
+      msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", systemName);
       _log.warn(msg);
       return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", null, systemName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -407,14 +420,15 @@ public class SystemResource
     respUrl.url = _request.getRequestURL().toString() + "/" + systemName;
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", null, systemName), prettyPrint, resp1)).build();
+      ApiUtils.getMsg("SYSAPI_CREATED", systemName), prettyPrint, resp1)).build();
   }
 
   /**
    * getSystemByName
    * @param sysName - name of the system
-   * @param prettyPrint - pretty print the output
    * @param getCreds - should credentials be included
+   * @param accessMethodStr - access method to use instead of default
+   * @param prettyPrint - pretty print the output
    * @return Response with system object as the result
    */
   @GET
@@ -424,8 +438,9 @@ public class SystemResource
       summary = "Retrieve information for a system",
       description =
           "Retrieve information for a system given the system name. " +
-          "Use query parameter returnCredentials = true to have the user access credentials " +
-          "included in the response.",
+          "Use query parameter returnCredentials=true to have the user access credentials " +
+          "included in the response. " +
+          "Use query parameter accessMethod=<method> to override default access method.",
       tags = "systems",
 // TODO Including parameter info here and in method sig results in duplicates in openapi spec.
 // TODO    JAX-RS appears to require the annotations in the method sig
@@ -449,8 +464,9 @@ public class SystemResource
       }
   )
   public Response getSystemByName(@PathParam("sysName") String sysName,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                  @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds)
+                                  @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
+                                  @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
+                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
     systemsService = new SystemsServiceImpl();
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -472,14 +488,24 @@ public class SystemResource
     String tenant = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
+    // Check that accessMethodStr is valid if is passed in
+    AccessMethod accessMethod = null;
+    try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
+    catch (IllegalArgumentException e)
+    {
+      String msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, sysName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, sysName, apiUserId, getCreds);
+      system = systemsService.getSystemByName(tenant, sysName, apiUserId, getCreds, accessMethod);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", null, sysName, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -487,7 +513,7 @@ public class SystemResource
     // Resource was not found.
     if (system == null)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", null, sysName);
+      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", sysName);
       _log.warn(msg);
       return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -554,7 +580,7 @@ public class SystemResource
     try { systemNames = systemsService.getSystemNames(tenant); }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", null, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -628,7 +654,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", null, sysName, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -652,7 +678,7 @@ public class SystemResource
    * @param obj Json object from request
    * @return A Capability object
    */
-  private static Capability extractCapability(String tenantName, String systemName, JsonObject obj)
+  private static Capability extractCapability(String systemName, JsonObject obj)
   {
     String name, value;
     Category category = null;
@@ -663,8 +689,9 @@ public class SystemResource
       try { category =  Category.valueOf(categoryStr); }
       catch (IllegalArgumentException e)
       {
-        String msg = MsgUtils.getMsg("SYSAPI_CAP_ENUM_ERROR", e.getMessage());
-        _log.error(msg, categoryStr, systemName, msg);
+        String msg = ApiUtils.getMsg("SYSAPI_CAP_ENUM_ERROR", categoryStr, systemName, e.getMessage());
+        _log.error(msg, e);
+        return null;
       }
     }
     name = ApiUtils.getValS(obj.get(JOB_CAPABILITY_NAME_FIELD), "");

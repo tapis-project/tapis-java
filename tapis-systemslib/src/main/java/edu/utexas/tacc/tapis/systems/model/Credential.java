@@ -21,6 +21,17 @@ public final class Credential
   /*                               Constants                                */
   /* ********************************************************************** */
 
+  // Top level name for storing system secrets
+  public static final String TOP_LEVEL_SECRET_NAME = "S1";
+
+  // Keys for constructing map when writing secrets to Security Kernel
+  public static final String SK_KEY_PASSWORD = "password";
+  public static final String SK_KEY_PUBLIC_KEY = "publicKey";
+  public static final String SK_KEY_PRIVATE_KEY = "privateKey";
+  public static final String SK_KEY_ACCESS_KEY = "accessKey";
+  public static final String SK_KEY_ACCESS_SECRET = "accessSecret";
+
+
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
@@ -37,19 +48,6 @@ public final class Credential
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-
-  /**
-   * Default constructor sets all attributes to null
-   */
-  public Credential()
-  {
-    password = null;
-    privateKey = null;
-    publicKey = null;
-    certificate = null;
-    accessKey = null;
-    accessSecret = null;
-  }
 
   /**
    * Simple constructor to populate all attributes
