@@ -391,6 +391,7 @@ public class SystemResource
     String scrubbedJson = maskCredSecrets(jsonObject);
 
     // Make the service call to create the system
+    // TODO Use static factory methods for what could be singleton services, or better yet use DI, maybe Guice
     systemsService = new SystemsServiceImpl();
     try
     {

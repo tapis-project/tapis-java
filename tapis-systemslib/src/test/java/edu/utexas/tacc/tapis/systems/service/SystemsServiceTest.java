@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.systems.service;
 import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
+import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
@@ -24,6 +26,11 @@ import java.util.List;
 
 /**
  * Test the SystemsService implementation class against a DB running locally
+ * Note that this test has the following dependencies running locally or in dev
+ *    Database - typically local
+ *    Tenants service - typically dev
+ *    Tokens service - typically dev and obtained from tenants service
+ *    Security Kernel service - typically dev and obtained from tenants service
  */
 @Test(groups={"integration"})
 public class SystemsServiceTest
@@ -89,10 +96,15 @@ public class SystemsServiceTest
   private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2, capD2));
 
   @BeforeSuite
-  public void setUp()
+  public void setUp() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
+    // Initialize TenantManager and services
+    String url = RuntimeParameters.getInstance().getTenantsSvcURL();
+    TenantManager.getInstance(url).getTenants();
     svc = new SystemsServiceImpl();
+    // Cleanup anything leftover from previous failed run
+    tearDown();
   }
 
   @Test

@@ -2,6 +2,8 @@ package edu.utexas.tacc.tapis.systems.api;
 
 import javax.ws.rs.ApplicationPath;
 
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
+import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -22,6 +24,7 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 @ApplicationPath("v3/systems")
 public class SystemsApplication extends ResourceConfig
 {
+  // For all logging use println or similar so we do not have a dependency on a logging subsystem.
   public SystemsApplication()
   {
     // Log our existence.
@@ -43,5 +46,19 @@ public class SystemsApplication extends ResourceConfig
     // Finally set the application name
     // This appears to have no impact on base URL
     setApplicationName("systems");
+
+
+    // Initialize tenant manager singleton. This can be used by all subsequent application code, including filters.
+    try {
+      // The base url of the tenants service is a required input parameter.
+      // Retrieve the tenant list from the tenant service now to fail fast if we can't access the list.
+      String url = RuntimeParameters.getInstance().getTenantsSvcURL();
+      TenantManager.getInstance(url).getTenants();
+    } catch (Exception e) {
+      // This is a fatal error
+      System.out.println("**** FAILURE TO INITIALIZE: tapis-systemsapi ****");
+      e.printStackTrace();
+      throw e;
+    }
   }
 }

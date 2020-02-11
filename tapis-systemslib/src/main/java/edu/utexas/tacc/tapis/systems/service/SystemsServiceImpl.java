@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.security.client.SKClient;
-import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.model.KeyType;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
@@ -11,6 +9,7 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
@@ -22,6 +21,8 @@ import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
+
+//import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,7 @@ import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
  *   Uses Dao layer and other service library classes to perform all
  *   top level service operations.
  */
-@Singleton
+//@Singleton
 public class SystemsServiceImpl implements SystemsService
 {
   // ************************************************************************
@@ -121,7 +122,7 @@ public class SystemsServiceImpl implements SystemsService
                                    jobRemoteArchiveDir, jobCapabilities,
                                    tags, notes, rawJson);
 
-    // TODO/TBD: Creation of system and role/perms not in single transaction. Need to handle failure of role/perms operations
+    // TODO/TBD: Creation of system and role/perms/creds not in single transaction. Need to handle failure of role/perms/creds operations
     // TODO possibly have a try/catch/finally to roll back any writes in case of failure.
 
     // Give owner and possibly effectiveUser access to the system
@@ -560,14 +561,16 @@ public class SystemsServiceImpl implements SystemsService
     // NOTE: Tenants URL is a required parameter, so no need to check here
     RuntimeParameters parms = RuntimeParameters.getInstance();
 
-//    String tenantsURL = "https://dev.develop.tapis.io";
-    String tenantsURL = parms.getTenantsSvcURL();
-    var tenantsClient = new TenantsClient(tenantsURL);
-    Tenant tenant1;
-    try {tenant1 = tenantsClient.getTenant(tenantName);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", tenantName, e.getMessage()), e);}
-    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", tenantName));
+////    String tenantsURL = "https://dev.develop.tapis.io";
+//    String tenantsURL = parms.getTenantsSvcURL();
+//    var tenantsClient = new TenantsClient(tenantsURL);
+//    Tenant tenant1;
+//    try {tenant1 = tenantsClient.getTenant(tenantName);}
+//    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", tenantName, e.getMessage()), e);}
+//    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", tenantName));
 
+    // Get tenant from TenantManager initialized in front end api class SystemsApplication
+    Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
     // Tokens service URL comes from env or the tenants service
 //    String tokensURL = "https://dev.develop.tapis.io";
     String tokensURL = parms.getTokensSvcURL();

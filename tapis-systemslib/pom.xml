@@ -25,6 +25,11 @@
       <version>${tapis-shared-java.version}</version>
     </dependency>
     <dependency>
+      <groupId>edu.utexas.tacc.tapis</groupId>
+      <artifactId>tapis-shared-api</artifactId>
+      <version>${tapis-shared-java.version}</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared-db</artifactId>
       <version>${tapis-shared-java.version}</version>
