@@ -239,4 +239,23 @@ public class ShiroPermissionTest
       Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:GET:streamdb:coll1");
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* AnotherTest:                                                           */
+    /* ---------------------------------------------------------------------- */
+    @Test
+    public void AnotherTest()
+    {
+        // The required permission spec.
+        WildcardPermission wcPerm = new WildcardPermission("meta:dev:DELETE:slttestdb:somecollection:*");
+        
+        boolean implies = wcPerm.implies(new WildcardPermission("meta:dev:DELETE:slttestdb:*"));
+        Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DELETE:slttestdb:*");
+        
+        implies = wcPerm.implies(new WildcardPermission("meta:dev:DELETE:slttestdb"));
+        Assert.assertFalse(implies, "Expected " + wcPerm + " to not imply meta:dev:DELETE:slttestdb");
+        
+        implies = wcPerm.implies(new WildcardPermission("meta:dev:DELETE:slttestdb:somecollection"));
+        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply meta:dev:DELETE:slttestdb:somecollection");
+    }    
+    
 }

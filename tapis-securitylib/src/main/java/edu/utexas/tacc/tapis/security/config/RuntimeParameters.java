@@ -88,6 +88,9 @@ public final class RuntimeParameters
   
     // Distinguished user-chosen name of this runtime instance.
     private String  instanceName;
+    
+    // Tenant service location.
+    private String  tenantBaseUrl;
   
 	// Database configuration.
 	private String  dbConnectionPoolName;
@@ -223,7 +226,12 @@ public final class RuntimeParameters
           }
       }
     
-	  // --------------------- DB Parameters ----------------------------
+    // --------------------- Tenant Parameters ------------------------
+    // We need to know where the tenant service is locaated.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_TENANT_SVC_BASEURL.getEnvName());
+    if (!StringUtils.isBlank(parm)) setTenantBaseUrl(parm);
+    
+	// --------------------- DB Parameters ----------------------------
     // User does not have to provide a pool size.
     parm = inputProperties.getProperty(EnvVar.TAPIS_DB_CONNECTION_POOL_SIZE.getEnvName());
     if (StringUtils.isBlank(parm)) setDbConnectionPoolSize(CONNECTION_POOL_SIZE);
@@ -597,6 +605,9 @@ public final class RuntimeParameters
         buf.append("\n------- Network -----------------------------------");
         buf.append("\nHost Addresses: ");
         buf.append(getNetworkAddresses());
+        
+        buf.append("\n------- Tenants -----------------------------------");
+        buf.append("\ntapis.tenant.svc.baseurl: ");
 	    
 	    buf.append("\n------- DB Configuration --------------------------");
 	    buf.append("\ntapis.db.jdbc.url: ");
@@ -1041,5 +1052,13 @@ public final class RuntimeParameters
 
     public void setVaultRenewThreshold(int vaultRenewThreshold) {
         this.vaultRenewThreshold = vaultRenewThreshold;
+    }
+
+    public String getTenantBaseUrl() {
+        return tenantBaseUrl;
+    }
+
+    public void setTenantBaseUrl(String tenantBaseUrl) {
+        this.tenantBaseUrl = tenantBaseUrl;
     }
 }

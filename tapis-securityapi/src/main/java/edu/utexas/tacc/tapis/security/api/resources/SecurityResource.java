@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -135,8 +136,8 @@ public final class SecurityResource
      // Count the number of healthchecks requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
      
-     // The flag set after the first successful readiness check.
-     private static final AtomicBoolean _readyOnce = new AtomicBoolean();
+     // The flag set after the first successful database readiness check.
+     private static final AtomicBoolean _readyDBOnce = new AtomicBoolean();
      
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -217,7 +218,7 @@ public final class SecurityResource
       long checkNum = _healthChecks.incrementAndGet();
       
       // Check the database only after a DB readiness check has succeeded.
-      if (_readyOnce.get()) 
+      if (_readyDBOnce.get()) 
           if (!queryDB(DB_HEALTH_TIMEOUT_MS)) {
               // Failure case.
               RespBasic r = new RespBasic("Health DB check " + checkNum + " failed.");
@@ -225,6 +226,15 @@ public final class SecurityResource
               return Response.status(Status.SERVICE_UNAVAILABLE).
                   entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
           }
+      
+      // Check the tenant manager.
+      if (!queryTenants()) {
+          // Failure case.
+          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
+          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+          return Response.status(Status.SERVICE_UNAVAILABLE).
+              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      }
       
       // Check the health of vault.
       var vaultMgr = VaultManager.getInstance(true);
@@ -287,8 +297,8 @@ public final class SecurityResource
       // Test connectivity only if no success has ever been recorded.
       // There could be a race condition here but the worst that could
       // happen is an extra readiness check or two would query the db.
-      if (!_readyOnce.get()) 
-          if (queryDB(DB_READY_TIMEOUT_MS)) _readyOnce.set(true);
+      if (!_readyDBOnce.get()) 
+          if (queryDB(DB_READY_TIMEOUT_MS)) _readyDBOnce.set(true);
             else {
                 // Failure case.
                 RespBasic r = new RespBasic("Readiness DB check " + checkNum + " failed.");
@@ -296,6 +306,15 @@ public final class SecurityResource
                 return Response.status(Status.SERVICE_UNAVAILABLE).
                     entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
             }
+      
+      // Check the tenant manager.
+      if (!queryTenants()) {
+          // Failure case.
+          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
+          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+          return Response.status(Status.SERVICE_UNAVAILABLE).
+              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      }
       
       // Check the readiness of vault.
       var vaultMgr = VaultManager.getInstance(true);
@@ -354,4 +373,36 @@ public final class SecurityResource
       
       return success;
   }
+  
+  /* ---------------------------------------------------------------------------- */
+  /* queryTenants:                                                                */
+  /* ---------------------------------------------------------------------------- */
+  /** Retrieve the cached tenants map.
+   * 
+   * @return true if the map is not null, false otherwise
+   */
+  private boolean queryTenants()
+  {
+      // Start optimistically.
+      boolean success = true;
+      
+      try {
+          // Make sure the cached tenants map is not null.
+          var tenantMap = TenantManager.getInstance().getTenants();
+          if (tenantMap == null) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                           "Null tenants map.");
+              _log.error(msg);
+              success = false;
+          }
+      } catch (Exception e) {
+          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                       e.getMessage());
+          _log.error(msg, e);
+          success = false;
+      }
+      
+      return success;
+  }
+  
 }
