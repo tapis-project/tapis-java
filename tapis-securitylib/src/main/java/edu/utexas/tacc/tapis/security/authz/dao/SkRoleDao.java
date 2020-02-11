@@ -787,7 +787,6 @@ public final class SkRoleDao
       return getAncestorRoleNames(roleId);
   }
   
-  
   /* ---------------------------------------------------------------------- */
   /* getAncestorRoleNames:                                                  */
   /* ---------------------------------------------------------------------- */

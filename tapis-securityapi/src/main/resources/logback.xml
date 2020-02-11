@@ -20,11 +20,11 @@
          its own dedicated logfile.  This removes the need to run in prudent mode
          and deal with attendant scalability issues. -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${tapis.log.directory:-${user.home}}/tapis-sampleapi.log</file>
+        <file>${tapis.log.directory:-${user.home}}/tapis-securityapi.log</file>
         <rollingPolicy
             class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- Rollover monthly, incorporate size-triggered sequence number. -->
-            <fileNamePattern>${tapis.log.directory:-${user.home}}/tapis-sampleapi.%d{yyyy-MM}.%i.log</fileNamePattern>
+            <fileNamePattern>${tapis.log.directory:-${user.home}}/tapis-securityapi.%d{yyyy-MM}.%i.log</fileNamePattern>
             <!-- Each file should be at most 500MB, keep 6 months worth of history, 
                  but at most a total of 10GB across all log files. -->
             <maxFileSize>500MB</maxFileSize>
