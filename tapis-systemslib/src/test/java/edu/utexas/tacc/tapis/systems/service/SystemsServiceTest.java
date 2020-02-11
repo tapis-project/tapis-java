@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
@@ -34,9 +35,7 @@ public class SystemsServiceTest
   private static final String apiUser = "testuser1";
   private static final String testUser2 = "testuser2";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
-  private static final Protocol prot1 = new Protocol(AccessMethod.PASSWORD, txfrMethodsList, -1, false, "",-1);
-  private static final Credential cred1 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
-                                                         "fakeCert","fakeAccessKey", "fakeAccessSecret");
+  private static final Protocol prot1 = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final String prot1AccessMethName = prot1.getAccessMethod().name();
   private static final String accessMethName_CERT = AccessMethod.CERT.name();
   private static final String prot1TxfrMethods = prot1.getTransferMethodsAsString();
@@ -45,36 +44,39 @@ public class SystemsServiceTest
   private static final List<String> testPerms = new ArrayList<>(List.of(Permission.READ.name(), Permission.MODIFY.name(),
                                                                         Permission.DELETE.name()));
   private static final String[] sys1 = {tenantName, "Ssys1", "description 1", SystemType.LINUX.name(), "owner1", "host1",
-          "effUser1", prot1AccessMethName, "fakePasswordUnused1", "bucket1", "/root1", prot1TxfrMethods,
+          "effUser1", prot1AccessMethName, "fakePassword1", "bucket1", "/root1", prot1TxfrMethods,
           "jobLocalWorkDir1", "jobLocalArchDir1", "jobRemoteArchSystem1", "jobRemoteArchDir1", tags, notes, "{}"};
   private static final String[] sys2 = {tenantName, "Ssys2", "description 2", SystemType.LINUX.name(), "owner2", "host2",
-          "effUser2", prot1AccessMethName, "fakePasswordUnused2", "bucket2", "/root2", prot1TxfrMethods,
+          "effUser2", prot1AccessMethName, "fakePassword2", "bucket2", "/root2", prot1TxfrMethods,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2", "jobRemoteArchDir2", tags, notes, "{}"};
   private static final String[] sys3 = {tenantName, "Ssys3", "description 3", SystemType.LINUX.name(), "owner3", "host3",
-          "effUser3", prot1AccessMethName, "fakePasswordUnused3", "bucket3", "/root3", prot1TxfrMethods,
+          "effUser3", prot1AccessMethName, "fakePassword3", "bucket3", "/root3", prot1TxfrMethods,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3", "jobRemoteArchDir3", tags, notes, "{}"};
   private static final String[] sys4 = {tenantName, "Ssys4", "description 4", SystemType.LINUX.name(), "owner4", "host4",
-          "effUser4", prot1AccessMethName, "fakePasswordUnused4", "bucket4", "/root4", prot1TxfrMethods,
+          "effUser4", prot1AccessMethName, "fakePassword4", "bucket4", "/root4", prot1TxfrMethods,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4", "jobRemoteArchDir4", tags, notes, "{}"};
   private static final String[] sys5 = {tenantName, "Ssys5", "description 5", SystemType.LINUX.name(), "owner5", "host5",
-          "effUser5", prot1AccessMethName, "fakePasswordUnused5", "bucket5", "/root5", prot1TxfrMethods,
+          "effUser5", prot1AccessMethName, "fakePassword5", "bucket5", "/root5", prot1TxfrMethods,
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5", "jobRemoteArchDir5", tags, notes, "{}"};
   private static final String[] sys6 = {tenantName, "Ssys6", "description 6", SystemType.LINUX.name(), "owner6", "host6",
-          "effUser6", prot1AccessMethName, "fakePasswordUnused6", "bucket6", "/root6", prot1TxfrMethods,
+          "effUser6", prot1AccessMethName, "fakePassword6", "bucket6", "/root6", prot1TxfrMethods,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6", "jobRemoteArchDir6", tags, notes, "{}"};
   private static final String[] sys7 = {tenantName, "Ssys7", "description 7", SystemType.LINUX.name(), "owner7", "host7",
-          "effUser7", prot1AccessMethName, "fakePasswordUnused7", "bucket7", "/root7", prot1TxfrMethods,
+          "effUser7", prot1AccessMethName, "fakePassword7", "bucket7", "/root7", prot1TxfrMethods,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7", "jobRemoteArchDir7", tags, notes, "{}"};
   private static final String[] sys8 = {tenantName, "Ssys8", "description 8", SystemType.LINUX.name(), "${apiUserId}", "host8",
-          "${owner}", prot1AccessMethName, "fakePasswordUnused8", "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}", prot1TxfrMethods,
+          "${owner}", prot1AccessMethName, "fakePassword8", "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}", prot1TxfrMethods,
           "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}", "jobRemoteArchSystem8",
           "jobRemoteArchDir8${owner}${tenant}${apiUserId}", tags, notes, "{}"};
   private static final String[] sys9 = {tenantName, "Ssys9", "description 9", SystemType.LINUX.name(), "owner9", "host9",
-          "effUser9", accessMethName_CERT, "fakePasswordUnused", "bucket9", "/root9", prot1TxfrMethods,
+          "effUser9", accessMethName_CERT, "fakePassword", "bucket9", "/root9", prot1TxfrMethods,
           "jobLocalWorkDir9", "jobLocalArchDir9", "jobRemoteArchSystem9", "jobRemoteArchDir9", tags, notes, "{}"};
   private static final String[] sysA = {tenantName, "SsysA", "description A", SystemType.LINUX.name(), "ownerA", "hostA",
-          "effUserA", prot1AccessMethName, "fakePasswordUnusedA", "bucketA", "/rootA", prot1TxfrMethods,
+          "effUserA", prot1AccessMethName, "fakePasswordA", "bucketA", "/rootA", prot1TxfrMethods,
           "jobLocalWorkDirA", "jobLocalArchDirA", "jobRemoteArchSystemA", "jobRemoteArchDirA", tags, notes, "{}"};
+  private static final String[] sysB = {tenantName, "SsysB", "description B", SystemType.LINUX.name(), "ownerB", "hostB",
+          "effUserB", prot1AccessMethName, "fakePasswordB", "bucketB", "/rootB", prot1TxfrMethods,
+          "jobLocalWorkDirB", "jobLocalArchDirB", "jobRemoteArchSystemB", "jobRemoteArchDirB", tags, notes, "{}"};
 
   private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
   private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
@@ -98,7 +100,7 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys1;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], cap1List, sys0[16], sys0[17], sys0[18]);
@@ -110,7 +112,8 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys2;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = new Credential(sys0[8], "fakePrivateKey", "fakePublicKey",
+            "fakeCert","fakeAccessKey", "fakeAccessSecret");
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], cap2List, sys0[16], sys0[17], sys0[18]);
@@ -141,8 +144,9 @@ public class SystemsServiceTest
     Assert.assertNotNull(txfrMethodsList);
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.S3), "List of transfer methods did not contain: " + TransferMethod.S3.name());
     Assert.assertTrue(txfrMethodsList.contains(TransferMethod.SFTP), "List of transfer methods did not contain: " + TransferMethod.SFTP.name());
-    // Verify password credential
-    Assert.assertEquals(tmpSys.getAccessCredential().getPassword(), cred0.getPassword());
+    // Verify credentials. Only cred for default accessMethod is returned. In this case PKI_KEYS.
+    Assert.assertEquals(tmpSys.getAccessCredential().getPublicKey(), cred0.getPublicKey());
+    Assert.assertEquals(tmpSys.getAccessCredential().getPrivateKey(), cred0.getPrivateKey());
     // Verify capabilities
     List<Capability> jobCaps = tmpSys.getJobCapabilities();
     Assert.assertNotNull(jobCaps);
@@ -180,7 +184,7 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys8;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -190,7 +194,7 @@ public class SystemsServiceTest
     System.out.println("Found item: " + sys0[1]);
 
 // sys8 = {tenantName, "Ssys8", "description 8", SystemType.LINUX.name(), "${apiUserId}", "host8",
-//         "${owner}", prot1AccessMethName, "fakePasswordUnused8", "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}", prot1TxfrMethods,
+//         "${owner}", prot1AccessMethName, "fakePassword8", "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}", prot1TxfrMethods,
 //         "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}", "jobRemoteArchSystem8",
 //         "jobRemoteArchDir8${owner}${tenant}${apiUserId}", tags, notes, "{}"};
     String owner = apiUser;
@@ -229,7 +233,7 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys3;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -253,7 +257,7 @@ public class SystemsServiceTest
   {
     String[] sys0 = sys5;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -270,7 +274,7 @@ public class SystemsServiceTest
     // Create the system
     String[] sys0 = sys6;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -290,7 +294,7 @@ public class SystemsServiceTest
     // After creating system we should get true
     String[] sys0 = sys7;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -305,7 +309,7 @@ public class SystemsServiceTest
     // Create the system
     String[] sys0 = sys9;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -324,7 +328,7 @@ public class SystemsServiceTest
     // Create a system
     String[] sys0 = sysA;
     Protocol prot0 = prot1;
-    Credential cred0 = cred1;
+    Credential cred0 = null;
     int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
             cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
             false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
@@ -343,37 +347,98 @@ public class SystemsServiceTest
     for (String perm: testPerms) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm); }
   }
 
-  // Test various credential cases
+  // Test creating, reading and deleting user credentials for a system
   @Test
   public void testUserCredentials() throws Exception
   {
-    // Store and retrieve a password
-    // Store and retrieve ssh keys
-    // Store and retrieve password and ssh keys
-    // Store and retrieve access key and secret
-    // Check that if one of public key or private key is missing then entry is silently ignored.
-    // Check that if one of access key or access secret is missing then entry is silently ignored.
-//    //????
-//    // Create a system
-//    String[] sys0 = sysA;
-//    Protocol prot0 = prot1;
-//    Credential cred0 = cred1;
-//    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
-//            cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
-//            false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
-//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-//    // Create user perms for the system
-//    svc.grantUserPermissions(sys0[0], sys0[1], testUser2, testPerms);
-//    // Get the system perms for the user and make sure permissions are there
-//    List<String> userPerms = svc.getUserPermissions(sys0[0], sys0[1], testUser2);
-//    Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
-//    Assert.assertEquals(userPerms.size(), testPerms.size(), "Incorrect number of perms returned.");
-//    for (String perm: testPerms) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm); }
-//    // Remove perms for the user
-//    svc.revokeUserPermissions(sys0[0], sys0[1], testUser2, testPerms);
-//    // Get the system perms for the user and make sure permissions are gone.
-//    userPerms = svc.getUserPermissions(sys0[0], sys0[1], testUser2);
-//    for (String perm: testPerms) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm); }
+    // Create a system
+    String[] sys0 = sysB;
+    Protocol prot0 = prot1;
+    Credential cred0 = null;
+    int itemId = svc.createSystem(sys0[0], apiUser, sys0[1], sys0[2], sys0[3], sys0[4], sys0[5], true, sys0[6], AccessMethod.valueOf(sys0[7]),
+            cred0, sys0[9], sys0[10], sys0[11], prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),
+            false, sys0[12], sys0[13], sys0[14], sys0[15], null, sys0[16], sys0[17], sys0[18]);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    cred0 = new Credential(sys0[8], "fakePrivateKey", "fakePublicKey",
+            "fakeCert","fakeAccessKey", "fakeAccessSecret");
+    // Store and retrieve multiple secret types: password, ssh keys, access key and secret
+    svc.createUserCredential(sys0[0], sys0[1], testUser2, cred0);
+    Credential cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.PASSWORD);
+    // Verify credentials
+    Assert.assertEquals(cred1.getPassword(), cred0.getPassword());
+    cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.PKI_KEYS);
+    Assert.assertEquals(cred1.getPublicKey(), cred0.getPublicKey());
+    Assert.assertEquals(cred1.getPrivateKey(), cred0.getPrivateKey());
+    cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.ACCESS_KEY);
+    Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
+    Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
+    // Delete credentials and verify they were destroyed
+    svc.deleteUserCredential(sys0[0], sys0[1], testUser2);
+    cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.PASSWORD);
+    Assert.assertNull(cred1, "Credential not deleted. System name: " + sys0[1] + " User name: " + testUser2);
+
+    // Attempt to delete again, should not throw an exception
+    svc.deleteUserCredential(sys0[0], sys0[1], testUser2);
+
+    // Set just ACCESS_KEY only and test
+    cred0 = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
+    svc.createUserCredential(sys0[0], sys0[1], testUser2, cred0);
+    cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.ACCESS_KEY);
+    Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
+    Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
+    // Attempt to retrieve secret that has not been set
+    // TODO/TBD how to distinguish between secret not being set for sys/user and no such sys or no such user or other error
+    cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.PKI_KEYS);
+    Assert.assertNull(cred1, "Credential was non-null for missing secret. System name: " + sys0[1] + " User name: " + testUser2);
+    // Delete credentials and verify they were destroyed
+    svc.deleteUserCredential(sys0[0], sys0[1], testUser2);
+    try {
+      cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.ACCESS_KEY);
+    } catch (TapisClientException tce) {
+      cred1 = null;
+    }
+    Assert.assertNull(cred1, "Credential not deleted. System name: " + sys0[1] + " User name: " + testUser2);
+  }
+
+  // Test various cases when system is missing
+  //  - get owner with no system
+  //  - get perm with no system
+  //  - grant perm with no system
+  //  - revoke perm with no system
+  //  - get credential with no system
+  //  - create credential with no system
+  //  - delete credential with no system
+  @Test
+  public void testMissingSystem() throws Exception
+  {
+    String fakeSystemName = "AMissingSystemName";
+    String fakeUserName = "AMissingUserName";
+    // Make sure system does not exist
+    Assert.assertFalse(svc.checkForSystemByName(tenantName, fakeSystemName));
+    // Get owner with no system should return null
+    String owner = svc.getSystemOwner(tenantName, fakeSystemName);
+    Assert.assertNull(owner, "Owner not null for non-existent system");
+    // Get perm with no system should return empty list
+    List<String> perms = svc.getUserPermissions(tenantName, fakeSystemName, fakeUserName);
+    Assert.assertNotNull(perms, "Perms list was null for non-existent system");
+    Assert.assertTrue(perms.isEmpty(), "Perms list not empty non-existent system");
+    // Grant perm with no system should TODO TBD - handle this on front end.
+    // TODO Currently systemslib does not check that system exists, it simple creates the permSpec entries in SK
+    // TODO svc.grantUserPermissions(tenantName, fakeSystemName, fakeUserName, testPerms);
+
+    // TODO revoke perm with no system
+
+    // TODO/TBD: If system does not exist getCred should return null.
+    Credential credential = svc.getUserCredential(tenantName, fakeSystemName, fakeUserName, AccessMethod.PKI_KEYS);
+    Assert.assertNull(credential, "Credential was non-null for missing system. System name: " + fakeSystemName + " User name: " + fakeUserName);
+
+    // Create credential with no system should TODO TBD - handle this on front end.
+    // TODO Currently systemslib does not check that system exists, it simple creates the credential in SK
+    credential = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
+    // TODO svc.createUserCredential(tenantName, fakeSystemName, fakeUserName, credential);
+
+    // TODO delete credential with no system
+
   }
 
   @AfterSuite
@@ -393,5 +458,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys8[0], sys8[1]);
     svc.deleteSystemByName(sys9[0], sys9[1]);
     svc.deleteSystemByName(sysA[0], sysA[1]);
+    svc.deleteSystemByName(sysB[0], sysB[1]);
   }
 }

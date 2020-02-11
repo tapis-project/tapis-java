@@ -202,6 +202,7 @@ public class CredentialResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     // Create validator specification and validate the json against the schema
+    // TODO Json may contain secrets. Does validator do logging?
     JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_CRED_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
@@ -215,13 +216,16 @@ public class CredentialResource
     String password, privateKey, publicKey, cert, accessKey, accessSecret;
     JsonObject credObj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     // Extract credential attributes from the request body
-    password = ApiUtils.getValS(credObj.get(PASSWORD_FIELD), "");
-    privateKey = ApiUtils.getValS(credObj.get(PRIVATE_KEY_FIELD), "");
-    publicKey = ApiUtils.getValS(credObj.get(PUBLIC_KEY_FIELD), "");
-    cert = ApiUtils.getValS(credObj.get(CERTIFICATE_FIELD), "");
-    accessKey = ApiUtils.getValS(credObj.get(ACCESS_KEY_FIELD), "");
-    accessSecret = ApiUtils.getValS(credObj.get(ACCESS_SECRET_FIELD), "");
-    Credential credential = new Credential(password, privateKey, publicKey, cert, accessKey, accessSecret);
+    Credential credential = extractAccessCred(credObj);
+
+    // If one of PKI keys is missing then reject
+    resp = ApiUtils.checkSecrets(systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
+                                 credential.getPrivateKey(), credential.getPublicKey());
+    if (resp != null) return resp;
+    // If one of Access key or Access secret is missing then reject
+    resp = ApiUtils.checkSecrets(systemName, userName, prettyPrint, AccessMethod.ACCESS_KEY.name(), ACCESS_KEY_FIELD, ACCESS_SECRET_FIELD,
+                                 credential.getAccessKey(), credential.getAccessSecret());
+    if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to create or update the credential
@@ -416,6 +420,24 @@ public class CredentialResource
                                                                    userName), prettyPrint, resp1))
       .build();
   }
+
+  /**
+   * Extract AccessCredential details from the top level Json object
+   * @param credObj Top level Json object from request
+   * @return A partially populated Credential object
+   */
+  public static Credential extractAccessCred(JsonObject credObj)
+  {
+    String password, privateKey, publicKey, sshCert, accessKey, accessSecret;
+    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "");
+    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "");
+    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "");
+    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "");
+    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "");
+    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "");
+    return new Credential(password, privateKey, publicKey, sshCert, accessKey, accessSecret);
+  }
+
 
   // ************************************************************************
   // *********************** Private Methods ********************************

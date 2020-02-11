@@ -5,9 +5,11 @@ import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.ResultNameArray;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.model.KeyType;
+import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -142,7 +144,7 @@ public class SystemsServiceImpl implements SystemsService
       String accessUser = effectiveUserId;
       // If effectiveUser is owner resolve to static string.
       if (effectiveUserId.equals(OWNER_VAR)) accessUser = owner;
-      writeAccessCredential(skClient, systemName, accessUser, credential);
+      createUserCredential(tenantName, systemName, accessUser, credential);
     }
 
     return itemId;
@@ -152,6 +154,10 @@ public class SystemsServiceImpl implements SystemsService
    * Delete a system record given the system name.
    * Also remove permissions and credentials from the Security Kernel
    *
+   * @param tenantName - name of tenant
+   * @param systemName - name of system
+   * @return Number of items deleted
+   * @throws TapisException - for Tapis related exceptions
    */
   @Override
   public int deleteSystemByName(String tenantName, String systemName) throws TapisException
@@ -159,6 +165,7 @@ public class SystemsServiceImpl implements SystemsService
     var skClient = getSKClient(tenantName);
     // TODO: Remove all credentials associated with the system.
     // TODO: Have SK do this in one operation?
+//    deleteUserCredential(tenantName, systemName, );
     // Construct basic SK secret parameters
 //    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysOwner(accessUser);
 //    skClient.destroySecretMeta(sParms);
@@ -184,22 +191,24 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * getSystemByName
+   * @param tenantName - name of tenant
    * @param systemName - Name of the system
    * @return true if system exists, false if system does not exist
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public boolean checkForSystemByName(String tenant, String systemName) throws TapisException {
+  public boolean checkForSystemByName(String tenantName, String systemName) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     dao = new SystemsDaoImpl();
-    boolean result = dao.checkForTSystemByName(tenant, systemName);
+    boolean result = dao.checkForTSystemByName(tenantName, systemName);
     return result;
   }
 
   /**
    * getSystemByName
+   * @param tenantName - name of tenant
    * @param systemName - Name of the system
-   * @return TSystem
+   * @return TSystem - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
@@ -212,14 +221,13 @@ public class SystemsServiceImpl implements SystemsService
     String effectiveUserId = resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId);
     // Update result with effectiveUserId
     result.setEffectiveUserId(effectiveUserId);
-
     // If requested retrieve credentials from Security Kernel
     if (getCreds)
     {
       AccessMethod accMethod = result.getAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
       if (accMethod1 != null) accMethod = accMethod1;
-      Credential cred = readAccessCredential(getSKClient(tenantName), systemName, effectiveUserId, accMethod);
+      Credential cred = getUserCredential(tenantName, systemName, effectiveUserId, accMethod);
       result.setAccessCredential(cred);
     }
     return result;
@@ -240,8 +248,6 @@ public class SystemsServiceImpl implements SystemsService
     for (TSystem sys : result)
     {
       sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
-      // TODO If requested retrieve credentials from Security Kernel
-      //sys.setAccessCredential();
     }
     return result;
   }
@@ -264,7 +270,7 @@ public class SystemsServiceImpl implements SystemsService
    * Get system owner
    * @param tenant - Tenant name
    * @param systemName - Name of the system
-   * @return - Owner
+   * @return - Owner or null if system not found
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
@@ -401,9 +407,44 @@ public class SystemsServiceImpl implements SystemsService
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
-
     // Get the Security Kernel client
-    writeAccessCredential(getSKClient(tenantName), systemName, userName, credential);
+    var skClient = getSKClient(tenantName);
+    try {
+      // Construct basic SK secret parameters
+      var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+      Map<String, String> dataMap;
+      // Check for each secret type and write values if they are present
+      // Not that multiple secrets may be present.
+      // Store password if present
+      if (!StringUtils.isBlank(credential.getPassword())) {
+        dataMap = new HashMap<>();
+        sParms.setKeyType(KeyType.password);
+        dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
+        sParms.setData(dataMap);
+        skClient.writeSecret(sParms);
+      }
+      // Store PKI keys if both present
+      if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
+        dataMap = new HashMap<>();
+        sParms.setKeyType(KeyType.sshkey);
+        dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
+        dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
+        sParms.setData(dataMap);
+        skClient.writeSecret(sParms);
+      }
+      // Store Access key and secret if both present
+      if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
+        dataMap = new HashMap<>();
+        sParms.setKeyType(KeyType.accesskey);
+        dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
+        dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
+        sParms.setData(dataMap);
+        skClient.writeSecret(sParms);
+      }
+      // TODO what about ssh certificate? Nothing to do here?
+    }
+    // TODO exception handling
+    catch (Exception e) { _log.error(e.toString()); throw e;}
   }
 
   /**
@@ -420,26 +461,32 @@ public class SystemsServiceImpl implements SystemsService
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
-
     // Get the Security Kernel client
     var skClient = getSKClient(tenantName);
-
-//    TODO Remove the credential
-//    try
-//    {
-//      for (String permSpec : permSpecSet)
-//      {
-//        skClient.revokeUserPermission(userName, permSpec);
-//      }
-//    }
-//    // TODO exception handling
-//    catch (Exception e) { _log.error(e.toString()); throw e;}
+    // Construct basic SK secret parameters
+    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+    try
+    {
+      sParms.setKeyType(KeyType.password);
+      skClient.destroySecretMeta(sParms);
+      sParms.setKeyType(KeyType.sshkey);
+      skClient.destroySecretMeta(sParms);
+      sParms.setKeyType(KeyType.accesskey);
+      skClient.destroySecretMeta(sParms);
+      sParms.setKeyType(KeyType.cert);
+      skClient.destroySecretMeta(sParms);
+    }
+    // TODO exception handling
+    // TODO/TBD: If tapis client exception then log warning but continue
+    // TODO/TBD: for other exectpions log error and re-throw the exception
+    catch (TapisClientException tce) { _log.warn(tce.toString()); }
+    catch (Exception e) { _log.error(e.toString()); throw e;}
   }
 
   /**
    * Get credential for given system, user and access method
-   *
-   * @return Credential
+   * TODO/TBD: Support looking up default access method for system instead of throwing exception
+   * @return Credential - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
@@ -450,18 +497,39 @@ public class SystemsServiceImpl implements SystemsService
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
-    // Use Security Kernel client to retrieve credential
-    Credential credential = readAccessCredential(getSKClient(tenantName), systemName, userName, accessMethod);
+    Credential credential = null;
+    try
+    {
+      // Get the Security Kernel client
+      var skClient = getSKClient(tenantName);
+      // Construct basic SK secret parameters
+      var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+      // Set key type based on access method
+      if (accessMethod.equals(AccessMethod.PASSWORD))sParms.setKeyType(KeyType.password);
+      else if (accessMethod.equals(AccessMethod.PKI_KEYS))sParms.setKeyType(KeyType.sshkey);
+      else if (accessMethod.equals(AccessMethod.ACCESS_KEY))sParms.setKeyType(KeyType.accesskey);
+      else if (accessMethod.equals(AccessMethod.CERT))sParms.setKeyType(KeyType.cert);
 
-    // TODO
-//      try
-//      {
-//        Boolean isAuthorized = skClient.isPermitted(userName, permSpec).getIsAuthorized();
-//        if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
-//      }
-//      // TODO exception handling
-//      catch (Exception e) { _log.error(e.toString()); throw e;}
-//    }
+      // Retrieve the secrets
+      SkSecret skSecret = skClient.readSecret(sParms);
+      if (skSecret == null) return null;
+      var dataMap = skSecret.getSecretMap();
+      if (dataMap == null) return null;
+
+      // Create a credential
+      credential = new Credential(dataMap.get(SK_KEY_PASSWORD),
+              dataMap.get(SK_KEY_PRIVATE_KEY),
+              dataMap.get(SK_KEY_PUBLIC_KEY),
+              null, //dataMap.get(CERT) TODO: how to get ssh certificate
+              dataMap.get(SK_KEY_ACCESS_KEY),
+              dataMap.get(SK_KEY_ACCESS_SECRET));
+    }
+    // TODO exception handling
+    // TODO/TBD: If tapis client exception then log error but continue so null is returned.
+    // TODO/TBD: for other exectpions log error and re-throw the exception
+    catch (TapisClientException tce) { _log.error(tce.toString()); }
+    catch (Exception e) { _log.error(e.toString()); throw e;}
+
     return credential;
   }
 
@@ -474,9 +542,9 @@ public class SystemsServiceImpl implements SystemsService
    * TODO: thread safety?
    * TODO: or worst case it creates some clients a few extra times.
    * Cache the SK clients in a map by tenant name.
-   * @param tenantName
-   * @return
-   * @throws TapisException
+   * @param tenantName - name of tenant
+   * @return SK client
+   * @throws TapisException - for Tapis related exceptions
    */
   private SKClient getSKClient(String tenantName) throws TapisException
   {
@@ -495,7 +563,7 @@ public class SystemsServiceImpl implements SystemsService
 //    String tenantsURL = "https://dev.develop.tapis.io";
     String tenantsURL = parms.getTenantsSvcURL();
     var tenantsClient = new TenantsClient(tenantsURL);
-    Tenant tenant1 = null;
+    Tenant tenant1;
     try {tenant1 = tenantsClient.getTenant(tenantName);}
     catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", tenantName, e.getMessage()), e);}
     if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", tenantName));
@@ -508,7 +576,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // Get short term service JWT from tokens service
     var tokClient = new TokensClient(tokensURL);
-    String svcJWT = null;
+    String svcJWT;
     try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
     catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
     // Basic check of JWT
@@ -550,8 +618,8 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Create a set of individual permSpec entries based on the list passed in
-   * @param permList
-   * @return
+   * @param permList - list of individual permissions
+   * @return - Set of permSpec entries based on permissions
    */
   private static Set<String> getPermSpecSet(String tenantName, String systemName, List<String> permList)
   {
@@ -566,80 +634,11 @@ public class SystemsServiceImpl implements SystemsService
     return permSet;
   }
 
-  /**
-   * Store credential secrets in Security Kernel
-   * TODO/TBD support ssh certificate?
-   */
-  private static void writeAccessCredential(SKClient skClient, String sysName, String accessUser, Credential credential)
-          throws TapisException
-  {
-    // Construct basic SK secret parameters
-    var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(sysName).setSysOwner(accessUser);
-    var dataMap = new HashMap<String, String>();
-    // Check for each secret type and write values if they are present
-    // Not that multiple secrets may be present.
-    // Store password if present
-    if (!StringUtils.isBlank(credential.getPassword())) {
-      sParms.setKeyType(KeyType.password);
-      dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
-      sParms.setData(dataMap);
-      skClient.writeSecret(sParms);
-    }
-    // Store PKI keys if both present
-    if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
-      sParms.setKeyType(KeyType.sshkey);
-      dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
-      dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
-      sParms.setData(dataMap);
-      skClient.writeSecret(sParms);
-    }
-    // Store Access key and secret if both present
-    if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
-      sParms.setKeyType(KeyType.accesskey);
-      dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
-      dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
-      sParms.setData(dataMap);
-      skClient.writeSecret(sParms);
-    }
-    // TODO what about ssh certificate? Nothing to do here?
-  }
-
-  /**
-   * Retrieve credential from the Security Kernel
-   * TODO support ssh certificate
-   */
-  private static Credential readAccessCredential(SKClient skClient, String sysName, String accessUser,
-                                                 AccessMethod accessMethod)
-    throws TapisException
-  {
-    // Construct basic SK secret parameters
-    var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(sysName).setSysOwner(accessUser);
-    // Set key type based on access method
-    if (accessMethod.equals(AccessMethod.PASSWORD))sParms.setKeyType(KeyType.password);
-    else if (accessMethod.equals(AccessMethod.PKI_KEYS))sParms.setKeyType(KeyType.sshkey);
-    else if (accessMethod.equals(AccessMethod.ACCESS_KEY))sParms.setKeyType(KeyType.accesskey);
-    else if (accessMethod.equals(AccessMethod.ACCESS_KEY))sParms.setKeyType(KeyType.cert);
-
-    // Retrieve the secrets
-    SkSecret skSecret = skClient.readSecret(sParms);
-    var dataMap = skSecret.getSecretMap();
-
-    // Create a credential
-    Credential cred = new Credential(dataMap.get(SK_KEY_PASSWORD),
-                                     dataMap.get(SK_KEY_PRIVATE_KEY),
-                                     dataMap.get(SK_KEY_PUBLIC_KEY),
-                                     null, //dataMap.get(CERT) TODO: how to get ssh certificate
-                                     dataMap.get(SK_KEY_ACCESS_KEY),
-                                     dataMap.get(SK_KEY_ACCESS_SECRET));
-    return cred;
-  }
-
   // TODO *************** remove debug output ********************
   private static void printPermInfoForUser(SKClient skClient, String userName)
   {
     if (skClient == null || userName == null) return;
     try {
-      ResultNameArray nameArray = null;
       // Test retrieving all roles for a user
       List<String> roles = skClient.getUserRoles(userName);
       _log.error("User " + userName + " has the following roles: ");

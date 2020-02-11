@@ -282,7 +282,8 @@ public class SystemResource
     Credential accessCred = null;
     if (jsonObject.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
-      accessCred = extractAccessCred(jsonObject);
+      JsonObject credObj = jsonObject.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
+      accessCred = CredentialResource.extractAccessCred(credObj);
     }
 
     // Extract list of supported transfer methods. This is a list of Enums. Json schema enforces allowed enum values.
@@ -697,24 +698,6 @@ public class SystemResource
     name = ApiUtils.getValS(obj.get(JOB_CAPABILITY_NAME_FIELD), "");
     value = ApiUtils.getValS(obj.get(JOB_CAPABILITY_VALUE_FIELD), "");
     return new Capability(category, name, value);
-  }
-
-  /**
-   * Extract AccessCredential details from the top level Json object
-   * @param obj Top level Json object from request
-   * @return A partially populated Credential object
-   */
-  private static Credential extractAccessCred(JsonObject obj)
-  {
-    String password, privateKey, publicKey, sshCert, accessKey, accessSecret;
-    JsonObject credObj = obj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
-    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "");
-    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "");
-    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "");
-    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "");
-    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "");
-    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "");
-    return new Credential(password, privateKey, publicKey, sshCert, accessKey, accessSecret);
   }
 
   /**

@@ -185,5 +185,34 @@ public class ApiUtils
   }
 
 
-
+  /**
+   * Check that both or neither of the secrets are blank.
+   * This is for PKI_KEYS and ACCESS_KEY where if one part of the secret is supplied the other must also be supplied
+   * @param systemName - name of the system, for constructing response msg
+   * @param userName - name of user associated with the perms request, for constructing response msg
+   * @param prettyPrint - print flag used to construct response
+   * @param secretType - secret type (PKI_KEYS, API_KEY), for constructing response msg
+   * @param secretName1 - secret name, for constructing response msg
+   * @param secretName2 - secret name, for constructing response msg
+   * @param secretVal1 - first secret
+   * @param secretVal2 - second secret
+   * @return - null if all checks OK else Response containing info
+   */
+  public static Response checkSecrets(String systemName, String userName, boolean prettyPrint, String secretType,
+                                      String secretName1, String secretName2, String secretVal1, String secretVal2)
+  {
+    if ((!StringUtils.isBlank(secretVal1) && StringUtils.isBlank(secretVal2)))
+    {
+      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", secretType, secretName2, systemName, userName);
+      _log.error(msg);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    if ((StringUtils.isBlank(secretVal1) && !StringUtils.isBlank(secretVal2)))
+    {
+      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", secretType, secretName1, systemName, userName);
+      _log.error(msg);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    return null;
+  }
 }
