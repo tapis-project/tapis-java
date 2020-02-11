@@ -397,8 +397,8 @@ public final class SecurityResource
           }
       } catch (Exception e) {
           String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                       "Error retrieving tenants map.");
-          _log.error(msg);
+                                       e.getMessage());
+          _log.error(msg, e);
           success = false;
       }
       
