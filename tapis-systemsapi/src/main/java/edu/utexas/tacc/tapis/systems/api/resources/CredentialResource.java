@@ -319,7 +319,7 @@ public class CredentialResource
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
-    // Make the service call to get the permissions
+    // Make the service call to get the credentials
     Credential credential;
     try { credential = systemsService.getUserCredential(tenantName, systemName, userName, accessMethod); }
     catch (Exception e)
@@ -408,7 +408,7 @@ public class CredentialResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", null, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
