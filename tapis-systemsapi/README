@@ -125,7 +125,7 @@ Configure Run configuration in IntelliJ
 ------------------------------------------------------------------------------
 Updating OpenAPI spec published to live-docs
 ------------------------------------------------------------------------------
-1. Run mvn clean install
+1. cd tapis-java; mvn clean install
 2. Copy entire contents of file tapis-java/tapis-systemsapi/src/main/resources/openapi.json into clipboard.
 3. Visit https://editor.swagger.io
 4. Replace contents with clipboard, convert from JSON to YAML.
@@ -134,10 +134,9 @@ Updating OpenAPI spec published to live-docs
 7. Paste clipboard to tapis-client-java/systems-client/SystemsAPI.yaml.
 8. Edit SystemsAPI.yaml to update all paths to begin with '/v3/systems'
    Note: all paths should be surrounded by single quotes. Some paths have them and some do not.
-   Note: At this point the tapis-client can be built and used for local testing. (?)
+   Note: At this point tapis-client-java can be built and used for local testing.
          Might first need to clean mvn repo: rm -fr ~/.m2/repository/edu/utexas/tacc/tapis/tapis-client-java
          Then to build and install locally: cd tapis-client-java; mvn clean install
-         Although no jar deployed locally under.m2 it still seems to work (?)
 9. Push tapis-client-java to master branch.
 10. Updates should be reflected in live-docs (https://tapis-project.github.io/live-docs/)
       within a few minutes.

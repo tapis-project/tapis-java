@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -169,19 +170,16 @@ public class SystemsServiceTest
     {
       Assert.assertTrue(capNamesFound.contains(capSeed.getName()), "List of capabilities did not contain a capability named: " + capSeed.getName());
     }
-    // Retrieve tags, convert to json, verify keys and values
-    String tags = tmpSys.getTags();
-    System.out.println("Found tags: " + tags);
-    // Get the Json object and prepare to extract info from it
-    JsonObject obj = TapisGsonUtils.getGson().fromJson(tags, JsonObject.class);
+    // Retrieve tags, verify keys and values
+    System.out.println("Found tags: " + tmpSys.getTags());
+    JsonObject obj = tmpSys.getTags();
     Assert.assertTrue(obj.has("key1"));
     Assert.assertEquals(obj.get("key1").getAsString(), "a");
     Assert.assertTrue(obj.has("key2"));
     Assert.assertEquals(obj.get("key2").getAsString(), "b");
-    // Retrieve notes, convert to json, verify elements
-    String notes = tmpSys.getNotes();
-    System.out.println("Found notes: " + notes);
-    obj = TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);
+    // Retrieve notes, verify elements
+    System.out.println("Found notes: " + tmpSys.getNotes());
+    obj = tmpSys.getNotes();
     Assert.assertTrue(obj.has("project"));
     Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
     Assert.assertTrue(obj.has("testdata"));

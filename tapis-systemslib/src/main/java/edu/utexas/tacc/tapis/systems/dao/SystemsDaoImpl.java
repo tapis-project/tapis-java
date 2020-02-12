@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
@@ -330,8 +332,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
       }
 
-      // TODO: If needed retrieve credentials
-
       // Use results to populate system object
       result = populateTSystem(rsSys, jobCaps, null);
 
@@ -533,6 +533,14 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
       }
 
+      // Construct tags and notes as JsonObject
+      JsonObject tagsJson = null;
+      JsonObject notesJson = null;
+      String tagsStr = rs.getString(23);
+      String notesStr = rs.getString(24);
+      if (!StringUtils.isBlank(tagsStr)) tagsJson = JsonParser.parseString(tagsStr).getAsJsonObject();
+      if (!StringUtils.isBlank(notesStr)) notesJson = JsonParser.parseString(notesStr).getAsJsonObject();
+
       // Create the TSystem
       tSystem = new TSystem(rs.getInt(1), // id
                             rs.getString(2), // tenant
@@ -558,8 +566,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(21), // jobRemoteArchiveSystem
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
-                            rs.getString(23), // tags
-                            rs.getString(24), // notes
+                            tagsJson,
+                            notesJson,
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

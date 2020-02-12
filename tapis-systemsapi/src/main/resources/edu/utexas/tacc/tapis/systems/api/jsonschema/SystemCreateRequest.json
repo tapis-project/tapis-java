@@ -34,8 +34,8 @@
       "type": "array",
       "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
     },
-    "tags": { "type": "string", "default": "{}" },
-    "notes": { "type": "string", "default": "{}" }
+    "tags": { "type": "object" },
+    "notes": { "type": "object" }
   },
 
   "required": [

@@ -19,6 +19,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -246,8 +247,7 @@ public class SystemResource
     // Get the Json object and prepare to extract info from it
     JsonObject jsonObject = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
 
-    String systemName, description, systemType, owner, host, effectiveUserId, accessMethodStr, bucketName, rootDir,
-           proxyHost, tags, notes;
+    String systemName, description, systemType, owner, host, effectiveUserId, accessMethodStr, bucketName, rootDir, proxyHost;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
@@ -275,8 +275,12 @@ public class SystemResource
     jobLocalArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_LOCAL_ARCHIVE_DIR_FIELD), "");
     jobRemoteArchiveSystem = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_SYSTEM_FIELD), "");
     jobRemoteArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_DIR_FIELD), "");
-    tags = ApiUtils.getValS(jsonObject.get(TAGS_FIELD), TSystem.DEFAULT_TAGS);
-    notes = ApiUtils.getValS(jsonObject.get(NOTES_FIELD), TSystem.DEFAULT_NOTES);
+
+    // Extract tags and notes as json objects
+    JsonObject tags = JsonParser.parseString(TSystem.DEFAULT_TAGS_STR).getAsJsonObject();
+    JsonObject notes = JsonParser.parseString(TSystem.DEFAULT_NOTES_STR).getAsJsonObject();
+    if (jsonObject.has(TAGS_FIELD)) tags = jsonObject.getAsJsonObject(TAGS_FIELD);
+    if (jsonObject.has(NOTES_FIELD)) notes = jsonObject.getAsJsonObject(NOTES_FIELD);
 
     // Extract access credential if provided and effectiveUserId is not dynamic. This is a model.Credential object.
     Credential accessCred = null;
@@ -400,7 +404,7 @@ public class SystemResource
                                   bucketName, rootDir, transferMethodsSB.toString(),
                                   port, useProxy, proxyHost, proxyPort,
                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
-                                  jobRemoteArchiveDir, jobCaps, tags, notes, scrubbedJson);
+                                  jobRemoteArchiveDir, jobCaps, tags.toString(), notes.toString(), scrubbedJson);
     }
     catch (IllegalStateException e)
     {

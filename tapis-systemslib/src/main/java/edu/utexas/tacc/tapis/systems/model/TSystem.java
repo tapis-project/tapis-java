@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +42,8 @@ public final class TSystem
   public static final boolean DEFAULT_AVAILABLE = true;
   public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
   public static final boolean DEFAULT_USEPROXY = false;
-  public static final String DEFAULT_TAGS = "{}";
-  public static final String DEFAULT_NOTES = "{}";
+  public static final String DEFAULT_TAGS_STR = "{}";
+  public static final String DEFAULT_NOTES_STR = "{}";
 
   // ************************************************************************
   // *********************** Enums ******************************************
@@ -83,8 +84,8 @@ public final class TSystem
   private String jobRemoteArchiveSystem; // Remote system on which job output files will be archived
   private String jobRemoteArchiveDir; // Parent directory used for archiving job output files on remote system
   private List<Capability> jobCapabilities; // List of job related capabilities supported by the system
-  private String tags;       // Simple metadata as json containing key:val pairs for efficient searching
-  private String notes;      // Simple metadata as json
+  private JsonObject tags;       // Simple metadata as json containing key:val pairs for efficient searching
+  private JsonObject notes;      // Simple metadata as json
 
 
   // ************************************************************************
@@ -96,7 +97,7 @@ public final class TSystem
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
                  String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1, List<Capability> jobCapabilities1,
-                 String tags1, String notes1,  Instant created1, Instant updated1)
+                 JsonObject tags1, JsonObject notes1, Instant created1, Instant updated1)
   {
     id = id1;
     created = created1;
@@ -191,7 +192,7 @@ public final class TSystem
 
   public List<Capability> getJobCapabilities() { return jobCapabilities; }
 
-  public String getTags() { return tags; }
+  public JsonObject getTags() { return tags; }
 
-  public String getNotes() { return notes; }
+  public JsonObject getNotes() { return notes; }
 }
