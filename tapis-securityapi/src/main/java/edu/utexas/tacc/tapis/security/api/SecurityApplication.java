@@ -6,8 +6,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
