@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+//import com.google.gson.JsonObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,7 @@ public final class TSystem
   private String host;       // Host name or IP address
   private boolean available; // Indicates if systems is currently available
   private String effectiveUserId; // User to use when accessing system, may be static or dynamic
-  private AccessMethod accessMethod; // How access authorization is handled.
+  private AccessMethod defaultAccessMethod; // How access authorization is handled by default
   private Credential accessCredential; // Credential to be stored in or retrieved from the Security Kernel
   private String bucketName; // Name of bucket for system of type OBJECT_STORE
   private String rootDir;    // Effective root directory for system of type LINUX, can also be used for system of type OBJECT_STORE
@@ -84,20 +85,21 @@ public final class TSystem
   private String jobRemoteArchiveSystem; // Remote system on which job output files will be archived
   private String jobRemoteArchiveDir; // Parent directory used for archiving job output files on remote system
   private List<Capability> jobCapabilities; // List of job related capabilities supported by the system
-  private JsonObject tags;       // Simple metadata as json containing key:val pairs for efficient searching
-  private JsonObject notes;      // Simple metadata as json
+// TODO/TBD Use jackson JsonNode or gson JsonObject? JsonNode has much simpler openapi spec and hence simpler client (?)
+  private JsonNode tags;       // Simple metadata as json containing key:val pairs for efficient searching
+  private JsonNode notes;      // Simple metadata as json
 
 
   // ************************************************************************
   // *********************** Constructors ***********************************
   // ************************************************************************
   public TSystem(long id1, String tenant1, String name1, String description1, SystemType systemType1,
-                 String owner1, String host1, boolean available1, String effectiveUserId1, AccessMethod accessMethod1,
+                 String owner1, String host1, boolean available1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
                  Credential accessCredential1, String bucketName1, String rootDir1,
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
                  String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1, List<Capability> jobCapabilities1,
-                 JsonObject tags1, JsonObject notes1, Instant created1, Instant updated1)
+                 JsonNode tags1, JsonNode notes1, Instant created1, Instant updated1)
   {
     id = id1;
     created = created1;
@@ -110,7 +112,7 @@ public final class TSystem
     host = host1;
     available = available1;
     effectiveUserId = effectiveUserId1;
-    accessMethod = accessMethod1;
+    defaultAccessMethod = defaultAccessMethod1;
     accessCredential = accessCredential1;
     bucketName = bucketName1;
     rootDir = rootDir1;
@@ -161,7 +163,7 @@ public final class TSystem
   public String getEffectiveUserId() { return effectiveUserId; }
   public void setEffectiveUserId(String userId) { effectiveUserId = userId; }
 
-  public AccessMethod getAccessMethod() { return accessMethod; }
+  public AccessMethod getDefaultAccessMethod() { return defaultAccessMethod; }
 
   public Credential getAccessCredential() { return accessCredential; }
   public void setAccessCredential(Credential cred) {accessCredential = cred;}
@@ -192,7 +194,7 @@ public final class TSystem
 
   public List<Capability> getJobCapabilities() { return jobCapabilities; }
 
-  public JsonObject getTags() { return tags; }
+  public JsonNode getTags() { return tags; }
 
-  public JsonObject getNotes() { return notes; }
+  public JsonNode getNotes() { return notes; }
 }

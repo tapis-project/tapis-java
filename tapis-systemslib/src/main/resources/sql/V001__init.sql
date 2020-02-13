@@ -51,7 +51,7 @@ CREATE TABLE systems
   host           VARCHAR(256) NOT NULL,
   available      BOOLEAN NOT NULL DEFAULT true,
   effective_user_id VARCHAR(60) NOT NULL,
-  access_method  access_meth_type NOT NULL,
+  default_access_method  access_meth_type NOT NULL,
   bucket_name    VARCHAR(63),
   root_dir       VARCHAR(1024),
   transfer_methods transfer_meth_type[] NOT NULL,
@@ -82,7 +82,7 @@ COMMENT ON COLUMN systems.owner IS 'User name of system owner';
 COMMENT ON COLUMN systems.host IS 'System host name or ip address';
 COMMENT ON COLUMN systems.available IS 'Indicates if system is currently available';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
-COMMENT ON COLUMN systems.access_method IS 'Enum for how authorization is handled';
+COMMENT ON COLUMN systems.default_access_method IS 'Enum for how authorization is handled by default';
 COMMENT ON COLUMN systems.bucket_name IS 'Name of the bucket for an S3 system';
 COMMENT ON COLUMN systems.root_dir IS 'Name of root directory for a Unix system';
 COMMENT ON COLUMN systems.transfer_methods IS 'List of supported transfer methods';

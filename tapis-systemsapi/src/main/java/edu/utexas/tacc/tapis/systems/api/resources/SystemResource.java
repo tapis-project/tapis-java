@@ -87,7 +87,7 @@ public class SystemResource
   private static final String HOST_FIELD = "host";
   private static final String AVAILABLE_FIELD = "available";
   private static final String EFFECTIVE_USERID_FIELD = "effectiveUserId";
-  private static final String ACCESS_METHOD_FIELD = "accessMethod";
+  private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
   private static final String ACCESS_CREDENTIAL_FIELD = "accessCredential";
   private static final String BUCKET_NAME_FIELD = "bucketName";
   private static final String ROOT_DIR_FIELD = "rootDir";
@@ -247,7 +247,7 @@ public class SystemResource
     // Get the Json object and prepare to extract info from it
     JsonObject jsonObject = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
 
-    String systemName, description, systemType, owner, host, effectiveUserId, accessMethodStr, bucketName, rootDir, proxyHost;
+    String systemName, description, systemType, owner, host, effectiveUserId, defaultAccessMethodStr, bucketName, rootDir, proxyHost;
     String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
     int port, proxyPort;
     boolean available, useProxy, jobCanExec;
@@ -257,7 +257,7 @@ public class SystemResource
     systemName = jsonObject.get(NAME_FIELD).getAsString();
     systemType = jsonObject.get(SYSTEM_TYPE_FIELD).getAsString();
     host = jsonObject.get(HOST_FIELD).getAsString();
-    accessMethodStr = jsonObject.get(ACCESS_METHOD_FIELD).getAsString();
+    defaultAccessMethodStr = jsonObject.get(DEFAULT_ACCESS_METHOD_FIELD).getAsString();
     jobCanExec =  jsonObject.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
     // Extract optional values
     description = ApiUtils.getValS(jsonObject.get(DESCRIPTION_FIELD), "");
@@ -342,12 +342,12 @@ public class SystemResource
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty host.");
       errMessages.add(msg);
     }
-    else if (StringUtils.isBlank(accessMethodStr))
+    else if (StringUtils.isBlank(defaultAccessMethodStr))
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "createSystem", "Null or empty access method.");
       errMessages.add(msg);
     }
-    else if (accessMethodStr.equals(AccessMethod.CERT.name()) &&
+    else if (defaultAccessMethodStr.equals(AccessMethod.CERT.name()) &&
             !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
             !effectiveUserId.equals(TSystem.OWNER_VAR) &&
             !StringUtils.isBlank(owner) &&
@@ -381,11 +381,11 @@ public class SystemResource
 
     // Convert access method string to enum
     // If Enums defined correctly an exception should never be thrown, but just in case.
-    AccessMethod accessMethod;
-    try { accessMethod =  AccessMethod.valueOf(accessMethodStr); }
+    AccessMethod defaultAccessMethod;
+    try { defaultAccessMethod =  AccessMethod.valueOf(defaultAccessMethodStr); }
     catch (IllegalArgumentException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, systemName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", defaultAccessMethodStr, systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -400,7 +400,7 @@ public class SystemResource
     try
     {
       systemsService.createSystem(tenantName, apiUserId, systemName, description, systemType, owner, host, available,
-                                  effectiveUserId, accessMethod, accessCred,
+                                  effectiveUserId, defaultAccessMethod, accessCred,
                                   bucketName, rootDir, transferMethodsSB.toString(),
                                   port, useProxy, proxyHost, proxyPort,
                                   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,

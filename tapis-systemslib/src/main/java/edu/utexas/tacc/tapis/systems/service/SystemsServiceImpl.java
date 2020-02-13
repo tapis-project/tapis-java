@@ -20,7 +20,6 @@ import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
-import edu.utexas.tacc.tapis.tenants.client.TenantsClient;
 
 //import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
@@ -86,7 +85,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
-                          String owner, String host, boolean available, String effectiveUserId, AccessMethod accessMethod,
+                          String owner, String host, boolean available, String effectiveUserId, AccessMethod defaultAccessMethod,
                           Credential credential, String bucketName, String rootDir, String transferMethods,
                           int port, boolean useProxy, String proxyHost, int proxyPort,
                           boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
@@ -116,7 +115,7 @@ public class SystemsServiceImpl implements SystemsService
     jobRemoteArchiveDir = StringUtils.replaceEach(jobRemoteArchiveDir, ALL_VARS, allVarSubstitutions);
 
     int itemId = dao.createTSystem(tenantName, systemName, description, systemType, owner, host, available,
-                                   effectiveUserId, accessMethod.name(), bucketName, rootDir, transferMethods,
+                                   effectiveUserId, defaultAccessMethod.name(), bucketName, rootDir, transferMethods,
                                    port, useProxy, proxyHost, proxyPort,
                                    jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem,
                                    jobRemoteArchiveDir, jobCapabilities,
@@ -225,7 +224,7 @@ public class SystemsServiceImpl implements SystemsService
     // If requested retrieve credentials from Security Kernel
     if (getCreds)
     {
-      AccessMethod accMethod = result.getAccessMethod();
+      AccessMethod accMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
       if (accMethod1 != null) accMethod = accMethod1;
       Credential cred = getUserCredential(tenantName, systemName, effectiveUserId, accMethod);

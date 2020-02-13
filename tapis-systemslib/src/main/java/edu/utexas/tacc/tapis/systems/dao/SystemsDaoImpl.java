@@ -3,15 +3,15 @@ package edu.utexas.tacc.tapis.systems.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
-import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
@@ -50,7 +50,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    */
   @Override
   public int createTSystem(String tenantName, String systemName, String description, String systemType,
-                           String owner, String host, boolean available, String effectiveUserId, String accessMethod,
+                           String owner, String host, boolean available, String effectiveUserId, String defaultAccessMethod,
                            String bucketName, String rootDir, String transferMethods,
                            int port, boolean useProxy, String proxyHost, int proxyPort,
                            boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
@@ -76,9 +76,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (StringUtils.isBlank(accessMethod))
+    if (StringUtils.isBlank(defaultAccessMethod))
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "accessMethod");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "defaultAccessMethod");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -125,7 +125,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(6, host);
       pstmt.setBoolean(7, available);
       pstmt.setString(8, effectiveUserId);
-      pstmt.setString(9, accessMethod);
+      pstmt.setString(9, defaultAccessMethod);
       pstmt.setString(10, bucketName);
       pstmt.setString(11, rootDir);
       pstmt.setString(12, transferMethods);
@@ -315,25 +315,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Pull out the system id so we can use it to get capabilities
       int systemId = rsSys.getInt(1);
 
-      // Retrieve capabilities
-      List<Capability> jobCaps = new ArrayList<>();
-      sql = SqlStatements.SELECT_SYSTEM_CAPS;
-      pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setInt(2, systemId);
-      ResultSet rsCaps = pstmt.executeQuery();
-      // Iterate over results
-      if (rsCaps != null)
-      {
-        while (rsCaps.next())
-        {
-          Capability cap = populateCapability(rsCaps);
-          if (cap != null) jobCaps.add(cap);
-        }
-      }
+      // Retrieve job capabilities
+      List<Capability> jobCaps = retrieveJobCaps(tenant, systemId, conn);
 
       // Use results to populate system object
-      result = populateTSystem(rsSys, jobCaps, null);
+      result = populateTSystem(rsSys, jobCaps);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
@@ -354,12 +340,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * getSystems
-   * @param tenant - tenant name
+   * @param tenantName - tenant name
    * @return - list of TSystem objects
    * @throws TapisException - on error
    */
   @Override
-  public List<TSystem> getTSystems(String tenant) throws TapisException
+  public List<TSystem> getTSystems(String tenantName) throws TapisException
   {
     // The result list is always non-null.
     var list = new ArrayList<TSystem>();
@@ -376,16 +362,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Prepare the statement, fill in placeholders and execute
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
+      pstmt.setString(1, tenantName);
       ResultSet rs = pstmt.executeQuery();
       // Iterate over results
       if (rs != null)
       {
         while (rs.next())
         {
-          // TODO Retrieve job capabilities
-          // TBD/TODO Retrieve credentials
-          TSystem system = populateTSystem(rs, null, null);
+          // Retrieve job capabilities
+          int systemId = rs.getInt(1);
+          List<Capability> jobCaps = retrieveJobCaps(tenantName, systemId, conn);
+          TSystem system = populateTSystem(rs, jobCaps);
           if (system != null) list.add(system);
         }
       }
@@ -511,7 +498,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @return the new, fully populated job object or null if there is a problem
    * @throws TapisJDBCException - on error
    */
-  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps, Credential accessCred) throws TapisJDBCException
+  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
   {
     // Quick check.
     if (rs == null) return null;
@@ -533,13 +520,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
       }
 
-      // Construct tags and notes as JsonObject
-      JsonObject tagsJson = null;
-      JsonObject notesJson = null;
+      // Construct tags and notes as Json
+      JsonNode tagsJson = null;
+      JsonNode notesJson = null;
       String tagsStr = rs.getString(23);
       String notesStr = rs.getString(24);
-      if (!StringUtils.isBlank(tagsStr)) tagsJson = JsonParser.parseString(tagsStr).getAsJsonObject();
-      if (!StringUtils.isBlank(notesStr)) notesJson = JsonParser.parseString(notesStr).getAsJsonObject();
+      // TODO/TBD JsonObject or JsonNode
+//      if (!StringUtils.isBlank(tagsStr)) tagsJson = JsonParser.parseString(tagsStr).getAsJsonObject();
+//      if (!StringUtils.isBlank(notesStr)) notesJson = JsonParser.parseString(notesStr).getAsJsonObject();
+      if (!StringUtils.isBlank(tagsStr)) tagsJson = new ObjectMapper().readTree(tagsStr);
+      if (!StringUtils.isBlank(notesStr)) notesJson = new ObjectMapper().readTree(notesStr);
 
       // Create the TSystem
       tSystem = new TSystem(rs.getInt(1), // id
@@ -552,7 +542,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getBoolean(8), //available
                             rs.getString(9), // effectiveUserId
                             AccessMethod.valueOf(rs.getString(10)),
-                            accessCred,
+                            null, // accessCredential
                             rs.getString(11), // bucketName
                             rs.getString(12), // rootDir
                             txfrMethodsList,
@@ -566,7 +556,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(21), // jobRemoteArchiveSystem
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
+// TODO: Put back JsonNode or JsonObject?
+//              null,
                             tagsJson,
+//              null,
                             notesJson,
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
@@ -609,5 +602,26 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       throw new TapisJDBCException(msg, e);
     }
     return capability;
+  }
+
+  private static List<Capability> retrieveJobCaps(String tenantName, int systemId, Connection conn)
+          throws TapisJDBCException, SQLException
+  {
+    List<Capability> jobCaps = new ArrayList<>();
+    String sql = SqlStatements.SELECT_SYSTEM_CAPS;
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, tenantName);
+    pstmt.setInt(2, systemId);
+    ResultSet rsCaps = pstmt.executeQuery();
+    // Iterate over results
+    if (rsCaps != null)
+    {
+      while (rsCaps.next())
+      {
+        Capability cap = populateCapability(rsCaps);
+        if (cap != null) jobCaps.add(cap);
+      }
+    }
+    return jobCaps;
   }
 }

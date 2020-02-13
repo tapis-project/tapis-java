@@ -15,7 +15,7 @@ import java.util.List;
 public interface SystemsService
 {
   int createSystem(String tenantName, String apiUserId, String systemName, String description, String systemType,
-                   String owner, String host, boolean available, String effectiveUserId, AccessMethod accessMethod,
+                   String owner, String host, boolean available, String effectiveUserId, AccessMethod defaultAccessMethod,
                    Credential credential, String bucketName, String rootDir, String transferMethods,
                    int port, boolean useProxy, String proxyHost, int proxyPort,
                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,

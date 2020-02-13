@@ -9,7 +9,7 @@ import java.util.List;
 public interface SystemsDao
 {
   int createTSystem(String tenantName, String systemName, String description, String systemType,
-                    String owner, String host, boolean available, String effectiveUserId, String accessMethod,
+                    String owner, String host, boolean available, String effectiveUserId, String defaultAccessMethod,
                     String bucketName, String rootDir, String transferMethods,
                     int port, boolean useProxy, String proxyHost, int proxyPort,
                     boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,

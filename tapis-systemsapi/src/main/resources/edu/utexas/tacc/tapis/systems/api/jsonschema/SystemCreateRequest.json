@@ -13,7 +13,7 @@
     "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
     "available": { "type": "boolean", "default": true },
     "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "accessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
+    "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
     "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/CredentialCreateRequest.json#/" },
     "bucketName": { "type": "string", "maxLength": 63 },
     "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
@@ -34,7 +34,7 @@
       "type": "array",
       "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
     },
-    "tags": { "type": "object" },
+    "tags": { "type": "object", "additionalProperties": {"type": "string"} },
     "notes": { "type": "object" }
   },
 
@@ -42,7 +42,7 @@
     "name",
     "systemType",
     "host",
-    "accessMethod",
+    "defaultAccessMethod",
     "jobCanExec"
   ]
 }

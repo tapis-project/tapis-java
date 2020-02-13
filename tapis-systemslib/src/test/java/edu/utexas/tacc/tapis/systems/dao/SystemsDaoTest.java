@@ -102,7 +102,7 @@ public class SystemsDaoTest
     Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), sys0[12]);
     System.out.println("Found tags: " + tmpSys.getTags());
     System.out.println("Found notes: " + tmpSys.getNotes());
-    Assert.assertEquals(tmpSys.getAccessMethod(), prot0.getAccessMethod());
+    Assert.assertEquals(tmpSys.getDefaultAccessMethod(), prot0.getAccessMethod());
     Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());
@@ -202,7 +202,7 @@ public class SystemsDaoTest
     Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), sys0[12]);
     System.out.println("Found tags: " + tmpSys.getTags());
     System.out.println("Found notes: " + tmpSys.getNotes());
-    Assert.assertEquals(tmpSys.getAccessMethod(), prot0.getAccessMethod());
+    Assert.assertEquals(tmpSys.getDefaultAccessMethod(), prot0.getAccessMethod());
     Assert.assertEquals(tmpSys.getPort(), prot0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), prot0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), prot0.getProxyHost());

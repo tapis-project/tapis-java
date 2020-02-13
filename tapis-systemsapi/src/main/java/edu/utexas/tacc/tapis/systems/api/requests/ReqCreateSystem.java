@@ -14,7 +14,7 @@ public final class ReqCreateSystem
   public String host;
   public boolean available;
   public String effectiveUserId;
-  public String accessMethod;
+  public String defaultAccessMethod;
   public Credential accessCredential;
   public String bucketName;
   public String rootDir;

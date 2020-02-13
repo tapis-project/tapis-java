@@ -1,14 +1,12 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -141,7 +139,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getOwner(), sys0[4]);
     Assert.assertEquals(tmpSys.getHost(), sys0[5]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0[6]);
-    Assert.assertEquals(tmpSys.getAccessMethod().name(), sys0[7]);
+    Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0[7]);
     Assert.assertEquals(tmpSys.getBucketName(), sys0[9]);
     Assert.assertEquals(tmpSys.getRootDir(), sys0[10]);
     Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), sys0[12]);
@@ -172,18 +170,18 @@ public class SystemsServiceTest
     }
     // Retrieve tags, verify keys and values
     System.out.println("Found tags: " + tmpSys.getTags());
-    JsonObject obj = tmpSys.getTags();
+    JsonNode obj = tmpSys.getTags();
     Assert.assertTrue(obj.has("key1"));
-    Assert.assertEquals(obj.get("key1").getAsString(), "a");
+    Assert.assertEquals(obj.get("key1").toString(), "a");
     Assert.assertTrue(obj.has("key2"));
-    Assert.assertEquals(obj.get("key2").getAsString(), "b");
+    Assert.assertEquals(obj.get("key2").toString(), "b");
     // Retrieve notes, verify elements
     System.out.println("Found notes: " + tmpSys.getNotes());
     obj = tmpSys.getNotes();
     Assert.assertTrue(obj.has("project"));
-    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
+    Assert.assertEquals(obj.get("project").toString(), "myproj1");
     Assert.assertTrue(obj.has("testdata"));
-    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
+    Assert.assertEquals(obj.get("testdata").toString(), "abc");
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -220,7 +218,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getOwner(), owner);
     Assert.assertEquals(tmpSys.getHost(), sys0[5]);
     Assert.assertEquals(tmpSys.getEffectiveUserId(), effectiveUserId);
-    Assert.assertEquals(tmpSys.getAccessMethod().name(), sys0[7]);
+    Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0[7]);
     Assert.assertEquals(tmpSys.getBucketName(), bucketName);
     Assert.assertEquals(tmpSys.getRootDir(), rootDir);
     Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), jobLocalWorkingDir);
