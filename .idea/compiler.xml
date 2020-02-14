@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="tapis-securitylib" />
+        <module name="tapis-systemslib" />
+        <module name="tapis-securitymigrate" />
+        <module name="tapis-sampleapi" />
+        <module name="tapis-migrate" />
+        <module name="tapis-securityapi" />
+        <module name="tapis-samplelib" />
+        <module name="tapis-systemsapi" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="tapis-java" target="1.5" />
+      <module name="tapis-migrate" target="1.13" />
+      <module name="tapis-sampleapi" target="1.13" />
+      <module name="tapis-samplelib" target="1.13" />
+      <module name="tapis-securityapi" target="1.13" />
+      <module name="tapis-securitylib" target="1.13" />
+      <module name="tapis-securitymigrate" target="1.13" />
+      <module name="tapis-systemsapi" target="1.13" />
+      <module name="tapis-systemslib" target="1.13" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

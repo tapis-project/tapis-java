@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/tapis-java.iml" filepath="$PROJECT_DIR$/.idea/tapis-java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-migrate/tapis-migrate.iml" filepath="$PROJECT_DIR$/tapis-migrate/tapis-migrate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-sampleapi/tapis-sampleapi.iml" filepath="$PROJECT_DIR$/tapis-sampleapi/tapis-sampleapi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-samplelib/tapis-samplelib.iml" filepath="$PROJECT_DIR$/tapis-samplelib/tapis-samplelib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-securityapi/tapis-securityapi.iml" filepath="$PROJECT_DIR$/tapis-securityapi/tapis-securityapi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-securitylib/tapis-securitylib.iml" filepath="$PROJECT_DIR$/tapis-securitylib/tapis-securitylib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-securitymigrate/tapis-securitymigrate.iml" filepath="$PROJECT_DIR$/tapis-securitymigrate/tapis-securitymigrate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-systemsapi/tapis-systemsapi.iml" filepath="$PROJECT_DIR$/tapis-systemsapi/tapis-systemsapi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tapis-systemslib/tapis-systemslib.iml" filepath="$PROJECT_DIR$/tapis-systemslib/tapis-systemslib.iml" />
+    </modules>
+  </component>
+</project>

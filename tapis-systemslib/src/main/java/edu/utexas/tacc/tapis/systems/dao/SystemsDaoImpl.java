@@ -7,8 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
@@ -520,17 +518,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
       }
 
-      // Construct tags and notes as Json
-      JsonNode tagsJson = null;
-      JsonNode notesJson = null;
-      String tagsStr = rs.getString(23);
-      String notesStr = rs.getString(24);
-      // TODO/TBD JsonObject or JsonNode
-//      if (!StringUtils.isBlank(tagsStr)) tagsJson = JsonParser.parseString(tagsStr).getAsJsonObject();
-//      if (!StringUtils.isBlank(notesStr)) notesJson = JsonParser.parseString(notesStr).getAsJsonObject();
-      if (!StringUtils.isBlank(tagsStr)) tagsJson = new ObjectMapper().readTree(tagsStr);
-      if (!StringUtils.isBlank(notesStr)) notesJson = new ObjectMapper().readTree(notesStr);
-
       // Create the TSystem
       tSystem = new TSystem(rs.getInt(1), // id
                             rs.getString(2), // tenant
@@ -556,11 +543,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(21), // jobRemoteArchiveSystem
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
-// TODO: Put back JsonNode or JsonObject?
-//              null,
-                            tagsJson,
-//              null,
-                            notesJson,
+                            rs.getString(23), // tags
+                            rs.getString(24), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

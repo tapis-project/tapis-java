@@ -234,7 +234,6 @@ public class SystemResource
     }
 
     // Create validator specification and validate the json against the schema
-    // TODO Json may contain secrets. Does validator do logging?
     JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_CREATE_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)

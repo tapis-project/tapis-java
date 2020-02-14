@@ -1,12 +1,14 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import org.apache.commons.lang3.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -169,19 +171,26 @@ public class SystemsServiceTest
       Assert.assertTrue(capNamesFound.contains(capSeed.getName()), "List of capabilities did not contain a capability named: " + capSeed.getName());
     }
     // Retrieve tags, verify keys and values
-    System.out.println("Found tags: " + tmpSys.getTags());
-    JsonNode obj = tmpSys.getTags();
+    String tagsStr = tmpSys.getTags();
+    System.out.println("Found tags: " + tagsStr);
+    String notesStr = tmpSys.getNotes();
+    System.out.println("Found notes: " + notesStr);
+    Assert.assertFalse(StringUtils.isBlank(tagsStr), "Tags string not found");
+    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
+    JsonObject obj = null;
+    if (!StringUtils.isBlank(tagsStr)) obj = JsonParser.parseString(tagsStr).getAsJsonObject();
+    Assert.assertNotNull(obj, "Tags value not found");
     Assert.assertTrue(obj.has("key1"));
-    Assert.assertEquals(obj.get("key1").toString(), "a");
+    Assert.assertEquals(obj.get("key1").getAsString(), "a");
     Assert.assertTrue(obj.has("key2"));
-    Assert.assertEquals(obj.get("key2").toString(), "b");
+    Assert.assertEquals(obj.get("key2").getAsString(), "b");
     // Retrieve notes, verify elements
-    System.out.println("Found notes: " + tmpSys.getNotes());
-    obj = tmpSys.getNotes();
+    if (!StringUtils.isBlank(notesStr)) obj = JsonParser.parseString(notesStr).getAsJsonObject();
+    Assert.assertNotNull(obj, "Notes value not found");
     Assert.assertTrue(obj.has("project"));
-    Assert.assertEquals(obj.get("project").toString(), "myproj1");
+    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
     Assert.assertTrue(obj.has("testdata"));
-    Assert.assertEquals(obj.get("testdata").toString(), "abc");
+    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -395,7 +404,6 @@ public class SystemsServiceTest
     Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
     Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
     // Attempt to retrieve secret that has not been set
-    // TODO/TBD how to distinguish between secret not being set for sys/user and no such sys or no such user or other error
     cred1 = svc.getUserCredential(sys0[0], sys0[1], testUser2, AccessMethod.PKI_KEYS);
     Assert.assertNull(cred1, "Credential was non-null for missing secret. System name: " + sys0[1] + " User name: " + testUser2);
     // Delete credentials and verify they were destroyed

@@ -37,17 +37,22 @@ target
 testreports
 test-output
 
-# Include IntelliJ runConfigurations
-#  but not other files under .idea
-.idea/*
-!.idea/runConfigurations/
 # Intellij metadata files
-*.ids
+.idea/*
 *.iml
+*.ids
 *.eml
 *.imp
 *.ipr
 *.iws
+# Include IntelliJ runConfigurations and some
+# other config files to help troubleshoot IDE issues
+!.idea/runConfigurations/
+!.idea/*.iml
+!.idea/*.xml
+!.idea/tapis-java.iml
+!tapis-systemsapi/*.iml
+!tapis-systemslib/*.iml
 
 # Eclipse metadata files
 .project
