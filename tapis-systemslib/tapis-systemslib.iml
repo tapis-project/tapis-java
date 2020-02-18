@@ -12,7 +12,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tapis-shared-lib:1.1-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="tapis-shared-lib" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.2.3" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.2.3" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.25" level="project" />
@@ -40,15 +40,9 @@
     <orderEntry type="library" name="Maven: org.codehaus.mojo:animal-sniffer-annotations:1.17" level="project" />
     <orderEntry type="library" name="Maven: com.zaxxer:HikariCP:3.3.1" level="project" />
     <orderEntry type="library" name="Maven: org.postgresql:postgresql:42.2.6" level="project" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tapis-shared-api:1.1-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="tapis-shared-api" />
     <orderEntry type="library" name="Maven: jakarta.servlet:jakarta.servlet-api:4.0.2" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish.jersey.containers:jersey-container-servlet:2.30" level="project" />
-    <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-server:2.30" level="project" />
-    <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-client:2.30" level="project" />
-    <orderEntry type="library" name="Maven: org.glassfish.jersey.media:jersey-media-jaxb:2.30" level="project" />
-    <orderEntry type="library" name="Maven: jakarta.validation:jakarta.validation-api:2.0.2" level="project" />
-    <orderEntry type="library" name="Maven: jakarta.xml.bind:jakarta.xml.bind-api:2.3.2" level="project" />
-    <orderEntry type="library" name="Maven: jakarta.activation:jakarta.activation-api:1.2.1" level="project" />
     <orderEntry type="library" name="Maven: jakarta.ws.rs:jakarta.ws.rs-api:2.1.6" level="project" />
     <orderEntry type="library" name="Maven: io.jsonwebtoken:jjwt-api:0.10.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: io.jsonwebtoken:jjwt-impl:0.10.7" level="project" />
@@ -87,16 +81,16 @@
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.9.10" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.9.10" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.9.10" level="project" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tapis-shared-db:1.1-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="tapis-shared-db" />
     <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:3.2.3" level="project" />
     <orderEntry type="library" name="Maven: p6spy:p6spy:3.8.3" level="project" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:security-client:1.1-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="security-client" />
     <orderEntry type="library" name="Maven: junit:junit:4.12" level="project" />
     <orderEntry type="library" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Maven: javax.annotation:javax.annotation-api:1.3.2" level="project" />
     <orderEntry type="library" name="Maven: io.swagger:swagger-annotations:1.5.24" level="project" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tokens-client:1.1-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tenants-client:1.1-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="tokens-client" />
+    <orderEntry type="module" module-name="tenants-client" />
     <orderEntry type="library" name="Maven: io.swagger.core.v3:swagger-annotations:2.0.10" level="project" />
     <orderEntry type="library" name="Maven: com.google.inject:guice:4.2.2" level="project" />
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
@@ -109,6 +103,13 @@
     <orderEntry type="library" name="Maven: com.squareup.okhttp3:logging-interceptor:4.2.2" level="project" />
     <orderEntry type="library" name="Maven: org.threeten:threetenbp:1.3.5" level="project" />
     <orderEntry type="library" name="Maven: io.gsonfire:gson-fire:1.8.3" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jersey.test-framework:jersey-test-framework-core:2.30" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-server:2.30" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-client:2.30" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jersey.media:jersey-media-jaxb:2.30" level="project" />
+    <orderEntry type="library" name="Maven: jakarta.validation:jakarta.validation-api:2.0.2" level="project" />
+    <orderEntry type="library" name="Maven: jakarta.xml.bind:jakarta.xml.bind-api:2.3.2" level="project" />
+    <orderEntry type="library" name="Maven: jakarta.activation:jakarta.activation-api:1.2.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.testng:testng:6.14.3" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: com.beust:jcommander:1.72" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache-extras.beanshell:bsh:2.0b6" level="project" />

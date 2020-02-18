@@ -5,10 +5,15 @@ import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import org.apache.commons.lang3.StringUtils;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -100,10 +105,24 @@ public class SystemsServiceTest
   public void setUp() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
+    // Setup for HK2 dependency injection
+    ServiceLocator locator = ServiceLocatorUtilities.createAndPopulateServiceLocator();
+    ServiceLocatorUtilities.bind(locator, new AbstractBinder() {
+      @Override
+      protected void configure() {
+        bind(SystemsServiceImpl.class).to(SystemsService.class);
+        bind(SystemsDaoImpl.class).to(SystemsDao.class);
+      }
+    });
+    locator.inject(this);
+
     // Initialize TenantManager and services
     String url = RuntimeParameters.getInstance().getTenantsSvcURL();
     TenantManager.getInstance(url).getTenants();
-    svc = new SystemsServiceImpl();
+
+    // Initialize services
+    svc = locator.getService(SystemsService.class);
+
     // Cleanup anything leftover from previous failed run
     tearDown();
   }

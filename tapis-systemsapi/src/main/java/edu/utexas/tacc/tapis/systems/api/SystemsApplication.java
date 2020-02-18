@@ -4,6 +4,11 @@ import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
+import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
+import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -46,6 +51,16 @@ public class SystemsApplication extends ResourceConfig
     // Finally set the application name
     // This appears to have no impact on base URL
     setApplicationName("systems");
+
+
+    // Initialize bindings for dependency injection
+    register(new AbstractBinder() {
+      @Override
+      protected void configure() {
+      bind(SystemsServiceImpl.class).to(SystemsService.class);
+      bind(SystemsDaoImpl.class).to(SystemsDao.class);
+      }
+    });
 
 
     // Initialize tenant manager singleton. This can be used by all subsequent application code, including filters.

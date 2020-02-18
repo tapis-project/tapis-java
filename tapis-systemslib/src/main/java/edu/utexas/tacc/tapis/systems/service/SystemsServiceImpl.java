@@ -21,11 +21,11 @@ import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 
-//import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,10 +41,8 @@ import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
 /*
  * Service level methods for Systems.
- *   Uses Dao layer and other service library classes to perform all
- *   top level service operations.
+ *   Uses Dao layer and other service library classes to perform all top level service operations.
  */
-//@Singleton
 public class SystemsServiceImpl implements SystemsService
 {
   // ************************************************************************
@@ -64,8 +62,8 @@ public class SystemsServiceImpl implements SystemsService
   // TODO: thread safety
   Map<String, SKClient> skClientMap = new HashMap<>();
 
-  // TODO *** Inject Dao singletons ***
-//  @com.google.inject.Inject
+  // Use HK2 to inject dao
+  @Inject
   private SystemsDao dao;
 
   // ************************************************************************
@@ -93,9 +91,6 @@ public class SystemsServiceImpl implements SystemsService
                           List<Capability> jobCapabilities, String tags, String notes, String rawJson)
           throws TapisException, IllegalStateException
   {
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
-
     // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
     if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
 
@@ -184,8 +179,6 @@ public class SystemsServiceImpl implements SystemsService
     }
 
     // Delete the system
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     return dao.deleteTSystem(tenantName, systemName);
   }
 
@@ -199,7 +192,6 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public boolean checkForSystemByName(String tenantName, String systemName) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     boolean result = dao.checkForTSystemByName(tenantName, systemName);
     return result;
   }
@@ -213,8 +205,6 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public TSystem getSystemByName(String tenantName, String systemName, String apiUserId, boolean getCreds, AccessMethod accMethod1) throws TapisException {
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     TSystem result = dao.getTSystemByName(tenantName, systemName);
     if (result == null) return null;
     // Resolve effectiveUserId if necessary
@@ -242,8 +232,6 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException
   {
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     List<TSystem> result = dao.getTSystems(tenant);
     for (TSystem sys : result)
     {
@@ -261,8 +249,6 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public List<String> getSystemNames(String tenant) throws TapisException
   {
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     return dao.getTSystemNames(tenant);
   }
 
@@ -276,8 +262,6 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public String getSystemOwner(String tenant, String systemName) throws TapisException
   {
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
-    dao = new SystemsDaoImpl();
     return dao.getTSystemOwner(tenant, systemName);
   }
 
@@ -548,30 +532,20 @@ public class SystemsServiceImpl implements SystemsService
    */
   private SKClient getSKClient(String tenantName) throws TapisException
   {
+    // TODO: Check to see if our service jwt has been refreshed and we need to update clients with new jwt.
+
+    // Check cache, if we have it already we are done, otherwise continue and create one.
     var skClient = skClientMap.get(tenantName);
     if (skClient != null) return skClient;
-    // Use Tenants service to lookup information we need to:
-    //  Access the tokens service associated with the tenant.
-    //  Access the security kernel service associated with the tenant.
-    // NOTE: The front-end is responsible for validating the JWT using the public key for the tenant.
-    //       See edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter
 
-    // Tenants and tokens service URLs from the environment have precedence.
-    // NOTE: Tenants URL is a required parameter, so no need to check here
-    RuntimeParameters parms = RuntimeParameters.getInstance();
-
-////    String tenantsURL = "https://dev.develop.tapis.io";
-//    String tenantsURL = parms.getTenantsSvcURL();
-//    var tenantsClient = new TenantsClient(tenantsURL);
-//    Tenant tenant1;
-//    try {tenant1 = tenantsClient.getTenant(tenantName);}
-//    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_ERROR", tenantName, e.getMessage()), e);}
-//    if (tenant1 == null) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TENANTS_NULL", tenantName));
-
-    // Get tenant from TenantManager initialized in front end api class SystemsApplication
+    // Use TenantManager to get tenant info. Needed for SK base URL.
+    // TenantManager initialized in front end api class SystemsApplication
     Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
+
+    // TODO Use ServiceJWT to get auto-magically refreshed service JWT.
+
     // Tokens service URL comes from env or the tenants service
-//    String tokensURL = "https://dev.develop.tapis.io";
+    RuntimeParameters parms = RuntimeParameters.getInstance();
     String tokensURL = parms.getTokensSvcURL();
     if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
     if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));

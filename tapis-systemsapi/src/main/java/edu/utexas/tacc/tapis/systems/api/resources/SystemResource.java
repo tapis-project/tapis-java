@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -45,7 +46,6 @@ import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMethod;
 import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
-import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -148,8 +148,8 @@ public class SystemResource
   @Context
   private HttpServletRequest _request;
 
-  // **************** Inject Services ****************
-//  @com.google.inject.Inject
+  // **************** Inject Services using HK2g ****************
+  @Inject
   private SystemsService systemsService;
 
   // ************************************************************************
@@ -174,12 +174,6 @@ public class SystemResource
         "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
-// TODO Including parameter info here and in method sig results in duplicates in openapi spec.
-// TODO    JAX-RS appears to require the annotations in the method sig
-//    parameters = {
-//      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-//                 description = "Pretty print the response")
-//    },
     requestBody =
       @RequestBody(
         description = "A JSON object specifying information for the system to be created.",
@@ -394,8 +388,6 @@ public class SystemResource
     String scrubbedJson = maskCredSecrets(jsonObject);
 
     // Make the service call to create the system
-    // TODO Use static factory methods for what could be singleton services, or better yet use DI, maybe Guice
-    systemsService = new SystemsServiceImpl();
     try
     {
       systemsService.createSystem(tenantName, apiUserId, systemName, description, systemType, owner, host, available,
@@ -447,14 +439,6 @@ public class SystemResource
           "included in the response. " +
           "Use query parameter accessMethod=<method> to override default access method.",
       tags = "systems",
-// TODO Including parameter info here and in method sig results in duplicates in openapi spec.
-// TODO    JAX-RS appears to require the annotations in the method sig
-//      parameters = {
-//          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-//              description = "Pretty print the response"),
-//          @Parameter(in = ParameterIn.QUERY, name = "returnCredentials", required = false,
-//              description = "Include the credentials in the response")
-//      },
       responses = {
           @ApiResponse(responseCode = "200", description = "System found.",
             content = @Content(schema = @Schema(implementation = RespSystem.class))),
@@ -473,7 +457,6 @@ public class SystemResource
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
-    systemsService = new SystemsServiceImpl();
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
     // Trace this request.
@@ -541,11 +524,6 @@ public class SystemResource
     summary = "Retrieve list of system names",
     description = "Retrieve list of system names.",
     tags = "systems",
-// TODO
-//    parameters = {
-//      @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-//        description = "Pretty print the response")
-//    },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
                    content = @Content(schema = @Schema(implementation = RespNameArray.class))
@@ -580,7 +558,6 @@ public class SystemResource
     String apiUserId = threadContext.getUser();
 
     // ------------------------- Retrieve all records -----------------------------
-    systemsService = new SystemsServiceImpl();
     List<String> systemNames;
     try { systemNames = systemsService.getSystemNames(tenant); }
     catch (Exception e)
@@ -613,11 +590,6 @@ public class SystemResource
     summary = "Delete a system given the system name",
     description = "Delete a system given the system name. ",
     tags = "systems",
-// TODO
-//      parameters = {
-//          @Parameter(in = ParameterIn.QUERY, name = "pretty", required = false,
-//              description = "Pretty print the response")
-//      },
     responses = {
       @ApiResponse(responseCode = "200", description = "System deleted.",
         content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
@@ -632,7 +604,6 @@ public class SystemResource
   public Response deleteSystemByName(@PathParam("sysName") String sysName,
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
-    systemsService = new SystemsServiceImpl();
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
     // Trace this request.

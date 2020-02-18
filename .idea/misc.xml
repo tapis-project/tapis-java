@@ -12,6 +12,8 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/../tapis-shared-java/pom.xml" />
+        <option value="$PROJECT_DIR$/../tapis-client-java/pom.xml" />
       </list>
     </option>
   </component>

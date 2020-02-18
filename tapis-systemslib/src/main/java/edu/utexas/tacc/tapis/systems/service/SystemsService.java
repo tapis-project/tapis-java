@@ -10,7 +10,6 @@ import java.util.List;
 
 /*
  * Interface for Systems Service
- * Needed for dependency injection.
  */
 public interface SystemsService
 {
