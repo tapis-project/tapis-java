@@ -69,7 +69,7 @@ class AbstractResource
         String json = null;
         try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "security", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_IO_ERROR", e.getMessage());
             _log.error(msg, e);
             throw new TapisException(msg, e);
           }
