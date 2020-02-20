@@ -1,0 +1,292 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/security/SkAdminInput",
+    "description": "Input parameter schema for SkAdmin utility",
+    
+    "$comment": "All of the SK supported secret types have their own schemas defined.", 
+    
+    "additionalProperties": false,
+    "type": "object",
+    "properties": {
+        "secrets": {
+            "description": "The secrets upon which to act.",
+            "type": "object",
+            "properties": {
+                "system": {
+                    "description": "Zero or more system secrets.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/System"},
+                    "minItems": 0
+                },
+                "dbcredential": {
+                    "description": "Zero or more db credentials.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/DBCredential"},
+                    "minItems": 0
+                },
+                "servicepwd": {
+                    "description": "Zero or more service passwords.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/ServicePwd"},
+                    "minItems": 0
+                },
+                "jwtsigning": {
+                    "description": "Zero or more jwt signing keys.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/JwtSigning"},
+                    "minItems": 0
+                },
+                "user": {
+                    "description": "Zero or more user secrets.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/User"},
+                    "minItems": 0
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "secrets"
+    ],
+    
+    "$defs": {
+        "ServicePwd": {
+            "title": "ServicePwd",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "The service's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "service": {
+                    "description": "The service's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16
+                },
+                "secretName": {
+                    "description": "The path name assigned to the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "password": {
+                    "description": "The service's password.",
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 256
+                },
+                "kubeSecretName": {
+                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "tenant",
+                "service",
+                "secretName"
+            ]
+        },
+        
+        "User": {
+            "title": "User",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "The user's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "user": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 58
+                },
+                "secretName": {
+                    "description": "The path name assigned to the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "key": {
+                    "description": "The secret's key.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                },
+                "value": {
+                    "description": "The secret's value.",
+                    "type": "string",
+                    "minLength": 0
+                },
+                "kubeSecretName": {
+                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "tenant",
+                "user",
+                "secretName",
+                "key"
+            ]
+        },
+
+        "JwtSigning": {
+            "title": "JwtSigning",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "The user's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "secretName": {
+                    "description": "The path name assigned to the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "secret": {
+                    "description": "The secret credentials.",
+                    "type": "string",
+                    "minLength": 16
+                },
+                "kubeSecretName": {
+                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "tenant",
+                "secretName"
+            ]
+        },
+
+        "DBCredential": {
+            "title": "DBCredential",
+            "type": "object",
+            "properties": {
+                "service": {
+                    "description": "The service's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16
+                },
+                "dbhost": {
+                    "description": "The db host name or ip address.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                },
+                "dbname": {
+                    "description": "The name of the service's database",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                },
+                "dbuser": {
+                    "description": "The database userid used by the service.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                },
+                "secretName": {
+                    "description": "The path name assigned to the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "secret": {
+                    "description": "The database credentials used to login to the database.",
+                    "type": "string",
+                    "minLength": 16
+                },
+                "kubeSecretName": {
+                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "service",
+                "dbhost",
+                "dbname",
+                "dbuser",
+                "secretName"
+            ]
+        },
+        
+        "System": {
+            "title": "System",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "The user's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "system": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "user": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 58
+                },
+                "keytype": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "enum": ["sshkey", "password", "accesskey", "cert"]
+                },
+                "secretName": {
+                    "description": "The path name assigned of the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "secret": {
+                    "description": "The secret credentials.",
+                    "type": "string",
+                    "minLength": 16
+                },
+                "kubeSecretName": {
+                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "tenant",
+                "system",
+                "user",
+                "keytype",
+                "secretName"
+            ]
+        }
+    }
+}

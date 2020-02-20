@@ -72,7 +72,7 @@ public final class SecretPathMapper
     /*                                 Enums                                  */
     /* ********************************************************************** */
     // The valid types as expected on input.
-    private enum KeyType {sshkey, password, accesskey, cert}
+    public enum KeyType {sshkey, password, accesskey, cert}
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
