@@ -6,33 +6,33 @@
 
   "type": "object",
   "properties": {
-    "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+    "name": { "$ref": "#/definitions/systemName" },
     "description": { "type": "string", "maxLength": 2048 },
-    "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
-    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "systemType": { "$ref": "#/definitions/systemTypeEnum" },
+    "owner": { "$ref": "#/definitions/userName" },
+    "host": { "$ref": "#/definitions/hostName" },
     "available": { "type": "boolean", "default": true },
-    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
+    "effectiveUserId": { "$ref": "#/definitions/userName" },
+    "defaultAccessMethod": { "$ref": "#/definitions/accessMethodEnum" },
     "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/CredentialCreateRequest.json#/" },
     "bucketName": { "type": "string", "maxLength": 63 },
-    "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "rootDir": { "$ref": "#/definitions/dirPath" },
     "transferMethods": {
       "type": "array",
       "items": { "type": "string", "enum": ["SFTP","S3"] }
     },
     "port": { "type": "integer" },
     "useProxy": { "type": "boolean", "default": false },
-    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "proxyHost": { "$ref": "#/definitions/hostName" },
     "proxyPort": { "type": "integer" },
     "jobCanExec": { "type": "boolean" },
-    "jobLocalWorkingDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "jobLocalArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "jobRemoteArchiveSystem": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
-    "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "jobLocalWorkingDir": { "$ref": "#/definitions/dirPath" },
+    "jobLocalArchiveDir": { "$ref": "#/definitions/dirPath" },
+    "jobRemoteArchiveSystem": { "$ref": "#/definitions/systemName" },
+    "jobRemoteArchiveDir": { "$ref": "#/definitions/dirPath" },
     "jobCapabilities": {
       "type": "array",
-      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
+      "items": {"$ref": "#/definitions/capability" }
     },
     "tags": { "type": "object", "additionalProperties": {"type": "string"} },
     "notes": { "type": "object" }
@@ -44,5 +44,24 @@
     "host",
     "defaultAccessMethod",
     "jobCanExec"
-  ]
+  ],
+
+  "definitions": {
+    "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
+    "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","CERT","ACCESS_KEY"] },
+    "capabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
+    "capability": {
+      "type": "object",
+      "properties": {
+        "category": { "$ref": "#/definitions/capabilityCategoryEnum" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "value": { "type": "string", "maxLength": 256 }
+      },
+      "required": [ "category", "name" ]
+    }
+  }
 }

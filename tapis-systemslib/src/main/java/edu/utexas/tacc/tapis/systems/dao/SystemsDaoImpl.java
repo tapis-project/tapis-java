@@ -45,17 +45,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    * @return Sequence id of object created
    * @throws TapisException - on error
+   * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createTSystem(String tenantName, String systemName, String description, String systemType,
-                           String owner, String host, boolean available, String effectiveUserId, String defaultAccessMethod,
-                           String bucketName, String rootDir, String transferMethods,
-                           int port, boolean useProxy, String proxyHost, int proxyPort,
-                           boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
-                           String jobRemoteArchiveSystem, String jobRemoteArchiveDir,
-                           List<Capability> jobCapabilities, String tags, String notes, String rawJson)
-          throws TapisException, IllegalStateException
-  {
+  public int createTSystem(String tenantName, String scrubbedJson, TSystem system)
+          throws TapisException, IllegalStateException {
     // Generated sequence id
     int systemId = -1;
     // ------------------------- Check Input -------------------------
@@ -64,26 +58,31 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (StringUtils.isBlank(systemName)) {
+    if (system == null || StringUtils.isBlank(system.getName())) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "systemName");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (StringUtils.isBlank(systemType)) {
+    if (system.getSystemType() == null) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "systemType");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (StringUtils.isBlank(defaultAccessMethod))
+    if (system.getDefaultAccessMethod() == null)
     {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "defaultAccessMethod");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (transferMethods == null || StringUtils.isBlank(transferMethods)) transferMethods = Protocol.DEFAULT_TRANSFER_METHODS_STR;
+
+    // TODO/TBD need to use default txfrMethods?
+    var transferMethods = Protocol.DEFAULT_TRANSFER_METHODS;
+    if (system.getTransferMethods() != null) transferMethods = system.getTransferMethods();
+    String transferMethodsStr = Protocol.getTransferMethodsAsString(transferMethods);
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
-    if (proxyHost == null) proxyHost = Protocol.DEFAULT_PROXYHOST;
+    String proxyHost = Protocol.DEFAULT_PROXYHOST;
+    if (system.getProxyHost() != null) proxyHost = system.getProxyHost();
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -97,14 +96,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenantName);
-      pstmt.setString(2, systemName);
+      pstmt.setString(2, system.getName());
       ResultSet rs = pstmt.executeQuery();
       // Should get one row back. If not assume system does not exist
       boolean doesExist = false;
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
-      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", systemName));
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", system.getName()));
 
       // Convert tags and notes to jsonb objects
+      String tags = system.getTags().toString();
+      String notes = system.getTags().toString();
       var tagsJson = new PGobject();
       tagsJson.setType("jsonb");
       tagsJson.setValue(tags);
@@ -116,31 +117,31 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       sql = SqlStatements.CREATE_SYSTEM;
       pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenantName);
-      pstmt.setString(2, systemName);
-      pstmt.setString(3, description);
-      pstmt.setString(4, systemType);
-      pstmt.setString(5, owner);
-      pstmt.setString(6, host);
-      pstmt.setBoolean(7, available);
-      pstmt.setString(8, effectiveUserId);
-      pstmt.setString(9, defaultAccessMethod);
-      pstmt.setString(10, bucketName);
-      pstmt.setString(11, rootDir);
-      pstmt.setString(12, transferMethods);
-      pstmt.setInt(13, port);
-      pstmt.setBoolean(14, useProxy);
+      pstmt.setString(2, system.getName());
+      pstmt.setString(3, system.getDescription());
+      pstmt.setString(4, system.getSystemType().name());
+      pstmt.setString(5, system.getOwner());
+      pstmt.setString(6, system.getHost());
+      pstmt.setBoolean(7, system.isAvailable());
+      pstmt.setString(8, system.getEffectiveUserId());
+      pstmt.setString(9, system.getDefaultAccessMethod().name());
+      pstmt.setString(10, system.getBucketName());
+      pstmt.setString(11, system.getRootDir());
+      pstmt.setString(12, transferMethodsStr);
+      pstmt.setInt(13, system.getPort());
+      pstmt.setBoolean(14, system.isUseProxy());
       pstmt.setString(15, proxyHost);
-      pstmt.setInt(16, proxyPort);
-      pstmt.setBoolean(17, jobCanExec);
-      pstmt.setString(18, jobLocalWorkingDir);
-      pstmt.setString(19, jobLocalArchiveDir);
-      pstmt.setString(20, jobRemoteArchiveSystem);
-      pstmt.setString(21, jobRemoteArchiveDir);
+      pstmt.setInt(16, system.getProxyPort());
+      pstmt.setBoolean(17, system.getJobCanExec());
+      pstmt.setString(18, system.getJobLocalWorkingDir());
+      pstmt.setString(19, system.getJobLocalArchiveDir());
+      pstmt.setString(20, system.getJobRemoteArchiveSystem());
+      pstmt.setString(21, system.getJobRemoteArchiveDir());
       pstmt.setObject(22, tagsJson);
       pstmt.setObject(23, notesJson);
-      pstmt.setString(24, rawJson);
+      pstmt.setString(24, scrubbedJson);
       pstmt.execute();
-      // The generated sequence id should come back in the doesExist
+      // The generated sequence id should come back as result
       rs = pstmt.getResultSet();
       if (rs == null || !rs.next())
       {
@@ -153,6 +154,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       rs = null;
 
       // Persist job capabilities
+      var jobCapabilities = system.getJobCapabilities();
       if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
         sql = SqlStatements.ADD_CAPABILITY;
         for (Capability cap : jobCapabilities) {
@@ -543,8 +545,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(21), // jobRemoteArchiveSystem
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
-                            rs.getString(23), // tags
-                            rs.getString(24), // notes
+                            null, //TODO rs.getString(23), // tags
+                            null, // TODO rs.getString(24), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

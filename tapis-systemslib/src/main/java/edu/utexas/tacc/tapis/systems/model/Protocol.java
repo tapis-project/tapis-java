@@ -72,15 +72,15 @@ public final class Protocol
    * Return List of transfer methods as a comma delimited list of strings surrounded by curly braces.
    * @return
    */
-  public String getTransferMethodsAsString()
+  public static String getTransferMethodsAsString(List<TransferMethod> txfrMethods)
   {
-    if (transferMethods == null || transferMethods.size() == 0) return EMPTY_TRANSFER_METHODS_STR;
+    if (txfrMethods == null || txfrMethods.size() == 0) return EMPTY_TRANSFER_METHODS_STR;
     StringBuilder sb = new StringBuilder("{");
-    for (int i = 0; i < transferMethods.size()-1; i++)
+    for (int i = 0; i < txfrMethods.size()-1; i++)
     {
-      sb.append(transferMethods.get(i).name()).append(",");
+      sb.append(txfrMethods.get(i).name()).append(",");
     }
-    sb.append(transferMethods.get(transferMethods.size()-1).name());
+    sb.append(txfrMethods.get(txfrMethods.size()-1).name());
     sb.append("}");
     return sb.toString();
   }

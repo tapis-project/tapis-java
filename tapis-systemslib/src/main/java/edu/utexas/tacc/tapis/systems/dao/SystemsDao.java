@@ -1,21 +1,13 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 
 import java.util.List;
 
 public interface SystemsDao
 {
-  int createTSystem(String tenantName, String systemName, String description, String systemType,
-                    String owner, String host, boolean available, String effectiveUserId, String defaultAccessMethod,
-                    String bucketName, String rootDir, String transferMethods,
-                    int port, boolean useProxy, String proxyHost, int proxyPort,
-                    boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir,
-                    String jobRemoteArchiveSystem, String jobRemoteArchiveDir,
-                    List<Capability> jobCapabilities, String tags, String notes, String rawJson)
-    throws TapisException, IllegalStateException;
+  int createTSystem(String tenantName, String scrubbedJson, TSystem system) throws TapisException, IllegalStateException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;
 
