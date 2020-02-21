@@ -4,6 +4,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,8 +33,12 @@ public class SkAdmin
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SkAdmin.class);
     
+    // The input schema definition.
     private static final String FILE_SKADMIN_INPUT_SCHEMA = 
         "/edu/utexas/tacc/tapis/security/jsonschema/SkAdminInput.json";
+    
+    // The distinguished string that causes secrets to be generated.    
+    public static final String GENERATE_SECRET = "<generate>";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -38,6 +47,9 @@ public class SkAdmin
     
     // The secrets input.
     private SkAdminSecrets _secrets;
+    
+    // Reusable random number generator.
+    private SecureRandom _rand;
     
     // Totals.
     private int _secretsCreated;
@@ -89,6 +101,8 @@ public class SkAdmin
     public void admin()
      throws TapisException
     {
+        //var keyPair = generateKeyPair();
+        
         // Load the input file into a pojo.
         _secrets = loadSecrets();
         
@@ -158,6 +172,10 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.secret)) 
+                    secret.secret = generatePassword();
             }
         
             // Kube changes.
@@ -199,6 +217,10 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.secret)) 
+                    secret.secret = generatePassword();
             }
         
             // Kube changes.
@@ -239,6 +261,10 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.password)) 
+                    secret.password = generatePassword();
             }
         
             // Kube changes.
@@ -284,6 +310,24 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.secret))
+                    if (secret.keytype == KeyType.password) 
+                        secret.secret = generatePassword();
+                    else if (secret.keytype == KeyType.sshkey) {
+                        //var keyPair = generateKeyPair();
+                        secret.secret = "";
+                    }
+                    else {
+                        String msg = MsgUtils.getMsg("SK_ADMIN_CANNOT_GEN_SECRET", 
+                                "secret", secret.tenant, 
+                                secret.system, secret.user,
+                                secret.keytype.name(),
+                                secret.secretName);
+                        _log.error(msg);
+                        return false;
+                    }
             }
         
             // Kube changes.
@@ -351,8 +395,11 @@ public class SkAdmin
     /* ---------------------------------------------------------------------- */
     private void createOrUpdateSecrets()
     {
-        // Are vault changes being requested?
+        // Are secret changes being requested?
         if (!_parms.create && !_parms.update) return;
+        
+        // 
+        
     }
     
     /* ---------------------------------------------------------------------- */
@@ -425,5 +472,68 @@ public class SkAdmin
 
         // Return the wrapper content.
         return wrapper.secrets;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generatePassword:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Generate a random base 64 password. 
+     * 
+     * @return the password
+     */
+    private String generatePassword()
+    {
+        // Generate the random bytes and return the base 64 representation.
+        byte[] bytes = new byte[_parms.passwordLength];
+        getRand().nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getRand:                                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Return a new random number generator if one hasn't already been 
+     * initialized, otherwise return the exising one.
+     * 
+     * @return the generator
+     */
+    private SecureRandom getRand()
+    {
+        // Initialize the generator if necessary.
+        if (_rand == null)
+            // Get the strong random number generator or, 
+            // if that fails, the default generator.
+            try {_rand = SecureRandom.getInstanceStrong();}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_STRONG_RAND_WARN", e.getMessage());            
+                    _log.warn(msg, e);
+                    
+                    // Use the default generator.
+                    _rand = new SecureRandom();
+                }
+            
+        return _rand;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generateKeyPair:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private KeyPair generateKeyPair() throws TapisException 
+    {
+        KeyPair keyPair;
+        try {
+            var gen = KeyPairGenerator.getInstance("RSA");
+            gen.initialize(4096);
+            keyPair = gen.genKeyPair();
+            byte[] prvBytes = keyPair.getPrivate().getEncoded();
+            byte[] pubBytes = keyPair.getPublic().getEncoded();
+            
+            return keyPair;
+        } catch (Exception e) {
+             throw new TapisException("xxx");
+        }
+        
+        
+        
     }
 }
