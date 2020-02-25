@@ -26,6 +26,10 @@ public class SkAdminParameters
     // Database defaults.
     private static final String DFT_BASE_URL = "http:/localhost:8080";
     
+    // Secret generation defaults.
+    private static final int DFT_PASSWORD_BYTES = 32;
+    private static final int MIN_PASSWORD_BYTES = 16;
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -35,7 +39,7 @@ public class SkAdminParameters
     public boolean create;
     
     @Option(name = "-u", required = false, aliases = {"-update"}, 
-            usage = "create or update secrets")
+            usage = "create new secrets and update existing ones")
     public boolean update;
     
     @Option(name = "-d", required = false, aliases = {"-deploy"}, 
@@ -49,6 +53,11 @@ public class SkAdminParameters
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
             metaVar = "<base sk url>", usage = "SK base url (scheme://host)")
     public String baseUrl = DFT_BASE_URL;
+    
+    @Option(name = "-passwordlen", required = false,  
+            usage = "number of random bytes in generated passwords")
+    public int passwordLength = DFT_PASSWORD_BYTES;
+    
     
     // --------- Parameters that control this programs execution
     @Option(name = "-help", aliases = {"--help"}, 
@@ -135,9 +144,20 @@ public class SkAdminParameters
     private void validateParms()
      throws TapisException
     {
+        // We need to perform some action.
         if (!(create || update || deploy)) {
             String msg = "At least one of the following action parameters must be "
                          + "specified: -create, -update, -deploy.";
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Update trumps create.
+        if (create && update) create = false;
+        
+        // Make sure password length exceeds minimum.
+        if (passwordLength < MIN_PASSWORD_BYTES) {
+            String msg = "The minumum password length is " + MIN_PASSWORD_BYTES + ".";
             _log.error(msg);
             throw new TapisException(msg);
         }
