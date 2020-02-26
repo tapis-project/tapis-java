@@ -48,12 +48,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createTSystem(String tenantName, String scrubbedJson, TSystem system)
+  public int createTSystem(TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException {
     // Generated sequence id
     int systemId = -1;
     // ------------------------- Check Input -------------------------
-    if (StringUtils.isBlank(tenantName)) {
+    if (StringUtils.isBlank(system.getTenant())) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenantName");
       _log.error(msg);
       throw new TapisException(msg);
@@ -75,7 +75,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       throw new TapisException(msg);
     }
 
-    // TODO/TBD need to use default txfrMethods?
     var transferMethods = Protocol.DEFAULT_TRANSFER_METHODS;
     if (system.getTransferMethods() != null) transferMethods = system.getTransferMethods();
     String transferMethodsStr = Protocol.getTransferMethodsAsString(transferMethods);
@@ -95,7 +94,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenantName);
+      pstmt.setString(1, system.getTenant());
       pstmt.setString(2, system.getName());
       ResultSet rs = pstmt.executeQuery();
       // Should get one row back. If not assume system does not exist
@@ -116,7 +115,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Prepare the statement, fill in placeholders and execute
       sql = SqlStatements.CREATE_SYSTEM;
       pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenantName);
+      pstmt.setString(1, system.getTenant());
       pstmt.setString(2, system.getName());
       pstmt.setString(3, system.getDescription());
       pstmt.setString(4, system.getSystemType().name());
@@ -162,7 +161,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
           if (cap.getValue() != null ) valStr = cap.getValue();
           // Prepare the statement and execute it
           pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenantName);
+          pstmt.setString(1, system.getTenant());
           pstmt.setInt(2, systemId);
           pstmt.setString(3, cap.getCategory().name());
           pstmt.setString(4, cap.getName());

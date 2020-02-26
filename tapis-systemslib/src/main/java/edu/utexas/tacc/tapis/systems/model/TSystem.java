@@ -143,6 +143,7 @@ public final class TSystem
   public Instant getUpdated() { return updated; }
 
   public String getTenant() { return tenant; }
+  public void setTenant(String s) { tenant = s; }
 
   public String getName() { return name; }
 
@@ -197,6 +198,7 @@ public final class TSystem
   public void setJobRemoteArchiveDir(String s) { jobRemoteArchiveDir = s; }
 
   public List<Capability> getJobCapabilities() { return jobCapabilities; }
+  public void setJobCapabilities(List<Capability> c) { jobCapabilities = c; }
 
   public JsonObject getTags() { return tags; }
 

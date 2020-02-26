@@ -82,16 +82,20 @@ public class SystemsServiceImpl implements SystemsService
    * @throws IllegalArgumentException - invalid parameter passed in
    */
   @Override
-  public int createSystem(String tenantName, String apiUserId, String scrubbedJson, TSystem system)
+  public int createSystem(TSystem system, String apiUserId, String scrubbedJson)
           throws TapisException, IllegalStateException, IllegalArgumentException
   {
+
+    // Extract tenant and system names for convenience
+    String systemName = (system == null ? null : system.getName());
+    String tenantName = (system == null ? null : system.getTenant());
+
     // ---------------------------- Check inputs ------------------------------------
     // Required system attributes: name, type, host, defaultAccessMethod
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson) ||
-        system == null || StringUtils.isBlank(system.getName()) || system.getSystemType() == null ||
-        StringUtils.isBlank(system.getHost()) || system.getDefaultAccessMethod() == null)
+    if (system == null || StringUtils.isBlank(system.getTenant()) || StringUtils.isBlank(systemName) ||
+        system.getSystemType() == null || StringUtils.isBlank(system.getHost()) ||
+        system.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
     {
-      String systemName = (system == null ? null : system.getName());
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_CREATE_ARG_ERROR", tenantName, systemName, apiUserId));
     }
 
@@ -99,23 +103,10 @@ public class SystemsServiceImpl implements SystemsService
     validateTSystem(system);
 
     // ----------------- Resolve variables for any attributes that might contain them --------------------
-    // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
-    String owner = system.getOwner();
-    if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
-    system.setOwner(owner);
-
-    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobLocalWorkingDir, jobLocalArchiveDir
-    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
-    //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
-    String[] allVarSubstitutions = {apiUserId, owner, tenantName};
-    system.setBucketName(StringUtils.replaceEach(system.getBucketName(), ALL_VARS, allVarSubstitutions));
-    system.setRootDir(StringUtils.replaceEach(system.getRootDir(), ALL_VARS, allVarSubstitutions));
-    system.setJobLocalWorkingDir(StringUtils.replaceEach(system.getJobLocalWorkingDir(), ALL_VARS, allVarSubstitutions));
-    system.setJobLocalArchiveDir(StringUtils.replaceEach(system.getJobLocalArchiveDir(), ALL_VARS, allVarSubstitutions));
-    system.setJobRemoteArchiveDir(StringUtils.replaceEach(system.getJobRemoteArchiveDir(), ALL_VARS, allVarSubstitutions));
+    system = resolveVariables(system, apiUserId);
 
     // ------------------- Make Dao call to persist the system -----------------------------------
-    int itemId = dao.createTSystem(tenantName, scrubbedJson, system);
+    int itemId = dao.createTSystem(system, scrubbedJson);
 
     // TODO/TBD: Creation of system and role/perms/creds not in single transaction. Need to handle failure of role/perms/creds operations
     // TODO possibly have a try/catch/finally to roll back any writes in case of failure.
@@ -123,16 +114,16 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------- Add permissions -----------------------------------
     // Give owner and possibly effectiveUser access to the system
     String effectiveUserId = system.getEffectiveUserId();
-    grantUserPermissions(tenantName, system.getName(), system.getOwner(), ALL_PERMS);
+    grantUserPermissions(tenantName, systemName, system.getOwner(), ALL_PERMS);
     if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
     {
-      grantUserPermissions(tenantName, system.getName(), effectiveUserId, ALL_PERMS);
+      grantUserPermissions(tenantName, systemName, effectiveUserId, ALL_PERMS);
     }
     // TODO/TBD: remove addition of files related permSpec
     // Give owner/effectiveUser files service related permission for root directory
     var skClient = getSKClient(tenantName);
-    String permSpec = "files:" + tenantName + ":*:" +  system.getName();
-    skClient.grantUserPermission(owner, permSpec);
+    String permSpec = "files:" + tenantName + ":*:" +  systemName;
+    skClient.grantUserPermission(system.getOwner(), permSpec);
     if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(effectiveUserId, permSpec);
 
     // ------------------- Store credentials -----------------------------------
@@ -142,8 +133,8 @@ public class SystemsServiceImpl implements SystemsService
     {
       String accessUser = effectiveUserId;
       // If effectiveUser is owner resolve to static string.
-      if (effectiveUserId.equals(OWNER_VAR)) accessUser = owner;
-      createUserCredential(tenantName, system.getName(), accessUser, credential);
+      if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+      createUserCredential(tenantName, systemName, accessUser, credential);
     }
 
     return itemId;
@@ -584,6 +575,29 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Check constraints on TSystem attributes
+   * @param system - the TSystem to process
+   */
+  private static TSystem resolveVariables(TSystem system, String apiUserId)
+  {
+    // Resolve owner if necessary. If empty or "${apiUserId}" then fill in with apiUserId
+    String owner = system.getOwner();
+    if (StringUtils.isBlank(owner) || owner.equalsIgnoreCase(APIUSERID_VAR)) owner = apiUserId;
+    system.setOwner(owner);
+
+    // Perform variable substitutions that happen at create time: bucketName, rootDir, jobLocalWorkingDir, jobLocalArchiveDir
+    // NOTE: effectiveUserId is not processed. Var reference is retained and substitution done as needed when system is retrieved.
+    //    ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
+    String[] allVarSubstitutions = {apiUserId, owner, system.getTenant()};
+    system.setBucketName(StringUtils.replaceEach(system.getBucketName(), ALL_VARS, allVarSubstitutions));
+    system.setRootDir(StringUtils.replaceEach(system.getRootDir(), ALL_VARS, allVarSubstitutions));
+    system.setJobLocalWorkingDir(StringUtils.replaceEach(system.getJobLocalWorkingDir(), ALL_VARS, allVarSubstitutions));
+    system.setJobLocalArchiveDir(StringUtils.replaceEach(system.getJobLocalArchiveDir(), ALL_VARS, allVarSubstitutions));
+    system.setJobRemoteArchiveDir(StringUtils.replaceEach(system.getJobRemoteArchiveDir(), ALL_VARS, allVarSubstitutions));
+    return system;
+  }
+
+  /**
+   * Check constraints on TSystem attributes
    * effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * @param system - the TSystem to check
@@ -597,10 +611,10 @@ public class SystemsServiceImpl implements SystemsService
     // For CERT access the effectiveUserId cannot be static string other than owner
     String effectiveUserId = system.getEffectiveUserId();
     if (system.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
-          !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
-          !effectiveUserId.equals(TSystem.OWNER_VAR) &&
-          !StringUtils.isBlank(system.getOwner()) &&
-          !effectiveUserId.equals(system.getOwner()))
+        !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
+        !effectiveUserId.equals(TSystem.OWNER_VAR) &&
+        !StringUtils.isBlank(system.getOwner()) &&
+        !effectiveUserId.equals(system.getOwner()))
     {
       // For CERT access the effectiveUserId cannot be static string other than owner
       msg = LibUtils.getMsg("SYSLIB_INVALID_EFFECTIVEUSERID_INPUT");

@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface SystemsDao
 {
-  int createTSystem(String tenantName, String scrubbedJson, TSystem system) throws TapisException, IllegalStateException;
+  int createTSystem(TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;
 

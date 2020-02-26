@@ -13,7 +13,7 @@ import java.util.List;
  */
 public interface SystemsService
 {
-  int createSystem(String tenantName, String apiUserId, String scrubbedJson, TSystem system) throws TapisException, IllegalStateException, IllegalArgumentException;
+  int createSystem(TSystem system, String apiUserId, String scrubbedJson) throws TapisException, IllegalStateException, IllegalArgumentException;
 
   int deleteSystemByName(String tenantName, String systemName) throws TapisException;
 

@@ -53,7 +53,7 @@ public class SystemsApplication extends ResourceConfig
     setApplicationName("systems");
 
 
-    // Initialize bindings for dependency injection
+    // Initialize bindings for HK2 dependency injection
     register(new AbstractBinder() {
       @Override
       protected void configure() {

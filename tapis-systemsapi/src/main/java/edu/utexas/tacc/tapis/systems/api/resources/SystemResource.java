@@ -323,10 +323,12 @@ public class SystemResource
     if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson);
 
     // ---------------------------- Make service call to create the system -------------------------------
+    // Update tenant name and pull out system name for convenience
+    system.setTenant(tenantName);
     String systemName = system.getName();
     try
     {
-      systemsService.createSystem(tenantName, apiUserId, scrubbedJson, system);
+      systemsService.createSystem(system, apiUserId, scrubbedJson);
     }
     catch (IllegalStateException e)
     {
