@@ -34,7 +34,10 @@
       "type": "array",
       "items": {"$ref": "#/definitions/capability" }
     },
-    "tags": { "type": "object", "additionalProperties": {"type": "string"} },
+    "tags": {
+      "type": "array",
+      "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
+    },
     "notes": { "type": "object" }
   },
 

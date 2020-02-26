@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
@@ -10,6 +11,7 @@ import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -27,6 +29,7 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -60,76 +63,76 @@ public class SystemsServiceTest
   private static final Protocol protA = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final List<String> testPerms = new ArrayList<>(List.of(Permission.READ.name(), Permission.MODIFY.name(), Permission.DELETE.name()));
-  private static final String tags = "{\"key1\": \"a\", \"key2\": \"b\"}";
+  private static final String[] tags = {"value1", "value2", "a",
+          "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . / \\ | ]. Note that backslashes must be escaped."};
   private static final String notes = "{\"project\": \"myproj1\", \"testdata\": \"abc\"}";
   private static final String scrubbedJson = "{}";
-  private static JsonObject tagsJO = TapisGsonUtils.getGson().fromJson(tags, JsonObject.class);
   private static JsonObject notesJO = TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);
   TSystem sys1 = new TSystem(-1, tenantName, "Ssys1", "description 1", SystemType.LINUX, "owner1", "host1", true,
           "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDir1", "jobLocalArchDir1", "jobRemoteArchSystem1","jobRemoteArchDir1",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys2 = new TSystem(-1, tenantName, "Ssys2", "description 2", SystemType.LINUX, "owner2", "host2", true,
           "effUser2", prot2.getAccessMethod(), null,"bucket2", "/root2", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Ssys3", "description 3", SystemType.OBJECT_STORE, "owner3", "host3", true,
           "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
           prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3","jobRemoteArchDir3",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys4 = new TSystem(-1, tenantName, "Ssys4", "description 4", SystemType.LINUX, "owner4", "host4", true,
           "effUser4", prot4.getAccessMethod(), null,"bucket4", "/root4", prot4.getTransferMethods(),
           prot4.getPort(), prot4.isUseProxy(), prot4.getProxyHost(), prot4.getProxyPort(),false,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4","jobRemoteArchDir4",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys5 = new TSystem(-1, tenantName, "Ssys5", "description 5", SystemType.LINUX, "owner5", "host5", true,
           "effUser5", prot5.getAccessMethod(), null,"bucket5", "/root5", prot5.getTransferMethods(),
           prot5.getPort(), prot5.isUseProxy(), prot5.getProxyHost(), prot5.getProxyPort(),false,
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5","jobRemoteArchDir5",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys6 = new TSystem(-1, tenantName, "Ssys6", "description 6", SystemType.LINUX, "owner6", "host6", true,
           "effUser6", prot6.getAccessMethod(), null,"bucket6", "/root6", prot6.getTransferMethods(),
           prot6.getPort(), prot6.isUseProxy(), prot6.getProxyHost(), prot6.getProxyPort(),false,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6","jobRemoteArchDir6",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys7 = new TSystem(-1, tenantName, "Ssys7", "description 7", SystemType.LINUX, "owner7", "host7", true,
           "effUser7", prot7.getAccessMethod(), null,"bucket7", "/root7", prot7.getTransferMethods(),
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys8 = new TSystem(-1, tenantName, "Ssys8", "description 8", SystemType.LINUX, "${apiUserId}", "host8", true,
           "${owner}", prot8.getAccessMethod(), null,"bucket8-${tenant}-${apiUserId}", "/root8/${tenant}",
           prot8.getTransferMethods(), prot8.getPort(), prot8.isUseProxy(), prot8.getProxyHost(), prot8.getProxyPort(),false,
           "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}",
           "jobRemoteArchSystem8","jobRemoteArchDir8${owner}${tenant}${apiUserId}",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sys9 = new TSystem(-1, tenantName, "Ssys9", "description 9", SystemType.LINUX, "owner9", "host9", true,
           "owner9", prot9.getAccessMethod(), null,"bucket9", "/root9", prot9.getTransferMethods(),
           prot9.getPort(), prot9.isUseProxy(), prot9.getProxyHost(), prot9.getProxyPort(),false,
           "jobLocalWorkDir9", "jobLocalArchDir9", "jobRemoteArchSystem9","jobRemoteArchDir9",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sysA = new TSystem(-1, tenantName, "SsysA", "description A", SystemType.LINUX, "ownerA", "hostA", true,
           "effUserA", protA.getAccessMethod(), null,"bucketA", "/rootA", protA.getTransferMethods(),
           protA.getPort(), protA.isUseProxy(), protA.getProxyHost(), protA.getProxyPort(),false,
           "jobLocalWorkDirA", "jobLocalArchDirA", "jobRemoteArchSystemA","jobRemoteArchDirA",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
   TSystem sysB = new TSystem(-1, tenantName, "SsysB", "description B", SystemType.LINUX, "ownerB", "hostB", true,
           "effUserB", protB.getAccessMethod(), null,"bucketB", "/rootB", protB.getTransferMethods(),
           protB.getPort(), protB.isUseProxy(), protB.getProxyHost(), protB.getProxyPort(),false,
           "jobLocalWorkDirB", "jobLocalArchDirB", "jobRemoteArchSystemB","jobRemoteArchDirB",
-          null, tagsJO, notesJO, null, null);
+          null, tags, notesJO, null, null);
 
-  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
-  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
-  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+//  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
+//  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
+//  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+//  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
   private static final Capability capA2 = new Capability(Category.SCHEDULER, "Type", "Slurm");
   private static final Capability capB2 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
   private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
   private static final Capability capD2 = new Capability(Category.CONTAINER, "Singularity", null);
-  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
   private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2, capD2));
 
   @BeforeSuite
@@ -217,27 +220,26 @@ public class SystemsServiceTest
     {
       Assert.assertTrue(capNamesFound.contains(capSeed.getName()), "List of capabilities did not contain a capability named: " + capSeed.getName());
     }
-    // Retrieve tags, verify keys and values TODO
-//    String tagsStr = tmpSys.getTags();
-//    System.out.println("Found tags: " + tagsStr);
-//    String notesStr = tmpSys.getNotes();
-//    System.out.println("Found notes: " + notesStr);
-//    Assert.assertFalse(StringUtils.isBlank(tagsStr), "Tags string not found");
-//    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
-//    JsonObject obj = null;
-//    if (!StringUtils.isBlank(tagsStr)) obj = JsonParser.parseString(tagsStr).getAsJsonObject();
-//    Assert.assertNotNull(obj, "Tags value not found");
-//    Assert.assertTrue(obj.has("key1"));
-//    Assert.assertEquals(obj.get("key1").getAsString(), "a");
-//    Assert.assertTrue(obj.has("key2"));
-//    Assert.assertEquals(obj.get("key2").getAsString(), "b");
-//    // Retrieve notes, verify elements
-//    if (!StringUtils.isBlank(notesStr)) obj = JsonParser.parseString(notesStr).getAsJsonObject();
-//    Assert.assertNotNull(obj, "Notes value not found");
-//    Assert.assertTrue(obj.has("project"));
-//    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
-//    Assert.assertTrue(obj.has("testdata"));
-//    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
+    // Verify tags
+    String[] tmpTags = tmpSys.getTags();
+    Assert.assertNotNull(tmpTags, "Tags value was null");
+    var tagsList = Arrays.asList(tmpTags);
+    Assert.assertEquals(tmpTags.length, tags.length, "Wrong number of tags");
+    for (String tagStr : tags)
+    {
+      Assert.assertTrue(tagsList.contains(tagStr));
+      System.out.println("Found tag: " + tagStr);
+    }
+    // Verify notes
+    String notesStr = tmpSys.getNotes().toString();
+    System.out.println("Found notes: " + notesStr);
+    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
+    JsonObject obj = JsonParser.parseString(notesStr).getAsJsonObject();
+    Assert.assertNotNull(obj, "Error parsing Notes string");
+    Assert.assertTrue(obj.has("project"));
+    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
+    Assert.assertTrue(obj.has("testdata"));
+    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -276,8 +278,6 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), jobLocalWorkingDir);
     Assert.assertEquals(tmpSys.getJobLocalArchiveDir(), jobLocalArchiveDir);
     Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), jobRemoteArchiveDir);
-    System.out.println("Found tags: " + tmpSys.getTags());
-    System.out.println("Found notes: " + tmpSys.getNotes());
     Assert.assertEquals(tmpSys.getPort(), sys0.getPort());
     Assert.assertEquals(tmpSys.isUseProxy(), sys0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), sys0.getProxyHost());

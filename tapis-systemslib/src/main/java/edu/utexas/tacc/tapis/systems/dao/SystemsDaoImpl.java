@@ -7,7 +7,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonObject;
 import com.google.inject.Singleton;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
@@ -102,15 +104,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", system.getName()));
 
-      // Convert tags and notes to jsonb objects
-      String tags = system.getTags().toString();
-      String notes = system.getTags().toString();
-      var tagsJson = new PGobject();
-      tagsJson.setType("jsonb");
-      tagsJson.setValue(tags);
-      var notesJson = new PGobject();
-      notesJson.setType("jsonb");
-      notesJson.setValue(notes);
+      // Convert tags and notes to jsonb objects.
+      // Tags is a list of strings and notes is a JsonObject
+      String tags = TapisGsonUtils.getGson().toJson(system.getTags());
+      String notes = system.getNotes().toString();
+      var tagsJsonb = new PGobject();
+      tagsJsonb.setType("jsonb");
+      tagsJsonb.setValue(tags);
+      var notesJsonb = new PGobject();
+      notesJsonb.setType("jsonb");
+      notesJsonb.setValue(notes);
 
       // Prepare the statement, fill in placeholders and execute
       sql = SqlStatements.CREATE_SYSTEM;
@@ -136,8 +139,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(19, system.getJobLocalArchiveDir());
       pstmt.setString(20, system.getJobRemoteArchiveSystem());
       pstmt.setString(21, system.getJobRemoteArchiveDir());
-      pstmt.setObject(22, tagsJson);
-      pstmt.setObject(23, notesJson);
+      pstmt.setObject(22, tagsJsonb);
+      pstmt.setObject(23, notesJsonb);
       pstmt.setString(24, scrubbedJson);
       pstmt.execute();
       // The generated sequence id should come back as result
@@ -544,8 +547,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(21), // jobRemoteArchiveSystem
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
-                            null, //TODO rs.getString(23), // tags
-                            null, // TODO rs.getString(24), // notes
+                            TapisGsonUtils.getGson().fromJson(rs.getString(23), String[].class), // tags
+                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }
