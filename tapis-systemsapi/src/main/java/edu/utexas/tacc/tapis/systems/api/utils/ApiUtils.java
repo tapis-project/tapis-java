@@ -118,22 +118,18 @@ public class ApiUtils
   }
 
   /**
-   * Check that systems exists and apiUser IS or IS NOT the owner.
+   * Check that system exists
    * @param tenantName - name of the tenant
    * @param systemName - name of the system to check
    * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
-   * @param requesterName - name of the requester, null if check should be skipped
    * @param opName - operation name, for constructing response msg
-   * @param mustBeOwner - flag indicating to check if requester IS or IS NOT the owner
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkSystemAndOwner(SystemsService systemsService, String tenantName, String systemName,
-                                             String userName, boolean prettyPrint, String requesterName, String opName, boolean mustBeOwner)
+  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String systemName,
+                                           String userName, boolean prettyPrint, String opName)
   {
-    Response resp = null;
     String msg;
-    // Check if system exists
     boolean systemExists;
     try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
     catch (Exception e)
@@ -148,13 +144,31 @@ public class ApiUtils
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
+    return null;
+  }
 
-    // If we are skipping owner check then we are done
-    if (requesterName == null) return resp;
-
-    // Check if requester IS or IS NOT owner of the system
-    // Get the system owner and verify that requester IS or IS NOT the owner
+  /**
+   * Check that requester is either owner or (optionally) apiUserId.
+   * @param tenantName - name of the tenant
+   * @param systemName - name of the system to check
+   * @param userName - name of user associated with the perms request, for constructing response msg
+   * @param prettyPrint - print flag used to construct response
+   * @param requesterName - name of the requester, null if check should be skipped
+   * @param opName - operation name, for constructing response msg
+   * @param mustBeOwner - indicates if only owner can perform requested operation
+   * @return - null if all checks OK else Response containing info
+   */
+  public static Response checkAuth1(SystemsService systemsService, String tenantName, String systemName, String userName,
+                                    boolean prettyPrint, String requesterName, String opName, boolean mustBeOwner)
+  {
+    String msg;
     String owner;
+    if (StringUtils.isBlank(requesterName))
+    {
+      msg = ApiUtils.getMsg("SYSAPI_NULL_INPUT");
+      _log.error(msg);
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
     try { owner = systemsService.getSystemOwner(tenantName, systemName); }
     catch (Exception e)
     {
@@ -168,22 +182,15 @@ public class ApiUtils
       _log.error(msg);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    // mustBeOwner flag indicates if we are checking that requester IS or IS NOT the owner
-    if (mustBeOwner && !owner.equals(requesterName))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_NOT_OWNER", opName, systemName, userName, requesterName);
-      _log.error(msg);
-      return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    else if ( !mustBeOwner && owner.equals(requesterName))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_IS_OWNER", opName, systemName, userName, requesterName);
-      _log.error(msg);
-      return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    return resp;
-  }
 
+    // Requester (apiUserId) must be the owner or (optionally) the user associated with the operation
+    if (owner.equals(requesterName) || (!mustBeOwner && requesterName.equals(userName))) return null;
+
+    // Not authorized
+    msg = ApiUtils.getMsg("SYSAPI_UNAUTH", opName, systemName, userName, requesterName);
+    _log.error(msg);
+    return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+  }
 
   /**
    * Check that both or neither of the secrets are blank.

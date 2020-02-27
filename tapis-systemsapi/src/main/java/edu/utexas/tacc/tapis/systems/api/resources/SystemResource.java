@@ -220,104 +220,6 @@ public class SystemResource
     resp = validateTSystem(system, prettyPrint);
     if (resp != null) return resp;
 
-
-    // TODO REMOVE
-    // Get the Json object and prepare to extract info from it
-//    JsonObject jsonObject = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-
-//    String systemName, description, systemType, owner, host, effectiveUserId, defaultAccessMethodStr, bucketName, rootDir, proxyHost;
-//    String jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir;
-//    int port, proxyPort;
-//    boolean available, useProxy, jobCanExec;
-
-    // Extract top level properties: name, systemType, host, description, owner, ...
-    // Extract required values
-//    systemName = jsonObject.get(NAME_FIELD).getAsString();
-//    systemType = jsonObject.get(SYSTEM_TYPE_FIELD).getAsString();
-//    host = jsonObject.get(HOST_FIELD).getAsString();
-//    defaultAccessMethodStr = jsonObject.get(DEFAULT_ACCESS_METHOD_FIELD).getAsString();
-//    jobCanExec =  jsonObject.get(JOB_CAN_EXEC_FIELD).getAsBoolean();
-//    // Extract optional values
-//    description = ApiUtils.getValS(jsonObject.get(DESCRIPTION_FIELD), "");
-//    owner = ApiUtils.getValS(jsonObject.get(OWNER_FIELD), "");
-//    available = (jsonObject.has(AVAILABLE_FIELD) ? jsonObject.get(AVAILABLE_FIELD).getAsBoolean() : TSystem.DEFAULT_AVAILABLE);
-//    effectiveUserId = ApiUtils.getValS(jsonObject.get(EFFECTIVE_USERID_FIELD), "");
-//    bucketName = ApiUtils.getValS(jsonObject.get(BUCKET_NAME_FIELD), "");
-//    rootDir = ApiUtils.getValS(jsonObject.get(ROOT_DIR_FIELD), "");
-//    port = (jsonObject.has(PORT_FIELD) ? jsonObject.get(PORT_FIELD).getAsInt() : -1);
-//    useProxy = (jsonObject.has(USE_PROXY_FIELD) ? jsonObject.get(USE_PROXY_FIELD).getAsBoolean() : TSystem.DEFAULT_USEPROXY);
-//    proxyHost = ApiUtils.getValS(jsonObject.get(PROXY_HOST_FIELD), "");
-//    proxyPort = (jsonObject.has(PROXY_PORT_FIELD) ? jsonObject.get(PROXY_PORT_FIELD).getAsInt() : -1);
-//
-//    jobLocalWorkingDir = ApiUtils.getValS(jsonObject.get(JOB_LOCAL_WORKING_DIR_FIELD), "");
-//    jobLocalArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_LOCAL_ARCHIVE_DIR_FIELD), "");
-//    jobRemoteArchiveSystem = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_SYSTEM_FIELD), "");
-//    jobRemoteArchiveDir = ApiUtils.getValS(jsonObject.get(JOB_REMOTE_ARCHIVE_DIR_FIELD), "");
-//
-//    // Extract tags and notes as json objects
-//    JsonObject tags = JsonParser.parseString(TSystem.DEFAULT_TAGS_STR).getAsJsonObject();
-//    JsonObject notes = JsonParser.parseString(TSystem.DEFAULT_NOTES_STR).getAsJsonObject();
-//    if (jsonObject.has(TAGS_FIELD)) tags = jsonObject.getAsJsonObject(TAGS_FIELD);
-//    if (jsonObject.has(NOTES_FIELD)) notes = jsonObject.getAsJsonObject(NOTES_FIELD);
-
-    // Extract access credential if provided and effectiveUserId is not dynamic. This is a model.Credential object.
-//    Credential accessCred = null;
-//    if (jsonObject.has(ACCESS_CREDENTIAL_FIELD) &&  !effectiveUserId.equals(TSystem.APIUSERID_VAR))
-//    {
-//      JsonObject credObj = jsonObject.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
-//      accessCred = CredentialResource.extractAccessCred(credObj);
-//    }
-
-    // Extract list of supported transfer methods. This is a list of Enums. Json schema enforces allowed enum values.
-    // If element is not there or the list is empty then build empty array "{}"
-//    var txfrMethodsArr = new ArrayList<String>();
-//    StringBuilder transferMethodsSB = new StringBuilder("{");
-//    JsonArray txfrMethodsJson = null;
-//    if (jsonObject.has(TRANSFER_METHODS_FIELD)) txfrMethodsJson = jsonObject.getAsJsonArray(TRANSFER_METHODS_FIELD);
-//    if (txfrMethodsJson != null && txfrMethodsJson.size() > 0)
-//    {
-//      for (int i = 0; i < txfrMethodsJson.size()-1; i++)
-//      {
-//        transferMethodsSB.append(txfrMethodsJson.get(i).toString()).append(",");
-//        txfrMethodsArr.add(StringUtils.remove(txfrMethodsJson.get(i).toString(),'"'));
-//      }
-//      transferMethodsSB.append(txfrMethodsJson.get(txfrMethodsJson.size()-1).toString());
-//      txfrMethodsArr.add(StringUtils.remove(txfrMethodsJson.get(txfrMethodsJson.size()-1).toString(),'"'));
-//    }
-//    transferMethodsSB.append("}");
-
-    // Extract list of job capabilities. This is a list of Capability objects.
-//    var jobCaps = new ArrayList<Capability>();
-//    JsonArray jobCapsJson = null;
-//    if (jsonObject.has(JOB_CAPABILITIES_FIELD)) jobCapsJson = jsonObject.getAsJsonArray(JOB_CAPABILITIES_FIELD);
-//    if (jobCapsJson != null && jobCapsJson.size() > 0)
-//    {
-//      Capability cap;
-//      for (JsonElement jsonElement : jobCapsJson)
-//      {
-//        // Extract capability from the json object
-//        cap = extractCapability(systemName, jsonElement.getAsJsonObject());
-//        jobCaps.add(cap);
-//      }
-//    }
-
-    // TODO REMOVE
-    // TODO Also, make sure checks above are done here or in SystemsService, whichever makes sense
-    //      decouple front and back ends OR BOTH
-
-
-    // Convert access method string to enum
-    // If Enums defined correctly an exception should never be thrown, but just in case.
-//    AccessMethod defaultAccessMethod;
-//    try { defaultAccessMethod =  AccessMethod.valueOf(defaultAccessMethodStr); }
-//    catch (IllegalArgumentException e)
-//    {
-//      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", defaultAccessMethodStr, systemName, e.getMessage());
-//      _log.error(msg, e);
-//      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//    }
-
-
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = rawJson;
     if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson);
@@ -667,32 +569,6 @@ public class SystemResource
     }
     return null;
   }
-
-//  /**
-//   * Extract Capability from a Json object
-//   * @param obj Json object from request
-//   * @return A Capability object
-//   */
-//  private static Capability extractCapability(String systemName, JsonObject obj)
-//  {
-//    String name, value;
-//    Category category = null;
-//    String categoryStr = ApiUtils.getValS(obj.get(JOB_CAPABILITY_CATEGORY_FIELD), "");
-//    if (!StringUtils.isBlank(categoryStr))
-//    {
-//      // If Enums defined correctly an exception should never be thrown, but just in case.
-//      try { category =  Category.valueOf(categoryStr); }
-//      catch (IllegalArgumentException e)
-//      {
-//        String msg = ApiUtils.getMsg("SYSAPI_CAP_ENUM_ERROR", categoryStr, systemName, e.getMessage());
-//        _log.error(msg, e);
-//        return null;
-//      }
-//    }
-//    name = ApiUtils.getValS(obj.get(JOB_CAPABILITY_NAME_FIELD), "");
-//    value = ApiUtils.getValS(obj.get(JOB_CAPABILITY_VALUE_FIELD), "");
-//    return new Capability(category, name, value);
-//  }
 
   /**
    * AccessCredential details can contain secrets. Mask any secrets given

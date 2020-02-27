@@ -17,7 +17,6 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
-import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -100,9 +100,9 @@ public class PermsResource
   @Context
   private HttpServletRequest _request;
 
-  // **************** Inject Services ****************
-//  @com.google.inject.Inject
-  private SystemsService systemsService = null;
+  // **************** Inject Services using HK2 ****************
+  @Inject
+  private SystemsService systemsService;
 
   // ************************************************************************
   // *********************** Public Methods *********************************
@@ -146,7 +146,6 @@ public class PermsResource
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  InputStream payloadStream)
   {
-    systemsService = getSystemsService();
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -167,11 +166,13 @@ public class PermsResource
     String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-    // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
-    // Check that the system exists and that requester is owner
-    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
-            "grantUserPerms", true);
+    // Check that the system exists
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "grantUserPerms");
+    if (resp != null) return resp;
+    // ------------------------- Check authorization -------------------------
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+                       "grantUserPerms", true);
     if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
@@ -231,7 +232,6 @@ public class PermsResource
                                 @PathParam("userName") String userName,
                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
-    systemsService = getSystemsService();
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -254,8 +254,7 @@ public class PermsResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, null,
-            "getUserPerms", false);
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "getUserPerms");
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -309,7 +308,6 @@ public class PermsResource
                                  @PathParam("permission") String permission,
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
   {
-    systemsService = getSystemsService();
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -330,11 +328,13 @@ public class PermsResource
     String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-    // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
-    // Check that the system exists and that requester is owner
-    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
-            "revokeUserPerm", true);
+    // Check that the system exists
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "revokeUserPerm");
+    if (resp != null) return resp;
+    // ------------------------- Check authorization -------------------------
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+                       "revokeUserPerm", false);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -397,7 +397,6 @@ public class PermsResource
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  InputStream payloadStream)
   {
-    systemsService = getSystemsService();
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -418,11 +417,13 @@ public class PermsResource
     String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-    // ------------------------- Check authorization -------------------------
     // ------------------------- Check prerequisites -------------------------
-    // Check that the system exists and that requester is owner
-    resp = ApiUtils.checkSystemAndOwner(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
-            "revokeUserPerms", true);
+    // Check that the system exists
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "revokeUserPerms");
+    if (resp != null) return resp;
+    // ------------------------- Check authorization -------------------------
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+                       "revokeUserPerms", false);
     if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
@@ -456,12 +457,6 @@ public class PermsResource
   // ************************************************************************
   // *********************** Private Methods ********************************
   // ************************************************************************
-
-  private SystemsService getSystemsService()
-  {
-    if (systemsService != null) return systemsService;
-    return new SystemsServiceImpl();
-  }
 
   /**
    * Check json payload and extract permissions list.
