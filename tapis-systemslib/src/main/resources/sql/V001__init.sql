@@ -49,7 +49,7 @@ CREATE TABLE systems
   system_type    system_type_type NOT NULL,
   owner          VARCHAR(60) NOT NULL,
   host           VARCHAR(256) NOT NULL,
-  available      BOOLEAN NOT NULL DEFAULT true,
+  enabled      BOOLEAN NOT NULL DEFAULT true,
   effective_user_id VARCHAR(60) NOT NULL,
   default_access_method  access_meth_type NOT NULL,
   bucket_name    VARCHAR(63),
@@ -80,7 +80,7 @@ COMMENT ON COLUMN systems.description IS 'System description';
 COMMENT ON COLUMN systems.system_type IS 'Type of system';
 COMMENT ON COLUMN systems.owner IS 'User name of system owner';
 COMMENT ON COLUMN systems.host IS 'System host name or ip address';
-COMMENT ON COLUMN systems.available IS 'Indicates if system is currently available';
+COMMENT ON COLUMN systems.enabled IS 'Indicates if system is currently active and available for use';
 COMMENT ON COLUMN systems.effective_user_id IS 'User name to use when accessing the system';
 COMMENT ON COLUMN systems.default_access_method IS 'Enum for how authorization is handled by default';
 COMMENT ON COLUMN systems.bucket_name IS 'Name of the bucket for an S3 system';

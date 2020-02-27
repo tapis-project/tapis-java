@@ -20,7 +20,7 @@ import static edu.utexas.tacc.tapis.systems.model.Protocol.DEFAULT_TRANSFER_METH
  * Name of the system must be URI safe, see RFC 3986.
  *   Allowed characters: Alphanumeric  [0-9a-zA-Z] and special characters [-._~].
  * Each system has an owner, effective access user, protocol attributes
- *   and flag indicating if it is currently available.
+ *   and flag indicating if it is currently enabled.
  *
  * Tenant + name must be unique
  */
@@ -66,7 +66,7 @@ public final class TSystem
   private SystemType systemType; // Type of system, e.g. LINUX, OBJECT_STORE
   private String owner;      // User who owns the system and has full privileges
   private String host;       // Host name or IP address
-  private boolean available; // Indicates if systems is currently available
+  private boolean enabled; // Indicates if systems is currently enabled
   private String effectiveUserId; // User to use when accessing system, may be static or dynamic
   private AccessMethod defaultAccessMethod; // How access authorization is handled by default
   private Credential accessCredential; // Credential to be stored in or retrieved from the Security Kernel
@@ -91,7 +91,7 @@ public final class TSystem
   // *********************** Constructors ***********************************
   // ************************************************************************
   public TSystem(long id1, String tenant1, String name1, String description1, SystemType systemType1,
-                 String owner1, String host1, boolean available1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
+                 String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
                  Credential accessCredential1, String bucketName1, String rootDir1,
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
@@ -107,7 +107,7 @@ public final class TSystem
     systemType = systemType1;
     owner = owner1;
     host = host1;
-    available = available1;
+    enabled = enabled1;
     effectiveUserId = effectiveUserId1;
     defaultAccessMethod = defaultAccessMethod1;
     accessCredential = accessCredential1;
@@ -156,8 +156,8 @@ public final class TSystem
 
   public String getHost() { return host; }
 
-  public boolean isAvailable() { return available; }
-  public void setAvailable(boolean avail) { available = avail; }
+  public boolean isEnabled() { return enabled; }
+  public void setEnabled(boolean b) { enabled = b; }
 
   public String getEffectiveUserId() { return effectiveUserId; }
   public void setEffectiveUserId(String userId) { effectiveUserId = userId; }

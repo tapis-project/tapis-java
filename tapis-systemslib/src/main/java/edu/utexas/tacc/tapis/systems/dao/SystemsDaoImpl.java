@@ -124,7 +124,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(4, system.getSystemType().name());
       pstmt.setString(5, system.getOwner());
       pstmt.setString(6, system.getHost());
-      pstmt.setBoolean(7, system.isAvailable());
+      pstmt.setBoolean(7, system.isEnabled());
       pstmt.setString(8, system.getEffectiveUserId());
       pstmt.setString(9, system.getDefaultAccessMethod().name());
       pstmt.setString(10, system.getBucketName());
@@ -530,7 +530,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             SystemType.valueOf(rs.getString(5)), // system type
                             rs.getString(6), // owner
                             rs.getString(7), // host
-                            rs.getBoolean(8), //available
+                            rs.getBoolean(8), //enabled
                             rs.getString(9), // effectiveUserId
                             AccessMethod.valueOf(rs.getString(10)),
                             null, // accessCredential

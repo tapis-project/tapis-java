@@ -64,7 +64,7 @@ public class SystemsServiceTest
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final List<String> testPerms = new ArrayList<>(List.of(Permission.READ.name(), Permission.MODIFY.name(), Permission.DELETE.name()));
   private static final String[] tags = {"value1", "value2", "a",
-          "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . / \\ | ]. Note that backslashes must be escaped."};
+      "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
   private static final String notes = "{\"project\": \"myproj1\", \"testdata\": \"abc\"}";
   private static final String scrubbedJson = "{}";
   private static JsonObject notesJO = TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);
@@ -103,7 +103,7 @@ public class SystemsServiceTest
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
           null, tags, notesJO, null, null);
-  TSystem sys8 = new TSystem(-1, tenantName, "Ssys8", "description 8", SystemType.LINUX, "${apiUserId}", "host8", true,
+  TSystem sys8 = new TSystem(-1, tenantName, "Ssys8", "description 8", SystemType.LINUX, "${apiUserId}", "host8", false,
           "${owner}", prot8.getAccessMethod(), null,"bucket8-${tenant}-${apiUserId}", "/root8/${tenant}",
           prot8.getTransferMethods(), prot8.getPort(), prot8.isUseProxy(), prot8.getProxyHost(), prot8.getProxyPort(),false,
           "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}",
@@ -190,6 +190,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getHost(), sys0.getHost());
     Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0.getEffectiveUserId());
     Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0.getDefaultAccessMethod().name());
+    Assert.assertEquals(tmpSys.isEnabled(), sys0.isEnabled());
     Assert.assertEquals(tmpSys.getBucketName(), sys0.getBucketName());
     Assert.assertEquals(tmpSys.getRootDir(), sys0.getRootDir());
     Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), sys0.getJobLocalWorkingDir());
@@ -273,6 +274,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getHost(), sys0.getHost());
     Assert.assertEquals(tmpSys.getEffectiveUserId(), effectiveUserId);
     Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0.getDefaultAccessMethod().name());
+    Assert.assertEquals(tmpSys.isEnabled(), sys0.isEnabled());
     Assert.assertEquals(tmpSys.getBucketName(), bucketName);
     Assert.assertEquals(tmpSys.getRootDir(), rootDir);
     Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), jobLocalWorkingDir);

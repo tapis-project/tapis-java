@@ -11,7 +11,7 @@
     "systemType": { "$ref": "#/definitions/systemTypeEnum" },
     "owner": { "$ref": "#/definitions/userName" },
     "host": { "$ref": "#/definitions/hostName" },
-    "available": { "type": "boolean", "default": true },
+    "enabled": { "type": "boolean", "default": true },
     "effectiveUserId": { "$ref": "#/definitions/userName" },
     "defaultAccessMethod": { "$ref": "#/definitions/accessMethodEnum" },
     "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/CredentialCreateRequest.json#/" },

@@ -42,7 +42,7 @@ public class SystemsDaoTest
   private static final Protocol prot7 = new Protocol(AccessMethod.PASSWORD, txfrMethodsEmpty, -1, false, "",-1);
   private static final String scrubbedJson = "{}";
   private static final String[] tags = {"value1", "value2", "a",
-          "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . / \\ | ]. Note that backslashes must be escaped."};
+      "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
   private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
   private static JsonObject notesJO = gson.fromJson(notes, JsonObject.class);
 
