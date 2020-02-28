@@ -726,7 +726,7 @@ public final class VaultImpl
        if (secretName == null) pathParms.setSecretName("");
         else if (!secretName.endsWith("/")) pathParms.setSecretName(secretName + "/");
        
-       // Construct the secret's full path that include tenant and user.
+       // Construct the secret's full path that includes tenant and user.
        String secretPath = new SecretPathMapper(pathParms).getSecretPath(tenant, user);
        
        // Issue the vault call.

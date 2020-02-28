@@ -109,7 +109,7 @@ public class SkAdminParameters
             writer.write("\n\n");
             
             // Write usage information--unfortunately we need an output stream.
-            writer.write("CreateTenant [options...]\n");
+            writer.write("SkAdmin [options...]\n");
             ByteArrayOutputStream ostream = new ByteArrayOutputStream(initialCapacity);
             parser.printUsage(ostream);
             try {writer.write(ostream.toString("UTF-8"));}
@@ -124,9 +124,9 @@ public class SkAdminParameters
       // Display help and exit program.
       if (help)
         {
-         String s = "\nCreateTenant for creating a new tenant and its default submission queue.";
+         String s = "\nSkAdmin for creating and deploying secret to Kubernetes.";
          System.out.println(s);
-         System.out.println("\nCreateTenant [options...]\n");
+         System.out.println("\nSkAdmin [options...]\n");
          parser.printUsage(System.out);
          System.exit(0);
         }

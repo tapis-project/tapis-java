@@ -236,9 +236,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -406,9 +403,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -559,9 +553,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -709,9 +700,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -860,9 +848,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -978,9 +963,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -1209,9 +1191,6 @@ public final class VaultResource
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
-         // Translate the "+" sign into slashes to allow for subdirectories.
-         if (secretName != null) secretName = secretName.replace('+', '/');
-         
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
@@ -1341,6 +1320,13 @@ public final class VaultResource
      /* ---------------------------------------------------------------------------- */
      /* getSecretPathParms:                                                          */
      /* ---------------------------------------------------------------------------- */
+     /** Wrap all possible input optional parameters into a single object.  Convert
+      * any plus signs (+) in the secretName parameter to slashes (/) as defined on 
+      * the client interface.
+      * 
+      * @return a single parameter object
+      * @throws TapisImplException on an invalid secret type
+      */
      private SecretPathMapperParms getSecretPathParms(String secretType, String secretName, 
                                          String sysId, String sysUser, String keyType, 
                                          String dbHost, String dbName, String service) 
@@ -1361,6 +1347,9 @@ public final class VaultResource
 
          // Create the parm container object.
          SecretPathMapperParms parms = new SecretPathMapperParms(secretTypeEnum);
+         
+         // Translate the "+" sign into slashes to allow for vault subdirectories.
+         if (secretName != null) secretName = secretName.replace('+', '/');
          
          // Assign the rest of the parm fields.
          parms.setSecretName(secretName);

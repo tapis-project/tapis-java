@@ -42,17 +42,5 @@
                 "secret":     "1234567890123456",
                 "secretName": "dbpassword"
             }
-        ],
-        
-        "system":[
-            {
-                "tenant":     "dev",
-                "system":     "mysystem",
-                "user":       "bud",
-                "secretName": "budsecret",
-                "secret":     "1234567890123456",
-                "keytype":    "sshkey"
-            }
-        ]
-    }
+        ]    }
 }

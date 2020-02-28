@@ -427,7 +427,8 @@ public final class UserImpl
             }
             catch (Exception e) {
                 _log.error(e.getMessage());
-                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);             }
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+            }
         
         return users;
     }

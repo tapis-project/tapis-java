@@ -6,7 +6,6 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
-import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.KeyType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -39,6 +37,10 @@ public class SkAdmin
     
     // The distinguished string that causes secrets to be generated.    
     public static final String GENERATE_SECRET = "<generate>";
+    
+    // Key generation parameters.
+    private static final String DFT_KEY_ALGORITHM = "RSA";
+    private static final int    DFT_KEY_SIZE      = 4096; // 2048 is the other option
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -143,7 +145,6 @@ public class SkAdmin
         if (!validateDBCredential()) return false;
         if (!validateJwtSigning()) return false;
         if (!validateServicePwd()) return false;
-        if (!validateSystem()) return false;
         if (!validateUser()) return false;
         
         // We're good.
@@ -274,71 +275,6 @@ public class SkAdmin
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
                                                  secret.service, secret.secretName);
-                    _log.error(msg);
-                    return false;
-                }
-            }
-        }
-        
-        // We're good.
-        return true;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* validateSystem:                                                        */
-    /* ---------------------------------------------------------------------- */
-    private boolean validateSystem()
-    {
-        // Maybe there's nothing to do.
-        if (_secrets.system == null || _secrets.system.isEmpty())
-            return true;
-        
-        // Iterate throught the secrets.
-        for (var secret : _secrets.system) {
-            // Vault changes.
-            if (_parms.create || _parms.update) {
-            
-                // We don't need a secret when VaultCA is being used.
-                if (StringUtils.isBlank(secret.secret) &&
-                    secret.keytype != KeyType.cert) 
-                {
-                    String msg = MsgUtils.getMsg("SK_ADMIN_SYSTEM_MISSING_PARM", 
-                                                 "secret", secret.tenant, 
-                                                 secret.system, secret.user,
-                                                 secret.keytype.name(),
-                                                 secret.secretName);
-                    _log.error(msg);
-                    return false;
-                }
-                
-                // Do we need to generate a password?
-                if (GENERATE_SECRET.equals(secret.secret))
-                    if (secret.keytype == KeyType.password) 
-                        secret.secret = generatePassword();
-                    else if (secret.keytype == KeyType.sshkey) {
-                        //var keyPair = generateKeyPair();
-                        secret.secret = "";
-                    }
-                    else {
-                        String msg = MsgUtils.getMsg("SK_ADMIN_CANNOT_GEN_SECRET", 
-                                "secret", secret.tenant, 
-                                secret.system, secret.user,
-                                secret.keytype.name(),
-                                secret.secretName);
-                        _log.error(msg);
-                        return false;
-                    }
-            }
-        
-            // Kube changes.
-            if (_parms.deploy) {
-            
-                if (StringUtils.isBlank(secret.kubeSecretName)) {
-                    String msg = MsgUtils.getMsg("SK_ADMIN_SYSTEM_MISSING_PARM", 
-                                                 "kubeSecretName", secret.tenant,
-                                                 secret.system, secret.user,
-                                                 secret.keytype.name(),
-                                                 secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -518,22 +454,25 @@ public class SkAdmin
     /* ---------------------------------------------------------------------- */
     /* generateKeyPair:                                                       */
     /* ---------------------------------------------------------------------- */
+    /** Generate a key pair.  Use the getEncoded() method on each of the keys
+     * to get the binary key values.
+     * 
+     * @return the public and private keys
+     * @throws TapisException on error
+     */
     private KeyPair generateKeyPair() throws TapisException 
     {
-        KeyPair keyPair;
         try {
-            var gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(4096);
-            keyPair = gen.genKeyPair();
-            byte[] prvBytes = keyPair.getPrivate().getEncoded();
-            byte[] pubBytes = keyPair.getPublic().getEncoded();
-            
+            var gen = KeyPairGenerator.getInstance(DFT_KEY_ALGORITHM);
+            gen.initialize(DFT_KEY_SIZE);
+            var keyPair = gen.genKeyPair();
+//            byte[] prvBytes = keyPair.getPrivate().getEncoded();
+//            byte[] pubBytes = keyPair.getPublic().getEncoded();
             return keyPair;
         } catch (Exception e) {
-             throw new TapisException("xxx");
+            String msg = MsgUtils.getMsg("SK_ADMIN_KEY_GEN_ERROR", DFT_KEY_ALGORITHM,
+                                         DFT_KEY_SIZE, e.getMessage());
+            throw new TapisException(msg, e);
         }
-        
-        
-        
     }
 }
