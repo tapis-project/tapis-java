@@ -851,12 +851,14 @@ public final class VaultImpl
     * 
     * @param tenant the service's tenant
     * @param serviceName the service name
+    * @param secretName the path name of the password
     * @param password the password to be validated
     * @return true if the password parameter exactly matches the password in vault, 
     *         false otherwise.
     * @throws TapisImplException on error
     */
-   public boolean validateServicePwd(String tenant, String serviceName, String password) 
+   public boolean validateServicePwd(String tenant, String serviceName, String secretName,
+                                     String password) 
     throws TapisImplException
    {
        // ------------------------ Input Checking ----------------------------
@@ -866,11 +868,16 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       
+       if (StringUtils.isBlank(secretName)) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateServicePwd", "secretName");
+           _log.error(msg);
+           throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+      
        // ------------------------ Request Processing ------------------------
        // Fill in the parameter object as required by secretRead.
        var pathParms = new SecretPathMapperParms(SecretType.ServicePwd);
-       pathParms.setSecretName(DEFAULT_SERVICE_SECRET_NAME);
+       pathParms.setSecretName(secretName);
        
        // Let the read method do the heavy lifting by reading the 
        // latest version of the secret.

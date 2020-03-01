@@ -1221,14 +1221,22 @@ public final class VaultResource
      /* validateServicePassword:                                                     */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/secret/validateServicePassword/{serviceName}")
+     @Path("/secret/validateServicePassword/{secretName}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Validate a service's password. "
                            + "The JSON payload contains the password that needs to be validated "
-                           + "against the password stored in the vault for the named service.\n\n"
-                           + "",
+                           + "against the password stored in the vault for the service specified"
+                           + "in the X-Tapis-User header. The secret name is the path under which"
+                           + "the password was stored.\n\n"
+                           + ""
+                           + "### Naming Secrets\n"
+                           + ""
+                           + "Secrets can be arranged hierarchically by using the \"+\" "
+                           + "characters in the *secretName*.  These characters will be "
+                           + "converted to slashes upon receipt, allowing secrets to be "
+                           + "arranged in folders.\n\n",
              tags = "vault",
              requestBody = 
                  @RequestBody(
@@ -1252,7 +1260,7 @@ public final class VaultResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response validateServicePassword(@PathParam("serviceName") String serviceName,
+     public Response validateServicePassword(@PathParam("secretName") String secretName,
                          @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                          InputStream payloadStream)
      {
@@ -1279,6 +1287,10 @@ public final class VaultResource
                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // Support secret name paths by replacing the escape characters (+) with
+         // slashes.  This is typically handled in SecretPathMapperParms. 
+         if (secretName != null) secretName = secretName.replace('+', '/');
+         
          // ------------------------- Check Tenant -----------------------------
          // Null means the tenant and user are both assigned.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -1288,8 +1300,9 @@ public final class VaultResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          boolean authorized;
-         try {authorized = getVaultImpl().validateServicePwd(threadContext.getTenantId(), 
-                                                             serviceName, payload.password);}
+         try {authorized = getVaultImpl().validateServicePwd(threadContext.getTenantId(),
+                                                             threadContext.getUser(),
+                                                             secretName, payload.password);}
              catch (Exception e) {
                  // Already logged.
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1298,7 +1311,8 @@ public final class VaultResource
          // Password was not matched.
          if (!authorized) {
              String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
-                                          threadContext.getTenantId(), serviceName);
+                                          threadContext.getTenantId(), 
+                                          threadContext.getUser(), secretName);
              _log.warn(msg);
              return Response.status(Status.FORBIDDEN).
                  entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -1311,7 +1325,7 @@ public final class VaultResource
          
          // Return the data portion of the vault response.
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_AUTHORIZED", "Service", serviceName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_AUTHORIZED", "Service", secretName), prettyPrint, r)).build();
      }
      
      /* **************************************************************************** */
