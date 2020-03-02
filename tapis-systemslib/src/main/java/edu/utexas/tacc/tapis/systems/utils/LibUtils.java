@@ -2,6 +2,8 @@ package edu.utexas.tacc.tapis.systems.utils;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -93,6 +96,24 @@ public class LibUtils
     return msgValue;
   }
 
+  /**
+   * Return List of transfer methods as a comma delimited list of strings surrounded by curly braces.
+   * @return
+   */
+  public static String getTransferMethodsAsString(List<TransferMethod> txfrMethods)
+  {
+    if (txfrMethods == null || txfrMethods.size() == 0) return TSystem.EMPTY_TRANSFER_METHODS_STR;
+    StringBuilder sb = new StringBuilder("{");
+    for (int i = 0; i < txfrMethods.size()-1; i++)
+    {
+      sb.append(txfrMethods.get(i).name()).append(",");
+    }
+    sb.append(txfrMethods.get(txfrMethods.size()-1).name());
+    sb.append("}");
+    return sb.toString();
+  }
+
+  // =============== DB Transaction Management ============================
   /**
    * Close any DB connection related artifacts that are not null
    * @throws SQLException - on sql error

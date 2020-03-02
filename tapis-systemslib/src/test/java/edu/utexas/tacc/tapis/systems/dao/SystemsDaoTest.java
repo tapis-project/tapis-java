@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.systems.Protocol;
 import org.apache.commons.lang3.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
@@ -15,10 +16,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
-import edu.utexas.tacc.tapis.systems.model.Protocol;
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
-import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMethod;
 
 /**
  * Test the SystemsDao class against a DB running locally

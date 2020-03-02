@@ -2,17 +2,13 @@ package edu.utexas.tacc.tapis.systems.model;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
-import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMethod;
-
-import static edu.utexas.tacc.tapis.systems.model.Protocol.DEFAULT_TRANSFER_METHODS;
 
 /*
  * Tapis System representing a server or collection of servers exposed through a
@@ -41,14 +37,22 @@ public final class TSystem
   public static final String DEFAULT_OWNER = APIUSERID_VAR;
   public static final boolean DEFAULT_ENABLED = true;
   public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
-  public static final boolean DEFAULT_USEPROXY = false;
   public static final String DEFAULT_NOTES_STR = "{}";
+  public static final List<TransferMethod> DEFAULT_TRANSFER_METHODS = Collections.emptyList();
+  public static final String EMPTY_TRANSFER_METHODS_STR = "{}";
+  public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
+  public static final int DEFAULT_PORT = -1;
+  public static final boolean DEFAULT_USEPROXY = false;
+  public static final String DEFAULT_PROXYHOST = "";
+  public static final int DEFAULT_PROXYPORT = -1;
 
   // ************************************************************************
   // *********************** Enums ******************************************
   // ************************************************************************
   public enum SystemType {LINUX, OBJECT_STORE}
   public enum Permission {READ, MODIFY, DELETE}
+  public enum AccessMethod {PASSWORD, PKI_KEYS, CERT, ACCESS_KEY}
+  public enum TransferMethod {SFTP, S3}
 
   // ************************************************************************
   // *********************** Fields *****************************************

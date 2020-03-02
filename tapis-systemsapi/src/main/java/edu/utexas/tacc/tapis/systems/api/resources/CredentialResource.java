@@ -16,7 +16,7 @@ import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
 import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -214,7 +214,6 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    String password, privateKey, publicKey, cert, accessKey, accessSecret;
     JsonObject credObj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     // Extract credential attributes from the request body
     Credential credential = extractAccessCred(credObj);

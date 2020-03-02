@@ -1,7 +1,10 @@
 package edu.utexas.tacc.tapis.systems.api.requests;
 
+import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 
 import java.util.List;
 
@@ -12,13 +15,13 @@ public final class ReqCreateSystem
   public String systemType;
   public String owner;
   public String host;
-  public boolean available;
+  public boolean enabled;
   public String effectiveUserId;
-  public String defaultAccessMethod;
+  public AccessMethod defaultAccessMethod;
   public Credential accessCredential;
   public String bucketName;
   public String rootDir;
-  public List<String> transferMethods;
+  public List<TransferMethod> transferMethods;
   public int port;
   public boolean useProxy;
   public String proxyHost;
@@ -30,5 +33,5 @@ public final class ReqCreateSystem
   public String jobRemoteArchiveDir;
   public List<Capability> jobCapabilities;
   public String tags;
-  public String notes;
+  public JsonObject notes;
 }

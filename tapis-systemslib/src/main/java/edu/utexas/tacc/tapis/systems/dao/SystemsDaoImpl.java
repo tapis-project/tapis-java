@@ -9,20 +9,19 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 import com.google.inject.Singleton;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.systems.model.Capability;
-import edu.utexas.tacc.tapis.systems.model.Capability.Category;
-import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.systems.model.Protocol;
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
-import edu.utexas.tacc.tapis.systems.model.Protocol.TransferMethod;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.systems.model.Capability;
+import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -77,12 +76,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       throw new TapisException(msg);
     }
 
-    var transferMethods = Protocol.DEFAULT_TRANSFER_METHODS;
+    var transferMethods = TSystem.DEFAULT_TRANSFER_METHODS;
     if (system.getTransferMethods() != null) transferMethods = system.getTransferMethods();
-    String transferMethodsStr = Protocol.getTransferMethodsAsString(transferMethods);
+    String transferMethodsStr = LibUtils.getTransferMethodsAsString(transferMethods);
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
-    String proxyHost = Protocol.DEFAULT_PROXYHOST;
+    String proxyHost = TSystem.DEFAULT_PROXYHOST;
     if (system.getProxyHost() != null) proxyHost = system.getProxyHost();
 
     // ------------------------- Call SQL ----------------------------

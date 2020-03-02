@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.systems.model;
 
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
