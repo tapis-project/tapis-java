@@ -9,6 +9,8 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -18,8 +20,8 @@ import edu.utexas.tacc.tapis.systems.model.Protocol.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
-import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 
+import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,11 +61,13 @@ public class SystemsServiceImpl implements SystemsService
   // *********************** Fields *****************************************
   // ************************************************************************
   // TODO: thread safety
-  Map<String, SKClient> skClientMap = new HashMap<>();
+//  Map<String, SKClient> skClientMap = new HashMap<>();
 
   // Use HK2 to inject dao
   @Inject
   private SystemsDao dao;
+
+  private ServiceJWT serviceJWT;
 
   // ************************************************************************
   // *********************** Public Methods *********************************
@@ -520,57 +524,134 @@ public class SystemsServiceImpl implements SystemsService
    * Get Security Kernel client associated with specified tenant
    * TODO: thread safety?
    * TODO: or worst case it creates some clients a few extra times.
-   * Cache the SK clients in a map by tenant name.
+   * TODO: Cache the SK clients in a map by tenant name.
    * @param tenantName - name of tenant
    * @return SK client
    * @throws TapisException - for Tapis related exceptions
    */
   private SKClient getSKClient(String tenantName) throws TapisException
   {
-    // TODO: Check to see if our service jwt has been refreshed and we need to update clients with new jwt.
-
-    // Check cache, if we have it already we are done, otherwise continue and create one.
-    var skClient = skClientMap.get(tenantName);
-    if (skClient != null) return skClient;
+    // Create an SKClient on the fly. If this becomes a bottleneck we can add a cache.
 
     // Use TenantManager to get tenant info. Needed for SK base URL.
     // TenantManager initialized in front end api class SystemsApplication
     Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
 
-    // TODO Use ServiceJWT to get auto-magically refreshed service JWT.
-
-    // Tokens service URL comes from env or the tenants service
-    RuntimeParameters parms = RuntimeParameters.getInstance();
-    String tokensURL = parms.getTokensSvcURL();
-    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
-    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
-
-    // Get short term service JWT from tokens service
-    var tokClient = new TokensClient(tokensURL);
-    String svcJWT;
-    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
-    // Basic check of JWT
-    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
+    // We will need some run time parameters
+    RuntimeParameters runTimeParms = RuntimeParameters.getInstance();
 
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence
 //    String skURL = "https://dev.develop.tapis.io/v3";
-    String skURL = parms.getSkSvcURL();
+    String skURL = runTimeParms.getSkSvcURL();
     if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
     if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
-    skClient = new SKClient(skURL, svcJWT);
+    // TODO replace all service JWT related code with ServiceJWT
+    // TODO Initialize this at runtime
+// TODO ServiceJWT throwing error trying to generate jwt.
+    //TODO  difference between working code below and serviceJWT is working code is only setting
+    //  accountType, service name and tenant
+    //  serviceJWT is also setting
+    //      accessTokenTtl, generateRefreshToken=true and refreshTokeTtl values
+    //      and this appears to cause tokens svc to return an error (Internal Server Error)
+//    if (serviceJWT == null)
+//    {
+//      var svcJWTParms = new ServiceJWTParms();
+//      svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
+//      svcJWTParms.setTenant(tenantName);
+//      svcJWTParms.setTokensBaseUrl(tenant1.getTokenService());
+//      serviceJWT = new ServiceJWT(svcJWTParms, "fakeServicePassword");
+//    }
+
+
+    // Get short term service JWT from tokens service
+    // Tokens service URL comes from env or the tenants service
+    String tokensURL = runTimeParms.getTokensSvcURL();
+    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
+    var tokClient = new TokensClient(tokensURL);
+    String svcJWTStr;
+    try {svcJWTStr = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
+    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
+    // Basic check of JWT
+    if (StringUtils.isBlank(svcJWTStr)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
+
+    // Create and configure the SKClient
+    SKClient skClient = new SKClient(skURL, svcJWTStr);
+//    SKClient skClient = new SKClient(skURL, serviceJWT.getAccessJWT());
+
     // Service to Service calls require user header, set it to be the same as the service name
     // TODO Get string constants from shared code when available
     String TAPIS_USER_HEADER = "X-Tapis-User";
     String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
     skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
     skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
-    skClientMap.put(tenantName, skClient);
+//    skClientMap.put(tenantName, skClient);
     return skClient;
+
+// TODO If need to cache, consider creating a:
+//    Class providing everything needed for managing an SKClient for a specific tenant.
+//          Contains an SKClient and ServiceJWT.
+//    Provides logic and attributes needed to check for refresh of service JWT.
+
+//    // TODO: Check with serviceJWT to see if our service jwt has been refreshed and we need to update clients with new jwt.
+//
+//    // Check cache, if we have it already we are done, otherwise continue and create one.
+//    var skClient = skClientMap.get(tenantName);
+//    if (skClient != null) return skClient;
+//
+//    // Use TenantManager to get tenant info. Needed for SK base URL.
+//    // TenantManager initialized in front end api class SystemsApplication
+//    Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
+//
+//    // Tokens service URL comes from env or the tenants service
+//    RuntimeParameters runTimeParms = RuntimeParameters.getInstance();
+//    String tokensURL = runTimeParms.getTokensSvcURL();
+//    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+//    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
+//
+//    // TODO Create a ServiceJWT manager to get auto-magically refreshed service JWT for the tenant
+//    // TODO: Create class to store all needed: SKClient, ServiceJWT, logic and attributes needed to check for refresh,
+//    //       then cache objects of this new class. Call it SKTenantClient (?) which pkg?
+//    // Put in a cache
+//    var svcJWTParms = new ServiceJWTParms();
+//    svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
+//    svcJWTParms.setTenant(tenantName);
+//    svcJWTParms.setTokensBaseUrl(tokensURL);
+//    var serviceJwt = new ServiceJWT(svcJWTParms, "fakeServicePassword");
+//    svcJWTMap.put(tenantName, serviceJwt);
+//
+//
+//    // TODO remove in favor of ServiceJWT manager
+//    // Get short term service JWT from tokens service
+//    var tokClient = new TokensClient(tokensURL);
+//    String svcJWT;
+//    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
+//    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
+//    // Basic check of JWT
+//    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
+//
+//    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
+////    String skURL = "https://dev.develop.tapis.io/v3";
+//    String skURL = runTimeParms.getSkSvcURL();
+//    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
+//    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
+//    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
+//    // Strip off everything after the /v3 so we have a valid SK base URL
+//    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
+//
+//    skClient = new SKClient(skURL, svcJWT);
+//    // Service to Service calls require user header, set it to be the same as the service name
+//    // TODO Get string constants from shared code when available
+//    String TAPIS_USER_HEADER = "X-Tapis-User";
+//    String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
+//    skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
+//    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
+//    skClientMap.put(tenantName, skClient);
+//    return skClient;
   }
 
   /**

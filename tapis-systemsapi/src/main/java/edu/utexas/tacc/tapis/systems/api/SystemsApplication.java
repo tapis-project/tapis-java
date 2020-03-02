@@ -2,6 +2,8 @@ package edu.utexas.tacc.tapis.systems.api;
 
 import javax.ws.rs.ApplicationPath;
 
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -13,6 +15,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+
+import java.time.Instant;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
@@ -49,26 +53,27 @@ public class SystemsApplication extends ResourceConfig
     packages("edu.utexas.tacc.tapis");
 
     // Finally set the application name
-    // This appears to have no impact on base URL
+    // Note that this has no impact on base URL
     setApplicationName("systems");
 
 
-    // Initialize bindings for HK2 dependency injection
-    register(new AbstractBinder() {
-      @Override
-      protected void configure() {
-      bind(SystemsServiceImpl.class).to(SystemsService.class);
-      bind(SystemsDaoImpl.class).to(SystemsDao.class);
-      }
-    });
-
-
-    // Initialize tenant manager singleton. This can be used by all subsequent application code, including filters.
     try {
+
+      // Initialize bindings for HK2 dependency injection
+      register(new AbstractBinder() {
+        @Override
+        protected void configure() {
+          bind(SystemsServiceImpl.class).to(SystemsService.class);
+          bind(SystemsDaoImpl.class).to(SystemsDao.class);
+        }
+      });
+
+      // Initialize tenant manager singleton. This can be used by all subsequent application code, including filters.
       // The base url of the tenants service is a required input parameter.
       // Retrieve the tenant list from the tenant service now to fail fast if we can't access the list.
       String url = RuntimeParameters.getInstance().getTenantsSvcURL();
       TenantManager.getInstance(url).getTenants();
+
     } catch (Exception e) {
       // This is a fatal error
       System.out.println("**** FAILURE TO INITIALIZE: tapis-systemsapi ****");

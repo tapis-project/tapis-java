@@ -9,12 +9,13 @@
         <module name="tapis-securityapi" />
         <module name="tapis-shared-queue" />
         <module name="tapis-systemsapi" />
-        <module name="tenants-client" />
+        <module name="meta-client" />
+        <module name="tapis-systemslib" />
         <module name="tapis-samplelib" />
         <module name="tapis-shared-lib" />
-        <module name="systems-client" />
+        <module name="tapis-shared-api" />
         <module name="tapis-securitylib" />
-        <module name="tapis-systemslib" />
+        <module name="systems-client" />
         <module name="files-client" />
         <module name="tapis-migrate" />
         <module name="tapis-shared-db" />
@@ -22,11 +23,12 @@
         <module name="tokens-client" />
         <module name="tapis-securitymigrate" />
         <module name="tapis-sampleapi" />
-        <module name="tapis-shared-api" />
+        <module name="tenants-client" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="files-client" target="1.13" />
+      <module name="meta-client" target="1.13" />
       <module name="security-client" target="1.13" />
       <module name="systems-client" target="1.13" />
       <module name="tapis-client-java" target="1.5" />
