@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,6 @@ public final class VaultImpl
    // Tracing.
    private static final Logger _log = LoggerFactory.getLogger(VaultImpl.class);
    
-   // The name used to build the path to service passwords.
-   private static final String DEFAULT_SERVICE_SECRET_NAME = "password";
-   private static final String SERVICE_SECRET_PASSWORD_KEY = "password";
-
    /* ********************************************************************** */
    /*                                Fields                                  */
    /* ********************************************************************** */
@@ -890,8 +887,10 @@ public final class VaultImpl
                throw e;
            }
        
-       // Get the password if it exists.
-       String vaultPassword = secret.secretMap.get(SERVICE_SECRET_PASSWORD_KEY);
+       // Get the password if it exists.  The secret map
+       // will list passwords as the last element in a path.
+       String key = FilenameUtils.getName(secretName);
+       String vaultPassword = secret.secretMap.get(key);
        if (StringUtils.isBlank(vaultPassword)) return false;
        if (!vaultPassword.equals(password))    return false;
        

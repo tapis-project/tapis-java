@@ -34,6 +34,10 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
         <!-- Needed to hide certain methods from swagger -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
