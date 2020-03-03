@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +95,30 @@ public final class TSystem
   // ************************************************************************
   // *********************** Constructors ***********************************
   // ************************************************************************
+
+  /**
+   * Constructor using only required attributes.
+   */
+  public TSystem(String name1, SystemType systemType1, String host1, AccessMethod defaultAccessMethod1, boolean jobCanExec1)
+  {
+    name = name1;
+    systemType = systemType1;
+    host = host1;
+    defaultAccessMethod = defaultAccessMethod1;
+    jobCanExec = jobCanExec1;
+    owner = DEFAULT_OWNER;
+    enabled = DEFAULT_ENABLED;
+    effectiveUserId = DEFAULT_EFFECTIVEUSERID;
+    port = DEFAULT_PORT;
+    useProxy = DEFAULT_USEPROXY;
+    proxyHost = DEFAULT_PROXYHOST;
+    proxyPort = DEFAULT_PORT;
+    notes = TapisGsonUtils.getGson().fromJson(DEFAULT_NOTES_STR, JsonObject.class);
+  }
+
+  /**
+   * Constructor using all attributes. Useful for testing.
+   */
   public TSystem(long id1, String tenant1, String name1, String description1, SystemType systemType1,
                  String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
                  Credential accessCredential1, String bucketName1, String rootDir1,
@@ -146,64 +171,74 @@ public final class TSystem
   public Instant getUpdated() { return updated; }
 
   public String getTenant() { return tenant; }
-  public void setTenant(String s) { tenant = s; }
+  public TSystem setTenant(String s) { tenant = s; return this; }
 
   public String getName() { return name; }
+  public TSystem setName(String s) { name = s; return this; }
 
   public String getDescription() { return description; }
-  public void setDescription(String descr) { description = descr; }
+  public TSystem setDescription(String descr) { description = descr; return this; }
 
   public SystemType getSystemType() { return systemType; }
+  public TSystem setSystemType(SystemType st) { systemType = st; return this; }
 
   public String getOwner() { return owner; }
-  public void setOwner(String s) { owner = s; }
+  public TSystem setOwner(String s) { owner = s;  return this;}
 
   public String getHost() { return host; }
+  public TSystem setHost(String s) { host = s; return this; }
 
   public boolean isEnabled() { return enabled; }
-  public void setEnabled(boolean b) { enabled = b; }
+  public TSystem setEnabled(boolean b) { enabled = b;  return this; }
 
   public String getEffectiveUserId() { return effectiveUserId; }
-  public void setEffectiveUserId(String userId) { effectiveUserId = userId; }
+  public TSystem setEffectiveUserId(String userId) { effectiveUserId = userId; return this; }
 
   public AccessMethod getDefaultAccessMethod() { return defaultAccessMethod; }
 
   public Credential getAccessCredential() { return accessCredential; }
-  public void setAccessCredential(Credential cred) {accessCredential = cred;}
+  public TSystem setAccessCredential(Credential cred) {accessCredential = cred; return this; }
 
   public String getBucketName() { return bucketName; }
-  public void setBucketName(String s) { bucketName = s; }
+  public TSystem setBucketName(String s) { bucketName = s; return this; }
 
   public String getRootDir() { return rootDir; }
-  public void setRootDir(String s) { rootDir = s;}
+  public TSystem setRootDir(String s) { rootDir = s; return this; }
 
   public List<TransferMethod> getTransferMethods() { return transferMethods; }
 
   public int getPort() { return port; }
+  public TSystem setPort(int i) { port = i; return this; }
 
   public boolean isUseProxy() { return useProxy; }
+  public TSystem setUseProxy(boolean b) { useProxy = b; return this; }
 
   public String getProxyHost() { return proxyHost; }
+  public TSystem setProxyHost(String s) { proxyHost = s; return this; }
 
   public int getProxyPort() { return proxyPort; }
+  public TSystem setProxyPort(int i) { proxyPort = i; return this; }
 
   public boolean getJobCanExec() { return jobCanExec; }
+  public TSystem setJobCanExec(boolean b) { jobCanExec = b;  return this; }
 
   public String getJobLocalWorkingDir() { return jobLocalWorkingDir; }
-  public void setJobLocalWorkingDir(String s) { jobLocalWorkingDir = s; }
+  public TSystem setJobLocalWorkingDir(String s) { jobLocalWorkingDir = s; return this; }
 
   public String getJobLocalArchiveDir() { return jobLocalArchiveDir; }
-  public void setJobLocalArchiveDir(String s) { jobLocalArchiveDir = s; }
+  public TSystem setJobLocalArchiveDir(String s) { jobLocalArchiveDir = s; return this; }
 
   public String getJobRemoteArchiveSystem() { return jobRemoteArchiveSystem; }
 
   public String getJobRemoteArchiveDir() { return jobRemoteArchiveDir; }
-  public void setJobRemoteArchiveDir(String s) { jobRemoteArchiveDir = s; }
+  public TSystem setJobRemoteArchiveDir(String s) { jobRemoteArchiveDir = s; return this; }
 
   public List<Capability> getJobCapabilities() { return jobCapabilities; }
-  public void setJobCapabilities(List<Capability> c) { jobCapabilities = c; }
+  public TSystem setJobCapabilities(List<Capability> c) { jobCapabilities = c; return this; }
 
   public String[] getTags() { return tags; }
+  public TSystem setTags(String[] sa) { tags = sa; return this; }
 
   public JsonObject getNotes() { return notes; }
+  public TSystem setNotes(JsonObject jo) { notes = jo; return this; }
 }

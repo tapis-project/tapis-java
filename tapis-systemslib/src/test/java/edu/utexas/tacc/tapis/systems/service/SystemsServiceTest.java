@@ -168,6 +168,8 @@ public class SystemsServiceTest
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
+  // Test retrieving a system including default access method
+  //   and test retrieving for specified access method.
   @Test
   public void testGetSystemByName() throws Exception
   {
@@ -200,6 +202,15 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.isUseProxy(), sys0.isUseProxy());
     Assert.assertEquals(tmpSys.getProxyHost(), sys0.getProxyHost());
     Assert.assertEquals(tmpSys.getProxyPort(), sys0.getProxyPort());
+    // Verify credentials. Only cred for default accessMethod is returned. In this case PKI_KEYS.
+    Credential cred = tmpSys.getAccessCredential();
+    Assert.assertNotNull(cred, "AccessCredential should not be null");
+    Assert.assertEquals(cred.getPrivateKey(), cred0.getPrivateKey());
+    Assert.assertEquals(cred.getPublicKey(), cred0.getPublicKey());
+    Assert.assertNull(cred.getPassword(), "AccessCredential password should be null");
+    Assert.assertNull(cred.getAccessKey(), "AccessCredential access key should be null");
+    Assert.assertNull(cred.getAccessSecret(), "AccessCredential access secret should be null");
+    Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
     // Verify transfer methods
     List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(tMethodsList);
@@ -207,9 +218,6 @@ public class SystemsServiceTest
     {
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
     }
-    // Verify credentials. Only cred for default accessMethod is returned. In this case PKI_KEYS.
-    Assert.assertEquals(tmpSys.getAccessCredential().getPublicKey(), cred0.getPublicKey());
-    Assert.assertEquals(tmpSys.getAccessCredential().getPrivateKey(), cred0.getPrivateKey());
     // Verify capabilities
     List<Capability> jobCaps = tmpSys.getJobCapabilities();
     Assert.assertNotNull(jobCaps);
@@ -240,6 +248,19 @@ public class SystemsServiceTest
     Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
     Assert.assertTrue(obj.has("testdata"));
     Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
+
+    // Test retrieval using specified access method
+    tmpSys = svc.getSystemByName(sys0.getTenant(), sys0.getName(), apiUser, true, AccessMethod.PASSWORD);
+    System.out.println("Found item: " + sys0.getName());
+    // Verify credentials. Only cred for default accessMethod is returned. In this case PASSWORD.
+    cred = tmpSys.getAccessCredential();
+    Assert.assertNotNull(cred, "AccessCredential should not be null");
+    Assert.assertEquals(cred.getPassword(), cred0.getPassword());
+    Assert.assertNull(cred.getPrivateKey(), "AccessCredential private key should be null");
+    Assert.assertNull(cred.getPublicKey(), "AccessCredential public key should be null");
+    Assert.assertNull(cred.getAccessKey(), "AccessCredential access key should be null");
+    Assert.assertNull(cred.getAccessSecret(), "AccessCredential access secret should be null");
+    Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
   }
 
   // Check that when a system is created variable substitution is correct for:
