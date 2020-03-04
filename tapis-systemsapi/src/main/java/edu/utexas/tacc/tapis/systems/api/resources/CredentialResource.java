@@ -13,6 +13,7 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
@@ -214,9 +215,9 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    JsonObject credObj = TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
-    // Extract credential attributes from the request body
-    Credential credential = extractAccessCred(credObj);
+    Credential credential;
+    ReqCreateCredential req = TapisGsonUtils.getGson().fromJson(json, ReqCreateCredential.class);
+    credential = req.credential;
 
     // If one of PKI keys is missing then reject
     resp = ApiUtils.checkSecrets(systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
@@ -423,24 +424,6 @@ public class CredentialResource
                                                                    userName), prettyPrint, resp1))
       .build();
   }
-
-  /**
-   * Extract AccessCredential details from the top level Json object
-   * @param credObj Top level Json object from request
-   * @return A partially populated Credential object
-   */
-  public static Credential extractAccessCred(JsonObject credObj)
-  {
-    String password, privateKey, publicKey, sshCert, accessKey, accessSecret;
-    password = ApiUtils.getValS(credObj.get(CredentialResource.PASSWORD_FIELD), "");
-    privateKey = ApiUtils.getValS(credObj.get(CredentialResource.PRIVATE_KEY_FIELD), "");
-    publicKey = ApiUtils.getValS(credObj.get(CredentialResource.PUBLIC_KEY_FIELD), "");
-    sshCert = ApiUtils.getValS(credObj.get(CredentialResource.CERTIFICATE_FIELD), "");
-    accessKey = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_KEY_FIELD), "");
-    accessSecret = ApiUtils.getValS(credObj.get(CredentialResource.ACCESS_SECRET_FIELD), "");
-    return new Credential(password, privateKey, publicKey, sshCert, accessKey, accessSecret);
-  }
-
 
   // ************************************************************************
   // *********************** Private Methods ********************************

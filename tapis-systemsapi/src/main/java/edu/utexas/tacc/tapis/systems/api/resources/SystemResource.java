@@ -209,7 +209,10 @@ public class SystemResource
 
     // ------------------------- Create a TSystem from the json and validate constraints -------------------------
     TSystem system;
-    try { system = TapisGsonUtils.getGson().fromJson(rawJson, TSystem.class); }
+    try {
+      ReqCreateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
+      system = req.tSystem;
+    }
     catch (Exception e)
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());

@@ -131,12 +131,20 @@ Updating OpenAPI spec published to live-docs
 4. Replace contents with clipboard, convert from JSON to YAML.
 5. Check display to see if all looks correct.
 6. Copy swagger editor generated yaml to clipboard.
+NOTE: Here is one way that works fairly well for 7 and 8:
+    cp tapis-client-java/systems-client/SystemAPI.yaml ~/SystemAPI.yaml
+    Then update tapis-client-java/systems-client/SystemsAPI.yaml
+    now use: meld ~/SystemsAPI.yaml tapis-client-java/systems-client/SystemAPI.yaml
+      to update paths. Note that sometimes info in the components section gets moved
+      around but that should be OK.
 7. Paste clipboard to tapis-client-java/systems-client/SystemsAPI.yaml.
 8. Edit SystemsAPI.yaml to update all paths to begin with '/v3/systems'
    Note: all paths should be surrounded by single quotes. Some paths have them and some do not.
    Note: At this point tapis-client-java can be built and used for local testing.
          Might first need to clean mvn repo: rm -fr ~/.m2/repository/edu/utexas/tacc/tapis/tapis-client-java
          Then to build and install locally: cd tapis-client-java; mvn clean install
+         Start tapis-java systems service from IDE Run SystemsClientTest
+           and run SystemsClientTest using env var TAPIS_SVC_URL_SYSTEMS=http://localhost:8080
 9. Push tapis-client-java to master branch.
 10. Updates should be reflected in live-docs (https://tapis-project.github.io/live-docs/)
       within a few minutes.

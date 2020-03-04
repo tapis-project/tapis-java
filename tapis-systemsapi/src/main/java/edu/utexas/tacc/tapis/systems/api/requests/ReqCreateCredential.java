@@ -4,5 +4,5 @@ import edu.utexas.tacc.tapis.systems.model.Credential;
 
 public final class ReqCreateCredential
 {
-  public Credential cred;
+  public Credential credential;
 }

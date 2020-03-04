@@ -239,10 +239,10 @@ public class SystemsServiceTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    String notesStr = tmpSys.getNotes().toString();
+    JsonObject obj = tmpSys.getNotes();
+    String notesStr = obj.toString();
     System.out.println("Found notes: " + notesStr);
     Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
-    JsonObject obj = JsonParser.parseString(notesStr).getAsJsonObject();
     Assert.assertNotNull(obj, "Error parsing Notes string");
     Assert.assertTrue(obj.has("project"));
     Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
