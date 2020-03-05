@@ -2,12 +2,10 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -18,8 +16,6 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
-import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -36,8 +32,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.glassfish.grizzly.http.server.Request;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -72,8 +67,6 @@ public class SystemsResource
   /* **************************************************************************** */
   /*                                   Constants                                  */
   /* **************************************************************************** */
-  // Local logger.
-  private static final Logger _log = LoggerFactory.getLogger(SystemsResource.class);
 
   /* **************************************************************************** */
   /*                                    Fields                                    */
@@ -112,7 +105,7 @@ public class SystemsResource
   @Context
   private ServletContext _servletContext;
   @Context
-  private HttpServletRequest _request;
+  private Request _request;
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -125,6 +118,7 @@ public class SystemsResource
    */
   @GET
   @Path("/healthcheck")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(

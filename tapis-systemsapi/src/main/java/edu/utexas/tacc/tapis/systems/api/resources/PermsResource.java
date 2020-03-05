@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
+import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
@@ -98,7 +98,7 @@ public class PermsResource
   @Context
   private ServletContext _servletContext;
   @Context
-  private HttpServletRequest _request;
+  private Request _request;
 
   // **************** Inject Services using HK2 ****************
   @Inject
@@ -116,8 +116,8 @@ public class PermsResource
    */
   @POST
   @Path("/{systemName}/user/{userName}")
-  @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Create permissions in the Security Kernel giving a user access to a system",
     description =
@@ -209,6 +209,7 @@ public class PermsResource
    */
   @GET
   @Path("/{systemName}/user/{userName}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
       summary = "Retrieve system related permissions for given system and user",
@@ -285,6 +286,7 @@ public class PermsResource
    */
   @DELETE
   @Path("/{systemName}/user/{userName}/{permission}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Revoke specified permission in the Security Kernel",
@@ -369,8 +371,8 @@ public class PermsResource
    */
   @POST
   @Path("/{systemName}/user/{userName}/revoke")
-  @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Revoke system permissions in the Security Kernel using request body",
     description =

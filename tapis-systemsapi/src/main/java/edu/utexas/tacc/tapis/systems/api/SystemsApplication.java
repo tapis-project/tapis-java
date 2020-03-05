@@ -10,13 +10,16 @@ import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
+
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
-import java.time.Instant;
+import java.net.URI;
 
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
@@ -80,5 +83,16 @@ public class SystemsApplication extends ResourceConfig
       e.printStackTrace();
       throw e;
     }
+  }
+
+  /**
+   * Embedded Grizzly HTTP server
+   */
+  public static void main(String[] args) throws Exception
+  {
+    final URI BASE_URI = URI.create("http://0.0.0.0:8080/v3/systems");
+    ResourceConfig config = new SystemsApplication();
+    final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(BASE_URI, config, false);
+    server.start();
   }
 }

@@ -52,7 +52,6 @@
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.google.inject</groupId>

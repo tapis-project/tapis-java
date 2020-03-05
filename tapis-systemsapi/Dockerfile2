@@ -1,0 +1,10 @@
+FROM maven:3-jdk-13
+EXPOSE 8080
+WORKDIR /app
+
+# Copy all of the repo into the /app dir. The .dockerignore file will skip the target dirs
+COPY . .
+
+RUN mvn clean install
+
+CMD ["java", "-jar", "tapis-systemsapi/target/v3#systems.jar"]

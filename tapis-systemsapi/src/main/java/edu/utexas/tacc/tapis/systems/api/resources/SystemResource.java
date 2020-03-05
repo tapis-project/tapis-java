@@ -8,7 +8,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
+import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -117,7 +117,7 @@ public class SystemResource
   @Context
   private ServletContext _servletContext;
   @Context
-  private HttpServletRequest _request;
+  private Request _request;
 
   // **************** Inject Services using HK2 ****************
   @Inject
@@ -134,8 +134,8 @@ public class SystemResource
    * @return response containing reference to created object
    */
   @POST
-  @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Create a system",
     description =
@@ -284,6 +284,7 @@ public class SystemResource
    */
   @GET
   @Path("{sysName}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
       summary = "Retrieve information for a system",
@@ -373,6 +374,7 @@ public class SystemResource
    * @return - list of system names
    */
   @GET
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Retrieve list of system names",
@@ -439,6 +441,7 @@ public class SystemResource
    */
   @DELETE
   @Path("{sysName}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Delete a system given the system name",

@@ -10,7 +10,7 @@
   </parent>
   
   <artifactId>tapis-systemsapi</artifactId>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
   
   <name>Tapis Systems API</name>
   <description>Front end for Tapis Systems Service web application</description>
@@ -50,7 +50,6 @@
     <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
@@ -60,6 +59,10 @@
     <dependency>
       <groupId>org.glassfish.jersey.media</groupId>
       <artifactId>jersey-media-moxy</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.glassfish.jersey.inject</groupId>
+        <artifactId>jersey-hk2</artifactId>
     </dependency>
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
@@ -72,6 +75,10 @@
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-grizzly2-http</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -105,6 +112,39 @@
             <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
           </suiteXmlFiles>
         </configuration>
+      </plugin>
+
+      <!-- *** Create executable jar *** -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${maven-jar-plugin.version}</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>edu.utexas.tacc.tapis.systems.api.SystemsApplication</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!-- *** Create shaded fat jar for standalone execution *** -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${maven-shade-plugin.version}</version>
+        <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- Generate the openapi documentation from the code -->

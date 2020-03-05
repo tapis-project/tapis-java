@@ -13,7 +13,6 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
@@ -26,12 +25,12 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.glassfish.grizzly.http.server.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -116,7 +115,7 @@ public class CredentialResource
   @Context
   private ServletContext _servletContext;
   @Context
-  private HttpServletRequest _request;
+  private Request _request;
 
   // **************** Inject Services using HK2 ****************
   @Inject
@@ -134,8 +133,8 @@ public class CredentialResource
    */
   @POST
   @Path("/{systemName}/user/{userName}")
-  @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Create or update access credential in the Security Kernel for given system and user",
     description =
@@ -257,6 +256,7 @@ public class CredentialResource
    */
   @GET
   @Path("/{systemName}/user/{userName}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
       summary = "Retrieve credential for given system and user",
@@ -354,6 +354,7 @@ public class CredentialResource
    */
   @DELETE
   @Path("/{systemName}/user/{userName}")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
     summary = "Remove credential in the Security Kernel for given system and user",
