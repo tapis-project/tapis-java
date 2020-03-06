@@ -6,6 +6,8 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -41,6 +43,12 @@ public class SkAdmin
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
     private static final int    DFT_KEY_SIZE      = 4096; // 2048 is the other option
+    
+    // PEM text for public and private keys.
+    private static final String PUB_KEY_PROLOGUE = "-----BEGIN PUBLIC KEY-----\n";
+    private static final String PUB_KEY_EPILOGUE = "\n-----END PUBLIC KEY-----";
+    private static final String PRV_KEY_PROLOGUE = "-----BEGIN PRIVATE KEY-----\n";
+    private static final String PRV_KEY_EPILOGUE = "\n-----END PRIVATE KEY-----";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -465,14 +473,33 @@ public class SkAdmin
         try {
             var gen = KeyPairGenerator.getInstance(DFT_KEY_ALGORITHM);
             gen.initialize(DFT_KEY_SIZE);
-            var keyPair = gen.genKeyPair();
-//            byte[] prvBytes = keyPair.getPrivate().getEncoded();
-//            byte[] pubBytes = keyPair.getPublic().getEncoded();
-            return keyPair;
+            return gen.genKeyPair();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_ADMIN_KEY_GEN_ERROR", DFT_KEY_ALGORITHM,
                                          DFT_KEY_SIZE, e.getMessage());
             throw new TapisException(msg, e);
         }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generatePublicPemKey:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private String generatePublicPemKey(PublicKey key)
+    {
+        // Encode raw bytes to base 64 and add surrounding text.
+        var encoder = Base64.getEncoder();
+        String pem = encoder.encodeToString(key.getEncoded());
+        return PUB_KEY_PROLOGUE + pem + PUB_KEY_EPILOGUE;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generatePrivatePemKey:                                                 */
+    /* ---------------------------------------------------------------------- */
+    private String generatePrivatePemKey(PrivateKey key)
+    {
+        // Encode raw bytes to base 64 and add surrounding text.
+        var encoder = Base64.getEncoder();
+        String pem = encoder.encodeToString(key.getEncoded());
+        return PRV_KEY_PROLOGUE + pem + PRV_KEY_EPILOGUE;
     }
 }
