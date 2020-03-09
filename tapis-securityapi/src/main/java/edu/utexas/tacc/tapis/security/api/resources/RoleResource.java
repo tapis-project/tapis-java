@@ -177,10 +177,10 @@ public final class RoleResource
          // Create the role.
          List<String> list = null;
          try {
-             list = getRoleImpl().getRoleNames(threadContext.getTenantId());
+             list = getRoleImpl().getRoleNames(threadContext.getJwtTenantId());
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_GET_NAMES_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser());
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser());
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
@@ -242,10 +242,10 @@ public final class RoleResource
          // Create the role.
          SkRole role = null;
          try {
-             role = getRoleImpl().getRoleByName(threadContext.getTenantId(), roleName);
+             role = getRoleImpl().getRoleByName(threadContext.getJwtTenantId(), roleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -361,11 +361,11 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().createRole(threadContext.getTenantId(), threadContext.getUser(), 
+             rows = getRoleImpl().createRole(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                              roleName, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -429,10 +429,10 @@ public final class RoleResource
          // Delete the role.
          int rows = 0;
          try {
-             rows =  getRoleImpl().deleteRoleByName(threadContext.getTenantId(), roleName);
+             rows =  getRoleImpl().deleteRoleByName(threadContext.getJwtTenantId(), roleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -498,10 +498,10 @@ public final class RoleResource
          // Create the role.
          List<String> list = null;
          try {
-             list = getRoleImpl().getRolePermissions(threadContext.getTenantId(), roleName, immediate);
+             list = getRoleImpl().getRolePermissions(threadContext.getJwtTenantId(), roleName, immediate);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_GET_PERMISSIONS_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -606,11 +606,11 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleName(threadContext.getTenantId(), threadContext.getUser(), 
+             rows = getRoleImpl().updateRoleName(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                                  roleName, newRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
@@ -702,11 +702,11 @@ public final class RoleResource
          int rows = 0;
          try {
              rows = getRoleImpl().updateRoleDescription(
-                                 threadContext.getTenantId(), threadContext.getUser(), 
+                                 threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                  roleName, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
@@ -818,13 +818,13 @@ public final class RoleResource
          // Add permission to role.
          int rows = 0;
          try {
-             rows = getRoleImpl().addRolePermission(threadContext.getTenantId(), 
-                                                   threadContext.getUser(), 
+             rows = getRoleImpl().addRolePermission(threadContext.getJwtTenantId(), 
+                                                   threadContext.getJwtUser(), 
                                                    roleName, permSpec);
          } catch (Exception e) {
              // This only occurs when the role name is not found.
              String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           permSpec, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
@@ -924,11 +924,11 @@ public final class RoleResource
          // Remove the permission from the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeRolePermission(threadContext.getTenantId(), roleName, permSpec);
+             rows = getRoleImpl().removeRolePermission(threadContext.getJwtTenantId(), roleName, permSpec);
          } catch (Exception e) {
              // Role not found is an error in this case.
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           permSpec, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
@@ -1031,12 +1031,12 @@ public final class RoleResource
          // Add the child role to the parent.
          int rows = 0;
          try {
-             rows = getRoleImpl().addChildRole(threadContext.getTenantId(), 
-                                               threadContext.getUser(), 
+             rows = getRoleImpl().addChildRole(threadContext.getJwtTenantId(), 
+                                               threadContext.getJwtUser(), 
                                                parentRoleName, childRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
-                     threadContext.getTenantId(), threadContext.getUser(), 
+                     threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                      childRoleName, parentRoleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
@@ -1136,11 +1136,11 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeChildRole(threadContext.getTenantId(),  
+             rows = getRoleImpl().removeChildRole(threadContext.getJwtTenantId(),  
                                                   parentRoleName, childRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
-                     threadContext.getTenantId(), threadContext.getUser(), 
+                     threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                      childRoleName, parentRoleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
@@ -1290,12 +1290,12 @@ public final class RoleResource
                  transList = getRoleImpl().previewPathPrefix(schema, roleName, 
                                                              oldSystemId, newSystemId, 
                                                              oldPrefix, newPrefix, 
-                                                             threadContext.getTenantId());
+                                                             threadContext.getJwtTenantId());
              }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_PERM_TRANSFORM_FAILED", schema, roleName,
                                               oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                              threadContext.getTenantId());
+                                              threadContext.getJwtTenantId());
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -1460,12 +1460,12 @@ public final class RoleResource
                  rows = getRoleImpl().replacePathPrefix(schema, roleName, 
                                                         oldSystemId, newSystemId, 
                                                         oldPrefix, newPrefix, 
-                                                        threadContext.getTenantId());
+                                                        threadContext.getJwtTenantId());
              }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_PERM_UPDATE_FAILED", schema, roleName,
                                               oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                              threadContext.getTenantId(), e.getMessage());
+                                              threadContext.getJwtTenantId(), e.getMessage());
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -1541,7 +1541,7 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (user.length() > RoleImpl.MAX_USER_NAME_LEN) {
-             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getTenantId(), 
+             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getJwtTenantId(), 
                                           user, RoleImpl.MAX_USER_NAME_LEN);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).

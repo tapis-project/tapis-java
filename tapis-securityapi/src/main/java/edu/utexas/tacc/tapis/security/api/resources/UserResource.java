@@ -174,7 +174,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> users = null;
-         try {users = getUserImpl().getUserNames(threadContext.getTenantId());}
+         try {users = getUserImpl().getUserNames(threadContext.getJwtTenantId());}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
@@ -234,7 +234,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> roles = null;
-         try {roles = getUserImpl().getUserRoles(threadContext.getTenantId(), user);}
+         try {roles = getUserImpl().getUserRoles(threadContext.getJwtTenantId(), user);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
@@ -330,7 +330,7 @@ public final class UserResource
          // Get the names.
          List<String> perms = null;
          try {
-             perms = getUserImpl().getUserPerms(threadContext.getTenantId(), 
+             perms = getUserImpl().getUserPerms(threadContext.getJwtTenantId(), 
                                                 user, implies, impliedBy);
          }
          catch (Exception e) {
@@ -433,8 +433,8 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Assign the role to the user.
          int rows = 0;
-         try {rows = getUserImpl().grantRole(threadContext.getTenantId(), 
-                                             threadContext.getUser(), user, roleName);
+         try {rows = getUserImpl().grantRole(threadContext.getJwtTenantId(), 
+                                             threadContext.getJwtUser(), user, roleName);
          }
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role", roleName);
@@ -533,7 +533,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Remove the role from the user.
          int rows = 0;
-         try {rows = getUserImpl().revokeUserRole(threadContext.getTenantId(), user, roleName);}
+         try {rows = getUserImpl().revokeUserRole(threadContext.getJwtTenantId(), user, roleName);}
              catch (TapisNotFoundException e) {
                  // Remove calls are idempotent so we simply log the
                  // occurrence and let normal processing take place.
@@ -541,7 +541,7 @@ public final class UserResource
              }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_REMOVE_USER_ROLE_ERROR",  
-                                              threadContext.getTenantId(), roleName, user,
+                                              threadContext.getJwtTenantId(), roleName, user,
                                               e.getMessage());
                  return getExceptionResponse(e, msg, prettyPrint);
              }
@@ -647,14 +647,14 @@ public final class UserResource
          // Create the role and/or permission.
          int rows = 0;
          try {
-             rows = getUserImpl().grantUserPermission(threadContext.getTenantId(), 
-                                                      threadContext.getUser(), 
+             rows = getUserImpl().grantUserPermission(threadContext.getJwtTenantId(), 
+                                                      threadContext.getJwtUser(), 
                                                       user, permSpec);
          } 
              catch (Exception e) {
                  // We assume a bad request for all other errors.
                  String msg = MsgUtils.getMsg("SK_ADD_USER_PERMISSION_ERROR", 
-                                              threadContext.getTenantId(), threadContext.getUser(), 
+                                              threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                               permSpec, user);
                  return getExceptionResponse(e, msg, prettyPrint);
              }
@@ -761,13 +761,13 @@ public final class UserResource
          // Remove the permission from the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeRolePermission(threadContext.getTenantId(), roleName, permSpec);
+             rows = getRoleImpl().removeRolePermission(threadContext.getJwtTenantId(), roleName, permSpec);
          } catch (TapisNotFoundException e) {
              // Default role not found is not considered an error.
          } catch (Exception e) {
              // A real error.
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          threadContext.getTenantId(), threadContext.getUser(), 
+                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                           permSpec, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
@@ -878,14 +878,14 @@ public final class UserResource
          // Create the role and/or permission.
          int rows = 0;
          try {
-             rows = getUserImpl().grantRoleWithPermission(threadContext.getTenantId(), 
-                                                          threadContext.getUser(), 
+             rows = getUserImpl().grantRoleWithPermission(threadContext.getJwtTenantId(), 
+                                                          threadContext.getJwtUser(), 
                                                           user, roleName, permSpec);
          } 
              catch (Exception e) {
                  // We assume a bad request for all other errors.
                  String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                              threadContext.getTenantId(), threadContext.getUser(), 
+                                              threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                               permSpec, roleName);
                  return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
              }
@@ -1264,7 +1264,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Assign the role to the user.
          List<String> users = null;
-         try {users = getUserImpl().getUsersWithRole(threadContext.getTenantId(), roleName);}
+         try {users = getUserImpl().getUsersWithRole(threadContext.getJwtTenantId(), roleName);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role");
              }
@@ -1344,7 +1344,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Assign the role to the user.
          List<String> users = null;
-         try {users = getUserImpl().getUsersWithPermission(threadContext.getTenantId(), permSpec);}
+         try {users = getUserImpl().getUsersWithPermission(threadContext.getJwtTenantId(), permSpec);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
@@ -1422,7 +1422,7 @@ public final class UserResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (user.length() > UserImpl.MAX_USER_NAME_LEN) {
-             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getTenantId(), 
+             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getJwtTenantId(), 
                                           user, UserImpl.MAX_USER_NAME_LEN);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
@@ -1499,11 +1499,11 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          boolean authorized;
-         try {authorized = getUserImpl().hasRole(threadContext.getTenantId(), user, 
+         try {authorized = getUserImpl().hasRole(threadContext.getJwtTenantId(), user, 
                                                  roleNames, op);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
-                                              threadContext.getTenantId(), 
+                                              threadContext.getJwtTenantId(), 
                                               user, e.getMessage());
                  return getExceptionResponse(e, msg, prettyPrint);
              }
@@ -1572,12 +1572,12 @@ public final class UserResource
          
          // ------------------------ Request Processing ------------------------
          boolean authorized;
-         try {authorized = getUserImpl().isPermitted(threadContext.getTenantId(), 
+         try {authorized = getUserImpl().isPermitted(threadContext.getJwtTenantId(), 
                                                      user, permSpecs, op);
          }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_USER_GET_PERMISSIONS_ERROR", 
-                                              threadContext.getTenantId(), user, e.getMessage());
+                                              threadContext.getJwtTenantId(), user, e.getMessage());
                  return getExceptionResponse(e, msg, prettyPrint);
              }
          

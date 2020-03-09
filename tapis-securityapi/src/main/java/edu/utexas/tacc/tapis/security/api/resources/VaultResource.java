@@ -249,7 +249,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecret skSecret = null;
          try {
-             skSecret = getVaultImpl().secretRead(threadContext.getTenantId(), threadContext.getUser(), 
+             skSecret = getVaultImpl().secretRead(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                                   secretPathParms, version);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -416,8 +416,8 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretMetadata skSecretMeta = null;
          try {
-             skSecretMeta = getVaultImpl().secretWrite(threadContext.getTenantId(), 
-                                                       threadContext.getUser(), 
+             skSecretMeta = getVaultImpl().secretWrite(threadContext.getJwtTenantId(), 
+                                                       threadContext.getJwtUser(), 
                                                        secretPathParms, secretMap);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -566,8 +566,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> deletedVersions = null;
          try {
-             deletedVersions = getVaultImpl().secretDelete(threadContext.getTenantId(), 
-                                                           threadContext.getUser(), 
+             deletedVersions = getVaultImpl().secretDelete(threadContext.getJwtTenantId(), 
+                                                           threadContext.getJwtUser(), 
                                                            secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -713,8 +713,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> undeletedVersions = null;
          try {
-             undeletedVersions = getVaultImpl().secretUndelete(threadContext.getTenantId(), 
-                                                               threadContext.getUser(), 
+             undeletedVersions = getVaultImpl().secretUndelete(threadContext.getJwtTenantId(), 
+                                                               threadContext.getJwtUser(), 
                                                                secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -861,8 +861,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> destroyedVersions = null;
          try {
-             destroyedVersions = getVaultImpl().secretDestroy(threadContext.getTenantId(), 
-                                                              threadContext.getUser(), 
+             destroyedVersions = getVaultImpl().secretDestroy(threadContext.getJwtTenantId(), 
+                                                              threadContext.getJwtUser(), 
                                                               secretPathParms, payload.versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -976,7 +976,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretVersionMetadata info = null;
          try {
-             info = getVaultImpl().secretReadMeta(threadContext.getTenantId(), threadContext.getUser(), 
+             info = getVaultImpl().secretReadMeta(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
                                                   secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -1090,7 +1090,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretList info = null;
          try {
-             info = getVaultImpl().secretListMeta(threadContext.getTenantId(), threadContext.getUser(),
+             info = getVaultImpl().secretListMeta(threadContext.getJwtTenantId(), threadContext.getJwtUser(),
                                                   secretPathParms);
          } catch (Exception e) {                  
              _log.error(e.getMessage(), e);
@@ -1203,8 +1203,8 @@ public final class VaultResource
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          try {
-             getVaultImpl().secretDestroyMeta(threadContext.getTenantId(), 
-                                              threadContext.getUser(), 
+             getVaultImpl().secretDestroyMeta(threadContext.getJwtTenantId(), 
+                                              threadContext.getJwtUser(), 
                                               secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
@@ -1300,8 +1300,8 @@ public final class VaultResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          boolean authorized;
-         try {authorized = getVaultImpl().validateServicePwd(threadContext.getTenantId(),
-                                                             threadContext.getUser(),
+         try {authorized = getVaultImpl().validateServicePwd(threadContext.getJwtTenantId(),
+                                                             threadContext.getJwtUser(),
                                                              secretName, payload.password);}
              catch (Exception e) {
                  // Already logged.
@@ -1311,8 +1311,8 @@ public final class VaultResource
          // Password was not matched.
          if (!authorized) {
              String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
-                                          threadContext.getTenantId(), 
-                                          threadContext.getUser(), secretName);
+                                          threadContext.getJwtTenantId(), 
+                                          threadContext.getJwtUser(), secretName);
              _log.warn(msg);
              return Response.status(Status.FORBIDDEN).
                  entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();

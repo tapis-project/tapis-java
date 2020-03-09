@@ -184,8 +184,8 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenantName = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenantName = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
@@ -328,8 +328,8 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenant = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // Check that accessMethodStr is valid if is passed in
     AccessMethod accessMethod = null;
@@ -410,8 +410,8 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenant = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // ------------------------- Retrieve all records -----------------------------
     List<String> systemNames;
@@ -477,8 +477,8 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenant = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenant = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     int changeCount;
     try

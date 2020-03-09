@@ -163,8 +163,8 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenantName = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenantName = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -250,7 +250,7 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenantName = threadContext.getTenantId();
+    String tenantName = threadContext.getJwtTenantId();
 //    String apiUserId = threadContext.getUser();
 
     // ------------------------- Check prerequisites -------------------------
@@ -327,8 +327,8 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenantName = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenantName = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -416,8 +416,8 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get tenant and apiUserId from context
-    String tenantName = threadContext.getTenantId();
-    String apiUserId = threadContext.getUser();
+    String tenantName = threadContext.getJwtTenantId();
+    String apiUserId = threadContext.getJwtUser();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
