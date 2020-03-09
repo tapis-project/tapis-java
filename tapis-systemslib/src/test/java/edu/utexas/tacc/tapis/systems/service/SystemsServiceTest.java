@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
@@ -61,6 +60,7 @@ public class SystemsServiceTest
   private static final Protocol prot9 = new Protocol(AccessMethod.CERT, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protA = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
+  private static final Protocol protC = new Protocol(AccessMethod.PKI_KEYS, null, -1, false, null,-1);
   private static final List<String> testPerms = new ArrayList<>(List.of(Permission.READ.name(), Permission.MODIFY.name(), Permission.DELETE.name()));
   private static final String[] tags = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
@@ -123,6 +123,11 @@ public class SystemsServiceTest
           protB.getPort(), protB.isUseProxy(), protB.getProxyHost(), protB.getProxyPort(),false,
           "jobLocalWorkDirB", "jobLocalArchDirB", "jobRemoteArchSystemB","jobRemoteArchDirB",
           null, tags, notesJO, null, null);
+  TSystem sysC = new TSystem(-1, tenantName, "SsysC", null, SystemType.LINUX, null, "hostC", true,
+          null, protC.getAccessMethod(), null,null, null, protC.getTransferMethods(),
+          protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
+          null, null, null, null,
+          null, null, null, null, null);
 
 //  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
 //  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
@@ -164,6 +169,16 @@ public class SystemsServiceTest
   public void testCreateSystem() throws Exception
   {
     TSystem sys0 = sys1;
+    int itemId = svc.createSystem(sys0, apiUser, scrubbedJson);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+  }
+
+  // Create a system using minimal attributes:
+  //   name, systemType, host, defaultAccessMethod, jobCanExec
+  @Test
+  public void testCreateSystemMinimal() throws Exception
+  {
+    TSystem sys0 = sysC;
     int itemId = svc.createSystem(sys0, apiUser, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
@@ -509,5 +524,6 @@ public class SystemsServiceTest
     svc.deleteSystemByName(sys9.getTenant(), sys9.getName());
     svc.deleteSystemByName(sysA.getTenant(), sysA.getName());
     svc.deleteSystemByName(sysB.getTenant(), sysB.getName());
+    svc.deleteSystemByName(sysC.getTenant(), sysC.getName());
   }
 }

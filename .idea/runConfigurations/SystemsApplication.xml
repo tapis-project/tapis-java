@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SystemsApplication" type="Application" factoryName="Application" nameIsGenerated="true">
+    <envs>
+      <env name="TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS" value="true" />
+      <env name="TAPIS_ENVONLY_JWT_OPTIONAL" value="true" />
+      <env name="TAPIS_REQUEST_LOGGING_FILTER_PREFIXES" value="/v3/systems" />
+      <env name="TAPIS_ENVONLY_SKIP_JWT_VERIFY" value="true" />
+      <env name="TAPIS_ENVONLY_KEYSTORE_PASSWORD" value="password" />
+      <env name="TAPIS_SVC_URL_TOKENS" value="https://dev.develop.tapis.io" />
+      <env name="TAPIS_SVC_URL_TENANTS" value="https://dev.develop.tapis.io" />
+    </envs>
+    <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
+    <option name="MAIN_CLASS_NAME" value="edu.utexas.tacc.tapis.systems.api.SystemsApplication" />
+    <module name="tapis-systemsapi" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="edu.utexas.tacc.tapis.systems.api.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

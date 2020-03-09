@@ -74,6 +74,7 @@ public class SystemResource
   private static final String SECRETS_MASK = "***";
 
   // Field names used in Json
+  private static final String TSYSTEM_FIELD = "tSystem";
   private static final String NAME_FIELD = "name";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";
@@ -219,7 +220,7 @@ public class SystemResource
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    // Check constraints on TSystem attributes
+    // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, prettyPrint);
     if (resp != null) return resp;
 
@@ -507,7 +508,7 @@ public class SystemResource
   /* **************************************************************************** */
 
   /**
-   * Check constraints on TSystem attributes
+   * Fill in defaults and check constraints on TSystem attributes
    * Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * Collect and report as many errors as possible so they can all be fixed before next attempt
@@ -517,6 +518,9 @@ public class SystemResource
    */
   private static Response validateTSystem(TSystem system, boolean prettyPrint)
   {
+    // Make sure owner, effectiveUserId, transferMethods, notes and tags are all set
+    system = TSystem.checkAndSetDefaults(system);
+
     String effectiveUserId = system.getEffectiveUserId();
     String owner  = system.getOwner();
     String name = system.getName();
@@ -569,7 +573,7 @@ public class SystemResource
     if (!errMessages.isEmpty())
     {
       // Construct message reporting all errors
-      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages);
+      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages, name);
       _log.error(allErrors);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
@@ -578,25 +582,30 @@ public class SystemResource
 
   /**
    * AccessCredential details can contain secrets. Mask any secrets given
-   * and return a string containing the final Json.
+   * and return a string containing the final redacted Json.
    * @param rawJson Json from request
    * @return A string with any secrets masked out
    */
   private static String maskCredSecrets(String rawJson)
   {
+    if (StringUtils.isBlank(rawJson)) return rawJson;
     // Get the Json object and prepare to extract info from it
-    JsonObject obj1 = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (!obj1.has(ACCESS_CREDENTIAL_FIELD)) return rawJson;
-    var credObj = obj1.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
+    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+    if (topObj == null || !topObj.has(TSYSTEM_FIELD)) return rawJson;
+    var sysObj = topObj.getAsJsonObject(TSYSTEM_FIELD);
+    if (!sysObj.has(ACCESS_CREDENTIAL_FIELD)) return rawJson;
+    var credObj = sysObj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
     maskSecret(credObj, CredentialResource.PASSWORD_FIELD);
     maskSecret(credObj, CredentialResource.PRIVATE_KEY_FIELD);
     maskSecret(credObj, CredentialResource.PUBLIC_KEY_FIELD);
     maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
     maskSecret(credObj, CredentialResource.ACCESS_KEY_FIELD);
     maskSecret(credObj, CredentialResource.ACCESS_SECRET_FIELD);
-    obj1.remove(ACCESS_CREDENTIAL_FIELD);
-    obj1.add(ACCESS_CREDENTIAL_FIELD, credObj);
-    return obj1.toString();
+    sysObj.remove(ACCESS_CREDENTIAL_FIELD);
+    sysObj.add(ACCESS_CREDENTIAL_FIELD, credObj);
+    topObj.remove(TSYSTEM_FIELD);
+    topObj.add(TSYSTEM_FIELD, sysObj);
+    return topObj.toString();
   }
 
   /**
@@ -614,9 +623,9 @@ public class SystemResource
   /**
    * Construct message containing list of errors
    */
-  private static String getListOfErrors(String firstLineKey, List<String> msgList) {
+  private static String getListOfErrors(String firstLineKey, List<String> msgList, Object... parms) {
     if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
-    var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey));
+    var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey, parms));
     sb.append(System.lineSeparator());
     for (String msg : msgList) { sb.append("  ").append(msg).append(System.lineSeparator()); }
     return sb.toString();

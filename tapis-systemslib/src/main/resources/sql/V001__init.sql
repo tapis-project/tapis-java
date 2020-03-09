@@ -42,14 +42,14 @@ CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SO
 -- Systems table
 CREATE TABLE systems
 (
-  id             SERIAL PRIMARY KEY,
-  tenant         VARCHAR(24) NOT NULL,
-  name           VARCHAR(256) NOT NULL,
-  description    VARCHAR(2048) NOT NULL,
-  system_type    system_type_type NOT NULL,
-  owner          VARCHAR(60) NOT NULL,
-  host           VARCHAR(256) NOT NULL,
-  enabled      BOOLEAN NOT NULL DEFAULT true,
+  id          SERIAL PRIMARY KEY,
+  tenant      VARCHAR(24) NOT NULL,
+  name        VARCHAR(256) NOT NULL,
+  description VARCHAR(2048),
+  system_type system_type_type NOT NULL,
+  owner       VARCHAR(60) NOT NULL,
+  host        VARCHAR(256) NOT NULL,
+  enabled     BOOLEAN NOT NULL DEFAULT true,
   effective_user_id VARCHAR(60) NOT NULL,
   default_access_method  access_meth_type NOT NULL,
   bucket_name    VARCHAR(63),
@@ -59,7 +59,6 @@ CREATE TABLE systems
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256) NOT NULL DEFAULT '',
   proxy_port INTEGER NOT NULL DEFAULT -1,
-
   job_can_exec   BOOLEAN NOT NULL DEFAULT false,
   job_local_working_dir VARCHAR(1024),
   job_local_archive_dir VARCHAR(1024),

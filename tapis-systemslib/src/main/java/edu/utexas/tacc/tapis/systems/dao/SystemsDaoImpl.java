@@ -103,16 +103,24 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", system.getName()));
 
+      // Make sure owner, effectiveUserId, notes and tags are all set
+      String owner = TSystem.DEFAULT_OWNER;
+      if (StringUtils.isNotBlank(system.getOwner())) owner = system.getOwner();
+      String effectiveUserId = TSystem.DEFAULT_EFFECTIVEUSERID;
+      if (StringUtils.isNotBlank(system.getEffectiveUserId())) effectiveUserId = system.getEffectiveUserId();
+      String tagsStr = TSystem.DEFAULT_TAGS_STR;
+      if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
+      String notesStr =  TSystem.DEFAULT_NOTES_STR;
+      if (system.getNotes() != null) notesStr = system.getNotes().toString();
+
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
-      String tags = TapisGsonUtils.getGson().toJson(system.getTags());
-      String notes = system.getNotes().toString();
       var tagsJsonb = new PGobject();
       tagsJsonb.setType("jsonb");
-      tagsJsonb.setValue(tags);
+      tagsJsonb.setValue(tagsStr);
       var notesJsonb = new PGobject();
       notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notes);
+      notesJsonb.setValue(notesStr);
 
       // Prepare the statement, fill in placeholders and execute
       sql = SqlStatements.CREATE_SYSTEM;
@@ -121,10 +129,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(2, system.getName());
       pstmt.setString(3, system.getDescription());
       pstmt.setString(4, system.getSystemType().name());
-      pstmt.setString(5, system.getOwner());
+      pstmt.setString(5, owner);
       pstmt.setString(6, system.getHost());
       pstmt.setBoolean(7, system.isEnabled());
-      pstmt.setString(8, system.getEffectiveUserId());
+      pstmt.setString(8, effectiveUserId);
       pstmt.setString(9, system.getDefaultAccessMethod().name());
       pstmt.setString(10, system.getBucketName());
       pstmt.setString(11, system.getRootDir());

@@ -102,7 +102,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_CREATE_ARG_ERROR", tenantName, systemName, apiUserId));
     }
 
-    // ---------------- Check constraints on TSystem attributes ----------------------------
+    // ---------------- Fill in defaults and check constraints on TSystem attributes ------------------------
     validateTSystem(system);
 
     // ----------------- Resolve variables for any attributes that might contain them --------------------
@@ -677,7 +677,7 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Check constraints on TSystem attributes
+   * Fill in defaults and check constraints on TSystem attributes.
    * effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * @param system - the TSystem to check
@@ -687,6 +687,9 @@ public class SystemsServiceImpl implements SystemsService
   {
     String msg;
     var errMessages = new ArrayList<String>();
+    // Make sure owner, effectiveUserId, notes and tags are all set
+    system = TSystem.checkAndSetDefaults(system);
+
     // Check for valid effectiveUserId
     // For CERT access the effectiveUserId cannot be static string other than owner
     String effectiveUserId = system.getEffectiveUserId();

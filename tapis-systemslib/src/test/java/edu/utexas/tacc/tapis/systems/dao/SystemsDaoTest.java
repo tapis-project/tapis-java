@@ -83,10 +83,12 @@ public class SystemsDaoTest
           null, tags, notesJO, null, null);
 
   @BeforeSuite
-  public void setup()
+  public void setup() throws Exception
   {
     System.out.println("Executing BeforeSuite setup method");
     dao = new SystemsDaoImpl();
+    // Cleanup anything leftover from previous failed run
+    teardown();
   }
 
   // Test create for a single item
