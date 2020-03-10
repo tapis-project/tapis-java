@@ -467,7 +467,6 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get credential for given system, user and access method
-   * TODO/TBD: Support looking up default access method for system instead of throwing exception
    * @return Credential - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    */
@@ -475,10 +474,22 @@ public class SystemsServiceImpl implements SystemsService
   public Credential getUserCredential(String tenantName, String systemName, String userName, AccessMethod accessMethod) throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) || accessMethod == null)
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
+    // If system does not exist throw an exception
+    if (!checkForSystemByName(tenantName, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+
+    // If accessMethod not passed in fill in with default from system
+    if (accessMethod == null)
+    {
+      TSystem sys = dao.getTSystemByName(tenantName, systemName);
+      if (sys == null)  throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+      accessMethod = sys.getDefaultAccessMethod();
+    }
+
+
     Credential credential = null;
     try
     {

@@ -301,7 +301,12 @@ public class CredentialResource
     String tenantName = threadContext.getTenantId();
     String apiUserId = threadContext.getUser();
 
-    // Check that accessMethodStr is valid if is passed in
+    // ------------------------- Check prerequisites -------------------------
+    // Check that the system exists
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "getUserCredential");
+    if (resp != null) return resp;
+
+    // Check that accessMethodStr is valid if it is passed in
     AccessMethod accessMethod = null;
     try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
     catch (IllegalArgumentException e)
@@ -311,11 +316,6 @@ public class CredentialResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-
-    // ------------------------- Check prerequisites -------------------------
-    // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "getUserCredential");
-    if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
     // TODO
 //    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId, "getUserCredential");
