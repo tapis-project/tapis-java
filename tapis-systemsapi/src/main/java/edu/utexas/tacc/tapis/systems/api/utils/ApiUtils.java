@@ -120,27 +120,28 @@ public class ApiUtils
   /**
    * Check that system exists
    * @param tenantName - name of the tenant
+   * @param apiUserId - user name associated with API request
    * @param systemName - name of the system to check
    * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
    * @param opName - operation name, for constructing response msg
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String systemName,
-                                           String userName, boolean prettyPrint, String opName)
+  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String apiUserId,
+                                           String systemName, String userName, boolean prettyPrint, String opName)
   {
     String msg;
     boolean systemExists;
-    try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
+    try { systemExists = systemsService.checkForSystemByName(tenantName, apiUserId, systemName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, apiUserId, e.getMessage());
       _log.error(msg, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if (!systemExists)
     {
-      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, userName);
+      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, apiUserId);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -150,15 +151,17 @@ public class ApiUtils
   /**
    * Check that requester is either owner or (optionally) apiUserId.
    * @param tenantName - name of the tenant
+   * @param apiUserId - user name associated with API request
    * @param systemName - name of the system to check
    * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
-   * @param requesterName - name of the requester, null if check should be skipped
+   * @param requesterName - name of the requester, TODO/TBD null if check should be skipped
    * @param opName - operation name, for constructing response msg
    * @param mustBeOwner - indicates if only owner can perform requested operation
    * @return - null if all checks OK else Response containing info
+   * TODO/TBD: requesterName and apiUserId are same?
    */
-  public static Response checkAuth1(SystemsService systemsService, String tenantName, String systemName, String userName,
+  public static Response checkAuth1(SystemsService systemsService, String tenantName, String apiUserId, String systemName, String userName,
                                     boolean prettyPrint, String requesterName, String opName, boolean mustBeOwner)
   {
     String msg;
@@ -169,7 +172,7 @@ public class ApiUtils
       _log.error(msg);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    try { owner = systemsService.getSystemOwner(tenantName, systemName); }
+    try { owner = systemsService.getSystemOwner(tenantName, apiUserId, systemName); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", opName, systemName, userName, requesterName, e.getMessage());

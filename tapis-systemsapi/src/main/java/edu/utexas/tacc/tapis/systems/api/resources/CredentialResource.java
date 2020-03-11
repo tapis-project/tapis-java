@@ -185,10 +185,10 @@ public class CredentialResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "createUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "createUserCredential");
     if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
             "createUserCredential", false);
     if (resp != null) return resp;
 
@@ -231,7 +231,7 @@ public class CredentialResource
     // Make the service call to create or update the credential
     try
     {
-      systemsService.createUserCredential(tenantName, systemName, userName, credential);
+      systemsService.createUserCredential(tenantName, apiUserId, systemName, userName, credential);
     }
     catch (Exception e)
     {
@@ -303,7 +303,7 @@ public class CredentialResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "getUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "getUserCredential");
     if (resp != null) return resp;
 
     // Check that accessMethodStr is valid if it is passed in
@@ -324,7 +324,7 @@ public class CredentialResource
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the credentials
     Credential credential;
-    try { credential = systemsService.getUserCredential(tenantName, systemName, userName, accessMethod); }
+    try { credential = systemsService.getUserCredential(tenantName, apiUserId, systemName, userName, accessMethod); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", null, systemName, userName, e.getMessage());
@@ -398,10 +398,10 @@ public class CredentialResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "removeUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "removeUserCredential");
     if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
                        "removeUserCredential", false);
     if (resp != null) return resp;
 
@@ -409,7 +409,7 @@ public class CredentialResource
     // Make the service call to remove the credential
     try
     {
-      systemsService.deleteUserCredential(tenantName, systemName, userName);
+      systemsService.deleteUserCredential(tenantName, apiUserId, systemName, userName);
     }
     catch (Exception e)
     {

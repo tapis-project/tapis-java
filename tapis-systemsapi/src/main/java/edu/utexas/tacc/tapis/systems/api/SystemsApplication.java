@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.api;
 
 import javax.ws.rs.ApplicationPath;
 
+import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
@@ -21,8 +22,7 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 
 import java.net.URI;
 
-// The path here is appended to the context root and
-// is configured to work when invoked in a standalone 
+// The path here is appended to the context root and is configured to work when invoked in a standalone
 // container (command line) and in an IDE (eclipse).
 // NOTE: This path should match the war file name (v3#systems.war) for running
 //       in IntelliJ IDE as well as from a docker container.
@@ -55,10 +55,9 @@ public class SystemsApplication extends ResourceConfig
     // included as a maven dependency.
     packages("edu.utexas.tacc.tapis");
 
-    // Finally set the application name
+    // Set the application name.
     // Note that this has no impact on base URL
     setApplicationName("systems");
-
 
     try {
 
@@ -68,6 +67,7 @@ public class SystemsApplication extends ResourceConfig
         protected void configure() {
           bind(SystemsServiceImpl.class).to(SystemsService.class);
           bind(SystemsDaoImpl.class).to(SystemsDao.class);
+          bind(SKClient.class).to(SKClient.class);
         }
       });
 

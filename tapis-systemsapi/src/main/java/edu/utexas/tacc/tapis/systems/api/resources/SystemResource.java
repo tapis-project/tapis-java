@@ -234,7 +234,7 @@ public class SystemResource
     String systemName = system.getName();
     try
     {
-      systemsService.createSystem(system, apiUserId, scrubbedJson);
+      systemsService.createSystem(tenantName, apiUserId, system, scrubbedJson);
     }
     catch (IllegalStateException e)
     {
@@ -345,7 +345,7 @@ public class SystemResource
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, sysName, apiUserId, getCreds, accessMethod);
+      system = systemsService.getSystemByName(tenant, apiUserId, sysName, getCreds, accessMethod);
     }
     catch (Exception e)
     {
@@ -416,7 +416,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     List<String> systemNames;
-    try { systemNames = systemsService.getSystemNames(tenant); }
+    try { systemNames = systemsService.getSystemNames(tenant, apiUserId); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", e.getMessage());
@@ -484,7 +484,7 @@ public class SystemResource
     int changeCount;
     try
     {
-      changeCount = systemsService.deleteSystemByName(tenant, sysName);
+      changeCount = systemsService.deleteSystemByName(tenant, apiUserId, sysName);
     }
     catch (Exception e)
     {

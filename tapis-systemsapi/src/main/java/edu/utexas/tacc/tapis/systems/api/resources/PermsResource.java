@@ -168,10 +168,10 @@ public class PermsResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "grantUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "grantUserPerms");
     if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
                        "grantUserPerms", true);
     if (resp != null) return resp;
 
@@ -184,11 +184,11 @@ public class PermsResource
     // Make the service call to assign the permissions
     try
     {
-      systemsService.grantUserPermissions(tenantName, systemName, userName, permsList);
+      systemsService.grantUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -251,20 +251,20 @@ public class PermsResource
 
     // Get tenant and apiUserId from context
     String tenantName = threadContext.getTenantId();
-//    String apiUserId = threadContext.getUser();
+    String apiUserId = threadContext.getUser();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "getUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "getUserPerms");
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the permissions
     List<String> permNames;
-    try { permNames = systemsService.getUserPermissions(tenantName, systemName, userName); }
+    try { permNames = systemsService.getUserPermissions(tenantName, apiUserId, systemName, userName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -332,10 +332,10 @@ public class PermsResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "revokeUserPerm");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerm");
     if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
                        "revokeUserPerm", false);
     if (resp != null) return resp;
 
@@ -345,11 +345,11 @@ public class PermsResource
     permsList.add(permission);
     try
     {
-      systemsService.revokeUserPermissions(tenantName, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -421,10 +421,10 @@ public class PermsResource
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, systemName, userName, prettyPrint, "revokeUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerms");
     if (resp != null) return resp;
     // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId,
+    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
                        "revokeUserPerms", false);
     if (resp != null) return resp;
 
@@ -437,11 +437,11 @@ public class PermsResource
     // Make the service call to revoke the permissions
     try
     {
-      systemsService.revokeUserPermissions(tenantName, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }

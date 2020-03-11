@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -59,14 +60,15 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
-  // TODO: thread safety
-//  Map<String, SKClient> skClientMap = new HashMap<>();
 
-  // Use HK2 to inject dao
+  Map<String, ServiceJWT> svcJWTMap = new HashMap<>();
+
+  // Use HK2 to inject singletons
   @Inject
   private SystemsDao dao;
 
-  private ServiceJWT serviceJWT;
+  @Inject
+  private SKClient skClient;
 
   // ************************************************************************
   // *********************** Public Methods *********************************
@@ -85,24 +87,24 @@ public class SystemsServiceImpl implements SystemsService
    * @throws IllegalArgumentException - invalid parameter passed in
    */
   @Override
-  public int createSystem(TSystem system, String apiUserId, String scrubbedJson)
+  public int createSystem(String tenantName, String apiUserId, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException, IllegalArgumentException
   {
 
-    // Extract tenant and system names for convenience
+    // Extract system name for convenience
     String systemName = (system == null ? null : system.getName());
-    String tenantName = (system == null ? null : system.getTenant());
 
     // ---------------------------- Check inputs ------------------------------------
     // Required system attributes: name, type, host, defaultAccessMethod
-    if (system == null || StringUtils.isBlank(system.getTenant()) || StringUtils.isBlank(systemName) ||
+    if (system == null || StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
         system.getSystemType() == null || StringUtils.isBlank(system.getHost()) ||
         system.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
     {
-      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_CREATE_ARG_ERROR", tenantName, systemName, apiUserId));
+      throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_CREATE_ARG_ERROR", tenantName, apiUserId, systemName));
     }
 
     // ---------------- Fill in defaults and check constraints on TSystem attributes ------------------------
+    system.setTenant(tenantName);
     validateTSystem(system);
 
     // ----------------- Resolve variables for any attributes that might contain them --------------------
@@ -117,14 +119,14 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------- Add permissions -----------------------------------
     // Give owner and possibly effectiveUser access to the system
     String effectiveUserId = system.getEffectiveUserId();
-    grantUserPermissions(tenantName, systemName, system.getOwner(), ALL_PERMS);
+    grantUserPermissions(tenantName, apiUserId, systemName, system.getOwner(), ALL_PERMS);
     if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
     {
-      grantUserPermissions(tenantName, systemName, effectiveUserId, ALL_PERMS);
+      grantUserPermissions(tenantName, apiUserId, systemName, effectiveUserId, ALL_PERMS);
     }
     // TODO/TBD: remove addition of files related permSpec
     // Give owner/effectiveUser files service related permission for root directory
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
     String permSpec = "files:" + tenantName + ":*:" +  systemName;
     skClient.grantUserPermission(system.getOwner(), permSpec);
     if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(effectiveUserId, permSpec);
@@ -137,7 +139,7 @@ public class SystemsServiceImpl implements SystemsService
       String accessUser = effectiveUserId;
       // If effectiveUser is owner resolve to static string.
       if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-      createUserCredential(tenantName, systemName, accessUser, credential);
+      createUserCredential(tenantName, apiUserId, systemName, accessUser, credential);
     }
 
     return itemId;
@@ -153,9 +155,9 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public int deleteSystemByName(String tenantName, String systemName) throws TapisException
+  public int deleteSystemByName(String tenantName, String apiUserId, String systemName) throws TapisException
   {
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
     // TODO: Remove all credentials associated with the system.
     // TODO: Have SK do this in one operation?
 //    deleteUserCredential(tenantName, systemName, );
@@ -170,7 +172,7 @@ public class SystemsServiceImpl implements SystemsService
     var userNames = skClient.getUsersWithPermission(permSpec);
     // Revoke all perms for all users
     for (String userName : userNames) {
-      revokeUserPermissions(tenantName, systemName, userName, ALL_PERMS);
+      revokeUserPermissions(tenantName, apiUserId, systemName, userName, ALL_PERMS);
       // TODO/TBD: How to make sure all perms for a system are removed?
       // TODO *************** remove debug output ********************
       printPermInfoForUser(skClient, userName);
@@ -188,7 +190,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public boolean checkForSystemByName(String tenantName, String systemName) throws TapisException {
+  public boolean checkForSystemByName(String tenantName, String apiUserId, String systemName) throws TapisException {
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     boolean result = dao.checkForTSystemByName(tenantName, systemName);
     return result;
@@ -202,7 +204,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public TSystem getSystemByName(String tenantName, String systemName, String apiUserId, boolean getCreds, AccessMethod accMethod1) throws TapisException {
+  public TSystem getSystemByName(String tenantName, String apiUserId, String systemName, boolean getCreds, AccessMethod accMethod1) throws TapisException {
     TSystem result = dao.getTSystemByName(tenantName, systemName);
     if (result == null) return null;
     // Resolve effectiveUserId if necessary
@@ -215,7 +217,7 @@ public class SystemsServiceImpl implements SystemsService
       AccessMethod accMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
       if (accMethod1 != null) accMethod = accMethod1;
-      Credential cred = getUserCredential(tenantName, systemName, effectiveUserId, accMethod);
+      Credential cred = getUserCredential(tenantName, apiUserId, systemName, effectiveUserId, accMethod);
       result.setAccessCredential(cred);
     }
     return result;
@@ -223,14 +225,14 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get all systems
-   * @param tenant - Tenant name
+   * @param tenantName - Tenant name
    * @return List of TSystem objects
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<TSystem> getSystems(String tenant, String apiUserId) throws TapisException
+  public List<TSystem> getSystems(String tenantName, String apiUserId) throws TapisException
   {
-    List<TSystem> result = dao.getTSystems(tenant);
+    List<TSystem> result = dao.getTSystems(tenantName);
     for (TSystem sys : result)
     {
       sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
@@ -240,27 +242,27 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get list of system names
-   * @param tenant - Tenant name
+   * @param tenantName - Tenant name
    * @return - list of systems
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<String> getSystemNames(String tenant) throws TapisException
+  public List<String> getSystemNames(String tenantName, String apiUserId) throws TapisException
   {
-    return dao.getTSystemNames(tenant);
+    return dao.getTSystemNames(tenantName);
   }
 
   /**
    * Get system owner
-   * @param tenant - Tenant name
+   * @param tenantName - Tenant name
    * @param systemName - Name of the system
    * @return - Owner or null if system not found
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public String getSystemOwner(String tenant, String systemName) throws TapisException
+  public String getSystemOwner(String tenantName, String apiUserId, String systemName) throws TapisException
   {
-    return dao.getTSystemOwner(tenant, systemName);
+    return dao.getTSystemOwner(tenantName, systemName);
   }
 
   // -----------------------------------------------------------------------
@@ -274,7 +276,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void grantUserPermissions(String tenantName, String systemName, String userName, List<String> permissions)
+  public void grantUserPermissions(String tenantName, String apiUserId, String systemName, String userName, List<String> permissions)
     throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
@@ -288,7 +290,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
 
     // Assign perms to user. SK creates a default role for the user
     try
@@ -313,7 +315,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void revokeUserPermissions(String tenantName, String systemName, String userName, List<String> permissions)
+  public void revokeUserPermissions(String tenantName, String apiUserId, String systemName, String userName, List<String> permissions)
     throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
@@ -327,7 +329,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
 
     // Remove perms from default user role
     try
@@ -352,11 +354,11 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<String> getUserPermissions(String tenantName, String systemName, String userName) throws TapisException
+  public List<String> getUserPermissions(String tenantName, String apiUserId, String systemName, String userName) throws TapisException
   {
     var userPerms = new ArrayList<String>();
     // Use Security Kernel client to check for each permission in the enum list
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
     for (TSystem.Permission perm : TSystem.Permission.values())
     {
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
@@ -381,7 +383,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void createUserCredential(String tenantName, String systemName, String userName, Credential credential)
+  public void createUserCredential(String tenantName, String apiUserId, String systemName, String userName, Credential credential)
           throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
@@ -390,7 +392,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
     try {
       // Construct basic SK secret parameters
       var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
@@ -435,7 +437,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void deleteUserCredential(String tenantName, String systemName, String userName)
+  public void deleteUserCredential(String tenantName, String apiUserId, String systemName, String userName)
           throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
@@ -444,7 +446,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName);
+    var skClient = getSKClient(tenantName, apiUserId);
     // Construct basic SK secret parameters
     var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
     try
@@ -471,7 +473,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public Credential getUserCredential(String tenantName, String systemName, String userName, AccessMethod accessMethod) throws TapisException
+  public Credential getUserCredential(String tenantName, String apiUserId, String systemName, String userName, AccessMethod accessMethod) throws TapisException
   {
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
@@ -479,7 +481,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // If system does not exist throw an exception
-    if (!checkForSystemByName(tenantName, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+    if (!checkForSystemByName(tenantName, apiUserId, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
 
     // If accessMethod not passed in fill in with default from system
     if (accessMethod == null)
@@ -494,7 +496,7 @@ public class SystemsServiceImpl implements SystemsService
     try
     {
       // Get the Security Kernel client
-      var skClient = getSKClient(tenantName);
+      var skClient = getSKClient(tenantName, apiUserId);
       // Construct basic SK secret parameters
       var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
       // Set key type based on access method
@@ -532,55 +534,31 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get Security Kernel client associated with specified tenant
-   * TODO: thread safety?
-   * TODO: or worst case it creates some clients a few extra times.
-   * TODO: Cache the SK clients in a map by tenant name.
    * @param tenantName - name of tenant
    * @return SK client
    * @throws TapisException - for Tapis related exceptions
    */
-  private SKClient getSKClient(String tenantName) throws TapisException
+  private SKClient getSKClient(String tenantName, String apiUserId) throws TapisException
   {
-    // Create an SKClient on the fly. If this becomes a bottleneck we can add a cache.
-
-    // Use TenantManager to get tenant info. Needed for SK base URL.
-    // TenantManager initialized in front end api class SystemsApplication
-    Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
-
-    // We will need some run time parameters
-    RuntimeParameters runTimeParms = RuntimeParameters.getInstance();
-
-    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
-//    String skURL = "https://dev.develop.tapis.io/v3";
-    String skURL = runTimeParms.getSkSvcURL();
-    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
-    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
-    // Strip off everything after the /v3 so we have a valid SK base URL
-    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
-
-    // TODO replace all service JWT related code with ServiceJWT
-    // TODO Initialize this at runtime
-// TODO ServiceJWT throwing error trying to generate jwt.
-    //TODO  difference between working code below and serviceJWT is working code is only setting
-    //  accountType, service name and tenant
-    //  serviceJWT is also setting
-    //      accessTokenTtl, generateRefreshToken=true and refreshTokeTtl values
-    //      and this appears to cause tokens svc to return an error (Internal Server Error)
-//    if (serviceJWT == null)
+    Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
+    // TODO Put back in use of ServiceJWT when working.
+    // Check ServiceJWT cache, if not there create one.
+//    var svcJWT = svcJWTMap.get(tenantName);
+//    if (svcJWT == null)
 //    {
 //      var svcJWTParms = new ServiceJWTParms();
 //      svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
 //      svcJWTParms.setTenant(tenantName);
-//      svcJWTParms.setTokensBaseUrl(tenant1.getTokenService());
-//      serviceJWT = new ServiceJWT(svcJWTParms, "fakeServicePassword");
+//      svcJWTParms.setTokensBaseUrl(tenant.getTokenService());
+//      svcJWT = new ServiceJWT(svcJWTParms, "fakeServicePassword");
+//      svcJWTMap.put(tenantName, svcJWT);
 //    }
 
-
+    // TODO remove this in favor of ServiceJWT when working.
     // Get short term service JWT from tokens service
     // Tokens service URL comes from env or the tenants service
-    String tokensURL = runTimeParms.getTokensSvcURL();
-    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+    String tokensURL = RuntimeParameters.getInstance().getTokensSvcURL();
+    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant.getTokenService();
     if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
     var tokClient = new TokensClient(tokensURL);
     String svcJWTStr;
@@ -589,79 +567,118 @@ public class SystemsServiceImpl implements SystemsService
     // Basic check of JWT
     if (StringUtils.isBlank(svcJWTStr)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
 
-    // Create and configure the SKClient
-    SKClient skClient = new SKClient(skURL, svcJWTStr);
-//    SKClient skClient = new SKClient(skURL, serviceJWT.getAccessJWT());
 
-    // Service to Service calls require user header, set it to be the same as the service name
-    // TODO Get string constants from shared code when available
-    String TAPIS_USER_HEADER = "X-Tapis-User";
-    String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
-    skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
-    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
-//    skClientMap.put(tenantName, skClient);
+
+    // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
+    // Get Security Kernel URL from the env or the tenants service. Env value has precedence.
+    //    String skURL = "https://dev.develop.tapis.io/v3";
+    String skURL = RuntimeParameters.getInstance().getSkSvcURL();
+    if (StringUtils.isBlank(skURL)) skURL = tenant.getSecurityKernel();
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
+    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
+    // Strip off everything after the /v3 so we have a valid SK base URL
+    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
+    skClient.setBasePath(skURL);
+//    skClient.addDefaultHeader("X-Tapis-Token", svcJWT.getAccessJWT());
+    skClient.addDefaultHeader("X-Tapis-Token", svcJWTStr);
+    skClient.addDefaultHeader("X-Tapis-User", apiUserId);
+    skClient.addDefaultHeader("X-Tapis-Tenant", tenantName);
     return skClient;
 
-// TODO If need to cache, consider creating a:
-//    Class providing everything needed for managing an SKClient for a specific tenant.
-//          Contains an SKClient and ServiceJWT.
-//    Provides logic and attributes needed to check for refresh of service JWT.
-
-//    // TODO: Check with serviceJWT to see if our service jwt has been refreshed and we need to update clients with new jwt.
-//
-//    // Check cache, if we have it already we are done, otherwise continue and create one.
-//    var skClient = skClientMap.get(tenantName);
-//    if (skClient != null) return skClient;
-//
 //    // Use TenantManager to get tenant info. Needed for SK base URL.
 //    // TenantManager initialized in front end api class SystemsApplication
 //    Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
 //
-//    // Tokens service URL comes from env or the tenants service
-//    RuntimeParameters runTimeParms = RuntimeParameters.getInstance();
-//    String tokensURL = runTimeParms.getTokensSvcURL();
-//    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
-//    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
-//
-//    // TODO Create a ServiceJWT manager to get auto-magically refreshed service JWT for the tenant
-//    // TODO: Create class to store all needed: SKClient, ServiceJWT, logic and attributes needed to check for refresh,
-//    //       then cache objects of this new class. Call it SKTenantClient (?) which pkg?
-//    // Put in a cache
-//    var svcJWTParms = new ServiceJWTParms();
-//    svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
-//    svcJWTParms.setTenant(tenantName);
-//    svcJWTParms.setTokensBaseUrl(tokensURL);
-//    var serviceJwt = new ServiceJWT(svcJWTParms, "fakeServicePassword");
-//    svcJWTMap.put(tenantName, serviceJwt);
-//
-//
-//    // TODO remove in favor of ServiceJWT manager
-//    // Get short term service JWT from tokens service
-//    var tokClient = new TokensClient(tokensURL);
-//    String svcJWT;
-//    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-//    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
-//    // Basic check of JWT
-//    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
-//
-//    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
-////    String skURL = "https://dev.develop.tapis.io/v3";
-//    String skURL = runTimeParms.getSkSvcURL();
+//    String skURL = RuntimeParameters.getInstance().getSkSvcURL();
 //    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
 //    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
 //    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
 //    // Strip off everything after the /v3 so we have a valid SK base URL
 //    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 //
-//    skClient = new SKClient(skURL, svcJWT);
+//    // TODO replace all service JWT related code with ServiceJWT
+//    // TODO Initialize this at runtime
+//// TODO ServiceJWT throwing error trying to generate jwt.
+//    //TODO  difference between working code below and serviceJWT is working code is only setting
+//    //  accountType, service name and tenant
+//    //  serviceJWT is also setting
+//    //      accessTokenTtl, generateRefreshToken=true and refreshTokeTtl values
+//    //      and this appears to cause tokens svc to return an error (Internal Server Error)
+//
+//
+//    // Create and configure the SKClient
+//    SKClient skClient = new SKClient(skURL, svcJWTStr);
+////    SKClient skClient = new SKClient(skURL, serviceJWT.getAccessJWT());
+//
 //    // Service to Service calls require user header, set it to be the same as the service name
 //    // TODO Get string constants from shared code when available
 //    String TAPIS_USER_HEADER = "X-Tapis-User";
 //    String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
 //    skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
 //    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
-//    skClientMap.put(tenantName, skClient);
+////    skClientMap.put(tenantName, skClient);
 //    return skClient;
+//
+//// TODO If need to cache, consider creating a:
+////    Class providing everything needed for managing an SKClient for a specific tenant.
+////          Contains an SKClient and ServiceJWT.
+////    Provides logic and attributes needed to check for refresh of service JWT.
+//
+////    // TODO: Check with serviceJWT to see if our service jwt has been refreshed and we need to update clients with new jwt.
+////
+////    // Check cache, if we have it already we are done, otherwise continue and create one.
+////    var skClient = skClientMap.get(tenantName);
+////    if (skClient != null) return skClient;
+////
+////    // Use TenantManager to get tenant info. Needed for SK base URL.
+////    // TenantManager initialized in front end api class SystemsApplication
+////    Tenant tenant1 = TenantManager.getInstance().getTenant(tenantName);
+////
+////    // Tokens service URL comes from env or the tenants service
+////    RuntimeParameters runTimeParms = RuntimeParameters.getInstance();
+////    String tokensURL = runTimeParms.getTokensSvcURL();
+////    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant1.getTokenService();
+////    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
+////
+////    // TODO Create a ServiceJWT manager to get auto-magically refreshed service JWT for the tenant
+////    // TODO: Create class to store all needed: SKClient, ServiceJWT, logic and attributes needed to check for refresh,
+////    //       then cache objects of this new class. Call it SKTenantClient (?) which pkg?
+////    // Put in a cache
+////    var svcJWTParms = new ServiceJWTParms();
+////    svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
+////    svcJWTParms.setTenant(tenantName);
+////    svcJWTParms.setTokensBaseUrl(tokensURL);
+////    var serviceJwt = new ServiceJWT(svcJWTParms, "fakeServicePassword");
+////    svcJWTMap.put(tenantName, serviceJwt);
+////
+////
+////    // TODO remove in favor of ServiceJWT manager
+////    // Get short term service JWT from tokens service
+////    var tokClient = new TokensClient(tokensURL);
+////    String svcJWT;
+////    try {svcJWT = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
+////    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
+////    // Basic check of JWT
+////    if (StringUtils.isBlank(svcJWT)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
+////
+////    // Get Security Kernel URL from the env or the tenants service. Env value has precedence
+//////    String skURL = "https://dev.develop.tapis.io/v3";
+////    String skURL = runTimeParms.getSkSvcURL();
+////    if (StringUtils.isBlank(skURL)) skURL = tenant1.getSecurityKernel();
+////    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
+////    // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
+////    // Strip off everything after the /v3 so we have a valid SK base URL
+////    skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
+////
+////    skClient = new SKClient(skURL, svcJWT);
+////    // Service to Service calls require user header, set it to be the same as the service name
+////    // TODO Get string constants from shared code when available
+////    String TAPIS_USER_HEADER = "X-Tapis-User";
+////    String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
+////    skClient.addDefaultHeader(TAPIS_USER_HEADER, SERVICE_NAME_SYSTEMS);
+////    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, tenantName);
+////    skClientMap.put(tenantName, skClient);
+////    return skClient;
   }
 
   /**
