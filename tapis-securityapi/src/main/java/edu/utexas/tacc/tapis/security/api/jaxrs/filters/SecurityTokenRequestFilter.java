@@ -41,8 +41,8 @@ implements ContainerRequestFilter
    /* ********************************************************************** */
    /*                                Fields                                  */
    /* ********************************************************************** */
-   @Context
-   private ResourceInfo resourceInfo;
+   // Compile-time flag.
+   private final boolean traceOn = false;
    
    /* ********************************************************************** */
    /*                            Public Methods                              */
@@ -50,12 +50,13 @@ implements ContainerRequestFilter
    /* ---------------------------------------------------------------------- */
    /* filter:                                                                */
    /* ---------------------------------------------------------------------- */
+   @SuppressWarnings("unused")
    @Override
    public void filter(ContainerRequestContext requestContext) throws IOException 
    {
        // Tracing.  Normally turned off to avoid the I/O overhead.
-//       if (_log.isTraceEnabled())
-//           _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
+       if (traceOn && _log.isTraceEnabled())
+           _log.trace("Executing JAX-RX request filter: " + this.getClass().getSimpleName() + ".");
        
        // Get the service-specific path, which is the path after the host:port 
        // segment and includes a leading slash.  

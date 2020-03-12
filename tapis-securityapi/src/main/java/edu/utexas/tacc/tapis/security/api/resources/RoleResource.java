@@ -42,7 +42,6 @@ import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
@@ -158,7 +157,8 @@ public final class RoleResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
-     public Response getRoleNames(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getRoleNames(@QueryParam("tenant") String tenant,
+                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -167,20 +167,27 @@ public final class RoleResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, null, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          List<String> list = null;
          try {
-             list = getRoleImpl().getRoleNames(threadContext.getJwtTenantId());
+             list = getRoleImpl().getRoleNames(tenant);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_GET_NAMES_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser());
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_NAMES_ERROR", tenant, 
+                                          TapisThreadLocal.tapisThreadContext.get().getJwtUser());
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
@@ -223,6 +230,7 @@ public final class RoleResource
                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
      public Response getRoleByName(@PathParam("roleName") String roleName,
+                                   @QueryParam("tenant") String tenant,
                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
@@ -232,20 +240,27 @@ public final class RoleResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, null, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          SkRole role = null;
          try {
-             role = getRoleImpl().getRoleByName(threadContext.getJwtTenantId(), roleName);
+             role = getRoleImpl().getRoleByName(tenant, roleName);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", tenant,
+                                          TapisThreadLocal.tapisThreadContext.get().getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -317,7 +332,7 @@ public final class RoleResource
          // Parse and validate the json in the request payload, which must exist.
          ReqCreateRole payload = null;
          try {payload = getPayload(payloadStream, FILE_SK_CREATE_ROLE_REQUEST, 
-                                       ReqCreateRole.class);
+                                   ReqCreateRole.class);
          } 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
@@ -328,45 +343,23 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;
          String roleName = payload.roleName;
          String description = payload.description;
          
-         // Final checks.
-         if (StringUtils.isBlank(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(description)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "description");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (!isValidName(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "createRole", "roleName", roleName);
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().createRole(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                             roleName, description);
+             rows = getRoleImpl().createRole(tenant, user, roleName, description);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
@@ -410,6 +403,8 @@ public final class RoleResource
                      implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
      public Response deleteRoleByName(@PathParam("roleName") String roleName,
+                                      @QueryParam("tenant") String tenant,
+                                      @QueryParam("user") String user,
                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
@@ -419,21 +414,32 @@ public final class RoleResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Delete the role.
          int rows = 0;
          try {
-             rows =  getRoleImpl().deleteRoleByName(threadContext.getJwtTenantId(), roleName);
+             rows =  getRoleImpl().deleteRoleByName(tenant, roleName);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
@@ -478,6 +484,7 @@ public final class RoleResource
                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
      public Response getRolePermissions(@PathParam("roleName") String roleName,
+                                        @QueryParam("tenant") String tenant,
                                         @DefaultValue("false") @QueryParam("immediate") boolean immediate,
                                         @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
@@ -488,20 +495,27 @@ public final class RoleResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, null, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          List<String> list = null;
          try {
-             list = getRoleImpl().getRolePermissions(threadContext.getJwtTenantId(), roleName, immediate);
+             list = getRoleImpl().getRolePermissions(tenant, roleName, immediate);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_GET_PERMISSIONS_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
+             String msg = MsgUtils.getMsg("SK_ROLE_GET_PERMISSIONS_ERROR",tenant, 
+                                          TapisThreadLocal.tapisThreadContext.get().getJwtUser(), 
                                           roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
@@ -579,39 +593,22 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user   = payload.user;
          String newRoleName = payload.newRoleName;
          
-         // By this point there should be at least one non-null parameter.
-         if (StringUtils.isBlank(newRoleName)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "newRoleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (!isValidName(newRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "newRoleName",
-                                           newRoleName);
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleName(threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                                 roleName, newRoleName);
+             rows = getRoleImpl().updateRoleName(tenant, user, roleName, newRoleName);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
@@ -681,33 +678,22 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;
          String description = payload.description;
          
-         // By this point there should be at least one non-null parameter.
-         if (StringUtils.isBlank(description)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "description");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleDescription(
-                                 threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                 roleName, description);
+             rows = getRoleImpl().updateRoleDescription(tenant, user, roleName, description);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
@@ -790,42 +776,25 @@ public final class RoleResource
                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
              
-             // Fill in the parameter fields.
+         // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
-         // Final checks.
-         if (StringUtils.isBlank(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(permSpec)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permSpec");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Add permission to role.
          int rows = 0;
          try {
-             rows = getRoleImpl().addRolePermission(threadContext.getJwtTenantId(), 
-                                                   threadContext.getJwtUser(), 
-                                                   roleName, permSpec);
+             rows = getRoleImpl().addRolePermission(tenant, user, roleName, permSpec);
          } catch (Exception e) {
              // This only occurs when the role name is not found.
-             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          permSpec, roleName);
+             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", tenant, user, permSpec, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
 
@@ -897,39 +866,25 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant   = payload.tenant;
+         String user     = payload.user;
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
-         // Final checks.
-         if (StringUtils.isBlank(roleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(permSpec)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "permSpec");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Remove the permission from the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeRolePermission(threadContext.getJwtTenantId(), roleName, permSpec);
+             rows = getRoleImpl().removeRolePermission(tenant, roleName, permSpec);
          } catch (Exception e) {
              // Role not found is an error in this case.
              String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                                          permSpec, roleName);
+                                          tenant, user, permSpec, roleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
     
@@ -1004,40 +959,24 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user   = payload.user;
          String parentRoleName = payload.parentRoleName;
          String childRoleName = payload.childRoleName;
          
-         // Final checks.
-         if (StringUtils.isBlank(parentRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "parentRoleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(childRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "childRoleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Add the child role to the parent.
          int rows = 0;
          try {
-             rows = getRoleImpl().addChildRole(threadContext.getJwtTenantId(), 
-                                               threadContext.getJwtUser(), 
-                                               parentRoleName, childRoleName);
+             rows = getRoleImpl().addChildRole(tenant, user, parentRoleName, childRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
-                     threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                     childRoleName, parentRoleName);
+                                          tenant, user, childRoleName, parentRoleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
 
@@ -1109,39 +1048,24 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;
          String parentRoleName = payload.parentRoleName;
          String childRoleName = payload.childRoleName;
          
-         // Final checks.
-         if (StringUtils.isBlank(parentRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "parentRoleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(childRoleName)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "childRoleName");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeChildRole(threadContext.getJwtTenantId(),  
-                                                  parentRoleName, childRoleName);
+             rows = getRoleImpl().removeChildRole(tenant, parentRoleName, childRoleName);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
-                     threadContext.getJwtTenantId(), threadContext.getJwtUser(), 
-                     childRoleName, parentRoleName);
+                                          tenant, user, childRoleName, parentRoleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
 
@@ -1246,6 +1170,8 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;
          String schema = payload.schema;
          String roleName = payload.roleName;
          String oldSystemId = payload.oldSystemId;
@@ -1257,45 +1183,24 @@ public final class RoleResource
          if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
          if (StringUtils.isBlank(newPrefix)) newPrefix = "";
          
-         // Final checks for required parameters.
-         if (StringUtils.isBlank(schema)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "schema");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(oldSystemId)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "oldSystemId");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(newSystemId)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "previewPathPrefix", "newSystemId");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
-         // ------------------------ Request Processing ------------------------
+        // ------------------------ Request Processing ------------------------
          // Get the list of transformations that would be appled by replacePathPrefix.
          List<Transformation> transList = null;
          try {
                  transList = getRoleImpl().previewPathPrefix(schema, roleName, 
                                                              oldSystemId, newSystemId, 
                                                              oldPrefix, newPrefix, 
-                                                             threadContext.getJwtTenantId());
+                                                             tenant);
              }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_PERM_TRANSFORM_FAILED", schema, roleName,
                                               oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                              threadContext.getJwtTenantId());
+                                              tenant);
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -1416,6 +1321,8 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user = payload.user;        
          String schema = payload.schema;
          String roleName = payload.roleName;
          String oldSystemId = payload.oldSystemId;
@@ -1427,30 +1334,9 @@ public final class RoleResource
          if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
          if (StringUtils.isBlank(newPrefix)) newPrefix = "";
          
-         // Final checks for required parameters.
-         if (StringUtils.isBlank(schema)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "schema");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(oldSystemId)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "oldSystemId");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         if (StringUtils.isBlank(newSystemId)) {
-             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "newSystemId");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1460,12 +1346,12 @@ public final class RoleResource
                  rows = getRoleImpl().replacePathPrefix(schema, roleName, 
                                                         oldSystemId, newSystemId, 
                                                         oldPrefix, newPrefix, 
-                                                        threadContext.getJwtTenantId());
+                                                        tenant);
              }
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_PERM_UPDATE_FAILED", schema, roleName,
                                               oldSystemId, oldPrefix, newSystemId, newPrefix,
-                                              threadContext.getJwtTenantId(), e.getMessage());
+                                              tenant, e.getMessage());
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -1526,12 +1412,6 @@ public final class RoleResource
              _log.trace(msg);
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Input Processing -------------------------
          // Check input.
          if (StringUtils.isBlank(user)) {
@@ -1541,7 +1421,7 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          if (user.length() > RoleImpl.MAX_USER_NAME_LEN) {
-             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", threadContext.getJwtTenantId(), 
+             String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", "anyTenant", 
                                           user, RoleImpl.MAX_USER_NAME_LEN);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).

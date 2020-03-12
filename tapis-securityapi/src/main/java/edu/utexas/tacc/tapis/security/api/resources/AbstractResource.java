@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.bettercloud.vault.VaultException;
 
+import edu.utexas.tacc.tapis.security.api.requestBody.IReqBody;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
@@ -25,6 +26,8 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext.AccountType;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
@@ -62,7 +65,8 @@ class AbstractResource
      * @return the object that received the payload
      * @throws TapisException on error
      */
-    protected <T> T getPayload(InputStream payloadStream, String schemaFile, Class<T> classOfT)
+    protected <T extends IReqBody> 
+        T getPayload(InputStream payloadStream, String schemaFile, Class<T> classOfT)
      throws TapisException
     {
         // There better be a payload.
@@ -94,6 +98,13 @@ class AbstractResource
                 throw new TapisException(msg, e);
             }
         
+        // Validate the payload parameters.
+        String msg = payload.validate();
+        if (msg != null) {
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
        return payload; 
     }
     
@@ -113,19 +124,25 @@ class AbstractResource
     protected VaultImpl getVaultImpl() {return VaultImpl.getInstance();}
     
     /* ---------------------------------------------------------------------------- */
-    /* checkTenantUser:                                                             */
+    /* checkTenant:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    /** Check that we have value tenant id and user names in the threadlocal cache.
+    /** Check that the threadlocal cache has valid JWT information.  Use that 
+     * information to check that the tenant and user specified as request parameters
+     * are authorized for the requester.
+     * 
      * Return null if the check succeed, otherwise return the error response.
      * 
+     * @param tenant the tenant explicitly passed as a request parameter
+     * @param user the user explicitly passed as a request parameter, can be null
      * @param prettyPrint whether to pretty print the response or not
      * @return null on success, a response on error
      */
-    protected Response checkTenantUser(TapisThreadContext threadContext, boolean prettyPrint)
+    protected Response checkTenantUser(String tenant, String user, boolean prettyPrint)
     {
         // Get the thread local context and validate context parameters.  The
         // tenantId and user are set in the jaxrc filter classes that process
         // each request before processing methods are invoked.
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
         if (!threadContext.validate()) {
           String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
           _log.error(msg);
@@ -133,22 +150,58 @@ class AbstractResource
               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         }
         
+        // Unpack some jwt information for convenience.
+        AccountType accountType = threadContext.getAccountType();
+        String jwtTenant = threadContext.getJwtTenantId();
+        String jwtUser   = threadContext.getJwtUser();
+        
+        // Validation depends on the account type.
+        if (accountType == AccountType.user) {
+            // Compare the tenant values for user accounts.
+            if (tenant != null) 
+                if (!jwtTenant.equals(tenant)) {
+                    String msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", 
+                                                 jwtTenant, tenant, accountType.name());
+                    _log.error(msg);
+                    return Response.status(Status.BAD_REQUEST).
+                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+            }
+        
+            // Compare the user values.
+            if (user != null) 
+                if (!jwtUser.equals(user)) {
+                    String msg = MsgUtils.getMsg("SK_UNEXPECTED_USER_VALUE", 
+                                                 jwtUser, user, accountType.name());
+                    _log.error(msg);
+                    return Response.status(Status.BAD_REQUEST).
+                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                }
+        }
+        else if (tenant != null) {
+            // Service accounts are allowed more latitude than user accounts.
+            // Specifically, they can specify tenants other than that in their jwt. 
+            boolean allowedTenant;
+            try {allowedTenant = TapisRestUtils.isAllowedTenant(jwtTenant, tenant);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_ALLOWABLE_TENANT_ERROR", 
+                                                 jwtUser, jwtTenant, tenant);
+                    _log.error(msg, e);
+                    return Response.status(Status.INTERNAL_SERVER_ERROR).
+                            entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                }
+
+            // Can the new tenant id be used by the jwt tenant?
+            if (!allowedTenant) {
+                String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
+                                             jwtUser, jwtTenant, tenant);
+                _log.error(msg);
+                return Response.status(Status.BAD_REQUEST).
+                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+            }
+        }
+        
         // Success
         return null;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* isValidName:                                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /** Check a candidate name against the name regex.
-     * 
-     * @param name the name to validate
-     * @return true if matches regex, false otherwise
-     */
-    protected boolean isValidName(String name)
-    {
-        if (name == null) return false;
-        return _namePattern.matcher(name).matches();
     }
 
     /* ---------------------------------------------------------------------------- */

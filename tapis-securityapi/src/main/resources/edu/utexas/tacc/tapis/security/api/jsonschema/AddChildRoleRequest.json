@@ -5,6 +5,12 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
           "parentRoleName": {
             "type": "string"
           },
@@ -13,6 +19,8 @@
           }
         },
     "required": [
+        "tenant",
+        "user",
         "parentRoleName", 
         "childRoleName"
     ]

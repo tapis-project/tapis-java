@@ -5,11 +5,19 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
           "description": {
             "type": "string"
           }
         },
     "required": [
+        "tenant",
+        "user",
         "description"
     ]
 }
