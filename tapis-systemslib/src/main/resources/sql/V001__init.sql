@@ -32,7 +32,7 @@ SET search_path TO tapis_sys;
 
 -- Types
 CREATE TYPE system_type_type AS ENUM ('LINUX', 'OBJECT_STORE');
-CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'CERT', 'ACCESS_KEY');
+CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'ACCESS_KEY', 'CERT');
 CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
 CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
 

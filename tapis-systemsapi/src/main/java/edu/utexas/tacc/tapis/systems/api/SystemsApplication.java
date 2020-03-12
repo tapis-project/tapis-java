@@ -3,8 +3,6 @@ package edu.utexas.tacc.tapis.systems.api;
 import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -24,10 +22,12 @@ import java.net.URI;
 
 // The path here is appended to the context root and is configured to work when invoked in a standalone
 // container (command line) and in an IDE (eclipse).
-// NOTE: This path should match the war file name (v3#systems.war) for running
+// NOTE: When running using tomcat this path should match the war file name (v3#systems.war) for running
 //       in IntelliJ IDE as well as from a docker container.
-// NOTE: When running from IntelliJ IDE the live openapi docs contain /v3/systems in the URL
+// NOTE: When running using tomcat in IntelliJ IDE the live openapi docs contain /v3/systems in the URL
 //       but when running from a docker container they do not.
+// NOTE: When running using grizzly in IntelliJ IDE or from docker container the live openapi docs do not
+//       contain /v3/systems in the URL.
 // NOTE: When running from IntelliJ IDE the live openapi docs do not contain the top level paths
 //       GET /v3/systems, POST /v3/systems, GET /v3/systems/{sysName} and POST /v3/systems/{sysName}
 //       but the file on disk (tapis-systemsapi/src/main/resources/openapi.json) does contains the paths.
@@ -59,6 +59,7 @@ public class SystemsApplication extends ResourceConfig
     // Note that this has no impact on base URL
     setApplicationName("systems");
 
+    // Perform remaining init steps in try block so we can print a fatal error message if something goes wrong.
     try {
 
       // Initialize bindings for HK2 dependency injection

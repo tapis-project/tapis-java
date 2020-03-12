@@ -168,11 +168,12 @@ public class SystemResource
   )
   public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
   {
+    String opName = "createSystem";
     String msg;
     // Trace this request.
     if (_log.isTraceEnabled())
     {
-      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createSystem",
+      msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), opName,
               "  " + _request.getRequestURL());
       _log.trace(msg);
     }
@@ -194,7 +195,7 @@ public class SystemResource
     try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName , e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -216,7 +217,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "post system", e.getMessage());
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -238,11 +239,19 @@ public class SystemResource
     }
     catch (IllegalStateException e)
     {
-      if (e.getMessage().contains("SYS_EXISTS")) {
+      if (e.getMessage().contains("SYSLIB_SYS_EXISTS"))
+      {
         // IllegalStateException with msg containing SYS_EXISTS indicates object exists - return 409 - Conflict
         msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", systemName);
         _log.warn(msg);
         return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+      else if (e.getMessage().contains("SYSLIB_UNAUTH"))
+      {
+        // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
+        msg = ApiUtils.getMsg("SYSAPI_SYS_UNAUTH", apiUserId, opName, systemName);
+        _log.warn(msg);
+        return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
       else
       {
@@ -519,34 +528,34 @@ public class SystemResource
   private static Response validateTSystem(TSystem system, boolean prettyPrint)
   {
     // Make sure owner, effectiveUserId, transferMethods, notes and tags are all set
-    system = TSystem.checkAndSetDefaults(system);
+    TSystem system1 = TSystem.checkAndSetDefaults(system);
 
-    String effectiveUserId = system.getEffectiveUserId();
-    String owner  = system.getOwner();
-    String name = system.getName();
+    String effectiveUserId = system1.getEffectiveUserId();
+    String owner  = system1.getOwner();
+    String name = system1.getName();
     String msg;
     var errMessages = new ArrayList<String>();
-    if (StringUtils.isBlank(system.getName()))
+    if (StringUtils.isBlank(system1.getName()))
     {
       msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, NAME_FIELD);
       errMessages.add(msg);
     }
-    if (system.getSystemType() == null)
+    if (system1.getSystemType() == null)
     {
       msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
-    else if (StringUtils.isBlank(system.getHost()))
+    else if (StringUtils.isBlank(system1.getHost()))
     {
       msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, HOST_FIELD);
       errMessages.add(msg);
     }
-    else if (system.getDefaultAccessMethod() == null)
+    else if (system1.getDefaultAccessMethod() == null)
     {
       msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
-    else if (system.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
+    else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
             !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
             !effectiveUserId.equals(TSystem.OWNER_VAR) &&
             !StringUtils.isBlank(owner) &&
@@ -556,13 +565,13 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
+    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    else if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
@@ -598,9 +607,9 @@ public class SystemResource
     maskSecret(credObj, CredentialResource.PASSWORD_FIELD);
     maskSecret(credObj, CredentialResource.PRIVATE_KEY_FIELD);
     maskSecret(credObj, CredentialResource.PUBLIC_KEY_FIELD);
-    maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
     maskSecret(credObj, CredentialResource.ACCESS_KEY_FIELD);
     maskSecret(credObj, CredentialResource.ACCESS_SECRET_FIELD);
+    maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
     sysObj.remove(ACCESS_CREDENTIAL_FIELD);
     sysObj.add(ACCESS_CREDENTIAL_FIELD, credObj);
     topObj.remove(TSYSTEM_FIELD);

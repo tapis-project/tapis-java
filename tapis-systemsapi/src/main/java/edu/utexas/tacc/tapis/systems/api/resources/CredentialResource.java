@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
-import com.google.gson.JsonObject;
-
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -74,9 +72,9 @@ public class CredentialResource
   public static final String PASSWORD_FIELD = "password";
   public static final String PRIVATE_KEY_FIELD = "privateKey";
   public static final String PUBLIC_KEY_FIELD = "publicKey";
-  public static final String CERTIFICATE_FIELD = "certificate";
   public static final String ACCESS_KEY_FIELD = "accessKey";
   public static final String ACCESS_SECRET_FIELD = "accessSecret";
+  public static final String CERTIFICATE_FIELD = "certificate";
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -164,16 +162,16 @@ public class CredentialResource
                                        InputStream payloadStream)
   {
     String msg;
-    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
-
     // Trace this request.
     if (_log.isTraceEnabled())
     {
       msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "createUserCredential",
-                                   "  " + _request.getRequestURL());
+              "  " + _request.getRequestURL());
       _log.trace(msg);
     }
 
+    // ------------------------- Retrieve and validate thread context -------------------------
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -187,10 +185,12 @@ public class CredentialResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "createUserCredential");
     if (resp != null) return resp;
-    // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-            "createUserCredential", false);
-    if (resp != null) return resp;
+
+    // TODO auth done in back end
+//    // ------------------------- Check authorization -------------------------
+//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
+//            "createUserCredential", false);
+//    if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
@@ -203,7 +203,6 @@ public class CredentialResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     // Create validator specification and validate the json against the schema
-    // TODO Json may contain secrets. Does validator do logging?
     JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_CRED_REQUEST);
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
@@ -316,8 +315,9 @@ public class CredentialResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // ------------------------- Check authorization -------------------------
-    // TODO
+    // TODO auth done in back end
+//     ------------------------- Check authorization -------------------------
+//     TODO
 //    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId, "getUserCredential");
 //    if (resp != null) return resp;
 
@@ -400,10 +400,11 @@ public class CredentialResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "removeUserCredential");
     if (resp != null) return resp;
-    // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-                       "removeUserCredential", false);
-    if (resp != null) return resp;
+    // TODO auth done in back end
+//    // ------------------------- Check authorization -------------------------
+//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
+//                       "removeUserCredential", false);
+//    if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to remove the credential

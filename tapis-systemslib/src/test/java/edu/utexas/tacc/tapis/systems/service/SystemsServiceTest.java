@@ -192,7 +192,7 @@ public class SystemsServiceTest
   {
     TSystem sys0 = sys2;
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
-            "fakeCert","fakeAccessKey", "fakeAccessSecret");
+            "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     sys0.setAccessCredential(cred0);
     sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(tenantName, apiUser, sys0, scrubbedJson);
@@ -428,7 +428,7 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(tenantName, apiUser, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
-            "fakeCert","fakeAccessKey", "fakeAccessSecret");
+            "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     // Store and retrieve multiple secret types: password, ssh keys, access key and secret
     svc.createUserCredential(tenantName, apiUser, sys0.getName(), testUser2, cred0);
     Credential cred1 = svc.getUserCredential(tenantName, apiUser, sys0.getName(), testUser2, AccessMethod.PASSWORD);
@@ -449,7 +449,7 @@ public class SystemsServiceTest
     svc.deleteUserCredential(tenantName, apiUser, sys0.getName(), testUser2);
 
     // Set just ACCESS_KEY only and test
-    cred0 = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
+    cred0 = new Credential(null, null, null, "fakeAccessKey2", "fakeAccessSecret2", null);
     svc.createUserCredential(tenantName, apiUser, sys0.getName(), testUser2, cred0);
     cred1 = svc.getUserCredential(tenantName, apiUser, sys0.getName(), testUser2, AccessMethod.ACCESS_KEY);
     Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());

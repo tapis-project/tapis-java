@@ -170,10 +170,12 @@ public class PermsResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "grantUserPerms");
     if (resp != null) return resp;
-    // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-                       "grantUserPerms", true);
-    if (resp != null) return resp;
+
+    // TODO auth done in back end
+//    // ------------------------- Check authorization -------------------------
+//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
+//                       "grantUserPerms", true);
+//    if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new ArrayList<String>();
@@ -334,10 +336,11 @@ public class PermsResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerm");
     if (resp != null) return resp;
-    // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-                       "revokeUserPerm", false);
-    if (resp != null) return resp;
+    // TODO auth done in back end
+//    // ------------------------- Check authorization -------------------------
+//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
+//                       "revokeUserPerm", false);
+//    if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to revoke the permissions
@@ -400,8 +403,6 @@ public class PermsResource
                                  InputStream payloadStream)
   {
     String msg;
-    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
-
     // Trace this request.
     if (_log.isTraceEnabled())
     {
@@ -410,6 +411,8 @@ public class PermsResource
       _log.trace(msg);
     }
 
+    // ------------------------- Retrieve and validate thread context -------------------------
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -423,10 +426,11 @@ public class PermsResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerms");
     if (resp != null) return resp;
-    // ------------------------- Check authorization -------------------------
-    resp = ApiUtils.checkAuth1(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-                       "revokeUserPerms", false);
-    if (resp != null) return resp;
+    // TODO auth done in back end
+//    // ------------------------- Check authorization -------------------------
+//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
+//                       "revokeUserPerms", false);
+//    if (resp != null) return resp;
 
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new ArrayList<String>();
