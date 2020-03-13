@@ -106,16 +106,11 @@ public class ApiUtils
   {
     // Validate call checks for tenantId, user and accountType
     // If all OK return null, else return error response.
-    if (threadContext.validate())
-    {
-      return null;
-    }
-    else
-    {
-      String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-      _log.error(msg);
-      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
+    if (threadContext.validate()) return null;
+
+    String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+    _log.error(msg);
+    return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
   }
 
   /**

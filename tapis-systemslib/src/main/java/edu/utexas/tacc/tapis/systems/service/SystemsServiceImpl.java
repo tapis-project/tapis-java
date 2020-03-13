@@ -21,8 +21,8 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
-import edu.utexas.tacc.tapis.tokens.client.TokensClient;
 import org.apache.commons.lang3.StringUtils;
+import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,9 @@ import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 /*
  * Service level methods for Systems.
  *   Uses Dao layer and other service library classes to perform all top level service operations.
+ * Annotate as an hk2 Service so that default scope for DI is singleton
  */
+@Service
 public class SystemsServiceImpl implements SystemsService
 {
   // ************************************************************************
@@ -53,17 +55,17 @@ public class SystemsServiceImpl implements SystemsService
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
   private static final String[] ALL_VARS = {APIUSERID_VAR, OWNER_VAR, TENANT_VAR};
-
   private static final List<String> ALL_PERMS = new ArrayList<>(List.of("*"));
   private static final String PERM_SPEC_PREFIX = "system:";
 
   private static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
+  private static final String HDR_TAPIS_TOKEN = "X-Tapis-Token";
+  private static final String HDR_TAPIS_TENANT = "X-Tapis-Tenant";
+  private static final String HDR_TAPIS_USER = "X-Tapis-User";
 
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
-
-  Map<String, ServiceJWT> svcJWTMap = new HashMap<>();
 
   // Use HK2 to inject singletons
   @Inject
@@ -71,6 +73,9 @@ public class SystemsServiceImpl implements SystemsService
 
   @Inject
   private SKClient skClient;
+
+//TODO  @Inject
+  private ServiceJWT serviceJWT;
 
   // ************************************************************************
   // *********************** Public Methods *********************************
@@ -543,36 +548,23 @@ public class SystemsServiceImpl implements SystemsService
    */
   private SKClient getSKClient(String tenantName, String apiUserId) throws TapisException
   {
-    // Use TenantManager to get tenant info. Needed for SK base URL.
+    // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
     Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
-    // TODO Put back in use of ServiceJWT when working.
-    // Check ServiceJWT cache, if not there create one.
-    var svcJWT = svcJWTMap.get(tenantName);
-    if (svcJWT == null)
-    {
+
+    // For initial test create ServiceJWT on the fly. TODO inject as singleton
+    if (serviceJWT == null) {
       var svcJWTParms = new ServiceJWTParms();
       svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
-      // TODO/TBD: What tenant goes here? Should it be a master tenant since we are getting a service JWT?
-      svcJWTParms.setTenant(tenantName);
-//      svcJWTParms.setTokensBaseUrl(tenant.getTokenService());
       // TODO: remove hard coded values
-      svcJWTParms.setTokensBaseUrl("https://dev.develop.tapis.io");
-      svcJWT = new ServiceJWT(svcJWTParms, "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=");
-      svcJWTMap.put(tenantName, svcJWT);
+      svcJWTParms.setTenant("master");
+//    svcJWTParms.setTokensBaseUrl("https://dev.develop.tapis.io");
+      String tokenSvcUrl = tenant.getTokenService();
+      // TODO remove the strip-off once this is cleaned up
+      // Strip off everything starting with /v3
+      tokenSvcUrl = tokenSvcUrl.substring(0, tokenSvcUrl.indexOf("/v3"));
+      svcJWTParms.setTokensBaseUrl(tokenSvcUrl);
+      serviceJWT = new ServiceJWT(svcJWTParms, "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=");
     }
-
-//    // TODO remove this in favor of ServiceJWT when working.
-//    // Get short term service JWT from tokens service
-//    // Tokens service URL comes from env or the tenants service
-//    String tokensURL = RuntimeParameters.getInstance().getTokensSvcURL();
-//    if (StringUtils.isBlank(tokensURL)) tokensURL = tenant.getTokenService();
-//    if (StringUtils.isBlank(tokensURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_URL_ERROR", tenantName));
-//    var tokClient = new TokensClient(tokensURL);
-//    String svcJWTStr;
-//    try {svcJWTStr = tokClient.getSvcToken(tenantName, SERVICE_NAME_SYSTEMS);}
-//    catch (Exception e) {throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_ERROR", tenantName, e.getMessage()), e);}
-//    // Basic check of JWT
-//    if (StringUtils.isBlank(svcJWTStr)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_TOKENS_JWT_ERROR", tenantName));
 
 
     // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
@@ -585,10 +577,10 @@ public class SystemsServiceImpl implements SystemsService
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
     skClient.setBasePath(skURL);
-    skClient.addDefaultHeader("X-Tapis-Token", svcJWT.getAccessJWT());
-//    skClient.addDefaultHeader("X-Tapis-Token", svcJWTStr);
-    skClient.addDefaultHeader("X-Tapis-User", apiUserId);
-    skClient.addDefaultHeader("X-Tapis-Tenant", tenantName);
+    skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT());
+    // TODO for incoming service request these should be oboTenant and oboUser
+    skClient.addDefaultHeader(HDR_TAPIS_USER, apiUserId);
+    skClient.addDefaultHeader(HDR_TAPIS_TENANT, tenantName);
     return skClient;
   }
 
