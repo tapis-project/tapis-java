@@ -556,14 +556,23 @@ public class SystemsServiceImpl implements SystemsService
       var svcJWTParms = new ServiceJWTParms();
       svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
       // TODO: remove hard coded values
-      svcJWTParms.setTenant("master");
+      // TODO/TBD: Get master tenant from tenant service or from env?
+      // Get service master tenant from the env
+      String svcMasterTenant = RuntimeParameters.getInstance().getSetServiceMasterTenant();
+      // TODO remove hard coded fallback
+      if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = "master";
+      svcJWTParms.setTenant(svcMasterTenant);
 //    svcJWTParms.setTokensBaseUrl("https://dev.develop.tapis.io");
       String tokenSvcUrl = tenant.getTokenService();
       // TODO remove the strip-off once this is cleaned up
       // Strip off everything starting with /v3
       tokenSvcUrl = tokenSvcUrl.substring(0, tokenSvcUrl.indexOf("/v3"));
       svcJWTParms.setTokensBaseUrl(tokenSvcUrl);
-      serviceJWT = new ServiceJWT(svcJWTParms, "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=");
+      // Get service password from the env
+      String svcPassword = RuntimeParameters.getInstance().getServicePassword();
+      // TODO remove hard coded fallback
+      if (StringUtils.isBlank(svcPassword)) svcPassword = "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=";
+      serviceJWT = new ServiceJWT(svcJWTParms, svcPassword);
     }
 
 
