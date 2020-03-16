@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.Protocol;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
@@ -151,6 +152,7 @@ public class SystemsServiceTest
       protected void configure() {
         bind(SystemsServiceImpl.class).to(SystemsService.class);
         bind(SystemsDaoImpl.class).to(SystemsDao.class);
+        bindFactory(SystemsServiceJWTFactory.class).to(ServiceJWT.class);
         bind(SKClient.class).to(SKClient.class);
       }
     });

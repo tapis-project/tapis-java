@@ -4,12 +4,15 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.model.Credential;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import org.jvnet.hk2.annotations.Contract;
 
 import java.util.List;
 
 /*
  * Interface for Systems Service
+ * Annotate as an hk2 Contract in case we have multiple implementations
  */
+@Contract
 public interface SystemsService
 {
   int createSystem(String tenantName, String apiUserId, TSystem system, String scrubbedJson) throws TapisException, IllegalStateException, IllegalArgumentException;

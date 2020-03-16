@@ -10,7 +10,6 @@ import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -35,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static edu.utexas.tacc.tapis.systems.model.Credential.*;
-import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
@@ -74,7 +72,7 @@ public class SystemsServiceImpl implements SystemsService
   @Inject
   private SKClient skClient;
 
-//TODO  @Inject
+  @Inject
   private ServiceJWT serviceJWT;
 
   // ************************************************************************
@@ -550,31 +548,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
     Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
-
-    // For initial test create ServiceJWT on the fly. TODO inject as singleton
-    if (serviceJWT == null) {
-      var svcJWTParms = new ServiceJWTParms();
-      svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
-      // TODO: remove hard coded values
-      // TODO/TBD: Get master tenant from tenant service or from env?
-      // Get service master tenant from the env
-      String svcMasterTenant = RuntimeParameters.getInstance().getSetServiceMasterTenant();
-      // TODO remove hard coded fallback
-      if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = "master";
-      svcJWTParms.setTenant(svcMasterTenant);
-//    svcJWTParms.setTokensBaseUrl("https://dev.develop.tapis.io");
-      String tokenSvcUrl = tenant.getTokenService();
-      // TODO remove the strip-off once this is cleaned up
-      // Strip off everything starting with /v3
-      tokenSvcUrl = tokenSvcUrl.substring(0, tokenSvcUrl.indexOf("/v3"));
-      svcJWTParms.setTokensBaseUrl(tokenSvcUrl);
-      // Get service password from the env
-      String svcPassword = RuntimeParameters.getInstance().getServicePassword();
-      // TODO remove hard coded fallback
-      if (StringUtils.isBlank(svcPassword)) svcPassword = "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=";
-      serviceJWT = new ServiceJWT(svcJWTParms, svcPassword);
-    }
-
 
     // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence.
