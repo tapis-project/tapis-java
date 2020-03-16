@@ -1,13 +1,10 @@
 #!/bin/sh
-set -xv
-# export VER=`cat target/v3#systems/WEB-INF/classes/tapis.version`
-# export GIT_COMMIT=`awk '{print $2}' target/v3#systems/WEB-INF/classes/git.info`
-export VER="0.0.1"
-export GIT_COMMIT="abcdefg"
+export VER=`cat target/v3#systems/WEB-INF/classes/tapis.version`
+export GIT_COMMIT=`awk '{print $2}' target/v3#systems/WEB-INF/classes/git.info`
 export TAG="tapis/systems:${VER}"
 export TAG2="tapis/systems:${VER}"
 # Build image from Dockerfile
-docker build -f Dockerfile2 --build-arg VER=${VER} --build-arg GIT_COMMIT=${GIT_COMMIT} -t ${TAG} .
+docker build -f Dockerfile --build-arg VER=${VER} --build-arg GIT_COMMIT=${GIT_COMMIT} -t ${TAG} .
 # Create tagged image for remote repo
 docker tag $TAG $TAG2
 # Push to remote repo

@@ -6,8 +6,10 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +41,9 @@ public final class TSystem
   public static final boolean DEFAULT_ENABLED = true;
   public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
   public static final String DEFAULT_NOTES_STR = "{}";
+  public static final String DEFAULT_TAGS_STR = "{}";
+  public static final JsonObject DEFAULT_NOTES = JsonParser.parseString(DEFAULT_NOTES_STR).getAsJsonObject();
+  public static final String[] DEFAULT_TAGS = new String[0];
   public static final List<TransferMethod> DEFAULT_TRANSFER_METHODS = Collections.emptyList();
   public static final String EMPTY_TRANSFER_METHODS_STR = "{}";
   public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
@@ -52,7 +57,7 @@ public final class TSystem
   // ************************************************************************
   public enum SystemType {LINUX, OBJECT_STORE}
   public enum Permission {READ, MODIFY, DELETE}
-  public enum AccessMethod {PASSWORD, PKI_KEYS, CERT, ACCESS_KEY}
+  public enum AccessMethod {PASSWORD, PKI_KEYS, ACCESS_KEY, CERT}
   public enum TransferMethod {SFTP, S3}
 
   // ************************************************************************
@@ -160,6 +165,19 @@ public final class TSystem
   }
 
   // ************************************************************************
+  // *********************** Public methods *********************************
+  // ************************************************************************
+  public static TSystem checkAndSetDefaults(TSystem system)
+  {
+    if (StringUtils.isBlank(system.getOwner())) system.setOwner(DEFAULT_OWNER);
+    if (StringUtils.isBlank(system.getEffectiveUserId())) system.setEffectiveUserId(DEFAULT_EFFECTIVEUSERID);
+    if (system.getTags() == null) system.setTags(DEFAULT_TAGS);
+    if (system.getNotes() == null) system.setNotes(DEFAULT_NOTES);
+    if (system.getTransferMethods() == null) system.setTransferMethods(DEFAULT_TRANSFER_METHODS);
+    return system;
+  }
+
+  // ************************************************************************
   // *********************** Accessors **************************************
   // ************************************************************************
   public long getId() { return id; }
@@ -206,6 +224,7 @@ public final class TSystem
   public TSystem setRootDir(String s) { rootDir = s; return this; }
 
   public List<TransferMethod> getTransferMethods() { return transferMethods; }
+  public TSystem setTransferMethods(List<TransferMethod> t) { transferMethods = t; return this; }
 
   public int getPort() { return port; }
   public TSystem setPort(int i) { port = i; return this; }

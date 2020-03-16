@@ -41,9 +41,9 @@ public final class SystemCredential
   private final String password; // Password for when accessMethod is PASSWORD
   private final String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
   private final String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
-  private final String certificate; // SSH certificate for accessMethod is CERT
   private final String accessKey; // Access key for when accessMethod is ACCESS_KEY
   private final String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
+  private final String certificate; // SSH certificate for when accessMethod is CERT
 
   /* ********************************************************************** */
   /*                           Constructors                                 */

@@ -41,9 +41,9 @@ public final class Credential
   private final String password; // Password for when accessMethod is PASSWORD
   private final String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
   private final String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
-  private final String certificate; // SSH certificate for accessMethod is CERT
   private final String accessKey; // Access key for when accessMethod is ACCESS_KEY
   private final String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
+  private final String certificate; // SSH certificate for accessMethod is CERT
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
@@ -52,14 +52,14 @@ public final class Credential
   /**
    * Simple constructor to populate all attributes
    */
-  public Credential(String password1, String privateKey1, String publicKey1, String cert1, String accessKey1, String accessSecret1)
+  public Credential(String password1, String privateKey1, String publicKey1, String accessKey1, String accessSecret1, String cert1)
   {
     password = password1;
     privateKey = privateKey1;
     publicKey = publicKey1;
-    certificate = cert1;
     accessKey = accessKey1;
     accessSecret = accessSecret1;
+    certificate = cert1;
   }
 
   /* ********************************************************************** */
@@ -68,9 +68,9 @@ public final class Credential
   public String getPassword() { return password; }
   public String getPrivateKey() { return privateKey; }
   public String getPublicKey() { return publicKey; }
-  public String getCertificate() { return certificate; }
   public String getAccessKey() { return accessKey; }
   public String getAccessSecret() { return accessSecret; }
+  public String getCertificate() { return certificate; }
 
   @Override
   public String toString() {return TapisUtils.toString(this);}

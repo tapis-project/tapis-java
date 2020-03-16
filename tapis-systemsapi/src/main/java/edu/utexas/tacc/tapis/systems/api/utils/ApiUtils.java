@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -105,92 +106,91 @@ public class ApiUtils
   {
     // Validate call checks for tenantId, user and accountType
     // If all OK return null, else return error response.
-    if (threadContext.validate())
-    {
-      return null;
-    }
-    else
-    {
-      String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-      _log.error(msg);
-      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
+    if (threadContext.validate()) return null;
+
+    String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+    _log.error(msg);
+    return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
   }
 
   /**
    * Check that system exists
    * @param tenantName - name of the tenant
+   * @param apiUserId - user name associated with API request
    * @param systemName - name of the system to check
    * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
    * @param opName - operation name, for constructing response msg
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String systemName,
-                                           String userName, boolean prettyPrint, String opName)
+  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String apiUserId,
+                                           String systemName, String userName, boolean prettyPrint, String opName)
   {
     String msg;
     boolean systemExists;
-    try { systemExists = systemsService.checkForSystemByName(tenantName, systemName); }
+    try { systemExists = systemsService.checkForSystemByName(tenantName, apiUserId, systemName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, apiUserId, e.getMessage());
       _log.error(msg, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if (!systemExists)
     {
-      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, userName);
+      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, apiUserId);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     return null;
   }
 
+  // TODO service level will be done at the back end, systemslib
   /**
    * Check that requester is either owner or (optionally) apiUserId.
    * @param tenantName - name of the tenant
+   * @param apiUserId - user name associated with API request
    * @param systemName - name of the system to check
-   * @param userName - name of user associated with the perms request, for constructing response msg
-   * @param prettyPrint - print flag used to construct response
-   * @param requesterName - name of the requester, null if check should be skipped
+   * @param opUserName - name of user associated with the operation, if any, for constructing response msg
    * @param opName - operation name, for constructing response msg
    * @param mustBeOwner - indicates if only owner can perform requested operation
+   * @param prettyPrint - print flag used to construct response
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkAuth1(SystemsService systemsService, String tenantName, String systemName, String userName,
-                                    boolean prettyPrint, String requesterName, String opName, boolean mustBeOwner)
-  {
-    String msg;
-    String owner;
-    if (StringUtils.isBlank(requesterName))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_NULL_INPUT");
-      _log.error(msg);
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    try { owner = systemsService.getSystemOwner(tenantName, systemName); }
-    catch (Exception e)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", opName, systemName, userName, requesterName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-    if (StringUtils.isBlank(owner))
-    {
-      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", opName, systemName, userName, requesterName);
-      _log.error(msg);
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
-    // Requester (apiUserId) must be the owner or (optionally) the user associated with the operation
-    if (owner.equals(requesterName) || (!mustBeOwner && requesterName.equals(userName))) return null;
-
-    // Not authorized
-    msg = ApiUtils.getMsg("SYSAPI_UNAUTH", opName, systemName, userName, requesterName);
-    _log.error(msg);
-    return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-  }
+//  public static Response checkAuth(SystemsService systemsService, String tenantName, String apiUserId,
+//                                   String opName, String systemName, String opUserName, boolean mustBeOwner,
+//                                   boolean prettyPrint)
+//  {
+//    String msg;
+//    String owner;
+//    if (systemsService == null ||  StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName))
+//    {
+//      msg = ApiUtils.getMsg("SYSAPI_NULL_INPUT");
+//      _log.error(msg);
+//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+//    }
+//    // Retrieve owner
+//    try { owner = systemsService.getSystemOwner(tenantName, apiUserId, systemName); }
+//    catch (Exception e)
+//    {
+//      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", apiUserId, opName, systemName, opUserName, e.getMessage());
+//      _log.error(msg, e);
+//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+//    }
+//    if (StringUtils.isBlank(owner))
+//    {
+//      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", apiUserId, opName, systemName, opUserName);
+//      _log.error(msg);
+//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+//    }
+//
+//    // Requester (apiUserId) must be the owner or (optionally) the user associated with the operation
+//    if (owner.equals(apiUserId) || (!mustBeOwner && apiUserId.equals(opUserName))) return null;
+//
+//    // Not authorized
+//    msg = ApiUtils.getMsg("SYSAPI_UNAUTH", apiUserId, opName, systemName, opUserName);
+//    _log.error(msg);
+//    return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+//  }
 
   /**
    * Check that both or neither of the secrets are blank.
