@@ -20,7 +20,7 @@
         },
     "required": [
         "tenant",
-        "role",
+        "user",
         "roleName", 
         "permSpec"   
     ]
