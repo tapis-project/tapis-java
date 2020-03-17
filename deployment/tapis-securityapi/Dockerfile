@@ -29,6 +29,9 @@ COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
 # Set environment and turn on remote debug
 ENV CATALINA_HOME /usr/local/tomcat
 
+# Set most Java options here.
+ENV CATALINA_OPTS -Xms6g -Xmx6g
+
 # Debug port and http port
 EXPOSE 8000
 EXPOSE 8080
