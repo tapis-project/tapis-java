@@ -26,6 +26,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +47,6 @@ import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultAuthorized;
@@ -155,6 +154,8 @@ public final class VaultResource
                            + "pairs and metadata that describes the secret. The metadata includes "
                            + "which version of the secret was returned.\n\n"
                            + ""
+                           + "A valid tenant and user must be specified as query parameters.\n\n"
+                           + ""
                            + "### Naming Secrets\n"
                            + ""
                            + "Secrets can be arranged hierarchically by using the \"+\" "
@@ -212,11 +213,13 @@ public final class VaultResource
          )
      public Response readSecret(@PathParam("secretType") String secretType,
                                 @PathParam("secretName") String secretName,
+                                @QueryParam("tenant") String tenant,
+                                @QueryParam("user") String user,
                                 @DefaultValue("0") @QueryParam("version") int version,
                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 /* Query parameters used to construct the secret path in vault */
                                 @QueryParam("sysid")    String sysId,
-                                @QueryParam("sysuser") String sysUser,
+                                @QueryParam("sysuser")  String sysUser,
                                 @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                 @QueryParam("dbhost")   String dbHost,
                                 @QueryParam("dbname")   String dbName,
@@ -229,10 +232,23 @@ public final class VaultResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -249,8 +265,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecret skSecret = null;
          try {
-             skSecret = getVaultImpl().secretRead(threadContext.getTenantId(), threadContext.getUser(), 
-                                                  secretPathParms, version);
+             skSecret = getVaultImpl().secretRead(tenant, user, secretPathParms, version);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -262,7 +277,8 @@ public final class VaultResource
          
          // Success.
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretName), prettyPrint, respSecret)).build();
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, respSecret)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -275,7 +291,8 @@ public final class VaultResource
      @Operation(
              description = "Create or update a secret. "
                            + "The JSON payload contains a required *data* object and an optional "
-                           + "*options* object.\n\n"
+                           + "*options* object.  It also contains the required tenant and user "
+                           + "fields.\n\n"
                            + ""
                            + "The *data* object is a JSON object that contains one or more key/value "
                            + "pairs in which both the key and value are strings. These are the "
@@ -362,7 +379,7 @@ public final class VaultResource
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                  /* Query parameters used to construct the secret path in vault */
                                  @QueryParam("sysid")    String sysId,
-                                 @QueryParam("sysuser") String sysUser,
+                                 @QueryParam("sysuser")  String sysUser,
                                  @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                  @QueryParam("dbhost")   String dbHost,
                                  @QueryParam("dbname")   String dbName,
@@ -393,13 +410,14 @@ public final class VaultResource
          }
          
          // Unpack the payload.
+         String tenant = payload.tenant;
+         String user   = payload.user;
          var secretMap = new HashMap<String,Object>();
          if (payload.data != null) secretMap.putAll(payload.data);
          
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -416,9 +434,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretMetadata skSecretMeta = null;
          try {
-             skSecretMeta = getVaultImpl().secretWrite(threadContext.getTenantId(), 
-                                                       threadContext.getUser(), 
-                                                       secretPathParms, secretMap);
+             skSecretMeta = getVaultImpl().secretWrite(tenant, user, secretPathParms, secretMap);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -427,7 +443,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespSecretMeta r = new RespSecretMeta(skSecretMeta);
          return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_CREATED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_CREATED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -449,6 +466,8 @@ public final class VaultResource
                            + "   * [-] - empty = delete all versions\n"
                            + "   * [0] - zero = delete only the latest version\n"
                            + "   * [1, 3, ...] - list = delete the specified versions\n\n"
+                           + ""
+                           + "A valid tenant and user must also be specified in the body.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -515,7 +534,7 @@ public final class VaultResource
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                   /* Query parameters used to construct the secret path in vault */
                                   @QueryParam("sysid")    String sysId,
-                                  @QueryParam("sysuser") String sysUser,
+                                  @QueryParam("sysuser")  String sysUser,
                                   @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                   @QueryParam("dbhost")   String dbHost,
                                   @QueryParam("dbname")   String dbName,
@@ -544,12 +563,14 @@ public final class VaultResource
          }
          
          // Massage the input.
-         if (payload.versions == null) payload.versions = new ArrayList<>();
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         List<Integer> versions = 
+             payload.versions != null ? payload.versions : new ArrayList<>(); 
          
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -566,9 +587,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> deletedVersions = null;
          try {
-             deletedVersions = getVaultImpl().secretDelete(threadContext.getTenantId(), 
-                                                           threadContext.getUser(), 
-                                                           secretPathParms, payload.versions);
+             deletedVersions = getVaultImpl().secretDelete(tenant, user, secretPathParms, 
+                                                           versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -577,7 +597,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(deletedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -597,6 +618,8 @@ public final class VaultResource
                            + "   * [-] - empty = undelete all versions\n"
                            + "   * [0] - zero = undelete only the latest version\n"
                            + "   * [1, 3, ...] - list = undelete the specified versions\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified in the body.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -663,7 +686,7 @@ public final class VaultResource
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser") String sysUser,
+                                    @QueryParam("sysuser")  String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -691,12 +714,14 @@ public final class VaultResource
          }
          
          // Massage the input.
-         if (payload.versions == null) payload.versions = new ArrayList<>();
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         List<Integer> versions = 
+             payload.versions != null ? payload.versions : new ArrayList<>(); 
          
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -713,9 +738,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> undeletedVersions = null;
          try {
-             undeletedVersions = getVaultImpl().secretUndelete(threadContext.getTenantId(), 
-                                                               threadContext.getUser(), 
-                                                               secretPathParms, payload.versions);
+             undeletedVersions = getVaultImpl().secretUndelete(tenant, user, secretPathParms, 
+                                                               versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -724,7 +748,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(undeletedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_UNDELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_UNDELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -744,6 +769,8 @@ public final class VaultResource
                            + "   * [-] - empty = destroy all versions\n"
                            + "   * [0] - zero = destroy only the latest version\n"
                            + "   * [1, 3, ...] - list = destroy the specified versions\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified in the body.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -810,7 +837,7 @@ public final class VaultResource
                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                    /* Query parameters used to construct the secret path in vault */
                                    @QueryParam("sysid")    String sysId,
-                                   @QueryParam("sysuser") String sysUser,
+                                   @QueryParam("sysuser")  String sysUser,
                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                    @QueryParam("dbhost")   String dbHost,
                                    @QueryParam("dbname")   String dbName,
@@ -839,12 +866,14 @@ public final class VaultResource
          }
          
          // Massage the input.
-         if (payload.versions == null) payload.versions = new ArrayList<>();
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         List<Integer> versions = 
+             payload.versions != null ? payload.versions : new ArrayList<>(); 
          
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -861,9 +890,8 @@ public final class VaultResource
          // Issue the vault call.
          List<Integer> destroyedVersions = null;
          try {
-             destroyedVersions = getVaultImpl().secretDestroy(threadContext.getTenantId(), 
-                                                              threadContext.getUser(), 
-                                                              secretPathParms, payload.versions);
+             destroyedVersions = getVaultImpl().secretDestroy(tenant, user, secretPathParms, 
+                                                              versions);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -872,7 +900,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(destroyedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -885,6 +914,8 @@ public final class VaultResource
              description = "List a secret's metadata including its version information. "
                          + "The input parameter must be a secret name, not a folder. "
                          + "The result includes which version of the secret is the latest.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified as query parameters.\n\n"
                          + ""
                          + "### Naming Secrets\n"
                          + ""
@@ -940,10 +971,12 @@ public final class VaultResource
          )
      public Response readSecretMeta(@PathParam("secretType") String secretType,
                                     @PathParam("secretName") String secretName,
+                                    @QueryParam("tenant") String tenant,
+                                    @QueryParam("user") String user,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser") String sysUser,
+                                    @QueryParam("sysuser")  String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -956,10 +989,23 @@ public final class VaultResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -976,8 +1022,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretVersionMetadata info = null;
          try {
-             info = getVaultImpl().secretReadMeta(threadContext.getTenantId(), threadContext.getUser(), 
-                                                  secretPathParms);
+             info = getVaultImpl().secretReadMeta(tenant, user, secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -986,7 +1031,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          var r = new RespSecretVersionMetadata(info);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1000,6 +1046,8 @@ public final class VaultResource
                            + "The path must represent a folder, not an actual secret name. "
                            + "If the path does not have a trailing slash one will be inserted. "
                            + "Secret names should not encode private information.\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified as query parameters.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -1054,10 +1102,12 @@ public final class VaultResource
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
          )
      public Response listSecretMeta(@PathParam("secretType") String secretType,
+                                    @QueryParam("tenant") String tenant,
+                                    @QueryParam("user") String user,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
                                     @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser") String sysUser,
+                                    @QueryParam("sysuser")  String sysUser,
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
@@ -1070,10 +1120,23 @@ public final class VaultResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -1090,8 +1153,7 @@ public final class VaultResource
          // Issue the vault call.
          SkSecretList info = null;
          try {
-             info = getVaultImpl().secretListMeta(threadContext.getTenantId(), threadContext.getUser(),
-                                                  secretPathParms);
+             info = getVaultImpl().secretListMeta(tenant, user, secretPathParms);
          } catch (Exception e) {                  
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1113,6 +1175,8 @@ public final class VaultResource
              description = "Erase all traces of a secret: its key, all versions of its "
                            + "value and all its metadata. "
                            + "Specifying a folder erases all secrets in that folder.\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified as query parameters.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -1168,10 +1232,12 @@ public final class VaultResource
          )
      public Response destroySecretMeta(@PathParam("secretType") String secretType,
                                        @PathParam("secretName") String secretName,
+                                       @QueryParam("tenant") String tenant,
+                                       @QueryParam("user") String user,
                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        /* Query parameters used to construct the secret path in vault */
                                        @QueryParam("sysid")    String sysId,
-                                       @QueryParam("sysuser") String sysUser,
+                                       @QueryParam("sysuser")  String sysUser,
                                        @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                        @QueryParam("dbhost")   String dbHost,
                                        @QueryParam("dbname")   String dbName,
@@ -1184,10 +1250,23 @@ public final class VaultResource
              _log.trace(msg);
          }
          
+         // ------------------------- Input Processing -------------------------
+         if (StringUtils.isBlank(tenant)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "tenant");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         if (StringUtils.isBlank(user)) {
+             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------- Path Processing --------------------------
@@ -1203,9 +1282,7 @@ public final class VaultResource
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
          try {
-             getVaultImpl().secretDestroyMeta(threadContext.getTenantId(), 
-                                              threadContext.getUser(), 
-                                              secretPathParms);
+             getVaultImpl().secretDestroyMeta(tenant, user, secretPathParms);
          } catch (Exception e) {
              _log.error(e.getMessage(), e);
              return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1214,7 +1291,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          var r = new RespBasic();
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1230,6 +1308,8 @@ public final class VaultResource
                            + "against the password stored in the vault for the service specified"
                            + "in the X-Tapis-User header. The secret name is the path under which"
                            + "the password was stored.\n\n"
+                           + ""
+                           + "A valid tenant and user must also be specified in the payload.\n\n"
                            + ""
                            + "### Naming Secrets\n"
                            + ""
@@ -1287,22 +1367,24 @@ public final class VaultResource
                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
+         // Extract input values.
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         
          // Support secret name paths by replacing the escape characters (+) with
          // slashes.  This is typically handled in SecretPathMapperParms. 
          if (secretName != null) secretName = secretName.replace('+', '/');
          
          // ------------------------- Check Tenant -----------------------------
-         // Null means the tenant and user are both assigned.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         Response resp = checkTenantUser(threadContext, prettyPrint);
+         // Null means the jwt tenant and user are validated.
+         Response resp = checkTenantUser(tenant, user, prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Get the names.
          boolean authorized;
-         try {authorized = getVaultImpl().validateServicePwd(threadContext.getTenantId(),
-                                                             threadContext.getUser(),
-                                                             secretName, payload.password);}
+         try {authorized = getVaultImpl().validateServicePwd(tenant, user, secretName, 
+                                                             payload.password);}
              catch (Exception e) {
                  // Already logged.
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1311,8 +1393,7 @@ public final class VaultResource
          // Password was not matched.
          if (!authorized) {
              String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
-                                          threadContext.getTenantId(), 
-                                          threadContext.getUser(), secretName);
+                                          tenant, user, secretName);
              _log.warn(msg);
              return Response.status(Status.FORBIDDEN).
                  entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();

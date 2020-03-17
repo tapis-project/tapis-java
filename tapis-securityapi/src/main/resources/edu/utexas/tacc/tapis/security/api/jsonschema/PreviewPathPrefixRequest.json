@@ -5,6 +5,12 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
           "schema": {
             "type": "string"
           },
@@ -25,6 +31,8 @@
           }
         },
     "required": [
+        "tenant",
+        "user",
         "schema", 
         "oldSystemId",
         "newSystemId"
