@@ -142,7 +142,9 @@ public final class RoleResource
      @GET
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the names of all roles in the tenant in alphabetic order.",
+             description = "Get the names of all roles in the tenant in alphabetic order.\n\n"
+                     + ""
+                     + "A valid tenant must be specified as a query parameter.",
              tags = "role",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
@@ -211,7 +213,8 @@ public final class RoleResource
      @Path("/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-         description = "Get the named role's definition.",
+         description = "Get the named role's definition.  A valid tenant must be "
+                       + "specified as a query parameter.",
          tags = "role",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
@@ -295,7 +298,9 @@ public final class RoleResource
                            + "start with an alphbetic character and can be no more than 58 "
                            + "characters in length.  The desciption can be no more than "
                            + "2048 characters long.  If the role already exists, this "
-                           + "request has no effect.",
+                           + "request has no effect.\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -387,7 +392,8 @@ public final class RoleResource
      @Path("/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-         description = "Delete the named role.",
+         description = "Delete the named role. A valid tenant and user must be "
+                       + "specified as query parameters.",
          tags = "role",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
@@ -465,7 +471,8 @@ public final class RoleResource
          description = "Get the named role's permissions.  By default, all permissions "
                  + "assigned to the role, whether directly and transitively through "
                  + "child roles, are returned.  Set the immediate query parameter to "
-                 + "only retrieve permissions directly assigned to the role.",
+                 + "only retrieve permissions directly assigned to the role.  A valid "
+                 + "tenant must be specified.",
          tags = "role",
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
@@ -544,7 +551,9 @@ public final class RoleResource
              description = "Update an existing role using a request body.  "
                            + "Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
-                           + "character.  The limit on role name is 58 characters.",
+                           + "character.  The limit on role name is 58 characters.\n\n"
+                           + ""
+                           + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -628,7 +637,8 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Update an existing role using a request body.  "
-                           + "The size limit on a description is 2048 characters.",
+                           + "The size limit on a description is 2048 characters.  "
+                           + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -729,7 +739,9 @@ public final class RoleResource
                          + "See the Shiro documentation for further details.  Note that the three "
                          + "reserved characters, [: * ,], cannot appear in the text of any part.  "
                          + "It's the application's responsibility to escape those characters in "
-                         + "a manner that is safe in the application's domain.",
+                         + "a manner that is safe in the application's domain.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -818,7 +830,8 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a permission from a role using a request body.",
+             description = "Remove a permission from a role using a request body.  "
+                     + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -911,7 +924,9 @@ public final class RoleResource
              description = "Add a child role to another role using a request body.  "
                          + "If the child already exists, "
                          + "then the request has no effect and the change count returned is "
-                         + "zero. Otherwise, the child is added and the change count is one.",
+                         + "zero. Otherwise, the child is added and the change count is one.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -1000,7 +1015,8 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Remove a child role from a parent role using a request body.",
+             description = "Remove a child role from a parent role using a request body.  "
+                     + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -1122,7 +1138,9 @@ public final class RoleResource
                          + "The result object contains an array of transformation objects, each of "
                          + "which contains the unique permission sequence number, the existing "
                          + "permission that matched the search criteria and the new permission if "
-                         + "the specified transformations were applied.",
+                         + "the specified transformations were applied.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(
@@ -1273,7 +1291,9 @@ public final class RoleResource
                          + ""
                          + "The input parameters are passed in the payload of this request.  "
                          + "The response indicates the number of changed permission "
-                         + "specifications.",
+                         + "specifications.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified in the request body.",
              tags = "role",
              requestBody = 
                  @RequestBody(

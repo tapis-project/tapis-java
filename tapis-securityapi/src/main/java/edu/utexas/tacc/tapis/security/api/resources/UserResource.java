@@ -40,7 +40,6 @@ import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
@@ -208,7 +207,8 @@ public final class UserResource
      @Path("/roles/{user}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the roles assigned to a user, including those assigned transively.",
+             description = "Get the roles assigned to a user in the specified tenant, "
+                     + "including those assigned transively.",
              tags = "user",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of roles names assigned to the user.",
@@ -277,9 +277,10 @@ public final class UserResource
      @Path("/perms/{user}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the permissions assigned to a user, including those assigned transively. "
-                     + "The result list can be optionally filtered by the one or both of the query "
-                     + "parameters, implies and impliedBy.\n\n"
+             description = "Get the permissions assigned to a user in a tenant, "
+                     + "including those assigned transively.  The result list can be "
+                     + "optionally filtered by the one or both of the query "
+                     + "parameters: implies and impliedBy.\n\n"
                      + ""
                      + "The implied parameter removes permissions from the result list "
                      + "that the specified permission do not imply. The impliedBy parameter "
@@ -384,7 +385,8 @@ public final class UserResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Grant a user the specified role.",
+             description = "Grant a user the specified role.  A valid tenant and user "
+                     + "must be specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -476,7 +478,9 @@ public final class UserResource
      @Operation(
              description = "Revoke a previously granted role from a user. No action "
                      + "is taken if the user is not currently assigned the role. "
-                     + "This request is idempotent.",
+                     + "This request is idempotent.\n\n"
+                     + ""
+                     + "A valid tenant and user must be specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -673,7 +677,9 @@ public final class UserResource
                      + "reported and no changes occur.\n\n"
                      + ""
                      + "The change count returned can be zero or one "
-                     + "depending on how many permissions were revoked.",
+                     + "depending on how many permissions were revoked.\n\n"
+                     + ""
+                     + "A valid tenant and user must be specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -769,7 +775,9 @@ public final class UserResource
                          + "This compound request first adds the permission to the role if it is not "
                          + "already a member of the role and then assigns the role "
                          + "to the user.  The change count returned can range from zero to two "
-                         + "depending on how many insertions were actually required.",
+                         + "depending on how many insertions were actually required.\n\n"
+                         + ""
+                         + "A valid tenant and user must be specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -865,8 +873,8 @@ public final class UserResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Check whether a user has been assigned the specified role, "
-                           + "either directly or transitively.",
+             description = "Check whether a user in a tenant has been assigned "
+                     + "the specified role, either directly or transitively.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -929,8 +937,8 @@ public final class UserResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Check whether a user has been assigned any of the roles "
-                           + "specified in the request body.",
+             description = "Check whether a user in a tenant has been assigned "
+                     + "any of the roles specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -973,8 +981,8 @@ public final class UserResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Check whether a user has been assigned all of the roles "
-                           + "specified in the request body.",
+             description = "Check whether a user in a tenant has been assigned "
+                     + "all of the roles specified in the request body.",
              tags = "user",
              requestBody = 
                  @RequestBody(
@@ -1065,7 +1073,8 @@ public final class UserResource
              
          // Transfer to a new payload object.
          ReqUserIsPermittedMulti multi = new ReqUserIsPermittedMulti();
-         multi.user = payload.user;
+         multi.tenant = payload.tenant;
+         multi.user   = payload.user;
          multi.permSpecs = new String[] {payload.permSpec};
          
          // Call the real method.
@@ -1240,7 +1249,7 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = 
-               "Get all users assigned a permission.  " +
+               "Get all users in a tenant assigned a permission.  " +
                "The permSpec parameter is a permission specification " +
                "that uses colons as separators, the asterisk as a wildcard character and " +
                "commas to define lists.  Here are examples of permission specifications:\n\n" +

@@ -60,7 +60,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                 @Tag(name = "general", description = "informational endpoints")},
         servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",
-                                              url = "https://tacc-cloud.readthedocs.io/projects/agave")
+                                     url = "https://tacc-cloud.readthedocs.io/projects/agave/en/latest/")
 )
 @SecurityScheme(
         name="TapisJWT",
