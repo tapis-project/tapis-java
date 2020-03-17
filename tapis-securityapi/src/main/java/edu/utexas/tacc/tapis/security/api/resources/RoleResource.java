@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.security.api.resources;
 import java.io.InputStream;
 import java.util.List;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -1373,6 +1374,7 @@ public final class RoleResource
      @GET
      @Path("/defaultRole/{user}")
      @Produces(MediaType.APPLICATION_JSON)
+     @PermitAll
      @Operation(
              description = 
                "Get a user's default role. The default role can be explicitly created "

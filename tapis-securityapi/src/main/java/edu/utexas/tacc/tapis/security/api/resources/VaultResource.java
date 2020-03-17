@@ -275,7 +275,8 @@ public final class VaultResource
          
          // Success.
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretName), prettyPrint, respSecret)).build();
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, respSecret)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -439,7 +440,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespSecretMeta r = new RespSecretMeta(skSecretMeta);
          return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_CREATED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_CREATED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -590,7 +592,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(deletedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -738,7 +741,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(undeletedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_UNDELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_UNDELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -887,7 +891,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          RespVersions r = new RespVersions(destroyedVersions);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1015,7 +1020,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          var r = new RespSecretVersionMetadata(info);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_READ", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -1270,7 +1276,8 @@ public final class VaultResource
          // Return the data portion of the vault response.
          var r = new RespBasic();
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_DELETED", "Secret", secretPathParms.getSecretName()), 
+                                 prettyPrint, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
