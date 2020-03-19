@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.api.utils;
 import com.google.gson.JsonElement;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
@@ -115,29 +116,27 @@ public class ApiUtils
 
   /**
    * Check that system exists
-   * @param tenantName - name of the tenant
-   * @param apiUserId - user name associated with API request
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - name of the system to check
-   * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
    * @param opName - operation name, for constructing response msg
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkSystemExists(SystemsService systemsService, String tenantName, String apiUserId,
-                                           String systemName, String userName, boolean prettyPrint, String opName)
+  public static Response checkSystemExists(SystemsService systemsService, AuthenticatedUser authenticatedUser,
+                                           String systemName, boolean prettyPrint, String opName)
   {
     String msg;
     boolean systemExists;
-    try { systemExists = systemsService.checkForSystemByName(tenantName, apiUserId, systemName); }
+    try { systemExists = systemsService.checkForSystemByName(authenticatedUser, systemName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", null, opName, systemName, apiUserId, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", opName, systemName, authenticatedUser.getName(), e.getMessage());
       _log.error(msg, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if (!systemExists)
     {
-      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, apiUserId);
+      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, authenticatedUser.getName());
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }

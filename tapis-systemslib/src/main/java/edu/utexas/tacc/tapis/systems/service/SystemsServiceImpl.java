@@ -9,8 +9,8 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static edu.utexas.tacc.tapis.systems.model.Credential.*;
-import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
@@ -74,7 +73,7 @@ public class SystemsServiceImpl implements SystemsService
   @Inject
   private SKClient skClient;
 
-//TODO  @Inject
+  @Inject
   private ServiceJWT serviceJWT;
 
   // ************************************************************************
@@ -94,10 +93,12 @@ public class SystemsServiceImpl implements SystemsService
    * @throws IllegalArgumentException - invalid parameter passed in
    */
   @Override
-  public int createSystem(String tenantName, String apiUserId, TSystem system, String scrubbedJson)
+  public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException, IllegalArgumentException
   {
-    // Extract system name for convenience
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
     String systemName = (system == null ? null : system.getName());
 
     // ---------------------------- Check inputs ------------------------------------
@@ -111,7 +112,7 @@ public class SystemsServiceImpl implements SystemsService
 
     String opName = "createSystem";
     // ------------------------- Check service level authorization -------------------------
-    checkAuth(tenantName, apiUserId, opName, system.getName(), system);
+    checkAuth(authenticatedUser, opName, system.getName(), system);
 
     // ---------------- Fill in defaults and check constraints on TSystem attributes ------------------------
     system.setTenant(tenantName);
@@ -129,17 +130,17 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------- Add permissions -----------------------------------
     // Give owner and possibly effectiveUser access to the system
     String effectiveUserId = system.getEffectiveUserId();
-    grantUserPermissions(tenantName, apiUserId, systemName, system.getOwner(), ALL_PERMS);
+    grantUserPermissions(authenticatedUser, systemName, system.getOwner(), ALL_PERMS);
     if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
     {
-      grantUserPermissions(tenantName, apiUserId, systemName, effectiveUserId, ALL_PERMS);
+      grantUserPermissions(authenticatedUser, systemName, effectiveUserId, ALL_PERMS);
     }
     // TODO remove addition of files related permSpec
     // Give owner/effectiveUser files service related permission for root directory
     var skClient = getSKClient(tenantName, apiUserId);
     String permSpec = "files:" + tenantName + ":*:" +  systemName;
-    skClient.grantUserPermission(system.getOwner(), permSpec);
-    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(effectiveUserId, permSpec);
+    skClient.grantUserPermission(tenantName, system.getOwner(), permSpec);
+    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(tenantName, effectiveUserId, permSpec);
 
     // ------------------- Store credentials -----------------------------------
     // Store credentials in Security Kernel if cred provided and effectiveUser is static
@@ -149,7 +150,7 @@ public class SystemsServiceImpl implements SystemsService
       String accessUser = effectiveUserId;
       // If effectiveUser is owner resolve to static string.
       if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-      createUserCredential(tenantName, apiUserId, systemName, accessUser, credential);
+      createUserCredential(authenticatedUser, systemName, accessUser, credential);
     }
 
     return itemId;
@@ -159,17 +160,21 @@ public class SystemsServiceImpl implements SystemsService
    * Delete a system record given the system name.
    * Also remove permissions and credentials from the Security Kernel
    *
-   * @param tenantName - name of tenant
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - name of system
    * @return Number of items deleted
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public int deleteSystemByName(String tenantName, String apiUserId, String systemName) throws TapisException
+  public int deleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException
   {
     String opName = "deleteSystem";
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // ------------------------- Check service level authorization -------------------------
-    checkAuth(tenantName, apiUserId, opName, systemName, null);
+    checkAuth(authenticatedUser, opName, systemName, null);
 
     var skClient = getSKClient(tenantName, apiUserId);
     // TODO: Remove all credentials associated with the system.
@@ -184,10 +189,10 @@ public class SystemsServiceImpl implements SystemsService
     // Use Security Kernel client to find all users with perms associated with the system.
     // Get the Security Kernel client
     String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
-    var userNames = skClient.getUsersWithPermission(permSpec);
+    var userNames = skClient.getUsersWithPermission(tenantName, permSpec);
     // Revoke all perms for all users
     for (String userName : userNames) {
-      revokeUserPermissions(tenantName, apiUserId, systemName, userName, ALL_PERMS);
+      revokeUserPermissions(authenticatedUser, systemName, userName, ALL_PERMS);
     }
 
     // Delete the system
@@ -196,16 +201,21 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * getSystemByName
-   * @param tenantName - name of tenant
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
    * @return true if system exists, false if system does not exist
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public boolean checkForSystemByName(String tenantName, String apiUserId, String systemName) throws TapisException {
+  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException {
     String opName = "readSystem";
+
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // ------------------------- Check service level authorization -------------------------
-    checkAuth(tenantName, apiUserId, opName, systemName, null);
+    checkAuth(authenticatedUser, opName, systemName, null);
     // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     boolean result = dao.checkForTSystemByName(tenantName, systemName);
     return result;
@@ -213,26 +223,30 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * getSystemByName
-   * @param tenantName - name of tenant
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
    * @return TSystem - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public TSystem getSystemByName(String tenantName, String apiUserId, String systemName, boolean getCreds, AccessMethod accMethod1) throws TapisException {
+  public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod1) throws TapisException {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     TSystem result = dao.getTSystemByName(tenantName, systemName);
     if (result == null) return null;
     // Resolve effectiveUserId if necessary
     String effectiveUserId = resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId);
     // Update result with effectiveUserId
     result.setEffectiveUserId(effectiveUserId);
-    // If requested retrieve credentials from Security Kernel
-    if (getCreds)
+    // If requested and effectiveUserid is not ${apiUserId} (i.e. is static) then retrieve credentials from Security Kernel
+    if (getCreds && !result.getEffectiveUserId().equals(TSystem.APIUSERID_VAR))
     {
       AccessMethod accMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
       if (accMethod1 != null) accMethod = accMethod1;
-      Credential cred = getUserCredential(tenantName, apiUserId, systemName, effectiveUserId, accMethod);
+      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, accMethod);
       result.setAccessCredential(cred);
     }
     return result;
@@ -240,44 +254,44 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get all systems
-   * @param tenantName - Tenant name
+   * @param authenticatedUser - principal user containing tenant and user info
    * @return List of TSystem objects
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<TSystem> getSystems(String tenantName, String apiUserId) throws TapisException
+  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    List<TSystem> result = dao.getTSystems(tenantName);
+    List<TSystem> result = dao.getTSystems(authenticatedUser.getTenantId());
     for (TSystem sys : result)
     {
-      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), apiUserId));
+      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), authenticatedUser.getName()));
     }
     return result;
   }
 
   /**
    * Get list of system names
-   * @param tenantName - Tenant name
+   * @param authenticatedUser - principal user containing tenant and user info
    * @return - list of systems
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<String> getSystemNames(String tenantName, String apiUserId) throws TapisException
+  public List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    return dao.getTSystemNames(tenantName);
+    return dao.getTSystemNames(authenticatedUser.getTenantId());
   }
 
   /**
    * Get system owner
-   * @param tenantName - Tenant name
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
    * @return - Owner or null if system not found
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public String getSystemOwner(String tenantName, String apiUserId, String systemName) throws TapisException
+  public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException
   {
-    return dao.getTSystemOwner(tenantName, systemName);
+    return dao.getTSystemOwner(authenticatedUser.getTenantId(), systemName);
   }
 
   // -----------------------------------------------------------------------
@@ -291,9 +305,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void grantUserPermissions(String tenantName, String apiUserId, String systemName, String userName, List<String> permissions)
+  public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, List<String> permissions)
     throws TapisException
   {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
         permissions == null || permissions.isEmpty())
@@ -312,7 +330,7 @@ public class SystemsServiceImpl implements SystemsService
     {
       for (String permSpec : permSpecSet)
       {
-        skClient.grantUserPermission(userName, permSpec);
+        skClient.grantUserPermission(tenantName, userName, permSpec);
       }
     }
     // TODO exception handling
@@ -326,9 +344,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void revokeUserPermissions(String tenantName, String apiUserId, String systemName, String userName, List<String> permissions)
+  public void revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, List<String> permissions)
     throws TapisException
   {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
       permissions == null || permissions.isEmpty())
@@ -347,7 +369,7 @@ public class SystemsServiceImpl implements SystemsService
     {
       for (String permSpec : permSpecSet)
       {
-        skClient.revokeUserPermission(userName, permSpec);
+        skClient.revokeUserPermission(tenantName, userName, permSpec);
       }
     }
     // TODO exception handling
@@ -362,9 +384,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<String> getUserPermissions(String tenantName, String apiUserId, String systemName, String userName) throws TapisException
+  public List<String> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException
   {
     var userPerms = new ArrayList<String>();
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Use Security Kernel client to check for each permission in the enum list
     var skClient = getSKClient(tenantName, apiUserId);
     for (TSystem.Permission perm : TSystem.Permission.values())
@@ -372,7 +398,7 @@ public class SystemsServiceImpl implements SystemsService
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
       try
       {
-        Boolean isAuthorized = skClient.isPermitted(userName, permSpec);
+        Boolean isAuthorized = skClient.isPermitted(tenantName, userName, permSpec);
         if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm.name());
       }
       // TODO exception handling
@@ -391,9 +417,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void createUserCredential(String tenantName, String apiUserId, String systemName, String userName, Credential credential)
+  public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential)
           throws TapisException
   {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) || credential == null)
     {
@@ -413,7 +443,7 @@ public class SystemsServiceImpl implements SystemsService
         sParms.setKeyType(KeyType.password);
         dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
         sParms.setData(dataMap);
-        skClient.writeSecret(sParms);
+        skClient.writeSecret(tenantName, userName, sParms);
       }
       // Store PKI keys if both present
       if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
@@ -422,7 +452,7 @@ public class SystemsServiceImpl implements SystemsService
         dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
         dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
         sParms.setData(dataMap);
-        skClient.writeSecret(sParms);
+        skClient.writeSecret(tenantName, userName, sParms);
       }
       // Store Access key and secret if both present
       if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
@@ -431,7 +461,7 @@ public class SystemsServiceImpl implements SystemsService
         dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
         dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
         sParms.setData(dataMap);
-        skClient.writeSecret(sParms);
+        skClient.writeSecret(tenantName, userName, sParms);
       }
       // TODO what about ssh certificate? Nothing to do here?
     }
@@ -445,9 +475,13 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public void deleteUserCredential(String tenantName, String apiUserId, String systemName, String userName)
+  public void deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
           throws TapisException
   {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
     {
@@ -459,6 +493,8 @@ public class SystemsServiceImpl implements SystemsService
     var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
     try
     {
+      sParms.setTenant(tenantName);
+      sParms.setUser(apiUserId);
       sParms.setKeyType(KeyType.password);
       skClient.destroySecretMeta(sParms);
       sParms.setKeyType(KeyType.sshkey);
@@ -481,15 +517,19 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public Credential getUserCredential(String tenantName, String apiUserId, String systemName, String userName, AccessMethod accessMethod) throws TapisException
+  public Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod) throws TapisException
   {
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // If system does not exist throw an exception
-    if (!checkForSystemByName(tenantName, apiUserId, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+    if (!checkForSystemByName(authenticatedUser, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
 
     // If accessMethod not passed in fill in with default from system
     if (accessMethod == null)
@@ -507,6 +547,8 @@ public class SystemsServiceImpl implements SystemsService
       var skClient = getSKClient(tenantName, apiUserId);
       // Construct basic SK secret parameters
       var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+      // TODO/TBD Should these be OBO or svc values?
+      sParms.setTenant(tenantName).setUser(apiUserId);
       // Set key type based on access method
       if (accessMethod.equals(AccessMethod.PASSWORD))sParms.setKeyType(KeyType.password);
       else if (accessMethod.equals(AccessMethod.PKI_KEYS))sParms.setKeyType(KeyType.sshkey);
@@ -550,22 +592,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
     Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
-
-    // For initial test create ServiceJWT on the fly. TODO inject as singleton
-    if (serviceJWT == null) {
-      var svcJWTParms = new ServiceJWTParms();
-      svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
-      // TODO: remove hard coded values
-      svcJWTParms.setTenant("master");
-//    svcJWTParms.setTokensBaseUrl("https://dev.develop.tapis.io");
-      String tokenSvcUrl = tenant.getTokenService();
-      // TODO remove the strip-off once this is cleaned up
-      // Strip off everything starting with /v3
-      tokenSvcUrl = tokenSvcUrl.substring(0, tokenSvcUrl.indexOf("/v3"));
-      svcJWTParms.setTokensBaseUrl(tokenSvcUrl);
-      serviceJWT = new ServiceJWT(svcJWTParms, "3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=");
-    }
-
 
     // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence.
@@ -704,13 +730,12 @@ public class SystemsServiceImpl implements SystemsService
    * Delete - must be owner or have admin role
    * TODO Modify - must be owner or have admin role
    * TODO Modify owner - must have admin role
-   * @param tenantName - name of the tenant
-   * @param apiUserId - user name associated with API request
+   * @param authenticatedUser - principal user containing tenant and user info
    * @param opName - operation name, for constructing response msg
    * @param systemName - name of the system
    * @throws IllegalStateException - apiUserId not authorized to perform operation
    */
-  private void checkAuth(String tenantName, String apiUserId, String opName, String systemName, TSystem system)
+  private void checkAuth(AuthenticatedUser authenticatedUser, String opName, String systemName, TSystem system)
            throws IllegalStateException, TapisException
   {
     // TODO
@@ -739,7 +764,7 @@ public class SystemsServiceImpl implements SystemsService
   private boolean hasAdminRole(String tenantName, String apiUserId) throws TapisException
   {
     var skClient = getSKClient(tenantName, apiUserId);
-    return skClient.hasRole(apiUserId, SYSTEMS_ADMIN_ROLE);
+    return skClient.hasRole(tenantName, apiUserId, SYSTEMS_ADMIN_ROLE);
   }
 
 // TODO *************** remove debug output ********************
