@@ -102,10 +102,7 @@
     </dependency>
   </dependencies>
 
-    <modules>
-    <module>tapis-migrate</module>
-    <module>tapis-sampleapi</module>
-    <module>tapis-samplelib</module>
+  <modules>
     <module>tapis-securityapi</module>
     <module>tapis-securitylib</module>
     <module>tapis-securitymigrate</module>
