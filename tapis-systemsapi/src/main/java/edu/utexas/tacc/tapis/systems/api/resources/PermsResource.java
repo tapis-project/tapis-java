@@ -145,7 +145,8 @@ public class PermsResource
   public Response grantUserPerms(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 InputStream payloadStream)
+                                 InputStream payloadStream,
+                                 @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -164,7 +165,7 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -233,7 +234,8 @@ public class PermsResource
   )
   public Response getUserPerms(@PathParam("systemName") String systemName,
                                 @PathParam("userName") String userName,
-                                @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                               @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -252,7 +254,7 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -309,7 +311,8 @@ public class PermsResource
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permission,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -328,7 +331,7 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -398,7 +401,8 @@ public class PermsResource
   public Response revokeUserPerms(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 InputStream payloadStream)
+                                 InputStream payloadStream,
+                                  @Context SecurityContext securityContext)
   {
     String msg;
     // Trace this request.
@@ -417,7 +421,7 @@ public class PermsResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists

@@ -12,6 +12,7 @@ import javax.servlet.ServletContext;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.*;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -168,7 +169,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
+  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream,
+                               @Context SecurityContext securityContext)
   {
     String opName = "createSystem";
     String msg;
@@ -188,7 +190,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
@@ -321,7 +323,8 @@ public class SystemResource
   public Response getSystemByName(@PathParam("sysName") String sysName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                  @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -339,7 +342,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // Check that accessMethodStr is valid if is passed in
     AccessMethod accessMethod = null;
@@ -402,7 +405,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -420,7 +424,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Retrieve all records -----------------------------
     List<String> systemNames;
@@ -468,7 +472,8 @@ public class SystemResource
     }
   )
   public Response deleteSystemByName(@PathParam("sysName") String sysName,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                     @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -486,7 +491,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     int changeCount;
     try

@@ -160,7 +160,8 @@ public class CredentialResource
   public Response createUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
                                        @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                       InputStream payloadStream)
+                                       InputStream payloadStream,
+                                       @Context SecurityContext securityContext)
   {
     String msg;
     // Trace this request.
@@ -179,7 +180,7 @@ public class CredentialResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -278,7 +279,8 @@ public class CredentialResource
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                    @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -297,7 +299,7 @@ public class CredentialResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
@@ -373,7 +375,8 @@ public class CredentialResource
   )
   public Response removeUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
-                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                       @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -392,7 +395,7 @@ public class CredentialResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists

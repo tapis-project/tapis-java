@@ -6,7 +6,6 @@ export RUN_DIR=`pwd`
 export PRG_RELPATH=`dirname $0`
 cd $PRG_RELPATH/.
 export PRG_PATH=`pwd`
-cd $RUN_DIR
 
 export VER=`cat target/classes/tapis.version`
 export GIT_COMMIT=`awk '{print $2}' target/classes/git.info`
@@ -22,3 +21,4 @@ if [ "x$1" = "x-push" ]; then
   docker login -u $USERNAME -p $PASSWD
   docker push $TAG2
 fi
+cd $RUN_DIR
