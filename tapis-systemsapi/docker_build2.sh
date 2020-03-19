@@ -1,4 +1,13 @@
 #!/bin/sh
+PrgName=`basename $0`
+
+# Determine absolute path to location from which we are running.
+export RUN_DIR=`pwd`
+export PRG_RELPATH=`dirname $0`
+cd $PRG_RELPATH/.
+export PRG_PATH=`pwd`
+cd $RUN_DIR
+
 export VER=`cat target/classes/tapis.version`
 export GIT_COMMIT=`awk '{print $2}' target/classes/git.info`
 export TAG="tapis/systems:${VER}"

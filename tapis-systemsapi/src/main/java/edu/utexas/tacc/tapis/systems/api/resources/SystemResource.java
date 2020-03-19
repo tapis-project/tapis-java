@@ -8,6 +8,8 @@ import java.util.List;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
+
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Application;
@@ -185,9 +187,8 @@ public class SystemResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
@@ -231,32 +232,32 @@ public class SystemResource
 
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
-    system.setTenant(tenantName);
+    system.setTenant(authenticatedUser.getTenantId());
     String systemName = system.getName();
     try
     {
-      systemsService.createSystem(tenantName, apiUserId, system, scrubbedJson);
+      systemsService.createSystem(authenticatedUser, system, scrubbedJson);
     }
     catch (IllegalStateException e)
     {
       if (e.getMessage().contains("SYSLIB_SYS_EXISTS"))
       {
         // IllegalStateException with msg containing SYS_EXISTS indicates object exists - return 409 - Conflict
-        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", systemName);
+        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", authenticatedUser.getName(), systemName);
         _log.warn(msg);
         return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
       else if (e.getMessage().contains("SYSLIB_UNAUTH"))
       {
         // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
-        msg = ApiUtils.getMsg("SYSAPI_SYS_UNAUTH", apiUserId, opName, systemName);
+        msg = ApiUtils.getMsg("SYSAPI_SYS_UNAUTH", authenticatedUser.getName(), opName, systemName);
         _log.warn(msg);
         return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
       else
       {
         // IllegalStateException indicates an Invalid TSystem was passed in
-        msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", systemName);
+        msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
         _log.error(msg);
         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
@@ -264,13 +265,13 @@ public class SystemResource
     catch (IllegalArgumentException e)
     {
       // IllegalArgumentException indicates somehow a bad argument made it this far
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", systemName);
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
       _log.error(msg);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", systemName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -281,13 +282,13 @@ public class SystemResource
     respUrl.url = _request.getRequestURL().toString() + "/" + systemName;
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", systemName), prettyPrint, resp1)).build();
+      ApiUtils.getMsg("SYSAPI_CREATED", authenticatedUser.getName(), systemName), prettyPrint, resp1)).build();
   }
 
   /**
    * getSystemByName
    * @param sysName - name of the system
-   * @param getCreds - should credentials be included
+   * @param getCreds - should credentials of effectiveUser be included
    * @param accessMethodStr - access method to use instead of default
    * @param prettyPrint - pretty print the output
    * @return Response with system object as the result
@@ -300,7 +301,7 @@ public class SystemResource
       summary = "Retrieve information for a system",
       description =
           "Retrieve information for a system given the system name. " +
-          "Use query parameter returnCredentials=true to have the user access credentials " +
+          "Use query parameter returnCredentials=true to have effectiveUserId access credentials " +
           "included in the response. " +
           "Use query parameter accessMethod=<method> to override default access method.",
       tags = "systems",
@@ -337,9 +338,8 @@ public class SystemResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenant = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // Check that accessMethodStr is valid if is passed in
     AccessMethod accessMethod = null;
@@ -354,11 +354,11 @@ public class SystemResource
     TSystem system;
     try
     {
-      system = systemsService.getSystemByName(tenant, apiUserId, sysName, getCreds, accessMethod);
+      system = systemsService.getSystemByName(authenticatedUser, sysName, getCreds, accessMethod);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", sysName, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", authenticatedUser.getName(), sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -366,7 +366,7 @@ public class SystemResource
     // Resource was not found.
     if (system == null)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", sysName);
+      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", authenticatedUser.getName(), sysName);
       _log.warn(msg);
       return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -419,13 +419,12 @@ public class SystemResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenant = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Retrieve all records -----------------------------
     List<String> systemNames;
-    try { systemNames = systemsService.getSystemNames(tenant, apiUserId); }
+    try { systemNames = systemsService.getSystemNames(authenticatedUser); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", e.getMessage());
@@ -486,14 +485,13 @@ public class SystemResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenant = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     int changeCount;
     try
     {
-      changeCount = systemsService.deleteSystemByName(tenant, apiUserId, sysName);
+      changeCount = systemsService.deleteSystemByName(authenticatedUser, sysName);
     }
     catch (Exception e)
     {

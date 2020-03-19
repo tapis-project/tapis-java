@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
@@ -162,13 +163,12 @@ public class PermsResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "grantUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "grantUserPerms");
     if (resp != null) return resp;
 
     // TODO auth done in back end
@@ -186,11 +186,11 @@ public class PermsResource
     // Make the service call to assign the permissions
     try
     {
-      systemsService.grantUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
+      systemsService.grantUserPermissions(authenticatedUser, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -251,22 +251,21 @@ public class PermsResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "getUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "getUserPerms");
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the permissions
     List<String> permNames;
-    try { permNames = systemsService.getUserPermissions(tenantName, apiUserId, systemName, userName); }
+    try { permNames = systemsService.getUserPermissions(authenticatedUser, systemName, userName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -328,13 +327,12 @@ public class PermsResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerm");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "revokeUserPerm");
     if (resp != null) return resp;
     // TODO auth done in back end
 //    // ------------------------- Check authorization -------------------------
@@ -348,11 +346,11 @@ public class PermsResource
     permsList.add(permission);
     try
     {
-      systemsService.revokeUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -418,13 +416,12 @@ public class PermsResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "revokeUserPerms");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "revokeUserPerms");
     if (resp != null) return resp;
     // TODO auth done in back end
 //    // ------------------------- Check authorization -------------------------
@@ -441,11 +438,11 @@ public class PermsResource
     // Make the service call to revoke the permissions
     try
     {
-      systemsService.revokeUserPermissions(tenantName, apiUserId, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList);
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, apiUserId, systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", null, authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
