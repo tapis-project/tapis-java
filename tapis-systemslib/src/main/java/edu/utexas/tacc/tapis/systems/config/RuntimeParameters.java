@@ -85,6 +85,10 @@ public final class RuntimeParameters
 	private String  jdbcURL;
 	private int     dbMeterMinutes;
 
+	// Service config
+	private String servicePassword;
+	private String setServiceMasterTenant;
+
 	// Service base URLs - tokens, tenants, Security Kernel
 	private String tokensSvcURL;
 	private String tenantsSvcURL;
@@ -197,6 +201,13 @@ public final class RuntimeParameters
           }
       }
 
+		// --------------------- Service config --------------------------------
+		parm = inputProperties.getProperty(EnvVar.TAPIS_SERVICE_PASSWORD.getEnvName());
+		if (!StringUtils.isBlank(parm)) setServicePassword(parm);
+
+		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_MASTER_TENANT.getEnvName());
+		if (!StringUtils.isBlank(parm)) setServiceMasterTenant(parm);
+
 		// --------------------- Base URLs for other services that this service requires ----------------------------
 		// Tenants service base URL is required. Throw runtime exception if not found.
 		// Tokens and Security Kernel base URLs are optional. Normally these are retrieved from the Tenants service.
@@ -216,7 +227,7 @@ public final class RuntimeParameters
 
 
 
-		// --------------------- DB Parameters ----------------------------
+	// --------------------- DB Parameters ----------------------------
     // User does not have to provide a pool size.
     parm = inputProperties.getProperty(EnvVar.TAPIS_DB_CONNECTION_POOL_SIZE.getEnvName());
     if (StringUtils.isBlank(parm)) setDbConnectionPoolSize(CONNECTION_POOL_SIZE);
@@ -624,6 +635,12 @@ public final class RuntimeParameters
 		this.jdbcURL = jdbcURL;
 	}
 
+	public String getSetServiceMasterTenant() { return setServiceMasterTenant; }
+	private void setServiceMasterTenant(String t) {setServiceMasterTenant = t; }
+
+	public String getServicePassword() { return servicePassword; }
+	private void setServicePassword(String p) {servicePassword = p; }
+
 	public String getTokensSvcURL() { return tokensSvcURL; }
 	private void setTokensSvcURL(String url) {tokensSvcURL = url; }
 
@@ -762,7 +779,8 @@ public final class RuntimeParameters
 	private static enum EnvVar2 {
 		TAPIS_SVC_URL_TOKENS("tapis.svc.url.tokens"),
 		TAPIS_SVC_URL_TENANTS("tapis.svc.url.tenants"),
-		TAPIS_SVC_URL_SK("tapis.svc.url.sk");
+		TAPIS_SVC_URL_SK("tapis.svc.url.sk"),
+		TAPIS_SVC_MASTER_TENANT("tapis.svc.master.tenant");
 
 		private String _envName;
 

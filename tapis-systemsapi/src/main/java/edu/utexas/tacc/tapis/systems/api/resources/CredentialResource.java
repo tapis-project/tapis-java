@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
@@ -177,13 +178,12 @@ public class CredentialResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "createUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "createUserCredential");
     if (resp != null) return resp;
 
     // TODO auth done in back end
@@ -230,7 +230,7 @@ public class CredentialResource
     // Make the service call to create or update the credential
     try
     {
-      systemsService.createUserCredential(tenantName, apiUserId, systemName, userName, credential);
+      systemsService.createUserCredential(authenticatedUser, systemName, userName, credential);
     }
     catch (Exception e)
     {
@@ -296,13 +296,12 @@ public class CredentialResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "getUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "getUserCredential");
     if (resp != null) return resp;
 
     // Check that accessMethodStr is valid if it is passed in
@@ -324,7 +323,7 @@ public class CredentialResource
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the credentials
     Credential credential;
-    try { credential = systemsService.getUserCredential(tenantName, apiUserId, systemName, userName, accessMethod); }
+    try { credential = systemsService.getUserCredential(authenticatedUser, systemName, userName, accessMethod); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", null, systemName, userName, e.getMessage());
@@ -392,13 +391,12 @@ public class CredentialResource
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
-    // Get tenant and apiUserId from context
-    String tenantName = threadContext.getJwtTenantId();
-    String apiUserId = threadContext.getJwtUser();
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
 
     // ------------------------- Check prerequisites -------------------------
     // Check that the system exists
-    resp = ApiUtils.checkSystemExists(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, "removeUserCredential");
+    resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "removeUserCredential");
     if (resp != null) return resp;
     // TODO auth done in back end
 //    // ------------------------- Check authorization -------------------------
@@ -410,7 +408,7 @@ public class CredentialResource
     // Make the service call to remove the credential
     try
     {
-      systemsService.deleteUserCredential(tenantName, apiUserId, systemName, userName);
+      systemsService.deleteUserCredential(authenticatedUser, systemName, userName);
     }
     catch (Exception e)
     {
