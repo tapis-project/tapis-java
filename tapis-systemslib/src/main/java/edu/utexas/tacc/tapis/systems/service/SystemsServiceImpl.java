@@ -9,6 +9,7 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
@@ -96,14 +97,16 @@ public class SystemsServiceImpl implements SystemsService
   public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException, IllegalArgumentException
   {
+    if (authenticatedUser == null || system == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
     String apiUserId = authenticatedUser.getName();
-    String systemName = (system == null ? null : system.getName());
+    String systemName = system.getName();
+    String effectiveUserId = system.getEffectiveUserId();
 
     // ---------------------------- Check inputs ------------------------------------
     // Required system attributes: name, type, host, defaultAccessMethod
-    if (system == null || StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
         system.getSystemType() == null || StringUtils.isBlank(system.getHost()) ||
         system.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
     {
@@ -121,38 +124,60 @@ public class SystemsServiceImpl implements SystemsService
     // ----------------- Resolve variables for any attributes that might contain them --------------------
     system = resolveVariables(system, apiUserId);
 
-    // ------------------- Make Dao call to persist the system -----------------------------------
-    int itemId = dao.createTSystem(authenticatedUser, system, scrubbedJson);
+    // ----------------- Create all artifacts --------------------
+    // Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
+    // Use try/catch/finally to rollback any writes in case of failure.
+    int itemId = -1;
+    // Get SK client now. If we cannot get this rollback not needed.
+    var skClient = getSKClient(authenticatedUser);
+    try {
+      // ------------------- Make Dao call to persist the system -----------------------------------
+       itemId = dao.createTSystem(authenticatedUser, system, scrubbedJson);
 
-    // TODO/TBD: Creation of system and role/perms/creds not in single transaction. Need to handle failure of role/perms/creds operations
-    // TODO possibly have a try/catch/finally to roll back any writes in case of failure.
+      // ------------------- Add permissions -----------------------------------
+      // Give owner and possibly effectiveUser access to the system
+      grantUserPermissions(authenticatedUser, systemName, system.getOwner(), ALL_PERMS);
+      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
+        grantUserPermissions(authenticatedUser, systemName, effectiveUserId, ALL_PERMS);
+      }
+      // TODO remove addition of files related permSpec
+      // Give owner/effectiveUser files service related permission for root directory
+      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+      skClient.grantUserPermission(tenantName, system.getOwner(), filesPermSpec);
+      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
+        skClient.grantUserPermission(tenantName, effectiveUserId, filesPermSpec);
 
-    // ------------------- Add permissions -----------------------------------
-    // Give owner and possibly effectiveUser access to the system
-    String effectiveUserId = system.getEffectiveUserId();
-    grantUserPermissions(authenticatedUser, systemName, system.getOwner(), ALL_PERMS);
-    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
-    {
-      grantUserPermissions(authenticatedUser, systemName, effectiveUserId, ALL_PERMS);
+      // ------------------- Store credentials -----------------------------------
+      // Store credentials in Security Kernel if cred provided and effectiveUser is static
+      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+        String accessUser = effectiveUserId;
+        // If effectiveUser is owner resolve to static string.
+        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+        createUserCredential(authenticatedUser, systemName, accessUser, system.getAccessCredential());
+      }
     }
-    // TODO remove addition of files related permSpec
-    // Give owner/effectiveUser files service related permission for root directory
-    var skClient = getSKClient(tenantName, apiUserId);
-    String permSpec = "files:" + tenantName + ":*:" +  systemName;
-    skClient.grantUserPermission(tenantName, system.getOwner(), permSpec);
-    if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) skClient.grantUserPermission(tenantName, effectiveUserId, permSpec);
-
-    // ------------------- Store credentials -----------------------------------
-    // Store credentials in Security Kernel if cred provided and effectiveUser is static
-    Credential credential = system.getAccessCredential();
-    if (credential != null && !effectiveUserId.equals(APIUSERID_VAR))
+    catch (Exception e) { throw e; }
+    finally
     {
-      String accessUser = effectiveUserId;
-      // If effectiveUser is owner resolve to static string.
-      if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-      createUserCredential(authenticatedUser, systemName, accessUser, credential);
+      // Remove system from DB
+      if (itemId != -1) try {dao.deleteTSystem(tenantName, systemName); } catch (Exception e) {};
+      // Remove perms
+      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+      try { revokeUserPermissions(authenticatedUser, systemName, system.getOwner(), ALL_PERMS); } catch (Exception e) {};
+      try { revokeUserPermissions(authenticatedUser, systemName, effectiveUserId, ALL_PERMS); } catch (Exception e) {};
+      try { revokeUserPermissions(authenticatedUser, systemName, effectiveUserId, ALL_PERMS); } catch (Exception e) {};
+      try { skClient.revokeUserPermission(tenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {};
+      try { skClient.revokeUserPermission(tenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {};
+      // Remove creds
+      try
+      {
+        if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+          String accessUser = effectiveUserId;
+          if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+          deleteUserCredential(authenticatedUser, systemName, accessUser);
+        }
+      } catch (Exception e) {};
     }
-
     return itemId;
   }
 
@@ -176,7 +201,7 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, opName, systemName, null);
 
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
     // TODO: Remove all credentials associated with the system.
     // TODO: Have SK do this in one operation?
 //    deleteUserCredential(tenantName, systemName, );
@@ -216,7 +241,6 @@ public class SystemsServiceImpl implements SystemsService
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, opName, systemName, null);
-    // TODO Use static factory methods for DAOs, or better yet use DI, maybe Guice
     boolean result = dao.checkForTSystemByName(tenantName, systemName);
     return result;
   }
@@ -310,7 +334,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
-    String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
@@ -323,7 +346,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
 
     // Assign perms to user. SK creates a default role for the user
     try
@@ -349,7 +372,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
-    String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
@@ -362,7 +384,7 @@ public class SystemsServiceImpl implements SystemsService
     Set<String> permSpecSet = getPermSpecSet(tenantName, systemName, permissions);
 
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
 
     // Remove perms from default user role
     try
@@ -392,7 +414,7 @@ public class SystemsServiceImpl implements SystemsService
     String apiUserId = authenticatedUser.getName();
 
     // Use Security Kernel client to check for each permission in the enum list
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
     for (TSystem.Permission perm : TSystem.Permission.values())
     {
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + perm.name() + ":" + systemName;
@@ -430,7 +452,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
     try {
       // Construct basic SK secret parameters
       var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
@@ -488,7 +510,7 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
-    var skClient = getSKClient(tenantName, apiUserId);
+    var skClient = getSKClient(authenticatedUser);
     // Construct basic SK secret parameters
     var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
     try
@@ -544,7 +566,7 @@ public class SystemsServiceImpl implements SystemsService
     try
     {
       // Get the Security Kernel client
-      var skClient = getSKClient(tenantName, apiUserId);
+      var skClient = getSKClient(authenticatedUser);
       // Construct basic SK secret parameters
       var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
       // TODO/TBD Should these be OBO or svc values?
@@ -584,12 +606,14 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get Security Kernel client associated with specified tenant
-   * @param tenantName - name of tenant
+   * @param authenticatedUser - name of tenant
    * @return SK client
    * @throws TapisException - for Tapis related exceptions
    */
-  private SKClient getSKClient(String tenantName, String apiUserId) throws TapisException
+  private SKClient getSKClient(AuthenticatedUser authenticatedUser) throws TapisException
   {
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
     Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
 
@@ -598,15 +622,18 @@ public class SystemsServiceImpl implements SystemsService
     //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = RuntimeParameters.getInstance().getSkSvcURL();
     if (StringUtils.isBlank(skURL)) skURL = tenant.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName, apiUserId));
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", authenticatedUser, apiUserId));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
     skClient.setBasePath(skURL);
     skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT());
-    // TODO for incoming service request these should be oboTenant and oboUser
-    skClient.addDefaultHeader(HDR_TAPIS_USER, apiUserId);
-    skClient.addDefaultHeader(HDR_TAPIS_TENANT, tenantName);
+    // For incoming service requests put oboTenant and oboUser in headers
+    if (authenticatedUser.getAccountType().equals(TapisThreadContext.AccountType.service.name()))
+    {
+      skClient.addDefaultHeader(HDR_TAPIS_TENANT, authenticatedUser.getOboTenantId());
+      skClient.addDefaultHeader(HDR_TAPIS_USER, authenticatedUser.getOboUser());
+    }
     return skClient;
   }
 
@@ -705,8 +732,6 @@ public class SystemsServiceImpl implements SystemsService
     var permSet = new HashSet<String>();
     for (String permStr : permList)
     {
-      // TODO/TBD: should we check that the perm matches one in the enum, possibly trimming and ignoring case
-      // TODO/TBD: JSON validation at front-end can handle the check
       String permSpec = PERM_SPEC_PREFIX + tenantName + ":" + permStr.toUpperCase() + ":" + systemName;
       permSet.add(permSpec);
     }
@@ -761,10 +786,10 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId has the service admin role
    */
-  private boolean hasAdminRole(String tenantName, String apiUserId) throws TapisException
+  private boolean hasAdminRole(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    var skClient = getSKClient(tenantName, apiUserId);
-    return skClient.hasRole(tenantName, apiUserId, SYSTEMS_ADMIN_ROLE);
+    var skClient = getSKClient(authenticatedUser);
+    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
   }
 
 // TODO *************** remove debug output ********************
