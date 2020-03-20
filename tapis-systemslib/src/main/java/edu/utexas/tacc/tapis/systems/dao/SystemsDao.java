@@ -1,13 +1,14 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 
 import java.util.List;
 
 public interface SystemsDao
 {
-  int createTSystem(TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
+  int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
 
   int deleteTSystem(String tenant, String name) throws TapisException;
 

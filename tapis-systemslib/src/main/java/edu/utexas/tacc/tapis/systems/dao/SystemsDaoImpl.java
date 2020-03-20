@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 import com.google.inject.Singleton;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createTSystem(TSystem system, String scrubbedJson)
+  public int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException {
     // Generated sequence id
     int systemId = -1;
@@ -101,7 +102,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Should get one row back. If not assume system does not exist
       boolean doesExist = false;
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
-      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", system.getName()));
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", authenticatedUser.getName(), system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
       String owner = TSystem.DEFAULT_OWNER;

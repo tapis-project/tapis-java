@@ -540,22 +540,22 @@ public class SystemResource
     var errMessages = new ArrayList<String>();
     if (StringUtils.isBlank(system1.getName()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, NAME_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
       errMessages.add(msg);
     }
     if (system1.getSystemType() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, SYSTEM_TYPE_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
     else if (StringUtils.isBlank(system1.getHost()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, HOST_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, DEFAULT_ACCESS_METHOD_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
@@ -565,19 +565,19 @@ public class SystemResource
             !effectiveUserId.equals(owner))
     {
       // For CERT access the effectiveUserId cannot be static string other than owner
-      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT", authenticatedUser.getName(), name);
+      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
     else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
-      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT", authenticatedUser.getName(), name);
+      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
     else if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
-      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT", authenticatedUser.getName(), name);
+      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
       errMessages.add(msg);
     }
 
@@ -585,7 +585,7 @@ public class SystemResource
     if (!errMessages.isEmpty())
     {
       // Construct message reporting all errors
-      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages, authenticatedUser.getName(), name);
+      String allErrors = getListOfErrors(errMessages, authenticatedUser.getName(), name);
       _log.error(allErrors);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
@@ -635,9 +635,9 @@ public class SystemResource
   /**
    * Construct message containing list of errors
    */
-  private static String getListOfErrors(String firstLineKey, List<String> msgList, Object... parms) {
-    if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
-    var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey, parms));
+  private static String getListOfErrors(List<String> msgList, Object... parms) {
+    if (msgList == null || msgList.isEmpty()) return "";
+    var sb = new StringBuilder(ApiUtils.getMsg("SYSAPI_CREATE_INVALID_ERRORLIST", parms));
     sb.append(System.lineSeparator());
     for (String msg : msgList) { sb.append("  ").append(msg).append(System.lineSeparator()); }
     return sb.toString();

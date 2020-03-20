@@ -116,13 +116,13 @@ public class SystemsServiceImpl implements SystemsService
 
     // ---------------- Fill in defaults and check constraints on TSystem attributes ------------------------
     system.setTenant(tenantName);
-    validateTSystem(system);
+    validateTSystem(authenticatedUser, system);
 
     // ----------------- Resolve variables for any attributes that might contain them --------------------
     system = resolveVariables(system, apiUserId);
 
     // ------------------- Make Dao call to persist the system -----------------------------------
-    int itemId = dao.createTSystem(system, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, system, scrubbedJson);
 
     // TODO/TBD: Creation of system and role/perms/creds not in single transaction. Need to handle failure of role/perms/creds operations
     // TODO possibly have a try/catch/finally to roll back any writes in case of failure.
@@ -529,13 +529,13 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // If system does not exist throw an exception
-    if (!checkForSystemByName(authenticatedUser, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+    if (!checkForSystemByName(authenticatedUser, systemName)) throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", authenticatedUser.getName(), systemName));
 
     // If accessMethod not passed in fill in with default from system
     if (accessMethod == null)
     {
       TSystem sys = dao.getTSystemByName(tenantName, systemName);
-      if (sys == null)  throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", systemName));
+      if (sys == null)  throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", authenticatedUser.getName(), systemName));
       accessMethod = sys.getDefaultAccessMethod();
     }
 
@@ -598,7 +598,7 @@ public class SystemsServiceImpl implements SystemsService
     //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = RuntimeParameters.getInstance().getSkSvcURL();
     if (StringUtils.isBlank(skURL)) skURL = tenant.getSecurityKernel();
-    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName));
+    if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsg("SYSLIB_CREATE_SK_URL_ERROR", tenantName, apiUserId));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
@@ -640,7 +640,7 @@ public class SystemsServiceImpl implements SystemsService
    * @param system - the TSystem to check
    * @throws IllegalStateException - if any constraints are violated
    */
-  private static void validateTSystem(TSystem system) throws IllegalStateException
+  private static void validateTSystem(AuthenticatedUser authenticatedUser, TSystem system) throws IllegalStateException
   {
     String msg;
     var errMessages = new ArrayList<String>();
@@ -676,7 +676,7 @@ public class SystemsServiceImpl implements SystemsService
     if (!errMessages.isEmpty())
     {
       // Construct message reporting all errors
-      String allErrors = getListOfErrors("SYSLIB_CREATE_INVALID_ERRORLIST", errMessages);
+      String allErrors = getListOfErrors(authenticatedUser, system.getName(), errMessages);
       _log.error(allErrors);
       throw new IllegalStateException(allErrors);
     }
@@ -716,9 +716,9 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Construct message containing list of errors
    */
-  private static String getListOfErrors(String firstLineKey, List<String> msgList) {
-    if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
-    var sb = new StringBuilder(LibUtils.getMsg(firstLineKey));
+  private static String getListOfErrors(AuthenticatedUser authenticatedUser, String systemName, List<String> msgList) {
+    if (msgList == null || msgList.isEmpty()) return "";
+    var sb = new StringBuilder(LibUtils.getMsg("SYSLIB_CREATE_INVALID_ERRORLIST", authenticatedUser.getName(), systemName));
     sb.append(System.lineSeparator());
     for (String msg : msgList) { sb.append("  ").append(msg).append(System.lineSeparator()); }
     return sb.toString();
