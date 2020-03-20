@@ -18,6 +18,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
+import io.swagger.annotations.OAuth2Definition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -180,7 +181,7 @@ public class PermsResource
 
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new ArrayList<String>();
-    resp = checkAndExtractPayload(systemName, userName, prettyPrint, payloadStream, permsList);
+    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, payloadStream, permsList);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -199,7 +200,7 @@ public class PermsResource
     // ---------------------------- Success ------------------------------- 
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_GRANTED", null, systemName,
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_GRANTED", authenticatedUser.getName(), systemName,
                                                                    userName, String.join(",", permsList)),
                                                    prettyPrint, resp1))
       .build();
@@ -361,7 +362,7 @@ public class PermsResource
     // ---------------------------- Success -------------------------------
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", null, systemName,
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", authenticatedUser.getName(), systemName,
                                                                    userName, String.join(",", permsList)),
                                                    prettyPrint, resp1))
       .build();
@@ -435,7 +436,7 @@ public class PermsResource
 
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new ArrayList<String>();
-    resp = checkAndExtractPayload(systemName, userName, prettyPrint, payloadStream, permsList);
+    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, payloadStream, permsList);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
@@ -454,7 +455,7 @@ public class PermsResource
     // ---------------------------- Success -------------------------------
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", null, systemName,
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", authenticatedUser.getName(), systemName,
                                                                    userName, String.join(",", permsList)),
                                                    prettyPrint, resp1))
       .build();
@@ -474,7 +475,7 @@ public class PermsResource
    * @param permsList - List for resulting permissions extracted from payload
    * @return - null if all checks OK else Response containing info
    */
-  private Response checkAndExtractPayload(String systemName, String userName, boolean prettyPrint,
+  private Response checkAndExtractPayload(AuthenticatedUser authenticatedUser, String systemName, String userName, boolean prettyPrint,
                                           InputStream payloadStream, List<String> permsList)
   {
     Response resp = null;
@@ -484,7 +485,7 @@ public class PermsResource
     try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -494,7 +495,7 @@ public class PermsResource
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", authenticatedUser.getName(), systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -514,7 +515,7 @@ public class PermsResource
     // Check values. We should have at least one permission
     if (perms == null || perms.size() <= 0)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOPERMS", systemName, userName);
+      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOPERMS", authenticatedUser.getName(), systemName, userName);
     }
 
     // If validation failed log error message and return response

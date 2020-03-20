@@ -225,7 +225,7 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     // Fill in defaults and check constraints on TSystem attributes
-    resp = validateTSystem(system, prettyPrint);
+    resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
 
     // Mask any secret info that might be contained in rawJson
@@ -349,7 +349,7 @@ public class SystemResource
     try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
     catch (IllegalArgumentException e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, sysName, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser.getName(), sysName, accessMethodStr, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -431,7 +431,7 @@ public class SystemResource
     try { systemNames = systemsService.getSystemNames(authenticatedUser); }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", authenticatedUser.getName(), e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -500,7 +500,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", sysName, e.getMessage());
+      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", authenticatedUser.getName(), sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -528,7 +528,7 @@ public class SystemResource
    *
    * @return null if OK or error Response
    */
-  private static Response validateTSystem(TSystem system, boolean prettyPrint)
+  private static Response validateTSystem(TSystem system, AuthenticatedUser authenticatedUser, boolean prettyPrint)
   {
     // Make sure owner, effectiveUserId, transferMethods, notes and tags are all set
     TSystem system1 = TSystem.checkAndSetDefaults(system);
@@ -540,22 +540,22 @@ public class SystemResource
     var errMessages = new ArrayList<String>();
     if (StringUtils.isBlank(system1.getName()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, NAME_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, NAME_FIELD);
       errMessages.add(msg);
     }
     if (system1.getSystemType() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, SYSTEM_TYPE_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
     else if (StringUtils.isBlank(system1.getHost()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, HOST_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, HOST_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, DEFAULT_ACCESS_METHOD_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", authenticatedUser.getName(), name, DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
@@ -565,19 +565,19 @@ public class SystemResource
             !effectiveUserId.equals(owner))
     {
       // For CERT access the effectiveUserId cannot be static string other than owner
-      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT", authenticatedUser.getName(), name);
       errMessages.add(msg);
     }
     else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
-      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT", authenticatedUser.getName(), name);
       errMessages.add(msg);
     }
     else if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
-      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT", authenticatedUser.getName(), name);
       errMessages.add(msg);
     }
 
@@ -585,7 +585,7 @@ public class SystemResource
     if (!errMessages.isEmpty())
     {
       // Construct message reporting all errors
-      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages, name);
+      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages, authenticatedUser.getName(), name);
       _log.error(allErrors);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }

@@ -204,18 +204,18 @@ public class ApiUtils
    * @param secretVal2 - second secret
    * @return - null if all checks OK else Response containing info
    */
-  public static Response checkSecrets(String systemName, String userName, boolean prettyPrint, String secretType,
-                                      String secretName1, String secretName2, String secretVal1, String secretVal2)
+  public static Response checkSecrets(AuthenticatedUser authenticatedUser, String systemName, String userName, boolean prettyPrint,
+                                      String secretType, String secretName1, String secretName2, String secretVal1, String secretVal2)
   {
     if ((!StringUtils.isBlank(secretVal1) && StringUtils.isBlank(secretVal2)))
     {
-      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", secretType, secretName2, systemName, userName);
+      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", authenticatedUser.getName(), systemName, secretType, secretName2, userName);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if ((StringUtils.isBlank(secretVal1) && !StringUtils.isBlank(secretVal2)))
     {
-      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", secretType, secretName1, systemName, userName);
+      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", authenticatedUser.getName(), systemName, secretType, secretName1, userName);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
