@@ -510,7 +510,6 @@ public class PermsResource
       for (int i = 0; i < perms.size(); i++) { permsList.add(StringUtils.remove(perms.get(i).toString(),'"')); }
     }
 
-    // TODO It would be good to collect and report as many errors as possible so they can all be fixed before next attempt
     msg = null;
     // Check values. We should have at least one permission
     if (perms == null || perms.size() <= 0)
