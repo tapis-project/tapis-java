@@ -7,6 +7,5 @@ public final class SkAdminSecrets
     public List<SkAdminDBCredential> dbcredential;
     public List<SkAdminJwtSigning>   jwtsigning;
     public List<SkAdminServicePwd>   servicepwd;
-    public List<SkAdminSystem>       system;
     public List<SkAdminUser>         user;
 }

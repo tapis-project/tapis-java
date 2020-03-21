@@ -10,4 +10,5 @@ public abstract class SkAdminAbstractSecret
     public boolean created;
     public boolean updated;
     public boolean deployed;
+    public boolean failed;
 }

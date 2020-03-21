@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.security.commands;
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -24,7 +25,7 @@ public class SkAdminParameters
     private static final Logger _log = LoggerFactory.getLogger(SkAdminParameters.class);
     
     // Database defaults.
-    private static final String DFT_BASE_URL = "http:/localhost:8080";
+    private static final String DFT_BASE_URL = "http:/localhost:8080/v3";
     
     // Secret generation defaults.
     private static final int DFT_PASSWORD_BYTES = 32;
@@ -50,6 +51,10 @@ public class SkAdminParameters
             metaVar = "<file path>", usage = "the json input file")
     public String jsonFile;
     
+    @Option(name = "-j", required = true, aliases = {"-jwtenv"}, 
+            usage = "JWT environment variable name")
+    public String jwtEnv;
+    
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
             metaVar = "<base sk url>", usage = "SK base url (scheme://host)")
     public String baseUrl = DFT_BASE_URL;
@@ -63,6 +68,10 @@ public class SkAdminParameters
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")
     public boolean help;
+    
+    // --------- Derived parameters.
+    // The JWT content read from the jwtEnv environment variable.
+    public String jwt;
         
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -158,6 +167,14 @@ public class SkAdminParameters
         // Make sure password length exceeds minimum.
         if (passwordLength < MIN_PASSWORD_BYTES) {
             String msg = "The minumum password length is " + MIN_PASSWORD_BYTES + ".";
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Read the JWT into memory.
+        jwt = System.getenv(jwtEnv);
+        if (StringUtils.isBlank(jwt)) {
+            String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
             _log.error(msg);
             throw new TapisException(msg);
         }
