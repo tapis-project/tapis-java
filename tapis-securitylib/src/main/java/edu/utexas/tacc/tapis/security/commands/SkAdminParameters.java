@@ -31,6 +31,10 @@ public class SkAdminParameters
     private static final int DFT_PASSWORD_BYTES = 32;
     private static final int MIN_PASSWORD_BYTES = 16;
     
+    // Output choices.
+    public static final String OUTPUT_TEXT = "text";
+    public static final String OUTPUT_JSON = "json";
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -63,6 +67,9 @@ public class SkAdminParameters
             usage = "number of random bytes in generated passwords")
     public int passwordLength = DFT_PASSWORD_BYTES;
     
+    @Option(name = "-o", required = false, aliases = {"-output"}, 
+            usage = "'text' (default) or 'json'")
+    public String output = OUTPUT_TEXT;
     
     // --------- Parameters that control this programs execution
     @Option(name = "-help", aliases = {"--help"}, 
@@ -178,5 +185,8 @@ public class SkAdminParameters
             _log.error(msg);
             throw new TapisException(msg);
         }
+        
+        // Set the output correctly.
+        if (!output.equals("text") && !output.equals("json")) output = OUTPUT_TEXT;
     }
 }

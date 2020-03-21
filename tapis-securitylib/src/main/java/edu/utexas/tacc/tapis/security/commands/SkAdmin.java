@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminJwtSigning;
+import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminDBCredentialProcessor;
@@ -80,6 +81,9 @@ public class SkAdmin
     private SkAdminJwtSigningProcessor   _jwtSigningProcessor;
     private SkAdminServicePwdProcessor   _servicePwdProcessor;
     private SkAdminUserProcessor         _userProcessor;
+    
+    // Create the singleton instance for use throughout.
+    protected final SkAdminResults _results = SkAdminResults.getInstance();
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -443,8 +447,11 @@ public class SkAdmin
     /* printResults:                                                          */
     /* ---------------------------------------------------------------------- */
     private void printResults()
-    {
-        
+    {   
+        // Json or plain text output to standard out.
+        if (_parms.output.equals(_parms.OUTPUT_JSON))
+            System.out.println(_results.toJson());
+          else System.out.println(_results.toText());
     }
     
     /* ---------------------------------------------------------------------- */
@@ -513,7 +520,9 @@ public class SkAdmin
         // Generate the random bytes and return the base 64 representation.
         byte[] bytes = new byte[_parms.passwordLength];
         getRand().nextBytes(bytes);
-        return Base64.getEncoder().encodeToString(bytes);
+        String password = Base64.getEncoder().encodeToString(bytes);
+        _results.incrementPasswordsGenerated();
+        return password;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -556,6 +565,7 @@ public class SkAdmin
         try {
             var gen = KeyPairGenerator.getInstance(DFT_KEY_ALGORITHM);
             gen.initialize(DFT_KEY_SIZE);
+            _results.incrementKeyPairsGenerated();
             return gen.genKeyPair();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_ADMIN_KEY_GEN_ERROR", DFT_KEY_ALGORITHM,
