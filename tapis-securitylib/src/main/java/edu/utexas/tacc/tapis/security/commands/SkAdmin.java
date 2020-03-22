@@ -449,9 +449,13 @@ public class SkAdmin
     private void printResults()
     {   
         // Json or plain text output to standard out.
+        System.out.println(_results.toYaml());
+        System.out.println();
         if (_parms.output.equals(_parms.OUTPUT_JSON))
             System.out.println(_results.toJson());
-          else System.out.println(_results.toText());
+        else if (_parms.output.equals(_parms.OUTPUT_YAML))
+            System.out.println(_results.toYaml());
+        else System.out.println(_results.toText());
     }
     
     /* ---------------------------------------------------------------------- */

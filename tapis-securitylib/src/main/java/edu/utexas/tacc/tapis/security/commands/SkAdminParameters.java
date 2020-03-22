@@ -34,6 +34,7 @@ public class SkAdminParameters
     // Output choices.
     public static final String OUTPUT_TEXT = "text";
     public static final String OUTPUT_JSON = "json";
+    public static final String OUTPUT_YAML = "ymal";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -68,7 +69,7 @@ public class SkAdminParameters
     public int passwordLength = DFT_PASSWORD_BYTES;
     
     @Option(name = "-o", required = false, aliases = {"-output"}, 
-            usage = "'text' (default) or 'json'")
+            usage = "'text' (default), 'json' or 'yaml'")
     public String output = OUTPUT_TEXT;
     
     // --------- Parameters that control this programs execution
@@ -187,6 +188,9 @@ public class SkAdminParameters
         }
         
         // Set the output correctly.
-        if (!output.equals("text") && !output.equals("json")) output = OUTPUT_TEXT;
+        if (!output.equals(OUTPUT_TEXT) && 
+            !output.equals(OUTPUT_JSON) && 
+            !output.equals(OUTPUT_YAML)) 
+           output = OUTPUT_TEXT;
     }
 }

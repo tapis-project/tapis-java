@@ -1,9 +1,12 @@
 package edu.utexas.tacc.tapis.security.commands.model;
 
+import java.util.Map;
 import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminAbstractProcessor.Op;
@@ -126,6 +129,24 @@ public final class SkAdminResults
     public String toJson()
     {
         return TapisGsonUtils.getGson(true).toJson(this);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* toYaml:                                                                */
+    /* ---------------------------------------------------------------------- */
+    public String toYaml()
+    {
+        // Set output options.
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        options.setExplicitStart(true);
+        options.setExplicitEnd(true);
+        
+        // Convert to json first and then to yaml.
+        var yaml = new Yaml(options);
+        Map<String, Object> map = (Map<String, Object>) yaml.load(toJson());
+        return yaml.dumpAsMap(map);
     }
     
     /* ---------------------------------------------------------------------- */
