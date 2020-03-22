@@ -108,6 +108,7 @@
     <module>tapis-securitymigrate</module>
     <module>tapis-systemsapi</module>
     <module>tapis-systemslib</module>
+    <module>tapis-metaapi</module>
   </modules>
 
 </project>
