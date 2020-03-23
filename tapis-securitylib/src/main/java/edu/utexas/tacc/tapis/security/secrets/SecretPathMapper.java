@@ -319,14 +319,14 @@ public final class SecretPathMapper
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
-        if (StringUtils.isBlank(_parms.getService())) {
+        if (StringUtils.isBlank(_parms.getDbService())) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJWTSigningPath", "service");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
         // Return the path for this secret type.
-        return "secret/tapis/service/" + _parms.getService() + "/dbhost/" + 
+        return "secret/tapis/service/" + _parms.getDbService() + "/dbhost/" + 
                _parms.getDbHost() + "/dbname/" + _parms.getDbName() + "/dbuser" +
                user + "/credentials/" + _parms.getSecretName();
     }
@@ -359,9 +359,10 @@ public final class SecretPathMapper
         private String           keyType;
         private String           dbHost;
         private String           dbName;
-        private String           service;
+        private String           dbService;
         
         // Accessors
+        public SecretType getSecretType() {return secretType;}
         public String getSecretName() {return secretName;}
         public void setSecretName(String secretName) {this.secretName = secretName;}
         public String getSysId() {return sysId;}
@@ -374,8 +375,7 @@ public final class SecretPathMapper
         public void setDbHost(String dbHost) {this.dbHost = dbHost;}
         public String getDbName() {return dbName;}
         public void setDbName(String dbName) {this.dbName = dbName;}
-        public SecretType getSecretType() {return secretType;}
-        public String getService() {return service;}
-        public void setService(String service) {this.service = service;}
+        public String getDbService() {return dbService;}
+        public void setDbService(String service) {this.dbService = service;}
     }
 }

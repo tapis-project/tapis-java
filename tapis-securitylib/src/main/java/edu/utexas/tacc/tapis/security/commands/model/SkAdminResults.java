@@ -181,19 +181,19 @@ public final class SkAdminResults
         buf.append("----------- Details -----------\n");
         buf.append("--> DB Credenatials:\n");
         var it = dbCredentialMsgs.iterator();
-        while (it.hasNext()) {buf.append("    "); buf.append(it.next()); buf.append("\n");}
+        while (it.hasNext()) {buf.append("   "); buf.append(it.next()); buf.append("\n");}
         buf.append("\n");
         buf.append("--> JWT Signing Keys:\n");
         it = jwtSigningMsgs.iterator();
-        while (it.hasNext()) {buf.append("    "); buf.append(it.next()); buf.append("\n");}
+        while (it.hasNext()) {buf.append("   "); buf.append(it.next()); buf.append("\n");}
         buf.append("\n");
         buf.append("--> Service Passwords:\n");
         it = servicePwdMsgs.iterator();
-        while (it.hasNext()) {buf.append("    "); buf.append(it.next()); buf.append("\n");}
+        while (it.hasNext()) {buf.append("   "); buf.append(it.next()); buf.append("\n");}
         buf.append("\n");
         buf.append("--> User Secrets:\n");
         it = userMsgs.iterator();
-        while (it.hasNext()) {buf.append("    "); buf.append(it.next()); buf.append("\n");}
+        while (it.hasNext()) {buf.append("   "); buf.append(it.next()); buf.append("\n");}
         buf.append("\n");
         
         return buf.toString();

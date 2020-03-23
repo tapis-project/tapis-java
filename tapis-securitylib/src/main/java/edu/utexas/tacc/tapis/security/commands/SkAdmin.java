@@ -157,6 +157,9 @@ public class SkAdmin
         // Deploy the secrets to kubernetes.
         deploySecrets();
         
+        // Disconnect processors.
+        disconnectProcessors();
+        
         // Print results.
         printResults();
     }
@@ -399,6 +402,17 @@ public class SkAdmin
     }
     
     /* ---------------------------------------------------------------------- */
+    /* createProcessors:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Disconnect the shared SKClient.    
+     */
+    private void disconnectProcessors()
+    {
+        // Pick any of the processors.
+        _dbCredentialProcessor.close();
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* createSecrets:                                                         */
     /* ---------------------------------------------------------------------- */
     private void createSecrets()
@@ -449,8 +463,6 @@ public class SkAdmin
     private void printResults()
     {   
         // Json or plain text output to standard out.
-        System.out.println(_results.toYaml());
-        System.out.println();
         if (_parms.output.equals(_parms.OUTPUT_JSON))
             System.out.println(_results.toJson());
         else if (_parms.output.equals(_parms.OUTPUT_YAML))

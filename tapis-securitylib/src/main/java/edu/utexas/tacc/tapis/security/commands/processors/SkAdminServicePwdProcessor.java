@@ -1,12 +1,15 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
+import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
+import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminServicePwd;
@@ -82,10 +85,49 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     /* update:                                                                */
     /* ---------------------------------------------------------------------- */
+    /** The op parameter is indicates the logical or original operation 
+     * and is used only to create error messages meaningful to the end user.
+     */
     @Override
-    protected void update(SkAdminServicePwd secret, Op op)
+    protected void update(SkAdminServicePwd secret, Op msgOp)
     {
+        SkSecretMetadata metadata = null;
+        try {
+            // Initialize
+            var parms = new SKSecretWriteParms(SecretType.ServicePwd);
+            parms.setTenant(secret.tenant);
+            parms.setUser(secret.service);  // service maps to user here
+            parms.setSecretName(secret.secretName);
+            
+            // Add the password into the map field. We hardcode
+            // the key as "password" in a single element map that
+            // gets saved as the actual secret map in vault. 
+            var map = new HashMap<String,String>();
+            map.put("password", secret.password);
+            parms.setData(map);
+            
+            // Make the write call.
+            metadata = _skClient.writeSecret(parms.getTenant(), parms.getUser(), parms);
+        }
+        catch (TapisClientException e) {
+            // Not found is ok.
+            if (e.getCode() != 404) {
+                // Save the error condition for this secret.
+                _results.recordFailure(msgOp, SecretType.ServicePwd, 
+                                       makeFailureMessage(msgOp, secret, e.getMessage()));
+                return;
+            }
+        }
+        catch (Exception e) {
+            // Save the error condition for this secret.
+            _results.recordFailure(msgOp, SecretType.ServicePwd, 
+                                   makeFailureMessage(msgOp, secret, e.getMessage()));
+            return;
+        }
         
+        // Success.
+        _results.recordSuccess(msgOp, SecretType.ServicePwd, 
+                               makeSuccessMessage(msgOp, secret));        
     }
     
     /* ---------------------------------------------------------------------- */
@@ -102,9 +144,9 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     private String makeFailureMessage(Op op, SkAdminServicePwd secret, String errorMsg)
     {
-        return " FAILED to " + op.name() + " secret " + secret.secretName +
-               " for service " + secret.service + " in tenant " + secret.tenant + 
-               ": " + errorMsg;
+        return " FAILED to " + op.name() + " secret \"" + secret.secretName +
+               "\" for service \"" + secret.service + "\" in tenant \"" + secret.tenant + 
+               "\": " + errorMsg;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -112,9 +154,9 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSkippedMessage(Op op, SkAdminServicePwd secret)
     {
-        return " SKIPPED " + op.name() + " for secret " + secret.secretName +
-               " for service " + secret.service + " in tenant " + secret.tenant + 
-               ": Already exists.";
+        return " SKIPPED " + op.name() + " for secret \"" + secret.secretName +
+               "\" for service \"" + secret.service + "\" in tenant \"" + secret.tenant + 
+               "\": Already exists.";
     }
     
     /* ---------------------------------------------------------------------- */
@@ -122,8 +164,8 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSuccessMessage(Op op, SkAdminServicePwd secret)
     {
-        return " SUCCESSFUL " + op.name() + " of secret " + secret.secretName +
-               " for service " + secret.service + " in tenant " + secret.tenant + ".";
+        return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
+               "\" for service \"" + secret.service + "\" in tenant " + secret.tenant + "\".";
     }
     
 }

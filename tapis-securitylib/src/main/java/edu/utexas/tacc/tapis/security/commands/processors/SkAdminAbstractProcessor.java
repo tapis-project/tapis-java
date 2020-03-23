@@ -100,6 +100,14 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
         for (var secret : _secrets) if (!secret.failed) deploy(secret);
     }    
     
+    /* ---------------------------------------------------------------------- */
+    /* disconnect:                                                            */
+    /* ---------------------------------------------------------------------- */
+    public void close()
+    {
+        if (_skClient != null) _skClient.close();
+    }
+    
     /* ********************************************************************** */
     /*                           Abstract Methods                             */
     /* ********************************************************************** */
