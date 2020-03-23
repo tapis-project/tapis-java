@@ -3,19 +3,10 @@ package edu.utexas.tacc.tapis.meta.api.resources;
 import edu.utexas.tacc.tapis.meta.config.OkSingleton;
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 
 
@@ -70,17 +61,41 @@ public class CoreRequest {
   }
   
   // proxy PUT request
-  public okhttp3.Response proxyPutRequest(){
+  public CoreResponse  proxyPutRequest(){
     return null;
   }
   
   // proxy POST request
-  public okhttp3.Response proxyPostRequest(){
-    return null;
+  public CoreResponse proxyPostRequest(String json){
+    // path url here has stripped out /v3/meta to make the correct path request
+    //  to core server
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    RequestBody body = RequestBody.create(json, JSON);
+    okhttp3.Request coreRequest = new Request.Builder()
+        .url(pathURL)
+        .post(body)
+        .build();
+  
+    Response response = null;
+    CoreResponse coreResponse = new CoreResponse();
+    try {
+      response = okHttpClient.newCall(coreRequest).execute();
+      coreResponse.mapResponse(response);
+      StringBuilder sb = coreResponse.getCoreResponsebody();
+    
+    } catch (IOException e) {
+      // todo log message
+      // todo throw a custom exception about request failure to core
+      e.printStackTrace();
+    }
+  
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody().toString());
+  
+    return coreResponse;
   }
   
   // proxy DELETE request
-  public okhttp3.Response proxyDeleteRequest(){
+  public CoreResponse  proxyDeleteRequest(){
     return null;
   }
   

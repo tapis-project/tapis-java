@@ -5,23 +5,18 @@ import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 
 @Path("/")
@@ -47,6 +42,9 @@ public class ResourceBucket {
   @Context
   private HttpServletRequest _request;
   
+  /*************************************************
+   *    Root endpoints
+   *************************************************/
   @GET
   @Path("/")
   public javax.ws.rs.core.Response listDBs() {
@@ -62,6 +60,9 @@ public class ResourceBucket {
     
   }
   
+  /*************************************************
+   *    Database (DB) endpoints
+   *************************************************/
   @GET
   @Path("/{db}")
   public javax.ws.rs.core.Response listCollections(@PathParam("db") String db) {
@@ -75,47 +76,94 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     // we will always return a response for a request that means something
-    CoreResponse result = proxyGETRequest();
-    // javax.ws.rs.core.Response jaxResponse = buildResponse(result);
-    
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyGetRequest();
     
     // ---------------------------- Response -------------------------------
-    return javax.ws.rs.core.Response.status(result.getStatusCode()).entity(result.getCoreResponsebody()).build();
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
   }
-  
+ 
+  /*************************************************
+   *    Colllection endpoints
+   *************************************************/
   @GET
   @Path("/{db}/{collection}")
   public javax.ws.rs.core.Response listDocuments(@PathParam("db") String db,
                                                  @PathParam("collection") String collection) {
-    // todo implement
-    
-    // ---------------------------- Success -------------------------------
-    // Success means we found the document list.
-    String result = "";
-    return javax.ws.rs.core.Response.status(javax.ws.rs.core.Response.Status.OK).entity(result).build();
-    
-  }
-  
-  // -----------------------------------------------------------
-  //  Proxy call handling
-  // -----------------------------------------------------------
-  
-  /**
-   * @return
-   */
-  private CoreResponse proxyGETRequest() {
-    _log.debug("Handling a GET request. ");
-    
+    // Proxy the GET request and handle any exceptions
+    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
-    
-    return coreResponse;
+  
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
   }
   
-  private javax.ws.rs.core.Response buildResponse(CoreResponse result) {
-    // first let's just pass the result along
-    return null;
+  @POST
+  @Path("/{db}/{collection}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response createDocument(InputStream payload) {
+    // Get the json payload to proxy to back end
+    StringBuilder builder = new StringBuilder();
+  
+    try {
+      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
+      String line = null;
+      while ((line = in.readLine()) != null) {
+        builder.append(line);
+      }
+    } catch (Exception e) {
+      _log.debug("Error Parsing: - ");
+    }
+  
+    _log.debug("Data Received: " + builder.toString());
+
+    // Proxy the POST request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
+    
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
   }
+  
+  
+  
+  /*************************************************
+   *    Document endpoints
+   *************************************************/
+  @GET
+  @Path("/{db}/{collection}/{documentId}")
+  public javax.ws.rs.core.Response getDocument(@PathParam("db") String db,
+                                                 @PathParam("collection") String collection, @PathParam("documentId") String documentId) {
+    // Proxy the GET request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+  
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  }
+  
+  
+  
+  
   
   private void requestDump() {
     
@@ -123,7 +171,6 @@ public class ResourceBucket {
     StringBuffer pathUrl = _request.getRequestURL();
     String queryString = _request.getQueryString();
     String contextPath = _request.getContextPath();
-    
     
   }
   

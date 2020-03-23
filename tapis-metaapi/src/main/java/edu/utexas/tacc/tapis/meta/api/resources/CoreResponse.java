@@ -48,7 +48,8 @@ public class CoreResponse {
   private void captureCoreResponseHeaders(okhttp3.Response coreResponse) {
     _log.debug("Capture Headers from core response ...");
     Map headers = coreResponse.headers().toMultimap();
-    // headers.forEach((k, v) -> _log.debug((k + ":" + v)));
+    headers.forEach((k, v) -> _log.debug((k + ":" + v)));
+    
   }
   
   private void captureResponseBody(okhttp3.Response coreResponse) {

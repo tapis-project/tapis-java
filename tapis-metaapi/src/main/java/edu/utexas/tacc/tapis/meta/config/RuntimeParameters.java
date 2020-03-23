@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,19 @@ public class RuntimeParameters {
       _log.error(msg, e);
       throw new TapisRuntimeException(msg, e);
     }
+  
+    //----------------------   Input parameters   ----------------------
+    // String parm = inputProperties.getProperty(TapisEnv.EnvVar.TAPIS_LOG_DIRECTORY.getEnvName());
+    String parm = inputProperties.getProperty("tapis.meta.core.server");
+    if (!StringUtils.isBlank(parm)) setCoreServer(parm);
+  
+    parm = inputProperties.getProperty("tapis.meta.log.directory");
+    if (!StringUtils.isBlank(parm)) setLogDirectory(parm);
+  
+    parm = inputProperties.getProperty("tapis.meta.log.file");
+    if (!StringUtils.isBlank(parm)) setLogFile(parm);
+    
+  
   
   }
   
