@@ -185,7 +185,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -218,12 +218,12 @@ public final class VaultResource
                                 @DefaultValue("0") @QueryParam("version") int version,
                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                 /* Query parameters used to construct the secret path in vault */
-                                @QueryParam("sysid")    String sysId,
-                                @QueryParam("sysuser")  String sysUser,
-                                @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                @QueryParam("dbhost")   String dbHost,
-                                @QueryParam("dbname")   String dbName,
-                                @QueryParam("service")  String dbService)
+                                @QueryParam("sysid")      String sysId,
+                                @QueryParam("sysuser")    String sysUser,
+                                @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                @QueryParam("dbhost")     String dbHost,
+                                @QueryParam("dbname")     String dbName,
+                                @QueryParam("dbService")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -343,7 +343,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -378,12 +378,12 @@ public final class VaultResource
                                  @PathParam("secretName") String secretName,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                  /* Query parameters used to construct the secret path in vault */
-                                 @QueryParam("sysid")    String sysId,
-                                 @QueryParam("sysuser")  String sysUser,
-                                 @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                 @QueryParam("dbhost")   String dbHost,
-                                 @QueryParam("dbname")   String dbName,
-                                 @QueryParam("service")  String dbService,
+                                 @QueryParam("sysid")      String sysId,
+                                 @QueryParam("sysuser")    String sysUser,
+                                 @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                 @QueryParam("dbhost")     String dbHost,
+                                 @QueryParam("dbname")     String dbName,
+                                 @QueryParam("dbService")  String dbService,
                                  InputStream payloadStream)
      {
          // Trace this request.
@@ -498,7 +498,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -533,12 +533,12 @@ public final class VaultResource
                                   @PathParam("secretName") String secretName,
                                   @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                   /* Query parameters used to construct the secret path in vault */
-                                  @QueryParam("sysid")    String sysId,
-                                  @QueryParam("sysuser")  String sysUser,
-                                  @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                  @QueryParam("dbhost")   String dbHost,
-                                  @QueryParam("dbname")   String dbName,
-                                  @QueryParam("service")  String dbService,
+                                  @QueryParam("sysid")      String sysId,
+                                  @QueryParam("sysuser")    String sysUser,
+                                  @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                  @QueryParam("dbhost")     String dbHost,
+                                  @QueryParam("dbname")     String dbName,
+                                  @QueryParam("dbService")  String dbService,
                                   InputStream payloadStream)
      {
          // Trace this request.
@@ -650,7 +650,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -685,12 +685,12 @@ public final class VaultResource
                                     @PathParam("secretName") String secretName,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
-                                    @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser")  String sysUser,
-                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                    @QueryParam("dbhost")   String dbHost,
-                                    @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String dbService,
+                                    @QueryParam("sysid")      String sysId,
+                                    @QueryParam("sysuser")    String sysUser,
+                                    @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                    @QueryParam("dbhost")     String dbHost,
+                                    @QueryParam("dbname")     String dbName,
+                                    @QueryParam("dbService")  String dbService,
                                     InputStream payloadStream)
      {
          // Trace this request.
@@ -801,7 +801,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -836,12 +836,12 @@ public final class VaultResource
                                    @PathParam("secretName") String secretName,
                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                    /* Query parameters used to construct the secret path in vault */
-                                   @QueryParam("sysid")    String sysId,
-                                   @QueryParam("sysuser")  String sysUser,
-                                   @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                   @QueryParam("dbhost")   String dbHost,
-                                   @QueryParam("dbname")   String dbName,
-                                   @QueryParam("service")  String dbService,
+                                   @QueryParam("sysid")      String sysId,
+                                   @QueryParam("sysuser")    String sysUser,
+                                   @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                   @QueryParam("dbhost")     String dbHost,
+                                   @QueryParam("dbname")     String dbName,
+                                   @QueryParam("dbService")  String dbService,
                                    InputStream payloadStream)
      {
          // Trace this request.
@@ -946,7 +946,7 @@ public final class VaultResource
                          + "  - **dbcred**\n"
                          + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                          + "    - *dbname*:  the database name or alias\n"
-                         + "    - *service*: service name\n"
+                         + "    - *dbService*: service name\n"
                          + "  - **jwtsigning** - *no query parameters*\n"
                          + "  - **user** - *no query parameters*\n"
                          + "  - **service** - *no query parameters*\n"
@@ -972,15 +972,15 @@ public final class VaultResource
      public Response readSecretMeta(@PathParam("secretType") String secretType,
                                     @PathParam("secretName") String secretName,
                                     @QueryParam("tenant") String tenant,
-                                    @QueryParam("user") String user,
+                                    @QueryParam("user")   String user,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
-                                    @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser")  String sysUser,
-                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                    @QueryParam("dbhost")   String dbHost,
-                                    @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String dbService)
+                                    @QueryParam("sysid")      String sysId,
+                                    @QueryParam("sysuser")    String sysUser,
+                                    @DefaultValue("sshkey") @QueryParam("keytype")  String keyType,
+                                    @QueryParam("dbhost")     String dbHost,
+                                    @QueryParam("dbname")     String dbName,
+                                    @QueryParam("dbService")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1078,7 +1078,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -1103,15 +1103,15 @@ public final class VaultResource
          )
      public Response listSecretMeta(@PathParam("secretType") String secretType,
                                     @QueryParam("tenant") String tenant,
-                                    @QueryParam("user") String user,
+                                    @QueryParam("user")   String user,
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                     /* Query parameters used to construct the secret path in vault */
-                                    @QueryParam("sysid")    String sysId,
-                                    @QueryParam("sysuser")  String sysUser,
-                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                    @QueryParam("dbhost")   String dbHost,
-                                    @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String dbService)
+                                    @QueryParam("sysid")      String sysId,
+                                    @QueryParam("sysuser")    String sysUser,
+                                    @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                    @QueryParam("dbhost")     String dbHost,
+                                    @QueryParam("dbname")     String dbName,
+                                    @QueryParam("dbService")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1207,7 +1207,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *service*: service name\n"
+                           + "    - *dbService*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -1233,15 +1233,15 @@ public final class VaultResource
      public Response destroySecretMeta(@PathParam("secretType") String secretType,
                                        @PathParam("secretName") String secretName,
                                        @QueryParam("tenant") String tenant,
-                                       @QueryParam("user") String user,
+                                       @QueryParam("user")   String user,
                                        @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                        /* Query parameters used to construct the secret path in vault */
-                                       @QueryParam("sysid")    String sysId,
-                                       @QueryParam("sysuser")  String sysUser,
-                                       @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
-                                       @QueryParam("dbhost")   String dbHost,
-                                       @QueryParam("dbname")   String dbName,
-                                       @QueryParam("service")  String dbService)
+                                       @QueryParam("sysid")      String sysId,
+                                       @QueryParam("sysuser")    String sysUser,
+                                       @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
+                                       @QueryParam("dbhost")     String dbHost,
+                                       @QueryParam("dbname")     String dbName,
+                                       @QueryParam("dbService")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
