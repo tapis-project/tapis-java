@@ -13,7 +13,7 @@ public class MetaAppConstants {
   public final static String TAPIS_TENANT_HEADER_NAME = "X-Tapis-Tenant";
   
   // Set Permissions checking
-  public static boolean TAPIS_ENVONLY_META_PERMISSIONS_CHECK = false;
+  public static boolean TAPIS_ENVONLY_META_PERMISSIONS_CHECK = true;
   
   public static void setTapisEnvonlyMetaPermissionsCheck(boolean tapisEnvonlyMetaPermissionsCheck) {
     TAPIS_ENVONLY_META_PERMISSIONS_CHECK = tapisEnvonlyMetaPermissionsCheck;

@@ -132,6 +132,17 @@ Content-Type: application/json
 #   }
 # ]
 
+# streamsTACCAdmin
+#  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1  with a query
+###
+GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
 
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/

@@ -5,6 +5,7 @@ import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import org.glassfish.jersey.server.internal.routing.UriRoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 
 
 @Path("/")
@@ -93,10 +95,22 @@ public class ResourceBucket {
   @GET
   @Path("/{db}/{collection}")
   public javax.ws.rs.core.Response listDocuments(@PathParam("db") String db,
-                                                 @PathParam("collection") String collection) {
+                                                 @PathParam("collection") String collection,
+                                                 @QueryParam("filter") String filter) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "listDocuments", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("List documents in " + db +"/"+collection);
+    }
+  
+    StringBuffer pathUrl = new StringBuffer(_request.getRequestURI());
+    pathUrl.append("?"+_request.getQueryString());
+    
     // Proxy the GET request and handle any exceptions
     // we will always return a response for a request that means something
-    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
   
     // ---------------------------- Response -------------------------------
@@ -166,12 +180,19 @@ public class ResourceBucket {
   
   
   private void requestDump() {
-    
+
     String pathUri = _request.getRequestURI();
     StringBuffer pathUrl = _request.getRequestURL();
     String queryString = _request.getQueryString();
     String contextPath = _request.getContextPath();
     
+    System.out.println(pathUri);
+    System.out.println(pathUrl);
+    System.out.println(queryString);
+    System.out.println(contextPath);
+    System.out.println();
+    
+    // String s = ((UriRoutingContext) _uriInfo).requestContext.requestUri.toString();
   }
   
 }
