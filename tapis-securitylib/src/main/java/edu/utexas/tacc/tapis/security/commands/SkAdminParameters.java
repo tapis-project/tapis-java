@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.security.commands;
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -24,11 +25,16 @@ public class SkAdminParameters
     private static final Logger _log = LoggerFactory.getLogger(SkAdminParameters.class);
     
     // Database defaults.
-    private static final String DFT_BASE_URL = "http:/localhost:8080";
+    private static final String DFT_BASE_URL = "http:/localhost:8080/v3";
     
     // Secret generation defaults.
     private static final int DFT_PASSWORD_BYTES = 32;
     private static final int MIN_PASSWORD_BYTES = 16;
+    
+    // Output choices.
+    public static final String OUTPUT_TEXT = "text";
+    public static final String OUTPUT_JSON = "json";
+    public static final String OUTPUT_YAML = "ymal";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -50,6 +56,10 @@ public class SkAdminParameters
             metaVar = "<file path>", usage = "the json input file")
     public String jsonFile;
     
+    @Option(name = "-j", required = true, aliases = {"-jwtenv"}, 
+            usage = "JWT environment variable name")
+    public String jwtEnv;
+    
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
             metaVar = "<base sk url>", usage = "SK base url (scheme://host)")
     public String baseUrl = DFT_BASE_URL;
@@ -58,11 +68,18 @@ public class SkAdminParameters
             usage = "number of random bytes in generated passwords")
     public int passwordLength = DFT_PASSWORD_BYTES;
     
+    @Option(name = "-o", required = false, aliases = {"-output"}, 
+            usage = "'text' (default), 'json' or 'yaml'")
+    public String output = OUTPUT_TEXT;
     
     // --------- Parameters that control this programs execution
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")
     public boolean help;
+    
+    // --------- Derived parameters.
+    // The JWT content read from the jwtEnv environment variable.
+    public String jwt;
         
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -161,5 +178,19 @@ public class SkAdminParameters
             _log.error(msg);
             throw new TapisException(msg);
         }
+        
+        // Read the JWT into memory.
+        jwt = System.getenv(jwtEnv);
+        if (StringUtils.isBlank(jwt)) {
+            String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Set the output correctly.
+        if (!output.equals(OUTPUT_TEXT) && 
+            !output.equals(OUTPUT_JSON) && 
+            !output.equals(OUTPUT_YAML)) 
+           output = OUTPUT_TEXT;
     }
 }

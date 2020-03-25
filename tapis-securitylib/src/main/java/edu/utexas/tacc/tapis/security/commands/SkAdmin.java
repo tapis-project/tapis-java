@@ -16,10 +16,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminDBCredentialProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminUserProcessor;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
@@ -38,7 +44,7 @@ public class SkAdmin
         "/edu/utexas/tacc/tapis/security/jsonschema/SkAdminInput.json";
     
     // The distinguished string that causes secrets to be generated.    
-    public static final String GENERATE_SECRET = "<generate>";
+    public static final String GENERATE_SECRET = "<generate-secret>";
     
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
@@ -61,10 +67,14 @@ public class SkAdmin
     // Reusable random number generator.
     private SecureRandom _rand;
     
-    // Totals.
-    private int _secretsCreated;
-    private int _secretsUpdated;
-    private int _secretsDeployed;
+    // Secret processors.
+    private SkAdminDBCredentialProcessor _dbCredentialProcessor;
+    private SkAdminJwtSigningProcessor   _jwtSigningProcessor;
+    private SkAdminServicePwdProcessor   _servicePwdProcessor;
+    private SkAdminUserProcessor         _userProcessor;
+    
+    // Create the singleton instance for use throughout.
+    protected final SkAdminResults _results = SkAdminResults.getInstance();
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -123,15 +133,39 @@ public class SkAdmin
             return;
         }
         
-        // Create or update the secrets.
-        createOrUpdateSecrets();
+        // Create secret processors. Runtime exceptions 
+        // can be thrown from here.
+        createProcessors();
+        
+        // Note: At most only one of create or update can be set.
+        //
+        // Create the secrets.
+        createSecrets();
+        
+        // Update the secrets.
+        updateSecrets();
         
         // Deploy the secrets to kubernetes.
         deploySecrets();
         
+        // Disconnect processors.
+        disconnectProcessors();
+        
         // Print results.
         printResults();
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createsJwtSigningPublicKeyMapName:                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Generate a string to be used as the key in the generated public key map.
+     * 
+     * @param tenant the jwtSigningPwd tenant
+     * @param secretName the jwtSigningPwd secretName
+     * @return the string to be used as a key in the generated public key map
+     */
+    public static String createsJwtSigningPublicKeyMapName(String tenant, String secretName)
+    {return secretName + '@' + tenant;}
     
     /* ********************************************************************** */
     /*                            Private Methods                             */
@@ -175,9 +209,9 @@ public class SkAdmin
                 
                 if (StringUtils.isBlank(secret.secret)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
-                                                 "secret", secret.service,
+                                                 "secret", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
-                                                 secret.dbuser, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -189,12 +223,11 @@ public class SkAdmin
         
             // Kube changes.
             if (_parms.deploy) {
-                
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
-                                                 "kubeSecretName", secret.service,
+                                                 "kubeSecretName", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
-                                                 secret.dbuser, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -219,22 +252,34 @@ public class SkAdmin
             // Vault changes.
             if (_parms.create || _parms.update) {
             
-                if (StringUtils.isBlank(secret.secret)) {
+                if (StringUtils.isBlank(secret.privateKey)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
-                                                 "secret", secret.tenant, 
+                                                 "privateKey", secret.tenant, 
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
                 }
                 
                 // Do we need to generate a password?
-                if (GENERATE_SECRET.equals(secret.secret)) 
-                    secret.secret = generatePassword();
+                if (GENERATE_SECRET.equals(secret.privateKey)) {
+                    // Create new keys.
+                    KeyPair keyPair = null;
+                    try {keyPair = generateKeyPair();}
+                        catch (Exception e) {
+                            String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_GEN_ERROR", 
+                                                         secret.tenant, secret.secretName);
+                            _log.error(msg);
+                            return false;
+                        }
+                    
+                    // Save the private key in PEM format in the user designated place.
+                    secret.privateKey = generatePrivatePemKey(keyPair.getPrivate());
+                    secret.publicKey = generatePublicPemKey(keyPair.getPublic());
+                }
             }
         
             // Kube changes.
             if (_parms.deploy) {
-            
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -278,7 +323,6 @@ public class SkAdmin
         
             // Kube changes.
             if (_parms.deploy) {
-            
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -319,7 +363,6 @@ public class SkAdmin
         
             // Kube changes.
             if (_parms.deploy) {
-            
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -335,15 +378,63 @@ public class SkAdmin
     }
     
     /* ---------------------------------------------------------------------- */
-    /* createOrUpdateSecrets:                                                 */
+    /* createProcessors:                                                      */
     /* ---------------------------------------------------------------------- */
-    private void createOrUpdateSecrets()
+    /** Initialize all processors and the shared SKClient.    
+     * 
+     * @throws TapisRuntimeException, IllegalArgumentException
+     */
+    private void createProcessors()
+    {
+        _dbCredentialProcessor = 
+            new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
+        _jwtSigningProcessor = 
+            new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
+        _servicePwdProcessor = 
+            new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
+        _userProcessor = 
+            new SkAdminUserProcessor(_secrets.user, _parms);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createProcessors:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Disconnect the shared SKClient.    
+     */
+    private void disconnectProcessors()
+    {
+        // Pick any of the processors.
+        _dbCredentialProcessor.close();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createSecrets:                                                         */
+    /* ---------------------------------------------------------------------- */
+    private void createSecrets()
     {
         // Are secret changes being requested?
-        if (!_parms.create && !_parms.update) return;
+        if (!_parms.create) return;
         
-        // 
+        // Create each type of secret separately.
+        _dbCredentialProcessor.create();
+        _jwtSigningProcessor.create();
+        _servicePwdProcessor.create();
+        _userProcessor.create();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* updateSecrets:                                                         */
+    /* ---------------------------------------------------------------------- */
+    private void updateSecrets()
+    {
+        // Are secret changes being requested?
+        if (!_parms.update) return;
         
+        // Update each type of secret separately.
+        _dbCredentialProcessor.update();
+        _jwtSigningProcessor.update();
+        _servicePwdProcessor.update();
+        _userProcessor.update();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -354,14 +445,24 @@ public class SkAdmin
         // Are kubernetes changes being requested?
         if (!_parms.deploy) return;
         
+        // Deploy each type of secret separately.
+        _dbCredentialProcessor.deploy();
+        _jwtSigningProcessor.deploy();
+        _servicePwdProcessor.deploy();
+        _userProcessor.deploy();
     }
     
     /* ---------------------------------------------------------------------- */
     /* printResults:                                                          */
     /* ---------------------------------------------------------------------- */
     private void printResults()
-    {
-        
+    {   
+        // Json or plain text output to standard out.
+        if (_parms.output.equals(_parms.OUTPUT_JSON))
+            System.out.println(_results.toJson());
+        else if (_parms.output.equals(_parms.OUTPUT_YAML))
+            System.out.println(_results.toYaml());
+        else System.out.println(_results.toText());
     }
     
     /* ---------------------------------------------------------------------- */
@@ -430,7 +531,9 @@ public class SkAdmin
         // Generate the random bytes and return the base 64 representation.
         byte[] bytes = new byte[_parms.passwordLength];
         getRand().nextBytes(bytes);
-        return Base64.getEncoder().encodeToString(bytes);
+        String password = Base64.getEncoder().encodeToString(bytes);
+        _results.incrementPasswordsGenerated();
+        return password;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -443,18 +546,15 @@ public class SkAdmin
      */
     private SecureRandom getRand()
     {
-        // Initialize the generator if necessary.
-        if (_rand == null)
-            // Get the strong random number generator or, 
-            // if that fails, the default generator.
-            try {_rand = SecureRandom.getInstanceStrong();}
-                catch (Exception e) {
-                    String msg = MsgUtils.getMsg("SK_ADMIN_STRONG_RAND_WARN", e.getMessage());            
-                    _log.warn(msg, e);
-                    
-                    // Use the default generator.
-                    _rand = new SecureRandom();
-                }
+        // Initialize the generator if necessary.  We use the default generator
+        // which should use a secure a seed just like SecureRandom.getInstanceStrong(),
+        // but from that point on is deterministic.  The strong one is real slow.
+        // Interesting reads:
+        //
+        //  https://tersesystems.com/blog/2015/12/17/the-right-way-to-use-securerandom/
+        //  https://www.2uo.de/myths-about-urandom/
+        //
+        if (_rand == null) _rand = new SecureRandom();
             
         return _rand;
     }
@@ -473,6 +573,7 @@ public class SkAdmin
         try {
             var gen = KeyPairGenerator.getInstance(DFT_KEY_ALGORITHM);
             gen.initialize(DFT_KEY_SIZE);
+            _results.incrementKeyPairsGenerated();
             return gen.genKeyPair();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_ADMIN_KEY_GEN_ERROR", DFT_KEY_ALGORITHM,

@@ -7,7 +7,5 @@ package edu.utexas.tacc.tapis.security.commands.model;
  */
 public abstract class SkAdminAbstractSecret 
 {
-    public boolean created;
-    public boolean updated;
-    public boolean deployed;
+    public boolean failed;
 }

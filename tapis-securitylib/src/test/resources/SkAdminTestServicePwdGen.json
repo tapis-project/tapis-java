@@ -1,0 +1,12 @@
+{
+    "secrets": {
+        "servicepwd":[
+            {
+                "tenant":     "dev",
+                "service":    "fakeService",
+                "secretName": "banana",
+                "password":   "<generate-secret>"
+            }
+        ]
+    }
+}
