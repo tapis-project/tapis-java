@@ -21,4 +21,6 @@ public interface SystemsDao
   List<String> getTSystemNames(String tenant) throws TapisException;
 
   String getTSystemOwner(String tenant, String name) throws TapisException;
+
+  String getTSystemEffectiveUserId(String tenant, String name) throws TapisException;
 }

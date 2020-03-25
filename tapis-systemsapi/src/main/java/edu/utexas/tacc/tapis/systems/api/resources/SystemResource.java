@@ -245,7 +245,8 @@ public class SystemResource
       if (e.getMessage().contains("SYSLIB_SYS_EXISTS"))
       {
         // IllegalStateException with msg containing SYS_EXISTS indicates object exists - return 409 - Conflict
-        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", authenticatedUser.getName(), systemName);
+        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", authenticatedUser.getTenantId(), authenticatedUser.getName(),
+                authenticatedUser.getOboTenantId(), authenticatedUser.getOboUser(), systemName);
         _log.warn(msg);
         return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
