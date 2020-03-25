@@ -1,0 +1,13 @@
+{
+    "secrets": {
+        "user":[
+            {
+                "tenant":     "dev",
+                "user":       "bozo",
+                "secretName": "elephant",
+                "key":        "trunk",
+                "value":      "big"
+            }
+        ]
+    }
+}

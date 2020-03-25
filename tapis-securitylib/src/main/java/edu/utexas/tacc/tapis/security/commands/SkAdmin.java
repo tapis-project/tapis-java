@@ -10,14 +10,12 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.LinkedHashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.commands.model.SkAdminJwtSigning;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
@@ -46,7 +44,7 @@ public class SkAdmin
         "/edu/utexas/tacc/tapis/security/jsonschema/SkAdminInput.json";
     
     // The distinguished string that causes secrets to be generated.    
-    public static final String GENERATE_SECRET = "<generate>";
+    public static final String GENERATE_SECRET = "<generate-secret>";
     
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
@@ -58,9 +56,6 @@ public class SkAdmin
     private static final String PRV_KEY_PROLOGUE = "-----BEGIN PRIVATE KEY-----\n";
     private static final String PRV_KEY_EPILOGUE = "\n-----END PRIVATE KEY-----";
     
-    // Suffix used to name generated public keys.
-    private static final String PUBLIC_KEY_SUFFIX = ".pub";
-    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -68,10 +63,6 @@ public class SkAdmin
     
     // The secrets input.
     private SkAdminSecrets _secrets;
-    
-    // Map of generated public keys.
-    private final LinkedHashMap<String,SkAdminJwtSigning> _jwtSigningPublicKeyMap = 
-        new LinkedHashMap<>();
     
     // Reusable random number generator.
     private SecureRandom _rand;
@@ -164,6 +155,18 @@ public class SkAdmin
         printResults();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* createsJwtSigningPublicKeyMapName:                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Generate a string to be used as the key in the generated public key map.
+     * 
+     * @param tenant the jwtSigningPwd tenant
+     * @param secretName the jwtSigningPwd secretName
+     * @return the string to be used as a key in the generated public key map
+     */
+    public static String createsJwtSigningPublicKeyMapName(String tenant, String secretName)
+    {return secretName + '@' + tenant;}
+    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -206,9 +209,9 @@ public class SkAdmin
                 
                 if (StringUtils.isBlank(secret.secret)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
-                                                 "secret", secret.service,
+                                                 "secret", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
-                                                 secret.dbuser, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -222,9 +225,9 @@ public class SkAdmin
             if (_parms.deploy) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
-                                                 "kubeSecretName", secret.service,
+                                                 "kubeSecretName", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
-                                                 secret.dbuser, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -249,16 +252,16 @@ public class SkAdmin
             // Vault changes.
             if (_parms.create || _parms.update) {
             
-                if (StringUtils.isBlank(secret.secret)) {
+                if (StringUtils.isBlank(secret.privateKey)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
-                                                 "secret", secret.tenant, 
+                                                 "privateKey", secret.tenant, 
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
                 }
                 
                 // Do we need to generate a password?
-                if (GENERATE_SECRET.equals(secret.secret)) {
+                if (GENERATE_SECRET.equals(secret.privateKey)) {
                     // Create new keys.
                     KeyPair keyPair = null;
                     try {keyPair = generateKeyPair();}
@@ -270,16 +273,8 @@ public class SkAdmin
                         }
                     
                     // Save the private key in PEM format in the user designated place.
-                    secret.secret = generatePrivatePemKey(keyPair.getPrivate());
-                    
-                    // Create a new secret for the public key.
-                    SkAdminJwtSigning jwtPublicPEM = new SkAdminJwtSigning();
-                    jwtPublicPEM.tenant = secret.tenant;
-                    jwtPublicPEM.secretName = secret.secretName + PUBLIC_KEY_SUFFIX;
-                    jwtPublicPEM.secret = generatePublicPemKey(keyPair.getPublic());
-                    
-                    // Save the public key object for later processing.
-                    _jwtSigningPublicKeyMap.put(jwtPublicPEM.kubeSecretName, jwtPublicPEM);
+                    secret.privateKey = generatePrivatePemKey(keyPair.getPrivate());
+                    secret.publicKey = generatePublicPemKey(keyPair.getPublic());
                 }
             }
         
@@ -551,18 +546,15 @@ public class SkAdmin
      */
     private SecureRandom getRand()
     {
-        // Initialize the generator if necessary.
-        if (_rand == null)
-            // Get the strong random number generator or, 
-            // if that fails, the default generator.
-            try {_rand = SecureRandom.getInstanceStrong();}
-                catch (Exception e) {
-                    String msg = MsgUtils.getMsg("SK_ADMIN_STRONG_RAND_WARN", e.getMessage());            
-                    _log.warn(msg, e);
-                    
-                    // Use the default generator.
-                    _rand = new SecureRandom();
-                }
+        // Initialize the generator if necessary.  We use the default generator
+        // which should use a secure a seed just like SecureRandom.getInstanceStrong(),
+        // but from that point on is deterministic.  The strong one is real slow.
+        // Interesting reads:
+        //
+        //  https://tersesystems.com/blog/2015/12/17/the-right-way-to-use-securerandom/
+        //  https://www.2uo.de/myths-about-urandom/
+        //
+        if (_rand == null) _rand = new SecureRandom();
             
         return _rand;
     }

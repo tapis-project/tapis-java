@@ -28,14 +28,14 @@
         "jwtsigning": [
             {
                 "tenant":     "dev",
-                "secret":     "1234567890123456",
+                "privateKey": "1234567890123456",
                 "secretName": "jwtcred"
             }
         ],
         
         "dbcredential":[
             {
-                "service":    "jobs",
+                "dbservice":  "jobs",
                 "dbhost":     "myhost.com",
                 "dbname":     "mydb",
                 "dbuser":     "dba",

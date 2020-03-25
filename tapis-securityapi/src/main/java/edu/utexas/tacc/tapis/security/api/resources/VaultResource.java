@@ -185,7 +185,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -223,7 +223,7 @@ public final class VaultResource
                                 @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                 @QueryParam("dbhost")     String dbHost,
                                 @QueryParam("dbname")     String dbName,
-                                @QueryParam("dbService")  String dbService)
+                                @QueryParam("dbservice")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -343,7 +343,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -383,7 +383,7 @@ public final class VaultResource
                                  @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                  @QueryParam("dbhost")     String dbHost,
                                  @QueryParam("dbname")     String dbName,
-                                 @QueryParam("dbService")  String dbService,
+                                 @QueryParam("dbservice")  String dbService,
                                  InputStream payloadStream)
      {
          // Trace this request.
@@ -498,7 +498,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -538,7 +538,7 @@ public final class VaultResource
                                   @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                   @QueryParam("dbhost")     String dbHost,
                                   @QueryParam("dbname")     String dbName,
-                                  @QueryParam("dbService")  String dbService,
+                                  @QueryParam("dbservice")  String dbService,
                                   InputStream payloadStream)
      {
          // Trace this request.
@@ -650,7 +650,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -690,7 +690,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                     @QueryParam("dbhost")     String dbHost,
                                     @QueryParam("dbname")     String dbName,
-                                    @QueryParam("dbService")  String dbService,
+                                    @QueryParam("dbservice")  String dbService,
                                     InputStream payloadStream)
      {
          // Trace this request.
@@ -801,7 +801,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -841,7 +841,7 @@ public final class VaultResource
                                    @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                    @QueryParam("dbhost")     String dbHost,
                                    @QueryParam("dbname")     String dbName,
-                                   @QueryParam("dbService")  String dbService,
+                                   @QueryParam("dbservice")  String dbService,
                                    InputStream payloadStream)
      {
          // Trace this request.
@@ -946,7 +946,7 @@ public final class VaultResource
                          + "  - **dbcred**\n"
                          + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                          + "    - *dbname*:  the database name or alias\n"
-                         + "    - *dbService*: service name\n"
+                         + "    - *dbservice*: service name\n"
                          + "  - **jwtsigning** - *no query parameters*\n"
                          + "  - **user** - *no query parameters*\n"
                          + "  - **service** - *no query parameters*\n"
@@ -980,7 +980,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype")  String keyType,
                                     @QueryParam("dbhost")     String dbHost,
                                     @QueryParam("dbname")     String dbName,
-                                    @QueryParam("dbService")  String dbService)
+                                    @QueryParam("dbservice")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1078,7 +1078,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -1111,7 +1111,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                     @QueryParam("dbhost")     String dbHost,
                                     @QueryParam("dbname")     String dbName,
-                                    @QueryParam("dbService")  String dbService)
+                                    @QueryParam("dbservice")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1207,7 +1207,7 @@ public final class VaultResource
                            + "  - **dbcred**\n"
                            + "    - *dbhost*:  the DBMS hostname, IP address or alias\n"
                            + "    - *dbname*:  the database name or alias\n"
-                           + "    - *dbService*: service name\n"
+                           + "    - *dbservice*: service name\n"
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
@@ -1241,7 +1241,7 @@ public final class VaultResource
                                        @DefaultValue("sshkey") @QueryParam("keytype") String keyType,
                                        @QueryParam("dbhost")     String dbHost,
                                        @QueryParam("dbname")     String dbName,
-                                       @QueryParam("dbService")  String dbService)
+                                       @QueryParam("dbservice")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {

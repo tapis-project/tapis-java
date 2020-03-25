@@ -147,14 +147,25 @@
                     "minLength": 1,
                     "maxLength": 24
                 },
+                "user": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 58
+                },
                 "secretName": {
                     "description": "The path name assigned to the secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
                 },
-                "secret": {
-                    "description": "The secret credentials.",
+                "privateKey": {
+                    "description": "The private key in PEM format.",
+                    "type": "string",
+                    "minLength": 16
+                },
+                "publicKey": {
+                    "description": "The public key in PEM format.",
                     "type": "string",
                     "minLength": 16
                 },
@@ -168,6 +179,7 @@
             "additionalProperties": false,
             "required": [
                 "tenant",
+                "user",
                 "secretName"
             ]
         },
@@ -176,7 +188,19 @@
             "title": "DBCredential",
             "type": "object",
             "properties": {
-                "service": {
+                "tenant": {
+                    "description": "The user's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "user": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 58
+                },
+                "dbservice": {
                     "description": "The service's name.",
                     "type": "string",
                     "minLength": 1,
@@ -190,12 +214,6 @@
                 },
                 "dbname": {
                     "description": "The name of the service's database",
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                },
-                "dbuser": {
-                    "description": "The database userid used by the service.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255
@@ -220,10 +238,11 @@
             },
             "additionalProperties": false,
             "required": [
-                "service",
+                "tenant",
+                "user",
+                "dbservice",
                 "dbhost",
                 "dbname",
-                "dbuser",
                 "secretName"
             ]
         }    
