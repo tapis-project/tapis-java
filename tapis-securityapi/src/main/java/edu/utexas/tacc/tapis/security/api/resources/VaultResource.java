@@ -223,7 +223,7 @@ public final class VaultResource
                                 @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                 @QueryParam("dbhost")   String dbHost,
                                 @QueryParam("dbname")   String dbName,
-                                @QueryParam("service")  String service)
+                                @QueryParam("service")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -255,7 +255,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -383,7 +383,7 @@ public final class VaultResource
                                  @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                  @QueryParam("dbhost")   String dbHost,
                                  @QueryParam("dbname")   String dbName,
-                                 @QueryParam("service")  String service,
+                                 @QueryParam("service")  String dbService,
                                  InputStream payloadStream)
      {
          // Trace this request.
@@ -424,7 +424,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -538,7 +538,7 @@ public final class VaultResource
                                   @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                   @QueryParam("dbhost")   String dbHost,
                                   @QueryParam("dbname")   String dbName,
-                                  @QueryParam("service")  String service,
+                                  @QueryParam("service")  String dbService,
                                   InputStream payloadStream)
      {
          // Trace this request.
@@ -577,7 +577,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -690,7 +690,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String service,
+                                    @QueryParam("service")  String dbService,
                                     InputStream payloadStream)
      {
          // Trace this request.
@@ -728,7 +728,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -841,7 +841,7 @@ public final class VaultResource
                                    @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                    @QueryParam("dbhost")   String dbHost,
                                    @QueryParam("dbname")   String dbName,
-                                   @QueryParam("service")  String service,
+                                   @QueryParam("service")  String dbService,
                                    InputStream payloadStream)
      {
          // Trace this request.
@@ -880,7 +880,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -980,7 +980,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String service)
+                                    @QueryParam("service")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1012,7 +1012,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1111,7 +1111,7 @@ public final class VaultResource
                                     @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                     @QueryParam("dbhost")   String dbHost,
                                     @QueryParam("dbname")   String dbName,
-                                    @QueryParam("service")  String service)
+                                    @QueryParam("service")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1143,7 +1143,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, null, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1241,7 +1241,7 @@ public final class VaultResource
                                        @DefaultValue("sshkey") @QueryParam("keytype")    String keyType,
                                        @QueryParam("dbhost")   String dbHost,
                                        @QueryParam("dbname")   String dbName,
-                                       @QueryParam("service")  String service)
+                                       @QueryParam("service")  String dbService)
      {
          // Trace this request.
          if (_log.isTraceEnabled()) {
@@ -1273,7 +1273,7 @@ public final class VaultResource
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
          try {secretPathParms = getSecretPathParms(secretType, secretName, sysId, sysUser,
-                                                   keyType, dbHost, dbName, service);}
+                                                   keyType, dbHost, dbName, dbService);}
              catch (Exception e) {
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
@@ -1424,7 +1424,7 @@ public final class VaultResource
       */
      private SecretPathMapperParms getSecretPathParms(String secretType, String secretName, 
                                          String sysId, String sysUser, String keyType, 
-                                         String dbHost, String dbName, String service) 
+                                         String dbHost, String dbName, String dbService) 
       throws TapisImplException
      {
          // Assign the secret type.
@@ -1453,7 +1453,7 @@ public final class VaultResource
          parms.setKeyType(keyType);
          parms.setDbHost(dbHost);
          parms.setDbName(dbName);
-         parms.setService(service);
+         parms.setDbService(dbService);
          
          return parms;
      }
