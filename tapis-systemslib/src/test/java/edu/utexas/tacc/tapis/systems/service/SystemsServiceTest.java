@@ -262,7 +262,7 @@ public class SystemsServiceTest
     String[] tmpTags = tmpSys.getTags();
     Assert.assertNotNull(tmpTags, "Tags value was null");
     var tagsList = Arrays.asList(tmpTags);
-    Assert.assertEquals(tmpTags.length, tags.length, "Wrong number of tags");
+    Assert.assertEquals(tmpTags.length, tags.length, "Wrong number of tags.");
     for (String tagStr : tags)
     {
       Assert.assertTrue(tagsList.contains(tagStr));
@@ -272,7 +272,7 @@ public class SystemsServiceTest
     JsonObject obj = tmpSys.getNotes();
     String notesStr = obj.toString();
     System.out.println("Found notes: " + notesStr);
-    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
+    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found.");
     Assert.assertNotNull(obj, "Error parsing Notes string");
     Assert.assertTrue(obj.has("project"));
     Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
@@ -380,7 +380,8 @@ public class SystemsServiceTest
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
 
     // Delete the system
-    svc.deleteSystemByName(authenticatedUser, sys0.getName());
+    int changeCount = svc.deleteSystemByName(authenticatedUser, sys0.getName());
+    Assert.assertEquals(changeCount, 1, "Change count incorrect when deleting a system.");
     TSystem tmpSys2 = svc.getSystemByName(authenticatedUser, sys0.getName(), false, null);
     Assert.assertNull(tmpSys2, "System not deleted. System name: " + sys0.getName());
   }
@@ -425,8 +426,9 @@ public class SystemsServiceTest
     Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
     Assert.assertEquals(userPerms.size(), testPerms.size(), "Incorrect number of perms returned.");
     for (Permission perm: testPerms) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm.name()); }
-    // Remove perms for the user
-    svc.revokeUserPermissions(authenticatedUser, sys0.getName(), testUser2, testPerms);
+    // Remove perms for the user. Should return a change count of 2
+    int changeCount = svc.revokeUserPermissions(authenticatedUser, sys0.getName(), testUser2, testPerms);
+    Assert.assertEquals(changeCount, 2, "Change count incorrect when revoking permissions.");
     // Get the system perms for the user and make sure permissions are gone.
     userPerms = svc.getUserPermissions(authenticatedUser, sys0.getName(), testUser2);
     for (Permission perm: testPerms) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm.name()); }
@@ -455,12 +457,15 @@ public class SystemsServiceTest
     Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
     Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
     // Delete credentials and verify they were destroyed
-    svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    int changeCount = svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    Assert.assertEquals(changeCount, 1, "Change count incorrect when removing a credential.");
     cred1 = svc.getUserCredential(authenticatedService, sys0.getName(), testUser2, AccessMethod.PASSWORD);
     Assert.assertNull(cred1, "Credential not deleted. System name: " + sys0.getName() + " User name: " + testUser2);
 
-    // Attempt to delete again, should not throw an exception
-    svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    // Attempt to delete again, should return 0 for change count
+    changeCount = svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    // TODO: Currently the attempt to return 0 if it does not exist is throwing an exception.
+//    Assert.assertEquals(changeCount, 0, "Change count incorrect when removing a credential already removed.");
 
     // Set just ACCESS_KEY only and test
     cred0 = new Credential(null, null, null, "fakeAccessKey2", "fakeAccessSecret2", null);
@@ -472,7 +477,8 @@ public class SystemsServiceTest
     cred1 = svc.getUserCredential(authenticatedService, sys0.getName(), testUser2, AccessMethod.PKI_KEYS);
     Assert.assertNull(cred1, "Credential was non-null for missing secret. System name: " + sys0.getName() + " User name: " + testUser2);
     // Delete credentials and verify they were destroyed
-    svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    changeCount = svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
+    Assert.assertEquals(changeCount, 1, "Change count incorrect when removing a credential.");
     try {
       cred1 = svc.getUserCredential(authenticatedService, sys0.getName(), testUser2, AccessMethod.ACCESS_KEY);
     } catch (TapisException te) {
@@ -498,23 +504,25 @@ public class SystemsServiceTest
     // Make sure system does not exist
     Assert.assertFalse(svc.checkForSystemByName(authenticatedUser, fakeSystemName));
 
-    // Get TShystem with no system should return null
+    // Get TSystem with no system should return null
     TSystem tmpSys = svc.getSystemByName(authenticatedUser, fakeSystemName, false, null);
     Assert.assertNull(tmpSys, "TSystem not null for non-existent system");
 
+    // Delete system with no system should return 0 changes
+    int changeCount = svc.deleteSystemByName(authenticatedUser, fakeSystemName);
+    Assert.assertEquals(changeCount, 0, "Change count incorrect when deleting non-existent system.");
+
     // Get owner with no system should return null
     String owner = svc.getSystemOwner(authenticatedUser, fakeSystemName);
-    Assert.assertNull(owner, "Owner not null for non-existent system");
+    Assert.assertNull(owner, "Owner not null for non-existent system.");
 
-    // Get perms with no system should return empty list
-    // TODO/TBD currently returns null. Keep it that way? return empty list? throw exception?
+    // Get perms with no system should return null
     Set<Permission> perms = svc.getUserPermissions(authenticatedUser, fakeSystemName, fakeUserName);
     Assert.assertNull(perms, "Perms list was not null for non-existent system");
-//    Assert.assertNotNull(perms, "Perms list was null for non-existent system");
-//    Assert.assertTrue(perms.isEmpty(), "Perms list not empty for non-existent system");
 
-    // Revoke perm with no system should simply return with no exception
-    svc.revokeUserPermissions(authenticatedUser, fakeSystemName, fakeUserName, testPerms);
+    // Revoke perm with no system should return 0 changes
+    changeCount = svc.revokeUserPermissions(authenticatedUser, fakeSystemName, fakeUserName, testPerms);
+    Assert.assertEquals(changeCount, 0, "Change count incorrect when revoking perms for non-existent system.");
 
     // Grant perm with no system should throw an exception
     boolean pass = false;
@@ -526,7 +534,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
 
-    //TODO/TBD Get credential with no system should return null
+    //Get credential with no system should return null
     Credential cred = svc.getUserCredential(authenticatedUser, fakeSystemName, fakeUserName, AccessMethod.PKI_KEYS);
     Assert.assertNull(cred, "Credential was not null for non-existent system");
 //    // Get credential with no system should throw an exception
@@ -551,8 +559,9 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
 
-    // Delete credential with no system should simple return with no exception
-    svc.deleteUserCredential(authenticatedUser, fakeSystemName, fakeUserName);
+    // Delete credential with no system should 0 changes
+    changeCount = svc.deleteUserCredential(authenticatedUser, fakeSystemName, fakeUserName);
+    Assert.assertEquals(changeCount, 0, "Change count incorrect when deleting a user credential for non-existent system.");
   }
 
   @AfterSuite

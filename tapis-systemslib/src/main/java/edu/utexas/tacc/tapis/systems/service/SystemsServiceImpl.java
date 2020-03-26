@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.service;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.model.KeyType;
+import edu.utexas.tacc.tapis.security.client.model.SKSecretDeleteParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.ws.rs.NotAuthorizedException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -471,7 +473,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
+  public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
     throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.revokePerms;
@@ -481,9 +483,8 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return
-    // TODO: log a warning?
-    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return;
+    // If system does not exist then return 0 changes
+    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return 0;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, permissions);
@@ -514,6 +515,7 @@ public class SystemsServiceImpl implements SystemsService
     }
     // TODO exception handling
     catch (Exception e) { _log.error(e.toString()); throw e;}
+    return permSpecSet.size();
   }
 
   /**
@@ -594,6 +596,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) || credential == null)
@@ -603,18 +606,19 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
     try {
-      // Construct basic SK secret parameters
-      var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+      // Construct basic SK secret parameters including tenant, system and user for credential
+      var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+      sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
       Map<String, String> dataMap;
       // Check for each secret type and write values if they are present
-      // Not that multiple secrets may be present.
+      // Note that multiple secrets may be present.
       // Store password if present
       if (!StringUtils.isBlank(credential.getPassword())) {
         dataMap = new HashMap<>();
         sParms.setKeyType(KeyType.password);
         dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
         sParms.setData(dataMap);
-        skClient.writeSecret(systemTenantName, userName, sParms);
+        skClient.writeSecret(tenantName, apiUserId , sParms);
       }
       // Store PKI keys if both present
       if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
@@ -623,7 +627,7 @@ public class SystemsServiceImpl implements SystemsService
         dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
         dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
         sParms.setData(dataMap);
-        skClient.writeSecret(systemTenantName, userName, sParms);
+        skClient.writeSecret(tenantName, apiUserId, sParms);
       }
       // Store Access key and secret if both present
       if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
@@ -632,7 +636,7 @@ public class SystemsServiceImpl implements SystemsService
         dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
         dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
         sParms.setData(dataMap);
-        skClient.writeSecret(systemTenantName, userName, sParms);
+        skClient.writeSecret(tenantName, apiUserId, sParms);
       }
       // TODO what about ssh certificate? Nothing to do here?
     }
@@ -647,7 +651,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
+  public int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
           throws TapisException, NotAuthorizedException, IllegalStateException
   {
     SystemOperation op = SystemOperation.removeCred;
@@ -657,8 +661,9 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return
-    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return;
+    int changeCount = 0;
+    // If system does not exist then return 0 changes
+    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return changeCount;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -674,26 +679,52 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Return 0 if credential does not exist
+    // TODO: Currently this throws an exception
+//    var sReadParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+//    // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
+//    sReadParms.setTenant(oboTenantName).setUser(apiUserId).setKeyType(KeyType.sshkey);
+//    SkSecret skSecret = skClient.readSecret(sReadParms);
+//    if (skSecret == null) return changeCount;
+
     // Construct basic SK secret parameters
-    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+//    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+    var sParms = new SKSecretDeleteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+    sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
+    sParms.setUser(apiUserId).setVersions(Collections.emptyList());
     try
     {
-      sParms.setTenant(systemTenantName);
-      sParms.setUser(apiUserId);
+//    // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
+// TODO/TBD: Do we need to call setUser?
       sParms.setKeyType(KeyType.password);
-      skClient.destroySecretMeta(sParms);
+      List<Integer> intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+      // Return value is a list of destroyed versions. If any destroyed increment changeCount by 1
+      if (intList != null && !intList.isEmpty()) changeCount++;
       sParms.setKeyType(KeyType.sshkey);
-      skClient.destroySecretMeta(sParms);
+      intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+      if (intList != null && !intList.isEmpty()) changeCount++;
       sParms.setKeyType(KeyType.accesskey);
-      skClient.destroySecretMeta(sParms);
-      sParms.setKeyType(KeyType.cert);
-      skClient.destroySecretMeta(sParms);
+      intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+      if (intList != null && !intList.isEmpty()) changeCount++;
+      // TODO/TBD: This currently throws a "not found" exception. How to handle it? Have SK make it a no-op? Catch exception for each call?
+//      sParms.setKeyType(KeyType.cert);
+//      skClient.destroySecret(tenantName, apiUserId, sParms);
     }
+    // TODO Also clean up secret metadata
+
     // TODO exception handling
-    // TODO/TBD: If tapis client exception then log warning but continue
+    // If tapis client exception then log error and convert to TapisException
     // TODO/TBD: for other exectpions log error and re-throw the exception
-    catch (TapisClientException tce) { _log.warn(tce.toString()); }
+    catch (TapisClientException tce)
+    {
+      _log.error(tce.toString());
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_DELETE_ERROR", authenticatedUser, systemName), tce);
+    }
     catch (Exception e) { _log.error(e.toString()); throw e;}
+    // TODO/TBD If anything destroyed we consider it the removal of a single credential
+    if (changeCount > 0) changeCount = 1;
+    return changeCount;
   }
 
   /**
@@ -746,9 +777,13 @@ public class SystemsServiceImpl implements SystemsService
       // Get the Security Kernel client
       var skClient = getSKClient(authenticatedUser);
       // Construct basic SK secret parameters
-      var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+      var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+      sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
+      // todo remove next line
+//      sParms.setSysUser("alsdkfjdskfj");
       // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
-      sParms.setTenant(oboTenantName).setUser(apiUserId);
+// TODO/TBD: do we need to setUser?
+      sParms.setUser(apiUserId);
       // Set key type based on access method
       if (accessMethod.equals(AccessMethod.PASSWORD))sParms.setKeyType(KeyType.password);
       else if (accessMethod.equals(AccessMethod.PKI_KEYS))sParms.setKeyType(KeyType.sshkey);
@@ -756,6 +791,7 @@ public class SystemsServiceImpl implements SystemsService
       else if (accessMethod.equals(AccessMethod.CERT))sParms.setKeyType(KeyType.cert);
 
       // Retrieve the secrets
+      // TODO/TBD: why not pass in tenant and apiUser here?
       SkSecret skSecret = skClient.readSecret(sParms);
       if (skSecret == null) return null;
       var dataMap = skSecret.getSecretMap();

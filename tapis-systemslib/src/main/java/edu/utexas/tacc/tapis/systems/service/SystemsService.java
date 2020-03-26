@@ -33,13 +33,13 @@ public interface SystemsService
 
   void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions) throws TapisException, NotAuthorizedException;
 
-  void revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions) throws TapisException, NotAuthorizedException;
+  int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions) throws TapisException, NotAuthorizedException;
 
   Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException;
 
   void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential) throws TapisException, NotAuthorizedException, IllegalStateException;
 
-  void deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException, IllegalStateException;
+  int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException, IllegalStateException;
 
   Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod) throws TapisException, NotAuthorizedException;
 }
