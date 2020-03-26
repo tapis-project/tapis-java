@@ -40,6 +40,19 @@ public class ApiUtils
 
   /**
    * Get a localized message using the specified key and parameters. Locale is null.
+   * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
+   * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+   * @param key
+   * @param parms
+   * @return
+   */
+  public static String getMsgAuth(String key, AuthenticatedUser authUser, Object... parms)
+  {
+    return getMsg(key, null, authUser.getTenantId(), authUser.getName(), authUser.getOboTenantId(), authUser.getOboUser(), parms);
+  }
+
+  /**
+   * Get a localized message using the specified key and parameters. Locale is null.
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
    * @param key
    * @param parms
@@ -130,13 +143,13 @@ public class ApiUtils
     try { systemExists = systemsService.checkForSystemByName(authenticatedUser, systemName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CHECK_ERROR", opName, systemName, authenticatedUser.getName(), e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CHECK_ERROR", authenticatedUser, systemName, opName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if (!systemExists)
     {
-      msg = ApiUtils.getMsg("SYSAPI_NOSYSTEM", opName, systemName, authenticatedUser.getName());
+      msg = ApiUtils.getMsgAuth("SYSAPI_NOSYSTEM", authenticatedUser, systemName, opName);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -209,13 +222,13 @@ public class ApiUtils
   {
     if ((!StringUtils.isBlank(secretVal1) && StringUtils.isBlank(secretVal2)))
     {
-      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", authenticatedUser.getName(), systemName, secretType, secretName2, userName);
+      String msg = ApiUtils.getMsgAuth("SYSAPI_CRED_SECRET_MISSING", authenticatedUser, systemName, secretType, secretName2, userName);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     if ((StringUtils.isBlank(secretVal1) && !StringUtils.isBlank(secretVal2)))
     {
-      String msg = ApiUtils.getMsg("SYSAPI_CRED_SECRET_MISSING", authenticatedUser.getName(), systemName, secretType, secretName1, userName);
+      String msg = ApiUtils.getMsgAuth("SYSAPI_CRED_SECRET_MISSING", authenticatedUser, systemName, secretType, secretName1, userName);
       _log.error(msg);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }

@@ -199,7 +199,7 @@ public class CredentialResource
     try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_JSON_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_JSON_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -208,7 +208,7 @@ public class CredentialResource
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_JSON_INVALID",authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_JSON_INVALID",authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -235,7 +235,7 @@ public class CredentialResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -243,7 +243,7 @@ public class CredentialResource
     // ---------------------------- Success -------------------------------
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_CRED_UPDATED", authenticatedUser.getName(), systemName, userName),
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsgAuth("SYSAPI_CRED_UPDATED", authenticatedUser, systemName, userName),
                                                    prettyPrint, resp1))
       .build();
   }
@@ -311,7 +311,7 @@ public class CredentialResource
     try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
     catch (IllegalArgumentException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser.getName(), systemName, accessMethodStr, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser, systemName, accessMethodStr, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -328,7 +328,7 @@ public class CredentialResource
     try { credential = systemsService.getUserCredential(authenticatedUser, systemName, userName, accessMethod); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -336,7 +336,7 @@ public class CredentialResource
     // Resource was not found.
     if (credential == null)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_NOT_FOUND", authenticatedUser.getName(), systemName, userName);
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_NOT_FOUND", authenticatedUser, systemName, userName);
       _log.warn(msg);
       return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -345,7 +345,7 @@ public class CredentialResource
     // Success means we retrieved the information.
     RespCredential resp1 = new RespCredential(credential);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-            ApiUtils.getMsg("SYSAPI_CRED_FOUND", authenticatedUser.getName(), systemName, userName), prettyPrint, resp1)).build();
+            ApiUtils.getMsgAuth("SYSAPI_CRED_FOUND", authenticatedUser, systemName, userName), prettyPrint, resp1)).build();
   }
 
   /**
@@ -415,7 +415,7 @@ public class CredentialResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CRED_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CRED_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -423,8 +423,8 @@ public class CredentialResource
     // ---------------------------- Success -------------------------------
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_CRED_DELETED", authenticatedUser.getName(), systemName,
-                                                                   userName), prettyPrint, resp1))
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsgAuth("SYSAPI_CRED_DELETED", authenticatedUser, systemName,
+                                                                       userName), prettyPrint, resp1))
       .build();
   }
 

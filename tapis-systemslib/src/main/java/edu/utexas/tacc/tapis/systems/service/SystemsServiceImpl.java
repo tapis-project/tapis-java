@@ -719,7 +719,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (TapisClientException tce)
     {
       _log.error(tce.toString());
-      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_DELETE_ERROR", authenticatedUser, systemName), tce);
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_DELETE_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
     catch (Exception e) { _log.error(e.toString()); throw e;}
     // TODO/TBD If anything destroyed we consider it the removal of a single credential
@@ -1134,8 +1134,7 @@ public class SystemsServiceImpl implements SystemsService
     String effectiveUserId = dao.getTSystemEffectiveUserId(authenticatedUser.getTenantId(), systemName);
     if (StringUtils.isBlank(effectiveUserId) || !effectiveUserId.equals(APIUSERID_VAR))
     {
-      String msg = LibUtils.getMsg("SYSLIB_CRED_NOTAPIUSER", authenticatedUser.getTenantId(),
-              authenticatedUser.getName(), systemName, op.name());
+      String msg = LibUtils.getMsgAuth("SYSLIB_CRED_NOTAPIUSER", authenticatedUser, systemName, op.name());
       _log.error(msg);
       throw new IllegalStateException(msg);
 

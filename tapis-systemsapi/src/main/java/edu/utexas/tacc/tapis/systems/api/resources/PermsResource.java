@@ -188,7 +188,7 @@ public class PermsResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -197,8 +197,8 @@ public class PermsResource
     String permsListStr = permsList.stream().map(Enum::name).collect(Collectors.joining(","));
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_GRANTED", authenticatedUser.getName(), systemName,
-                                                                   userName, permsListStr),
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsgAuth("SYSAPI_PERMS_GRANTED", authenticatedUser, systemName,
+                                                                       userName, permsListStr),
                                                    prettyPrint, resp1))
       .build();
   }
@@ -265,7 +265,7 @@ public class PermsResource
     try { perms = systemsService.getUserPermissions(authenticatedUser, systemName, userName); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -348,13 +348,13 @@ public class PermsResource
     }
     catch (IllegalArgumentException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ENUM_ERROR", authenticatedUser.getName(), systemName, permissionStr, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ENUM_ERROR", authenticatedUser, systemName, userName, permissionStr, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -362,8 +362,8 @@ public class PermsResource
     // ---------------------------- Success -------------------------------
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", authenticatedUser.getName(), systemName,
-                                                                   userName, permissionStr),
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsgAuth("SYSAPI_PERMS_REVOKED", authenticatedUser, systemName,
+                                                                       userName, permissionStr),
                                                    prettyPrint, resp1))
       .build();
   }
@@ -442,7 +442,7 @@ public class PermsResource
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -451,8 +451,8 @@ public class PermsResource
     String permsListStr = permsList.stream().map(Enum::name).collect(Collectors.joining(","));
     RespBasic resp1 = new RespBasic();
     return Response.status(Status.CREATED)
-      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsg("SYSAPI_PERMS_REVOKED", authenticatedUser.getName(), systemName,
-                                                                   userName, permsListStr),
+      .entity(TapisRestUtils.createSuccessResponse(ApiUtils.getMsgAuth("SYSAPI_PERMS_REVOKED", authenticatedUser, systemName,
+                                                                       userName, permsListStr),
                                                    prettyPrint, resp1))
       .build();
   }
@@ -481,7 +481,7 @@ public class PermsResource
     try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_ERROR", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_JSON_ERROR", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -491,7 +491,7 @@ public class PermsResource
     try { JsonValidator.validate(spec); }
     catch (TapisJSONException e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_JSON_INVALID", authenticatedUser.getName(), systemName, userName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_JSON_INVALID", authenticatedUser, systemName, userName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -511,7 +511,7 @@ public class PermsResource
         try {permsList.add(Permission.valueOf(permStr)); }
         catch (IllegalArgumentException e)
         {
-          msg = ApiUtils.getMsg("SYSAPI_PERMS_ENUM_ERROR", authenticatedUser.getName(), systemName, permStr, e.getMessage());
+          msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_ENUM_ERROR", authenticatedUser, systemName, userName, permStr, e.getMessage());
           _log.error(msg, e);
           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         }
@@ -522,7 +522,7 @@ public class PermsResource
     // Check values. We should have at least one permission
     if (perms == null || perms.size() <= 0)
     {
-      msg = ApiUtils.getMsg("SYSAPI_PERMS_NOPERMS", authenticatedUser.getName(), systemName, userName);
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_NOPERMS", authenticatedUser, systemName, userName);
     }
 
     // If validation failed log error message and return response
