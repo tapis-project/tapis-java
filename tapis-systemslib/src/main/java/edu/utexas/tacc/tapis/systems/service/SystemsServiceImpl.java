@@ -311,8 +311,11 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist return null
+    // If system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName)) return null;
+//TODO/TBD    // If system does not exist then throw an exception
+//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -425,9 +428,9 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return
-    // TODO: log a warning?
-    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return;
+    // If system does not exist then throw an exception
+    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -532,9 +535,11 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return
-    // TODO: log a warning?
+    // If system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName)) return null;
+//TODO/TBD    // If system does not exist then throw an exception
+//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -580,9 +585,9 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return
-    // TODO: log a warning or error and throw exception?
-    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return;
+    // If system does not exist then throw an exception
+    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -653,7 +658,6 @@ public class SystemsServiceImpl implements SystemsService
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
     // If system does not exist then return
-    // TODO: log a warning or error and throw exception?
     if (!dao.checkForTSystemByName(systemTenantName, systemName)) return;
 
     // ------------------------- Check service level authorization -------------------------
@@ -709,9 +713,11 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then throw an exception
-    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-      throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", authenticatedUser.getTenantId(), authenticatedUser.getName(), systemName));;
+    // If system does not exist then return null
+    if (!dao.checkForTSystemByName(systemTenantName, systemName)) return null;
+//TODO/TBD    // If system does not exist then throw an exception
+//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -730,7 +736,7 @@ public class SystemsServiceImpl implements SystemsService
     if (accessMethod == null)
     {
       TSystem sys = dao.getTSystemByName(systemTenantName, systemName);
-      if (sys == null)  throw new TapisException(LibUtils.getMsg("SYSLIB_NOT_FOUND", authenticatedUser.getTenantId(), authenticatedUser.getName(), systemName));
+      if (sys == null)  throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
       accessMethod = sys.getDefaultAccessMethod();
     }
 

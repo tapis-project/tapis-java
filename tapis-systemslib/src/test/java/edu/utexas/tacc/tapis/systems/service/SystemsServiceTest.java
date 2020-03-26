@@ -2,7 +2,7 @@ package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.security.client.SKClient;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
@@ -475,7 +475,8 @@ public class SystemsServiceTest
     svc.deleteUserCredential(authenticatedUser, sys0.getName(), testUser2);
     try {
       cred1 = svc.getUserCredential(authenticatedService, sys0.getName(), testUser2, AccessMethod.ACCESS_KEY);
-    } catch (TapisClientException tce) {
+    } catch (TapisException te) {
+      Assert.assertTrue(te.getMessage().startsWith("SYSLIB_NOT_FOUND"));
       cred1 = null;
     }
     Assert.assertNull(cred1, "Credential not deleted. System name: " + sys0.getName() + " User name: " + testUser2);
@@ -496,32 +497,62 @@ public class SystemsServiceTest
     String fakeUserName = "AMissingUserName";
     // Make sure system does not exist
     Assert.assertFalse(svc.checkForSystemByName(authenticatedUser, fakeSystemName));
+
+    // Get TShystem with no system should return null
+    TSystem tmpSys = svc.getSystemByName(authenticatedUser, fakeSystemName, false, null);
+    Assert.assertNull(tmpSys, "TSystem not null for non-existent system");
+
     // Get owner with no system should return null
     String owner = svc.getSystemOwner(authenticatedUser, fakeSystemName);
     Assert.assertNull(owner, "Owner not null for non-existent system");
-    // Get perm with no system should return empty list
-    // TODO/TBD currently returns null. Keep it that way?
+
+    // Get perms with no system should return empty list
+    // TODO/TBD currently returns null. Keep it that way? return empty list? throw exception?
     Set<Permission> perms = svc.getUserPermissions(authenticatedUser, fakeSystemName, fakeUserName);
     Assert.assertNull(perms, "Perms list was not null for non-existent system");
 //    Assert.assertNotNull(perms, "Perms list was null for non-existent system");
-//    Assert.assertTrue(perms.isEmpty(), "Perms list not empty non-existent system");
-    // Grant perm with no system should TODO TBD - handle this on front end.
-    // TODO Currently systemslib does not check that system exists, it simple creates the permSpec entries in SK
-    // TODO svc.grantUserPermissions(authenticatedUser, fakeSystemName, fakeUserName, testPerms);
+//    Assert.assertTrue(perms.isEmpty(), "Perms list not empty for non-existent system");
 
-    // TODO revoke perm with no system
+    // Revoke perm with no system should simply return with no exception
+    svc.revokeUserPermissions(authenticatedUser, fakeSystemName, fakeUserName, testPerms);
 
-    // TODO/TBD: If system does not exist getCred should return null.
-//    Credential credential = svc.getUserCredential(authenticatedUser, fakeSystemName, fakeUserName, AccessMethod.PKI_KEYS);
-//    Assert.assertNull(credential, "Credential was non-null for missing system. System name: " + fakeSystemName + " User name: " + fakeUserName);
+    // Grant perm with no system should throw an exception
+    boolean pass = false;
+    try { svc.grantUserPermissions(authenticatedUser, fakeSystemName, fakeUserName, testPerms); }
+    catch (TapisException tce)
+    {
+      Assert.assertTrue(tce.getMessage().startsWith("SYSLIB_NOT_FOUND"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
 
-    // Create credential with no system should TODO TBD - handle this on front end.
-    // TODO Currently systemslib does not check that system exists, it simple creates the credential in SK
-//    credential = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
-    // TODO svc.createUserCredential(authenticatedUser, fakeSystemName, fakeUserName, credential);
+    //TODO/TBD Get credential with no system should return null
+    Credential cred = svc.getUserCredential(authenticatedUser, fakeSystemName, fakeUserName, AccessMethod.PKI_KEYS);
+    Assert.assertNull(cred, "Credential was not null for non-existent system");
+//    // Get credential with no system should throw an exception
+//    // TODO/TBD: this is inconsistent other GETs return null. Make them consistent once decided?
+//    pass = false;
+//    try { svc.getUserCredential(authenticatedUser, fakeSystemName, fakeUserName, AccessMethod.PKI_KEYS); }
+//    catch (TapisException te)
+//    {
+//      Assert.assertTrue(te.getMessage().startsWith("SYSLIB_NOT_FOUND"));
+//      pass = true;
+//    }
+//    Assert.assertTrue(pass);
 
-    // TODO delete credential with no system
+    // Create credential with no system should throw an exception
+    pass = false;
+    cred = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
+    try { svc.createUserCredential(authenticatedUser, fakeSystemName, fakeUserName, cred); }
+    catch (TapisException te)
+    {
+      Assert.assertTrue(te.getMessage().startsWith("SYSLIB_NOT_FOUND"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
 
+    // Delete credential with no system should simple return with no exception
+    svc.deleteUserCredential(authenticatedUser, fakeSystemName, fakeUserName);
   }
 
   @AfterSuite
