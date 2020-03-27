@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 
 ###########################################################
 #  This script helps build images for service specified
@@ -11,8 +11,8 @@
 # usage : $TAPIS_ROOT/deployment/build-metaapi.sh
 #
 ###########################################################
-export VER=${TAPIS_VERSION}
-export TAPIS_ENV=${TAPIS_ENV}
+export VER=0.0.1
+export TAPIS_ENV=dev
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
@@ -22,7 +22,7 @@ export TAG="tapis/${SRVC_API}:$VER"
 export IMAGE_BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC_API}"
 export BUILD_FILE="$IMAGE_BUILD_DIR/Dockerfile"
 export GIT_COMMIT=${GIT_COMMIT}
-export WAR_NAME=v3#meta    # matches final name in pom file
+export WAR_NAME=meta    # matches final name in pom file
 
 # See if we can determine the git commit if it's not already set.
 # Basically, we take the second word in the git.info file.
@@ -51,10 +51,10 @@ echo ""
 
 echo "";echo ""
 
-echo "***      removing any old service war v3#meta.war file from Docker build context"
-echo "***      $IMAGE_BUILD_DIR/$WAR_NAME.war "
-if test -f "$IMAGE_BUILD_DIR/$WAR_NAME.war"; then
-     rm $IMAGE_BUILD_DIR/$WAR_NAME.war
+echo "***      removing any old service war meta directory from Docker build context"
+echo "***      $IMAGE_BUILD_DIR/$WAR_NAME "
+if test -d "$IMAGE_BUILD_DIR/$WAR_NAME"; then
+     rm -rf $IMAGE_BUILD_DIR/$WAR_NAME
 fi
 
 echo "";echo ""
@@ -63,8 +63,8 @@ echo "";echo ""
 #       unzip $SRVC_DIR/$WAR_NAME.war -d ${IMAGE_BUILD_DIR}/${SRVC}
 
 # echo "";echo ""
-echo " ***   cp $SRVC_DIR/$WAR_NAME.war ${IMAGE_BUILD_DIR}/ "
-             cp $SRVC_DIR/$WAR_NAME.war ${IMAGE_BUILD_DIR}/
+echo " ***   cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/ "
+             cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/
 
 echo "";echo ""
 
@@ -73,12 +73,12 @@ echo " ***   cd ${IMAGE_BUILD_DIR}"
              cd ${IMAGE_BUILD_DIR}
 echo "";echo ""
 
-echo "***      building the docker image from deployment/tapis-${SRVC_API}/Dockerfile"
+echo "***      building the docker image from deployment directory docker build tapis-${SRVC_API}/Dockerfile"
 echo "***      docker image build --build-arg VER=0.0.1 --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV . "
                docker image build --build-arg VER=0.0.1 --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV .
 
 echo "";echo ""
 
-echo "***      rm ${IMAGE_BUILD_DIR}/${WAR_NAME}.war"
-               rm ${IMAGE_BUILD_DIR}/${WAR_NAME}.war
+echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
+             #  rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}
 

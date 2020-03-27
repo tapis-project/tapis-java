@@ -9,7 +9,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import javax.ws.rs.ApplicationPath;
 
 
-@ApplicationPath("/v3/meta")
+@ApplicationPath("/meta")
 public class MetaApplication extends ResourceConfig {
   
   public MetaApplication()

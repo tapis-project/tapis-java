@@ -148,7 +148,7 @@
 -->
         </plugins>
 
-        <finalName>v3#meta</finalName>
+        <finalName>meta</finalName>
     </build>
 
 </project>

@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.meta.api.resources;
 import edu.utexas.tacc.tapis.meta.config.OkSingleton;
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,13 @@ public class CoreRequest {
   public CoreRequest(String _pathUri){
     // this gives us the valid Core server path URI by stripping the service
     // prefix from the beginning of the path
+    
+    _log.debug("pathUri : "+_pathUri);
+  
     pathUri = _pathUri.replace(MetaAppConstants.META_REQUEST_PREFIX,"");
     pathURL = RuntimeParameters.getInstance().getCoreServer()+pathUri;
+  
+    _log.debug("pathURL : "+pathURL);
   }
   
   // proxy GET request

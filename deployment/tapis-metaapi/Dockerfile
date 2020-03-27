@@ -19,11 +19,8 @@ ARG GIT_COMMIT
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
-# make meta webapp subdirectory.
-# RUN mkdir -p /usr/local/tomcat/webapps/v3/meta
-
 # add
-COPY "v3#meta.war" /usr/local/tomcat/webapps/
+COPY meta /usr/local/tomcat/webapps/v3/
 
 # Set environment and turn on remote debug
 ENV CATALINA_HOME /usr/local/tomcat
