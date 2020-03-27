@@ -11,7 +11,7 @@
     </parent>
 
 
-    <artifactId>tapis-metaapi</artifactId>
+    <artifactId>meta</artifactId>
     <packaging>war</packaging>
 
     <name>Tapis Meta API</name>
@@ -148,7 +148,7 @@
 -->
         </plugins>
 
-        <finalName>v3</finalName>
+        <finalName>v3#meta</finalName>
     </build>
 
 </project>

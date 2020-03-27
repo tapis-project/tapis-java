@@ -15,16 +15,15 @@
 FROM tomcat:9.0.27-jdk13-openjdk-oracle
 
 ARG VER
-ARG SRVC_ROOT
 ARG GIT_COMMIT
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
 # make meta webapp subdirectory.
-RUN mkdir /usr/local/tomcat/webapps/v3
+# RUN mkdir -p /usr/local/tomcat/webapps/v3/meta
 
 # add
-COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
+COPY "v3#meta.war" /usr/local/tomcat/webapps/
 
 # Set environment and turn on remote debug
 ENV CATALINA_HOME /usr/local/tomcat
