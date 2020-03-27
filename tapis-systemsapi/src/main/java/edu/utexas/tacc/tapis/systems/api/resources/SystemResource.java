@@ -12,7 +12,6 @@ import javax.servlet.ServletContext;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.*;
-import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;

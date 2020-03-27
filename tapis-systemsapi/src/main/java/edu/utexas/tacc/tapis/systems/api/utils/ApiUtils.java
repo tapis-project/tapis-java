@@ -48,7 +48,14 @@ public class ApiUtils
    */
   public static String getMsgAuth(String key, AuthenticatedUser authUser, Object... parms)
   {
-    return getMsg(key, null, authUser.getTenantId(), authUser.getName(), authUser.getOboTenantId(), authUser.getOboUser(), parms);
+    // Construct new array of parms. This appears to be most straightforward approach to modify and pass on varargs.
+    var newParms = new Object[4 + parms.length];
+    newParms[0] = authUser.getTenantId();
+    newParms[1] = authUser.getName();
+    newParms[2] = authUser.getOboTenantId();
+    newParms[3] = authUser.getOboUser();
+    System.arraycopy(parms, 0, newParms, 4, parms.length);
+    return getMsg(key, newParms);
   }
 
   /**
@@ -155,54 +162,6 @@ public class ApiUtils
     }
     return null;
   }
-
-  // TODO service level will be done at the back end, systemslib
-  /**
-   * Check that requester is either owner or (optionally) apiUserId.
-   * @param tenantName - name of the tenant
-   * @param apiUserId - user name associated with API request
-   * @param systemName - name of the system to check
-   * @param opUserName - name of user associated with the operation, if any, for constructing response msg
-   * @param opName - operation name, for constructing response msg
-   * @param mustBeOwner - indicates if only owner can perform requested operation
-   * @param prettyPrint - print flag used to construct response
-   * @return - null if all checks OK else Response containing info
-   */
-//  public static Response checkAuth(SystemsService systemsService, String tenantName, String apiUserId,
-//                                   String opName, String systemName, String opUserName, boolean mustBeOwner,
-//                                   boolean prettyPrint)
-//  {
-//    String msg;
-//    String owner;
-//    if (systemsService == null ||  StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName))
-//    {
-//      msg = ApiUtils.getMsg("SYSAPI_NULL_INPUT");
-//      _log.error(msg);
-//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//    }
-//    // Retrieve owner
-//    try { owner = systemsService.getSystemOwner(tenantName, apiUserId, systemName); }
-//    catch (Exception e)
-//    {
-//      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_ERROR", apiUserId, opName, systemName, opUserName, e.getMessage());
-//      _log.error(msg, e);
-//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//    }
-//    if (StringUtils.isBlank(owner))
-//    {
-//      msg = ApiUtils.getMsg("SYSAPI_GET_OWNER_EMPTY", apiUserId, opName, systemName, opUserName);
-//      _log.error(msg);
-//      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//    }
-//
-//    // Requester (apiUserId) must be the owner or (optionally) the user associated with the operation
-//    if (owner.equals(apiUserId) || (!mustBeOwner && apiUserId.equals(opUserName))) return null;
-//
-//    // Not authorized
-//    msg = ApiUtils.getMsg("SYSAPI_UNAUTH", apiUserId, opName, systemName, opUserName);
-//    _log.error(msg);
-//    return Response.status(Response.Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-//  }
 
   /**
    * Check that both or neither of the secrets are blank.

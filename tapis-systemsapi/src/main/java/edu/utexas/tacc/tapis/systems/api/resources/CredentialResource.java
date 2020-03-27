@@ -187,12 +187,6 @@ public class CredentialResource
     resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "createUserCredential");
     if (resp != null) return resp;
 
-    // TODO auth done in back end
-//    // ------------------------- Check authorization -------------------------
-//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-//            "createUserCredential", false);
-//    if (resp != null) return resp;
-
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
     String json;
@@ -316,12 +310,6 @@ public class CredentialResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // TODO auth done in back end
-//     ------------------------- Check authorization -------------------------
-//     TODO
-//    resp = ApiUtils.checkAuth1(systemsService, tenantName, systemName, userName, prettyPrint, apiUserId, "getUserCredential");
-//    if (resp != null) return resp;
-
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the credentials
     Credential credential;
@@ -401,11 +389,6 @@ public class CredentialResource
     // Check that the system exists
     resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "removeUserCredential");
     if (resp != null) return resp;
-    // TODO auth done in back end
-//    // ------------------------- Check authorization -------------------------
-//    resp = ApiUtils.checkAuth(systemsService, tenantName, apiUserId, systemName, userName, prettyPrint, apiUserId,
-//                       "removeUserCredential", false);
-//    if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to remove the credential

@@ -474,7 +474,6 @@ public class PermsResource
   private Response checkAndExtractPayload(AuthenticatedUser authenticatedUser, String systemName, String userName, boolean prettyPrint,
                                           InputStream payloadStream, Set<Permission> permsList)
   {
-    Response resp = null;
     String msg;
     // Read the payload into a string.
     String json;
@@ -531,6 +530,6 @@ public class PermsResource
       _log.error(msg);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    return resp;
+    else return null;
   }
 }
