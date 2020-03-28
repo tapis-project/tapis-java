@@ -11,8 +11,8 @@
 # usage : $TAPIS_ROOT/deployment/build-metaapi.sh
 #
 ###########################################################
-export VER=0.0.1
-export TAPIS_ENV=dev
+export VER=$VER
+export TAPIS_ENV=$TAPIS_ENV
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
@@ -59,12 +59,9 @@ fi
 
 echo "";echo ""
 
-#echo " ***   unzip $SRVC_DIR/$WAR_NAME.war -d ${IMAGE_BUILD_DIR}/${SRVC} "
-#       unzip $SRVC_DIR/$WAR_NAME.war -d ${IMAGE_BUILD_DIR}/${SRVC}
-
-# echo "";echo ""
-echo " ***   cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/ "
-             cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/
+echo "***          copy the new service package directory to our docker build directory "
+echo "***   cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/ "
+            cp -r $SRVC_DIR/$WAR_NAME ${IMAGE_BUILD_DIR}/
 
 echo "";echo ""
 
@@ -74,8 +71,8 @@ echo " ***   cd ${IMAGE_BUILD_DIR}"
 echo "";echo ""
 
 echo "***      building the docker image from deployment directory docker build tapis-${SRVC_API}/Dockerfile"
-echo "***      docker image build --build-arg VER=0.0.1 --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV . "
-               docker image build --build-arg VER=0.0.1 --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV .
+echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV . "
+               docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV .
 
 echo "";echo ""
 
