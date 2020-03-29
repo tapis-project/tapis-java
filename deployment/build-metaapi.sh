@@ -79,7 +79,10 @@ echo "";echo ""
 echo "***      export the image file name and tag as META_IMAGE "
 echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
                export META_IMAGE=$TAG-$TAPIS_ENV
+               echo $META_IMAGE > image.txt
 
+
+echo "image file written : $(cat image.txt)"
 
 
 
