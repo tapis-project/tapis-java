@@ -76,6 +76,14 @@ echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$G
 
 echo "";echo ""
 
+echo "***      export the image file name and tag as META_IMAGE "
+echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
+               export META_IMAGE=$TAG-$TAPIS_ENV
+
+
+
+
+echo "***      "
 echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
              #  rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}
 
