@@ -71,7 +71,10 @@ public final class SkAdminServicePwdProcessor
             return;
         }
         
-        // Don't overwrite the secret.
+        // Don't overwrite the secret.  Note that even if "password" isn't
+        // present in the existing secret, that fact that the secret exists
+        // is enough to cause us to skip the update.  We may in the future
+        // want to make this a cumulative secret update operation.
         if (skSecret != null) {
             _results.recordSkipped(Op.create, SecretType.ServicePwd, 
                                    makeSkippedMessage(Op.create, secret));
@@ -103,7 +106,7 @@ public final class SkAdminServicePwdProcessor
             // the key as "password" in a single element map that
             // gets saved as the actual secret map in vault. 
             var map = new HashMap<String,String>();
-            map.put("password", secret.password);
+            map.put(DEFAULT_KEY_NAME, secret.password);
             parms.setData(map);
             
             // Make the write call.
@@ -144,6 +147,8 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     private String makeFailureMessage(Op op, SkAdminServicePwd secret, String errorMsg)
     {
+        // Set the failed flag to alert any subsequent processing.
+        secret.failed = true;
         return " FAILED to " + op.name() + " secret \"" + secret.secretName +
                "\" for service \"" + secret.service + "\" in tenant \"" + secret.tenant + 
                "\": " + errorMsg;
@@ -167,5 +172,4 @@ public final class SkAdminServicePwdProcessor
         return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
                "\" for service \"" + secret.service + "\" in tenant " + secret.tenant + "\".";
     }
-    
 }

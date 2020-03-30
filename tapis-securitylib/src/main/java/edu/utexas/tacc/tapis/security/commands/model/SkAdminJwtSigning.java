@@ -4,7 +4,9 @@ public final class SkAdminJwtSigning
  extends SkAdminAbstractSecret
 {
     public String tenant;
+    public String user;
     public String secretName;
-    public String secret;
+    public String privateKey;
+    public String publicKey;
     public String kubeSecretName;
 }
