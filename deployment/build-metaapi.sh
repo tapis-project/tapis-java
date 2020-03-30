@@ -16,21 +16,12 @@ export TAPIS_ENV=$TAPIS_ENV
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
-
 export SRVC_DIR="${TAPIS_ROOT}/tapis-${SRVC_API}/target"
 export TAG="tapis/${SRVC_API}:$VER"
 export IMAGE_BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC_API}"
 export BUILD_FILE="$IMAGE_BUILD_DIR/Dockerfile"
-export GIT_COMMIT=${GIT_COMMIT}
+export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
 export WAR_NAME=meta    # matches final name in pom file
-
-# See if we can determine the git commit if it's not already set.
-# Basically, we take the second word in the git.info file.
-if [ -z "${GIT_COMMIT}" ]
-then
-    echo   "***  export GIT_COMMIT=$(awk '{print $2}' ${SRVC_DIR}/${WAR_NAME}/WEB-INF/classes/git.info)"
-    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${WAR_NAME}/WEB-INF/classes/git.info)"
-fi
 
 echo "VER: $VER"
 echo "TAPIS_ENV: $TAPIS_ENV"
@@ -45,11 +36,14 @@ echo "GIT_COMMIT: $GIT_COMMIT"
 echo "WAR_NAME: $WAR_NAME"
 echo ""
 
+cd tapis-metaapi
 # echo " ***   do a build on metaapi  "
-# echo " ***   mvn clean install -rf :tapis-metaapi "
-# mvn clean install -rf :tapis-metaapi
+# echo " ***   mvn clean install -DskipTests"
+mvn clean install -DskipTests
 
 echo "";echo ""
+
+cd ..  # jump back up to project root directory
 
 echo "***      removing any old service war meta directory from Docker build context"
 echo "***      $IMAGE_BUILD_DIR/$WAR_NAME "
@@ -73,13 +67,17 @@ echo "";echo ""
 echo "***      building the docker image from deployment directory docker build tapis-${SRVC_API}/Dockerfile"
 echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV . "
                docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV .
-
 echo "";echo ""
 
-echo "***      export the image file name and tag as META_IMAGE "
+echo "***    push the image to docker hub "
 echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
-               export META_IMAGE=$TAG-$TAPIS_ENV
-               echo "$META_IMAGE" > "$WORKSPACE"/image.txt
+               docker push "$TAG-$TAPIS_ENV"
+
+
+# echo "***      export the image file name and tag as META_IMAGE "
+# echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
+#                export META_IMAGE=$TAG-$TAPIS_ENV
+#                echo "$META_IMAGE" > "$WORKSPACE"/image.txt
 
 
 # echo "image file written : $(cat image.txt)"
