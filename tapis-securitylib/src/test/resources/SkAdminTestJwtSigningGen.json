@@ -1,0 +1,12 @@
+{
+    "secrets": {
+        "jwtsigning":[
+            {
+                "tenant":     "dev",
+                "user":       "bozo",
+                "secretName": "banana",
+                "privateKey": "<generate-secret>"
+            }
+        ]
+    }
+}

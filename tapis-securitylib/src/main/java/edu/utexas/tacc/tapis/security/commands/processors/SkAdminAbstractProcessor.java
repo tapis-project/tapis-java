@@ -25,6 +25,13 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SkAdminAbstractProcessor.class);
     
+    // Default secret key names.  These are the names of the keys inside the
+    // secret map used when writing secrets.  Applications will expect these
+    // names upon retrieval.
+    public static final String DEFAULT_KEY_NAME = "password";
+    public static final String DEFAULT_PRIVATE_KEY_NAME = "privateKey";
+    public static final String DEFAULT_PUBLIC_KEY_NAME  = "publicKey";
+    
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
