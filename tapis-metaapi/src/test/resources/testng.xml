@@ -1,0 +1,15 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+
+<suite name="Tapis security api" verbose="1" parallel="none">
+    <groups>
+        <run>
+            <exclude name="broken"/>
+            <exclude name="notReady"/>
+        </run>
+    </groups>
+	<test name="meta">
+		<packages>
+		   <package name="edu.utexas.tacc.tapis.meta.api.*" />
+		</packages>
+	</test>
+</suite>
