@@ -93,7 +93,6 @@
     <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tokens-client:1.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: edu.utexas.tacc.tapis:tenants-client:1.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: io.swagger.core.v3:swagger-annotations:2.0.10" level="project" />
-    <orderEntry type="library" name="Maven: com.google.inject:guice:4.2.2" level="project" />
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
     <orderEntry type="library" name="Maven: aopalliance:aopalliance:1.0" level="project" />
     <orderEntry type="library" name="Maven: com.squareup.okhttp3:okhttp:4.2.2" level="project" />

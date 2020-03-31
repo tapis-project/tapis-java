@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.google.inject.Singleton;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
@@ -30,7 +29,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 /*
  * Class to handle persistence for Tapis System objects.
  */
-@Singleton
 public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 {
   /* ********************************************************************** */
