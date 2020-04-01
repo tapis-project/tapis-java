@@ -68,3 +68,4 @@ Icon
 /.idea/
 /deployment/etc/
 /deployment/tapis-metaapi/meta/
+/tapis-metaapi/rest-client.private.env.json
