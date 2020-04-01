@@ -15,9 +15,8 @@ volumes:
 
 services:
    meta-security:
-      image: tapis/metaapi:0.0.1dev
+      image: tapis/metaapi:0.0.1-dev
       container_name: meta-tapis-security
-      command: ""
       depends_on:
          - restheart
       networks:

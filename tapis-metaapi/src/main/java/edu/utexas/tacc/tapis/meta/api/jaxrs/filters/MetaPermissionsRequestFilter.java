@@ -79,11 +79,12 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
       
       _log.debug(msg.toString());
       requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity(msg.toString()).build());
+      return;
     }
     
     //------------------------------  permitted to continue  ------------------------------
     StringBuilder msg = new StringBuilder()
-        .append("request for this uri path ")
+        .append("request for this uri permission spec ")
         .append(permissionsSpec)
         .append(" is permitted.");
     

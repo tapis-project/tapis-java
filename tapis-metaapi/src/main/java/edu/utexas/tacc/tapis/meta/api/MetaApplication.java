@@ -21,8 +21,6 @@ public class MetaApplication extends ResourceConfig {
     // documentation endpoints to be automatically generated.
     register(OpenApiResource.class);
     register(AcceptHeaderOpenApiResource.class);
-  
-  
     
     // We specify what packages JAX-RS should recursively scan
     // to find annotations.  By setting the value to the top-level
