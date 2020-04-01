@@ -1,88 +1,190 @@
 {
-  "$id": "http://tapis.tacc.utexas.edu/SystemCreateRequest",
+  "$id": "http://tapis.tacc.utexas.edu/SGCIResource",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Schema for a system create request",
+  "description": "Schema for an SGCI Resource",
   "additionalProperties": false,
 
   "type": "object",
+  "required": ["sgciResource"],
   "properties": {
-    "tSystem": {
+    "sgciResource": {
       "type": "object",
+      "required": ["id", "name", "resourceType", "resource"],
       "properties": {
-        "name": { "$ref": "#/definitions/systemName" },
+        "id": { "$ref": "#/definitions/resourceId" },
+        "name": { "$ref": "#/definitions/resourceName" },
         "description": { "type": "string", "maxLength": 2048 },
-        "systemType": { "$ref": "#/definitions/systemTypeEnum" },
-        "owner": { "$ref": "#/definitions/userName" },
-        "host": { "$ref": "#/definitions/hostName" },
-        "enabled": { "type": "boolean", "default": true },
-        "effectiveUserId": { "$ref": "#/definitions/userName" },
-        "defaultAccessMethod": { "$ref": "#/definitions/accessMethodEnum" },
-        "accessCredential": {"$ref": "#/definitions/credential" },
-        "bucketName": { "type": "string", "maxLength": 63 },
-        "rootDir": { "$ref": "#/definitions/dirPath" },
-        "transferMethods": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["SFTP","S3"] }
+        "resourceType": { "$ref": "#/definitions/resourceTypeDefinition" },
+        "resource": {
+          "oneOf": [
+            { "$ref": "#/definitions/storageDefinition" },
+            { "$ref": "#/definitions/computeDefinition" }
+          ]
         },
-        "port": { "type": "integer" },
-        "useProxy": { "type": "boolean", "default": false },
-        "proxyHost": { "$ref": "#/definitions/hostName" },
-        "proxyPort": { "type": "integer" },
-        "jobCanExec": { "type": "boolean" },
-        "jobLocalWorkingDir": { "$ref": "#/definitions/dirPath" },
-        "jobLocalArchiveDir": { "$ref": "#/definitions/dirPath" },
-        "jobRemoteArchiveSystem": { "$ref": "#/definitions/systemName" },
-        "jobRemoteArchiveDir": { "$ref": "#/definitions/dirPath" },
-        "jobCapabilities": {
+        "hosts": {
           "type": "array",
-          "items": {"$ref": "#/definitions/capability" }
+          "items": { "$ref": "#/definitions/hostDefinition" }
         },
-        "tags": {
+        "connections": {
           "type": "array",
-          "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
-        },
-        "notes": { "type": "object" }
-      },
-      "required": [
-        "name",
-        "systemType",
-        "host",
-        "defaultAccessMethod",
-        "jobCanExec"
-      ]
+          "items": { "$ref": "#/definitions/connectionDefinition" }
+        }
+      }
     }
   },
-  "required": [
-    "tSystem"
-  ],
 
   "definitions": {
-    "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "resourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "resourceName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "resourceTypeDefinition": { "type": "string", "enum": ["STORAGE","COMPUTE"] },
+    "hostNameDefinition": { "type": "string", "minLength": 1, "maxLength": 256 },
     "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
-    "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
-    "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","ACCESS_KEY","CERT"] },
-    "credential": {
+    "memorySizeSpec": { "type": "string" },
+    "hostDefinition": {
       "type": "object",
+      "oneOf": [ { "required": ["hostname"] }, { "required": ["ip"] } ],
       "properties": {
-        "password": { "type":  "string" },
-        "privateKey": { "type":  "string" },
-        "publicKey": { "type":  "string" },
-        "certificate": { "type":  "string" },
-        "accessKey": { "type":  "string" },
-        "accessSecret": { "type":  "string" }
+        "hostname": { "$ref": "#/definitions/hostNameDefinition" },
+        "ip": { "type":  "string" },
+        "priority": { "type":  "integer" }
       }
     },
-    "capabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
-    "capability": {
+    "connectionDefinition": {
+      "type": "object",
+      "required": ["connectionProtocol","securityProtocol"],
+      "properties": {
+        "connectionProtocol": { "type": "string", "enum": ["SSH","GLOBUS","HTTP","SFTP","SCP","IRODS"] },
+        "securityProtocol": { "type": "string", "enum": ["PASSWORDS","SSHKEYS","X509","OAUTH2"] },
+        "port": { "type":  "integer" },
+        "proxyHost": { "$ref": "#/definitions/hostNameDefinition" },
+        "proxyPort": { "type": "integer" }
+      }
+    },
+    "storageDefinition": {
+      "type": "object",
+      "required": ["storageType", "fileSystems"],
+      "properties": {
+        "storageType": { "type": "string", "enum": ["POSIX","S3","OBJECT_STORE"] },
+        "connection": { "$ref": "#/definitions/connectionDefinition" },
+        "fileSystems":  {
+          "type": "array",
+          "items": { "$ref": "#/definitions/fileSystemDefinition" }
+        },
+        "capacity": {
+          "type": "object",
+          "properties": {
+            "totalBytes": { "type":  "integer"}
+          }
+        },
+        "quota": {
+          "type": "object",
+          "properties": {
+            "bytesPerUser": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "fileSystemDefinition": {
       "type": "object",
       "properties": {
-        "category": { "$ref": "#/definitions/capabilityCategoryEnum" },
-        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "value": { "type": "string", "maxLength": 256 }
-      },
-      "required": [ "category", "name" ]
+        "rootDir": { "$ref": "#/definitions/dirPath" },
+        "homeDir": { "$ref": "#/definitions/dirPath" },
+        "scratchDir": { "$ref": "#/definitions/dirPath" },
+        "workDir": { "$ref": "#/definitions/dirPath" },
+        "archiveDir": { "$ref": "#/definitions/dirPath" }
+      }
+    },
+    "computeDefinition": {
+      "type": "object",
+      "oneOf": [
+        { "required": ["schedulerType","batchSystem"] },
+        { "required": ["schedulerType","forkSystem"] }
+      ],
+      "properties": {
+        "schedulerType": { "type": "string", "enum": ["FORK", "BATCH", "ON_DEMAND"] },
+        "connection": { "$ref": "#/definitions/connectionDefinition" },
+        "executionCommands": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/executionCommandDefinition" }
+        },
+        "batchSystem": { "$ref": "#/definitions/batchSystemDefinition" },
+        "forkSystem": { "$ref": "#/definitions/forkSystemDefinition" }
+      }
+    },
+    "executionCommandDefinition": {
+      "type": "object",
+      "required": ["commandType"],
+      "properties": {
+        "commandType": { "type": "string", "examples": ["serial","mpi","openmp","ccm"] },
+        "commandPrefix": { "type": "string", "examples": ["ibrun","mpirun"]  },
+        "moduleDependencies": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "batchSystemDefinition": {
+      "type": "object",
+      "required": ["jobManager"],
+      "properties": {
+        "jobManager": { "type": "string", "enum": ["SLURM", "SGE", "PBS"] },
+        "commandPaths": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/commandPathDefinition" }
+        },
+        "partitions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/partitionDefinition" }
+        }
+      }
+    },
+    "commandPathDefinition": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "examples": ["SUBMISSION","JOB_MONITORING","DELETION","CHECK_JOB","SHOW_QUEUE","SHOW_RESERVATION","SHOW_START"]}
+      }
+    },
+    "partitionDefinition": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "examples": ["normal","large-mem"] },
+        "totalNodes": { "type":  "integer"},
+        "nodeHardware": { "$ref": "#/definitions/nodeHardwareDefinition" },
+        "computeQuotas" : {
+          "type": "object",
+          "properties": {
+            "maxJobsTotal": { "type": "integer" },
+            "maxJobsPerUser": { "type": "integer" },
+            "maxNodesPerJob": { "type": "integer" },
+            "maxTimePerJob": { "type": "integer" },
+            "maxMemoryPerJob": { "$ref": "#/definitions/memorySizeSpec" },
+            "maxCPUsPerJob": { "type": "integer" },
+            "maxGPUsPerJob": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "forkSystemDefinition": {
+      "type": "object",
+      "required": ["systemType"],
+      "properties": {
+        "systemType": { "type": "string", "enum": ["Linux", "Windows"] },
+        "version": { "type": "string" },
+        "nodeHardware": { "$ref": "#/definitions/nodeHardwareDefinition" }
+      }
+    },
+    "nodeHardwareDefinition": {
+      "type": "object",
+      "properties": {
+        "cpuType": { "type": "string" },
+        "cpuCount": { "type": "integer"},
+        "gpuType": { "type": "string" },
+        "gpuCount": { "type": "integer"},
+        "memoryType": { "type": "string" },
+        "memorySize": { "$ref": "#/definitions/memorySizeSpec" }
+      }
     }
   }
 }
