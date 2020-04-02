@@ -191,6 +191,75 @@ public class ResourceBucket {
   
   
   /*************************************************
+   *    Index endpoints
+   *************************************************/
+  //----------------  List Indexes ----------------
+  @GET
+  @Path("/{db}/{collection}/_indexes")
+  public javax.ws.rs.core.Response listIndexes(InputStream payload) {
+    // Get the json payload to proxy to back end
+    StringBuilder builder = new StringBuilder();
+    
+    try {
+      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
+      String line = null;
+      while ((line = in.readLine()) != null) {
+        builder.append(line);
+      }
+    } catch (Exception e) {
+      _log.debug("Error Parsing: - ");
+    }
+    
+    _log.debug("Data Received: " + builder.toString());
+    
+    // Proxy the POST request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
+    
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  }
+  
+  //----------------  Create an Index ----------------
+  @PUT
+  @Path("/{db}/{collection}/_indexes/{indexName}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response createIndex(InputStream payload) {
+    // Get the json payload to proxy to back end
+    StringBuilder builder = new StringBuilder();
+    
+    try {
+      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
+      String line = null;
+      while ((line = in.readLine()) != null) {
+        builder.append(line);
+      }
+    } catch (Exception e) {
+      _log.debug("Error Parsing: - ");
+    }
+    
+    _log.debug("Data Received: " + builder.toString());
+    
+    // Proxy the POST request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
+    
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  }
+  
+
+  /*************************************************
    *    Document endpoints
    *************************************************/
 
