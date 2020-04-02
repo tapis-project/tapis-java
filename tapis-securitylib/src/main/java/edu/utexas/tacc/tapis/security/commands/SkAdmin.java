@@ -48,7 +48,7 @@ public class SkAdmin
     
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
-    private static final int    DFT_KEY_SIZE      = 4096; // 2048 is the other option
+    private static final int    DFT_KEY_SIZE      = 2048; // 4096 is the other option
     
     // PEM text for public and private keys.
     private static final String PUB_KEY_PROLOGUE = "-----BEGIN PUBLIC KEY-----\n";
@@ -222,10 +222,18 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
                                                  "kubeSecretName", secret.dbservice,
+                                                 secret.dbhost, secret.dbname,
+                                                 secret.user, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
                                                  secret.user, secret.secretName);
                     _log.error(msg);
@@ -279,10 +287,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
@@ -322,10 +337,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.service, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.service, secret.secretName);
                     _log.error(msg);
                     return false;
@@ -362,10 +384,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.user, secret.key, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.user, secret.key, secret.secretName);
                     _log.error(msg);
                     return false;
@@ -443,7 +472,7 @@ public class SkAdmin
     private void deploySecrets()
     {
         // Are kubernetes changes being requested?
-        if (!_parms.deploy) return;
+        if (!_parms.deployMerge && !_parms.deployReplace) return;
         
         // Deploy each type of secret separately.
         _dbCredentialProcessor.deploy();

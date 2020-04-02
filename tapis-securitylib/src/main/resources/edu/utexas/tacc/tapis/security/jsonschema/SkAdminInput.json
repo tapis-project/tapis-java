@@ -74,7 +74,13 @@
                     "maxLength": 256
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -122,7 +128,13 @@
                     "minLength": 0
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -170,7 +182,13 @@
                     "minLength": 16
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -230,7 +248,13 @@
                     "minLength": 16
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256

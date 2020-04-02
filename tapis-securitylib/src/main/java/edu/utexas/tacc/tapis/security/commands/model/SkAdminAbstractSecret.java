@@ -8,4 +8,7 @@ package edu.utexas.tacc.tapis.security.commands.model;
 public abstract class SkAdminAbstractSecret 
 {
     public boolean failed;
+    public String  tenant;
+    public String  kubeSecretName;
+    public String  kubeSecretKey;
 }
