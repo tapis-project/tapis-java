@@ -10,6 +10,7 @@ public class MetaSKPermissionsMapper {
   public String db="";
   public String collection="";
   public String document="";
+  // public String
   
   /**
    * constructor for uripath mapping to sk permission spec
@@ -31,6 +32,8 @@ public class MetaSKPermissionsMapper {
     String pems = "";
     if(notEmpty(uriPath )&& notEmpty(tenant)){
       String processed = uriPath.replace("/v3/meta/", "");
+      
+      
       StringTokenizer st = new StringTokenizer(processed,"/");
       
       int resources = st.countTokens();
@@ -48,6 +51,12 @@ public class MetaSKPermissionsMapper {
           return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
         }
         case 3 : {
+          db = st.nextToken();
+          collection = st.nextToken();
+          document = st.nextToken();
+          return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
+        }
+        case 4 : {
           db = st.nextToken();
           collection = st.nextToken();
           document = st.nextToken();
