@@ -39,7 +39,7 @@ public class SkAdminParameters
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
-    // --------- Parameters passed directly to the SkAdmin code
+    // --------- Action Parameters ---------
     @Option(name = "-c", required = false, aliases = {"-create"}, 
             usage = "create secrets that don't already exist",
             forbids={"-u"})
@@ -60,18 +60,7 @@ public class SkAdminParameters
             forbids={"-dm"}, depends={"-kt","-ku","-kn"})
     public boolean deployReplace;
     
-    @Option(name = "-kt", required = false, aliases = {"-kubeToken"}, 
-            usage = "access token for kubernetes API server")
-    public boolean kubeToken;
-    
-    @Option(name = "-ku", required = false, aliases = {"-kubeUrl"}, 
-            usage = "kubernetes API server URL")
-    public boolean kubeUrl;
-    
-    @Option(name = "-kn", required = false, aliases = {"-kubeNS"}, 
-            usage = "kubernetes namespace to be accessed")
-    public boolean kubeNS;
-    
+    // --------- Required Parameters -------
     @Option(name = "-f", required = true, aliases = {"-file"}, 
             metaVar = "<file path>", usage = "the json input file")
     public String jsonFile;
@@ -80,10 +69,29 @@ public class SkAdminParameters
             usage = "JWT environment variable name")
     public String jwtEnv;
     
+    // --------- Kube Parameters -----------
+    @Option(name = "-kt", required = false, aliases = {"-kubeToken"}, 
+            usage = "kubernetes access token environment variable name")
+    public String kubeTokenEnv;
+    
+    @Option(name = "-ku", required = false, aliases = {"-kubeUrl"}, 
+            usage = "kubernetes API server URL")
+    public String kubeUrl;
+    
+    @Option(name = "-kn", required = false, aliases = {"-kubeNS"}, 
+            usage = "kubernetes namespace to be accessed")
+    public String kubeNS;
+    
+    @Option(name = "-kssl", required = false, 
+            usage = "validate SSL connection to kubernetes")
+    public boolean kubeValidateSSL = false;
+    
+    // --------- SK Parameters -------------
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
             metaVar = "<base sk url>", usage = "SK base url (scheme://host/v3)")
     public String baseUrl = DFT_BASE_SK_URL;
     
+    // --------- General Parameters --------
     @Option(name = "-passwordlen", required = false,  
             usage = "number of random bytes in generated passwords")
     public int passwordLength = DFT_PASSWORD_BYTES;
@@ -92,14 +100,16 @@ public class SkAdminParameters
             usage = "'text' (default), 'json' or 'yaml'")
     public String output = OUTPUT_TEXT;
     
-    // --------- Parameters that control this programs execution
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")
     public boolean help;
     
-    // --------- Derived parameters.
+    // --------- Derived Parameters --------
     // The JWT content read from the jwtEnv environment variable.
     public String jwt;
+    
+    // The kubernetes access token content read from the kubeTokenEnv environment variable.
+    public String kubeToken;
         
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -202,6 +212,35 @@ public class SkAdminParameters
             String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
             _log.error(msg);
             throw new TapisException(msg);
+        }
+        
+        // Make sure we have a kubernetes token if we need it.
+        if (deployMerge || deployReplace) 
+        {
+            // Make sure all kube parameters are present.
+            if (StringUtils.isBlank(kubeNS)) {
+                String msg = "A Kubernetes namespace is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            if (StringUtils.isBlank(kubeUrl)) {
+                String msg = "A Kubernetes server URL is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            if (StringUtils.isBlank(kubeTokenEnv)) {
+                String msg = "A Kubernetes token environment variable is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            
+            // Get the kube token.
+            kubeToken = System.getenv(kubeTokenEnv);
+            if (StringUtils.isBlank(kubeToken)) {
+                String msg = "A Kubernetes token is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
         }
         
         // Set the output correctly.

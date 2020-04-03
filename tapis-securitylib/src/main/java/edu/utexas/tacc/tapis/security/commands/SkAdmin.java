@@ -10,17 +10,20 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminDBCredentialProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminKubeDeployer;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminUserProcessor;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -63,6 +66,13 @@ public class SkAdmin
     
     // The secrets input.
     private SkAdminSecrets _secrets;
+    
+    // The kubernetes secrets map used only for deployment.  The key is the
+    // kubernetes secret name, the value a map of key names to unencoded secrets.
+    private final HashMap<String,HashMap<String,String>> _kubeSecretMap = new HashMap<>();
+    
+    // The deployment recorder inner class writes to the _kubeSecretMap;
+    private DeployRecorder _deployRecorder;
     
     // Reusable random number generator.
     private SecureRandom _rand;
@@ -474,11 +484,21 @@ public class SkAdmin
         // Are kubernetes changes being requested?
         if (!_parms.deployMerge && !_parms.deployReplace) return;
         
-        // Deploy each type of secret separately.
-        _dbCredentialProcessor.deploy();
-        _jwtSigningProcessor.deploy();
-        _servicePwdProcessor.deploy();
-        _userProcessor.deploy();
+        // Create the deployment recorder object.
+        _deployRecorder = new DeployRecorder();
+        
+        // Deploy each type of secret types separately.
+        // Deployment here means that the processors
+        // use the recorder to insert kube secret info
+        // into the _kubeSecretMap.
+        _dbCredentialProcessor.deploy(_deployRecorder);
+        _jwtSigningProcessor.deploy(_deployRecorder);
+        _servicePwdProcessor.deploy(_deployRecorder);
+        _userProcessor.deploy(_deployRecorder);
+        
+        // Deploy to kubernetes.
+        SkAdminKubeDeployer deployer = new SkAdminKubeDeployer(_kubeSecretMap, _parms);
+        deployer.deploy();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -487,9 +507,9 @@ public class SkAdmin
     private void printResults()
     {   
         // Json or plain text output to standard out.
-        if (_parms.output.equals(_parms.OUTPUT_JSON))
+        if (_parms.output.equals(SkAdminParameters.OUTPUT_JSON))
             System.out.println(_results.toJson());
-        else if (_parms.output.equals(_parms.OUTPUT_YAML))
+        else if (_parms.output.equals(SkAdminParameters.OUTPUT_YAML))
             System.out.println(_results.toYaml());
         else System.out.println(_results.toText());
     }
@@ -631,5 +651,26 @@ public class SkAdmin
         var encoder = Base64.getEncoder();
         String pem = encoder.encodeToString(key.getEncoded());
         return PRV_KEY_PROLOGUE + pem + PRV_KEY_EPILOGUE;
+    }
+
+    /* ********************************************************************** */
+    /*                         Deployment Recorder Class                      */
+    /* ********************************************************************** */
+    private final class DeployRecorder implements ISkAdminDeployRecorder
+    {
+        @Override
+        public void addDeployRecord(String kubeSecretName, String kubeKey, String base64Secret) 
+        {
+            // Create the secret entry if it doesn't already exist.
+            var map = _kubeSecretMap.get(kubeSecretName);
+            if (map == null) {
+                map = new HashMap<String,String>();
+                _kubeSecretMap.put(kubeSecretName, map);
+                
+            }
+            
+            // Add the key/value pair to the secret.
+            map.put(kubeKey, base64Secret);
+        }
     }
 }

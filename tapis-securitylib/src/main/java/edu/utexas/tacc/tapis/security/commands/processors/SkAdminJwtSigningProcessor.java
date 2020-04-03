@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -13,10 +14,11 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminJwtSigning;
-import edu.utexas.tacc.tapis.security.commands.model.SkAdminServicePwd;
-import edu.utexas.tacc.tapis.security.commands.processors.SkAdminAbstractProcessor.Op;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 public final class SkAdminJwtSigningProcessor
  extends SkAdminAbstractProcessor<SkAdminJwtSigning>
@@ -26,6 +28,11 @@ public final class SkAdminJwtSigningProcessor
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SkAdminJwtSigningProcessor.class);
+    
+    // Hardcoded public signing key information.  There should be a better way 
+    // to do this that doesn't overcomplicate the json input.
+    private static final String PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME = "tapis-tenants-publickeys";
+    private static final String PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX  = "-publickey";
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -50,14 +57,7 @@ public final class SkAdminJwtSigningProcessor
     {
         // See if the secret already exists.
         SkSecret skSecret = null;
-        try {
-            // First check if the secret already exists.
-            var parms = new SKSecretReadParms(SecretType.JWTSigning);
-            parms.setTenant(secret.tenant);
-            parms.setUser(secret.user);
-            parms.setSecretName(secret.secretName);
-            skSecret = _skClient.readSecret(parms);
-        } 
+        try {skSecret = readSecret(secret);} 
         catch (TapisClientException e) {
             // Not found is ok.
             if (e.getCode() != 404) {
@@ -139,11 +139,64 @@ public final class SkAdminJwtSigningProcessor
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
     @Override
-    protected void deploy(SkAdminJwtSigning secret)
+    protected void deploy(SkAdminJwtSigning secret, ISkAdminDeployRecorder recorder)
     {
+        // See if the secret already exists.
+        SkSecret skSecret = null;
+        try {skSecret = readSecret(secret);} 
+        catch (Exception e) {
+            // Save the error condition for this secret.
+            _results.recordFailure(Op.deploy, SecretType.User, 
+                                   makeFailureMessage(Op.deploy, secret, e.getMessage()));
+            return;
+        }
         
+        // This shouldn't happen.
+        if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+            _results.recordFailure(Op.deploy, SecretType.User, 
+                                   makeFailureMessage(Op.deploy, secret, msg));
+            return;
+        }
+        
+        // Validate the specified secret key's value.
+        String value = skSecret.getSecretMap().get(DEFAULT_PRIVATE_KEY_NAME);
+        if (StringUtils.isBlank(value)) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+            _results.recordFailure(Op.deploy, SecretType.User, 
+                                   makeFailureMessage(Op.deploy, secret, msg));
+            return;
+        }
+        
+        // Base64 encode the private key value.
+        String base64Value = Base64.getEncoder().encodeToString(value.getBytes());
+        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, base64Value);
+        
+        // Automatic public key publishing if the key is present.
+        value = skSecret.getSecretMap().get(DEFAULT_PUBLIC_KEY_NAME);
+        if (StringUtils.isBlank(value)) return;
+        
+        // Base64 encode the public key value.
+        base64Value = Base64.getEncoder().encodeToString(value.getBytes());
+        recorder.addDeployRecord(PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME, 
+                                 secret.tenant + PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX,
+                                 base64Value);
     }    
 
+    /* ---------------------------------------------------------------------- */
+    /* readSecret:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private SkSecret readSecret(SkAdminJwtSigning secret) 
+      throws TapisException
+    {
+     // Try to read a secret.  HTTP 404 is returned if not found.
+        var parms = new SKSecretReadParms(SecretType.JWTSigning);
+        parms.setTenant(secret.tenant);
+        parms.setUser(secret.user);
+        parms.setSecretName(secret.secretName);
+        return _skClient.readSecret(parms);
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* makeFailureMessage:                                                    */
     /* ---------------------------------------------------------------------- */
