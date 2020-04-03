@@ -47,6 +47,7 @@ public class ResourceBucket {
   /*************************************************
    *    Root endpoints
    *************************************************/
+  //----------------  List DBs in server ----------------
   @GET
   @Path("/")
   public javax.ws.rs.core.Response listDBs() {
@@ -62,9 +63,12 @@ public class ResourceBucket {
     
   }
   
+  
   /*************************************************
    *    Database (DB) endpoints
    *************************************************/
+  
+  //----------------  List Collections in DB ----------------
   @GET
   @Path("/{db}")
   public javax.ws.rs.core.Response listCollections(@PathParam("db") String db) {
@@ -89,9 +93,38 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
   }
  
+
+  
   /*************************************************
    *    Collection endpoints
    *************************************************/
+  
+  //----------------  Create a Collection ----------------
+  @PUT
+  @Path("/{db}/{collection}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response createCollection(@PathParam("db") String db, @PathParam("collection") String collection) {
+  
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "createCollection", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("create collection "+collection+" in " + db);
+    }
+    
+    // Proxy the PUTT request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyPutRequest("{}");
+  
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  }
   
   //----------------  List documents in Collection ----------------
   @GET
@@ -156,11 +189,58 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
   }
   
-  //----------------  Create a Collection ----------------
+
+
+  /*************************************************
+   *    Index endpoints
+   *************************************************/
+
+  //----------------  List Indexes ----------------
+  @GET
+  @Path("/{db}/{collection}/_indexes")
+  public javax.ws.rs.core.Response listIndexes(@PathParam("db") String db,
+                                               @PathParam("collection") String collection) {
+  
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "listIndexes", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("List indexes in " + db +"/"+collection);
+    }
+  
+    StringBuffer pathUrl = new StringBuffer(_request.getRequestURI());
+    pathUrl.append("?"+_request.getQueryString());
+  
+    // Proxy the GET request and handle any exceptions
+    // we will always return a response for a request that means something
+    CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
+    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+  
+    // ---------------------------- Response -------------------------------
+    // right now we are just returning whatever the backend core server sends back
+    // this may need a more specific translation for more informative messages
+    // especially in case of an error or an exception.
+    // todo revisit
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  }
+  
+  //----------------  Create an Index ----------------
   @PUT
-  @Path("/{db}/{collection}")
+  @Path("/{db}/{collection}/_indexes/{indexName}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public javax.ws.rs.core.Response createCollection(InputStream payload) {
+  public javax.ws.rs.core.Response createIndex(@PathParam("db") String db,
+                                               @PathParam("collection") String collection,
+                                               @PathParam("indexName") String indexName,
+                                               InputStream payload) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "createIndex", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Create index "+indexName+" in " + db +"/"+collection);
+    }
+  
     // Get the json payload to proxy to back end
     StringBuilder builder = new StringBuilder();
     
@@ -186,76 +266,11 @@ public class ResourceBucket {
     // this may need a more specific translation for more informative messages
     // especially in case of an error or an exception.
     // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
-  }
   
-  
-  /*************************************************
-   *    Index endpoints
-   *************************************************/
-  //----------------  List Indexes ----------------
-  @GET
-  @Path("/{db}/{collection}/_indexes")
-  public javax.ws.rs.core.Response listIndexes(InputStream payload) {
-    // Get the json payload to proxy to back end
-    StringBuilder builder = new StringBuilder();
-    
-    try {
-      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
-      String line = null;
-      while ((line = in.readLine()) != null) {
-        builder.append(line);
-      }
-    } catch (Exception e) {
-      _log.debug("Error Parsing: - ");
-    }
-    
-    _log.debug("Data Received: " + builder.toString());
-    
-    // Proxy the POST request and handle any exceptions
-    // we will always return a response for a request that means something
-    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
-    
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
+    // Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString());
+    // put all the core response headers in our response
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
-  }
-  
-  //----------------  Create an Index ----------------
-  @PUT
-  @Path("/{db}/{collection}/_indexes/{indexName}")
-  @Consumes(MediaType.APPLICATION_JSON)
-  public javax.ws.rs.core.Response createIndex(InputStream payload) {
-    // Get the json payload to proxy to back end
-    StringBuilder builder = new StringBuilder();
-    
-    try {
-      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
-      String line = null;
-      while ((line = in.readLine()) != null) {
-        builder.append(line);
-      }
-    } catch (Exception e) {
-      _log.debug("Error Parsing: - ");
-    }
-    
-    _log.debug("Data Received: " + builder.toString());
-    
-    // Proxy the POST request and handle any exceptions
-    // we will always return a response for a request that means something
-    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
-    
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+    // return null;
   }
   
 
