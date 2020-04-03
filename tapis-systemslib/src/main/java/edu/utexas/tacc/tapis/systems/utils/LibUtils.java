@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.utils;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import org.slf4j.Logger;
@@ -48,6 +49,26 @@ public class LibUtils
   public static String getMsg(String key, Object... parms)
   {
     return getMsg(key, null, parms);
+  }
+
+  /**
+   * Get a localized message using the specified key and parameters. Locale is null.
+   * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
+   * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+   * @param key
+   * @param parms
+   * @return
+   */
+  public static String getMsgAuth(String key, AuthenticatedUser authUser, Object... parms)
+  {
+    // Construct new array of parms. This appears to be most straightforward approach to modify and pass on varargs.
+    var newParms = new Object[4 + parms.length];
+    newParms[0] = authUser.getTenantId();
+    newParms[1] = authUser.getName();
+    newParms[2] = authUser.getOboTenantId();
+    newParms[3] = authUser.getOboUser();
+    System.arraycopy(parms, 0, newParms, 4, parms.length);
+    return getMsg(key, newParms);
   }
 
   /**

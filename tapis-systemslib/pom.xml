@@ -14,10 +14,6 @@
   <name>Tapis Systems Library</name>
   <description>Backend library for Tapis Systems Service</description>
 
-  <properties>
-    <guice.version>4.2.2</guice.version>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -52,11 +48,6 @@
     <dependency>
       <groupId>io.swagger.core.v3</groupId>
       <artifactId>swagger-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>${guice.version}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>

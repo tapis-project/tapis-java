@@ -25,7 +25,7 @@ public class SkAdminParameters
     private static final Logger _log = LoggerFactory.getLogger(SkAdminParameters.class);
     
     // Database defaults.
-    private static final String DFT_BASE_URL = "http:/localhost:8080/v3";
+    private static final String DFT_BASE_SK_URL = "http:/localhost:8080/v3";
     
     // Secret generation defaults.
     private static final int DFT_PASSWORD_BYTES = 32;
@@ -34,23 +34,43 @@ public class SkAdminParameters
     // Output choices.
     public static final String OUTPUT_TEXT = "text";
     public static final String OUTPUT_JSON = "json";
-    public static final String OUTPUT_YAML = "ymal";
+    public static final String OUTPUT_YAML = "yaml";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
-    // --------- Parameters passed directly to the tenants code
+    // --------- Parameters passed directly to the SkAdmin code
     @Option(name = "-c", required = false, aliases = {"-create"}, 
-            usage = "create secrets that don't already exist")
+            usage = "create secrets that don't already exist",
+            forbids={"-u"})
     public boolean create;
     
     @Option(name = "-u", required = false, aliases = {"-update"}, 
-            usage = "create new secrets and update existing ones")
+            usage = "create new secrets and update existing ones",
+            forbids={"-c"})
     public boolean update;
     
-    @Option(name = "-d", required = false, aliases = {"-deploy"}, 
-            usage = "deploy secrets to kubernetes")
-    public boolean deploy;
+    @Option(name = "-dm", required = false, aliases = {"-deployMerge"}, 
+            usage = "deploy secrets to kubernetes, merge with existing",
+            forbids={"-dr"}, depends={"-kt","-ku","-kn"})
+    public boolean deployMerge;
+    
+    @Option(name = "-dr", required = false, aliases = {"-deployReplace"}, 
+            usage = "deploy secrets to kubernetes, replace any existing",
+            forbids={"-dm"}, depends={"-kt","-ku","-kn"})
+    public boolean deployReplace;
+    
+    @Option(name = "-kt", required = false, aliases = {"-kubeToken"}, 
+            usage = "access token for kubernetes API server")
+    public boolean kubeToken;
+    
+    @Option(name = "-ku", required = false, aliases = {"-kubeUrl"}, 
+            usage = "kubernetes API server URL")
+    public boolean kubeUrl;
+    
+    @Option(name = "-kn", required = false, aliases = {"-kubeNS"}, 
+            usage = "kubernetes namespace to be accessed")
+    public boolean kubeNS;
     
     @Option(name = "-f", required = true, aliases = {"-file"}, 
             metaVar = "<file path>", usage = "the json input file")
@@ -61,8 +81,8 @@ public class SkAdminParameters
     public String jwtEnv;
     
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
-            metaVar = "<base sk url>", usage = "SK base url (scheme://host)")
-    public String baseUrl = DFT_BASE_URL;
+            metaVar = "<base sk url>", usage = "SK base url (scheme://host/v3)")
+    public String baseUrl = DFT_BASE_SK_URL;
     
     @Option(name = "-passwordlen", required = false,  
             usage = "number of random bytes in generated passwords")
@@ -162,15 +182,12 @@ public class SkAdminParameters
      throws TapisException
     {
         // We need to perform some action.
-        if (!(create || update || deploy)) {
+        if (!(create || update || deployMerge || deployReplace)) {
             String msg = "At least one of the following action parameters must be "
-                         + "specified: -create, -update, -deploy.";
+                         + "specified: -create, -update, -deployMerge, -deployReplace.";
             _log.error(msg);
             throw new TapisException(msg);
         }
-        
-        // Update trumps create.
-        if (create && update) create = false;
         
         // Make sure password length exceeds minimum.
         if (passwordLength < MIN_PASSWORD_BYTES) {

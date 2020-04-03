@@ -49,6 +49,10 @@ final class SqlStatements
   public static final String SELECT_SYSTEM_OWNER =
     "SELECT owner FROM systems WHERE tenant = ? AND name = ?";
 
+  // Get system effectiveuserid
+  public static final String SELECT_SYSTEM_EFFECTIVEUSERID =
+          "SELECT effective_user_id FROM systems WHERE tenant = ? AND name = ?";
+
   // -------------------------
   // ------ Capabilities -----
   // -------------------------

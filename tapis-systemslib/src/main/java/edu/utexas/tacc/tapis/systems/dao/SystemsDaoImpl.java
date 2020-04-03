@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
-import com.google.inject.Singleton;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
@@ -29,7 +29,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 /*
  * Class to handle persistence for Tapis System objects.
  */
-@Singleton
 public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 {
   /* ********************************************************************** */
@@ -49,17 +48,22 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createTSystem(TSystem system, String scrubbedJson)
+  public int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException {
     // Generated sequence id
     int systemId = -1;
     // ------------------------- Check Input -------------------------
-    if (StringUtils.isBlank(system.getTenant())) {
+    if (authenticatedUser == null) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "authenticatedUser");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (system == null || StringUtils.isBlank(system.getTenant())) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenantName");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (system == null || StringUtils.isBlank(system.getName())) {
+    if (StringUtils.isBlank(system.getName())) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "systemName");
       _log.error(msg);
       throw new TapisException(msg);
@@ -101,7 +105,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Should get one row back. If not assume system does not exist
       boolean doesExist = false;
       if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
-      if (doesExist) throw new IllegalStateException(LibUtils.getMsg("SYSLIB_SYS_EXISTS", system.getName()));
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
       String owner = TSystem.DEFAULT_OWNER;
@@ -492,6 +496,51 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       LibUtils.finalCloseDB(conn);
     }
     return owner;
+  }
+
+  /**
+   * getSystemEffectiveUserId
+   * @param tenant - name of tenant
+   * @param name - name of system
+   * @return EffectiveUserId or null if no system found
+   * @throws TapisException - on error
+   */
+  @Override
+  public String getTSystemEffectiveUserId(String tenant, String name) throws TapisException
+  {
+    String effectiveUserId = null;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.SELECT_SYSTEM_EFFECTIVEUSERID;
+
+      // Prepare the statement, fill in placeholders and execute
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+      ResultSet rs = pstmt.executeQuery();
+      if (rs.next()) effectiveUserId = rs.getString(1);
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+    return effectiveUserId;
   }
 
   /* ********************************************************************** */

@@ -168,7 +168,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream)
+  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream,
+                               @Context SecurityContext securityContext)
   {
     String opName = "createSystem";
     String msg;
@@ -188,7 +189,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
@@ -223,7 +224,7 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     // Fill in defaults and check constraints on TSystem attributes
-    resp = validateTSystem(system, prettyPrint);
+    resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
 
     // Mask any secret info that might be contained in rawJson
@@ -243,21 +244,21 @@ public class SystemResource
       if (e.getMessage().contains("SYSLIB_SYS_EXISTS"))
       {
         // IllegalStateException with msg containing SYS_EXISTS indicates object exists - return 409 - Conflict
-        msg = ApiUtils.getMsg("SYSAPI_SYS_EXISTS", authenticatedUser.getName(), systemName);
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_EXISTS", authenticatedUser, systemName);
         _log.warn(msg);
         return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
       else if (e.getMessage().contains("SYSLIB_UNAUTH"))
       {
         // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
-        msg = ApiUtils.getMsg("SYSAPI_SYS_UNAUTH", authenticatedUser.getName(), opName, systemName);
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_UNAUTH", authenticatedUser, systemName, opName);
         _log.warn(msg);
         return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
       else
       {
         // IllegalStateException indicates an Invalid TSystem was passed in
-        msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
+        msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
         _log.error(msg);
         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
       }
@@ -265,13 +266,13 @@ public class SystemResource
     catch (IllegalArgumentException e)
     {
       // IllegalArgumentException indicates somehow a bad argument made it this far
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
       _log.error(msg);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
     catch (Exception e)
     {
-      msg = ApiUtils.getMsg("SYSAPI_CREATE_ERROR", authenticatedUser.getName(), systemName, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -282,7 +283,7 @@ public class SystemResource
     respUrl.url = _request.getRequestURL().toString() + "/" + systemName;
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-      ApiUtils.getMsg("SYSAPI_CREATED", authenticatedUser.getName(), systemName), prettyPrint, resp1)).build();
+      ApiUtils.getMsgAuth("SYSAPI_CREATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
   }
 
   /**
@@ -321,7 +322,8 @@ public class SystemResource
   public Response getSystemByName(@PathParam("sysName") String sysName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                  @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -339,14 +341,14 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // Check that accessMethodStr is valid if is passed in
     AccessMethod accessMethod = null;
     try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
     catch (IllegalArgumentException e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_ACCMETHOD_ENUM_ERROR", accessMethodStr, sysName, e.getMessage());
+      String msg = ApiUtils.getMsgAuth("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser, sysName, accessMethodStr, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -358,7 +360,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_GET_NAME_ERROR", authenticatedUser.getName(), sysName, e.getMessage());
+      String msg = ApiUtils.getMsgAuth("SYSAPI_GET_NAME_ERROR", authenticatedUser, sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -366,7 +368,7 @@ public class SystemResource
     // Resource was not found.
     if (system == null)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_NOT_FOUND", authenticatedUser.getName(), sysName);
+      String msg = ApiUtils.getMsgAuth("SYSAPI_NOT_FOUND", authenticatedUser, sysName);
       _log.warn(msg);
       return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -402,7 +404,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                 @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -420,14 +423,14 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Retrieve all records -----------------------------
     List<String> systemNames;
     try { systemNames = systemsService.getSystemNames(authenticatedUser); }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_SELECT_ERROR", e.getMessage());
+      String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -468,7 +471,8 @@ public class SystemResource
     }
   )
   public Response deleteSystemByName(@PathParam("sysName") String sysName,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint)
+                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                     @Context SecurityContext securityContext)
   {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
 
@@ -486,7 +490,7 @@ public class SystemResource
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
-    AuthenticatedUser authenticatedUser = (AuthenticatedUser) _request.getUserPrincipal();
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     int changeCount;
     try
@@ -495,7 +499,7 @@ public class SystemResource
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsg("SYSAPI_DELETE_NAME_ERROR", sysName, e.getMessage());
+      String msg = ApiUtils.getMsgAuth("SYSAPI_DELETE_NAME_ERROR", authenticatedUser, sysName, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -523,7 +527,7 @@ public class SystemResource
    *
    * @return null if OK or error Response
    */
-  private static Response validateTSystem(TSystem system, boolean prettyPrint)
+  private static Response validateTSystem(TSystem system, AuthenticatedUser authenticatedUser, boolean prettyPrint)
   {
     // Make sure owner, effectiveUserId, transferMethods, notes and tags are all set
     TSystem system1 = TSystem.checkAndSetDefaults(system);
@@ -535,22 +539,22 @@ public class SystemResource
     var errMessages = new ArrayList<String>();
     if (StringUtils.isBlank(system1.getName()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, NAME_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
       errMessages.add(msg);
     }
     if (system1.getSystemType() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, SYSTEM_TYPE_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
     else if (StringUtils.isBlank(system1.getHost()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, HOST_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", name, DEFAULT_ACCESS_METHOD_FIELD);
+      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
@@ -580,7 +584,7 @@ public class SystemResource
     if (!errMessages.isEmpty())
     {
       // Construct message reporting all errors
-      String allErrors = getListOfErrors("SYSAPI_CREATE_INVALID_ERRORLIST", errMessages, name);
+      String allErrors = getListOfErrors(errMessages, authenticatedUser, name);
       _log.error(allErrors);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
@@ -630,9 +634,9 @@ public class SystemResource
   /**
    * Construct message containing list of errors
    */
-  private static String getListOfErrors(String firstLineKey, List<String> msgList, Object... parms) {
-    if (StringUtils.isBlank(firstLineKey) || msgList == null || msgList.isEmpty()) return "";
-    var sb = new StringBuilder(ApiUtils.getMsg(firstLineKey, parms));
+  private static String getListOfErrors(List<String> msgList, AuthenticatedUser authenticatedUser, Object... parms) {
+    if (msgList == null || msgList.isEmpty()) return "";
+    var sb = new StringBuilder(ApiUtils.getMsgAuth("SYSAPI_CREATE_INVALID_ERRORLIST", authenticatedUser, parms));
     sb.append(System.lineSeparator());
     for (String msg : msgList) { sb.append("  ").append(msg).append(System.lineSeparator()); }
     return sb.toString();

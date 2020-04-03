@@ -132,9 +132,9 @@ Updating OpenAPI spec published to live-docs
 5. Check display to see if all looks correct.
 6. Copy swagger editor generated yaml to clipboard.
 NOTE: Here is one way that works fairly well for 7 and 8:
-    cp tapis-client-java/systems-client/SystemAPI.yaml ~/SystemAPI.yaml
+    cp tapis-client-java/systems-client/SystemsAPI.yaml ~/SystemsAPI.yaml
     Then update tapis-client-java/systems-client/SystemsAPI.yaml
-    now use: meld ~/SystemsAPI.yaml tapis-client-java/systems-client/SystemAPI.yaml
+    now use: meld ~/SystemsAPI.yaml tapis-client-java/systems-client/SystemsAPI.yaml
       to update paths. Note that sometimes info in the components section gets moved
       around but that should be OK.
 7. Paste clipboard to tapis-client-java/systems-client/SystemsAPI.yaml.
