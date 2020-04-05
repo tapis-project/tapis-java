@@ -61,9 +61,9 @@ public class SkAdminParameters
     public boolean deployReplace;
     
     // --------- Required Parameters -------
-    @Option(name = "-f", required = true, aliases = {"-file"}, 
-            metaVar = "<file path>", usage = "the json input file")
-    public String jsonFile;
+    @Option(name = "-i", required = true, aliases = {"-input"}, 
+            metaVar = "<file path>", usage = "the json input file or folder")
+    public String jsonInput;
     
     @Option(name = "-j", required = true, aliases = {"-jwtenv"}, 
             usage = "JWT environment variable name")

@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.commands;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -9,8 +10,10 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -133,7 +136,7 @@ public class SkAdmin
     {
         //var keyPair = generateKeyPair();
         
-        // Load the input file into a pojo.
+        // Load the input file or files into a pojo.
         _secrets = loadSecrets();
         
         // Validate the secrets and continue if there
@@ -187,7 +190,7 @@ public class SkAdmin
     {
         // Make sure the secrets object was created.
         if (_secrets == null) {
-            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonFile);
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
             _log.error(msg);
             return false;
         }
@@ -519,8 +522,61 @@ public class SkAdmin
     /* ---------------------------------------------------------------------- */
     private SkAdminSecrets loadSecrets() throws TapisException
     {
+        // Get the file or directory containing the json input.
+        File file = new File(_parms.jsonInput);
+        if (file.isFile()) return loadSecretFile(file);
+        
+        // We're dealing with a directory.  We only process the immediate
+        // contents of the directory and ignore subdirectories and files 
+        // that don't end with the .json suffix.
+        File[] files = file.listFiles(new FileFilter() {
+            public boolean accept(File pathname) {
+                if (pathname.getName().endsWith(".json")) return true;
+                  else return false;
+            }});
+        if (files == null) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Put files in alphabetic order, ignore directories.
+        var map = new TreeMap<String,File>();
+        for (File f : files) 
+            if (f.isFile()) map.put(f.getAbsolutePath(), f);
+        
+        // Make sure we have at least one file.
+        if (map.isEmpty()) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Create the final result object that accumulate each file's result.
+        SkAdminSecrets result = new SkAdminSecrets();
+        result.dbcredential = new ArrayList<>();
+        result.jwtsigning   = new ArrayList<>();
+        result.servicepwd   = new ArrayList<>();
+        result.user         = new ArrayList<>();
+        
+        // Read in each file and accumulate its results.
+        for (File f : map.values()) {
+            var r = loadSecretFile(f);
+            if (r.dbcredential != null) result.dbcredential.addAll(r.dbcredential);
+            if (r.jwtsigning != null)   result.jwtsigning.addAll(r.jwtsigning);
+            if (r.servicepwd != null)   result.servicepwd.addAll(r.servicepwd);
+            if (r.user != null)         result.user.addAll(r.user);
+        }
+        
+        return result;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* loadSecretFile:                                                        */
+    /* ---------------------------------------------------------------------- */
+    private SkAdminSecrets loadSecretFile(File file) throws TapisException
+    {
         // Open the input file.
-        File file = new File(_parms.jsonFile);
         Reader reader;
         try {reader = new FileReader(file, Charset.forName("UTF-8"));}
             catch (Exception e) {
