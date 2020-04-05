@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
-import edu.utexas.tacc.tapis.security.commands.model.SkAdminServicePwd;
-import edu.utexas.tacc.tapis.security.commands.processors.SkAdminAbstractProcessor.Op;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
@@ -113,9 +111,13 @@ public final class SkAdminKubeDeployer
     /* ---------------------------------------------------------------------- */
     /* mergeExistingSecrets:                                                  */
     /* ---------------------------------------------------------------------- */
+    /** Merge each secret's existing key/value pairs into the secret's new map
+     * for all keys that don't exist in the new map.  This allows the new map's
+     * explicitly assigned values to take precedence over the existing values.  
+     */
     private void mergeExistingSecrets()
     {
-        // List of failed merges that must not be processed beyond this function.
+        // List of failed merges that must not be processed beyond this method.
         var failedList = new ArrayList<String>();
         
         // Try to merge the values from each existing secret.
@@ -135,14 +137,16 @@ public final class SkAdminKubeDeployer
                 // the secret for removal from the deployment map.
                 String msg = MsgUtils.getMsg("SK_ADMIN_KUBE_READ_SECRET", entry.getKey(),
                                              _parms.kubeNS, "(http "+ e.getCode() + ") " + e.getMessage());
-                makeFailureMessage(entry.getKey(), entry.getValue().size(), msg);
+                _results.recordDeployFailure(entry.getValue().size(),
+                    makeFailureMessage(entry.getKey(), entry.getValue().size(), msg));
                 failedList.add(entry.getKey());
                 continue;
             }
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ADMIN_KUBE_READ_SECRET", entry.getKey(),
                                              _parms.kubeNS, e.getMessage());
-                makeFailureMessage(entry.getKey(), entry.getValue().size(), msg);
+                _results.recordDeployFailure(entry.getValue().size(),
+                    makeFailureMessage(entry.getKey(), entry.getValue().size(), msg));
                 failedList.add(entry.getKey());
                 continue;
             }
@@ -152,10 +156,10 @@ public final class SkAdminKubeDeployer
             Map<String,byte[]> existingMap = secret.getData();
             if (existingMap == null || existingMap.isEmpty()) continue;
             
-            // Preserve all key/value pairs that are not in the new map by
-            // adding them to the new map.  The existingMap's values are 
-            // byte arrays encoded in base64, but we have to put them into
-            // newMap as a string. 
+            // Preserve all key/value pairs that are not in the existing map 
+            // by adding them to the new map.  The existingMap's values are 
+            // byte arrays encoded in base64, but we put them into newMap as 
+            // strings with the encoding unchanged. 
             Map<String,String> newMap = entry.getValue();
             for (var existingEntry : existingMap.entrySet()) {
                 if (newMap.containsKey(existingEntry.getKey())) continue;
@@ -170,6 +174,10 @@ public final class SkAdminKubeDeployer
     /* ---------------------------------------------------------------------- */
     /* removeExistingSecrets:                                                 */
     /* ---------------------------------------------------------------------- */
+    /** Remove all secrets present in the new map from Kubernetes.  When a merge
+     * deployment is specified, all of a secret's existing key/value pairs that 
+     * need to be preserved have already been inserted in the secret's new map.
+     */
     private void removeExistingSecrets()
     {
         // Create the delete options.  Setting the kind field breaks things.
@@ -181,7 +189,7 @@ public final class SkAdminKubeDeployer
         
         // Remove each secret that currently exists if possible.
         // This is a best effort deal, we ignore all failures 
-        // including secret not found.
+        // especially secret not found.
         for (var entry : _kubeSecretMap.entrySet()) 
         {
             V1Status v1Status = null;
@@ -196,6 +204,10 @@ public final class SkAdminKubeDeployer
     /* ---------------------------------------------------------------------- */
     /* writeSecrets:                                                          */
     /* ---------------------------------------------------------------------- */
+    /** Write each secret to kubernetes.  All writes should succeed without 
+     * conflict since all of the ssecrets in the new map have been deleted from
+     * kubernetes.
+     */
     private void writeSecrets()
     {
         for (var entry : _kubeSecretMap.entrySet()) 
@@ -205,8 +217,8 @@ public final class SkAdminKubeDeployer
             meta.setName(entry.getKey());
             meta.setNamespace(_parms.kubeNS);
             
-            // The map values are required to already be base64
-            // encoded, but we now need them to be byte arrays.
+            // The map values are required to already be base64 encoded, 
+            // but we now need them to be presented in byte arrays.
             var entryMap = entry.getValue();
             HashMap<String,byte[]> dataMap = new HashMap<>(1 + entryMap.size() * 2);
             for (var kvEntry : entryMap.entrySet()) 
@@ -228,13 +240,15 @@ public final class SkAdminKubeDeployer
             catch (ApiException e) {
                 String msg = MsgUtils.getMsg("SK_ADMIN_KUBE_WRITE_SECRET", entry.getKey(),
                               _parms.kubeNS, "(http "+ e.getCode() + ") " + e.getMessage());
-                makeFailureMessage(entry.getKey(), entry.getValue().size(), msg);
+                _results.recordDeployFailure(entry.getValue().size(),
+                    makeFailureMessage(entry.getKey(), entry.getValue().size(), msg));
                 continue;
             }
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ADMIN_KUBE_WRITE_SECRET", entry.getKey(),
                                              _parms.kubeNS, e.getMessage());
-                makeFailureMessage(entry.getKey(), entry.getValue().size(), msg);
+                _results.recordDeployFailure(entry.getValue().size(),
+                    makeFailureMessage(entry.getKey(), entry.getValue().size(), msg));
                 continue;
             }
             
