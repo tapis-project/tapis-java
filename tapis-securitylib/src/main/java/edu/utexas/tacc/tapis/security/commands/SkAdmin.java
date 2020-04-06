@@ -146,23 +146,23 @@ public class SkAdmin
             return;
         }
         
-        // Create secret processors. Runtime exceptions 
-        // can be thrown from here.
-        createProcessors();
-        
-        // Note: At most only one of create or update can be set.
-        //
-        // Create the secrets.
-        createSecrets();
-        
-        // Update the secrets.
-        updateSecrets();
-        
-        // Deploy the secrets to kubernetes.
-        deploySecrets();
-        
-        // Disconnect processors.
-        disconnectProcessors();
+//        // Create secret processors. Runtime exceptions 
+//        // can be thrown from here.
+//        createProcessors();
+//        
+//        // Note: At most only one of create or update can be set.
+//        //
+//        // Create the secrets.
+//        createSecrets();
+//        
+//        // Update the secrets.
+//        updateSecrets();
+//        
+//        // Deploy the secrets to kubernetes.
+//        deploySecrets();
+//        
+//        // Disconnect processors.
+//        disconnectProcessors();
         
         // Print results.
         printResults();
@@ -439,7 +439,7 @@ public class SkAdmin
     }
     
     /* ---------------------------------------------------------------------- */
-    /* createProcessors:                                                      */
+    /* disconnectProcessors:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Disconnect the shared SKClient.    
      */
@@ -447,6 +447,9 @@ public class SkAdmin
     {
         // Pick any of the processors.
         _dbCredentialProcessor.close();
+        _jwtSigningProcessor.close();
+        _servicePwdProcessor.close();
+        _userProcessor.close();
     }
     
     /* ---------------------------------------------------------------------- */

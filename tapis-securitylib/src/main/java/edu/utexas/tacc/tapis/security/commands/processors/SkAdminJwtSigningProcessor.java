@@ -31,7 +31,6 @@ public final class SkAdminJwtSigningProcessor
     
     // Hardcoded public signing key information.  There should be a better way 
     // to do this that doesn't overcomplicate the json input.
-    private static final String PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME = "tapis-tenants-publickeys";
     private static final String PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX  = "-publickey";
     
     /* ********************************************************************** */
@@ -178,7 +177,7 @@ public final class SkAdminJwtSigningProcessor
         
         // Base64 encode the public key value.
         base64Value = Base64.getEncoder().encodeToString(value.getBytes());
-        recorder.addDeployRecord(PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME, 
+        recorder.addDeployRecord(_parms.kubeJWTSigningPublicKeySecret, 
                                  secret.tenant + PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX,
                                  base64Value);
     }    

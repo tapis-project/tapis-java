@@ -212,7 +212,7 @@ public final class SkAdminResults
         buf.append("\n");
         buf.append("Secrets failed:                ");
         buf.append(secretsFailed);
-        buf.append("\n");
+        buf.append("\n\n");
         buf.append("Secrets deployments:           ");
         buf.append(secretsDeployments);
         buf.append("\n");
@@ -224,7 +224,7 @@ public final class SkAdminResults
         buf.append("\n");
         buf.append("Secrets deploymentKeysFailed:  ");
         buf.append(secretsDeploymentKeysFailed);
-        buf.append("\n");
+        buf.append("\n\n");
         buf.append("Keypairs generated:            ");
         buf.append(keyPairsGenerated);
         buf.append("\n");
