@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminAbstractSecret;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -28,7 +29,7 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     // Default secret key names.  These are the names of the keys inside the
     // secret map used when writing secrets.  Applications will expect these
     // names upon retrieval.
-    public static final String DEFAULT_KEY_NAME = "password";
+    public static final String DEFAULT_KEY_NAME         = "password";
     public static final String DEFAULT_PRIVATE_KEY_NAME = "privateKey";
     public static final String DEFAULT_PUBLIC_KEY_NAME  = "publicKey";
     
@@ -64,7 +65,7 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
      * @param parms
      * @throws TapisRuntimeException
      */
-    public SkAdminAbstractProcessor(List<T> secrets, SkAdminParameters parms)
+    protected SkAdminAbstractProcessor(List<T> secrets, SkAdminParameters parms)
     {
         // Assign inputs.
         _secrets = secrets;
@@ -100,11 +101,11 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     /* ---------------------------------------------------------------------- */
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
-    public void deploy()
+    public void deploy(ISkAdminDeployRecorder recorder)
     {
         // Is there work?
         if (_secrets == null || _secrets.isEmpty()) return;
-        for (var secret : _secrets) if (!secret.failed) deploy(secret);
+        for (var secret : _secrets) if (!secret.failed) deploy(secret, recorder);
     }    
     
     /* ---------------------------------------------------------------------- */
@@ -131,7 +132,7 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     /* ---------------------------------------------------------------------- */
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
-    protected abstract void deploy(T secret);
+    protected abstract void deploy(T secret, ISkAdminDeployRecorder recorder);
     
     /* ********************************************************************** */
     /*                           Private Methods                              */

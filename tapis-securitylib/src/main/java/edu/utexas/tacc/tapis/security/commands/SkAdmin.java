@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.commands;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -9,18 +10,23 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.TreeMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminDBCredentialProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminKubeDeployer;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminUserProcessor;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -48,7 +54,7 @@ public class SkAdmin
     
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
-    private static final int    DFT_KEY_SIZE      = 4096; // 2048 is the other option
+    private static final int    DFT_KEY_SIZE      = 2048; // 4096 is the other option
     
     // PEM text for public and private keys.
     private static final String PUB_KEY_PROLOGUE = "-----BEGIN PUBLIC KEY-----\n";
@@ -63,6 +69,13 @@ public class SkAdmin
     
     // The secrets input.
     private SkAdminSecrets _secrets;
+    
+    // The kubernetes secrets map used only for deployment.  The key is the
+    // kubernetes secret name, the value a map of key names to unencoded secrets.
+    private final HashMap<String,HashMap<String,String>> _kubeSecretMap = new HashMap<>();
+    
+    // The deployment recorder inner class writes to the _kubeSecretMap;
+    private DeployRecorder _deployRecorder;
     
     // Reusable random number generator.
     private SecureRandom _rand;
@@ -123,7 +136,7 @@ public class SkAdmin
     {
         //var keyPair = generateKeyPair();
         
-        // Load the input file into a pojo.
+        // Load the input file or files into a pojo.
         _secrets = loadSecrets();
         
         // Validate the secrets and continue if there
@@ -133,23 +146,23 @@ public class SkAdmin
             return;
         }
         
-        // Create secret processors. Runtime exceptions 
-        // can be thrown from here.
-        createProcessors();
-        
-        // Note: At most only one of create or update can be set.
-        //
-        // Create the secrets.
-        createSecrets();
-        
-        // Update the secrets.
-        updateSecrets();
-        
-        // Deploy the secrets to kubernetes.
-        deploySecrets();
-        
-        // Disconnect processors.
-        disconnectProcessors();
+//        // Create secret processors. Runtime exceptions 
+//        // can be thrown from here.
+//        createProcessors();
+//        
+//        // Note: At most only one of create or update can be set.
+//        //
+//        // Create the secrets.
+//        createSecrets();
+//        
+//        // Update the secrets.
+//        updateSecrets();
+//        
+//        // Deploy the secrets to kubernetes.
+//        deploySecrets();
+//        
+//        // Disconnect processors.
+//        disconnectProcessors();
         
         // Print results.
         printResults();
@@ -177,7 +190,7 @@ public class SkAdmin
     {
         // Make sure the secrets object was created.
         if (_secrets == null) {
-            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonFile);
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
             _log.error(msg);
             return false;
         }
@@ -222,10 +235,18 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
                                                  "kubeSecretName", secret.dbservice,
+                                                 secret.dbhost, secret.dbname,
+                                                 secret.user, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.dbservice,
                                                  secret.dbhost, secret.dbname,
                                                  secret.user, secret.secretName);
                     _log.error(msg);
@@ -279,10 +300,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
@@ -322,10 +350,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.service, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.service, secret.secretName);
                     _log.error(msg);
                     return false;
@@ -362,10 +397,17 @@ public class SkAdmin
             }
         
             // Kube changes.
-            if (_parms.deploy) {
+            if (_parms.deployMerge || _parms.deployReplace) {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
+                                                 secret.user, secret.key, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                if (StringUtils.isBlank(secret.kubeSecretKey)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
+                                                 "kubeSecretKey", secret.tenant, 
                                                  secret.user, secret.key, secret.secretName);
                     _log.error(msg);
                     return false;
@@ -397,7 +439,7 @@ public class SkAdmin
     }
     
     /* ---------------------------------------------------------------------- */
-    /* createProcessors:                                                      */
+    /* disconnectProcessors:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Disconnect the shared SKClient.    
      */
@@ -405,6 +447,9 @@ public class SkAdmin
     {
         // Pick any of the processors.
         _dbCredentialProcessor.close();
+        _jwtSigningProcessor.close();
+        _servicePwdProcessor.close();
+        _userProcessor.close();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -443,13 +488,23 @@ public class SkAdmin
     private void deploySecrets()
     {
         // Are kubernetes changes being requested?
-        if (!_parms.deploy) return;
+        if (!_parms.deployMerge && !_parms.deployReplace) return;
         
-        // Deploy each type of secret separately.
-        _dbCredentialProcessor.deploy();
-        _jwtSigningProcessor.deploy();
-        _servicePwdProcessor.deploy();
-        _userProcessor.deploy();
+        // Create the deployment recorder object.
+        _deployRecorder = new DeployRecorder();
+        
+        // Deploy each type of secret types separately.
+        // Deployment here means that the processors
+        // use the recorder to insert kube secret info
+        // into the _kubeSecretMap.
+        _dbCredentialProcessor.deploy(_deployRecorder);
+        _jwtSigningProcessor.deploy(_deployRecorder);
+        _servicePwdProcessor.deploy(_deployRecorder);
+        _userProcessor.deploy(_deployRecorder);
+        
+        // Deploy to kubernetes.
+        SkAdminKubeDeployer deployer = new SkAdminKubeDeployer(_kubeSecretMap, _parms);
+        deployer.deploy();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -458,9 +513,9 @@ public class SkAdmin
     private void printResults()
     {   
         // Json or plain text output to standard out.
-        if (_parms.output.equals(_parms.OUTPUT_JSON))
+        if (_parms.output.equals(SkAdminParameters.OUTPUT_JSON))
             System.out.println(_results.toJson());
-        else if (_parms.output.equals(_parms.OUTPUT_YAML))
+        else if (_parms.output.equals(SkAdminParameters.OUTPUT_YAML))
             System.out.println(_results.toYaml());
         else System.out.println(_results.toText());
     }
@@ -470,8 +525,61 @@ public class SkAdmin
     /* ---------------------------------------------------------------------- */
     private SkAdminSecrets loadSecrets() throws TapisException
     {
+        // Get the file or directory containing the json input.
+        File file = new File(_parms.jsonInput);
+        if (file.isFile()) return loadSecretFile(file);
+        
+        // We're dealing with a directory.  We only process the immediate
+        // contents of the directory and ignore subdirectories and files 
+        // that don't end with the .json suffix.
+        File[] files = file.listFiles(new FileFilter() {
+            public boolean accept(File pathname) {
+                if (pathname.getName().endsWith(".json")) return true;
+                  else return false;
+            }});
+        if (files == null) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Put files in alphabetic order, ignore directories.
+        var map = new TreeMap<String,File>();
+        for (File f : files) 
+            if (f.isFile()) map.put(f.getAbsolutePath(), f);
+        
+        // Make sure we have at least one file.
+        if (map.isEmpty()) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRETS", _parms.jsonInput);
+            _log.error(msg);
+            throw new TapisException(msg);
+        }
+        
+        // Create the final result object that accumulate each file's result.
+        SkAdminSecrets result = new SkAdminSecrets();
+        result.dbcredential = new ArrayList<>();
+        result.jwtsigning   = new ArrayList<>();
+        result.servicepwd   = new ArrayList<>();
+        result.user         = new ArrayList<>();
+        
+        // Read in each file and accumulate its results.
+        for (File f : map.values()) {
+            var r = loadSecretFile(f);
+            if (r.dbcredential != null) result.dbcredential.addAll(r.dbcredential);
+            if (r.jwtsigning != null)   result.jwtsigning.addAll(r.jwtsigning);
+            if (r.servicepwd != null)   result.servicepwd.addAll(r.servicepwd);
+            if (r.user != null)         result.user.addAll(r.user);
+        }
+        
+        return result;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* loadSecretFile:                                                        */
+    /* ---------------------------------------------------------------------- */
+    private SkAdminSecrets loadSecretFile(File file) throws TapisException
+    {
         // Open the input file.
-        File file = new File(_parms.jsonFile);
         Reader reader;
         try {reader = new FileReader(file, Charset.forName("UTF-8"));}
             catch (Exception e) {
@@ -602,5 +710,26 @@ public class SkAdmin
         var encoder = Base64.getEncoder();
         String pem = encoder.encodeToString(key.getEncoded());
         return PRV_KEY_PROLOGUE + pem + PRV_KEY_EPILOGUE;
+    }
+
+    /* ********************************************************************** */
+    /*                         Deployment Recorder Class                      */
+    /* ********************************************************************** */
+    private final class DeployRecorder implements ISkAdminDeployRecorder
+    {
+        @Override
+        public void addDeployRecord(String kubeSecretName, String kubeKey, String base64Secret) 
+        {
+            // Create the secret entry if it doesn't already exist.
+            var map = _kubeSecretMap.get(kubeSecretName);
+            if (map == null) {
+                map = new HashMap<String,String>();
+                _kubeSecretMap.put(kubeSecretName, map);
+                
+            }
+            
+            // Add the key/value pair to the secret.
+            map.put(kubeKey, base64Secret);
+        }
     }
 }

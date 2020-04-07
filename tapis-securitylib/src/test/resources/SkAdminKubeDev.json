@@ -1,0 +1,32 @@
+{
+    "secrets": {
+        "dbcredential":[
+            {
+                "tenant":     "dev",
+                "user":       "bozo",
+                "dbservice":  "mongo",
+                "dbhost":     "mongohost",
+                "dbname":     "mongodb1",
+                "secretName": "dbpassword",
+                "secret":     "1234567890123456"
+            }
+        ],
+        "jwtsigning":[
+            {
+                "tenant":     "dev",
+                "user":       "bozo",
+                "secretName": "banana",
+                "privateKey": "1234567890123456"
+            }
+        ],
+                "servicepwd":[
+            {
+                "tenant":     "dev",
+                "service":    "fakeService",
+                "secretName": "banana",
+                "password":   "1234567890123456"
+            }
+        ]
+        
+    }
+}

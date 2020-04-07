@@ -25,7 +25,13 @@ public class SkAdminParameters
     private static final Logger _log = LoggerFactory.getLogger(SkAdminParameters.class);
     
     // Database defaults.
-    private static final String DFT_BASE_URL = "http:/localhost:8080/v3";
+    private static final String DFT_BASE_SK_URL = "http:/localhost:8080/v3";
+    
+    // Default name of kubernetes secret that will contain the public key portion of
+    // JWT signing keys.  The kubernetes secret contains one public key for each
+    // tenant.  By convention, each tenant's entry's name is <tenant>-publickey and 
+    // its value is the public key in PEM format.
+    private static final String PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME = "tapis-tenants-publickeys";
     
     // Secret generation defaults.
     private static final int DFT_PASSWORD_BYTES = 32;
@@ -34,36 +40,68 @@ public class SkAdminParameters
     // Output choices.
     public static final String OUTPUT_TEXT = "text";
     public static final String OUTPUT_JSON = "json";
-    public static final String OUTPUT_YAML = "ymal";
+    public static final String OUTPUT_YAML = "yaml";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
-    // --------- Parameters passed directly to the tenants code
+    // --------- Action Parameters ---------
     @Option(name = "-c", required = false, aliases = {"-create"}, 
-            usage = "create secrets that don't already exist")
+            usage = "create secrets that don't already exist",
+            forbids={"-u"})
     public boolean create;
     
     @Option(name = "-u", required = false, aliases = {"-update"}, 
-            usage = "create new secrets and update existing ones")
+            usage = "create new secrets and update existing ones",
+            forbids={"-c"})
     public boolean update;
     
-    @Option(name = "-d", required = false, aliases = {"-deploy"}, 
-            usage = "deploy secrets to kubernetes")
-    public boolean deploy;
+    @Option(name = "-dm", required = false, aliases = {"-deployMerge"}, 
+            usage = "deploy secrets to kubernetes, merge with existing",
+            forbids={"-dr"}, depends={"-kt","-ku","-kn"})
+    public boolean deployMerge;
     
-    @Option(name = "-f", required = true, aliases = {"-file"}, 
-            metaVar = "<file path>", usage = "the json input file")
-    public String jsonFile;
+    @Option(name = "-dr", required = false, aliases = {"-deployReplace"}, 
+            usage = "deploy secrets to kubernetes, replace any existing",
+            forbids={"-dm"}, depends={"-kt","-ku","-kn"})
+    public boolean deployReplace;
+    
+    // --------- Required Parameters -------
+    @Option(name = "-i", required = true, aliases = {"-input"}, 
+            metaVar = "<file path>", usage = "the json input file or folder")
+    public String jsonInput;
     
     @Option(name = "-j", required = true, aliases = {"-jwtenv"}, 
             usage = "JWT environment variable name")
     public String jwtEnv;
     
-    @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
-            metaVar = "<base sk url>", usage = "SK base url (scheme://host)")
-    public String baseUrl = DFT_BASE_URL;
+    // --------- Kube Parameters -----------
+    @Option(name = "-kt", required = false, aliases = {"-kubeToken"}, 
+            usage = "kubernetes access token environment variable name")
+    public String kubeTokenEnv;
     
+    @Option(name = "-ku", required = false, aliases = {"-kubeUrl"}, 
+            usage = "kubernetes API server URL")
+    public String kubeUrl;
+    
+    @Option(name = "-kn", required = false, aliases = {"-kubeNS"}, 
+            usage = "kubernetes namespace to be accessed")
+    public String kubeNS;
+    
+    @Option(name = "-kssl", required = false, 
+            usage = "validate SSL connection to kubernetes")
+    public boolean kubeValidateSSL = false;
+    
+    @Option(name = "-kjwtpublickey", required = false, 
+            usage = "kubernetes secret that holds JWT public signing keys")
+    public String kubeJWTSigningPublicKeySecret = PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME;
+    
+    // --------- SK Parameters -------------
+    @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
+            metaVar = "<base sk url>", usage = "SK base url (scheme://host/v3)")
+    public String baseUrl = DFT_BASE_SK_URL;
+    
+    // --------- General Parameters --------
     @Option(name = "-passwordlen", required = false,  
             usage = "number of random bytes in generated passwords")
     public int passwordLength = DFT_PASSWORD_BYTES;
@@ -72,14 +110,16 @@ public class SkAdminParameters
             usage = "'text' (default), 'json' or 'yaml'")
     public String output = OUTPUT_TEXT;
     
-    // --------- Parameters that control this programs execution
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")
     public boolean help;
     
-    // --------- Derived parameters.
+    // --------- Derived Parameters --------
     // The JWT content read from the jwtEnv environment variable.
     public String jwt;
+    
+    // The kubernetes access token content read from the kubeTokenEnv environment variable.
+    public String kubeToken;
         
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -162,15 +202,12 @@ public class SkAdminParameters
      throws TapisException
     {
         // We need to perform some action.
-        if (!(create || update || deploy)) {
+        if (!(create || update || deployMerge || deployReplace)) {
             String msg = "At least one of the following action parameters must be "
-                         + "specified: -create, -update, -deploy.";
+                         + "specified: -create, -update, -deployMerge, -deployReplace.";
             _log.error(msg);
             throw new TapisException(msg);
         }
-        
-        // Update trumps create.
-        if (create && update) create = false;
         
         // Make sure password length exceeds minimum.
         if (passwordLength < MIN_PASSWORD_BYTES) {
@@ -185,6 +222,35 @@ public class SkAdminParameters
             String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
             _log.error(msg);
             throw new TapisException(msg);
+        }
+        
+        // Make sure we have a kubernetes token if we need it.
+        if (deployMerge || deployReplace) 
+        {
+            // Make sure all kube parameters are present.
+            if (StringUtils.isBlank(kubeNS)) {
+                String msg = "A Kubernetes namespace is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            if (StringUtils.isBlank(kubeUrl)) {
+                String msg = "A Kubernetes server URL is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            if (StringUtils.isBlank(kubeTokenEnv)) {
+                String msg = "A Kubernetes token environment variable is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
+            
+            // Get the kube token.
+            kubeToken = System.getenv(kubeTokenEnv);
+            if (StringUtils.isBlank(kubeToken)) {
+                String msg = "A Kubernetes token is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
         }
         
         // Set the output correctly.
