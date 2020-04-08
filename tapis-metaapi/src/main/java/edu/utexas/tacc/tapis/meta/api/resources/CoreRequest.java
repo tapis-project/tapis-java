@@ -3,11 +3,11 @@ package edu.utexas.tacc.tapis.meta.api.resources;
 import edu.utexas.tacc.tapis.meta.config.OkSingleton;
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 
 
@@ -125,12 +125,16 @@ public class CoreRequest {
   }
   
   // proxy DELETE request
-  public CoreResponse  proxyDeleteRequest(){
+  public CoreResponse  proxyDeleteRequest(HttpHeaders _httpHeaders){
     // path url here has stripped out /v3/meta to make the correct path request
     //  to core server
+    String headerValue = _httpHeaders.getHeaderString("If-Match");
+    headerValue = (headerValue == null) ? "" : headerValue;
+    
     MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     okhttp3.Request coreRequest = new Request.Builder()
         .url(pathURL)
+        .addHeader("If-Match",headerValue)
         .delete()
         .build();
   

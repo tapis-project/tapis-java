@@ -30,11 +30,11 @@ public class MetaSKPermissionsMapper {
    */
   public String convert(String op){
     String pems = "";
-    if(notEmpty(uriPath )&& notEmpty(tenant)){
-      String processed = uriPath.replace("/v3/meta/", "");
+    if(notNull(uriPath )&& notEmpty(tenant)){
+      // String processed = uriPath.replace("/v3/meta/", "");
       
       
-      StringTokenizer st = new StringTokenizer(processed,"/");
+      StringTokenizer st = new StringTokenizer(uriPath,"/");
       
       int resources = st.countTokens();
       switch(resources){
@@ -63,7 +63,7 @@ public class MetaSKPermissionsMapper {
           return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
         }
       }
-      System.out.println(processed);
+      System.out.println(uriPath);
     }
     return pems;
   }
@@ -75,6 +75,14 @@ public class MetaSKPermissionsMapper {
    */
   private static boolean notEmpty(String str){
     if (str != null && !str.trim().isEmpty()) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  private static boolean notNull(String str){
+    if (str != null ) {
       return true;
     } else {
       return false;

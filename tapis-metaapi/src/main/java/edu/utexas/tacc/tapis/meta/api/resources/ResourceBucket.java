@@ -26,9 +26,6 @@ import javax.ws.rs.core.UriInfo;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 
 @Path("/")
@@ -60,17 +57,17 @@ public class ResourceBucket {
   // TODO ----------------  List DBs in server ----------------
   @GET
   @Path("/")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response listDBs() {
-    // todo implement
+
     // Trace this request.
     if (_log.isTraceEnabled()) {
       String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
           "listDBs", _request.getRequestURL());
       _log.trace(msg);
     }
-    String result = "TODO";
+    String result = "{ TODO }";
     return javax.ws.rs.core.Response.status(javax.ws.rs.core.Response.Status.OK).entity(result).header("Content-Type","application/json").build();
-    
   }
   
   
@@ -197,14 +194,13 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Delete a collection  ----------------
+  //----------------  Delete a collection  ----------------
   @DELETE
   @Path("/{db}/{collection}")
   @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response deleteCollection(@PathParam("db") String db,
                                                     @PathParam("collection") String collection) {
-  
-    // TODO
+    
     // Trace this request.
     if (_log.isTraceEnabled()) {
       String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
@@ -212,14 +208,13 @@ public class ResourceBucket {
       _log.trace(msg);
       _log.trace("Delete collection "+collection+" in " + db );
     }
-  
     // Get the json payload to proxy to back end
-    StringBuilder builder = new StringBuilder();
     
+    StringBuilder builder = new StringBuilder();
     
     // Proxy the POST request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -299,6 +294,33 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
+  
+  
+  
+  // ----------------  Delete an Index ----------------
+  @DELETE
+  @Path("/{db}/{collection}/_indexes/{indexName}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response deleteIndex(@PathParam("db") String db,
+                                               @PathParam("collection") String collection,
+                                               @PathParam("indexName") String indexName) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "deleteIndex", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Delete index "+indexName+" in " + db +"/"+collection);
+    }
+    
+    // Proxy the DELETE request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
+    
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
+  }
 
   /*************************************************
    *    Document endpoints
@@ -358,7 +380,7 @@ public class ResourceBucket {
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity("{ TODO }").build();
   }
   
   // ----------------  Delete a specific Document ----------------
@@ -378,13 +400,11 @@ public class ResourceBucket {
   
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyDeleteRequest();
-  
-    Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody());
-  
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
+    Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody());
     Response response = responseBuilder.build();
     return response;
   }
