@@ -8,6 +8,7 @@
       <env name="TAPIS_ENVONLY_KEYSTORE_PASSWORD" value="password" />
       <env name="TAPIS_SVC_URL_TOKENS" value="https://dev.develop.tapis.io" />
       <env name="TAPIS_SVC_URL_TENANTS" value="https://dev.develop.tapis.io" />
+      <env name="TAPIS_SERVICE_PASSWORD" value="3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUyPSdYeNjIgZs=" />
     </envs>
     <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
     <option name="MAIN_CLASS_NAME" value="edu.utexas.tacc.tapis.systems.api.SystemsApplication" />

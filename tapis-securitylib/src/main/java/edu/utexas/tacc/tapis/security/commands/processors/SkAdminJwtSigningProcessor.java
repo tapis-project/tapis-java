@@ -145,7 +145,7 @@ public final class SkAdminJwtSigningProcessor
         try {skSecret = readSecret(secret);} 
         catch (Exception e) {
             // Save the error condition for this secret.
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
                                    makeFailureMessage(Op.deploy, secret, e.getMessage()));
             return;
         }
@@ -153,7 +153,7 @@ public final class SkAdminJwtSigningProcessor
         // This shouldn't happen.
         if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
                                    makeFailureMessage(Op.deploy, secret, msg));
             return;
         }
@@ -162,7 +162,7 @@ public final class SkAdminJwtSigningProcessor
         String value = skSecret.getSecretMap().get(DEFAULT_PRIVATE_KEY_NAME);
         if (StringUtils.isBlank(value)) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
                                    makeFailureMessage(Op.deploy, secret, msg));
             return;
         }

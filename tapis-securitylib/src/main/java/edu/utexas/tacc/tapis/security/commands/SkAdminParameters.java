@@ -243,6 +243,11 @@ public class SkAdminParameters
                 _log.error(msg);
                 throw new TapisException(msg);
             }
+            if (StringUtils.isBlank(kubeJWTSigningPublicKeySecret)) {
+                String msg = "A Kubernetes public key secret name is required when deploying to Kubernetes.";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
             
             // Get the kube token.
             kubeToken = System.getenv(kubeTokenEnv);

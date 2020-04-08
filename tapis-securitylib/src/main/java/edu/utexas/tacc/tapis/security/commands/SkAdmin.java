@@ -5,6 +5,8 @@ import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
@@ -37,6 +39,66 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
+/** The utility class create or update secrets in SK and, optionally, deploy those
+ * secrets in Kubernetes. The SkAdminParameters class defines all possible parameters
+ * to this program; see that class for details.  
+ * 
+ * Actions
+ * -------
+ * Each of the four action parameters control what this program does and can be 
+ * described as follows:
+ * 
+ *  1. create - creates a secret in SK only if the secret doesn't already exist.
+ *  2. update - updates an existing secret in SK or creating it if it doesn't exist.
+ *  3. deployMerge - deploy the specified key/value pairs into secrets, preserving any 
+ *                   key/value pairs already in the secrets that don't conflict the
+ *                   specified ones.
+ *  4. deployReplace - deploy the specified key/value pairs of secrets, completely
+ *                   overwriting any previously existing key/value pairs.
+ *                   
+ * An execution of this program can affect SK secrets stored in Vault, Kubernetes
+ * secrets, or both.
+ * 
+ * JSON Input
+ * ----------
+ * All input is in the form of one or more json files that conform to the json schema
+ * defined in the SkAdminInput.json resource file.  Each secret type that can be 
+ * deployed to Kubernetes is represented.  These SK secret types are defined in the
+ * SecretType enum class and include DBCredential, JWTSigning, ServicePwd and User; 
+ * the System type is excluded because system secrets are never deployed to Kubernetes.
+ * 
+ * The -i (-input) parameter can be assigned a single json file or a directory that
+ * contains json files.  When a directory is specified, all json files that are 
+ * immediate children of the directory are loaded and merged into a single set of
+ * secrets to be processed.  Subdirectories are ignored.  This merging allows 
+ * smaller, easier to manage, input files to be used.  For example, input files
+ * can be defined to contain all the key/value pairs that will be deployed under a 
+ * single Kubernetes secret, which could include different types of SK secrets. 
+ * 
+ * Password and Key Input
+ * ----------------------
+ * On input, the values of passwords and keys fields can be specified using the 
+ * distinguished value "<generate-secret>".  SkAdmin will generate random passwords
+ * or asymmetric key pairs as required.
+ * 
+ * The value of keys fields can also be specified as "file:pathToPEMFile" where
+ * the pathToPEMFile is a path, usually an absolute path, to a PEM file containing 
+ * a public or private key.
+ * 
+ * When key values are provided inline in the input json files, the values are
+ * required to be in PEM format.
+ * 
+ * Result Reporting
+ * ----------------
+ * An accounting of what action were performed is printed to standard out when the
+ * program completes.  Summary information include counts of secret processing.
+ * Detailed information includes an outcome message for each secret action that
+ * includes success, failure and skipped outcomes.
+ * 
+ * The default result format is text, but json and yaml can also be specified.
+ * 
+ * @author rcardone
+ */
 public class SkAdmin 
 {
     /* ********************************************************************** */
@@ -51,6 +113,7 @@ public class SkAdmin
     
     // The distinguished string that causes secrets to be generated.    
     public static final String GENERATE_SECRET = "<generate-secret>";
+    public static final String READ_FILE       = "file:";
     
     // Key generation parameters.
     private static final String DFT_KEY_ALGORITHM = "RSA";
@@ -146,23 +209,23 @@ public class SkAdmin
             return;
         }
         
-//        // Create secret processors. Runtime exceptions 
-//        // can be thrown from here.
-//        createProcessors();
-//        
-//        // Note: At most only one of create or update can be set.
-//        //
-//        // Create the secrets.
-//        createSecrets();
-//        
-//        // Update the secrets.
-//        updateSecrets();
-//        
-//        // Deploy the secrets to kubernetes.
-//        deploySecrets();
-//        
-//        // Disconnect processors.
-//        disconnectProcessors();
+        // Create secret processors. Runtime exceptions 
+        // can be thrown from here.
+        createProcessors();
+        
+        // Note: At most only one of create or update can be set.
+        //
+        // Create the secrets.
+        createSecrets();
+        
+        // Update the secrets.
+        updateSecrets();
+        
+        // Deploy the secrets to kubernetes.
+        deploySecrets();
+        
+        // Disconnect processors.
+        disconnectProcessors();
         
         // Print results.
         printResults();
@@ -273,6 +336,7 @@ public class SkAdmin
             // Vault changes.
             if (_parms.create || _parms.update) {
             
+                // At a minimum, the private key must be specified.
                 if (StringUtils.isBlank(secret.privateKey)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "privateKey", secret.tenant, 
@@ -281,7 +345,7 @@ public class SkAdmin
                     return false;
                 }
                 
-                // Do we need to generate a password?
+                // Do we need to generate a key pair?
                 if (GENERATE_SECRET.equals(secret.privateKey)) {
                     // Create new keys.
                     KeyPair keyPair = null;
@@ -296,6 +360,53 @@ public class SkAdmin
                     // Save the private key in PEM format in the user designated place.
                     secret.privateKey = generatePrivatePemKey(keyPair.getPrivate());
                     secret.publicKey = generatePublicPemKey(keyPair.getPublic());
+                } 
+                else {
+                    // Read the private key from a PEM file.
+                    if (secret.privateKey.startsWith(READ_FILE)) {
+                        // Get the path.
+                        String path = null;
+                        if (secret.privateKey.length() > READ_FILE.length())
+                            path = secret.privateKey.substring(READ_FILE.length());
+                        if (StringUtils.isBlank(path)) {
+                            String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_MISSING", 
+                                                         "private", secret.tenant, secret.secretName);
+                            _log.error(msg);
+                            return false;
+                        }
+                        
+                        // Read the file into the private key.
+                        try {secret.privateKey = Files.readString(Paths.get(path));}
+                            catch (Exception e) {
+                                String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_ERROR", 
+                                              path, secret.tenant, secret.secretName, e.getMessage());
+                                _log.error(msg, e);
+                                return false;
+                            }
+                    }
+                    
+                    // Read the public key PEM file if one is provided.
+                    if (secret.publicKey != null && secret.publicKey.startsWith(READ_FILE)) {
+                        // Get the path.
+                        String path = null;
+                        if (secret.publicKey.length() > READ_FILE.length())
+                            path = secret.publicKey.substring(READ_FILE.length());
+                        if (StringUtils.isBlank(path)) {
+                            String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_MISSING", 
+                                                         "public", secret.tenant, secret.secretName);
+                            _log.error(msg);
+                            return false;
+                        }
+                        
+                        // Read the file into the private key.
+                        try {secret.publicKey = Files.readString(Paths.get(path));}
+                            catch (Exception e) {
+                                String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_ERROR", 
+                                              path, secret.tenant, secret.secretName, e.getMessage());
+                                _log.error(msg, e);
+                                return false;
+                            }
+                    }
                 }
             }
         
@@ -445,11 +556,9 @@ public class SkAdmin
      */
     private void disconnectProcessors()
     {
-        // Pick any of the processors.
+        // Pick any of the processors,
+        // only one needs to be called.
         _dbCredentialProcessor.close();
-        _jwtSigningProcessor.close();
-        _servicePwdProcessor.close();
-        _userProcessor.close();
     }
     
     /* ---------------------------------------------------------------------- */

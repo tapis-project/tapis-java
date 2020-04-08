@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.service;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretVersionMetadata;
 import edu.utexas.tacc.tapis.security.client.model.KeyType;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretDeleteParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
@@ -186,8 +187,9 @@ public class SystemsServiceImpl implements SystemsService
         String accessUser = effectiveUserId;
         // If effectiveUser is owner resolve to static string.
         if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-        // TODO/TBD Use private internal method instead of public API to skip auth and other checks?
-        createUserCredential(authenticatedUser, systemName, accessUser, system.getAccessCredential());
+        // Use private internal method instead of public API to skip auth and other checks not needed here.
+        // Create credential
+        createCredential(skClient, system.getAccessCredential(), tenantName, apiUserId, systemName, systemTenantName, accessUser);
       }
     }
     catch (Exception e0)
@@ -213,8 +215,8 @@ public class SystemsServiceImpl implements SystemsService
         if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
           String accessUser = effectiveUserId;
           if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-          // TODO/TBD Use private internal method instead of public API to skip auth and other checks?
-          deleteUserCredential(authenticatedUser, systemName, accessUser);
+          // Use private internal method instead of public API to skip auth and other checks not needed here.
+          deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
         }
       } catch (Exception e) {};
       throw e0;
@@ -241,6 +243,7 @@ public class SystemsServiceImpl implements SystemsService
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
     String systemTenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
@@ -250,23 +253,37 @@ public class SystemsServiceImpl implements SystemsService
       // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
 
+    String owner = dao.getTSystemOwner(systemTenantName, systemName);
+    String effectiveUserId = dao.getTSystemEffectiveUserId(systemTenantName, systemName);
+    // Resolve effectiveUserId if necessary
+    effectiveUserId = resolveEffectiveUserId(effectiveUserId, owner, apiUserId);
+
     var skClient = getSKClient(authenticatedUser);
     // TODO: Remove all credentials associated with the system.
     // TODO: Have SK do this in one operation?
-//    deleteUserCredential(tenantName, systemName, );
-    // Construct basic SK secret parameters
-//    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysOwner(accessUser);
-//    skClient.destroySecretMeta(sParms);
+    // Remove credentials in Security Kernel if cred provided and effectiveUser is static
+    if (!effectiveUserId.equals(APIUSERID_VAR)) {
+      String accessUser = effectiveUserId;
+      // Use private internal method instead of public API to skip auth and other checks not needed here.
+      try {
+        deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
+      }
+      // If tapis client exception then log error and convert to TapisException
+      catch (TapisClientException tce)
+      {
+        _log.error(tce.toString());
+        throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
+      }
+    }
 
     // TODO/TBD: How to make sure all perms for a system are removed?
     // TODO: See if it makes sense to have a SK method to do this in one operation
     // Use Security Kernel client to find all users with perms associated with the system.
-    // Get the Security Kernel client
     String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
     var userNames = skClient.getUsersWithPermission(tenantName, permSpec);
     // Revoke all perms for all users
     for (String userName : userNames) {
-      revokeUserPermissions(authenticatedUser, systemName, userName, ALL_PERMS);
+      revokePermissions(skClient, systemTenantName, systemName, userName, ALL_PERMS);
     }
 
     // Delete the system
@@ -288,8 +305,7 @@ public class SystemsServiceImpl implements SystemsService
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
-    boolean result = dao.checkForTSystemByName(systemTenantName, systemName);
-    return result;
+    return dao.checkForTSystemByName(systemTenantName, systemName);
   }
 
   /**
@@ -374,11 +390,19 @@ public class SystemsServiceImpl implements SystemsService
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    // ------------------------- Check service level authorization -------------------------
-    // TODO: Filter based on user authorization
-//    checkAuth(authenticatedUser, op, null, null, null, null);
-
-    return dao.getTSystemNames(authenticatedUser.getTenantId());
+    // Get all system names
+    List<String> systemNames = dao.getTSystemNames(authenticatedUser.getTenantId());
+    var allowedNames = new ArrayList<String>();
+    // Filter based on user authorization
+    for (String name: systemNames)
+    {
+      try {
+        checkAuth(authenticatedUser, op, name, null, null, null);
+        allowedNames.add(name);
+      }
+      catch (NotAuthorizedException e) { }
+    }
+    return allowedNames;
   }
 
   /**
@@ -461,8 +485,12 @@ public class SystemsServiceImpl implements SystemsService
         skClient.grantUserPermission(systemTenantName, userName, permSpec);
       }
     }
-    // TODO exception handling
-    catch (Exception e) { _log.error(e.toString()); throw e;}
+    // If tapis client exception then log error and convert to TapisException
+    catch (TapisClientException tce)
+    {
+      _log.error(tce.toString());
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
+    }
   }
 
   /**
@@ -499,23 +527,18 @@ public class SystemsServiceImpl implements SystemsService
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
 
-    // Create a set of individual permSpec entries based on the list passed in
-    Set<String> permSpecSet = getPermSpecSet(systemTenantName, systemName, permissions);
-
-    // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
-
-    // Remove perms from default user role
-    try
-    {
-      for (String permSpec : permSpecSet)
-      {
-        skClient.revokeUserPermission(systemTenantName, userName, permSpec);
-      }
+    int changeCount;
+    try {
+      changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions );
     }
-    // TODO exception handling
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-    return permSpecSet.size();
+    // If tapis client exception then log error and convert to TapisException
+    catch (TapisClientException tce)
+    {
+      _log.error(tce.toString());
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
+    }
+    return changeCount;
   }
 
   /**
@@ -546,11 +569,8 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
 
-    var userPerms = new HashSet<Permission>();
-    // Extract various names for convenience
-    String tenantName = authenticatedUser.getTenantId();
-
     // Use Security Kernel client to check for each permission in the enum list
+    var userPerms = new HashSet<Permission>();
     var skClient = getSKClient(authenticatedUser);
     for (Permission perm : Permission.values())
     {
@@ -560,8 +580,12 @@ public class SystemsServiceImpl implements SystemsService
         Boolean isAuthorized = skClient.isPermitted(systemTenantName, userName, permSpec);
         if (Boolean.TRUE.equals(isAuthorized)) userPerms.add(perm);
       }
-      // TODO exception handling
-      catch (Exception e) { _log.error(e.toString()); throw e;}
+      // If tapis client exception then log error and convert to TapisException
+      catch (TapisClientException tce)
+      {
+        _log.error(tce.toString());
+        throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
+      }
     }
     return userPerms;
   }
@@ -605,43 +629,17 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
-    try {
-      // Construct basic SK secret parameters including tenant, system and user for credential
-      var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
-      sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
-      Map<String, String> dataMap;
-      // Check for each secret type and write values if they are present
-      // Note that multiple secrets may be present.
-      // Store password if present
-      if (!StringUtils.isBlank(credential.getPassword())) {
-        dataMap = new HashMap<>();
-        sParms.setKeyType(KeyType.password);
-        dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
-        sParms.setData(dataMap);
-        skClient.writeSecret(tenantName, apiUserId , sParms);
-      }
-      // Store PKI keys if both present
-      if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
-        dataMap = new HashMap<>();
-        sParms.setKeyType(KeyType.sshkey);
-        dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
-        dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
-        sParms.setData(dataMap);
-        skClient.writeSecret(tenantName, apiUserId, sParms);
-      }
-      // Store Access key and secret if both present
-      if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
-        dataMap = new HashMap<>();
-        sParms.setKeyType(KeyType.accesskey);
-        dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
-        dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
-        sParms.setData(dataMap);
-        skClient.writeSecret(tenantName, apiUserId, sParms);
-      }
-      // TODO what about ssh certificate? Nothing to do here?
+    // Create credential
+    try
+    {
+      createCredential(skClient, credential, tenantName, apiUserId, systemName, systemTenantName, userName);
     }
-    // TODO exception handling
-    catch (Exception e) { _log.error(e.toString()); throw e;}
+    // If tapis client exception then log error and convert to TapisException
+    catch (TapisClientException tce)
+    {
+      _log.error(tce.toString());
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
+    }
   }
 
   /**
@@ -679,51 +677,15 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
-
-    // TODO: Return 0 if credential does not exist
-    // TODO: Currently this throws an exception
-//    var sReadParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
-//    // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
-//    sReadParms.setTenant(oboTenantName).setUser(apiUserId).setKeyType(KeyType.sshkey);
-//    SkSecret skSecret = skClient.readSecret(sReadParms);
-//    if (skSecret == null) return changeCount;
-
-    // Construct basic SK secret parameters
-//    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
-    var sParms = new SKSecretDeleteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
-    sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
-    sParms.setUser(apiUserId).setVersions(Collections.emptyList());
-    try
-    {
-//    // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
-// TODO/TBD: Do we need to call setUser?
-      sParms.setKeyType(KeyType.password);
-      List<Integer> intList = skClient.destroySecret(tenantName, apiUserId, sParms);
-      // Return value is a list of destroyed versions. If any destroyed increment changeCount by 1
-      if (intList != null && !intList.isEmpty()) changeCount++;
-      sParms.setKeyType(KeyType.sshkey);
-      intList = skClient.destroySecret(tenantName, apiUserId, sParms);
-      if (intList != null && !intList.isEmpty()) changeCount++;
-      sParms.setKeyType(KeyType.accesskey);
-      intList = skClient.destroySecret(tenantName, apiUserId, sParms);
-      if (intList != null && !intList.isEmpty()) changeCount++;
-      // TODO/TBD: This currently throws a "not found" exception. How to handle it? Have SK make it a no-op? Catch exception for each call?
-//      sParms.setKeyType(KeyType.cert);
-//      skClient.destroySecret(tenantName, apiUserId, sParms);
+    try {
+      changeCount = deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, userName);
     }
-    // TODO Also clean up secret metadata
-
-    // TODO exception handling
     // If tapis client exception then log error and convert to TapisException
-    // TODO/TBD: for other exectpions log error and re-throw the exception
     catch (TapisClientException tce)
     {
       _log.error(tce.toString());
-      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_DELETE_ERROR", authenticatedUser, systemName, op.name()), tce);
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-    // TODO/TBD If anything destroyed we consider it the removal of a single credential
-    if (changeCount > 0) changeCount = 1;
     return changeCount;
   }
 
@@ -779,10 +741,6 @@ public class SystemsServiceImpl implements SystemsService
       // Construct basic SK secret parameters
       var sParms = new SKSecretReadParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
       sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
-      // todo remove next line
-//      sParms.setSysUser("alsdkfjdskfj");
-      // TODO/TBD Currently using oboTeneant but apiUser. Should these be OBO or svc values?
-// TODO/TBD: do we need to setUser?
       sParms.setUser(apiUserId);
       // Set key type based on access method
       if (accessMethod.equals(AccessMethod.PASSWORD))sParms.setKeyType(KeyType.password);
@@ -805,12 +763,11 @@ public class SystemsServiceImpl implements SystemsService
               dataMap.get(SK_KEY_ACCESS_SECRET),
               null); //dataMap.get(CERT) TODO: how to get ssh certificate
     }
-    // TODO exception handling
     // TODO/TBD: If tapis client exception then log error but continue so null is returned.
-    // TODO/TBD: for other exectpions log error and re-throw the exception
-    catch (TapisClientException tce) { _log.error(tce.toString()); }
-    catch (Exception e) { _log.error(e.toString()); throw e;}
-
+    catch (TapisClientException tce)
+    {
+      _log.warn(tce.toString());
+    }
     return credential;
   }
 
@@ -1033,9 +990,13 @@ public class SystemsServiceImpl implements SystemsService
       }
       switch(operation) {
         case create:
+        case delete:
+        case changeOwner:
+        case grantPerms:
           if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser)) return;
           break;
         case read:
+        case getPerms:
           if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
               isPermittedAny(authenticatedUser, systemName, READMODIFY_PERMS)) return;
           break;
@@ -1043,32 +1004,13 @@ public class SystemsServiceImpl implements SystemsService
           if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
               isPermitted(authenticatedUser, systemName, Permission.MODIFY)) return;
           break;
-        case delete:
-          if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser)) return;
-          break;
-        case changeOwner:
-          if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser)) return;
-          break;
-        case getPerms:
-          if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
-                  isPermittedAny(authenticatedUser, systemName, READMODIFY_PERMS)) return;
-          break;
-        case grantPerms:
-          if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser)) return;
-          break;
         case revokePerms:
           if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
               (authenticatedUser.getName().equals(targetUser) &&
                       allowUserRevokePerm(authenticatedUser, systemName, perms))) return;
           break;
         case setCred:
-          // TODO usr case
-          if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
-              (authenticatedUser.getName().equals(targetUser) &&
-                      allowUserCredOp(authenticatedUser, systemName, operation))) return;
-          break;
         case removeCred:
-          // TODO usr case
           if (owner.equals(authenticatedUser.getName()) || hasAdminRole(authenticatedUser) ||
               (authenticatedUser.getName().equals(targetUser) &&
                       allowUserCredOp(authenticatedUser, systemName, operation))) return;
@@ -1140,6 +1082,116 @@ public class SystemsServiceImpl implements SystemsService
 
     }
     return true;
+  }
+
+  /**
+   * Create or update a credential
+   * No checks are done for incoming arguments and the system must exist
+   */
+  private static void createCredential(SKClient skClient, Credential credential, String tenantName, String apiUserId,
+                                       String systemName, String systemTenantName, String userName)
+          throws TapisException
+  {
+    // Construct basic SK secret parameters including tenant, system and user for credential
+    var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+    sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
+    Map<String, String> dataMap;
+    // Check for each secret type and write values if they are present
+    // Note that multiple secrets may be present.
+    // Store password if present
+    if (!StringUtils.isBlank(credential.getPassword())) {
+      dataMap = new HashMap<>();
+      sParms.setKeyType(KeyType.password);
+      dataMap.put(SK_KEY_PASSWORD, credential.getPassword());
+      sParms.setData(dataMap);
+      skClient.writeSecret(tenantName, apiUserId, sParms);
+    }
+    // Store PKI keys if both present
+    if (!StringUtils.isBlank(credential.getPublicKey()) && !StringUtils.isBlank(credential.getPublicKey())) {
+      dataMap = new HashMap<>();
+      sParms.setKeyType(KeyType.sshkey);
+      dataMap.put(SK_KEY_PUBLIC_KEY, credential.getPublicKey());
+      dataMap.put(SK_KEY_PRIVATE_KEY, credential.getPrivateKey());
+      sParms.setData(dataMap);
+      skClient.writeSecret(tenantName, apiUserId, sParms);
+    }
+    // Store Access key and secret if both present
+    if (!StringUtils.isBlank(credential.getAccessKey()) && !StringUtils.isBlank(credential.getAccessSecret())) {
+      dataMap = new HashMap<>();
+      sParms.setKeyType(KeyType.accesskey);
+      dataMap.put(SK_KEY_ACCESS_KEY, credential.getAccessKey());
+      dataMap.put(SK_KEY_ACCESS_SECRET, credential.getAccessSecret());
+      sParms.setData(dataMap);
+      skClient.writeSecret(tenantName, apiUserId, sParms);
+    }
+    // TODO what about ssh certificate? Nothing to do here?
+  }
+
+  /**
+   * Delete a credential
+   * No checks are done for incoming arguments and the system must exist
+   */
+  private static int deleteCredential(SKClient skClient, String tenantName, String apiUserId,
+                                      String systemTenantName, String systemName, String userName)
+          throws TapisException
+  {
+    int changeCount = 0;
+    // Return 0 if credential does not exist
+    var sMetaParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+    sMetaParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName).setUser(apiUserId);
+    SkSecretVersionMetadata skMetaSecret;
+    try
+    {
+      skMetaSecret = skClient.readSecretMeta(sMetaParms);
+    }
+    catch (Exception e)
+    {
+      //TODO How to better check and return 0 if credential not there?
+      _log.error(e.getMessage());
+      skMetaSecret = null;
+    }
+    if (skMetaSecret == null) return changeCount;
+
+    // Construct basic SK secret parameters
+//    var sParms = new SKSecretMetaParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME).setSysId(systemName).setSysUser(userName);
+    var sParms = new SKSecretDeleteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
+    sParms.setTenant(systemTenantName).setSysId(systemName).setSysUser(userName);
+    sParms.setUser(apiUserId).setVersions(Collections.emptyList());
+    sParms.setKeyType(KeyType.password);
+    List<Integer> intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+    // Return value is a list of destroyed versions. If any destroyed increment changeCount by 1
+    if (intList != null && !intList.isEmpty()) changeCount++;
+    sParms.setKeyType(KeyType.sshkey);
+    intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+    if (intList != null && !intList.isEmpty()) changeCount++;
+    sParms.setKeyType(KeyType.accesskey);
+    intList = skClient.destroySecret(tenantName, apiUserId, sParms);
+    if (intList != null && !intList.isEmpty()) changeCount++;
+    // TODO/TBD: This currently throws a "not found" exception. How to handle it? Have SK make it a no-op? Catch exception for each call?
+//      sParms.setKeyType(KeyType.cert);
+//      skClient.destroySecret(tenantName, apiUserId, sParms);
+    // TODO/TBD Also clean up secret metadata
+
+    // TODO/TBD If anything destroyed we consider it the removal of a single credential
+    if (changeCount > 0) changeCount = 1;
+    return changeCount;
+  }
+
+  /**
+   * Revoke permissions
+   * No checks are done for incoming arguments and the system must exist
+   */
+  private static int revokePermissions(SKClient skClient, String systemTenantName, String systemName, String userName, Set<Permission> permissions)
+          throws TapisClientException
+  {
+    // Create a set of individual permSpec entries based on the list passed in
+    Set<String> permSpecSet = getPermSpecSet(systemTenantName, systemName, permissions);
+    // Remove perms from default user role
+    for (String permSpec : permSpecSet)
+    {
+      skClient.revokeUserPermission(systemTenantName, userName, permSpec);
+    }
+    return permSpecSet.size();
   }
 
 // TODO *************** remove debug output ********************
