@@ -66,8 +66,14 @@ public class ResourceBucket {
           "listDBs", _request.getRequestURL());
       _log.trace(msg);
     }
-    String result = "{ TODO }";
-    return javax.ws.rs.core.Response.status(javax.ws.rs.core.Response.Status.OK).entity(result).header("Content-Type","application/json").build();
+  
+    // Proxy the GET request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   

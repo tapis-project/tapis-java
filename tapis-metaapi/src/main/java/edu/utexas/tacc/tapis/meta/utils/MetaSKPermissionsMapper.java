@@ -31,10 +31,10 @@ public class MetaSKPermissionsMapper {
   public String convert(String op){
     String pems = "";
     if(notNull(uriPath )&& notEmpty(tenant)){
-      // String processed = uriPath.replace("/v3/meta/", "");
+      String processed = uriPath.replace("/v3/meta/", "");
       
       
-      StringTokenizer st = new StringTokenizer(uriPath,"/");
+      StringTokenizer st = new StringTokenizer(processed,"/");
       
       int resources = st.countTokens();
       switch(resources){
@@ -63,7 +63,6 @@ public class MetaSKPermissionsMapper {
           return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
         }
       }
-      System.out.println(uriPath);
     }
     return pems;
   }
