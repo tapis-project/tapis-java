@@ -5,7 +5,7 @@
 #      DB endpoints
 ##############################################################
 
-#   db exits and lists Collections
+#   db exists and lists Collections
 ###
 GET http://localhost:8080/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
@@ -63,32 +63,6 @@ Content-Type: application/json
 
 ###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
 
-##############################################################
-#     Index endpoints
-##############################################################
-# get a list of indexes on collection
-###
-GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes
-X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
-Content-Type: application/json
-
-###
-
-# create an index on collection
-###
-PUT http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes/latIndex3
-X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
-Content-Type: application/json
-
-{"keys": { "document.lat": 1 } }
-
-###
-
-
 
 ##############################################################
 #     document endpoints
@@ -121,13 +95,40 @@ Content-Type: application/json
 ###
 
 
-DELETE http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+DELETE http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/tstLatIndex
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
 ###  result 204  er  no Content
+
+
+##############################################################
+#     Index endpoints
+##############################################################
+# get a list of indexes on collection
+###
+GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+# create an index on collection
+###
+PUT http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes/latIndex3
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+{"keys": { "document.lat": 1 } }
+
+###
+
 
 
 # streamsTACCAdmin

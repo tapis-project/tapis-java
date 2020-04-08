@@ -1,5 +1,5 @@
 ###  sanity test to see if service is alive
-GET http://dev.develop.tapis.io/v3/meta/index.html
+GET http://c002.rodeo.tacc.utexas.edu:30401/index.html
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -7,16 +7,15 @@ Content-Type: application/json
 
 ###
 
+
 ##################################### streamsTACCAdmin user #################################################
-# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 
 ##############################################################
 #      DB endpoints
 ##############################################################
 
-#  HAPPY Path
 ###   db list collections
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -24,54 +23,56 @@ Content-Type: application/json
 
 ###
 
-#  HAPPY Path
-###   db metadata
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/_meta
+###   db metadata   403 Forbidden  nginx/1.16.1
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/_meta
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-###
+###  403 Forbidden  nginx/1.16.1
 
-#  ERROR Path
 ###   no perms and db does not exist
-GET https://dev.develop.tapis.io/v3/meta/sltst
+GET http://c002.rodeo.tacc.utexas.edu:30401/sltst
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-###  results  403 request for this uri path meta:dev:GET:sltst:: is NOT permitted.
+###  results  403
+#   empty response
 
 
-#  ERROR Path
+# streamsTACCAdmin   
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+PUT http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
 ###  results  200
+#  ETag header is returned in headers
+#  ETag: 5e4b0c95537bd1305796e5d7
 
-#  ERROR Path
+# streamsTACCAdmin
 #  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/   DB already exists
 ###
-POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+POST http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-###   results 405   "Method Not Allowed"
+###   results 405
 
-#  TODO
+
+# streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 #  requires the If-Match: 5d95ed1dab3cf85b199ed3b6 Header value
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/testdb/
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/testdb/
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -83,10 +84,9 @@ Content-Type: application/json
 #     Collection endpoints
 ##############################################################
 
-#  HAPPY Path
 #  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
 ###
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -94,10 +94,9 @@ Content-Type: application/json
 
 ###
 
-#  HAPPY Path
-#  get metadata for StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
+#   _meta StreamsTACCDB/Proj1
 ###
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_meta
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/_meta
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -105,10 +104,41 @@ Content-Type: application/json
 
 ###
 
-#  HAPPY Path
+#  _size StreamsTACCDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/_size
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#  _indexes StreamsTACCDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#  _indexes StreamsTACCDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+
 #  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1  with a query
 ###
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -120,7 +150,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+PUT http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -132,24 +162,18 @@ Content-Type: application/json
 # /v3/meta/StreamsTACCDB/TstCollection streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/TstCollection
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 ###  result msg with ETag header
-# ETag: 5e4c452b537bd1305796e5e2
-# {
-#   "http status code": 409,
-#   "http status description": "Conflict",
-#   "message": "The ETag must be provided using the 'If-Match' header"
-# }
 
 # /v3/meta/StreamsTACCDB/TstCollection streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/TstCollection
 #  with ETag
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -158,17 +182,12 @@ Content-Type: application/json
 
 ###  result msg with ETag header
 # ETag: 5e4c452b537bd1305796e5e2
-# {
-#   "http status code": 409,
-#   "http status description": "Conflict",
-#   "message": "The ETag must be provided using the 'If-Match' header"
-# }
 
 
 # /v3/meta/StreamsTACCDB/Proj1   streamsTACCAdmin
 #  post with no args and no request body to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
 ###
-POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+POST http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -179,7 +198,7 @@ Content-Type: application/json
 # /v3/meta/StreamsTACCDB/Proj1   streamsTACCAdmin
 #  post with no args and no request body to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
 ###
-POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+POST http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -196,7 +215,7 @@ Content-Type: application/json
 # /v3/meta/StreamsTACCDB/Proj1/   streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/5e4bff5ea93eebf39fbecda1
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -209,7 +228,7 @@ Content-Type: application/json
 # streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -220,7 +239,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
 ###
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -231,7 +250,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+PUT http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -242,7 +261,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+POST http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -253,7 +272,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -265,9 +284,9 @@ Content-Type: application/json
 #
 #    Anagha test delete
 #
-# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streamsTACCAdmin" https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streamsTACCAdmin" http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
 #
-DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
 X-Tapis-Token: $jwt
 X-Tapis-Tenant: dev
 X-Tapis-User: streamsTACCAdmin
