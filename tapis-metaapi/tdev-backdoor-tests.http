@@ -84,6 +84,26 @@ Content-Type: application/json
 #     Collection endpoints
 ##############################################################
 
+###   use streams master token
+PUT http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/sltCollectionTst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+###   use streams master token
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/sltCollectionTst/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+
 #  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
 ###
 GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1

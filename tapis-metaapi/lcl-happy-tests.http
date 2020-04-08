@@ -1,3 +1,23 @@
+##################################### taccMetaAdmin user #################################################
+# taccMetaAdmin   these tests are hitting the dev deployment of RH-core
+
+##############################################################
+#      Root endpoints
+##############################################################
+
+#   root lists DBs
+###  api:1
+GET http://localhost:8080/v3/meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: taccMetaAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###   api:1
+
+
+
+
 ##################################### streamsTACCAdmin user #################################################
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 
@@ -6,18 +26,28 @@
 ##############################################################
 
 #   db exists and lists Collections
-###
+###  api:3
 GET http://localhost:8080/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-###
+###   api:3
 
 ##############################################################
 #     Collection endpoints
 ##############################################################
+
+# get collection metadata
+###
+GET http://localhost:8080/v3/meta/StreamsTACCDB/4-2-coll-tst/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
 
 # create a collection in a db
 ###
@@ -26,6 +56,18 @@ X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
+
+###
+
+# delete a collection in a db
+###
+DELETE http://localhost:8080/v3/meta/StreamsTACCDB/4-2-coll-tst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+If-Match: 5e8dd2019e0e923a1874e332
+Content-Type: application/json
+
 
 ###
 
@@ -109,7 +151,7 @@ Content-Type: application/json
 ##############################################################
 # get a list of indexes on collection
 ###
-GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes
+GET http://localhost:8080/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -119,13 +161,23 @@ Content-Type: application/json
 
 # create an index on collection
 ###
-PUT http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/_indexes/latIndex3
+PUT http://localhost:8080/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-{"keys": { "document.lat": 1 } }
+{"keys": { "name": 1 } }
+
+###
+
+# delete an index on collection
+###
+DELETE http://localhost:8080/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
 
 ###
 
