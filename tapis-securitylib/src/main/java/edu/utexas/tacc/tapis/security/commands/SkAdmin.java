@@ -27,6 +27,7 @@ import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecrets;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminSecretsWrapper;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminDBCredentialProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtPublicProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminKubeDeployer;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
@@ -97,6 +98,19 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * 
  * The default result format is text, but json and yaml can also be specified.
  * 
+ * Public and Private Key Management
+ * ---------------------------------
+ * The JwtSigning input can create or update individual public or private keys, or
+ * it can create or update a key pair.  These changes are first recorded in SK
+ * and then, optionally, deployed to Kubernetes.  
+ * 
+ * In particular, when SkAdmin is directed to generate a new key pair, both the 
+ * public and private parts are saved in SK, but only the private part is deployed
+ * to Kubernetes using JwtSigning input.  To deploy the public key to Kubernetes,
+ * use separate JwtPublic input stanzas for each public key.  Results report 
+ * a combined tally for JwtSigning and JwtPublic under the JWT Signing Keys 
+ * heading.  
+ * 
  * @author rcardone
  */
 public class SkAdmin 
@@ -146,6 +160,7 @@ public class SkAdmin
     // Secret processors.
     private SkAdminDBCredentialProcessor _dbCredentialProcessor;
     private SkAdminJwtSigningProcessor   _jwtSigningProcessor;
+    private SkAdminJwtPublicProcessor    _jwtPublicProcessor;
     private SkAdminServicePwdProcessor   _servicePwdProcessor;
     private SkAdminUserProcessor         _userProcessor;
     
@@ -262,6 +277,7 @@ public class SkAdmin
         // its own messages out when errors are encountered.
         if (!validateDBCredential()) return false;
         if (!validateJwtSigning()) return false;
+        if (!validateJwtPublic()) return false;
         if (!validateServicePwd()) return false;
         if (!validateUser()) return false;
         
@@ -434,6 +450,55 @@ public class SkAdmin
     }
     
     /* ---------------------------------------------------------------------- */
+    /* validateJwtPublic:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private boolean validateJwtPublic()
+    {
+        // Maybe there's nothing to do.
+        if (_secrets.jwtpublic == null || _secrets.jwtpublic.isEmpty())
+            return true;
+        
+        // Iterate throught the secrets.
+        for (var secret : _secrets.jwtpublic) {
+            
+            // At a minimum, the private key must be specified.
+            if (StringUtils.isBlank(secret.publicKey)) {
+                String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
+                                             "publicKey", secret.tenant, 
+                                             secret.secretName);
+                _log.error(msg);
+                return false;
+            }
+            
+            // Read the public key PEM file if one is provided.
+            if (secret.publicKey.startsWith(READ_FILE)) {
+                // Get the path.
+                String path = null;
+                if (secret.publicKey.length() > READ_FILE.length())
+                    path = secret.publicKey.substring(READ_FILE.length());
+                if (StringUtils.isBlank(path)) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_MISSING", 
+                                                 "public", secret.tenant, secret.secretName);
+                    _log.error(msg);
+                    return false;
+                }
+                
+                // Read the file into the private key.
+                try {secret.publicKey = Files.readString(Paths.get(path));}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("SK_ADMIN_SIGNING_KEY_FILE_ERROR", 
+                                      path, secret.tenant, secret.secretName, e.getMessage());
+                        _log.error(msg, e);
+                        return false;
+                    }
+            }
+        }
+        
+        // We're good.
+        return true;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* validateServicePwd:                                                    */
     /* ---------------------------------------------------------------------- */
     private boolean validateServicePwd()
@@ -543,6 +608,8 @@ public class SkAdmin
             new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
         _jwtSigningProcessor = 
             new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
+        _jwtPublicProcessor = 
+                new SkAdminJwtPublicProcessor(_secrets.jwtpublic, _parms);
         _servicePwdProcessor = 
             new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
         _userProcessor = 
@@ -569,7 +636,8 @@ public class SkAdmin
         // Are secret changes being requested?
         if (!_parms.create) return;
         
-        // Create each type of secret separately.
+        // Create each type of secret separately. Note
+        // the jwt public key processor is skipped.
         _dbCredentialProcessor.create();
         _jwtSigningProcessor.create();
         _servicePwdProcessor.create();
@@ -584,7 +652,8 @@ public class SkAdmin
         // Are secret changes being requested?
         if (!_parms.update) return;
         
-        // Update each type of secret separately.
+        // Update each type of secret separately. Note
+        // the jwt public key processor is skipped.
         _dbCredentialProcessor.update();
         _jwtSigningProcessor.update();
         _servicePwdProcessor.update();
@@ -608,6 +677,7 @@ public class SkAdmin
         // into the _kubeSecretMap.
         _dbCredentialProcessor.deploy(_deployRecorder);
         _jwtSigningProcessor.deploy(_deployRecorder);
+        _jwtPublicProcessor.deploy(_deployRecorder);  // deployment only processor
         _servicePwdProcessor.deploy(_deployRecorder);
         _userProcessor.deploy(_deployRecorder);
         
@@ -668,6 +738,7 @@ public class SkAdmin
         SkAdminSecrets result = new SkAdminSecrets();
         result.dbcredential = new ArrayList<>();
         result.jwtsigning   = new ArrayList<>();
+        result.jwtpublic    = new ArrayList<>();
         result.servicepwd   = new ArrayList<>();
         result.user         = new ArrayList<>();
         
@@ -676,6 +747,7 @@ public class SkAdmin
             var r = loadSecretFile(f);
             if (r.dbcredential != null) result.dbcredential.addAll(r.dbcredential);
             if (r.jwtsigning != null)   result.jwtsigning.addAll(r.jwtsigning);
+            if (r.jwtpublic  != null)   result.jwtpublic.addAll(r.jwtpublic);
             if (r.servicepwd != null)   result.servicepwd.addAll(r.servicepwd);
             if (r.user != null)         result.user.addAll(r.user);
         }
