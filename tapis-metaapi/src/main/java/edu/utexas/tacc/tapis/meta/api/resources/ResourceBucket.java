@@ -1,24 +1,31 @@
 package edu.utexas.tacc.tapis.meta.api.resources;
 
-import edu.utexas.tacc.tapis.meta.config.OkSingleton;
-import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import org.glassfish.jersey.server.internal.routing.UriRoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.PATCH;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
 
 
 @Path("/")
@@ -47,20 +54,26 @@ public class ResourceBucket {
   /*************************************************
    *    Root endpoints
    *************************************************/
-  //----------------  List DBs in server ----------------
+  // TODO ----------------  List DBs in server ----------------
   @GET
   @Path("/")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response listDBs() {
-    // todo implement
+
     // Trace this request.
     if (_log.isTraceEnabled()) {
       String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
           "listDBs", _request.getRequestURL());
       _log.trace(msg);
     }
-    String result = "TODO";
-    return javax.ws.rs.core.Response.status(javax.ws.rs.core.Response.Status.OK).entity(result).build();
-    
+  
+    // Proxy the GET request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   
@@ -71,6 +84,7 @@ public class ResourceBucket {
   //----------------  List Collections in DB ----------------
   @GET
   @Path("/{db}")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response listCollections(@PathParam("db") String db) {
     // Trace this request.
     if (_log.isTraceEnabled()) {
@@ -81,19 +95,14 @@ public class ResourceBucket {
     }
     
     // Proxy the GET request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
-    
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
- 
-
+  
   
   /*************************************************
    *    Collection endpoints
@@ -103,6 +112,7 @@ public class ResourceBucket {
   @PUT
   @Path("/{db}/{collection}")
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response createCollection(@PathParam("db") String db, @PathParam("collection") String collection) {
   
     // Trace this request.
@@ -114,21 +124,18 @@ public class ResourceBucket {
     }
     
     // Proxy the PUTT request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyPutRequest("{}");
   
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   //----------------  List documents in Collection ----------------
   @GET
   @Path("/{db}/{collection}")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response listDocuments(@PathParam("db") String db,
                                                  @PathParam("collection") String collection,
                                                  @QueryParam("filter") String filter) {
@@ -144,23 +151,30 @@ public class ResourceBucket {
     pathUrl.append("?"+_request.getQueryString());
     
     // Proxy the GET request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
   
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   //----------------  Create a document ----------------
   @POST
   @Path("/{db}/{collection}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public javax.ws.rs.core.Response createDocument(InputStream payload) {
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response createDocument(@PathParam("db") String db,
+                                                  @PathParam("collection") String collection,
+                                                  InputStream payload) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "deleteCollection", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Delete collection "+collection+" in " + db );
+    }
+  
     // Get the json payload to proxy to back end
     StringBuilder builder = new StringBuilder();
   
@@ -180,17 +194,40 @@ public class ResourceBucket {
     // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
-    
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-
-
+  //----------------  Delete a collection  ----------------
+  @DELETE
+  @Path("/{db}/{collection}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response deleteCollection(@PathParam("db") String db,
+                                                    @PathParam("collection") String collection) {
+    
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "deleteCollection", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Delete collection "+collection+" in " + db );
+    }
+    // Get the json payload to proxy to back end
+    
+    StringBuilder builder = new StringBuilder();
+    
+    // Proxy the POST request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
+  }
+  
+  
   /*************************************************
    *    Index endpoints
    *************************************************/
@@ -198,6 +235,7 @@ public class ResourceBucket {
   //----------------  List Indexes ----------------
   @GET
   @Path("/{db}/{collection}/_indexes")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response listIndexes(@PathParam("db") String db,
                                                @PathParam("collection") String collection) {
   
@@ -213,22 +251,19 @@ public class ResourceBucket {
     pathUrl.append("?"+_request.getQueryString());
   
     // Proxy the GET request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
   
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   //----------------  Create an Index ----------------
   @PUT
   @Path("/{db}/{collection}/_indexes/{indexName}")
   @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response createIndex(@PathParam("db") String db,
                                                @PathParam("collection") String collection,
                                                @PathParam("indexName") String indexName,
@@ -257,22 +292,41 @@ public class ResourceBucket {
     _log.debug("Data Received: " + builder.toString());
     
     // Proxy the POST request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyPutRequest(builder.toString());
-    
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
   
-    // Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString());
-    // put all the core response headers in our response
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
-    // return null;
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
+  
+  
+  
+  // ----------------  Delete an Index ----------------
+  @DELETE
+  @Path("/{db}/{collection}/_indexes/{indexName}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response deleteIndex(@PathParam("db") String db,
+                                               @PathParam("collection") String collection,
+                                               @PathParam("indexName") String indexName) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "deleteIndex", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Delete index "+indexName+" in " + db +"/"+collection);
+    }
+    
+    // Proxy the DELETE request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
+    
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
+  }
 
   /*************************************************
    *    Document endpoints
@@ -281,21 +335,85 @@ public class ResourceBucket {
   //----------------  Get a specific Document ----------------
   @GET
   @Path("/{db}/{collection}/{documentId}")
+  @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response getDocument(@PathParam("db") String db,
-                                                 @PathParam("collection") String collection, @PathParam("documentId") String documentId) {
+                                               @PathParam("collection") String collection,
+                                               @PathParam("documentId") String documentId) {
     // Proxy the GET request and handle any exceptions
-    // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyGetRequest();
   
-    // ---------------------------- Response -------------------------------
-    // right now we are just returning whatever the backend core server sends back
-    // this may need a more specific translation for more informative messages
-    // especially in case of an error or an exception.
-    // todo revisit
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody().toString()).build();
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
+  // TODO ----------------  Patch a document ----------------
+  @PATCH
+  @Path("/{db}/{collection}/{documentId}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response patchDocument(@PathParam("db") String db,
+                                                 @PathParam("collection") String collection,
+                                                 @PathParam("documentId") String documentId,
+                                                 InputStream payload) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "patchDocument", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Patch document in " + db +"/"+ collection);
+    }
+    
+    // Get the json payload to proxy to back end
+    StringBuilder builder = new StringBuilder();
+    
+    try {
+      BufferedReader in = new BufferedReader(new InputStreamReader(payload));
+      String line = null;
+      while ((line = in.readLine()) != null) {
+        builder.append(line);
+      }
+    } catch (Exception e) {
+      _log.debug("Error Parsing: - ");
+    }
+    
+    _log.debug("Data Received: " + builder.toString());
+    
+    // Proxy the POST request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyPostRequest(builder.toString());
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity("{ TODO }").build();
+  }
+  
+  // ----------------  Delete a specific Document ----------------
+  @DELETE
+  @Path("/{db}/{collection}/{documentId}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public javax.ws.rs.core.Response deleteDocument(@PathParam("db") String db,
+                                               @PathParam("collection") String collection,
+                                               @PathParam("documentId") String documentId) {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "deleteDocument", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("Delete document "+ documentId +" in "+ db +"/"+ collection);
+    }
+  
+    // Proxy the GET request and handle any exceptions
+    CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
+    CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
+  
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody());
+    Response response = responseBuilder.build();
+    return response;
+  }
   
   private void requestDump() {
 

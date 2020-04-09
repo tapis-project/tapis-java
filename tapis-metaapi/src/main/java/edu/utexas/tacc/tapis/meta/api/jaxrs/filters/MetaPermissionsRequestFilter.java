@@ -72,8 +72,10 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     }
     
     if(!isPermitted){
+      String uri = requestContext.getUriInfo().getPath();
+          uri = (uri.equals("")) ? "root" : uri;
       StringBuilder msg = new StringBuilder()
-          .append("request for this uri path ")
+          .append("request for this uri path "+uri+" permissions spec ")
           .append(permissionsSpec)
           .append(" is NOT permitted.");
       
@@ -115,6 +117,15 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // check skClient.isPermitted against the requested uri path
     try {
       // checking obo tenant and user
+      StringBuilder msg = new StringBuilder();
+      msg.append("Permissions check for Tenant ")
+         .append(threadContext.getOboTenantId())
+         .append(", User ")
+         .append(threadContext.getOboUser())
+         .append(" with permissions ")
+         .append(permissionsSpec+".");
+      
+      _log.debug(msg.toString());
       isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
     } catch (TapisClientException e) {
       // todo add log msg for exception
@@ -153,6 +164,11 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
   }
   
   
+  /**
+   * Turn the request uri into a SK permissions spec to check authorization
+   * @param requestContext
+   * @return  the String representing a permissions spec for comparison
+   */
   private String mapRequestToPermissions(ContainerRequestContext requestContext) {
     String requestMethod = requestContext.getMethod();
     String requestUri = requestContext.getUriInfo().getPath();
