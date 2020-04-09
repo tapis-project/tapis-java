@@ -164,6 +164,11 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
   }
   
   
+  /**
+   * Turn the request uri into a SK permissions spec to check authorization
+   * @param requestContext
+   * @return  the String representing a permissions spec for comparison
+   */
   private String mapRequestToPermissions(ContainerRequestContext requestContext) {
     String requestMethod = requestContext.getMethod();
     String requestUri = requestContext.getUriInfo().getPath();

@@ -7,7 +7,7 @@
 
 #   root lists DBs
 ###  api:1
-GET http://localhost:8080/v3/meta
+GET http://localhost:8080/v3/meta/
 X-Tapis-Token: {{token}}
 X-Tapis-User: taccMetaAdmin
 X-Tapis-Tenant: dev
