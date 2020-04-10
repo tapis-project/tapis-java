@@ -27,12 +27,6 @@ public class SkAdminParameters
     // Database defaults.
     private static final String DFT_BASE_SK_URL = "http:/localhost:8080/v3";
     
-    // Default name of kubernetes secret that will contain the public key portion of
-    // JWT signing keys.  The kubernetes secret contains one public key for each
-    // tenant.  By convention, each tenant's entry's name is <tenant>-publickey and 
-    // its value is the public key in PEM format.
-    private static final String PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME = "tapis-tenants-publickeys";
-    
     // Secret generation defaults.
     private static final int DFT_PASSWORD_BYTES = 32;
     private static final int MIN_PASSWORD_BYTES = 16;
@@ -91,10 +85,6 @@ public class SkAdminParameters
     @Option(name = "-kssl", required = false, 
             usage = "validate SSL connection to kubernetes")
     public boolean kubeValidateSSL = false;
-    
-    @Option(name = "-kjwtpublickey", required = false, 
-            usage = "kubernetes secret that holds JWT public signing keys")
-    public String kubeJWTSigningPublicKeySecret = PUBLIC_JWT_SIGNING_KUBE_SECRET_NAME;
     
     // --------- SK Parameters -------------
     @Option(name = "-b", required = false, aliases = {"-baseurl"}, 

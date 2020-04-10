@@ -205,7 +205,7 @@ public final class SkAdminKubeDeployer
     /* writeSecrets:                                                          */
     /* ---------------------------------------------------------------------- */
     /** Write each secret to kubernetes.  All writes should succeed without 
-     * conflict since all of the ssecrets in the new map have been deleted from
+     * conflict since all of the secrets in the new map have been deleted from
      * kubernetes.
      */
     private void writeSecrets()
@@ -235,7 +235,7 @@ public final class SkAdminKubeDeployer
             V1Secret newSecret = null;
             try {
                 newSecret = _coreApi.createNamespacedSecret(_parms.kubeNS, secret, 
-                                                            null, null,  null);
+                                                            null, null, null);
             }
             catch (ApiException e) {
                 String msg = MsgUtils.getMsg("SK_ADMIN_KUBE_WRITE_SECRET", entry.getKey(),

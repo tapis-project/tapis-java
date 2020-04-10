@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -158,9 +157,8 @@ public final class SkAdminUserProcessor
             return;
         }
         
-        // Base64 encode the value.
-        String base64Value = Base64.getEncoder().encodeToString(value.getBytes());
-        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, base64Value);
+        // Record the value as is (no need to base64 encode here).
+        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, value);
     }    
     
     /* ---------------------------------------------------------------------- */

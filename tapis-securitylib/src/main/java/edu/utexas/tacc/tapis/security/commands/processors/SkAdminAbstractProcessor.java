@@ -109,7 +109,7 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     }    
     
     /* ---------------------------------------------------------------------- */
-    /* disconnect:                                                            */
+    /* close:                                                                 */
     /* ---------------------------------------------------------------------- */
     public void close()
     {

@@ -3,11 +3,11 @@ package edu.utexas.tacc.tapis.meta.api.resources;
 import edu.utexas.tacc.tapis.meta.config.OkSingleton;
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 
 
@@ -53,7 +53,7 @@ public class CoreRequest {
     try {
       response = okHttpClient.newCall(coreRequest).execute();
       coreResponse.mapResponse(response);
-      StringBuilder sb = coreResponse.getCoreResponsebody();
+      String sb = coreResponse.getCoreResponsebody();
       
     } catch (IOException e) {
       // todo log message
@@ -61,7 +61,7 @@ public class CoreRequest {
       e.printStackTrace();
     }
     
-    _log.debug("call to host : GET "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody().toString());
+    _log.debug("call to host : GET "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
     
     return coreResponse;
   }
@@ -82,7 +82,7 @@ public class CoreRequest {
     try {
       response = okHttpClient.newCall(coreRequest).execute();
       coreResponse.mapResponse(response);
-      StringBuilder sb = coreResponse.getCoreResponsebody();
+      String sb = coreResponse.getCoreResponsebody();
     
     } catch (IOException e) {
       // todo log message
@@ -90,7 +90,7 @@ public class CoreRequest {
       e.printStackTrace();
     }
   
-    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody().toString());
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
   
     return coreResponse;
   }
@@ -111,7 +111,7 @@ public class CoreRequest {
     try {
       response = okHttpClient.newCall(coreRequest).execute();
       coreResponse.mapResponse(response);
-      StringBuilder sb = coreResponse.getCoreResponsebody();
+      String sb = coreResponse.getCoreResponsebody();
     
     } catch (IOException e) {
       // todo log message
@@ -119,14 +119,41 @@ public class CoreRequest {
       e.printStackTrace();
     }
   
-    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody().toString());
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
   
     return coreResponse;
   }
   
   // proxy DELETE request
-  public CoreResponse  proxyDeleteRequest(){
-    return null;
+  public CoreResponse  proxyDeleteRequest(HttpHeaders _httpHeaders){
+    // path url here has stripped out /v3/meta to make the correct path request
+    //  to core server
+    String headerValue = _httpHeaders.getHeaderString("If-Match");
+    headerValue = (headerValue == null) ? "" : headerValue;
+    
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    okhttp3.Request coreRequest = new Request.Builder()
+        .url(pathURL)
+        .addHeader("If-Match",headerValue)
+        .delete()
+        .build();
+  
+    Response response = null;
+    CoreResponse coreResponse = new CoreResponse();
+    try {
+      response = okHttpClient.newCall(coreRequest).execute();
+      coreResponse.mapResponse(response);
+      String sb = coreResponse.getCoreResponsebody();
+    
+    } catch (IOException e) {
+      // todo log message
+      // todo throw a custom exception about request failure to core
+      e.printStackTrace();
+    }
+  
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
+  
+    return coreResponse;
   }
   
   
@@ -146,7 +173,7 @@ public class CoreRequest {
     try {
       response = okHttpClient.newCall(coreRequest).execute();
       coreResponse.mapResponse(response);
-      StringBuilder sb = coreResponse.getCoreResponsebody();
+      String sb = coreResponse.getCoreResponsebody();
       
     } catch (IOException e) {
       // todo log message
@@ -154,7 +181,7 @@ public class CoreRequest {
       e.printStackTrace();
     }
     
-    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody().toString());
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
     
     return coreResponse;
   }

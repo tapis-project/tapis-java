@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -16,7 +15,6 @@ import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
 import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminDBCredential;
-import edu.utexas.tacc.tapis.security.commands.processors.SkAdminAbstractProcessor.Op;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -165,9 +163,8 @@ public final class SkAdminDBCredentialProcessor
             return;
         }
         
-        // Base64 encode the value.
-        String base64Value = Base64.getEncoder().encodeToString(value.getBytes());
-        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, base64Value);
+        // Record the value as is (no need to base64 encode here).
+        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, value);
     }    
 
     /* ---------------------------------------------------------------------- */
