@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.service;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
@@ -20,6 +21,8 @@ import java.util.Set;
 public interface SystemsService
 {
   int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
+
+  int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedJson) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
 
   int deleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
 

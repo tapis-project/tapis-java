@@ -18,6 +18,7 @@ import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
@@ -32,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -222,6 +224,129 @@ public class SystemsServiceImpl implements SystemsService
       throw e0;
     }
     return itemId;
+  }
+
+  /**
+   * Update a system object
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param patchSystem - Pre-populated PatchSystem object
+   * @return Sequence id of object updated
+   * @throws TapisException - for Tapis related exceptions
+   * @throws IllegalStateException - system exists OR TSystem in invalid state
+   * @throws IllegalArgumentException - invalid parameter passed in
+   * @throws NotAuthorizedException - unauthorized
+   */
+  @Override
+  public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedJson)
+          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+  {
+    SystemOperation op = SystemOperation.modify;
+    if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+    if (patchSystem == null) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+    String systemTenantName = patchSystem.getTenant();
+    String systemName = patchSystem.getName();
+    // For service request use oboTenant for tenant associated with the system
+    if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
+
+    // ---------------------------- Check inputs ------------------------------------
+    // TODO/TBD Required system attributes: name, type, host, defaultAccessMethod
+//    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
+//            patchSystem.getSystemType() == null || StringUtils.isBlank(patchSystem.getHost()) ||
+//            patchSystem.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
+//    {
+//      throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
+//    }
+
+    // System must already exist
+    if (!dao.checkForTSystemByName(systemTenantName, systemName))
+    {
+      throw new NotFoundException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
+    }
+
+//    // Make sure owner, effectiveUserId, notes and tags are all set
+//    // Note that this is done before auth so owner can get resolved and used during auth check.
+//    patchSystem.setTenant(systemTenantName);
+//    patchSystem = TSystem.checkAndSetDefaults(patchSystem);
+//    String effectiveUserId = patchSystem.getEffectiveUserId();
+//
+//    // ----------------- Resolve variables for any attributes that might contain them --------------------
+//    patchSystem = resolveVariables(patchSystem, authenticatedUser.getOboUser());
+//
+//    // ------------------------- Check service level authorization -------------------------
+//    checkAuth(authenticatedUser, op, patchSystem.getName(), patchSystem.getOwner(), null, null);
+//
+//    // ---------------- Check constraints on TSystem attributes ------------------------
+//    validateTSystem(authenticatedUser, patchSystem);
+//
+//    // ----------------- Create all artifacts --------------------
+//    // Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
+//    // Use try/catch to rollback any writes in case of failure.
+//    int itemId = -1;
+//    // Get SK client now. If we cannot get this rollback not needed.
+//    var skClient = getSKClient(authenticatedUser);
+//    try {
+//      // ------------------- Make Dao call to persist the system -----------------------------------
+//      itemId = dao.createTSystem(authenticatedUser, patchSystem, scrubbedJson);
+//
+//      // ------------------- Add permissions -----------------------------------
+//      // Give owner and possibly effectiveUser access to the system
+//      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+//      skClient.grantUserPermission(systemTenantName, patchSystem.getOwner(), systemsPermSpec);
+//      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
+//        skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpec);
+//      }
+//      // TODO remove addition of files related permSpec
+//      // Give owner/effectiveUser files service related permission for root directory
+//      String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
+//      skClient.grantUserPermission(systemTenantName, patchSystem.getOwner(), filesPermSpec);
+//      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
+//        skClient.grantUserPermission(systemTenantName, effectiveUserId, filesPermSpec);
+//
+//      // ------------------- Store credentials -----------------------------------
+//      // Store credentials in Security Kernel if cred provided and effectiveUser is static
+//      if (patchSystem.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+//        String accessUser = effectiveUserId;
+//        // If effectiveUser is owner resolve to static string.
+//        if (effectiveUserId.equals(OWNER_VAR)) accessUser = patchSystem.getOwner();
+//        // Use private internal method instead of public API to skip auth and other checks not needed here.
+//        // Create credential
+//        createCredential(skClient, patchSystem.getAccessCredential(), tenantName, apiUserId, systemName, systemTenantName, accessUser);
+//      }
+//    }
+//    catch (Exception e0)
+//    {
+//      // Attempt to undo all changes and then re-throw the exception
+//      // Log error
+//      String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
+//      _log.error(msg);
+//
+//      // Rollback
+//      // Remove system from DB
+//      if (itemId != -1) try {dao.deleteTSystem(tenantName, systemName); } catch (Exception e) {};
+//      // Remove perms
+//      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+//      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+//      try { skClient.revokeUserPermission(systemTenantName, patchSystem.getOwner(), systemsPermSpec); } catch (Exception e) {};
+//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpec); } catch (Exception e) {};
+//      try { skClient.revokeUserPermission(systemTenantName, patchSystem.getOwner(), filesPermSpec);  } catch (Exception e) {};
+//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {};
+//      // Remove creds
+//      try
+//      {
+//        if (patchSystem.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+//          String accessUser = effectiveUserId;
+//          if (effectiveUserId.equals(OWNER_VAR)) accessUser = patchSystem.getOwner();
+//          // Use private internal method instead of public API to skip auth and other checks not needed here.
+//          deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
+//        }
+//      } catch (Exception e) {};
+//      throw e0;
+//    }
+//    return itemId;
+    return -1;
   }
 
   /**

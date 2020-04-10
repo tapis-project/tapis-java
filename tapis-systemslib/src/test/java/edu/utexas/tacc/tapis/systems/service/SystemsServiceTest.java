@@ -72,67 +72,70 @@ public class SystemsServiceTest
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protC = new Protocol(AccessMethod.PKI_KEYS, null, -1, false, null,-1);
   private static final Set<Permission> testPerms = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
-  private static final String[] tags = {"value1", "value2", "a",
+  private static final String[] tags1 = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
-  private static final String notes = "{\"project\": \"myproj1\", \"testdata\": \"abc\"}";
+  private static final String[] tags2 = {"value3", "value4"};
+  private static final String notes1 = "{\"project\": \"myproj1\", \"testdata\": \"abc1\"}";
+  private static final String notes2 = "{\"project\": \"myproj2\", \"testdata\": \"abc2\"}";
   private static final String scrubbedJson = "{}";
-  private static JsonObject notesJO = TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);
+  private static final JsonObject notes1JO = TapisGsonUtils.getGson().fromJson(notes1, JsonObject.class);
+  private static final JsonObject notes2JO = TapisGsonUtils.getGson().fromJson(notes2, JsonObject.class);
   TSystem sys1 = new TSystem(-1, tenantName, "Ssys1", "description 1", SystemType.LINUX, ownerUser, "host1", true,
           "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDir1", "jobLocalArchDir1", "jobRemoteArchSystem1","jobRemoteArchDir1",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys2 = new TSystem(-1, tenantName, "Ssys2", "description 2", SystemType.LINUX, ownerUser, "host2", true,
           "effUser2", prot2.getAccessMethod(), null,"bucket2", "/root2", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Ssys3", "description 3", SystemType.OBJECT_STORE, ownerUser, "host3", true,
           "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
           prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3","jobRemoteArchDir3",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys4 = new TSystem(-1, tenantName, "Ssys4", "description 4", SystemType.LINUX, ownerUser, "host4", true,
           "effUser4", prot4.getAccessMethod(), null,"bucket4", "/root4", prot4.getTransferMethods(),
           prot4.getPort(), prot4.isUseProxy(), prot4.getProxyHost(), prot4.getProxyPort(),false,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4","jobRemoteArchDir4",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys5 = new TSystem(-1, tenantName, "Ssys5", "description 5", SystemType.LINUX, ownerUser, "host5", true,
           "effUser5", prot5.getAccessMethod(), null,"bucket5", "/root5", prot5.getTransferMethods(),
           prot5.getPort(), prot5.isUseProxy(), prot5.getProxyHost(), prot5.getProxyPort(),false,
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5","jobRemoteArchDir5",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys6 = new TSystem(-1, tenantName, "Ssys6", "description 6", SystemType.LINUX, ownerUser, "host6", true,
           "effUser6", prot6.getAccessMethod(), null,"bucket6", "/root6", prot6.getTransferMethods(),
           prot6.getPort(), prot6.isUseProxy(), prot6.getProxyHost(), prot6.getProxyPort(),false,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6","jobRemoteArchDir6",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys7 = new TSystem(-1, tenantName, "Ssys7", "description 7", SystemType.LINUX, ownerUser, "host7", true,
           "effUser7", prot7.getAccessMethod(), null,"bucket7", "/root7", prot7.getTransferMethods(),
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys8 = new TSystem(-1, tenantName, "Ssys8", "description 8", SystemType.LINUX, "${apiUserId}", "host8", false,
           "${owner}", prot8.getAccessMethod(), null,"bucket8-${tenant}-${apiUserId}", "/root8/${tenant}",
           prot8.getTransferMethods(), prot8.getPort(), prot8.isUseProxy(), prot8.getProxyHost(), prot8.getProxyPort(),false,
           "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}",
           "jobRemoteArchSystem8","jobRemoteArchDir8${owner}${tenant}${apiUserId}",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sys9 = new TSystem(-1, tenantName, "Ssys9", "description 9", SystemType.LINUX, ownerUser, "host9", true,
           ownerUser, prot9.getAccessMethod(), null,"bucket9", "/root9", prot9.getTransferMethods(),
           prot9.getPort(), prot9.isUseProxy(), prot9.getProxyHost(), prot9.getProxyPort(),false,
           "jobLocalWorkDir9", "jobLocalArchDir9", "jobRemoteArchSystem9","jobRemoteArchDir9",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sysA = new TSystem(-1, tenantName, "SsysA", "description A", SystemType.LINUX, ownerUser, "hostA", true,
           "effUserA", protA.getAccessMethod(), null,"bucketA", "/rootA", protA.getTransferMethods(),
           protA.getPort(), protA.isUseProxy(), protA.getProxyHost(), protA.getProxyPort(),false,
           "jobLocalWorkDirA", "jobLocalArchDirA", "jobRemoteArchSystemA","jobRemoteArchDirA",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sysB = new TSystem(-1, tenantName, "SsysB", "description B", SystemType.LINUX, ownerUser, "hostB", true,
           "effUserB", protB.getAccessMethod(), null,"bucketB", "/rootB", protB.getTransferMethods(),
           protB.getPort(), protB.isUseProxy(), protB.getProxyHost(), protB.getProxyPort(),false,
           "jobLocalWorkDirB", "jobLocalArchDirB", "jobRemoteArchSystemB","jobRemoteArchDirB",
-          null, tags, notesJO, null, null);
+          null, tags1, notes1JO, null, null);
   TSystem sysC = new TSystem(-1, tenantName, "SsysC", null, SystemType.LINUX, null, "hostC", true,
           null, protC.getAccessMethod(), null,null, null, protC.getTransferMethods(),
           protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
@@ -143,11 +146,31 @@ public class SystemsServiceTest
           protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
           null, null, null, null,
           null, null, null, null, null);
+  TSystem sysE1 = new TSystem(-1, tenantName, "SsysE", "description E1", SystemType.LINUX, ownerUser, "hostE1", true,
+          "effUserE1", prot1.getAccessMethod(), null,"bucketE1", "/rootE1", prot1.getTransferMethods(),
+          prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
+          "jobLocalWorkDirE1", "jobLocalArchDirE1", "jobRemoteArchSystemE1","jobRemoteArchDirE1",
+          null, tags1, notes1JO, null, null);
+  TSystem sysE2 = new TSystem(-1, tenantName, "SsysE", "description E2", SystemType.LINUX, ownerUser, "hostE2", true,
+          "effUserE2", prot2.getAccessMethod(), null,"bucketE2", "/rootE2", prot2.getTransferMethods(),
+          prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
+          "jobLocalWorkDirE2", "jobLocalArchDirE2", "jobRemoteArchSystemE2","jobRemoteArchDirE2",
+          null, tags2, notes2JO, null, null);
+  TSystem sysF1 = new TSystem(-1, tenantName, "SsysF", "description F1", SystemType.LINUX, ownerUser, "hostF1", true,
+          "effUserF1", prot1.getAccessMethod(), null,"bucketF1", "/rootF1", prot1.getTransferMethods(),
+          prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
+          "jobLocalWorkDirF1", "jobLocalArchDirF1", "jobRemoteArchSystemF1","jobRemoteArchDirF1",
+          null, tags1, notes1JO, null, null);
+  TSystem sysF2 = new TSystem(-1, tenantName, "SsysF", "description F2", SystemType.LINUX, ownerUser, "hostF2", true,
+          "effUserF2", prot2.getAccessMethod(), null,"bucketF2", "/rootF2", prot2.getTransferMethods(),
+          prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
+          "jobLocalWorkDirF2", "jobLocalArchDirF2", "jobRemoteArchSystemF2","jobRemoteArchDirF2",
+          null, tags2, notes2JO, null, null);
 
-//  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
-//  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
-//  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
-//  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
+  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
+  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
+  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
   private static final Capability capA2 = new Capability(Category.SCHEDULER, "Type", "Slurm");
   private static final Capability capB2 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
   private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
@@ -183,8 +206,6 @@ public class SystemsServiceTest
     authenticatedAdminUsr = new AuthenticatedUser(adminUser, tenantName, TapisThreadContext.AccountType.user.name(), null, adminUser, tenantName, null, null);
     authenticatedTestUsr1 = new AuthenticatedUser(testUser1, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser1, tenantName, null, null);
     authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null);
-
-    // TODO Grant admin user the systems admin role
 
     // Cleanup anything leftover from previous failed run
     tearDown();
@@ -223,26 +244,7 @@ public class SystemsServiceTest
     // Retrieve the system including the credential using the default access method defined for the system
     // Use files service AuthenticatedUser since only certain services can retrieve the cred.
     TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), true, null);
-    Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
-    System.out.println("Found item: " + sys0.getName());
-    Assert.assertEquals(tmpSys.getName(), sys0.getName());
-    Assert.assertEquals(tmpSys.getDescription(), sys0.getDescription());
-    Assert.assertEquals(tmpSys.getSystemType().name(), sys0.getSystemType().name());
-    Assert.assertEquals(tmpSys.getOwner(), sys0.getOwner());
-    Assert.assertEquals(tmpSys.getHost(), sys0.getHost());
-    Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0.getEffectiveUserId());
-    Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0.getDefaultAccessMethod().name());
-    Assert.assertEquals(tmpSys.isEnabled(), sys0.isEnabled());
-    Assert.assertEquals(tmpSys.getBucketName(), sys0.getBucketName());
-    Assert.assertEquals(tmpSys.getRootDir(), sys0.getRootDir());
-    Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), sys0.getJobLocalWorkingDir());
-    Assert.assertEquals(tmpSys.getJobLocalArchiveDir(), sys0.getJobLocalArchiveDir());
-    Assert.assertEquals(tmpSys.getJobRemoteArchiveSystem(), sys0.getJobRemoteArchiveSystem());
-    Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), sys0.getJobRemoteArchiveDir());
-    Assert.assertEquals(tmpSys.getPort(), sys0.getPort());
-    Assert.assertEquals(tmpSys.isUseProxy(), sys0.isUseProxy());
-    Assert.assertEquals(tmpSys.getProxyHost(), sys0.getProxyHost());
-    Assert.assertEquals(tmpSys.getProxyPort(), sys0.getProxyPort());
+    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap2List);
     // Verify credentials. Only cred for default accessMethod is returned. In this case PKI_KEYS.
     Credential cred = tmpSys.getAccessCredential();
     Assert.assertNotNull(cred, "AccessCredential should not be null");
@@ -252,43 +254,6 @@ public class SystemsServiceTest
     Assert.assertNull(cred.getAccessKey(), "AccessCredential access key should be null");
     Assert.assertNull(cred.getAccessSecret(), "AccessCredential access secret should be null");
     Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
-    // Verify transfer methods
-    List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
-    Assert.assertNotNull(tMethodsList);
-    for (TransferMethod txfrMethod : sys0.getTransferMethods())
-    {
-      Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
-    }
-    // Verify capabilities
-    List<Capability> jobCaps = tmpSys.getJobCapabilities();
-    Assert.assertNotNull(jobCaps);
-    Assert.assertEquals(jobCaps.size(), cap2List.size());
-    var capNamesFound = new ArrayList<String>();
-    for (Capability capFound : jobCaps) {capNamesFound.add(capFound.getName());}
-    for (Capability capSeed : cap2List)
-    {
-      Assert.assertTrue(capNamesFound.contains(capSeed.getName()), "List of capabilities did not contain a capability named: " + capSeed.getName());
-    }
-    // Verify tags
-    String[] tmpTags = tmpSys.getTags();
-    Assert.assertNotNull(tmpTags, "Tags value was null");
-    var tagsList = Arrays.asList(tmpTags);
-    Assert.assertEquals(tmpTags.length, tags.length, "Wrong number of tags.");
-    for (String tagStr : tags)
-    {
-      Assert.assertTrue(tagsList.contains(tagStr));
-      System.out.println("Found tag: " + tagStr);
-    }
-    // Verify notes
-    JsonObject obj = tmpSys.getNotes();
-    String notesStr = obj.toString();
-    System.out.println("Found notes: " + notesStr);
-    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found.");
-    Assert.assertNotNull(obj, "Error parsing Notes string");
-    Assert.assertTrue(obj.has("project"));
-    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
-    Assert.assertTrue(obj.has("testdata"));
-    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
 
     // Test retrieval using specified access method
     tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), true, AccessMethod.PASSWORD);
@@ -302,6 +267,41 @@ public class SystemsServiceTest
     Assert.assertNull(cred.getAccessKey(), "AccessCredential access key should be null");
     Assert.assertNull(cred.getAccessSecret(), "AccessCredential access secret should be null");
     Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
+  }
+
+//  // Test updating a system using PUT
+//  @Test
+//  public void testPutSystem() throws Exception
+//  {
+//    TSystem sys0 = sysE1;
+//    sys0.setJobCapabilities(cap2List);
+//    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
+//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+//    // TODO: Now update it using PUT
+//    sys0 = sysE2;
+//    sys0.setJobCapabilities(cap1List);
+////    svc.put();
+//    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+//    // Check common system attributes:
+//    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
+//  }
+
+  // Test updating a system using PATCH
+  @Test
+  public void testPatchSystem() throws Exception
+  {
+    TSystem sys0 = sysF1;
+    sys0.setJobCapabilities(cap2List);
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // TODO: Now update it using PATCH
+    sys0 = sysF2;
+    sys0.setJobCapabilities(cap1List);
+    Assert.fail();
+//    svc.patch();
+    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+    // Check common system attributes:
+    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -759,5 +759,77 @@ public class SystemsServiceTest
     svc.deleteSystemByName(authenticatedOwnerUsr, sysB.getName());
     svc.deleteSystemByName(authenticatedOwnerUsr, sysC.getName());
     svc.deleteSystemByName(authenticatedOwnerUsr, sysD.getName());
+    svc.deleteSystemByName(authenticatedOwnerUsr, sysE1.getName());
+    svc.deleteSystemByName(authenticatedOwnerUsr, sysF1.getName());
+  }
+
+  /**
+   * Check common attributes after creating and retrieving a system
+   * @param sys0 - Test system
+   * @param tmpSys - Retrieved system
+   */
+  private static void checkCommonSysAttrs(TSystem sys0, TSystem tmpSys, String[] tags0, JsonObject notes0JO,
+                                          List<Capability> cap0List)
+  {
+    Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
+    System.out.println("Found item: " + sys0.getName());
+    Assert.assertEquals(tmpSys.getName(), sys0.getName());
+    Assert.assertEquals(tmpSys.getDescription(), sys0.getDescription());
+    Assert.assertEquals(tmpSys.getSystemType().name(), sys0.getSystemType().name());
+    Assert.assertEquals(tmpSys.getOwner(), sys0.getOwner());
+    Assert.assertEquals(tmpSys.getHost(), sys0.getHost());
+    Assert.assertEquals(tmpSys.getEffectiveUserId(), sys0.getEffectiveUserId());
+    Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0.getDefaultAccessMethod().name());
+    Assert.assertEquals(tmpSys.isEnabled(), sys0.isEnabled());
+    Assert.assertEquals(tmpSys.getBucketName(), sys0.getBucketName());
+    Assert.assertEquals(tmpSys.getRootDir(), sys0.getRootDir());
+    Assert.assertEquals(tmpSys.getJobLocalWorkingDir(), sys0.getJobLocalWorkingDir());
+    Assert.assertEquals(tmpSys.getJobLocalArchiveDir(), sys0.getJobLocalArchiveDir());
+    Assert.assertEquals(tmpSys.getJobRemoteArchiveSystem(), sys0.getJobRemoteArchiveSystem());
+    Assert.assertEquals(tmpSys.getJobRemoteArchiveDir(), sys0.getJobRemoteArchiveDir());
+    Assert.assertEquals(tmpSys.getPort(), sys0.getPort());
+    Assert.assertEquals(tmpSys.isUseProxy(), sys0.isUseProxy());
+    Assert.assertEquals(tmpSys.getProxyHost(), sys0.getProxyHost());
+    Assert.assertEquals(tmpSys.getProxyPort(), sys0.getProxyPort());
+    // Verify transfer methods
+    List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
+    Assert.assertNotNull(tMethodsList);
+    for (TransferMethod txfrMethod : sys0.getTransferMethods())
+    {
+      Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
+    }
+    // Verify tags
+    String[] tmpTags = tmpSys.getTags();
+    Assert.assertNotNull(tmpTags, "Tags value was null");
+    var tagsList = Arrays.asList(tmpTags);
+    Assert.assertEquals(tmpTags.length, tags0.length, "Wrong number of tags.");
+    for (String tagStr : tags0)
+    {
+      Assert.assertTrue(tagsList.contains(tagStr));
+      System.out.println("Found tag: " + tagStr);
+    }
+    // Verify notes
+    JsonObject tmpObj = tmpSys.getNotes();
+    String tmpNotesStr = tmpObj.toString();
+    System.out.println("Found notes: " + tmpNotesStr);
+    Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Notes string not found.");
+    Assert.assertNotNull(tmpObj, "Error parsing Notes string");
+    Assert.assertTrue(tmpObj.has("project"));
+    String projStr = notes0JO.get("project").getAsString();
+    Assert.assertEquals(tmpObj.get("project").getAsString(), projStr);
+    Assert.assertTrue(tmpObj.has("testdata"));
+    String testdataStr = notes0JO.get("testdata").getAsString();
+    Assert.assertEquals(tmpObj.get("testdata").getAsString(), testdataStr);
+    // Verify capabilities
+    List<Capability> jobCaps = tmpSys.getJobCapabilities();
+    Assert.assertNotNull(jobCaps);
+    Assert.assertEquals(jobCaps.size(), cap0List.size());
+    var capNamesFound = new ArrayList<String>();
+    for (Capability capFound : jobCaps) {capNamesFound.add(capFound.getName());}
+    for (Capability capSeedItem : cap0List)
+    {
+      Assert.assertTrue(capNamesFound.contains(capSeedItem.getName()),
+              "List of capabilities did not contain a capability named: " + capSeedItem.getName());
+    }
   }
 }
