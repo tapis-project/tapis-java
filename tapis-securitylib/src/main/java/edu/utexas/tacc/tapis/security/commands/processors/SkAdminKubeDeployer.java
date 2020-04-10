@@ -205,7 +205,7 @@ public final class SkAdminKubeDeployer
     /* writeSecrets:                                                          */
     /* ---------------------------------------------------------------------- */
     /** Write each secret to kubernetes.  All writes should succeed without 
-     * conflict since all of the ssecrets in the new map have been deleted from
+     * conflict since all of the secrets in the new map have been deleted from
      * kubernetes.
      */
     private void writeSecrets()

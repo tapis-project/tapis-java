@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
-import java.util.Base64;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -98,11 +97,10 @@ public final class SkAdminJwtPublicProcessor
             return;
         }
         
-        // Base64 encode the public key value.  Use standard key name.
-        String base64Value = Base64.getEncoder().encodeToString(value.getBytes());
+        // Record the value as is (no need to base64 encode here).  Use standard key name.
         recorder.addDeployRecord(secret.kubeSecretName, 
               secret.tenant + SkAdminJwtSigningProcessor.PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX, 
-              base64Value);
+              value);
     }    
 
     /* ---------------------------------------------------------------------- */
