@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
@@ -31,7 +30,7 @@ public final class SkAdminJwtSigningProcessor
     
     // Hardcoded public signing key information.  There should be a better way 
     // to do this that doesn't overcomplicate the json input.
-    private static final String PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX  = "-publickey";
+    static final String PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX  = "-publickey";
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -167,19 +166,8 @@ public final class SkAdminJwtSigningProcessor
             return;
         }
         
-        // Base64 encode the private key value.
-        String base64Value = Base64.getEncoder().encodeToString(value.getBytes());
-        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, base64Value);
-        
-        // Automatic public key publishing if the key is present.
-        value = skSecret.getSecretMap().get(DEFAULT_PUBLIC_KEY_NAME);
-        if (StringUtils.isBlank(value)) return;
-        
-        // Base64 encode the public key value.
-        base64Value = Base64.getEncoder().encodeToString(value.getBytes());
-        recorder.addDeployRecord(_parms.kubeJWTSigningPublicKeySecret, 
-                                 secret.tenant + PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX,
-                                 base64Value);
+        // Record the value as is (no need to base64 encode here).
+        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, value);
     }    
 
     /* ---------------------------------------------------------------------- */
