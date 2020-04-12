@@ -156,8 +156,12 @@ public class CoreRequest {
     return coreResponse;
   }
   
+  // TODO --------------------------------  proxy Patch request  --------------------------------
+  public CoreResponse proxyPatchRequest(String toString) {
+    return null;
+  }
   
-  //--------------------------------  proxy Generic request  --------------------------------
+  // TODO --------------------------------  proxy Generic request  --------------------------------
   public CoreResponse proxyRequest(okhttp3.Request coreRequest){
     // path url here has stripped out /v3/meta to make the correct path request
     //  to core server
@@ -185,6 +189,5 @@ public class CoreRequest {
     
     return coreResponse;
   }
-  
   
 }
