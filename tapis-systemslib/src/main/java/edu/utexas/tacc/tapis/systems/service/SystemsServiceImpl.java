@@ -350,8 +350,8 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Delete a system record given the system name.
-   * Also remove permissions and credentials from the Security Kernel
+   * Soft delete a system record given the system name.
+   * Also remove credentials from the Security Kernel
    *
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - name of system
@@ -419,7 +419,7 @@ public class SystemsServiceImpl implements SystemsService
    * checkForSystemByName
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
-   * @return true if system exists, false if system does not exist
+   * @return true if system exists and has not been soft deleted, false otherwise
    * @throws TapisException - for Tapis related exceptions
    */
   @Override

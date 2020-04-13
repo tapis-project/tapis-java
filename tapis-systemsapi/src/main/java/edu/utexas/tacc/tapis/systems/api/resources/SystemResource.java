@@ -590,8 +590,8 @@ public class SystemResource
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Delete a system given the system name",
-    description = "Delete a system given the system name. ",
+    summary = "Soft delete a system given the system name",
+    description = "Soft delete a system given the system name. ",
     tags = "systems",
     responses = {
       @ApiResponse(responseCode = "200", description = "System deleted.",
@@ -649,7 +649,7 @@ public class SystemResource
 
   /**
    * Fill in defaults and check constraints on TSystem attributes
-   * Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
+   * Check values. name, host, accessMethod must be set. effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * Collect and report as many errors as possible so they can all be fixed before next attempt
    * NOTE: JsonSchema validation should handle some of these checks but we check here again just in case

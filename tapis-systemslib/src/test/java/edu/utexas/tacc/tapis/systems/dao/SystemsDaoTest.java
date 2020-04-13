@@ -193,7 +193,7 @@ public class SystemsDaoTest
 
   // Test deleting a single item
   @Test
-  public void testDelete() throws Exception {
+  public void testSofDelete() throws Exception {
     TSystem sys0 = sys6;
     int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
     System.out.println("Created item with id: " + itemId);
@@ -239,13 +239,14 @@ public class SystemsDaoTest
   public void teardown() throws Exception {
     System.out.println("Executing AfterSuite teardown method");
     //Remove all objects created by tests
-    dao.deleteTSystem(sys1.getTenant(), sys1.getName());
+    dao.hardDeleteTSystem(sys1.getTenant(), sys1.getName());
     TSystem tmpSystem = dao.getTSystemByName(sys1.getTenant(), sys1.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys1.getName());
-    dao.deleteTSystem(sys2.getTenant(), sys2.getName());
-    dao.deleteTSystem(sys3.getTenant(), sys3.getName());
-    dao.deleteTSystem(sys4.getTenant(), sys4.getName());
-    dao.deleteTSystem(sys5.getTenant(), sys5.getName());
-    dao.deleteTSystem(sys7.getTenant(), sys7.getName());
+    dao.hardDeleteTSystem(sys2.getTenant(), sys2.getName());
+    dao.hardDeleteTSystem(sys3.getTenant(), sys3.getName());
+    dao.hardDeleteTSystem(sys4.getTenant(), sys4.getName());
+    dao.hardDeleteTSystem(sys5.getTenant(), sys5.getName());
+    dao.hardDeleteTSystem(sys6.getTenant(), sys6.getName());
+    dao.hardDeleteTSystem(sys7.getTenant(), sys7.getName());
   }
 }

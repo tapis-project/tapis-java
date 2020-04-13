@@ -12,6 +12,8 @@ public interface SystemsDao
 
   int deleteTSystem(String tenant, String name) throws TapisException;
 
+  int hardDeleteTSystem(String tenant, String name) throws TapisException;
+
   boolean checkForTSystemByName(String tenant, String name) throws TapisException;
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;

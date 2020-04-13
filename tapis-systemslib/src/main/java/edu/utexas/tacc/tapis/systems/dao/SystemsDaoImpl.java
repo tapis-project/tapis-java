@@ -152,7 +152,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setString(21, system.getJobRemoteArchiveDir());
       pstmt.setObject(22, tagsJsonb);
       pstmt.setObject(23, notesJsonb);
-      pstmt.setString(24, scrubbedJson);
       pstmt.execute();
       // The generated sequence id should come back as result
       rs = pstmt.getResultSet();
@@ -201,7 +200,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   }
 
   /**
-   * Delete a system record given the system name.
+   * Soft delete a system record given the system name.
    *
    */
   @Override
@@ -210,7 +209,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     int rows = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenant");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteSystem", "tenant");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -229,7 +228,58 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
 
       // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.DELETE_SYSTEM_BY_NAME_CASCADE;
+      String sql = SqlStatements.DELETE_SYSTEM_BY_NAME;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+      rows = pstmt.executeUpdate();
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+    return rows;
+  }
+
+  /**
+   * Hard delete a system record given the system name.
+   *
+   */
+  @Override
+  public int hardDeleteTSystem(String tenant, String name) throws TapisException
+  {
+    int rows = -1;
+    // ------------------------- Check Input -------------------------
+    if (StringUtils.isBlank(tenant)) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hardDeleteSystem", "tenant");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (StringUtils.isBlank(name))
+    {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hardDeleteSystem", "name");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Prepare the statement, fill in placeholders and execute
+      String sql = SqlStatements.HARD_DELETE_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);

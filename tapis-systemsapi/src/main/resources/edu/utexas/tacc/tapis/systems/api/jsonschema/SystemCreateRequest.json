@@ -5,9 +5,11 @@
   "additionalProperties": false,
 
   "type": "object",
+  "required": [ "tSystem" ],
   "properties": {
     "tSystem": {
       "type": "object",
+      "required": [ "name", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
       "properties": {
         "name": { "$ref": "#/definitions/systemName" },
         "description": { "type": "string", "maxLength": 2048 },
@@ -42,19 +44,9 @@
           "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
         },
         "notes": { "type": "object" }
-      },
-      "required": [
-        "name",
-        "systemType",
-        "host",
-        "defaultAccessMethod",
-        "jobCanExec"
-      ]
+      }
     }
   },
-  "required": [
-    "tSystem"
-  ],
 
   "definitions": {
     "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
