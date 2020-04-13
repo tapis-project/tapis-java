@@ -513,9 +513,9 @@ public class ResourceBucket {
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyPatchRequest(builder.toString());
   
-    // TODO ---------------------------- Response -------------------------------
+    // TODO ---------------------------- Response -------------------------------  "{ TODO }"
     // just return whatever core server sends to us
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity("{ TODO }").build();
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   // ----------------  Delete a specific Document ----------------
