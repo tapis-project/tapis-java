@@ -436,7 +436,7 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Put a document ----------------
+  // ----------------  Put a document ----------------
   @PUT
   @Path("/{db}/{collection}/{documentId}")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -474,7 +474,7 @@ public class ResourceBucket {
     
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity("{ TODO }").build();
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   // TODO ----------------  Patch a document ----------------
