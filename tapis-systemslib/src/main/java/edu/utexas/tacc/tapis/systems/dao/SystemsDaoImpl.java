@@ -96,16 +96,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-      // Check to see if system exists. If yes then throw IllegalStateException
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, system.getTenant());
-      pstmt.setString(2, system.getName());
-      ResultSet rs = pstmt.executeQuery();
-      // Should get one row back. If not assume system does not exist
-      boolean doesExist = false;
-      if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
+      // Check to see if system exists or has been soft deleted. If yes then throw IllegalStateException
+      boolean doesExist = checkForTSystem(conn, system.getTenant(), system.getName(), true);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
@@ -128,7 +120,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       notesJsonb.setValue(notesStr);
 
       // Prepare the statement, fill in placeholders and execute
-      sql = SqlStatements.CREATE_SYSTEM;
+      String sql = SqlStatements.CREATE_SYSTEM;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, system.getTenant());
       pstmt.setString(2, system.getName());
@@ -155,7 +148,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setObject(23, notesJsonb);
       pstmt.execute();
       // The generated sequence id should come back as result
-      rs = pstmt.getResultSet();
+      ResultSet rs = pstmt.getResultSet();
       if (rs == null || !rs.next())
       {
         String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
@@ -225,18 +218,21 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     String opName = "updateSystem";
     // Sequence id of system
     int systemId = origSystem.getId();
+    // Pull out some values for convenience
+    String tenantName = patchedSystem.getTenant();
+    String systemName = patchedSystem.getName();
     // ------------------------- Check Input -------------------------
     if (authenticatedUser == null) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "authenticatedUser");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (patchedSystem == null || StringUtils.isBlank(patchedSystem.getTenant())) {
+    if (patchedSystem == null || StringUtils.isBlank(tenantName)) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "tenantName");
       _log.error(msg);
       throw new TapisException(msg);
     }
-    if (StringUtils.isBlank(patchedSystem.getName())) {
+    if (StringUtils.isBlank(systemName)) {
       String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "systemName");
       _log.error(msg);
       throw new TapisException(msg);
@@ -247,10 +243,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       throw new TapisException(msg);
     }
 
+    // TODO/TBD
     var transferMethods = TSystem.DEFAULT_TRANSFER_METHODS;
     if (patchedSystem.getTransferMethods() != null) transferMethods = patchedSystem.getTransferMethods();
     String transferMethodsStr = LibUtils.getTransferMethodsAsString(transferMethods);
 
+    // TODO/TBD
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     String proxyHost = TSystem.DEFAULT_PROXYHOST;
     if (patchedSystem.getProxyHost() != null) proxyHost = patchedSystem.getProxyHost();
@@ -262,18 +260,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-      // Check to see if system exists. If no then throw IllegalStateException
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, patchedSystem.getTenant());
-      pstmt.setString(2, patchedSystem.getName());
-      ResultSet rs = pstmt.executeQuery();
-      // Should get one row back. If not assume system does not exist
-      boolean doesExist = false;
-      if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
-      if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, patchedSystem.getName()));
+      // Check to see if system exists and has not been soft deleted. If no then throw IllegalStateException
+      boolean doesExist = checkForTSystem(conn, tenantName, systemName, false);
+      if (!doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
+      // TODO/TBD
       // Make sure owner, effectiveUserId, notes and tags are all set
       String owner = TSystem.DEFAULT_OWNER;
       if (StringUtils.isNotBlank(patchedSystem.getOwner())) owner = patchedSystem.getOwner();
@@ -294,7 +285,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       notesJsonb.setValue(notesStr);
 
       // Prepare the statement, fill in placeholders and execute
-      sql = SqlStatements.CREATE_SYSTEM;
+      String sql = SqlStatements.CREATE_SYSTEM;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, patchedSystem.getTenant());
       pstmt.setString(2, patchedSystem.getName());
@@ -321,7 +313,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setObject(23, notesJsonb);
       pstmt.execute();
       // The generated sequence id should come back as result
-      rs = pstmt.getResultSet();
+      ResultSet rs = pstmt.getResultSet();
       if (rs == null || !rs.next())
       {
         String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
@@ -497,18 +489,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
-      if (includeDeleted) sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME_ALL;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      ResultSet rs = pstmt.executeQuery();
-      if (rs != null && rs.next()) result = rs.getBoolean(1);
-
+      // Run the sql
+      result = checkForTSystem(conn, tenant, name, includeDeleted);
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -776,6 +760,29 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /*                             Private Methods                            */
   /* ********************************************************************** */
 
+  /**
+   * Given an sql connection check to see if specified system exists and has/has not been soft deleted
+   * @param conn - Sql connection
+   * @param tenant - name of tenant
+   * @param name - name of system
+   * @param includeDeleted -if soft deleted systems should be included
+   * @return - true if system exists, else false
+   * @throws SQLException -
+   */
+  private static boolean checkForTSystem(Connection conn, String tenant, String name, boolean includeDeleted)
+          throws SQLException
+  {
+    boolean result = false;
+    // Prepare the statement, fill in placeholders and execute
+    String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+    if (includeDeleted) sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME_ALL;
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setString(1, tenant);
+    pstmt.setString(2, name);
+    ResultSet rs = pstmt.executeQuery();
+    if (rs != null && rs.next()) result = rs.getBoolean(1);
+    return result;
+  }
   /**
    * populateTSystem
    * Instantiate and populate an object using a result set. The cursor for the

@@ -279,18 +279,22 @@ public class SystemsServiceTest
   @Test
   public void testPatchSystem() throws Exception
   {
+    String createJson = "{\"update\": \"0-create\"}";
+    String patch1Json = "{\"update\": \"1-patch1\"}";
+    String patch2Json = "{\"update\": \"2-patch2\"}";
     TSystem sys0 = sysF1;
     sys0.setJobCapabilities(cap2List);
-    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    Assert.fail("Not implemented");
     // TODO: Now update it using PATCH
-    sys0 = sysF2;
-    sys0.setJobCapabilities(cap1List);
-    Assert.fail();
-//    svc.patch();
-    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
-    // Check common system attributes:
-    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
+//    sys0 = sysF2;
+//    sys0.setJobCapabilities(cap1List);
+//    svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Json);
+//    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+//    // Check common system attributes:
+//    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
+//    //TODO
   }
 
   // Check that when a system is created variable substitution is correct for:
