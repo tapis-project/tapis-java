@@ -400,17 +400,6 @@ public class SystemsServiceImpl implements SystemsService
         throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
       }
     }
-
-    // TODO/TBD: How to make sure all perms for a system are removed?
-    // TODO: See if it makes sense to have a SK method to do this in one operation
-    // Use Security Kernel client to find all users with perms associated with the system.
-    String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
-    var userNames = skClient.getUsersWithPermission(tenantName, permSpec);
-    // Revoke all perms for all users
-    for (String userName : userNames) {
-      revokePermissions(skClient, systemTenantName, systemName, userName, ALL_PERMS);
-    }
-
     // Delete the system
     return dao.softDeleteTSystem(tenantName, systemName);
   }

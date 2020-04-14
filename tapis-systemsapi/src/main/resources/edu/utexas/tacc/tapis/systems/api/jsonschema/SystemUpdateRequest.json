@@ -11,23 +11,23 @@
       "type": "object",
       "properties": {
         "description": { "type": "string", "maxLength": 2048 },
-        "owner": { "$ref": "#/definitions/userName" },
-        "host": { "$ref": "#/definitions/hostName" },
+        "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+        "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
         "enabled": { "type": "boolean", "default": true },
-        "effectiveUserId": { "$ref": "#/definitions/userName" },
-        "defaultAccessMethod": { "$ref": "#/definitions/accessMethodEnum" },
-        "accessCredential": {"$ref": "#/definitions/credential" },
+        "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+        "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
+        "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/credential" },
         "transferMethods": {
           "type": "array",
           "items": { "type": "string", "enum": ["SFTP","S3"] }
         },
         "port": { "type": "integer" },
         "useProxy": { "type": "boolean", "default": false },
-        "proxyHost": { "$ref": "#/definitions/hostName" },
+        "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
         "proxyPort": { "type": "integer" },
         "jobCapabilities": {
           "type": "array",
-          "items": {"$ref": "#/definitions/capability" }
+          "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
         },
         "tags": {
           "type": "array",
@@ -35,32 +35,6 @@
         },
         "notes": { "type": "object" }
       }
-    }
-  },
-  "definitions": {
-    "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
-    "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","ACCESS_KEY","CERT"] },
-    "credential": {
-      "type": "object",
-      "properties": {
-        "password": { "type":  "string" },
-        "privateKey": { "type":  "string" },
-        "publicKey": { "type":  "string" },
-        "certificate": { "type":  "string" },
-        "accessKey": { "type":  "string" },
-        "accessSecret": { "type":  "string" }
-      }
-    },
-    "capabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
-    "capability": {
-      "type": "object",
-      "properties": {
-        "category": { "$ref": "#/definitions/capabilityCategoryEnum" },
-        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "value": { "type": "string", "maxLength": 256 }
-      },
-      "required": [ "category", "name" ]
     }
   }
 }
