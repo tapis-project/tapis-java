@@ -222,7 +222,7 @@ Content-Type: application/json
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
 ###
 
-GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -231,13 +231,17 @@ Content-Type: application/json
 ###
 
 
-#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
+#  patch  to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
 ###
-PUT http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+PATCH http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
+
+{
+  "description": "testing modify a doc"
+}
 
 ###
 
@@ -263,6 +267,24 @@ Content-Type: application/json
 
 ###
 
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/    # 5e29ffe1a93eebf39fba93c4
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+{ "site_name": "mysite7",
+  "latitude": 1.0,
+  "longitude": 2,
+  "elevation": 1,
+  "description": "testing replace a doc",
+  "site_id": 11
+}
+
+###
 
 
 
