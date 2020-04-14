@@ -313,8 +313,11 @@ public class SkAdmin
                     secret.secret = generatePassword();
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
                                                  "kubeSecretName", secret.dbservice,
@@ -426,8 +429,11 @@ public class SkAdmin
                 }
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -458,10 +464,11 @@ public class SkAdmin
         if (_secrets.jwtpublic == null || _secrets.jwtpublic.isEmpty())
             return true;
         
-        // Iterate throught the secrets.
+        // Iterate throught the secrets. JSON schema validation makes sure
+        // the required kube deployment parameters are set.
         for (var secret : _secrets.jwtpublic) {
             
-            // At a minimum, the private key must be specified.
+            // At a minimum, the public key must be specified.
             if (StringUtils.isBlank(secret.publicKey)) {
                 String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                              "publicKey", secret.tenant, 
@@ -525,8 +532,11 @@ public class SkAdmin
                     secret.password = generatePassword();
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -572,8 +582,11 @@ public class SkAdmin
                 }
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 

@@ -136,12 +136,18 @@ public final class SkAdminServicePwdProcessor
     @Override
     protected void deploy(SkAdminServicePwd secret, ISkAdminDeployRecorder recorder)
     {
+        // Is this secret slated for deployment?
+        if (StringUtils.isBlank(secret.kubeSecretName)) {
+            _results.recordDeploySkipped(makeSkippedDeployMessage(secret));
+            return;
+        }    
+        
         // See if the secret already exists.
         SkSecret skSecret = null;
         try {skSecret = readSecret(secret);} 
         catch (Exception e) {
             // Save the error condition for this secret.
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.ServicePwd, 
                                    makeFailureMessage(Op.deploy, secret, e.getMessage()));
             return;
         }
@@ -149,7 +155,7 @@ public final class SkAdminServicePwdProcessor
         // This shouldn't happen.
         if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.ServicePwd, 
                                    makeFailureMessage(Op.deploy, secret, msg));
             return;
         }
@@ -158,7 +164,7 @@ public final class SkAdminServicePwdProcessor
         String value = skSecret.getSecretMap().get(DEFAULT_KEY_NAME);
         if (StringUtils.isBlank(value)) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, SecretType.ServicePwd, 
                                    makeFailureMessage(Op.deploy, secret, msg));
             return;
         }
@@ -210,5 +216,15 @@ public final class SkAdminServicePwdProcessor
     {
         return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
                "\" for service \"" + secret.service + "\" in tenant " + secret.tenant + "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    private String makeSkippedDeployMessage(SkAdminServicePwd secret)
+    {
+        return " SKIPPED deploy for secret \"" + secret.secretName +
+               "\" for service \"" + secret.service + "\" in tenant \"" + secret.tenant + 
+               "\": No target Kubernetes secret specified.";
     }
 }

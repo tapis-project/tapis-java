@@ -139,6 +139,12 @@ public final class SkAdminJwtSigningProcessor
     @Override
     protected void deploy(SkAdminJwtSigning secret, ISkAdminDeployRecorder recorder)
     {
+        // Is this secret slated for deployment?
+        if (StringUtils.isBlank(secret.kubeSecretName)) {
+            _results.recordDeploySkipped(makeSkippedDeployMessage(secret));
+            return;
+        }    
+        
         // See if the secret already exists.
         SkSecret skSecret = null;
         try {skSecret = readSecret(secret);} 
@@ -213,5 +219,15 @@ public final class SkAdminJwtSigningProcessor
     {
         return " SUCCESSFUL " + op.name() + " of JWT secret \"" + secret.secretName +
                "\" in tenant " + secret.tenant + "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    private String makeSkippedDeployMessage(SkAdminJwtSigning secret)
+    {
+        return " SKIPPED deploy for JWT secret \"" + secret.secretName +
+               "\" in tenant \"" + secret.tenant + 
+               "\": No target Kubernetes secret specified.";
     }
 }
