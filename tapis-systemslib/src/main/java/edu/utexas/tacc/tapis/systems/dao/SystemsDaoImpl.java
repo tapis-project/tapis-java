@@ -204,7 +204,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public int deleteTSystem(String tenant, String name) throws TapisException
+  public int softDeleteTSystem(String tenant, String name) throws TapisException
   {
     int rows = -1;
     // ------------------------- Check Input -------------------------
@@ -228,7 +228,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
 
       // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.DELETE_SYSTEM_BY_NAME;
+      String sql = SqlStatements.SOFT_DELETE_SYSTEM_BY_NAME;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);
@@ -308,7 +308,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws TapisException - on error
    */
   @Override
-  public boolean checkForTSystemByName(String tenant, String name) throws TapisException {
+  public boolean checkForTSystemByName(String tenant, String name, boolean includeDeleted) throws TapisException {
     // Initialize result.
     boolean result = false;
 
@@ -319,9 +319,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
 
-
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+      if (includeDeleted) sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME_ALL;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, tenant);
       pstmt.setString(2, name);

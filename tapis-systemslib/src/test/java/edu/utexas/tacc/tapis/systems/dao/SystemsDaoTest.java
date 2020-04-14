@@ -198,7 +198,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    dao.deleteTSystem(sys0.getTenant(), sys0.getName());
+    dao.softDeleteTSystem(sys0.getTenant(), sys0.getName());
     TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0.getName());
   }

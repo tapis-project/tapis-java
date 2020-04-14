@@ -27,7 +27,7 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
       // TODO: remove hard coded values
       // TODO/TBD: Get master tenant from tenant service or from env?
       // Get service master tenant from the env
-      svcMasterTenant = RuntimeParameters.getInstance().getSetServiceMasterTenant();
+      svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
       // TODO remove hard coded fallback?
       if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = "master";
       var svcJWTParms = new ServiceJWTParms();

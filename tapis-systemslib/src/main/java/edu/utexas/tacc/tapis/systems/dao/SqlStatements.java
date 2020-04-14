@@ -38,7 +38,7 @@ final class SqlStatements
       "WHERE tenant = ? AND name = ? AND deleted = false";
 
   // Soft delete a system given the name
-  public static final String DELETE_SYSTEM_BY_NAME =
+  public static final String SOFT_DELETE_SYSTEM_BY_NAME =
     "UPDATE systems SET deleted = true WHERE tenant = ? AND name = ?";
 
   // Hard delete a system given the name
@@ -48,6 +48,8 @@ final class SqlStatements
   // Check for a existence of a record
   public static final String CHECK_FOR_SYSTEM_BY_NAME =
     "SELECT EXISTS(SELECT 1 FROM systems WHERE tenant = ? AND name = ? AND deleted = false)";
+  public static final String CHECK_FOR_SYSTEM_BY_NAME_ALL =
+          "SELECT EXISTS(SELECT 1 FROM systems WHERE tenant = ? AND name = ?)";
 
   // Get system owner
   public static final String SELECT_SYSTEM_OWNER =

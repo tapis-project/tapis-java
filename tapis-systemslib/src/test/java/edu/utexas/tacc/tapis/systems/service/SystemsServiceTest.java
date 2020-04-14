@@ -49,6 +49,7 @@ import java.util.Set;
 public class SystemsServiceTest
 {
   private SystemsService svc;
+  private SystemsServiceImpl svcImpl;
   private AuthenticatedUser authenticatedOwnerUsr, authenticatedTestUsr1, authenticatedAdminUsr, authenticatedFilesSvc;
   // Test data
   private static final String tenantName = "dev";
@@ -187,6 +188,7 @@ public class SystemsServiceTest
       @Override
       protected void configure() {
         bind(SystemsServiceImpl.class).to(SystemsService.class);
+        bind(SystemsServiceImpl.class).to(SystemsServiceImpl.class);
         bind(SystemsDaoImpl.class).to(SystemsDao.class);
         bindFactory(SystemsServiceJWTFactory.class).to(ServiceJWT.class);
         bind(SKClient.class).to(SKClient.class);
@@ -200,6 +202,10 @@ public class SystemsServiceTest
 
     // Initialize services
     svc = locator.getService(SystemsService.class);
+//    SystemsDao dao = locator.getService(SystemsDaoImpl.class);
+//    ServiceJWT svcJWT = locator.getService(ServiceJWT.class);
+//    svcImpl = new SystemsServiceImpl(dao, svcJWT);
+    svcImpl = locator.getService(SystemsServiceImpl.class);
 
     // Initialize authenticated user and service
     authenticatedOwnerUsr = new AuthenticatedUser(ownerUser, tenantName, TapisThreadContext.AccountType.user.name(), null, ownerUser, tenantName, null, null);
@@ -268,23 +274,6 @@ public class SystemsServiceTest
     Assert.assertNull(cred.getAccessSecret(), "AccessCredential access secret should be null");
     Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
   }
-
-//  // Test updating a system using PUT
-//  @Test
-//  public void testPutSystem() throws Exception
-//  {
-//    TSystem sys0 = sysE1;
-//    sys0.setJobCapabilities(cap2List);
-//    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
-//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-//    // TODO: Now update it using PUT
-//    sys0 = sysE2;
-//    sys0.setJobCapabilities(cap1List);
-////    svc.put();
-//    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
-//    // Check common system attributes:
-//    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
-//  }
 
   // Test updating a system using PATCH
   @Test
@@ -383,15 +372,15 @@ public class SystemsServiceTest
 //  }
 
   @Test
-  public void testDelete() throws Exception
+  public void testSoftDelete() throws Exception
   {
     // Create the system
     TSystem sys0 = sys6;
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
 
-    // Delete the system
-    int changeCount = svc.deleteSystemByName(authenticatedOwnerUsr, sys0.getName());
+    // Soft delete the system
+    int changeCount = svc.softDeleteSystemByName(authenticatedOwnerUsr, sys0.getName());
     Assert.assertEquals(changeCount, 1, "Change count incorrect when deleting a system.");
     TSystem tmpSys2 = svc.getSystemByName(authenticatedOwnerUsr, sys0.getName(), false, null);
     Assert.assertNull(tmpSys2, "System not deleted. System name: " + sys0.getName());
@@ -520,7 +509,7 @@ public class SystemsServiceTest
     Assert.assertNull(tmpSys, "TSystem not null for non-existent system");
 
     // Delete system with no system should return 0 changes
-    int changeCount = svc.deleteSystemByName(authenticatedOwnerUsr, fakeSystemName);
+    int changeCount = svc.softDeleteSystemByName(authenticatedOwnerUsr, fakeSystemName);
     Assert.assertEquals(changeCount, 0, "Change count incorrect when deleting non-existent system.");
 
     // Get owner with no system should return null
@@ -620,7 +609,7 @@ public class SystemsServiceTest
 
     // DELETE - deny user not owner/admin, deny service
     pass = false;
-    try { svc.deleteSystemByName(authenticatedTestUsr1, sys0.getName()); }
+    try { svc.softDeleteSystemByName(authenticatedTestUsr1, sys0.getName()); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -628,7 +617,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.deleteSystemByName(authenticatedFilesSvc, sys0.getName()); }
+    try { svc.softDeleteSystemByName(authenticatedFilesSvc, sys0.getName()); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -744,23 +733,23 @@ public class SystemsServiceTest
   {
     System.out.println("Executing AfterSuite teardown method");
     //Remove all objects created by tests
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys1.getName());
-    TSystem tmpSys = svc.getSystemByName(authenticatedOwnerUsr, sys1.getName(), false, null);
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys1.getName());
+    TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, sys1.getName(), false, null);
     Assert.assertNull(tmpSys, "System not deleted. System name: " + sys1.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys2.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys3.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys4.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys5.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys6.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys7.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys8.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sys9.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysA.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysB.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysC.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysD.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysE1.getName());
-    svc.deleteSystemByName(authenticatedOwnerUsr, sysF1.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys2.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys3.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys4.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys5.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys6.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys7.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys8.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys9.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysA.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysB.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysC.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE1.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF1.getName());
   }
 
   /**

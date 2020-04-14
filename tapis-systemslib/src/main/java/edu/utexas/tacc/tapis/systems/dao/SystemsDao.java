@@ -10,11 +10,11 @@ public interface SystemsDao
 {
   int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
 
-  int deleteTSystem(String tenant, String name) throws TapisException;
+  int softDeleteTSystem(String tenant, String name) throws TapisException;
 
   int hardDeleteTSystem(String tenant, String name) throws TapisException;
 
-  boolean checkForTSystemByName(String tenant, String name) throws TapisException;
+  boolean checkForTSystemByName(String tenant, String name, boolean includeDeleted) throws TapisException;
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;
 

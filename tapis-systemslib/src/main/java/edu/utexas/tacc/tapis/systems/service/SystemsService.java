@@ -24,7 +24,7 @@ public interface SystemsService
 
   int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedJson) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
 
-  int deleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
+  int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
 
   boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException;
 

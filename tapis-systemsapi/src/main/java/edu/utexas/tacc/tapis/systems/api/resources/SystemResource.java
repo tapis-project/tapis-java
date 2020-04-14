@@ -624,7 +624,7 @@ public class SystemResource
     int changeCount;
     try
     {
-      changeCount = systemsService.deleteSystemByName(authenticatedUser, systemName);
+      changeCount = systemsService.softDeleteSystemByName(authenticatedUser, systemName);
     }
     catch (Exception e)
     {
