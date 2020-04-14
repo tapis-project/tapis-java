@@ -189,6 +189,9 @@ Content-Type: application/json
 
 ###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
 
+
+
+
 ##############################################################
 #     document endpoints
 ##############################################################
@@ -219,8 +222,8 @@ Content-Type: application/json
 
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
-###
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+###  5e9493a5a93eebf39fc88d65
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -229,24 +232,40 @@ Content-Type: application/json
 ###
 
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
-#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/    # 5e29ffe1a93eebf39fba93c4
 ###
-PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
+
+{ "site_name": "mysite7",
+  "latitude": 1.0,
+  "longitude": 2,
+  "elevation": 1,
+  "description": "testing replace a doc",
+  "site_id": 11
+}
 
 ###
 
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
+
+{ "site_name": "mysite7",
+  "latitude": 1.0,
+  "longitude": 2,
+  "elevation": 1,
+  "description": "testing update a doc",
+  "site_id": 11
+}
 
 ###
 

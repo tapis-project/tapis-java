@@ -156,9 +156,33 @@ public class CoreRequest {
     return coreResponse;
   }
   
-  // TODO --------------------------------  proxy Patch request  --------------------------------
-  public CoreResponse proxyPatchRequest(String toString) {
-    return null;
+  // --------------------------------  proxy Patch request  --------------------------------
+  public CoreResponse proxyPatchRequest(String json) {
+    // path url here has stripped out /v3/meta to make the correct path request
+    //  to core server
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    RequestBody body = RequestBody.create(json, JSON);
+    okhttp3.Request coreRequest = new Request.Builder()
+        .url(pathURL)
+        .patch(body)
+        .build();
+  
+    Response response = null;
+    CoreResponse coreResponse = new CoreResponse();
+    try {
+      response = okHttpClient.newCall(coreRequest).execute();
+      coreResponse.mapResponse(response);
+      String sb = coreResponse.getCoreResponsebody();
+    
+    } catch (IOException e) {
+      // todo log message
+      // todo throw a custom exception about request failure to core
+      e.printStackTrace();
+    }
+  
+    _log.debug("call to host : "+pathURL+"\n"+"response : \n"+coreResponse.getCoreResponsebody());
+  
+    return coreResponse;
   }
   
   // TODO --------------------------------  proxy Generic request  --------------------------------

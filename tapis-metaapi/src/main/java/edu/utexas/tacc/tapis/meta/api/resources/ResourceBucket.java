@@ -103,7 +103,7 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Get DB metadata ----------------
+  // ----------------  Get DB metadata ----------------
   @GET
   @Path("/{db}/_meta")
   @Produces(MediaType.APPLICATION_JSON)
@@ -197,7 +197,7 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Get the number of documents in Collection ----------------
+  // ----------------  Get the number of documents in Collection ----------------
   @GET
   @Path("/{db}/{collection}/_size")
   @Produces(MediaType.APPLICATION_JSON)
@@ -224,7 +224,7 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Get the collection metadata ----------------
+  // ----------------  Get the collection metadata ----------------
   @GET
   @Path("/{db}/{collection}/_meta")
   @Produces(MediaType.APPLICATION_JSON)
@@ -477,7 +477,7 @@ public class ResourceBucket {
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
-  // TODO ----------------  Patch a document ----------------
+  // ----------------  Patch a document ----------------
   @PATCH
   @Path("/{db}/{collection}/{documentId}")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -515,7 +515,7 @@ public class ResourceBucket {
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
-    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity("{ TODO }").build();
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
   
   // ----------------  Delete a specific Document ----------------
@@ -543,6 +543,8 @@ public class ResourceBucket {
     Response response = responseBuilder.build();
     return response;
   }
+  
+  
   
   private void requestDump() {
 
