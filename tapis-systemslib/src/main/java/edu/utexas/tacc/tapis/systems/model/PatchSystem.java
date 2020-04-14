@@ -1,18 +1,12 @@
 package edu.utexas.tacc.tapis.systems.model;
 
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /*
@@ -39,12 +33,10 @@ public final class PatchSystem
   private String tenant;     // Name of the tenant for which the system is defined
   private String name;       // Name of the system
   private String description; // Full description of the system
-  private String owner;      // User who owns the system and has full privileges
   private String host;       // Host name or IP address
   private boolean enabled; // Indicates if systems is currently enabled
   private String effectiveUserId; // User to use when accessing system, may be static or dynamic
   private AccessMethod defaultAccessMethod; // How access authorization is handled by default
-  private Credential accessCredential; // Credential to be stored in or retrieved from the Security Kernel
   private List<TransferMethod> transferMethods; // Supported transfer methods, allowed values determined by system type
   private int port;          // Port number used to access the system
   private boolean useProxy;  // Indicates if a system should be accessed through a proxy
@@ -118,9 +110,6 @@ public final class PatchSystem
   public String getDescription() { return description; }
   public PatchSystem setDescription(String descr) { description = descr; return this; }
 
-  public String getOwner() { return owner; }
-  public PatchSystem setOwner(String s) { owner = s;  return this;}
-
   public String getHost() { return host; }
   public PatchSystem setHost(String s) { host = s; return this; }
 
@@ -131,9 +120,6 @@ public final class PatchSystem
   public PatchSystem setEffectiveUserId(String userId) { effectiveUserId = userId; return this; }
 
   public AccessMethod getDefaultAccessMethod() { return defaultAccessMethod; }
-
-  public Credential getAccessCredential() { return accessCredential; }
-  public PatchSystem setAccessCredential(Credential cred) {accessCredential = cred; return this; }
 
   public List<TransferMethod> getTransferMethods() { return transferMethods; }
   public PatchSystem setTransferMethods(List<TransferMethod> t) { transferMethods = t; return this; }

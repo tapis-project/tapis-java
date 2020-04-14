@@ -66,7 +66,7 @@ public final class TSystem
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(TSystem.class);
 
-  private long id;           // Unique database sequence number
+  private int id;           // Unique database sequence number
   private Instant created; // UTC time for when record was created
   private Instant updated; // UTC time for when record was last updated
 
@@ -124,7 +124,7 @@ public final class TSystem
   /**
    * Constructor using all attributes. Useful for testing.
    */
-  public TSystem(long id1, String tenant1, String name1, String description1, SystemType systemType1,
+  public TSystem(int id1, String tenant1, String name1, String description1, SystemType systemType1,
                  String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
                  Credential accessCredential1, String bucketName1, String rootDir1,
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
@@ -180,7 +180,7 @@ public final class TSystem
   // ************************************************************************
   // *********************** Accessors **************************************
   // ************************************************************************
-  public long getId() { return id; }
+  public int getId() { return id; }
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }

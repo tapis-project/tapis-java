@@ -10,6 +10,8 @@ public interface SystemsDao
 {
   int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
 
+  int updateTSystem(AuthenticatedUser authenticatedUser, TSystem origSystem, TSystem patchedSystem, String scrubbedJson) throws TapisException, IllegalStateException;
+
   int softDeleteTSystem(String tenant, String name) throws TapisException;
 
   int hardDeleteTSystem(String tenant, String name) throws TapisException;

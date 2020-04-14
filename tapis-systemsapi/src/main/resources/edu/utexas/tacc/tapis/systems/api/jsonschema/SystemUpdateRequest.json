@@ -11,12 +11,10 @@
       "type": "object",
       "properties": {
         "description": { "type": "string", "maxLength": 2048 },
-        "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
         "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
         "enabled": { "type": "boolean", "default": true },
         "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
         "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
-        "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/credential" },
         "transferMethods": {
           "type": "array",
           "items": { "type": "string", "enum": ["SFTP","S3"] }

@@ -147,11 +147,11 @@ public class SystemsServiceImpl implements SystemsService
     // Make sure owner, effectiveUserId, notes and tags are all set
     // Note that this is done before auth so owner can get resolved and used during auth check.
     system.setTenant(systemTenantName);
-    system = TSystem.checkAndSetDefaults(system);
+    TSystem.checkAndSetDefaults(system);
     String effectiveUserId = system.getEffectiveUserId();
 
     // ----------------- Resolve variables for any attributes that might contain them --------------------
-    system = resolveVariables(system, authenticatedUser.getOboUser());
+    resolveVariables(system, authenticatedUser.getOboUser());
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, system.getName(), system.getOwner(), null, null);
@@ -227,7 +227,13 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Update a system object
+   * Update a system object.
+   * Attributes that can be updated:
+   *   description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
+   *   port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
+   * Attributes that cannot be updated:
+   *   tenant, name, systemType, owner, accessCredential, bucketName, rootDir,
+   *   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir
    * @param authenticatedUser - principal user containing tenant and user info
    * @param patchSystem - Pre-populated PatchSystem object
    * @return Sequence id of object updated
@@ -252,72 +258,47 @@ public class SystemsServiceImpl implements SystemsService
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
     // ---------------------------- Check inputs ------------------------------------
-    // TODO/TBD Required system attributes: name, type, host, defaultAccessMethod
-//    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
-//            patchSystem.getSystemType() == null || StringUtils.isBlank(patchSystem.getHost()) ||
-//            patchSystem.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
-//    {
-//      throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
-//    }
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
+        StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
+    {
+      throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
+    }
 
-    // System must already exist
+    // System must already exist and not be soft deleted
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
     {
       throw new NotFoundException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
     }
 
-//    // Make sure owner, effectiveUserId, notes and tags are all set
+    TSystem origTSystem = dao.getTSystemByName(systemTenantName, systemName);
+    // Create fully populated TSystem with changes merged in
+    TSystem patchedTSystem = createPatchedTSystem(origTSystem, patchSystem);
+//TODO    // Make sure owner, effectiveUserId, notes and tags are all set
 //    // Note that this is done before auth so owner can get resolved and used during auth check.
 //    patchSystem.setTenant(systemTenantName);
 //    patchSystem = TSystem.checkAndSetDefaults(patchSystem);
 //    String effectiveUserId = patchSystem.getEffectiveUserId();
 //
-//    // ----------------- Resolve variables for any attributes that might contain them --------------------
+//TODO    // ----------------- Resolve variables for any attributes that might contain them --------------------
 //    patchSystem = resolveVariables(patchSystem, authenticatedUser.getOboUser());
 //
-//    // ------------------------- Check service level authorization -------------------------
-//    checkAuth(authenticatedUser, op, patchSystem.getName(), patchSystem.getOwner(), null, null);
-//
+    // ------------------------- Check service level authorization -------------------------
+    checkAuth(authenticatedUser, op, systemName, origTSystem.getOwner(), null, null);
+
 //    // ---------------- Check constraints on TSystem attributes ------------------------
 //    validateTSystem(authenticatedUser, patchSystem);
 //
-//    // ----------------- Create all artifacts --------------------
-//    // Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
-//    // Use try/catch to rollback any writes in case of failure.
-//    int itemId = -1;
-//    // Get SK client now. If we cannot get this rollback not needed.
-//    var skClient = getSKClient(authenticatedUser);
-//    try {
-//      // ------------------- Make Dao call to persist the system -----------------------------------
-//      itemId = dao.createTSystem(authenticatedUser, patchSystem, scrubbedJson);
-//
-//      // ------------------- Add permissions -----------------------------------
-//      // Give owner and possibly effectiveUser access to the system
-//      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
-//      skClient.grantUserPermission(systemTenantName, patchSystem.getOwner(), systemsPermSpec);
-//      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
-//        skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpec);
-//      }
-//      // TODO remove addition of files related permSpec
-//      // Give owner/effectiveUser files service related permission for root directory
-//      String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
-//      skClient.grantUserPermission(systemTenantName, patchSystem.getOwner(), filesPermSpec);
-//      if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
-//        skClient.grantUserPermission(systemTenantName, effectiveUserId, filesPermSpec);
-//
-//      // ------------------- Store credentials -----------------------------------
-//      // Store credentials in Security Kernel if cred provided and effectiveUser is static
-//      if (patchSystem.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
-//        String accessUser = effectiveUserId;
-//        // If effectiveUser is owner resolve to static string.
-//        if (effectiveUserId.equals(OWNER_VAR)) accessUser = patchSystem.getOwner();
-//        // Use private internal method instead of public API to skip auth and other checks not needed here.
-//        // Create credential
-//        createCredential(skClient, patchSystem.getAccessCredential(), tenantName, apiUserId, systemName, systemTenantName, accessUser);
-//      }
-//    }
-//    catch (Exception e0)
-//    {
+    // ----------------- Create all artifacts --------------------
+    // TODO/TBD: Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
+    // TODO/TBD: Use try/catch to rollback any writes in case of failure.
+    // TODO: no distributed transactions so no distributed rollback needed?
+    int itemId = -1;
+    try {
+      // ------------------- Make Dao call to persist the system -----------------------------------
+      itemId = dao.updateTSystem(authenticatedUser, origTSystem, patchedTSystem, scrubbedJson);
+    }
+    catch (Exception e0)
+    {
 //      // Attempt to undo all changes and then re-throw the exception
 //      // Log error
 //      String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
@@ -343,10 +324,9 @@ public class SystemsServiceImpl implements SystemsService
 //          deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
 //        }
 //      } catch (Exception e) {};
-//      throw e0;
-//    }
-//    return itemId;
-    return -1;
+      throw e0;
+    }
+    return itemId;
   }
 
   /**
@@ -1375,6 +1355,17 @@ public class SystemsServiceImpl implements SystemsService
     }
     return permSpecSet.size();
   }
+
+  /**
+   * TODO: Merge a patch into an existing TSystem
+   */
+  private TSystem createPatchedTSystem(TSystem origSystem, PatchSystem patchSystem) throws TapisException
+  {
+//    TSystem patchedSystem = new TSystem();
+//    return patchedSystem;
+    return origSystem;
+  }
+
 
 // TODO *************** remove debug output ********************
 //  private static void printPermInfoForUser(SKClient skClient, String userName)

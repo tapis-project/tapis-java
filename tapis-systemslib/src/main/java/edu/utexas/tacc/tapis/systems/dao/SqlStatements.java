@@ -15,6 +15,10 @@ final class SqlStatements
       "VALUES (?, ?, ?, ?::system_type_type, ?, ?, ?, ?, ?::access_meth_type, ?, ?, ?::transfer_meth_type[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "RETURNING id";
 
+  static final String ADD_UPDATE =
+          "INSERT INTO system_updates (tenant, system_id, upd_seq, upd_txt) " +
+                  "VALUES (?, ?, ?, ?) ";
+
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =
     "SELECT id, tenant, name, description, system_type, owner, host, enabled, effective_user_id, " +

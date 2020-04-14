@@ -41,7 +41,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /**
-   * Create a new system object.
+   * Create a new system.
    *
    * @return Sequence id of object created
    * @throws TapisException - on error
@@ -50,32 +50,33 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   @Override
   public int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
           throws TapisException, IllegalStateException {
+    String opName = "createSystem";
     // Generated sequence id
     int systemId = -1;
     // ------------------------- Check Input -------------------------
     if (authenticatedUser == null) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "authenticatedUser");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "authenticatedUser");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (system == null || StringUtils.isBlank(system.getTenant())) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "tenantName");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "tenantName");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (StringUtils.isBlank(system.getName())) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "systemName");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "systemName");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (system.getSystemType() == null) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "systemType");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "systemType");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (system.getDefaultAccessMethod() == null)
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSystem", "defaultAccessMethod");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "defaultAccessMethod");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -183,6 +184,182 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         }
       }
 
+      // Persist update record with a sequence number of 0
+      sql = SqlStatements.ADD_UPDATE;
+      // Prepare the statement and execute it
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, system.getTenant());
+      pstmt.setInt(2, systemId);
+      pstmt.setInt(3, 0);
+      pstmt.setString(4, scrubbedJson);
+      pstmt.execute();
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_INSERT_FAILURE", "systems");
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+    return systemId;
+  }
+
+  /**
+   * Update an existing system.
+   * Following attributes will be checked for changes:
+   *  description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
+   *  port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes
+   * @return Sequence id of object created
+   * @throws TapisException - on error
+   * @throws IllegalStateException - if system already exists
+   */
+  @Override
+  public int updateTSystem(AuthenticatedUser authenticatedUser, TSystem origSystem, TSystem patchedSystem, String scrubbedJson)
+          throws TapisException, IllegalStateException {
+    String opName = "updateSystem";
+    // Sequence id of system
+    int systemId = origSystem.getId();
+    // ------------------------- Check Input -------------------------
+    if (authenticatedUser == null) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "authenticatedUser");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (patchedSystem == null || StringUtils.isBlank(patchedSystem.getTenant())) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "tenantName");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (StringUtils.isBlank(patchedSystem.getName())) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "systemName");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+    if (patchedSystem.getSystemType() == null) {
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "systemType");
+      _log.error(msg);
+      throw new TapisException(msg);
+    }
+
+    var transferMethods = TSystem.DEFAULT_TRANSFER_METHODS;
+    if (patchedSystem.getTransferMethods() != null) transferMethods = patchedSystem.getTransferMethods();
+    String transferMethodsStr = LibUtils.getTransferMethodsAsString(transferMethods);
+
+    // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
+    String proxyHost = TSystem.DEFAULT_PROXYHOST;
+    if (patchedSystem.getProxyHost() != null) proxyHost = patchedSystem.getProxyHost();
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Check to see if system exists. If no then throw IllegalStateException
+      // Prepare the statement, fill in placeholders and execute
+      String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, patchedSystem.getTenant());
+      pstmt.setString(2, patchedSystem.getName());
+      ResultSet rs = pstmt.executeQuery();
+      // Should get one row back. If not assume system does not exist
+      boolean doesExist = false;
+      if (rs != null && rs.next()) doesExist = rs.getBoolean(1);
+      if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, patchedSystem.getName()));
+
+      // Make sure owner, effectiveUserId, notes and tags are all set
+      String owner = TSystem.DEFAULT_OWNER;
+      if (StringUtils.isNotBlank(patchedSystem.getOwner())) owner = patchedSystem.getOwner();
+      String effectiveUserId = TSystem.DEFAULT_EFFECTIVEUSERID;
+      if (StringUtils.isNotBlank(patchedSystem.getEffectiveUserId())) effectiveUserId = patchedSystem.getEffectiveUserId();
+      String tagsStr = TSystem.DEFAULT_TAGS_STR;
+      if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
+      String notesStr =  TSystem.DEFAULT_NOTES_STR;
+      if (patchedSystem.getNotes() != null) notesStr = patchedSystem.getNotes().toString();
+
+      // Convert tags and notes to jsonb objects.
+      // Tags is a list of strings and notes is a JsonObject
+      var tagsJsonb = new PGobject();
+      tagsJsonb.setType("jsonb");
+      tagsJsonb.setValue(tagsStr);
+      var notesJsonb = new PGobject();
+      notesJsonb.setType("jsonb");
+      notesJsonb.setValue(notesStr);
+
+      // Prepare the statement, fill in placeholders and execute
+      sql = SqlStatements.CREATE_SYSTEM;
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, patchedSystem.getTenant());
+      pstmt.setString(2, patchedSystem.getName());
+      pstmt.setString(3, patchedSystem.getDescription());
+      pstmt.setString(4, patchedSystem.getSystemType().name());
+      pstmt.setString(5, owner);
+      pstmt.setString(6, patchedSystem.getHost());
+      pstmt.setBoolean(7, patchedSystem.isEnabled());
+      pstmt.setString(8, effectiveUserId);
+      pstmt.setString(9, patchedSystem.getDefaultAccessMethod().name());
+      pstmt.setString(10, patchedSystem.getBucketName());
+      pstmt.setString(11, patchedSystem.getRootDir());
+      pstmt.setString(12, transferMethodsStr);
+      pstmt.setInt(13, patchedSystem.getPort());
+      pstmt.setBoolean(14, patchedSystem.isUseProxy());
+      pstmt.setString(15, proxyHost);
+      pstmt.setInt(16, patchedSystem.getProxyPort());
+      pstmt.setBoolean(17, patchedSystem.getJobCanExec());
+      pstmt.setString(18, patchedSystem.getJobLocalWorkingDir());
+      pstmt.setString(19, patchedSystem.getJobLocalArchiveDir());
+      pstmt.setString(20, patchedSystem.getJobRemoteArchiveSystem());
+      pstmt.setString(21, patchedSystem.getJobRemoteArchiveDir());
+      pstmt.setObject(22, tagsJsonb);
+      pstmt.setObject(23, notesJsonb);
+      pstmt.execute();
+      // The generated sequence id should come back as result
+      rs = pstmt.getResultSet();
+      if (rs == null || !rs.next())
+      {
+        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
+        _log.error(msg);
+        throw new TapisException(msg);
+      }
+      systemId = rs.getInt(1);
+      rs.close();
+      rs = null;
+
+      // Persist job capabilities
+      var jobCapabilities = patchedSystem.getJobCapabilities();
+      if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
+        sql = SqlStatements.ADD_CAPABILITY;
+        for (Capability cap : jobCapabilities) {
+          String valStr = "";
+          if (cap.getValue() != null ) valStr = cap.getValue();
+          // Prepare the statement and execute it
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, patchedSystem.getTenant());
+          pstmt.setInt(2, systemId);
+          pstmt.setString(3, cap.getCategory().name());
+          pstmt.setString(4, cap.getName());
+          pstmt.setString(5, valStr);
+          pstmt.execute();
+        }
+      }
+
+      // Persist update record with a sequence number of 0
+      sql = SqlStatements.ADD_UPDATE;
+      // Prepare the statement and execute it
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, patchedSystem.getTenant());
+      pstmt.setInt(2, systemId);
+      pstmt.setInt(3, 0);
+      pstmt.setString(4, scrubbedJson);
+      pstmt.execute();
+
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, rs);
     }
@@ -206,16 +383,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   @Override
   public int softDeleteTSystem(String tenant, String name) throws TapisException
   {
+    String opName = "softDeleteSystem";
     int rows = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteSystem", "tenant");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "tenant");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (StringUtils.isBlank(name))
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteSystem", "name");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "name");
       _log.error(msg);
       throw new TapisException(msg);
     }
@@ -257,16 +435,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   @Override
   public int hardDeleteTSystem(String tenant, String name) throws TapisException
   {
+    String opName = "hardDeleteSystem";
     int rows = -1;
     // ------------------------- Check Input -------------------------
     if (StringUtils.isBlank(tenant)) {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hardDeleteSystem", "tenant");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "tenant");
       _log.error(msg);
       throw new TapisException(msg);
     }
     if (StringUtils.isBlank(name))
     {
-      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hardDeleteSystem", "name");
+      String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, "name");
       _log.error(msg);
       throw new TapisException(msg);
     }

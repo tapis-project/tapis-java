@@ -298,7 +298,9 @@ public class SystemResource
   @Operation(
           summary = "Update a system",
           description =
-                  "Update attributes for a system. Only certain attributes may be updated.",
+                  "Update attributes for a system. Only certain attributes may be updated: " +
+                  "description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, " +
+                  "port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.",
           tags = "systems",
           requestBody =
           @RequestBody(
@@ -370,18 +372,19 @@ public class SystemResource
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    // Fill in defaults and check constraints on TSystem attributes
-    resp = validatePSystem(patchSystem, authenticatedUser, prettyPrint);
-    if (resp != null) return resp;
-
-    // Mask any secret info that might be contained in rawJson
-    String scrubbedJson = rawJson;
-    if (patchSystem.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, PSYSTEM_FIELD);
-
-    // ---------------------------- Make service call to update the system -------------------------------
     // Update tenant name and system name
     patchSystem.setTenant(authenticatedUser.getTenantId());
     patchSystem.setName(systemName);
+    // No attributes are required. Constraints validated on server side.
+//    resp = validatePSystem(patchSystem, authenticatedUser, prettyPrint);
+//    if (resp != null) return resp;
+
+    // Mask any secret info that might be contained in rawJson
+    String scrubbedJson = rawJson;
+    // Update of credentials not supported
+//    if (patchSystem.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, PSYSTEM_FIELD);
+
+    // ---------------------------- Make service call to update the system -------------------------------
     try
     {
       systemsService.updateSystem(authenticatedUser, patchSystem, scrubbedJson);
@@ -721,8 +724,8 @@ public class SystemResource
   }
 
   /**
-   * Fill in defaults and check constraints on PatchSystem attributes
-   * Check values. name, host, accessMetheod must be set. effectiveUserId is restricted.
+   * Check constraints on PatchSystem attributes
+   * effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * Collect and report as many errors as possible so they can all be fixed before next attempt
    * NOTE: JsonSchema validation should handle some of these checks but we check here again just in case
@@ -740,26 +743,6 @@ public class SystemResource
     String msg;
     String name = patchSystem.getName();
     var errMessages = new ArrayList<String>();
-//    if (StringUtils.isBlank(system1.getName()))
-//    {
-//      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
-//      errMessages.add(msg);
-//    }
-//    if (system1.getSystemType() == null)
-//    {
-//      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
-//      errMessages.add(msg);
-//    }
-//    else if (StringUtils.isBlank(system1.getHost()))
-//    {
-//      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
-//      errMessages.add(msg);
-//    }
-//    else if (system1.getDefaultAccessMethod() == null)
-//    {
-//      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
-//      errMessages.add(msg);
-//    }
 //    else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
 //            !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
 //            !effectiveUserId.equals(TSystem.OWNER_VAR) &&
@@ -791,8 +774,7 @@ public class SystemResource
       _log.error(allErrors);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
-    return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse("NOT IMPLEMENTED", prettyPrint)).build();
-//    return null;
+    return null;
   }
 
   /**
