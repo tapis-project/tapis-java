@@ -223,7 +223,7 @@ public final class SkAdminServicePwdProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSkippedDeployMessage(SkAdminServicePwd secret)
     {
-        return " SKIPPED deploy for secret \"" + secret.secretName +
+        return " SKIPPED deployment of secret \"" + secret.secretName +
                "\" for service \"" + secret.service + "\" in tenant \"" + secret.tenant + 
                "\": No target Kubernetes secret specified.";
     }
