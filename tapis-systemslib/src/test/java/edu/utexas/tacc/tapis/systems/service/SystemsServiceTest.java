@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
@@ -50,14 +51,17 @@ public class SystemsServiceTest
 {
   private SystemsService svc;
   private SystemsServiceImpl svcImpl;
-  private AuthenticatedUser authenticatedOwnerUsr, authenticatedTestUsr1, authenticatedAdminUsr, authenticatedFilesSvc;
+  private AuthenticatedUser authenticatedOwnerUsr, authenticatedTestUsr0, authenticatedTestUsr1, authenticatedTestUsr2,
+          authenticatedAdminUsr, authenticatedFilesSvc;
   // Test data
   private static final String tenantName = "dev";
   private static final String ownerUser = "owner1";
   private static final String adminUser = "testSystemsAdminUsr";
   private static final String masterTenantName = "master";
   private static final String filesSvcName = "files";
+  private static final String testUser0 = "testuser0";
   private static final String testUser1 = "testuser1";
+  private static final String testUser2 = "testuser2";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
   private static final List<TransferMethod> txfrMethodsEmpty = new ArrayList<>();
   private static final Protocol prot1 = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
@@ -72,7 +76,9 @@ public class SystemsServiceTest
   private static final Protocol protA = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protC = new Protocol(AccessMethod.PKI_KEYS, null, -1, false, null,-1);
-  private static final Set<Permission> testPerms = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
+  private static final Set<Permission> testPermsREADMODIFY = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
+  private static final Set<Permission> testPermsREAD = new HashSet<>(Set.of(Permission.READ));
+  private static final Set<Permission> testPermsMODIFY = new HashSet<>(Set.of(Permission.MODIFY));
   private static final String[] tags1 = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
   private static final String[] tags2 = {"value3", "value4"};
@@ -147,26 +153,16 @@ public class SystemsServiceTest
           protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
           null, null, null, null,
           null, null, null, null, null);
-  TSystem sysE1 = new TSystem(-1, tenantName, "SsysE", "description E1", SystemType.LINUX, ownerUser, "hostE1", true,
-          "effUserE1", prot1.getAccessMethod(), null,"bucketE1", "/rootE1", prot1.getTransferMethods(),
+  TSystem sysE = new TSystem(-1, tenantName, "SsysE", "description E", SystemType.LINUX, ownerUser, "hostE", true,
+          "effUserE", prot1.getAccessMethod(), null,"bucketE", "/rootE", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
-          "jobLocalWorkDirE1", "jobLocalArchDirE1", "jobRemoteArchSystemE1","jobRemoteArchDirE1",
-          null, tags1, notes1JO, null, null);
-  TSystem sysE2 = new TSystem(-1, tenantName, "SsysE", "description E2", SystemType.LINUX, ownerUser, "hostE2", true,
-          "effUserE2", prot2.getAccessMethod(), null,"bucketE2", "/rootE2", prot2.getTransferMethods(),
-          prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
-          "jobLocalWorkDirE2", "jobLocalArchDirE2", "jobRemoteArchSystemE2","jobRemoteArchDirE2",
-          null, tags2, notes2JO, null, null);
-  TSystem sysF1 = new TSystem(-1, tenantName, "SsysF", "description F1", SystemType.LINUX, ownerUser, "hostF1", true,
-          "effUserF1", prot1.getAccessMethod(), null,"bucketF1", "/rootF1", prot1.getTransferMethods(),
+          "jobLocalWorkDirE", "jobLocalArchDirE", "jobRemoteArchSystemE","jobRemoteArchDirE",
+          cap2List, tags1, notes1JO, null, null);
+  TSystem sysF = new TSystem(-1, tenantName, "SsysF", "description F", SystemType.LINUX, ownerUser, "hostF", true,
+          "effUserF", prot1.getAccessMethod(), null,"bucketF", "/rootF", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
-          "jobLocalWorkDirF1", "jobLocalArchDirF1", "jobRemoteArchSystemF1","jobRemoteArchDirF1",
+          "jobLocalWorkDirF", "jobLocalArchDirF", "jobRemoteArchSystemF","jobRemoteArchDirF",
           null, tags1, notes1JO, null, null);
-  TSystem sysF2 = new TSystem(-1, tenantName, "SsysF", "description F2", SystemType.LINUX, ownerUser, "hostF2", true,
-          "effUserF2", prot2.getAccessMethod(), null,"bucketF2", "/rootF2", prot2.getTransferMethods(),
-          prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
-          "jobLocalWorkDirF2", "jobLocalArchDirF2", "jobRemoteArchSystemF2","jobRemoteArchDirF2",
-          null, tags2, notes2JO, null, null);
 
   private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
   private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
@@ -210,7 +206,9 @@ public class SystemsServiceTest
     // Initialize authenticated user and service
     authenticatedOwnerUsr = new AuthenticatedUser(ownerUser, tenantName, TapisThreadContext.AccountType.user.name(), null, ownerUser, tenantName, null, null);
     authenticatedAdminUsr = new AuthenticatedUser(adminUser, tenantName, TapisThreadContext.AccountType.user.name(), null, adminUser, tenantName, null, null);
+    authenticatedTestUsr0 = new AuthenticatedUser(testUser0, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser0, tenantName, null, null);
     authenticatedTestUsr1 = new AuthenticatedUser(testUser1, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser1, tenantName, null, null);
+    authenticatedTestUsr2 = new AuthenticatedUser(testUser2, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser2, tenantName, null, null);
     authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null);
 
     // Cleanup anything leftover from previous failed run
@@ -279,16 +277,21 @@ public class SystemsServiceTest
   @Test
   public void testPatchSystem() throws Exception
   {
+    TSystem sys0 = sysE;
     String createJson = "{\"update\": \"0-create\"}";
     String patch1Json = "{\"update\": \"1-patch1\"}";
     String patch2Json = "{\"update\": \"2-patch2\"}";
-    TSystem sys0 = sysF1;
+    PatchSystem patchSys = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
+            prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
+            prot2.getProxyPort(), cap1List, tags2, notes2JO);
+    patchSys.setName(sys0.getName());
+    patchSys.setTenant(tenantName);
     sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     Assert.fail("Not implemented");
     // TODO: Now update it using PATCH
-//    sys0 = sysF2;
+//    sys0 = sysE2;
 //    sys0.setJobCapabilities(cap1List);
 //    svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Json);
 //    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
@@ -424,18 +427,18 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Create user perms for the system
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPerms);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
     // Get the system perms for the user and make sure permissions are there
     Set<Permission> userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
     Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
-    Assert.assertEquals(userPerms.size(), testPerms.size(), "Incorrect number of perms returned.");
-    for (Permission perm: testPerms) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm.name()); }
+    Assert.assertEquals(userPerms.size(), testPermsREADMODIFY.size(), "Incorrect number of perms returned.");
+    for (Permission perm: testPermsREADMODIFY) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm.name()); }
     // Remove perms for the user. Should return a change count of 2
-    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPerms);
+    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
     Assert.assertEquals(changeCount, 2, "Change count incorrect when revoking permissions.");
     // Get the system perms for the user and make sure permissions are gone.
     userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
-    for (Permission perm: testPerms) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm.name()); }
+    for (Permission perm: testPermsREADMODIFY) { if (userPerms.contains(perm)) Assert.fail("User perms should not contain permission: " + perm.name()); }
   }
 
   // Test creating, reading and deleting user credentials for a system
@@ -525,12 +528,12 @@ public class SystemsServiceTest
     Assert.assertNull(perms, "Perms list was not null for non-existent system");
 
     // Revoke perm with no system should return 0 changes
-    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPerms);
+    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY);
     Assert.assertEquals(changeCount, 0, "Change count incorrect when revoking perms for non-existent system.");
 
     // Grant perm with no system should throw an exception
     boolean pass = false;
-    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPerms); }
+    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY); }
     catch (TapisException tce)
     {
       Assert.assertTrue(tce.getMessage().startsWith("SYSLIB_NOT_FOUND"));
@@ -569,13 +572,21 @@ public class SystemsServiceTest
   }
 
   // Test Auth denials
+  // testUsr0 - no perms
+  // testUsr1 - READ perm
+  // testUsr2 - MODIFY perm
   @Test
   public void testAuthDeny() throws Exception
   {
     TSystem sys0 = sysD;
+    PatchSystem patchSys = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
+            prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
+            prot2.getProxyPort(), cap1List, tags2, notes2JO);
+    patchSys.setName(sys0.getName());
+    patchSys.setTenant(tenantName);
     // CREATE - Deny user not owner/admin, deny service
     boolean pass = false;
-    try { svc.createSystem(authenticatedTestUsr1, sys0, scrubbedJson); }
+    try { svc.createSystem(authenticatedTestUsr0, sys0, scrubbedJson); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -598,10 +609,13 @@ public class SystemsServiceTest
     sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // Grant Usr1 - READ and Usr2 - MODIFY
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
 
     // READ - deny user not owner/admin and no READ or MODIFY access
     pass = false;
-    try { svc.getSystemByName(authenticatedTestUsr1, sys0.getName(), false, null); }
+    try { svc.getSystemByName(authenticatedTestUsr0, sys0.getName(), false, null); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -609,7 +623,31 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
 
-    // TODO MODIFY Deny user with no READ or MODIFY, deny user with only READ, deny service
+    // MODIFY Deny user with no READ or MODIFY, deny user with only READ, deny service
+    pass = false;
+    try { svc.updateSystem(authenticatedTestUsr0, patchSys, scrubbedJson); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
+    pass = false;
+    try { svc.updateSystem(authenticatedTestUsr1, patchSys, scrubbedJson); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
+    pass = false;
+    try { svc.updateSystem(authenticatedFilesSvc, patchSys, scrubbedJson); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
 
     // DELETE - deny user not owner/admin, deny service
     pass = false;
@@ -633,7 +671,7 @@ public class SystemsServiceTest
 
     // GET_PERMS - deny user not owner/admin and no READ or MODIFY access
     pass = false;
-    try { svc.getUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser); }
+    try { svc.getUserPermissions(authenticatedTestUsr0, sys0.getName(), ownerUser); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -643,7 +681,7 @@ public class SystemsServiceTest
 
     // GRANT_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPerms); }
+    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPermsREADMODIFY); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -651,7 +689,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPerms); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPermsREADMODIFY); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -661,7 +699,7 @@ public class SystemsServiceTest
 
     // REVOKE_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPerms); }
+    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPermsREADMODIFY); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -669,7 +707,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPerms); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPermsREADMODIFY); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -732,10 +770,74 @@ public class SystemsServiceTest
     Assert.assertTrue(pass);
   }
 
+  // Test Auth allow
+  // Many cases covered during other tests
+  // Test special cases here:
+  //    MODIFY implies READ
+  // testUsr0 - no perms
+  // testUsr1 - READ perm
+  // testUsr2 - MODIFY perm
+  @Test
+  public void testAuthAllow() throws Exception
+  {
+    TSystem sys0 = sysF;
+    // Create system for remaining auth access tests
+    Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
+            "fakeAccessKey", "fakeAccessSecret", "fakeCert");
+    sys0.setAccessCredential(cred0);
+    sys0.setJobCapabilities(cap2List);
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // Grant Usr1 - READ and Usr2 - MODIFY
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
+
+    // READ - allow owner, service, with READ only, with MODIFY only
+    boolean pass = true;
+    try { svc.getSystemByName(authenticatedOwnerUsr, sys0.getName(), false, null); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = false;
+    }
+    Assert.assertTrue(pass);
+    pass = true;
+    try { svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = false;
+    }
+    Assert.assertTrue(pass);
+    pass = true;
+    try { svc.getSystemByName(authenticatedTestUsr1, sys0.getName(), false, null); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = false;
+    }
+    Assert.assertTrue(pass);
+    pass = true;
+    try { svc.getSystemByName(authenticatedTestUsr2, sys0.getName(), false, null); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = false;
+    }
+    Assert.assertTrue(pass);
+  }
+
   @AfterSuite
   public void tearDown() throws Exception
   {
     System.out.println("Executing AfterSuite teardown method");
+    // Remove non-owner permissions granted during the tests
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY);
     //Remove all objects created by tests
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys1.getName());
     TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, sys1.getName(), false, null);
@@ -752,8 +854,8 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysB.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysC.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
-    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE1.getName());
-    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF1.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
   }
 
   /**

@@ -52,17 +52,10 @@ public final class PatchSystem
   // ************************************************************************
 
   /**
-   * Constructor using only required attributes.
-   */
-  public PatchSystem()
-  {
-  }
-
-  /**
    * Constructor using all attributes. Useful for testing.
    */
-  public PatchSystem(String description1, String owner1, String host1, boolean enabled1, String effectiveUserId1,
-                     AccessMethod defaultAccessMethod1, Credential accessCredential1, List<TransferMethod> transferMethods1,
+  public PatchSystem(String description1, String host1, boolean enabled1, String effectiveUserId1,
+                     AccessMethod defaultAccessMethod1, List<TransferMethod> transferMethods1,
                      int port1, boolean useProxy1, String proxyHost1, int proxyPort1, List<Capability> jobCapabilities1,
                      String[] tags1, JsonObject notes1)
   {

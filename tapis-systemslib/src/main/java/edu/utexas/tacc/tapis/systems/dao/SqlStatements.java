@@ -15,6 +15,12 @@ final class SqlStatements
       "VALUES (?, ?, ?, ?::system_type_type, ?, ?, ?, ?, ?::access_meth_type, ?, ?, ?::transfer_meth_type[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "RETURNING id";
 
+  static final String UPDATE_SYSTEM =
+          "UPDATE systems SET description = ?, host = ?, enabled = ?, effective_user_id = ?, " +
+                  "default_access_method = ?::access_meth_type, transfer_methods = ?::transfer_meth_type[], " +
+                  "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags = ?, notes = ? " +
+                  "WHERE id = ?";
+
   static final String ADD_UPDATE =
           "INSERT INTO system_updates (tenant, system_id, upd_seq, upd_txt) " +
                   "VALUES (?, ?, ?, ?) ";

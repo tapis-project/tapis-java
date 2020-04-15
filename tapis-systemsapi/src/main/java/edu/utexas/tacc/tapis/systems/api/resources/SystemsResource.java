@@ -37,7 +37,7 @@ import org.glassfish.grizzly.http.server.Request;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 @OpenAPIDefinition(
-    security = {@SecurityRequirement(name = "Tapis JWT")},
+    security = {@SecurityRequirement(name = "TapisJWT")},
     info = @Info(
         title = "Tapis Systems API",
         version = "0.1",

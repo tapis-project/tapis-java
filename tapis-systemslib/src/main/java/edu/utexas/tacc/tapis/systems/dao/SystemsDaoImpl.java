@@ -285,7 +285,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       notesJsonb.setValue(notesStr);
 
       // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CREATE_SYSTEM;
+      String sql = SqlStatements.UPDATE_SYSTEM;
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, patchedSystem.getTenant());
