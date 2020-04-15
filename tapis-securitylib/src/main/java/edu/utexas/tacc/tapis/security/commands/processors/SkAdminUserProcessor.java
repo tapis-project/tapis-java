@@ -130,6 +130,12 @@ public final class SkAdminUserProcessor
     @Override
     protected void deploy(SkAdminUser secret, ISkAdminDeployRecorder recorder)
     {
+        // Is this secret slated for deployment?
+        if (StringUtils.isBlank(secret.kubeSecretName)) {
+            _results.recordDeploySkipped(makeSkippedDeployMessage(secret));
+            return;
+        }   
+        
         // See if the secret already exists.
         SkSecret skSecret = null;
         try {skSecret = readSecret(secret);} 
@@ -207,5 +213,16 @@ public final class SkAdminUserProcessor
         return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
                "\" with key \"" + secret.key +
                "\" for user \"" + secret.user + "\" in tenant " + secret.tenant + "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    private String makeSkippedDeployMessage(SkAdminUser secret)
+    {
+        return " SKIPPED deploy for secret \"" + secret.secretName +
+               "\" with key \"" + secret.key +
+               "\" for user \"" + secret.user + "\" in tenant \"" + secret.tenant + 
+               "\": No target Kubernetes secret specified.";
     }
 }

@@ -35,8 +35,10 @@ public final class SkAdminResults
     
     // Kubernetes deployment outcomes.
     private int secretsDeployments;
+    private int secretsDeploymentsSkipped;
     private int secretsDeploymentsFailed;
     private int secretsDeploymentKeys;
+    private int secretsDeploymentKeysSkipped;
     private int secretsDeploymentKeysFailed;
     
     // Summary generation information.
@@ -100,6 +102,18 @@ public final class SkAdminResults
     }
     
     /* ---------------------------------------------------------------------- */
+    /* recordSkipped:                                                         */
+    /* ---------------------------------------------------------------------- */
+    public void recordSkipped(Op op, SecretType type, String message)
+    {
+        // Tally the outcome.
+        secretsSkipped++;
+        
+        // Record the message.
+        addMessage(type, message);
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* recordFailure:                                                         */
     /* ---------------------------------------------------------------------- */
     public void recordFailure(Op op, SecretType type, String message)
@@ -125,6 +139,19 @@ public final class SkAdminResults
     }
     
     /* ---------------------------------------------------------------------- */
+    /* recordDeploySkipped:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public void recordDeploySkipped(String message)
+    {
+        // Tally the outcome.
+        secretsDeploymentsSkipped++;
+        secretsDeploymentKeysSkipped++;
+        
+        // Record the message.
+        deployMsgs.add(message);
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* recordDeployFailure:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Failure message not tied to a specific secret type.  This covers the
@@ -144,18 +171,6 @@ public final class SkAdminResults
         // Record the message.
         deployMsgs.add(message);
     }   
-    
-    /* ---------------------------------------------------------------------- */
-    /* recordSkipped:                                                         */
-    /* ---------------------------------------------------------------------- */
-    public void recordSkipped(Op op, SecretType type, String message)
-    {
-        // Tally the outcome.
-        secretsSkipped++;
-        
-        // Record the message.
-        addMessage(type, message);
-    }
     
     /* ---------------------------------------------------------------------- */
     /* incrementKeyPairsGenerated:                                            */
@@ -218,6 +233,12 @@ public final class SkAdminResults
         buf.append("\n");
         buf.append("Secrets deploymentKeys:        ");
         buf.append(secretsDeploymentKeys);
+        buf.append("\n");
+        buf.append("Secrets deploymentsSkipped:    ");
+        buf.append(secretsDeploymentsSkipped);
+        buf.append("\n");
+        buf.append("Secrets deploymentKeysSkipped: ");
+        buf.append(secretsDeploymentKeysSkipped);
         buf.append("\n");
         buf.append("Secrets deploymentsFailed:     ");
         buf.append(secretsDeploymentsFailed);
