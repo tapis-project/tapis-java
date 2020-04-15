@@ -212,8 +212,6 @@ public class SkAdmin
     public void admin()
      throws TapisException
     {
-        //var keyPair = generateKeyPair();
-        
         // Load the input file or files into a pojo.
         _secrets = loadSecrets();
         
@@ -816,6 +814,9 @@ public class SkAdmin
             _log.error(msg, e);
             throw new TapisException(msg, e);
         }
+        
+        // Catalog the input file.
+        _results.addInputFile(file.getAbsolutePath());
 
         // Return the wrapper content.
         return wrapper.secrets;

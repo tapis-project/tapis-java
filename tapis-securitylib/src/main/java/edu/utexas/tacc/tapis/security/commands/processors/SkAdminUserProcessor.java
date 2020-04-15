@@ -220,7 +220,7 @@ public final class SkAdminUserProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSkippedDeployMessage(SkAdminUser secret)
     {
-        return " SKIPPED deploy for secret \"" + secret.secretName +
+        return " SKIPPED deployment of secret \"" + secret.secretName +
                "\" with key \"" + secret.key +
                "\" for user \"" + secret.user + "\" in tenant \"" + secret.tenant + 
                "\": No target Kubernetes secret specified.";

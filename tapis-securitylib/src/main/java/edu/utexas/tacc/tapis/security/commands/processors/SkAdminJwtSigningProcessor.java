@@ -226,7 +226,7 @@ public final class SkAdminJwtSigningProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSkippedDeployMessage(SkAdminJwtSigning secret)
     {
-        return " SKIPPED deploy for JWT secret \"" + secret.secretName +
+        return " SKIPPED deployment of JWT secret \"" + secret.secretName +
                "\" in tenant \"" + secret.tenant + 
                "\": No target Kubernetes secret specified.";
     }

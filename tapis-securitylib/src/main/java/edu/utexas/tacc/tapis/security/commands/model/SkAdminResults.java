@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.security.commands.model;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -45,6 +46,9 @@ public final class SkAdminResults
     private int keyPairsGenerated;
     private int passwordsGenerated;
     
+    // Input file list.
+    private ArrayList<String> inputFiles = new ArrayList<>();
+    
     // Detailed information.  Deployment results are for kubernetes secrets,
     // which can contain multiple types of SK secrets. 
     private TreeSet<String> dbCredentialMsgs = new TreeSet<>();
@@ -76,6 +80,11 @@ public final class SkAdminResults
         if (_instance == null) _instance = new SkAdminResults();
         return _instance;
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addInputFile:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public void addInputFile(String filename){inputFiles.add(filename);}
     
     /* ---------------------------------------------------------------------- */
     /* recordSuccess:                                                         */
@@ -215,6 +224,11 @@ public final class SkAdminResults
     {
         // Hand build the output.
         var buf = new StringBuilder(1024);
+        buf.append("----------- Input -------------\n");
+        buf.append("--> Input files:\n");
+        var lit = inputFiles.listIterator();
+        while (lit.hasNext()) {buf.append("    "); buf.append(lit.next()); buf.append("\n");}
+        buf.append("\n");
         buf.append("----------- Summary -----------\n");
         buf.append("Secrets created:               ");
         buf.append(secretsCreated);

@@ -230,7 +230,7 @@ public final class SkAdminDBCredentialProcessor
     /* ---------------------------------------------------------------------- */
     private String makeSkippedDeployMessage(SkAdminDBCredential secret)
     {
-        return " SKIPPED deploy for secret \"" + secret.secretName +
+        return " SKIPPED deployment of secret \"" + secret.secretName +
                "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
                "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
                "\": No target Kubernetes secret specified.";
