@@ -1,8 +1,5 @@
 package edu.utexas.tacc.tapis.systems.model;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /*
@@ -11,6 +8,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
  *   the Security Kernel.
  * The secret information will depend on the system type and access method.
  *
+ * Immutable
  * This class is intended to represent an immutable object.
  * Please keep it immutable.
  *
@@ -35,8 +33,6 @@ public final class Credential
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
-  // Logging
-  private static final Logger _log = LoggerFactory.getLogger(Credential.class);
 
   private final String password; // Password for when accessMethod is PASSWORD
   private final String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT

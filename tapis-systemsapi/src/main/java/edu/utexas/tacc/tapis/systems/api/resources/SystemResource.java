@@ -13,7 +13,17 @@ import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.glassfish.grizzly.http.server.Request;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.PATCH;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -79,8 +89,8 @@ public class SystemResource
   private static final String SECRETS_MASK = "***";
 
   // Field names used in Json
-  private static final String TSYSTEM_FIELD = "tSystem";
-  private static final String PSYSTEM_FIELD = "patchSystem";
+  private static final String TSYSTEM_FIELD = "System";
+  private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";
@@ -213,7 +223,7 @@ public class SystemResource
     TSystem system;
     try {
       ReqCreateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
-      system = req.tSystem;
+      system = req.System;
     }
     catch (Exception e)
     {
@@ -364,7 +374,7 @@ public class SystemResource
     PatchSystem patchSystem;
     try {
       ReqUpdateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
-      patchSystem = req.patchSystem;
+      patchSystem = req.PatchSystem;
     }
     catch (Exception e)
     {
@@ -375,19 +385,14 @@ public class SystemResource
     // Update tenant name and system name
     patchSystem.setTenant(authenticatedUser.getTenantId());
     patchSystem.setName(systemName);
-    // No attributes are required. Constraints validated on server side.
-//    resp = validatePSystem(patchSystem, authenticatedUser, prettyPrint);
-//    if (resp != null) return resp;
 
-    // Mask any secret info that might be contained in rawJson
-    String scrubbedJson = rawJson;
-    // Update of credentials not supported
-//    if (patchSystem.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, PSYSTEM_FIELD);
+    // No attributes are required. Constraints validated and defaults filled in on server side.
+    // No secrets in PatchSystem so no need to scrub
 
     // ---------------------------- Make service call to update the system -------------------------------
     try
     {
-      systemsService.updateSystem(authenticatedUser, patchSystem, scrubbedJson);
+      systemsService.updateSystem(authenticatedUser, patchSystem, rawJson);
     }
     catch (NotFoundException e)
     {
@@ -711,60 +716,6 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
       errMessages.add(msg);
     }
-
-    // If validation failed log error message and return response
-    if (!errMessages.isEmpty())
-    {
-      // Construct message reporting all errors
-      String allErrors = getListOfErrors(errMessages, authenticatedUser, name);
-      _log.error(allErrors);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
-    }
-    return null;
-  }
-
-  /**
-   * Check constraints on PatchSystem attributes
-   * effectiveUserId is restricted.
-   * If transfer mechanism S3 is supported then bucketName must be set.
-   * Collect and report as many errors as possible so they can all be fixed before next attempt
-   * NOTE: JsonSchema validation should handle some of these checks but we check here again just in case
-   *
-   * @return null if OK or error Response
-   */
-  private static Response validatePSystem(PatchSystem patchSystem, AuthenticatedUser authenticatedUser, boolean prettyPrint)
-  {
-//    // Make sure owner, effectiveUserId, transferMethods, notes and tags are all set
-//    TSystem system1 = TSystem.checkAndSetDefaults(system);
-//
-//    String effectiveUserId = system1.getEffectiveUserId();
-//    String owner  = system1.getOwner();
-//    String name = system1.getName();
-    String msg;
-    String name = patchSystem.getName();
-    var errMessages = new ArrayList<String>();
-//    else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
-//            !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
-//            !effectiveUserId.equals(TSystem.OWNER_VAR) &&
-//            !StringUtils.isBlank(owner) &&
-//            !effectiveUserId.equals(owner))
-//    {
-//      // For CERT access the effectiveUserId cannot be static string other than owner
-//      msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
-//      errMessages.add(msg);
-//    }
-//    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
-//    {
-//      // For S3 support bucketName must be set
-//      msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
-//      errMessages.add(msg);
-//    }
-//    else if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
-//    {
-//      // If effectiveUserId is dynamic then providing credentials is disallowed
-//      msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");
-//      errMessages.add(msg);
-//    }
 
     // If validation failed log error message and return response
     if (!errMessages.isEmpty())

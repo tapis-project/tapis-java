@@ -44,6 +44,7 @@ import java.util.Set;
 
 import static edu.utexas.tacc.tapis.systems.model.Credential.*;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.DEFAULT_EFFECTIVEUSERID;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
@@ -105,9 +106,11 @@ public class SystemsServiceImpl implements SystemsService
   // -----------------------------------------------------------------------
 
   /**
-   * Create a new system object
+   * Create a new system object given a TSystem and the json used to create the TSystem.
+   * Secrets in the json should be masked.
    * @param authenticatedUser - principal user containing tenant and user info
    * @param system - Pre-populated TSystem object
+   * @param scrubbedJson - Json (with secrets masked) used to create the TSystem object
    * @return Sequence id of object created
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -203,14 +206,14 @@ public class SystemsServiceImpl implements SystemsService
 
       // Rollback
       // Remove system from DB
-      if (itemId != -1) try {dao.softDeleteTSystem(tenantName, systemName); } catch (Exception e) {};
+      if (itemId != -1) try {dao.softDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
       // Remove perms
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpec); } catch (Exception e) {};
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpec); } catch (Exception e) {};
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {};
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {};
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
       // Remove creds
       try
       {
@@ -220,14 +223,15 @@ public class SystemsServiceImpl implements SystemsService
           // Use private internal method instead of public API to skip auth and other checks not needed here.
           deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
         }
-      } catch (Exception e) {};
+      } catch (Exception e) {}
       throw e0;
     }
     return itemId;
   }
 
   /**
-   * Update a system object.
+   * Update a system object given a PatchSystem and the json used to create the PatchSystem.
+   * Secrets in the json should be masked.
    * Attributes that can be updated:
    *   description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
    *   port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
@@ -236,6 +240,7 @@ public class SystemsServiceImpl implements SystemsService
    *   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir
    * @param authenticatedUser - principal user containing tenant and user info
    * @param patchSystem - Pre-populated PatchSystem object
+   * @param scrubbedJson - Json (with secrets masked) used to create the PatchSystem object
    * @return Sequence id of object updated
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -269,63 +274,21 @@ public class SystemsServiceImpl implements SystemsService
       throw new NotFoundException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
     }
 
+    // Retrieve the system being patched and create fully populated TSystem with changes merged in
     TSystem origTSystem = dao.getTSystemByName(systemTenantName, systemName);
-    // Create fully populated TSystem with changes merged in
     TSystem patchedTSystem = createPatchedTSystem(origTSystem, patchSystem);
-//TODO    // Make sure owner, effectiveUserId, notes and tags are all set
-//    // Note that this is done before auth so owner can get resolved and used during auth check.
-//    patchSystem.setTenant(systemTenantName);
-//    patchSystem = TSystem.checkAndSetDefaults(patchSystem);
-//    String effectiveUserId = patchSystem.getEffectiveUserId();
-//
-//TODO    // ----------------- Resolve variables for any attributes that might contain them --------------------
-//    patchSystem = resolveVariables(patchSystem, authenticatedUser.getOboUser());
-//
+
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, origTSystem.getOwner(), null, null);
 
-//    // ---------------- Check constraints on TSystem attributes ------------------------
-//    validateTSystem(authenticatedUser, patchSystem);
-//
+    // ---------------- Check constraints on TSystem attributes ------------------------
+    validateTSystem(authenticatedUser, patchedTSystem);
+
     // ----------------- Create all artifacts --------------------
-    // TODO/TBD: Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
-    // TODO/TBD: Use try/catch to rollback any writes in case of failure.
-    // TODO: no distributed transactions so no distributed rollback needed?
-    int itemId = -1;
-    try {
-      // ------------------- Make Dao call to persist the system -----------------------------------
-      itemId = dao.updateTSystem(authenticatedUser, origTSystem, patchedTSystem, scrubbedJson);
-    }
-    catch (Exception e0)
-    {
-//      // Attempt to undo all changes and then re-throw the exception
-//      // Log error
-//      String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
-//      _log.error(msg);
-//
-//      // Rollback
-//      // Remove system from DB
-//      if (itemId != -1) try {dao.softDeleteTSystem(tenantName, systemName); } catch (Exception e) {};
-//      // Remove perms
-//      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
-//      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
-//      try { skClient.revokeUserPermission(systemTenantName, patchSystem.getOwner(), systemsPermSpec); } catch (Exception e) {};
-//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpec); } catch (Exception e) {};
-//      try { skClient.revokeUserPermission(systemTenantName, patchSystem.getOwner(), filesPermSpec);  } catch (Exception e) {};
-//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {};
-//      // Remove creds
-//      try
-//      {
-//        if (patchSystem.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
-//          String accessUser = effectiveUserId;
-//          if (effectiveUserId.equals(OWNER_VAR)) accessUser = patchSystem.getOwner();
-//          // Use private internal method instead of public API to skip auth and other checks not needed here.
-//          deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
-//        }
-//      } catch (Exception e) {};
-      throw e0;
-    }
-    return itemId;
+    // No distributed transactions so no distributed rollback needed
+    // ------------------- Make Dao call to persist the system -----------------------------------
+    dao.updateTSystem(authenticatedUser, patchedTSystem, patchSystem, scrubbedJson);
+    return origTSystem.getId();
   }
 
   /**
@@ -491,7 +454,7 @@ public class SystemsServiceImpl implements SystemsService
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 //TODO/TBD    // If system does not exist then throw an exception
 //    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -500,7 +463,6 @@ public class SystemsServiceImpl implements SystemsService
     if (result == null) return null;
     // Resolve effectiveUserId if necessary
     String effectiveUserId = resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId);
-    // Update result with effectiveUserId
     result.setEffectiveUserId(effectiveUserId);
     // If requested and effectiveUserid is not ${apiUserId} (i.e. is static) then retrieve credentials from Security Kernel
     if (getCreds && !result.getEffectiveUserId().equals(TSystem.APIUSERID_VAR))
@@ -614,7 +576,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // If system does not exist or has been soft deleted then throw an exception
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
-      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -722,7 +684,7 @@ public class SystemsServiceImpl implements SystemsService
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 //TODO/TBD    // If system does not exist then throw an exception
 //    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -771,7 +733,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // If system does not exist or has been soft deleted then throw an exception
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
-      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
+      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -868,7 +830,7 @@ public class SystemsServiceImpl implements SystemsService
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 //TODO/TBD    // If system does not exist then throw an exception
 //    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));;
+//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -942,7 +904,6 @@ public class SystemsServiceImpl implements SystemsService
   private SKClient getSKClient(AuthenticatedUser authenticatedUser) throws TapisException
   {
     String tenantName = authenticatedUser.getTenantId();
-    String apiUserId = authenticatedUser.getName();
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
     Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
 
@@ -1022,7 +983,8 @@ public class SystemsServiceImpl implements SystemsService
       msg = LibUtils.getMsg("SYSLIB_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
+    else if (system.getTransferMethods() != null && system.getTransferMethods().contains(TransferMethod.S3) &&
+             StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = LibUtils.getMsg("SYSLIB_S3_NOBUCKET_INPUT");
@@ -1356,15 +1318,35 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * TODO: Merge a patch into an existing TSystem
+   * Merge a patch into an existing TSystem
+   * Attributes that can be updated:
+   *   description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
+   *   port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
    */
-  private TSystem createPatchedTSystem(TSystem origSystem, PatchSystem patchSystem) throws TapisException
+  private TSystem createPatchedTSystem(TSystem o, PatchSystem p)
   {
-//    TSystem patchedSystem = new TSystem();
-//    return patchedSystem;
-    return origSystem;
+    TSystem p1 = new TSystem(o);
+    if (p.getDescription() != null) p1.setDescription(p.getDescription());
+    if (p.getHost() != null) p1.setHost(p.getHost());
+    if (p.isEnabled() != null) p1.setEnabled(p.isEnabled());
+    if (p.getEffectiveUserId() != null) {
+      if (StringUtils.isBlank(p.getEffectiveUserId())) {
+        p1.setEffectiveUserId(DEFAULT_EFFECTIVEUSERID);
+      } else {
+        p1.setEffectiveUserId(p.getEffectiveUserId());
+      }
+    }
+    if (p.getDefaultAccessMethod() != null) p1.setDefaultAccessMethod(p.getDefaultAccessMethod());
+    if (p.getTransferMethods() != null) p1.setTransferMethods(p.getTransferMethods());
+    if (p.getPort() != null) p1.setPort(p.getPort());
+    if (p.isUseProxy() != null) p1.setUseProxy(p.isUseProxy());
+    if (p.getProxyHost() != null) p1.setProxyHost(p.getProxyHost());
+    if (p.getProxyPort() != null) p1.setProxyPort(p.getProxyPort());
+    if (p.getJobCapabilities() != null) p1.setJobCapabilities(p.getJobCapabilities());
+    if (p.getTags() != null) p1.setTags(p.getTags());
+    if (p.getNotes() != null) p1.setNotes(p.getNotes());
+    return p1;
   }
-
 
 // TODO *************** remove debug output ********************
 //  private static void printPermInfoForUser(SKClient skClient, String userName)

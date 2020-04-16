@@ -87,6 +87,17 @@ public class SystemsServiceTest
   private static final String scrubbedJson = "{}";
   private static final JsonObject notes1JO = TapisGsonUtils.getGson().fromJson(notes1, JsonObject.class);
   private static final JsonObject notes2JO = TapisGsonUtils.getGson().fromJson(notes2, JsonObject.class);
+
+  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
+  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
+  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
+  private static final Capability capD1 = new Capability(Category.CONTAINER, "Singularity", null);
+  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1, capD1));
+  private static final Capability capA2 = new Capability(Category.SCHEDULER, "Type", "Condor");
+  private static final Capability capB2 = new Capability(Category.HARDWARE, "CoresPerNode", "128");
+  private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "3.1");
+  private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2));
+
   TSystem sys1 = new TSystem(-1, tenantName, "Ssys1", "description 1", SystemType.LINUX, ownerUser, "host1", true,
           "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
@@ -96,7 +107,7 @@ public class SystemsServiceTest
           "effUser2", prot2.getAccessMethod(), null,"bucket2", "/root2", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
-          null, tags1, notes1JO, null, null);
+          cap1List, tags1, notes1JO, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Ssys3", "description 3", SystemType.OBJECT_STORE, ownerUser, "host3", true,
           "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
           prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
@@ -157,22 +168,17 @@ public class SystemsServiceTest
           "effUserE", prot1.getAccessMethod(), null,"bucketE", "/rootE", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirE", "jobLocalArchDirE", "jobRemoteArchSystemE","jobRemoteArchDirE",
-          cap2List, tags1, notes1JO, null, null);
+          cap1List, tags1, notes1JO, null, null);
+  TSystem sysE2 = new TSystem(-1, tenantName, "SsysE", "description PATCHED", SystemType.LINUX, ownerUser, "hostPATCHED", false,
+          "effUserPATCHED", prot2.getAccessMethod(), null,"bucketE", "/rootE", prot2.getTransferMethods(),
+          prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
+          "jobLocalWorkDirE", "jobLocalArchDirE", "jobRemoteArchSystemE","jobRemoteArchDirE",
+          cap2List, tags2, notes2JO, null, null);
   TSystem sysF = new TSystem(-1, tenantName, "SsysF", "description F", SystemType.LINUX, ownerUser, "hostF", true,
           "effUserF", prot1.getAccessMethod(), null,"bucketF", "/rootF", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirF", "jobLocalArchDirF", "jobRemoteArchSystemF","jobRemoteArchDirF",
           null, tags1, notes1JO, null, null);
-
-  private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
-  private static final Capability capB1 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
-  private static final Capability capC1 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
-  private static final List<Capability> cap1List = new ArrayList<>(List.of(capA1, capB1, capC1));
-  private static final Capability capA2 = new Capability(Category.SCHEDULER, "Type", "Slurm");
-  private static final Capability capB2 = new Capability(Category.HARDWARE, "CoresPerNode", "4");
-  private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "4.5");
-  private static final Capability capD2 = new Capability(Category.CONTAINER, "Singularity", null);
-  private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2, capD2));
 
   @BeforeSuite
   public void setUp() throws Exception
@@ -242,13 +248,12 @@ public class SystemsServiceTest
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     sys0.setAccessCredential(cred0);
-    sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Retrieve the system including the credential using the default access method defined for the system
     // Use files service AuthenticatedUser since only certain services can retrieve the cred.
     TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), true, null);
-    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap2List);
+    checkCommonSysAttrs(sys0, tmpSys);
     // Verify credentials. Only cred for default accessMethod is returned. In this case PKI_KEYS.
     Credential cred = tmpSys.getAccessCredential();
     Assert.assertNotNull(cred, "AccessCredential should not be null");
@@ -275,28 +280,24 @@ public class SystemsServiceTest
 
   // Test updating a system using PATCH
   @Test
-  public void testPatchSystem() throws Exception
+  public void testUpdateSystem() throws Exception
   {
     TSystem sys0 = sysE;
     String createJson = "{\"update\": \"0-create\"}";
     String patch1Json = "{\"update\": \"1-patch1\"}";
     String patch2Json = "{\"update\": \"2-patch2\"}";
-    PatchSystem patchSys = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
+    PatchSystem patchSystem = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
             prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
-            prot2.getProxyPort(), cap1List, tags2, notes2JO);
-    patchSys.setName(sys0.getName());
-    patchSys.setTenant(tenantName);
-    sys0.setJobCapabilities(cap2List);
+            prot2.getProxyPort(), cap2List, tags2, notes2JO);
+    patchSystem.setName(sys0.getName());
+    patchSystem.setTenant(tenantName);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    Assert.fail("Not implemented");
-    // TODO: Now update it using PATCH
-//    sys0 = sysE2;
-//    sys0.setJobCapabilities(cap1List);
-//    svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Json);
-//    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
-//    // Check common system attributes:
-//    checkCommonSysAttrs(sys0, tmpSys, tags1, notes1JO, cap1List);
+    // Update using patchSys
+    svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Json);
+    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+    // Check common system attributes:
+    checkCommonSysAttrs(sysE2, tmpSys);
 //    //TODO
   }
 
@@ -581,7 +582,7 @@ public class SystemsServiceTest
     TSystem sys0 = sysD;
     PatchSystem patchSys = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
             prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
-            prot2.getProxyPort(), cap1List, tags2, notes2JO);
+            prot2.getProxyPort(), cap2List, tags2, notes2JO);
     patchSys.setName(sys0.getName());
     patchSys.setTenant(tenantName);
     // CREATE - Deny user not owner/admin, deny service
@@ -606,7 +607,6 @@ public class SystemsServiceTest
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     sys0.setAccessCredential(cred0);
-    sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
@@ -785,7 +785,6 @@ public class SystemsServiceTest
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     sys0.setAccessCredential(cred0);
-    sys0.setJobCapabilities(cap2List);
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
@@ -863,8 +862,7 @@ public class SystemsServiceTest
    * @param sys0 - Test system
    * @param tmpSys - Retrieved system
    */
-  private static void checkCommonSysAttrs(TSystem sys0, TSystem tmpSys, String[] tags0, JsonObject notes0JO,
-                                          List<Capability> cap0List)
+  private static void checkCommonSysAttrs(TSystem sys0, TSystem tmpSys)
   {
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
     System.out.println("Found item: " + sys0.getName());
@@ -894,34 +892,37 @@ public class SystemsServiceTest
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
     }
     // Verify tags
+    String[] origTags = sys0.getTags();
     String[] tmpTags = tmpSys.getTags();
     Assert.assertNotNull(tmpTags, "Tags value was null");
     var tagsList = Arrays.asList(tmpTags);
-    Assert.assertEquals(tmpTags.length, tags0.length, "Wrong number of tags.");
-    for (String tagStr : tags0)
+    Assert.assertEquals(tmpTags.length, origTags.length, "Wrong number of tags.");
+    for (String tagStr : origTags)
     {
       Assert.assertTrue(tagsList.contains(tagStr));
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
+    JsonObject origNotes = sys0.getNotes();
     JsonObject tmpObj = tmpSys.getNotes();
     String tmpNotesStr = tmpObj.toString();
     System.out.println("Found notes: " + tmpNotesStr);
     Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Notes string not found.");
     Assert.assertNotNull(tmpObj, "Error parsing Notes string");
     Assert.assertTrue(tmpObj.has("project"));
-    String projStr = notes0JO.get("project").getAsString();
+    String projStr = origNotes.get("project").getAsString();
     Assert.assertEquals(tmpObj.get("project").getAsString(), projStr);
     Assert.assertTrue(tmpObj.has("testdata"));
-    String testdataStr = notes0JO.get("testdata").getAsString();
+    String testdataStr = origNotes.get("testdata").getAsString();
     Assert.assertEquals(tmpObj.get("testdata").getAsString(), testdataStr);
     // Verify capabilities
+    List<Capability> origCaps = sys0.getJobCapabilities();
     List<Capability> jobCaps = tmpSys.getJobCapabilities();
     Assert.assertNotNull(jobCaps);
-    Assert.assertEquals(jobCaps.size(), cap0List.size());
+    Assert.assertEquals(jobCaps.size(), origCaps.size());
     var capNamesFound = new ArrayList<String>();
     for (Capability capFound : jobCaps) {capNamesFound.add(capFound.getName());}
-    for (Capability capSeedItem : cap0List)
+    for (Capability capSeedItem : origCaps)
     {
       Assert.assertTrue(capNamesFound.contains(capSeedItem.getName()),
               "List of capabilities did not contain a capability named: " + capSeedItem.getName());

@@ -134,6 +134,16 @@ public class LibUtils
     return sb.toString();
   }
 
+  /**
+   * Log a TAPIS_NULL_PARAMETER exception and throw a TapisException
+   */
+  public static void logAndThrowNullParmException(String opName, String parmName) throws TapisException
+  {
+    String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, parmName);
+    _log.error(msg);
+    throw new TapisException(msg);
+  }
+
   // =============== DB Transaction Management ============================
   /**
    * Close any DB connection related artifacts that are not null

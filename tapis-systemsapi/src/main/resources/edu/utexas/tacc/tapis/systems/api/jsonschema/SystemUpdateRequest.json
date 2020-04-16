@@ -5,9 +5,9 @@
   "additionalProperties": false,
 
   "type": "object",
-  "required": [ "patchSystem" ],
+  "required": [ "PatchSystem" ],
   "properties": {
-    "patchSystem": {
+    "PatchSystem": {
       "type": "object",
       "properties": {
         "description": { "type": "string", "maxLength": 2048 },

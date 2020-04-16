@@ -5,9 +5,9 @@
   "additionalProperties": false,
 
   "type": "object",
-  "required": [ "tSystem" ],
+  "required": [ "System" ],
   "properties": {
-    "tSystem": {
+    "System": {
       "type": "object",
       "required": [ "name", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
       "properties": {
