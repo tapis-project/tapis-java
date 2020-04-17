@@ -20,9 +20,9 @@ import java.util.Set;
 @Contract
 public interface SystemsService
 {
-  int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
+  int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
 
-  int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedJson) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
+  int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
 
   int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
 

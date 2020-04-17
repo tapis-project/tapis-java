@@ -49,7 +49,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
+  public int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String createJsonStr, String scrubbedText)
           throws TapisException, IllegalStateException {
     String opName = "createSystem";
     // Generated sequence id
@@ -57,6 +57,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     // ------------------------- Check Input -------------------------
     if (system == null) LibUtils.logAndThrowNullParmException(opName, "system");
     if (authenticatedUser == null) LibUtils.logAndThrowNullParmException(opName, "authenticatedUser");
+    if (StringUtils.isBlank(createJsonStr)) LibUtils.logAndThrowNullParmException(opName, "createJson");
     if (StringUtils.isBlank(system.getTenant())) LibUtils.logAndThrowNullParmException(opName, "tenant");
     if (StringUtils.isBlank(system.getName())) LibUtils.logAndThrowNullParmException(opName, "systemName");
     if (system.getSystemType() == null) LibUtils.logAndThrowNullParmException(opName, "systemType");
@@ -141,12 +142,18 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Persist job capabilities
       persistJobCapabilities(conn, system, systemId);
 
+      // Convert updateJsonStr to jsonb object.
+      var createJsonb = new PGobject();
+      createJsonb.setType("jsonb");
+      createJsonb.setValue(createJsonStr);
+
       // Persist update record with a sequence number of 0
       sql = SqlStatements.ADD_UPDATE;
       // Prepare the statement and execute it
       pstmt = conn.prepareStatement(sql);
       pstmt.setInt(1, systemId);
-      pstmt.setString(2, scrubbedJson);
+      pstmt.setObject(2, createJsonb);
+      pstmt.setString(3, scrubbedText);
       pstmt.execute();
 
       // Close out and commit
@@ -175,13 +182,15 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws IllegalStateException - if system already exists
    */
   @Override
-  public int updateTSystem(AuthenticatedUser authenticatedUser, TSystem patchedSystem, PatchSystem patchSystem, String scrubbedJson)
+  public int updateTSystem(AuthenticatedUser authenticatedUser, TSystem patchedSystem, PatchSystem patchSystem,
+                           String updateJsonStr, String scrubbedText)
           throws TapisException, IllegalStateException {
     String opName = "updateSystem";
     // ------------------------- Check Input -------------------------
     if (patchedSystem == null) LibUtils.logAndThrowNullParmException(opName, "patchedSystem");
     if (patchSystem == null) LibUtils.logAndThrowNullParmException(opName, "patchSystem");
     if (authenticatedUser == null) LibUtils.logAndThrowNullParmException(opName, "authenticatedUser");
+    if (StringUtils.isBlank(updateJsonStr)) LibUtils.logAndThrowNullParmException(opName, "updateJson");
     if (StringUtils.isBlank(patchedSystem.getTenant())) LibUtils.logAndThrowNullParmException(opName, "tenant");
     if (StringUtils.isBlank(patchedSystem.getName())) LibUtils.logAndThrowNullParmException(opName, "systemName");
     if (patchedSystem.getSystemType() == null) LibUtils.logAndThrowNullParmException(opName, "systemType");
@@ -250,12 +259,18 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         persistJobCapabilities(conn, patchedSystem, systemId);
       }
 
+      // Convert updateJsonStr to jsonb object.
+      var updateJsonb = new PGobject();
+      updateJsonb.setType("jsonb");
+      updateJsonb.setValue(updateJsonStr);
+
       // Persist update record
       sql = SqlStatements.ADD_UPDATE;
       // Prepare the statement and execute it
       pstmt = conn.prepareStatement(sql);
       pstmt.setInt(1, systemId);
-      pstmt.setString(2, scrubbedJson);
+      pstmt.setObject(2, updateJsonb);
+      pstmt.setString(3, scrubbedText);
       pstmt.execute();
 
       // Close out and commit

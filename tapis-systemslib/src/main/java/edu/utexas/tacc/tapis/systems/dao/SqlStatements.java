@@ -25,7 +25,7 @@ final class SqlStatements
       "WHERE id = ?";
 
   static final String ADD_UPDATE =
-    "INSERT INTO system_updates (system_id, upd_txt) VALUES (?, ?)";
+    "INSERT INTO system_updates (system_id, upd_json, upd_raw) VALUES (?, ?, ?)";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =

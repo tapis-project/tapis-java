@@ -103,7 +103,7 @@ public class SystemsDaoTest
   public void testCreate() throws Exception
   {
     TSystem sys0 = sys1;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
@@ -111,7 +111,7 @@ public class SystemsDaoTest
   @Test
   public void testGetByName() throws Exception {
     TSystem sys0 = sys2;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
@@ -166,10 +166,10 @@ public class SystemsDaoTest
   @Test
   public void testGetSystemNames() throws Exception {
     TSystem sys0 = sys3;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
-    itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<String> systemNames = dao.getTSystemNames(tenantName);
     for (String name : systemNames) {
@@ -183,7 +183,7 @@ public class SystemsDaoTest
   @Test
   public void testGetSystems() throws Exception {
     TSystem sys0 = sys5;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<TSystem> systems = dao.getTSystems(tenantName);
     for (TSystem system : systems) {
@@ -195,7 +195,7 @@ public class SystemsDaoTest
   @Test
   public void testSofDelete() throws Exception {
     TSystem sys0 = sys6;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     dao.softDeleteTSystem(sys0.getTenant(), sys0.getName());
@@ -208,7 +208,7 @@ public class SystemsDaoTest
   public void testNoTxfr() throws Exception
   {
     TSystem sys0 = sys7;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());

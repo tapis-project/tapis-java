@@ -9,10 +9,12 @@ import java.util.List;
 
 public interface SystemsDao
 {
-  int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson) throws TapisException, IllegalStateException;
+  int createTSystem(AuthenticatedUser authenticatedUser, TSystem system, String createJsonStr, String scrubbedText)
+          throws TapisException, IllegalStateException;
 
   int updateTSystem(AuthenticatedUser authenticatedUser, TSystem patchedSystem, PatchSystem patchSystem,
-                    String scrubbedJson) throws TapisException, IllegalStateException;
+                    String updateJsonStr, String scrubbedText)
+          throws TapisException, IllegalStateException;
 
   int softDeleteTSystem(String tenant, String name) throws TapisException;
 

@@ -108,13 +108,15 @@ CREATE TABLE system_updates
 (
     id     SERIAL PRIMARY KEY,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
-    upd_txt VARCHAR NOT NULL,
+    upd_json JSONB NOT NULL,
+    upd_raw VARCHAR,
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 ALTER TABLE system_updates OWNER TO tapis;
 COMMENT ON COLUMN system_updates.id IS 'System update request id';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
-COMMENT ON COLUMN system_updates.upd_txt IS 'Text data used to update - with secrets scrubbed';
+COMMENT ON COLUMN system_updates.upd_json IS 'Json representing the update - with secrets scrubbed';
+COMMENT ON COLUMN system_updates.upd_raw IS 'Text data supplied by client - secrets should be scrubbed';
 COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 
 -- ----------------------------------------------------------------------------------------

@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
@@ -106,11 +107,11 @@ public class SystemsServiceImpl implements SystemsService
   // -----------------------------------------------------------------------
 
   /**
-   * Create a new system object given a TSystem and the json used to create the TSystem.
-   * Secrets in the json should be masked.
+   * Create a new system object given a TSystem and the text used to create the TSystem.
+   * Secrets in the text should be masked.
    * @param authenticatedUser - principal user containing tenant and user info
    * @param system - Pre-populated TSystem object
-   * @param scrubbedJson - Json (with secrets masked) used to create the TSystem object
+   * @param scrubbedText - Text used to create the TSystem object - secrets should be scrubbed.
    * @return Sequence id of object created
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -118,7 +119,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedJson)
+  public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText)
           throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.create;
@@ -136,7 +137,7 @@ public class SystemsServiceImpl implements SystemsService
     // Required system attributes: name, type, host, defaultAccessMethod
     if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) ||
         system.getSystemType() == null || StringUtils.isBlank(system.getHost()) ||
-        system.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedJson))
+        system.getDefaultAccessMethod() == null || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(scrubbedText))
     {
       throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
     }
@@ -162,6 +163,11 @@ public class SystemsServiceImpl implements SystemsService
     // ---------------- Check constraints on TSystem attributes ------------------------
     validateTSystem(authenticatedUser, system);
 
+    // Construct Json string representing the TSystem (without credentials) about to be created
+    TSystem scrubbedSystem = new TSystem(system);
+    scrubbedSystem.setAccessCredential(null);
+    String createJsonStr = TapisGsonUtils.getGson().toJson(scrubbedSystem);
+
     // ----------------- Create all artifacts --------------------
     // Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
     // Use try/catch to rollback any writes in case of failure.
@@ -170,7 +176,7 @@ public class SystemsServiceImpl implements SystemsService
     var skClient = getSKClient(authenticatedUser);
     try {
       // ------------------- Make Dao call to persist the system -----------------------------------
-       itemId = dao.createTSystem(authenticatedUser, system, scrubbedJson);
+       itemId = dao.createTSystem(authenticatedUser, system, createJsonStr, scrubbedText);
 
       // ------------------- Add permissions -----------------------------------
       // Give owner and possibly effectiveUser access to the system
@@ -230,8 +236,8 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Update a system object given a PatchSystem and the json used to create the PatchSystem.
-   * Secrets in the json should be masked.
+   * Update a system object given a PatchSystem and the text used to create the PatchSystem.
+   * Secrets in the text should be masked.
    * Attributes that can be updated:
    *   description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
    *   port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
@@ -240,7 +246,7 @@ public class SystemsServiceImpl implements SystemsService
    *   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir
    * @param authenticatedUser - principal user containing tenant and user info
    * @param patchSystem - Pre-populated PatchSystem object
-   * @param scrubbedJson - Json (with secrets masked) used to create the PatchSystem object
+   * @param scrubbedText - Text used to create the PatchSystem object - secrets should be scrubbed.
    * @return Sequence id of object updated
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -248,7 +254,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedJson)
+  public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
           throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
   {
     SystemOperation op = SystemOperation.modify;
@@ -263,7 +269,7 @@ public class SystemsServiceImpl implements SystemsService
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
     // ---------------------------- Check inputs ------------------------------------
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) || StringUtils.isBlank(scrubbedJson))
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId) || StringUtils.isBlank(systemName) || StringUtils.isBlank(scrubbedText))
     {
       throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
     }
@@ -284,10 +290,13 @@ public class SystemsServiceImpl implements SystemsService
     // ---------------- Check constraints on TSystem attributes ------------------------
     validateTSystem(authenticatedUser, patchedTSystem);
 
+    // Construct Json string representing the PatchSystem about to be used to update the system
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(patchSystem);
+
     // ----------------- Create all artifacts --------------------
     // No distributed transactions so no distributed rollback needed
     // ------------------- Make Dao call to persist the system -----------------------------------
-    dao.updateTSystem(authenticatedUser, patchedTSystem, patchSystem, scrubbedJson);
+    dao.updateTSystem(authenticatedUser, patchedTSystem, patchSystem, updateJsonStr, scrubbedText);
     return origTSystem.getId();
   }
 
