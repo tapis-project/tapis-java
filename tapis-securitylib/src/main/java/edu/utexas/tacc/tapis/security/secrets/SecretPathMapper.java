@@ -320,7 +320,7 @@ public final class SecretPathMapper
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(_parms.getDbService())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJWTSigningPath", "service");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJWTSigningPath", "dbservice");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }

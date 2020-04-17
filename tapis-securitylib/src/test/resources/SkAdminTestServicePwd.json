@@ -3,7 +3,7 @@
         "servicepwd":[
             {
                 "tenant":     "dev",
-                "service":    "fakeService",
+                "user":       "fakeService",
                 "secretName": "banana",
                 "password":   "1234567890123456"
             }

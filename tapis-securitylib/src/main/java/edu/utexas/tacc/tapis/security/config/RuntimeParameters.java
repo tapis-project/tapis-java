@@ -122,18 +122,19 @@ public final class RuntimeParameters
 	private String  logFile;
 	
 	// Vault parameters.
-	private boolean vaultDisabled;       // disable vault processing
-	private String  vaultAddress;        // vault server address
-	private String  vaultRoleId;         // approle role id assigned to SK for logon
-	private String  vaultSecretId;       // approle secret id for logon
-	private int     vaultOpenTimeout;    // connection timeout in seconds
-	private int     vaultReadTimeout;    // read response timeout in seconds
-	private boolean vaultSslVerify;      // whether to use http or https
-	private String  vaultSslCertFile;    // certificate file containing vault's public key
-	private String  vaultSkKeyPemFile;   // PEM file containing SK's private key 
-	private int     vaultRenewSeconds;   // expiration time in seconds of SK token
-	private int     vaultRenewThreshold; // point at which token renewal begins,
-	                                     //   expressed as percent of expiration time
+	private boolean vaultDisabled;        // disable vault processing
+	private boolean vaultRenewalDisabled; // disable vault token renewal
+	private String  vaultAddress;         // vault server address
+	private String  vaultRoleId;          // approle role id assigned to SK for logon
+	private String  vaultSecretId;        // approle secret id for logon
+	private int     vaultOpenTimeout;     // connection timeout in seconds
+	private int     vaultReadTimeout;     // read response timeout in seconds
+	private boolean vaultSslVerify;       // whether to use http or https
+	private String  vaultSslCertFile;     // certificate file containing vault's public key
+	private String  vaultSkKeyPemFile;    // PEM file containing SK's private key 
+	private int     vaultRenewSeconds;    // expiration time in seconds of SK token
+	private int     vaultRenewThreshold;  // point at which token renewal begins,
+	                                      //   expressed as percent of expiration time
 	
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -415,6 +416,22 @@ public final class RuntimeParameters
           }
       }
 
+    // Determine whether the secrets subsystem is disabled.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_SK_VAULT_RENEWAL_DISABLE.getEnvName());
+    if (StringUtils.isBlank(parm)) setVaultRenewalDisabled(false);
+      else {
+        try {setVaultRenewalDisabled(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_SECURITY,
+                                         "vaultRenewalDisabled",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
     // Make sure we have the address of the vault server (ex: http://myhost:8200)
     // unless the secrets subsystem is disabled.
     parm = inputProperties.getProperty(EnvVar.TAPIS_SK_VAULT_ADDRESS.getEnvName());
@@ -622,6 +639,8 @@ public final class RuntimeParameters
         buf.append("\n------- Vault Configuration -----------------------");
         buf.append("\ntapis.sk.vault.disable: ");
         buf.append(this.isVaultDisabled());
+        buf.append("\ntapis.sk.vault.renewal.disable: ");
+        buf.append(this.isVaultRenewalDisabled());
         buf.append("\ntapis.sk.vault.address: ");
         buf.append(this.getVaultAddress());
         buf.append("\ntapis.sk.vault.roleid: ");
@@ -972,6 +991,14 @@ public final class RuntimeParameters
 
     public void setVaultDisabled(boolean vaultDisabled) {
         this.vaultDisabled = vaultDisabled;
+    }
+
+    public boolean isVaultRenewalDisabled() {
+        return vaultRenewalDisabled;
+    }
+    
+    public void setVaultRenewalDisabled(boolean vaultRenewalDisabled) {
+        this.vaultRenewalDisabled = vaultRenewalDisabled;
     }
 
     public String getVaultAddress() {
