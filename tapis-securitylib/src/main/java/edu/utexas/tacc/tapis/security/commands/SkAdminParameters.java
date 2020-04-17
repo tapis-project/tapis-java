@@ -67,7 +67,7 @@ public class SkAdminParameters
             metaVar = "<file path>", usage = "the json input file or folder")
     public String jsonInput;
     
-    // SJ or Vault url.
+    // SK or Vault url.
     @Option(name = "-b", required = true, aliases = {"-baseurl"}, 
             metaVar = "<base sk or vault url>", usage = "SK: http(s)://host/v3, Vault: http(s)://host:32342)")
     public String baseUrl;
