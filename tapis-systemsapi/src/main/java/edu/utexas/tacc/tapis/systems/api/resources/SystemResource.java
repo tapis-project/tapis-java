@@ -90,7 +90,6 @@ public class SystemResource
 
   // Field names used in Json
   private static final String TSYSTEM_FIELD = "System";
-  private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";

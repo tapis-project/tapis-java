@@ -851,7 +851,7 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysB.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysC.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
-//    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
   }
 
