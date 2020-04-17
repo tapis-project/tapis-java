@@ -330,10 +330,9 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Have SK do this in one operation?
     // Remove credentials in Security Kernel if cred provided and effectiveUser is static
     if (!effectiveUserId.equals(APIUSERID_VAR)) {
-      String accessUser = effectiveUserId;
       // Use private internal method instead of public API to skip auth and other checks not needed here.
       try {
-        deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
+        deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, effectiveUserId);
       }
       // If tapis client exception then log error and convert to TapisException
       catch (TapisClientException tce)
@@ -384,10 +383,9 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Have SK do this in one operation?
     // Remove credentials in Security Kernel if cred provided and effectiveUser is static
     if (!effectiveUserId.equals(APIUSERID_VAR)) {
-      String accessUser = effectiveUserId;
       // Use private internal method instead of public API to skip auth and other checks not needed here.
       try {
-        deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
+        deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, effectiveUserId);
       }
       // If tapis client exception then log error and convert to TapisException
       catch (TapisClientException tce)
@@ -1322,6 +1320,8 @@ public class SystemsServiceImpl implements SystemsService
    * Attributes that can be updated:
    *   description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods,
    *   port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
+   * The only attribute that can be reset to default is effectiveUserId. It is reset when
+   *   a blank string is passed in.
    */
   private TSystem createPatchedTSystem(TSystem o, PatchSystem p)
   {

@@ -73,6 +73,7 @@ CREATE TABLE systems
   UNIQUE (tenant,name)
 );
 ALTER TABLE systems OWNER TO tapis;
+CREATE INDEX sys_tenant_name_idx ON systems (tenant, name);
 COMMENT ON COLUMN systems.id IS 'System id';
 COMMENT ON COLUMN systems.tenant IS 'Tenant name associated with system';
 COMMENT ON COLUMN systems.name IS 'Unique name for the system';
@@ -106,18 +107,13 @@ COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated'
 CREATE TABLE system_updates
 (
     id     SERIAL PRIMARY KEY,
-    tenant VARCHAR(24) NOT NULL,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
-    upd_seq INTEGER,
     upd_txt VARCHAR NOT NULL,
-    created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    UNIQUE (tenant, system_id, upd_seq)
+    created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 ALTER TABLE system_updates OWNER TO tapis;
 COMMENT ON COLUMN system_updates.id IS 'System update request id';
-COMMENT ON COLUMN system_updates.tenant IS 'Name of tenant';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
-COMMENT ON COLUMN system_updates.upd_seq IS 'Sequence number for updates of the system starting with 0';
 COMMENT ON COLUMN system_updates.upd_txt IS 'Text data used to update - with secrets scrubbed';
 COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 
@@ -130,18 +126,16 @@ COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was create
 CREATE TABLE capabilities
 (
     id     SERIAL PRIMARY KEY,
-    tenant VARCHAR(24) NOT NULL,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
     category capability_category_type NOT NULL,
     name   VARCHAR(256) NOT NULL DEFAULT '',
     value  VARCHAR(256) NOT NULL DEFAULT '',
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     updated TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    UNIQUE (tenant, system_id, category, name)
+    UNIQUE (system_id, category, name)
 );
 ALTER TABLE capabilities OWNER TO tapis;
 COMMENT ON COLUMN capabilities.id IS 'Capability id';
-COMMENT ON COLUMN capabilities.tenant IS 'Name of tenant';
 COMMENT ON COLUMN capabilities.system_id IS 'Id of system supporting the capability';
 COMMENT ON COLUMN capabilities.category IS 'Category for grouping of capabilities';
 COMMENT ON COLUMN capabilities.name IS 'Name of capability';

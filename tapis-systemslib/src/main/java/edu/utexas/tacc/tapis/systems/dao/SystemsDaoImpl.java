@@ -145,10 +145,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       sql = SqlStatements.ADD_UPDATE;
       // Prepare the statement and execute it
       pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, system.getTenant());
-      pstmt.setInt(2, systemId);
-      pstmt.setInt(3, 0);
-      pstmt.setString(4, scrubbedJson);
+      pstmt.setInt(1, systemId);
+      pstmt.setString(2, scrubbedJson);
       pstmt.execute();
 
       // Close out and commit
@@ -248,18 +246,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // If jobCapabilities updated then replace them
       if (patchSystem.getJobCapabilities() != null) {
-        removeJobCapabilities(conn, tenant, systemId);
+        removeJobCapabilities(conn, systemId);
         persistJobCapabilities(conn, patchedSystem, systemId);
       }
 
-      // TODO Persist update record with a sequence number of TBD ???????????
+      // Persist update record
       sql = SqlStatements.ADD_UPDATE;
       // Prepare the statement and execute it
       pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setInt(2, systemId);
-      pstmt.setInt(3, systemId); // TODO use sysId now for uniqueness, figure out how to increment
-      pstmt.setString(4, scrubbedJson);
+      pstmt.setInt(1, systemId);
+      pstmt.setString(2, scrubbedJson);
       pstmt.execute();
 
       // Close out and commit
@@ -434,7 +430,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       int systemId = rsSys.getInt(1);
 
       // Retrieve job capabilities
-      List<Capability> jobCaps = retrieveJobCaps(tenant, systemId, conn);
+      List<Capability> jobCaps = retrieveJobCaps(systemId, conn);
 
       // Use results to populate system object
       result = populateTSystem(rsSys, jobCaps);
@@ -489,7 +485,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         {
           // Retrieve job capabilities
           int systemId = rs.getInt(1);
-          List<Capability> jobCaps = retrieveJobCaps(tenant, systemId, conn);
+          List<Capability> jobCaps = retrieveJobCaps(systemId, conn);
           TSystem system = populateTSystem(rs, jobCaps);
           if (system != null) list.add(system);
         }
@@ -689,25 +685,23 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         if (cap.getValue() != null ) valStr = cap.getValue();
         // Prepare the statement and execute it
         PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setString(1, tSystem.getTenant());
-        pstmt.setInt(2, systemId);
-        pstmt.setString(3, cap.getCategory().name());
-        pstmt.setString(4, cap.getName());
-        pstmt.setString(5, valStr);
+        pstmt.setInt(1, systemId);
+        pstmt.setString(2, cap.getCategory().name());
+        pstmt.setString(3, cap.getName());
+        pstmt.setString(4, valStr);
         pstmt.execute();
       }
     }
   }
 
   /**
-   * Remove job capabilities given an sql connection and a system tenant and id
+   * Remove job capabilities given an sql connection and a system id
    */
-  private static void removeJobCapabilities(Connection conn, String tenant, int systemId) throws SQLException
+  private static void removeJobCapabilities(Connection conn, int systemId) throws SQLException
   {
     String sql = SqlStatements.DELETE_CAPABILITES;
     PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setString(1, tenant);
-    pstmt.setInt(2, systemId);
+    pstmt.setInt(1, systemId);
     pstmt.execute();
   }
 
@@ -812,14 +806,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     return capability;
   }
 
-  private static List<Capability> retrieveJobCaps(String tenant, int systemId, Connection conn)
+  private static List<Capability> retrieveJobCaps(int systemId, Connection conn)
           throws TapisJDBCException, SQLException
   {
     List<Capability> jobCaps = new ArrayList<>();
     String sql = SqlStatements.SELECT_SYSTEM_CAPS;
     PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setString(1, tenant);
-    pstmt.setInt(2, systemId);
+    pstmt.setInt(1, systemId);
     ResultSet rsCaps = pstmt.executeQuery();
     // Iterate over results
     if (rsCaps != null)

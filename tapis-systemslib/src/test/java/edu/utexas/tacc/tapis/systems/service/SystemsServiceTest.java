@@ -278,14 +278,13 @@ public class SystemsServiceTest
     Assert.assertNull(cred.getCertificate(), "AccessCredential certificate should be null");
   }
 
-  // Test updating a system using PATCH
+  // Test updating a system
   @Test
   public void testUpdateSystem() throws Exception
   {
     TSystem sys0 = sysE;
     String createJson = "{\"update\": \"0-create\"}";
     String patch1Json = "{\"update\": \"1-patch1\"}";
-    String patch2Json = "{\"update\": \"2-patch2\"}";
     PatchSystem patchSystem = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
             prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
             prot2.getProxyPort(), cap2List, tags2, notes2JO);
@@ -298,7 +297,6 @@ public class SystemsServiceTest
     TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
     // Check common system attributes:
     checkCommonSysAttrs(sysE2, tmpSys);
-//    //TODO
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -318,17 +316,16 @@ public class SystemsServiceTest
 //         "${owner}", prot1AccessMethName, "fakePassword8", "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}", prot1TxfrMethods,
 //         "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}", "jobRemoteArchSystem8",
 //         "jobRemoteArchDir8${owner}${tenant}${apiUserId}", tags, notes, "{}"};
-    String owner = ownerUser;
-    String effectiveUserId = owner;
-    String bucketName = "bucket8-" + tenantName + "-" + ownerUser;
+    String effectiveUserId = ownerUser;
+    String bucketName = "bucket8-" + tenantName + "-" + effectiveUserId;
     String rootDir = "/root8/" + tenantName;
-    String jobLocalWorkingDir = "jobLocalWorkDir8/" + owner + "/" + tenantName + "/" + ownerUser;
-    String jobLocalArchiveDir = "jobLocalArchDir8/" + ownerUser;
-    String jobRemoteArchiveDir = "jobRemoteArchDir8" + owner + tenantName + ownerUser;
+    String jobLocalWorkingDir = "jobLocalWorkDir8/" + ownerUser + "/" + tenantName + "/" + effectiveUserId;
+    String jobLocalArchiveDir = "jobLocalArchDir8/" + effectiveUserId;
+    String jobRemoteArchiveDir = "jobRemoteArchDir8" + ownerUser + tenantName + effectiveUserId;
     Assert.assertEquals(tmpSys.getName(), sys0.getName());
     Assert.assertEquals(tmpSys.getDescription(), sys0.getDescription());
     Assert.assertEquals(tmpSys.getSystemType().name(), sys0.getSystemType().name());
-    Assert.assertEquals(tmpSys.getOwner(), owner);
+    Assert.assertEquals(tmpSys.getOwner(), ownerUser);
     Assert.assertEquals(tmpSys.getHost(), sys0.getHost());
     Assert.assertEquals(tmpSys.getEffectiveUserId(), effectiveUserId);
     Assert.assertEquals(tmpSys.getDefaultAccessMethod().name(), sys0.getDefaultAccessMethod().name());
@@ -344,6 +341,7 @@ public class SystemsServiceTest
     Assert.assertEquals(tmpSys.getProxyPort(), sys0.getProxyPort());
     List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(tMethodsList);
+    Assert.assertNotNull(sys0.getTransferMethods());
     for (TransferMethod txfrMethod : sys0.getTransferMethods())
     {
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
@@ -853,7 +851,7 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysB.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysC.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
-    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
+//    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
   }
 
@@ -887,6 +885,7 @@ public class SystemsServiceTest
     // Verify transfer methods
     List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(tMethodsList);
+    Assert.assertNotNull(sys0.getTransferMethods());
     for (TransferMethod txfrMethod : sys0.getTransferMethods())
     {
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
@@ -895,6 +894,7 @@ public class SystemsServiceTest
     String[] origTags = sys0.getTags();
     String[] tmpTags = tmpSys.getTags();
     Assert.assertNotNull(tmpTags, "Tags value was null");
+    Assert.assertNotNull(origTags);
     var tagsList = Arrays.asList(tmpTags);
     Assert.assertEquals(tmpTags.length, origTags.length, "Wrong number of tags.");
     for (String tagStr : origTags)
@@ -905,6 +905,8 @@ public class SystemsServiceTest
     // Verify notes
     JsonObject origNotes = sys0.getNotes();
     JsonObject tmpObj = tmpSys.getNotes();
+    Assert.assertNotNull(origNotes, "Orig Notes was null");
+    Assert.assertNotNull(tmpObj, "Fetched Notes was null");
     String tmpNotesStr = tmpObj.toString();
     System.out.println("Found notes: " + tmpNotesStr);
     Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Notes string not found.");
@@ -918,7 +920,8 @@ public class SystemsServiceTest
     // Verify capabilities
     List<Capability> origCaps = sys0.getJobCapabilities();
     List<Capability> jobCaps = tmpSys.getJobCapabilities();
-    Assert.assertNotNull(jobCaps);
+    Assert.assertNotNull(origCaps, "Orig Caps was null");
+    Assert.assertNotNull(jobCaps, "Fetched Caps was null");
     Assert.assertEquals(jobCaps.size(), origCaps.size());
     var capNamesFound = new ArrayList<String>();
     for (Capability capFound : jobCaps) {capNamesFound.add(capFound.getName());}

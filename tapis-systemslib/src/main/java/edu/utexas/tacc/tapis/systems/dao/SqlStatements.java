@@ -19,14 +19,13 @@ final class SqlStatements
       "RETURNING id";
 
   static final String UPDATE_SYSTEM =
-          "UPDATE systems SET description = ?, host = ?, enabled = ?, effective_user_id = ?, " +
-                  "default_access_method = ?::access_meth_type, transfer_methods = ?::transfer_meth_type[], " +
-                  "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags = ?, notes = ? " +
-                  "WHERE id = ?";
+    "UPDATE systems SET description = ?, host = ?, enabled = ?, effective_user_id = ?, " +
+      "default_access_method = ?::access_meth_type, transfer_methods = ?::transfer_meth_type[], " +
+      "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags = ?, notes = ? " +
+      "WHERE id = ?";
 
   static final String ADD_UPDATE =
-          "INSERT INTO system_updates (tenant, system_id, upd_seq, upd_txt) " +
-                  "VALUES (?, ?, ?, ?) ";
+    "INSERT INTO system_updates (system_id, upd_txt) VALUES (?, ?)";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =
@@ -70,21 +69,21 @@ final class SqlStatements
 
   // Get system effectiveuserid
   static final String SELECT_SYSTEM_EFFECTIVEUSERID =
-          "SELECT effective_user_id FROM systems WHERE tenant = ? AND name = ?";
+    "SELECT effective_user_id FROM systems WHERE tenant = ? AND name = ?";
 
   // -------------------------
   // ------ Capabilities -----
   // -------------------------
   static final String ADD_CAPABILITY =
-    "INSERT INTO capabilities (tenant, system_id, category, name, value) " +
-      "VALUES (?, ?, ?::capability_category_type, ?, ?) ";
+    "INSERT INTO capabilities (system_id, category, name, value) " +
+      "VALUES (?, ?::capability_category_type, ?, ?) ";
 
   static final String SELECT_SYSTEM_CAPS =
     "SELECT category, name, value, created, updated " +
       "FROM capabilities " +
-      "WHERE tenant = ? AND system_id = ?";
+      "WHERE system_id = ?";
 
   // Delete capabilities for a system
   static final String DELETE_CAPABILITES =
-    "DELETE FROM capabilities WHERE tenant = ? AND system_id = ?";
+    "DELETE FROM capabilities WHERE system_id = ?";
 }
