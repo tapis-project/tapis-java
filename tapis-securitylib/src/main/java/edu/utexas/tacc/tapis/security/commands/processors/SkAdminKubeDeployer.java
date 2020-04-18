@@ -79,6 +79,9 @@ public final class SkAdminKubeDeployer
         
         // Write each secret to kubernetes.
         writeSecrets();
+        
+        // Close all connections and their threads.
+        close();
     }
     
     /* ********************************************************************** */
@@ -106,6 +109,23 @@ public final class SkAdminKubeDeployer
         
         // Connected.
         return true;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* close:                                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Close connections and stop threads that can sometimes prevent JVM shutdown.
+     */
+    private void close()
+    {
+        try {
+            // Best effort attempt to shut things down.
+            var okClient = _coreApi.getApiClient().getHttpClient();
+            if (okClient != null) {
+                var pool = okClient.connectionPool();
+                if (pool != null) pool.evictAll();
+            }
+        } catch (Exception e) {}      
     }
     
     /* ---------------------------------------------------------------------- */

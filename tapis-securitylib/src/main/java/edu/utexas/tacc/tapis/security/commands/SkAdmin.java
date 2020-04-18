@@ -32,6 +32,13 @@ import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProce
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminKubeDeployer;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminUserProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultDBCredentialProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultJwtPublicProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultJwtSigningProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultManagerParms;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultServicePwdProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultUserProcessor;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -519,7 +526,7 @@ public class SkAdmin
             
                 if (StringUtils.isBlank(secret.password)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
-                                                 "password", secret.tenant, secret.service,
+                                                 "password", secret.tenant, secret.user,
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
@@ -538,14 +545,14 @@ public class SkAdmin
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
-                                                 secret.service, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
                 if (StringUtils.isBlank(secret.kubeSecretKey)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretKey", secret.tenant, 
-                                                 secret.service, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -615,16 +622,48 @@ public class SkAdmin
      */
     private void createProcessors()
     {
-        _dbCredentialProcessor = 
-            new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
-        _jwtSigningProcessor = 
-            new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
-        _jwtPublicProcessor = 
+        // We use different processors depending on how we interact with vault.
+        if (_parms.useSK()) {
+            // All secret creation or updating goes through SK.
+            _dbCredentialProcessor = 
+                new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
+            _jwtSigningProcessor = 
+                new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
+            _jwtPublicProcessor = 
                 new SkAdminJwtPublicProcessor(_secrets.jwtpublic, _parms);
-        _servicePwdProcessor = 
-            new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
-        _userProcessor = 
-            new SkAdminUserProcessor(_secrets.user, _parms);
+            _servicePwdProcessor = 
+                new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
+            _userProcessor = 
+                new SkAdminUserProcessor(_secrets.user, _parms);
+        }
+        else {
+            // Initialize the vault manager singleton.  If we can't
+            // get to vault there's no point in continuing.
+            var vaultParms = new SkAdminVaultManagerParms();
+            vaultParms.setVaultAddress(_parms.baseUrl);
+            vaultParms.setVaultRoleId(_parms.vaultRoleId);
+            vaultParms.setVaultSecretId(_parms.vaultSecretId);
+            try {VaultManager.getInstance(vaultParms);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_VAULT_INIT_ERROR", 
+                                                 vaultParms.getVaultAddress(),
+                                                 e.getMessage());
+                    _log.error(msg, e);
+                    throw e;
+                }
+            
+            // All secret creation or updating goes directly to Vault.
+            _dbCredentialProcessor = 
+                new SkAdminVaultDBCredentialProcessor(_secrets.dbcredential, _parms);
+            _jwtSigningProcessor = 
+                new SkAdminVaultJwtSigningProcessor(_secrets.jwtsigning, _parms);
+            _jwtPublicProcessor = 
+                new SkAdminVaultJwtPublicProcessor(_secrets.jwtpublic, _parms);
+            _servicePwdProcessor = 
+                new SkAdminVaultServicePwdProcessor(_secrets.servicepwd, _parms);
+            _userProcessor = 
+                new SkAdminVaultUserProcessor(_secrets.user, _parms);
+        }
     }
     
     /* ---------------------------------------------------------------------- */

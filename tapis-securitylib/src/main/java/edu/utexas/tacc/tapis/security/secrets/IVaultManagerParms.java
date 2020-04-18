@@ -7,6 +7,7 @@ package edu.utexas.tacc.tapis.security.secrets;
 public interface IVaultManagerParms 
 {
     public boolean isVaultDisabled();
+    public boolean isVaultRenewalDisabled();
     public String  getVaultAddress();
     public String  getVaultRoleId();
     public String  getVaultSecretId();

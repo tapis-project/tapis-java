@@ -19,7 +19,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SkAdminDBCredentialProcessor
+public class SkAdminDBCredentialProcessor
  extends SkAdminAbstractProcessor<SkAdminDBCredential>
 {
     /* ********************************************************************** */
@@ -41,7 +41,7 @@ public final class SkAdminDBCredentialProcessor
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                          Protected Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
@@ -109,15 +109,6 @@ public final class SkAdminDBCredentialProcessor
             // Make the write call.
             metadata = _skClient.writeSecret(parms.getTenant(), parms.getUser(), parms);
         }
-        catch (TapisClientException e) {
-            // Not found is ok.
-            if (e.getCode() != 404) {
-                // Save the error condition for this secret.
-                _results.recordFailure(msgOp, SecretType.DBCredential, 
-                                       makeFailureMessage(msgOp, secret, e.getMessage()));
-                return;
-            }
-        }
         catch (Exception e) {
             // Save the error condition for this secret.
             _results.recordFailure(msgOp, SecretType.DBCredential, 
@@ -174,6 +165,59 @@ public final class SkAdminDBCredentialProcessor
     }    
 
     /* ---------------------------------------------------------------------- */
+    /* makeFailureMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeFailureMessage(Op op, SkAdminDBCredential secret, String errorMsg)
+    {
+        // Set the failed flag to alert any subsequent processing.
+        secret.failed = true;
+        return " FAILED to " + op.name() + " secret \"" + secret.secretName +
+               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
+               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
+               "\": " + errorMsg;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeSkippedMessage(Op op, SkAdminDBCredential secret)
+    {
+        return " SKIPPED " + op.name() + " for secret \"" + secret.secretName +
+               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
+               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
+               "\": Already exists.";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSuccessMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeSuccessMessage(Op op, SkAdminDBCredential secret)
+    {
+        return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
+                "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
+                "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
+                "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeSkippedDeployMessage(SkAdminDBCredential secret)
+    {
+        return " SKIPPED deployment of secret \"" + secret.secretName +
+               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
+               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
+               "\": No target Kubernetes secret specified.";
+    }
+
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
     private SkSecret readSecret(SkAdminDBCredential secret) 
@@ -188,51 +232,5 @@ public final class SkAdminDBCredentialProcessor
         parms.setDbService(secret.dbservice);
         parms.setSecretName(secret.secretName);
         return _skClient.readSecret(parms);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeFailureMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    private String makeFailureMessage(Op op, SkAdminDBCredential secret, String errorMsg)
-    {
-        // Set the failed flag to alert any subsequent processing.
-        secret.failed = true;
-        return " FAILED to " + op.name() + " secret \"" + secret.secretName +
-               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
-               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
-               "\": " + errorMsg;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSkippedMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    private String makeSkippedMessage(Op op, SkAdminDBCredential secret)
-    {
-        return " SKIPPED " + op.name() + " for secret \"" + secret.secretName +
-               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
-               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
-               "\": Already exists.";
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSuccessMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    private String makeSuccessMessage(Op op, SkAdminDBCredential secret)
-    {
-        return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
-                "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
-                "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
-                "\".";
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSkippedDeployMessage:                                              */
-    /* ---------------------------------------------------------------------- */
-    private String makeSkippedDeployMessage(SkAdminDBCredential secret)
-    {
-        return " SKIPPED deployment of secret \"" + secret.secretName +
-               "\" for service \"" + secret.dbservice + "\" on dbhost \"" + secret.dbhost +
-               "\" in db \"" + secret.dbname + "\" for dbuser \"" + secret.user +
-               "\": No target Kubernetes secret specified.";
     }
 }

@@ -28,7 +28,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * 
  * @author rcardone
  */
-public final class SkAdminJwtPublicProcessor
+public class SkAdminJwtPublicProcessor
  extends SkAdminAbstractProcessor<SkAdminJwtPublic>
 {
     /* ********************************************************************** */
@@ -50,7 +50,7 @@ public final class SkAdminJwtPublicProcessor
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                           Protected Methods                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
@@ -104,6 +104,32 @@ public final class SkAdminJwtPublicProcessor
     }    
 
     /* ---------------------------------------------------------------------- */
+    /* makeFailureMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeFailureMessage(Op op, SkAdminJwtPublic secret, String errorMsg)
+    {
+        // Set the failed flag to alert any subsequent processing.
+        secret.failed = true;
+        return " FAILED to " + op.name() + " JWT public key \"" + secret.secretName +
+               "\" in tenant \"" + secret.tenant + 
+               "\": " + errorMsg;
+    }
+
+    // Unused methods.
+    @Override
+    protected String makeSkippedMessage(Op op, SkAdminJwtPublic secret) {return null;}
+
+    @Override
+    protected String makeSuccessMessage(Op op, SkAdminJwtPublic secret) {return null;}
+
+    @Override
+    protected String makeSkippedDeployMessage(SkAdminJwtPublic secret) {return null;}
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
     private SkSecret readSecret(SkAdminJwtPublic secret) 
@@ -115,17 +141,5 @@ public final class SkAdminJwtPublicProcessor
         parms.setUser(secret.user);
         parms.setSecretName(secret.secretName);
         return _skClient.readSecret(parms);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeFailureMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    private String makeFailureMessage(Op op, SkAdminJwtPublic secret, String errorMsg)
-    {
-        // Set the failed flag to alert any subsequent processing.
-        secret.failed = true;
-        return " FAILED to " + op.name() + " JWT public key \"" + secret.secretName +
-               "\" in tenant \"" + secret.tenant + 
-               "\": " + errorMsg;
     }
 }
