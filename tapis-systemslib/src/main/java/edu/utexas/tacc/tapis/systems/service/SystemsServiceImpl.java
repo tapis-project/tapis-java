@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
@@ -982,7 +984,7 @@ public class SystemsServiceImpl implements SystemsService
     // Check that Notes contains json
     try
     {
-      TapisGsonUtils.getGson().fromJson(system.getNotes().getData(), JsonObject.class);
+      JsonParser.parseString(system.getNotes().getStringData());
     }
     catch (JsonSyntaxException e)
     {

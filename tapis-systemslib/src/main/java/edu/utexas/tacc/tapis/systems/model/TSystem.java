@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
@@ -199,7 +197,7 @@ public final class TSystem
     if (StringUtils.isBlank(system.getOwner())) system.setOwner(DEFAULT_OWNER);
     if (StringUtils.isBlank(system.getEffectiveUserId())) system.setEffectiveUserId(DEFAULT_EFFECTIVEUSERID);
     if (system.getTags() == null) system.setTags(DEFAULT_TAGS);
-    if (system.getNotes() == null || StringUtils.isBlank(system.getNotes().getData()))
+    if (system.getNotes() == null || StringUtils.isBlank(system.getNotes().getStringData()))
     {
       system.setNotes(new Notes(DEFAULT_NOTES_STR));
     }

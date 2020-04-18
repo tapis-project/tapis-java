@@ -904,8 +904,8 @@ public class SystemsServiceTest
     // Verify notes
     Assert.assertNotNull(sys0.getNotes(), "Orig Notes was null");
     Assert.assertNotNull(tmpSys.getNotes(), "Fetched Notes was null");
-    String origNotesStr = sys0.getNotes().getData();
-    String tmpNotesStr = tmpSys.getNotes().getData();
+    String origNotesStr = sys0.getNotes().getStringData();
+    String tmpNotesStr = tmpSys.getNotes().getStringData();
     Assert.assertFalse(StringUtils.isBlank(origNotesStr), "Orig Notes string was blank");
     Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Fetched Notes string was blank");
     System.out.println("Found notes: " + tmpNotesStr);

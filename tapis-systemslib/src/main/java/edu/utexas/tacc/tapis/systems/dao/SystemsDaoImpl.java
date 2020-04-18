@@ -89,9 +89,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
       String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (system.getNotes() != null && !StringUtils.isBlank(system.getNotes().getData()))
+      if (system.getNotes() != null && !StringUtils.isBlank(system.getNotes().getStringData()))
       {
-        notesStr = system.getNotes().getData();
+        notesStr = system.getNotes().getStringData();
       }
 
       // Convert tags and notes to jsonb objects.
@@ -227,9 +227,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
       String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (patchedSystem.getNotes() != null && !StringUtils.isBlank(patchedSystem.getNotes().getData()))
+      if (patchedSystem.getNotes() != null && !StringUtils.isBlank(patchedSystem.getNotes().getStringData()))
       {
-        notesStr = patchedSystem.getNotes().getData();
+        notesStr = patchedSystem.getNotes().getStringData();
       }
 
       // Convert tags and notes to jsonb objects.

@@ -34,8 +34,8 @@
         "notes": {
           "type": "object",
           "properties": {
-            "data": { "type": "string" },
-            "json": { "type": "object" }
+            "stringData": { "type": "string" },
+            "jsonData": { "type": "object" }
           }
         }
       }

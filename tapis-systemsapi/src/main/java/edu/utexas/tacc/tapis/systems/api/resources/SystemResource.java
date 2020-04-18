@@ -9,12 +9,6 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 
-import com.google.gson.JsonSyntaxException;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
-import edu.utexas.tacc.tapis.systems.model.Notes;
-import edu.utexas.tacc.tapis.systems.model.PatchSystem;
-import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -34,6 +28,27 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
+import edu.utexas.tacc.tapis.systems.model.Notes;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
+import org.glassfish.grizzly.http.server.Request;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -57,17 +72,6 @@ import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.gson.JsonObject;
 
 /*
  * JAX-RS REST resource for a Tapis System (edu.utexas.tacc.tapis.systems.model.TSystem)
@@ -95,6 +99,8 @@ public class SystemResource
   private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
   private static final String NOTES_FIELD = "notes";
+  private static final String NOTES_STRING_FIELD = "stringData";
+  private static final String NOTES_JSON_FIELD = "jsonData";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";
   private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
@@ -235,6 +241,10 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    // Extract Notes from the raw json.
+    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    system.setNotes(notes);
+
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
@@ -242,10 +252,6 @@ public class SystemResource
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = rawJson;
     if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, TSYSTEM_FIELD);
-
-    // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
-    system.setNotes(notes);
 
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
@@ -395,7 +401,7 @@ public class SystemResource
     patchSystem.setName(systemName);
 
     // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    Notes notes = extractNotes(rawJson, PSYSTEM_FIELD);
     patchSystem.setNotes(notes);
 
     // No attributes are required. Constraints validated and defaults filled in on server side.
@@ -686,6 +692,16 @@ public class SystemResource
     String name = system1.getName();
     String msg;
     var errMessages = new ArrayList<String>();
+    // Check that Notes contains json
+    try
+    {
+      JsonParser.parseString(system.getNotes().getStringData());
+    }
+    catch (JsonSyntaxException e)
+    {
+      msg = LibUtils.getMsg("SYSAPI_INVALID_NOTES_INPUT");
+      errMessages.add(msg);
+    }
     if (StringUtils.isBlank(system1.getName()))
     {
       msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
@@ -743,8 +759,10 @@ public class SystemResource
   /**
    * Extract notes from the incoming json
    * Top level field is either System or PatchSystem
-   * NOTE: This is not ideal but could not find a better way that worked for both direct posts
+   * NOTE: This is not ideal but could not find a better way that worked for both curl requests
    *       and the auto-generated client.
+   * Information is present as stringData or jsonData or both.
+   * stringData takes precedence over jsonData
    */
   private static Notes extractNotes(String rawJson, String topLevelFieldName)
   {
@@ -752,13 +770,22 @@ public class SystemResource
     // Check inputs
     if (StringUtils.isBlank(rawJson) || StringUtils.isBlank(topLevelFieldName)) return notes;
     // Make sure we have the expected top level object
-    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (topObj == null || !topObj.has(topLevelFieldName)) return notes;
+    JsonObject rawObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+    if (rawObj == null || !rawObj.has(topLevelFieldName)) return notes;
     // Extract the top level object and (if there) the nested notes object
-    var sysObj = topObj.getAsJsonObject(topLevelFieldName);
-    if (!sysObj.has(NOTES_FIELD)) return notes;
-    var notesObj = sysObj.getAsJsonObject(NOTES_FIELD);
-    notes = new Notes(notesObj.toString());
+    var topObj = rawObj.getAsJsonObject(topLevelFieldName);
+    if (!topObj.has(NOTES_FIELD)) return notes;
+    var notesObj = topObj.getAsJsonObject(NOTES_FIELD);
+    // If notes object has string data then it takes precedence
+    // else if jsonData present use it
+    // else return default value
+    if (notesObj.has(NOTES_STRING_FIELD)) {
+      JsonElement stringDataObj = notesObj.get(NOTES_STRING_FIELD);
+      notes = new Notes(stringDataObj.getAsString());
+    } else if (notesObj.has(NOTES_JSON_FIELD)) {
+      var jsonObj = notesObj.getAsJsonObject(NOTES_JSON_FIELD);
+      notes = new Notes(jsonObj.toString());
+    }
     return notes;
   }
 

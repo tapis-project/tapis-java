@@ -151,7 +151,7 @@ public class SystemsDaoTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    String notesStr = tmpSys.getNotes().getData();
+    String notesStr = tmpSys.getNotes().getStringData();
     System.out.println("Found notes: " + notesStr);
     Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
     JsonObject obj = JsonParser.parseString(notesStr).getAsJsonObject();
