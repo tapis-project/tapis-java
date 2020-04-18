@@ -7,8 +7,8 @@
 ###   db exits
 GET http://localhost:8080/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 ###
@@ -186,7 +186,7 @@ X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-{ "name": "test document 4.2-11:13", "jimmyList":["1","3"],"description": "new whatever"}
+{ "name": "test document 4.2-5:02", "jimmyList":["1","3"],"description": "new whatever"}
 
 ###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
 
@@ -286,9 +286,18 @@ Content-Type: application/json
 
 ###
 
+# V2 jwt for aloe staging
+# jwt="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik5tSm1PR1V4TXpabFlqTTJaRFJoTlRabFlUQTFZemRoWlRSaU9XRTBOV0kyTTJKbU9UYzFaQT09In0=.eyJpc3MiOiJ3c28yLm9yZy9wcm9kdWN0cy9hbSIsImV4cCI6MTU2MzQ4NTMzNjE5OSwiaHR0cDovL3dzbzIub3JnL2NsYWltcy9zdWJzY3JpYmVyIjoiYWphbXRoZSIsImh0dHA6Ly93c28yLm9yZy9jbGFpbXMvYXBwbGljYXRpb25pZCI6IjExMTIiLCJodHRwOi8vd3NvMi5vcmcvY2xhaW1zL2FwcGxpY2F0aW9ubmFtZSI6InRlc3QiLCJodHRwOi8vd3NvMi5vcmcvY2xhaW1zL2FwcGxpY2F0aW9udGllciI6IlVubGltaXRlZCIsImh0dHA6Ly93c28yLm9yZy9jbGFpbXMvYXBpY29udGV4dCI6Ii9zeXN0ZW1zL3YyIiwiaHR0cDovL3dzbzIub3JnL2NsYWltcy92ZXJzaW9uIjoidjIiLCJodHRwOi8vd3NvMi5vcmcvY2xhaW1zL3RpZXIiOiJVbmxpbWl0ZWQiLCJodHRwOi8vd3NvMi5vcmcvY2xhaW1zL2tleXR5cGUiOiJQUk9EVUNUSU9OIiwiaHR0cDovL3dzbzIub3JnL2NsYWltcy91c2VydHlwZSI6IkFQUExJQ0FUSU9OIiwiaHR0cDovL3dzbzIub3JnL2NsYWltcy9lbmR1c2VyIjoiYWphbXRoZUBjYXJib24uc3VwZXIiLCJodHRwOi8vd3NvMi5vcmcvY2xhaW1zL2VuZHVzZXJUZW5hbnRJZCI6Ii0xMjM0IiwiaHR0cDovL3dzbzIub3JnL2NsYWltcy9yb2xlIjoiSW50ZXJuYWwvYWphbXRoZV90ZXN0X1BST0RVQ1RJT04sSW50ZXJuYWwvZXZlcnlvbmUsSW50ZXJuYWwvYWphbXRoZV9EZWZhdWx0QXBwbGljYXRpb25fUFJPRFVDVElPTiJ9.O9FvaZlLPT35o42qQYYo40krvBPsmmCVXR5D+knCkCXCQaFCFxwa4R+99FUtC6E13Q/4a2qO7sDQWEntSuYLdkynrI9GMNNqotegWbQPsPAdBAmx+492IzAHB4HCRi1RM1dldDUGBwuEefz+t1u4ZFXxCaueBQVT44M1o6dM6dw="
+# header needed  x-jwt-assertion-$tenant_name
 
+#  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
+# check to see if V2 jwt with mixed case will make pass
+###
+GET http://localhost:8080/v3/meta/
+x-jwt-ASSERTION-vdj: {{token}}
+Content-Type: application/json
 
-
+###
 
 
 
