@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretVersionMetadata;
@@ -967,6 +969,7 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Check constraints on TSystem attributes.
+   * Notes must be json
    * effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
    * @param system - the TSystem to check
@@ -976,7 +979,16 @@ public class SystemsServiceImpl implements SystemsService
   {
     String msg;
     var errMessages = new ArrayList<String>();
-
+    // Check that Notes contains json
+    try
+    {
+      TapisGsonUtils.getGson().fromJson(system.getNotes().getData(), JsonObject.class);
+    }
+    catch (JsonSyntaxException e)
+    {
+      msg = LibUtils.getMsg("SYSLIB_INVALID_NOTES_INPUT");
+      errMessages.add(msg);
+    }
     // Check for valid effectiveUserId
     // For CERT access the effectiveUserId cannot be static string other than owner
     String effectiveUserId = system.getEffectiveUserId();

@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
@@ -89,7 +89,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
       String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (system.getNotes() != null) notesStr = system.getNotes().toString();
+      if (system.getNotes() != null && !StringUtils.isBlank(system.getNotes().getData()))
+      {
+        notesStr = system.getNotes().getData();
+      }
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -224,7 +227,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
       String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (patchedSystem.getNotes() != null) notesStr = patchedSystem.getNotes().toString();
+      if (patchedSystem.getNotes() != null && !StringUtils.isBlank(patchedSystem.getNotes().getData()))
+      {
+        notesStr = patchedSystem.getNotes().getData();
+      }
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -777,7 +783,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
                             TapisGsonUtils.getGson().fromJson(rs.getString(23), String[].class), // tags
-                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
+                            new Notes(rs.getString(24)), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

@@ -9,6 +9,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 
+import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
@@ -224,12 +225,13 @@ public class SystemResource
       ReqCreateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
       system = req.System;
     }
-    catch (Exception e)
+    catch (JsonSyntaxException e)
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
+
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
@@ -375,7 +377,7 @@ public class SystemResource
       ReqUpdateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
       patchSystem = req.PatchSystem;
     }
-    catch (Exception e)
+    catch (JsonSyntaxException e)
     {
       msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
       _log.error(msg, e);
