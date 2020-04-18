@@ -12,6 +12,7 @@ import javax.servlet.ServletContext;
 import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
+import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.glassfish.grizzly.http.server.Request;
 import javax.ws.rs.Consumes;
@@ -91,7 +92,9 @@ public class SystemResource
 
   // Field names used in Json
   private static final String TSYSTEM_FIELD = "System";
+  private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
+  private static final String NOTES_FIELD = "notes";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";
   private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
@@ -240,6 +243,10 @@ public class SystemResource
     String scrubbedJson = rawJson;
     if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, TSYSTEM_FIELD);
 
+    // Extract Notes from the raw json.
+    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    system.setNotes(notes);
+
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
     system.setTenant(authenticatedUser.getTenantId());
@@ -386,6 +393,10 @@ public class SystemResource
     // Update tenant name and system name
     patchSystem.setTenant(authenticatedUser.getTenantId());
     patchSystem.setName(systemName);
+
+    // Extract Notes from the raw json.
+    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    patchSystem.setNotes(notes);
 
     // No attributes are required. Constraints validated and defaults filled in on server side.
     // No secrets in PatchSystem so no need to scrub
@@ -727,6 +738,28 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(allErrors, prettyPrint)).build();
     }
     return null;
+  }
+
+  /**
+   * Extract notes from the incoming json
+   * Top level field is either System or PatchSystem
+   * NOTE: This is not ideal but could not find a better way that worked for both direct posts
+   *       and the auto-generated client.
+   */
+  private static Notes extractNotes(String rawJson, String topLevelFieldName)
+  {
+    Notes notes = new Notes(TSystem.DEFAULT_NOTES_STR);
+    // Check inputs
+    if (StringUtils.isBlank(rawJson) || StringUtils.isBlank(topLevelFieldName)) return notes;
+    // Make sure we have the expected top level object
+    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+    if (topObj == null || !topObj.has(topLevelFieldName)) return notes;
+    // Extract the top level object and (if there) the nested notes object
+    var sysObj = topObj.getAsJsonObject(topLevelFieldName);
+    if (!sysObj.has(NOTES_FIELD)) return notes;
+    var notesObj = sysObj.getAsJsonObject(NOTES_FIELD);
+    notes = new Notes(notesObj.toString());
+    return notes;
   }
 
   /**

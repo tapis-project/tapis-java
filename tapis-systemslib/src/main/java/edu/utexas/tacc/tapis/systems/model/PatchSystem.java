@@ -33,7 +33,7 @@ public final class PatchSystem
   private final Integer proxyPort;     // Port number for proxy host
   private final List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   private final String[] tags;       // List of arbitrary tags as strings
-  private final Notes notes;      // Simple metadata as json
+  private Notes notes;      // Simple metadata as json
 
   // ************************************************************************
   // *********************** Constructors ***********************************
@@ -66,10 +66,10 @@ public final class PatchSystem
   // *********************** Accessors **************************************
   // ************************************************************************
   public String getTenant() { return tenant; }
-  public PatchSystem setTenant(String s) { tenant = s; return this; }
+  public void setTenant(String s) { tenant = s; }
 
   public String getName() { return name; }
-  public PatchSystem setName(String s) { name = s; return this; }
+  public void setName(String s) { name = s; }
 
   public String getDescription() { return description; }
 
@@ -104,4 +104,5 @@ public final class PatchSystem
   public Notes getNotes() {
     return notes;
   }
+  public void setNotes(Notes n) { notes = n; }
 }
