@@ -12,7 +12,7 @@ export GIT_COMMIT=`awk '{print $2}' target/classes/git.info`
 export TAG="tapis/systems:${VER}"
 export TAG2="tapis/systems:${VER}"
 # Build image from Dockerfile
-docker build -f Dockerfile2 --build-arg VER=${VER} --build-arg GIT_COMMIT=${GIT_COMMIT} -t ${TAG} .
+docker build -f Dockerfile --build-arg VER=${VER} --build-arg GIT_COMMIT=${GIT_COMMIT} -t ${TAG} .
 # Create tagged image for remote repo
 docker tag $TAG $TAG2
 # Push to remote repo

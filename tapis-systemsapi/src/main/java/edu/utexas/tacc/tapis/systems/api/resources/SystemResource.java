@@ -33,7 +33,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -699,27 +698,27 @@ public class SystemResource
     }
     catch (JsonSyntaxException e)
     {
-      msg = LibUtils.getMsg("SYSAPI_INVALID_NOTES_INPUT");
+      msg = ApiUtils.getMsg("SYSAPI_INVALID_NOTES_INPUT");
       errMessages.add(msg);
     }
     if (StringUtils.isBlank(system1.getName()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
       errMessages.add(msg);
     }
     if (system1.getSystemType() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
     else if (StringUtils.isBlank(system1.getHost()))
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod() == null)
     {
-      msg = MsgUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
+      msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
     else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
