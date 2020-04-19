@@ -241,13 +241,13 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
-    system.setNotes(notes);
-
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
+
+    // Extract Notes from the raw json.
+    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    system.setNotes(notes);
 
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = rawJson;
@@ -695,7 +695,7 @@ public class SystemResource
     // Check that Notes contains json
     try
     {
-      JsonParser.parseString(system.getNotes().getStringData());
+      JsonParser.parseString(system1.getNotes().getStringData());
     }
     catch (JsonSyntaxException e)
     {
@@ -732,7 +732,7 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system.getBucketName()))
+    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
