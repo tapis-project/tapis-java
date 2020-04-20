@@ -136,7 +136,9 @@ public class SystemsDaoTest
     // Verify txfr methods
     List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(tMethodsList);
-    for (TransferMethod txfrMethod : sys0.getTransferMethods())
+    List<TransferMethod> sys0TMethodsList = sys0.getTransferMethods();
+    Assert.assertNotNull(sys0TMethodsList);
+    for (TransferMethod txfrMethod : sys0TMethodsList)
     {
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
     }
@@ -198,7 +200,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    dao.softDeleteTSystem(sys0.getTenant(), sys0.getName());
+    dao.softDeleteTSystem(itemId);
     TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0.getName());
   }

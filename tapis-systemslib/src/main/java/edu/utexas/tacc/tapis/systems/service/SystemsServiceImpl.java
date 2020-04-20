@@ -1,9 +1,23 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import org.apache.commons.lang3.StringUtils;
+import org.jvnet.hk2.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretVersionMetadata;
@@ -27,27 +41,17 @@ import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
+import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jvnet.hk2.annotations.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.NotFoundException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static edu.utexas.tacc.tapis.systems.model.Credential.*;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PRIVATE_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PUBLIC_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.TOP_LEVEL_SECRET_NAME;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.DEFAULT_EFFECTIVEUSERID;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
@@ -85,8 +89,6 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Enums ******************************************
   // ************************************************************************
-  private enum SystemOperation {create, read, modify, softDelete, hardDelete, changeOwner, getPerms,
-                                grantPerms, revokePerms, setCred, removeCred, getCred}
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -115,7 +117,7 @@ public class SystemsServiceImpl implements SystemsService
    * Secrets in the text should be masked.
    * @param authenticatedUser - principal user containing tenant and user info
    * @param system - Pre-populated TSystem object
-   * @param scrubbedText - Text used to create the TSystem object - secrets should be scrubbed.
+   * @param scrubbedText - Text used to create the TSystem object - secrets should be scrubbed. Saved in update record.
    * @return Sequence id of object created
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -216,7 +218,7 @@ public class SystemsServiceImpl implements SystemsService
 
       // Rollback
       // Remove system from DB
-      if (itemId != -1) try {dao.softDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
+      if (itemId != -1) try {dao.hardDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
       // Remove perms
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
@@ -250,7 +252,7 @@ public class SystemsServiceImpl implements SystemsService
    *   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir
    * @param authenticatedUser - principal user containing tenant and user info
    * @param patchSystem - Pre-populated PatchSystem object
-   * @param scrubbedText - Text used to create the PatchSystem object - secrets should be scrubbed.
+   * @param scrubbedText - Text used to create the PatchSystem object - secrets should be scrubbed. Saved in update record.
    * @return Sequence id of object updated
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -333,8 +335,9 @@ public class SystemsServiceImpl implements SystemsService
       // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
 
-    String owner = dao.getTSystemOwner(systemTenantName, systemName);
-    String effectiveUserId = dao.getTSystemEffectiveUserId(systemTenantName, systemName);
+    TSystem system = dao.getTSystemByName(systemTenantName, systemName);
+    String owner = system.getOwner();
+    String effectiveUserId = system.getEffectiveUserId();
     // Resolve effectiveUserId if necessary
     effectiveUserId = resolveEffectiveUserId(effectiveUserId, owner, apiUserId);
 
@@ -355,7 +358,7 @@ public class SystemsServiceImpl implements SystemsService
       }
     }
     // Delete the system
-    return dao.softDeleteTSystem(tenantName, systemName);
+    return dao.softDeleteTSystem(system.getId());
   }
 
   /**
@@ -463,9 +466,6 @@ public class SystemsServiceImpl implements SystemsService
 
     // If system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
-//TODO/TBD    // If system does not exist then throw an exception
-//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -570,12 +570,17 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Grant permissions to a user for a system
    * NOTE: This only impacts the default user role
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param permissions - list of permissions to be granted
+   * @param updateText - Client provided text used to create the permissions list. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
+  public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Set<Permission> permissions, String updateText)
     throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.grantPerms;
@@ -588,6 +593,8 @@ public class SystemsServiceImpl implements SystemsService
     // If system does not exist or has been soft deleted then throw an exception
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
+
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -608,6 +615,9 @@ public class SystemsServiceImpl implements SystemsService
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
 
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
+
     // Assign perms to user. SK creates a default role for the user
     try
     {
@@ -622,17 +632,26 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
+    // Create a record of the update
+    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
    * Revoke permissions from a user for a system
    * NOTE: This only impacts the default user role
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param permissions - list of permissions to be revoked
+   * @param updateText - Client provided text used to create the permissions list. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
+  public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Set<Permission> permissions, String updateText)
     throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.revokePerms;
@@ -644,6 +663,9 @@ public class SystemsServiceImpl implements SystemsService
 
     // If system does not exist or has been soft deleted then return 0 changes
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return 0;
+
+    // Retrieve the system Id. Used to add an update record.
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, permissions);
@@ -660,6 +682,10 @@ public class SystemsServiceImpl implements SystemsService
 
     var skClient = getSKClient(authenticatedUser);
     int changeCount;
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
+
     try {
       changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions );
     }
@@ -669,13 +695,19 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
+    // Create a record of the update
+    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
     return changeCount;
   }
 
   /**
    * Get list of system permissions for a user
    * NOTE: This retrieves permissions from all roles.
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
    * @return List of permissions
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
@@ -693,9 +725,6 @@ public class SystemsServiceImpl implements SystemsService
 
     // If system does not exist or has been soft deleted then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
-//TODO/TBD    // If system does not exist then throw an exception
-//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -727,12 +756,17 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Store or update credential for given system and user.
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param credential - list of permissions to be granted
+   * @param updateText - Client provided text used to create the credential - secrets should be scrubbed. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential)
+  public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Credential credential, String updateText)
           throws TapisException, NotAuthorizedException, IllegalStateException
   {
     SystemOperation op = SystemOperation.setCred;
@@ -760,6 +794,9 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
     // Create credential
     try
     {
@@ -771,11 +808,21 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+
+    // Construct Json string representing the update, with actual secrets masked out
+    Credential maskedCredential = Credential.createMaskedCredential(credential);
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(maskedCredential);
+
+    // Create a record of the update
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
+    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
    * Delete credential for given system and user
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
@@ -808,6 +855,9 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
     try {
       changeCount = deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, userName);
     }
@@ -817,6 +867,12 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(userName);
+    // Create a record of the update
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
+    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, null);
     return changeCount;
   }
 

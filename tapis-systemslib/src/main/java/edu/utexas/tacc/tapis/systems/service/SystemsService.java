@@ -34,13 +34,16 @@ public interface SystemsService
 
   String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
 
-  void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions) throws TapisException, NotAuthorizedException;
+  void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions,
+                            String updateText) throws TapisException, NotAuthorizedException;
 
-  int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions) throws TapisException, NotAuthorizedException;
+  int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions,
+                            String updateText) throws TapisException, NotAuthorizedException;
 
   Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException;
 
-  void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential) throws TapisException, NotAuthorizedException, IllegalStateException;
+  void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential,
+                            String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException;
 
   int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException, IllegalStateException;
 

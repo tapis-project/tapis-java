@@ -25,7 +25,7 @@ final class SqlStatements
       "WHERE id = ?";
 
   static final String ADD_UPDATE =
-    "INSERT INTO system_updates (system_id, upd_json, upd_raw) VALUES (?, ?, ?)";
+    "INSERT INTO system_updates (system_id, operation, upd_json, upd_text) VALUES (?, ?::operation_type, ?, ?)";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =
@@ -49,9 +49,9 @@ final class SqlStatements
       "FROM systems " +
       "WHERE tenant = ? AND name = ? AND deleted = false";
 
-  // Soft delete a system given the name
-  static final String SOFT_DELETE_SYSTEM_BY_NAME =
-    "UPDATE systems SET deleted = true WHERE tenant = ? AND name = ?";
+  // Soft delete a system given the id
+  static final String SOFT_DELETE_SYSTEM_BY_ID =
+    "UPDATE systems SET deleted = true WHERE id = ?";
 
   // Hard delete a system given the name
   static final String HARD_DELETE_SYSTEM_BY_NAME =
@@ -70,6 +70,10 @@ final class SqlStatements
   // Get system effectiveuserid
   static final String SELECT_SYSTEM_EFFECTIVEUSERID =
     "SELECT effective_user_id FROM systems WHERE tenant = ? AND name = ?";
+
+  // Get system id
+  static final String SELECT_SYSTEM_ID =
+    "SELECT id FROM systems WHERE tenant = ? AND name = ?";
 
   // -------------------------
   // ------ Capabilities -----

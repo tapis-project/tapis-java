@@ -425,14 +425,14 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Create user perms for the system
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     // Get the system perms for the user and make sure permissions are there
     Set<Permission> userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
     Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
     Assert.assertEquals(userPerms.size(), testPermsREADMODIFY.size(), "Incorrect number of perms returned.");
     for (Permission perm: testPermsREADMODIFY) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm.name()); }
     // Remove perms for the user. Should return a change count of 2
-    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
+    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     Assert.assertEquals(changeCount, 2, "Change count incorrect when revoking permissions.");
     // Get the system perms for the user and make sure permissions are gone.
     userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
@@ -450,7 +450,7 @@ public class SystemsServiceTest
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     // Store and retrieve multiple secret types: password, ssh keys, access key and secret
-    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0);
+    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0, scrubbedText);
     // Use files service AuthenticatedUser since only certain services can retrieve the cred.
     Credential cred1 = svc.getUserCredential(authenticatedFilesSvc, sys0.getName(), testUser1, AccessMethod.PASSWORD);
     // Verify credentials
@@ -474,7 +474,7 @@ public class SystemsServiceTest
 
     // Set just ACCESS_KEY only and test
     cred0 = new Credential(null, null, null, "fakeAccessKey2", "fakeAccessSecret2", null);
-    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0);
+    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0, scrubbedText);
     cred1 = svc.getUserCredential(authenticatedFilesSvc, sys0.getName(), testUser1, AccessMethod.ACCESS_KEY);
     Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
     Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
@@ -526,12 +526,12 @@ public class SystemsServiceTest
     Assert.assertNull(perms, "Perms list was not null for non-existent system");
 
     // Revoke perm with no system should return 0 changes
-    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY);
+    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY, scrubbedText);
     Assert.assertEquals(changeCount, 0, "Change count incorrect when revoking perms for non-existent system.");
 
     // Grant perm with no system should throw an exception
     boolean pass = false;
-    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY, scrubbedText); }
     catch (TapisException tce)
     {
       Assert.assertTrue(tce.getMessage().startsWith("SYSLIB_NOT_FOUND"));
@@ -556,7 +556,7 @@ public class SystemsServiceTest
     // Create credential with no system should throw an exception
     pass = false;
     cred = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
-    try { svc.createUserCredential(authenticatedOwnerUsr, fakeSystemName, fakeUserName, cred); }
+    try { svc.createUserCredential(authenticatedOwnerUsr, fakeSystemName, fakeUserName, cred, scrubbedText); }
     catch (TapisException te)
     {
       Assert.assertTrue(te.getMessage().startsWith("SYSLIB_NOT_FOUND"));
@@ -607,8 +607,8 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD, scrubbedText);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY, scrubbedText);
 
     // READ - deny user not owner/admin and no READ or MODIFY access
     pass = false;
@@ -678,7 +678,7 @@ public class SystemsServiceTest
 
     // GRANT_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -686,7 +686,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -696,7 +696,7 @@ public class SystemsServiceTest
 
     // REVOKE_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPermsREADMODIFY); }
+    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -704,7 +704,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -714,7 +714,7 @@ public class SystemsServiceTest
 
     // SET_CRED - deny user not owner/admin and not target user, deny service
     pass = false;
-    try { svc.createUserCredential(authenticatedTestUsr1, sys0.getName(), ownerUser, cred0); }
+    try { svc.createUserCredential(authenticatedTestUsr1, sys0.getName(), ownerUser, cred0, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -722,7 +722,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.createUserCredential(authenticatedFilesSvc, sys0.getName(), ownerUser, cred0); }
+    try { svc.createUserCredential(authenticatedFilesSvc, sys0.getName(), ownerUser, cred0, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -785,8 +785,8 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD, scrubbedText);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY, scrubbedText);
 
     // READ - allow owner, service, with READ only, with MODIFY only
     boolean pass = true;
@@ -828,12 +828,12 @@ public class SystemsServiceTest
   {
     System.out.println("Executing AfterSuite teardown method");
     // Remove non-owner permissions granted during the tests
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
     //Remove all objects created by tests
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys1.getName());
     TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, sys1.getName(), false, null);

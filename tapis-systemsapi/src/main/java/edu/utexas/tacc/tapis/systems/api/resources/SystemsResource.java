@@ -15,8 +15,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +33,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @OpenAPIDefinition(
     security = {@SecurityRequirement(name = "TapisJWT")},

@@ -8,7 +8,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -40,6 +39,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.glassfish.grizzly.http.server.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +47,6 @@ import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
-import org.glassfish.grizzly.http.server.Request;
-
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -67,6 +65,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SECRETS_MASK;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
@@ -90,8 +89,6 @@ public class SystemResource
   // Json schema resource files.
   private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
-  // String used to mask secrets in json
-  private static final String SECRETS_MASK = "***";
 
   // Field names used in Json
   private static final String TSYSTEM_FIELD = "System";
