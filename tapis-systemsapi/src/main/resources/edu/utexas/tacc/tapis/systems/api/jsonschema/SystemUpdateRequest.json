@@ -5,34 +5,28 @@
   "additionalProperties": false,
 
   "type": "object",
-  "required": [ "PatchSystem" ],
   "properties": {
-    "PatchSystem": {
-      "type": "object",
-      "properties": {
-        "description": { "type": "string", "maxLength": 2048 },
-        "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
-        "enabled": { "type": "boolean", "default": true },
-        "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-        "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
-        "transferMethods": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["SFTP","S3"] }
-        },
-        "port": { "type": "integer" },
-        "useProxy": { "type": "boolean", "default": false },
-        "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
-        "proxyPort": { "type": "integer" },
-        "jobCapabilities": {
-          "type": "array",
-          "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
-        },
-        "tags": {
-          "type": "array",
-          "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
-        },
-        "notes": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/notes" }
-      }
-    }
+    "description": { "type": "string", "maxLength": 2048 },
+    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "enabled": { "type": "boolean", "default": true },
+    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+    "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
+    "transferMethods": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["SFTP","S3"] }
+    },
+    "port": { "type": "integer" },
+    "useProxy": { "type": "boolean", "default": false },
+    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "proxyPort": { "type": "integer" },
+    "jobCapabilities": {
+      "type": "array",
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
+    },
+    "notes": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/notes" }
   }
 }

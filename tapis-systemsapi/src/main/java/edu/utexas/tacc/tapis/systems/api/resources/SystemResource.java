@@ -91,8 +91,6 @@ public class SystemResource
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
 
   // Field names used in Json
-  private static final String TSYSTEM_FIELD = "System";
-  private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
   private static final String NOTES_FIELD = "notes";
   private static final String NOTES_STRING_FIELD = "stringData";
@@ -224,11 +222,10 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    ReqCreateSystem req;
     // ------------------------- Create a TSystem from the json and validate constraints -------------------------
-    TSystem system;
     try {
-      ReqCreateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
-      system = req.System;
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -237,17 +234,19 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    // Create a TSystem from the request
+    TSystem system = createTSystemFromRequest(req);
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
 
     // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    Notes notes = extractNotes(rawJson);
     system.setNotes(notes);
 
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = rawJson;
-    if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, TSYSTEM_FIELD);
+    if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson);
 
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
@@ -381,10 +380,9 @@ public class SystemResource
     }
 
     // ------------------------- Create a PatchSystem from the json and validate constraints -------------------------
-    PatchSystem patchSystem;
+    ReqUpdateSystem req;
     try {
-      ReqUpdateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
-      patchSystem = req.PatchSystem;
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -392,12 +390,13 @@ public class SystemResource
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
+    PatchSystem patchSystem = createPatchSystemFromRequest(req);
     // Update tenant name and system name
     patchSystem.setTenant(authenticatedUser.getTenantId());
     patchSystem.setName(systemName);
 
     // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, PSYSTEM_FIELD);
+    Notes notes = extractNotes(rawJson);
     patchSystem.setNotes(notes);
 
     // No attributes are required. Constraints validated and defaults filled in on server side.
@@ -670,6 +669,31 @@ public class SystemResource
   /* **************************************************************************** */
 
   /**
+   * Create a TSystem from a ReqCreateSystem
+   */
+  private static TSystem createTSystemFromRequest(ReqCreateSystem req)
+  {
+    TSystem system = new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
+                                 req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
+                                 req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
+                                 req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
+                                 req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
+                                 req.jobCapabilities, req.tags, req.notes, null, null);
+    return system;
+  }
+
+  /**
+   * Create a PatchSystem from a ReqUpdateSystem
+   */
+  private static PatchSystem createPatchSystemFromRequest(ReqUpdateSystem req)
+  {
+    PatchSystem patchSystem = new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
+                                  req.defaultAccessMethod, req.transferMethods, req.port, req.useProxy,
+                                  req.proxyHost, req.proxyPort, req.jobCapabilities, req.tags, req.notes);
+    return patchSystem;
+  }
+
+  /**
    * Fill in defaults and check constraints on TSystem attributes
    * Check values. name, host, accessMethod must be set. effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
@@ -754,22 +778,18 @@ public class SystemResource
 
   /**
    * Extract notes from the incoming json
-   * Top level field is either System or PatchSystem
    * NOTE: This is not ideal but could not find a better way that worked for both curl requests
    *       and the auto-generated client.
    * Information is present as stringData or jsonData or both.
    * stringData takes precedence over jsonData
    */
-  private static Notes extractNotes(String rawJson, String topLevelFieldName)
+  private static Notes extractNotes(String rawJson)
   {
     Notes notes = new Notes(TSystem.DEFAULT_NOTES_STR);
     // Check inputs
-    if (StringUtils.isBlank(rawJson) || StringUtils.isBlank(topLevelFieldName)) return notes;
-    // Make sure we have the expected top level object
-    JsonObject rawObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (rawObj == null || !rawObj.has(topLevelFieldName)) return notes;
-    // Extract the top level object and (if there) the nested notes object
-    var topObj = rawObj.getAsJsonObject(topLevelFieldName);
+    if (StringUtils.isBlank(rawJson)) return notes;
+    // Turn the request string into a json object and extract the notes object
+    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
     if (!topObj.has(NOTES_FIELD)) return notes;
     var notesObj = topObj.getAsJsonObject(NOTES_FIELD);
     // If notes object has string data then it takes precedence
@@ -791,13 +811,11 @@ public class SystemResource
    * @param rawJson Json from request
    * @return A string with any secrets masked out
    */
-  private static String maskCredSecrets(String rawJson, String topLevelFieldName)
+  private static String maskCredSecrets(String rawJson)
   {
     if (StringUtils.isBlank(rawJson)) return rawJson;
     // Get the Json object and prepare to extract info from it
-    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (topObj == null || !topObj.has(topLevelFieldName)) return rawJson;
-    var sysObj = topObj.getAsJsonObject(topLevelFieldName);
+    JsonObject sysObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
     if (!sysObj.has(ACCESS_CREDENTIAL_FIELD)) return rawJson;
     var credObj = sysObj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
     maskSecret(credObj, CredentialResource.PASSWORD_FIELD);
@@ -808,9 +826,7 @@ public class SystemResource
     maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
     sysObj.remove(ACCESS_CREDENTIAL_FIELD);
     sysObj.add(ACCESS_CREDENTIAL_FIELD, credObj);
-    topObj.remove(topLevelFieldName);
-    topObj.add(topLevelFieldName, sysObj);
-    return topObj.toString();
+    return sysObj.toString();
   }
 
   /**

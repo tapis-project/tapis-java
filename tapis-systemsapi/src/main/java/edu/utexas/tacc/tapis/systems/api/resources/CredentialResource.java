@@ -209,9 +209,8 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    Credential credential;
     ReqCreateCredential req = TapisGsonUtils.getGson().fromJson(json, ReqCreateCredential.class);
-    credential = req.credential;
+    Credential credential = new Credential(req.password, req.privateKey, req.publicKey, req.accessKey, req.accessSecret, req.certificate);
 
     // If one of PKI keys is missing then reject
     resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
@@ -222,7 +221,7 @@ public class CredentialResource
                                  credential.getAccessKey(), credential.getAccessSecret());
     if (resp != null) return resp;
 
-    // TODO: Create json with secrets masked out. This is recorded by the service as part of the update record.
+    // Create json with secrets masked out. This is recorded by the service as part of the update record.
     Credential maskedCredential = Credential.createMaskedCredential(credential);
     String updateJsonStr = TapisGsonUtils.getGson().toJson(maskedCredential);
 
