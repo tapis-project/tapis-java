@@ -839,7 +839,7 @@ public class SkAdmin
         // Make sure the json conforms to the expected schema.
         try {JsonValidator.validate(spec);}
           catch (TapisJSONException e) {
-            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", file.getAbsolutePath());
             _log.error(msg, e);
             throw new TapisException(msg, e);
           }

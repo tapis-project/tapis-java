@@ -7,14 +7,14 @@
 #
 # environment : TAPIS_VERSION set to the version in tapis/pom.xml 
 #
-# usage : $TAPIS_ROOT/deployment/build-securitymigrate.sh
+# usage : $TAPIS_ROOT/deployment/build-securityadmin.sh
 #
 ###########################################################
 export VER=${TAPIS_VERSION}
 export TAPIS_ENV=${TAPIS_ENV}
-export SRVC=securitymigrate
+export SRVC=securityadmin
 export TAPIS_ROOT=$(pwd)
-export SRVC_DIR="${TAPIS_ROOT}/tapis-${SRVC}/target"
+export SRVC_DIR="${TAPIS_ROOT}/tapis-securitylib/target"
 export TAG="tapis/${SRVC}:$VER"
 export BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC}"
 export BUILD_FILE="$BUILD_DIR/Dockerfile"
@@ -24,7 +24,7 @@ export GIT_COMMIT=${GIT_COMMIT}
 # Basically, we take the second word in the git.info file.
 if [ -z "${GIT_COMMIT}" ]
 then 
-    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${SRVC}/classes/git.info)" 
+    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${SRVC}/WEB-INF/classes/git.info)" 
 fi
 
 echo "VER: $VER"
@@ -39,14 +39,14 @@ echo "GIT_COMMIT: $GIT_COMMIT"
 echo ""
 
 echo "    removing any old service jar files from Docker build context"
-rm $BUILD_DIR/${SRVC}.jar
+rm $BUILD_DIR/shaded-securitylib.jar
 
 echo "    moving $SRVC.jar to Dockerfile context deployment/tapis-${SRVC} "
-cp $SRVC_DIR/${SRVC}.jar $BUILD_DIR
+cp $SRVC_DIR/shaded-securitylib.jar $BUILD_DIR
 
 echo "    building the docker image from deployment/tapis-${SRVC}/Dockerfile"
 echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=$SRVC.war --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
-docker image build -f $BUILD_FILE --build-arg SRVC_JAR=${SRVC}.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
+docker image build -f $BUILD_FILE --build-arg SRVC_JAR=shaded-securitylib.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
 
 echo "    removing $BUILD_DIR/${SRVC}.jar"
-rm $BUILD_DIR/${SRVC}.jar
+rm $BUILD_DIR/shaded-securitylib.jar
