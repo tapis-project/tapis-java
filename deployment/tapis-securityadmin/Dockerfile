@@ -28,5 +28,5 @@ COPY shaded-securitylib.jar /usr/local/bin/shaded-securitylib.jar
 # Set commit info
 LABEL "GIT_COMMIT"=$GIT_COMMIT
 
-# Launch the migration script
-CMD java -cp /usr/local/bin/shaded-securitylib.jar edu.utexas.tacc.tapis.security.commands.SkAdmin $SKADMIN_PARMS 
+# Launch the migration script. The tls directive is to avoid a jvm bug involving certificates.
+CMD java -Djdk.tls.client.protocols=TLSv1.2 -cp /usr/local/bin/shaded-securitylib.jar edu.utexas.tacc.tapis.security.commands.SkAdmin $SKADMIN_PARMS 
