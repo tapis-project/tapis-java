@@ -247,7 +247,6 @@
                 "tenant",
                 "user",
                 "secretName",
-                "publicKey",
                 "kubeSecretName"
             ]
         },
