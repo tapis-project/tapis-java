@@ -1,8 +1,8 @@
 openapi: 3.0.1
-# updated 4.12.2020
+# updated 4.21.2020
 info:
   title: "Tapis Meta V3 API"
-  description: "The Tapis Meta API provides access to a MongoDB databas. A standalone service which connects to a MongoDB database and immediately exposes all of MongoDB’s capabilities through a complete REST API, which allows the user to read and write JSON messages and binary data via HTTP."
+  description: "The Tapis Meta API provides access to a MongoDB database. A standalone service which connects to a MongoDB database and immediately exposes all of MongoDB’s capabilities through a complete REST API, which allows the user to read and write JSON messages and binary data via HTTP."
   contact:
     name: CICSupport
     email: cicsupport@tacc.utexas.edu
@@ -490,7 +490,7 @@ paths:
                 type: object
       deprecated: false
 
-  /meta/{db}/{collection}/_indexes/{indexName}:
+  /meta/{db}/{collection}/_indexes:
     get:
       tags:
         - index
@@ -504,11 +504,6 @@ paths:
           schema:
             type: string
         - name: collection
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: indexName
           in: path
           required: true
           schema:
@@ -535,6 +530,8 @@ paths:
               schema:
                 type: object
       deprecated: false
+
+  /meta/{db}/{collection}/_indexes/{indexName}:
     put:
       tags:
         - index
@@ -557,6 +554,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        description: "the index being added to the collection"
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
         '201':
           description: List of collection names returned.
