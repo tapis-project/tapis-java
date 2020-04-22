@@ -35,12 +35,10 @@ public class SystemsDaoTest
   private static final String apiUser = "daoTestUser";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
   private static final List<TransferMethod> txfrMethodsEmpty = new ArrayList<>();
+  private static final Protocol prot0 = new Protocol(AccessMethod.PASSWORD, txfrMethodsList, 0, false, "", 0);
   private static final Protocol prot1 = new Protocol(AccessMethod.ACCESS_KEY, txfrMethodsList, 0, false, "", 0);
   private static final Protocol prot2 = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, 22, false, "",0);
-  private static final Protocol prot3 = new Protocol(AccessMethod.CERT, txfrMethodsList, 23, true, "localhost",22);
-  private static final Protocol prot4 = new Protocol(AccessMethod.CERT, txfrMethodsEmpty, -1, false, "",-1);
-  private static final Protocol prot5 = new Protocol(AccessMethod.PASSWORD, txfrMethodsEmpty, -1, false, null,-1);
-  private static final Protocol prot6 = new Protocol(AccessMethod.PASSWORD, txfrMethodsEmpty, -1, false, "",-1);
+  private static final Protocol prot5 = new Protocol(AccessMethod.CERT, txfrMethodsEmpty, -1, false, null,-1);
   private static final Protocol prot7 = new Protocol(AccessMethod.PASSWORD, txfrMethodsEmpty, -1, false, "",-1);
   private static final String scrubbedJson = "{}";
   private static final String[] tags = {"value1", "value2", "a",
@@ -59,13 +57,13 @@ public class SystemsDaoTest
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
           null, tags, notes, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Dsys3", "description 3", SystemType.OBJECT_STORE, "owner3", "host3", true,
-          "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
-          prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
+          "effUser3", prot0.getAccessMethod(), null,"bucket3", "/root3", prot0.getTransferMethods(),
+          prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),false,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3","jobRemoteArchDir3",
           null, tags, notes, null, null);
   TSystem sys4 = new TSystem(-1, tenantName, "Dsys4", "description 4", SystemType.LINUX, "owner4", "host4", true,
-          "effUser4", prot4.getAccessMethod(), null,"bucket4", "/root4", prot4.getTransferMethods(),
-          prot4.getPort(), prot4.isUseProxy(), prot4.getProxyHost(), prot4.getProxyPort(),false,
+          "effUser4", prot0.getAccessMethod(), null,"bucket4", "/root4", prot0.getTransferMethods(),
+          prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),false,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4","jobRemoteArchDir4",
           null, tags, notes, null, null);
   TSystem sys5 = new TSystem(-1, tenantName, "Dsys5", "description 5", SystemType.LINUX, "owner5", "host5", true,
@@ -74,14 +72,19 @@ public class SystemsDaoTest
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5","jobRemoteArchDir5",
           null, tags, notes, null, null);
   TSystem sys6 = new TSystem(-1, tenantName, "Dsys6", "description 6", SystemType.LINUX, "owner6", "host6", true,
-          "effUser6", prot6.getAccessMethod(), null,"bucket6", "/root6", prot6.getTransferMethods(),
-          prot6.getPort(), prot6.isUseProxy(), prot6.getProxyHost(), prot6.getProxyPort(),false,
+          "effUser6", prot0.getAccessMethod(), null,"bucket6", "/root6", prot0.getTransferMethods(),
+          prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),false,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6","jobRemoteArchDir6",
           null, tags, notes, null, null);
   TSystem sys7 = new TSystem(-1, tenantName, "Dsys7", "description 7", SystemType.LINUX, "owner7", "host7", true,
           "effUser7", prot7.getAccessMethod(), null,"bucket7", "/root7", prot7.getTransferMethods(),
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
+          null, tags, notes, null, null);
+  TSystem sys8 = new TSystem(-1, tenantName, "Dsys8", "description 8", SystemType.LINUX, "owner8", "host8", true,
+          "effUser8", prot0.getAccessMethod(), null,"bucket8", "/root8", prot0.getTransferMethods(),
+          prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(),false,
+          "jobLocalWorkDir8", "jobLocalArchDir8", "jobRemoteArchSystem8","jobRemoteArchDir8",
           null, tags, notes, null, null);
 
   @BeforeSuite
@@ -190,11 +193,13 @@ public class SystemsDaoTest
   // Test change system owner
   @Test
   public void testChangeSystemOwner() throws Exception {
-//    TSystem sys0 = sys;
-//    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
-//    System.out.println("Created item with id: " + itemId);
-//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-//    dao.changeOwner(itemId);
+    TSystem sys0 = sys8;
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
+    System.out.println("Created item with id: " + itemId);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    dao.updateSystemOwner(itemId, "newOwner");
+    TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
+    Assert.assertEquals(tmpSystem.getOwner(), "newOwner");
   }
 
   // Test deleting a single item
@@ -254,5 +259,6 @@ public class SystemsDaoTest
     dao.hardDeleteTSystem(sys5.getTenant(), sys5.getName());
     dao.hardDeleteTSystem(sys6.getTenant(), sys6.getName());
     dao.hardDeleteTSystem(sys7.getTenant(), sys7.getName());
+    dao.hardDeleteTSystem(sys7.getTenant(), sys8.getName());
   }
 }

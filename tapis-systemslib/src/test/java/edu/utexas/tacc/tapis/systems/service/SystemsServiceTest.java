@@ -75,6 +75,7 @@ public class SystemsServiceTest
   private static final Protocol protA = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protC = new Protocol(AccessMethod.PKI_KEYS, null, -1, false, null,-1);
+  private static final Set<Permission> testPermsALL = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY, Permission.ALL));
   private static final Set<Permission> testPermsREADMODIFY = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
   private static final Set<Permission> testPermsREAD = new HashSet<>(Set.of(Permission.READ));
   private static final Set<Permission> testPermsMODIFY = new HashSet<>(Set.of(Permission.MODIFY));
@@ -176,6 +177,11 @@ public class SystemsServiceTest
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirF", "jobLocalArchDirF", "jobRemoteArchSystemF","jobRemoteArchDirF",
           null, tags1, notes1, null, null);
+  TSystem sysG = new TSystem(-1, tenantName, "SsysG", "description G", SystemType.LINUX, ownerUser, "hostG", true,
+          "effUserG", prot1.getAccessMethod(), null,"bucketG", "/rootG", prot1.getTransferMethods(),
+          prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
+          "jobLocalWorkDirG", "jobLocalArchDirG", "jobRemoteArchSystemG","jobRemoteArchDirG",
+          cap1List, tags1, notes1, null, null);
 
   @BeforeSuite
   public void setUp() throws Exception
@@ -300,15 +306,23 @@ public class SystemsServiceTest
   @Test
   public void testChangeSystemOwner() throws Exception
   {
-//    TSystem sys0 = sysG;
-//    String createText = "{\"testChangeOwner\": \"0-create\"}";
-//    String newOwnerName = testUser2;
-//    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createText);
-//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-//    // Change owner using api
-//    svc.changeSystemOwner(authenticatedOwnerUsr, sys0.getName(), newOwnerName);
-//    TSystem tmpSys = svc.getSystemByName(authenticatedTestUsr2, sys0.getName(), false, null);
-//    // Check common system attributes:TODO check expected updates have happened
+    TSystem sys0 = sysG;
+    String createText = "{\"testChangeOwner\": \"0-create\"}";
+    String newOwnerName = testUser2;
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createText);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // Change owner using api
+    svc.changeSystemOwner(authenticatedOwnerUsr, sys0.getName(), newOwnerName);
+    TSystem tmpSys = svc.getSystemByName(authenticatedTestUsr2, sys0.getName(), false, null);
+    Assert.assertEquals(tmpSys.getOwner(), newOwnerName);
+    // Check expected auxillary updates have happened
+    // New owner should be able to retrieve permissions and have the ALL permission
+    Set<Permission> userPerms = svc.getUserPermissions(authenticatedTestUsr2, sys0.getName(), newOwnerName);
+    Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
+    Assert.assertTrue(userPerms.contains(Permission.ALL));
+    // Original owner should no longer have the ALL permission
+    userPerms = svc.getUserPermissions(authenticatedTestUsr2, sys0.getName(), ownerUser);
+    Assert.assertFalse(userPerms.contains(Permission.ALL));
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -677,7 +691,23 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
 
-    // TODO CHANGE_OWNER - deny user not owner/admin, deny service
+    // CHANGE_OWNER - deny user not owner/admin, deny service
+    pass = false;
+    try { svc.changeSystemOwner(authenticatedTestUsr1, sys0.getName(), testUser2); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
+    pass = false;
+    try { svc.changeSystemOwner(authenticatedFilesSvc, sys0.getName(), testUser2); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
 
     // GET_PERMS - deny user not owner/admin and no READ or MODIFY access
     pass = false;
@@ -865,6 +895,7 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysG.getName());
   }
 
   /**

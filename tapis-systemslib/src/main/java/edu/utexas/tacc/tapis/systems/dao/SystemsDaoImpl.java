@@ -294,8 +294,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.UPDATE_SYSTEM_OWNER;
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setInt(1, systemId);
-      pstmt.setString(2, newOwnerName);
+      pstmt.setString(1, newOwnerName);
+      pstmt.setInt(2, systemId);
       rows = pstmt.executeUpdate();
       // Persist update record
       String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);

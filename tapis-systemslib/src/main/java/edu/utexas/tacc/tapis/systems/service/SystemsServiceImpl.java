@@ -360,14 +360,27 @@ public class SystemsServiceImpl implements SystemsService
     try {
       // ------------------- Make Dao call to update the system owner -----------------------------------
       dao.updateSystemOwner(systemId, newOwnerName);
-      // TODO Add permissions for new owner
-//      ??
-      // TODO Remove permissions from old owner
+      // Add permissions for new owner
+      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+      skClient.grantUserPermission(systemTenantName, newOwnerName, systemsPermSpec);
+      // TODO remove addition of files related permSpec
+      // Give owner files service related permission for root directory
+      String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
+      skClient.grantUserPermission(systemTenantName, newOwnerName, filesPermSpec);
+      // Remove permissions from old owner
+      skClient.revokeUserPermission(systemTenantName, oldOwnerName, systemsPermSpec);
       // TODO: Notify files service of the change
     }
-    catch (Exception e)
+    catch (Exception e0)
     {
-
+      // Something went wrong. Attempt to restore owner name and permissions
+      try { dao.updateSystemOwner(systemId, oldOwnerName); } catch (Exception e) {}
+      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); } catch (Exception e) {}
     }
   }
 
