@@ -116,7 +116,13 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * to Kubernetes using JwtSigning input.  To deploy the public key to Kubernetes,
  * use separate JwtPublic input stanzas for each public key.  Results report 
  * a combined tally for JwtSigning and JwtPublic under the JWT Signing Keys 
- * heading.  
+ * heading. 
+ * 
+ * JwtPublic stanza can also be used independently of whether a key pair resides
+ * in SK.  If the optional publicKey value is provided in the JwtPublic input
+ * stanza, then that value will be used without consulting SK.  In addition, if
+ * that value starts with the "file:" string, the publicKey will be assigned the
+ * contents of the specified file.  
  * 
  * @author rcardone
  */
@@ -473,14 +479,10 @@ public class SkAdmin
         // the required kube deployment parameters are set.
         for (var secret : _secrets.jwtpublic) {
             
-            // At a minimum, the public key must be specified.
-            if (StringUtils.isBlank(secret.publicKey)) {
-                String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
-                                             "publicKey", secret.tenant, 
-                                             secret.secretName);
-                _log.error(msg);
-                return false;
-            }
+            // If the public key is not specified it will be retrieved during 
+            // deployment. This approach allows public keys to come from one of
+            // 3 sources:  inline text, a referenced file, or from SK/Vault. 
+            if (StringUtils.isBlank(secret.publicKey)) return true;
             
             // Read the public key PEM file if one is provided.
             if (secret.publicKey.startsWith(READ_FILE)) {
@@ -585,6 +587,10 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.value)) 
+                    secret.value = generatePassword();
             }
         
             // If deploying, then we need either all or none of the deployment parms.
@@ -839,7 +845,7 @@ public class SkAdmin
         // Make sure the json conforms to the expected schema.
         try {JsonValidator.validate(spec);}
           catch (TapisJSONException e) {
-            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", file.getAbsolutePath());
             _log.error(msg, e);
             throw new TapisException(msg, e);
           }

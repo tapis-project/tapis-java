@@ -327,7 +327,7 @@ public final class SecretPathMapper
         
         // Return the path for this secret type.
         return "secret/tapis/service/" + _parms.getDbService() + "/dbhost/" + 
-               _parms.getDbHost() + "/dbname/" + _parms.getDbName() + "/dbuser" +
+               _parms.getDbHost() + "/dbname/" + _parms.getDbName() + "/dbuser/" +
                user + "/credentials/" + _parms.getSecretName();
     }
 

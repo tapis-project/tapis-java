@@ -204,10 +204,20 @@ public class SkAdminParameters
       // Display help and exit program.
       if (help)
         {
-         String s = "\nSkAdmin for creating and deploying secret to Kubernetes.";
+         String s = "\nSkAdmin for creating and deploying secrets to Kubernetes.";
          System.out.println(s);
          System.out.println("\nSkAdmin [options...]\n");
          parser.printUsage(System.out);
+         
+         // Add a usage blurb.
+         s = "\n\nUse either the -c or -u option to change secrets in Vault. Use the -dm " +
+             "\nor -dr option to deploy secrets to Kubernetes." +
+             "\n\nAccess to Vault secrets is always required. Use either the -j option " +
+             "\nto access the secrets using the Security Kernel or the {-vr, -vs} options " +
+             "\nto accress the secrets by going directly to Vault. Set the baseurl to " +
+             "\nmatch the access method.  Set the {-kn, -kt, -ku} options when deploying " +
+             "\nsecrets to Kubernetes.\n";
+         System.out.println(s);
          System.exit(0);
         }
     }
