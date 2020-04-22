@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
@@ -91,11 +91,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (StringUtils.isNotBlank(system.getEffectiveUserId())) effectiveUserId = system.getEffectiveUserId();
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
-      String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (system.getNotes() != null && !StringUtils.isBlank(system.getNotes().getStringData()))
-      {
-        notesStr = system.getNotes().getStringData();
-      }
+      JsonObject notesObj = TSystem.DEFAULT_NOTES;
+      if (system.getNotes() != null) notesObj = (JsonObject) system.getNotes();
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -104,7 +101,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       tagsJsonb.setValue(tagsStr);
       var notesJsonb = new PGobject();
       notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesStr);
+      notesJsonb.setValue(notesObj.toString());
 
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.CREATE_SYSTEM;
@@ -220,11 +217,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (StringUtils.isNotBlank(patchedSystem.getEffectiveUserId())) effectiveUserId = patchedSystem.getEffectiveUserId();
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
-      String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (patchedSystem.getNotes() != null && !StringUtils.isBlank(patchedSystem.getNotes().getStringData()))
-      {
-        notesStr = patchedSystem.getNotes().getStringData();
-      }
+      JsonObject notesObj =  TSystem.DEFAULT_NOTES;
+      if (patchedSystem.getNotes() != null) notesObj = (JsonObject) patchedSystem.getNotes();
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -233,7 +227,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       tagsJsonb.setValue(tagsStr);
       var notesJsonb = new PGobject();
       notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesStr);
+      notesJsonb.setValue(notesObj.toString());
 
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.UPDATE_SYSTEM;
@@ -276,6 +270,50 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       LibUtils.finalCloseDB(conn);
     }
     return systemId;
+  }
+
+  /**
+   * Update owner of a system given system Id and new owner name
+   *
+   */
+  @Override
+  public int updateSystemOwner(int systemId, String newOwnerName) throws TapisException
+  {
+    String opName = "changeOwner";
+    int rows = -1;
+    // ------------------------- Check Input -------------------------
+    if (systemId < 1) LibUtils.logAndThrowNullParmException(opName, "systemId");
+    if (StringUtils.isBlank(newOwnerName)) LibUtils.logAndThrowNullParmException(opName, "newOwnerName");
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+      // Prepare the statement, fill in placeholders and execute
+      String sql = SqlStatements.UPDATE_SYSTEM_OWNER;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setInt(1, systemId);
+      pstmt.setString(2, newOwnerName);
+      rows = pstmt.executeUpdate();
+      // Persist update record
+      String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
+      addUpdate(conn, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+    return rows;
   }
 
   /**
@@ -866,7 +904,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
                             TapisGsonUtils.getGson().fromJson(rs.getString(23), String[].class), // tags
-                            new Notes(rs.getString(24)), // notes
+                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

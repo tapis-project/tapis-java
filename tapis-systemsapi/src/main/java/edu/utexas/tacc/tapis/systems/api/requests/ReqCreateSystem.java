@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.systems.api.requests;
 
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
@@ -37,5 +36,5 @@ public final class ReqCreateSystem
   public String jobRemoteArchiveDir; // Parent directory used for archiving job output files on remote system
   public List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   public String[] tags;       // List of arbitrary tags as strings
-  public Notes notes;      // Simple metadata as json
+  public Object notes;      // Simple metadata as json
 }

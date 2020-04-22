@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.systems.api.requests;
 
 import edu.utexas.tacc.tapis.systems.model.Capability;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 
@@ -24,5 +23,5 @@ public final class ReqUpdateSystem
   public Integer proxyPort;     // Port number for proxy host
   public List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   public String[] tags;       // List of arbitrary tags as strings
-  public Notes notes;      // Simple metadata as json
+  public Object notes;      // Simple metadata as json
 }

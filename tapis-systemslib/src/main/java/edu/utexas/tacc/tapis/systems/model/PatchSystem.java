@@ -33,7 +33,7 @@ public final class PatchSystem
   private final Integer proxyPort;     // Port number for proxy host
   private final List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   private final String[] tags;       // List of arbitrary tags as strings
-  private Notes notes;      // Simple metadata as json
+  private Object notes;      // Simple metadata as json
 
   // ************************************************************************
   // *********************** Constructors ***********************************
@@ -45,7 +45,7 @@ public final class PatchSystem
   public PatchSystem(String description1, String host1, Boolean enabled1, String effectiveUserId1,
                      AccessMethod defaultAccessMethod1, List<TransferMethod> transferMethods1,
                      Integer port1, Boolean useProxy1, String proxyHost1, Integer proxyPort1, List<Capability> jobCapabilities1,
-                     String[] tags1, Notes notes1)
+                     String[] tags1, Object notes1)
   {
     description = description1;
     host = host1;
@@ -101,8 +101,8 @@ public final class PatchSystem
     return (tags == null) ? null : tags.clone();
   }
 
-  public Notes getNotes() {
+  public Object getNotes() {
     return notes;
   }
-  public void setNotes(Notes n) { notes = n; }
+  public void setNotes(Object n) { notes = n; }
 }

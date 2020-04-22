@@ -16,6 +16,8 @@ public interface SystemsDao
                     String updateJsonStr, String scrubbedText)
           throws TapisException, IllegalStateException;
 
+  int updateSystemOwner(int systemId, String newOwnerName) throws TapisException;
+
   int softDeleteTSystem(int systemId) throws TapisException;
 
   void addUpdateRecord(int systemId, String opName, String upd_json, String upd_text) throws TapisException;

@@ -2,12 +2,10 @@ package edu.utexas.tacc.tapis.systems.dao;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.Protocol;
-import org.apache.commons.lang3.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -17,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
@@ -48,7 +45,8 @@ public class SystemsDaoTest
   private static final String scrubbedJson = "{}";
   private static final String[] tags = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
-  private static final Notes notes = new Notes("{\"project\":\"myproj1\", \"testdata\":\"abc\"}");
+  private static final Object notes = TapisGsonUtils.getGson().fromJson("{\"project\": \"myproj1\", \"testdata\": \"abc1\"}", JsonObject.class);
+  private static final JsonObject notesObj = (JsonObject) notes;
 
   TSystem sys1 = new TSystem(-1, tenantName, "Dsys1", "description 1", SystemType.LINUX, "owner1", "host1", true,
           "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
@@ -153,15 +151,11 @@ public class SystemsDaoTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    String notesStr = tmpSys.getNotes().getStringData();
-    System.out.println("Found notes: " + notesStr);
-    Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
-    JsonObject obj = JsonParser.parseString(notesStr).getAsJsonObject();
-    Assert.assertNotNull(obj, "Error parsing Notes string");
+    JsonObject obj = (JsonObject) tmpSys.getNotes();
     Assert.assertTrue(obj.has("project"));
-    Assert.assertEquals(obj.get("project").getAsString(), "myproj1");
+    Assert.assertEquals(obj.get("project").getAsString(), notesObj.get("project").getAsString());
     Assert.assertTrue(obj.has("testdata"));
-    Assert.assertEquals(obj.get("testdata").getAsString(), "abc");
+    Assert.assertEquals(obj.get("testdata").getAsString(), notesObj.get("testdata").getAsString());
   }
 
   // Test retrieving all system names
@@ -191,6 +185,16 @@ public class SystemsDaoTest
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
+  }
+
+  // Test change system owner
+  @Test
+  public void testChangeSystemOwner() throws Exception {
+//    TSystem sys0 = sys;
+//    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
+//    System.out.println("Created item with id: " + itemId);
+//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+//    dao.changeOwner(itemId);
   }
 
   // Test deleting a single item

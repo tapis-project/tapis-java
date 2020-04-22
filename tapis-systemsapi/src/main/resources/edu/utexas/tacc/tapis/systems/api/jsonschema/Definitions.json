@@ -30,12 +30,5 @@
       "accessSecret": { "type":  "string" },
       "certificate": { "type":  "string" }
     }
-  },
-  "notes": {
-    "type": "object",
-    "properties": {
-      "stringData": { "type": "string" },
-      "jsonData": { "type": "object" }
-    }
   }
 }

@@ -24,6 +24,9 @@ final class SqlStatements
       "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags = ?, notes = ? " +
       "WHERE id = ?";
 
+  static final String UPDATE_SYSTEM_OWNER =
+      "UPDATE systems SET owner = ? WHERE id = ?";
+
   static final String ADD_UPDATE =
     "INSERT INTO system_updates (system_id, operation, upd_json, upd_text) VALUES (?, ?::operation_type, ?, ?)";
 

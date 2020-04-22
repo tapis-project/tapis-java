@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
 import org.jvnet.hk2.annotations.Contract;
 
 import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
 import java.util.List;
 import java.util.Set;
 
@@ -20,32 +21,45 @@ import java.util.Set;
 @Contract
 public interface SystemsService
 {
-  int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
+  int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText)
+          throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
 
-  int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException;
+  int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
+          throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException, NotFoundException;
 
-  int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
+  void changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
+          throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException, NotFoundException;
 
-  boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException;
+  int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName)
+          throws TapisException, NotAuthorizedException;
 
-  TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accessMethod) throws TapisException, NotAuthorizedException;
+  boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName)
+          throws TapisException;
 
-  List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException, NotAuthorizedException;
+  TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accessMethod)
+          throws TapisException, NotAuthorizedException;
 
-  String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException;
+  List<String> getSystemNames(AuthenticatedUser authenticatedUser)
+          throws TapisException, NotAuthorizedException;
 
-  void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions,
-                            String updateText) throws TapisException, NotAuthorizedException;
+  String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName)
+          throws TapisException, NotAuthorizedException;
 
-  int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions,
-                            String updateText) throws TapisException, NotAuthorizedException;
+  void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions, String updateText)
+          throws TapisException, NotAuthorizedException;
 
-  Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException;
+  int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions, String updateText)
+          throws TapisException, NotAuthorizedException;
 
-  void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential,
-                            String scrubbedText) throws TapisException, NotAuthorizedException, IllegalStateException;
+  Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName)
+          throws TapisException, NotAuthorizedException;
 
-  int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName) throws TapisException, NotAuthorizedException, IllegalStateException;
+  void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential, String scrubbedText)
+          throws TapisException, NotAuthorizedException, IllegalStateException;
 
-  Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod) throws TapisException, NotAuthorizedException;
+  int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
+          throws TapisException, NotAuthorizedException, IllegalStateException;
+
+  Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod)
+          throws TapisException, NotAuthorizedException;
 }

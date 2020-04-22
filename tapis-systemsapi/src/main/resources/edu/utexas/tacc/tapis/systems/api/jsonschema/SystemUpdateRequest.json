@@ -27,6 +27,6 @@
       "type": "array",
       "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
     },
-    "notes": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/notes" }
+    "notes": { "type": "object" }
   }
 }

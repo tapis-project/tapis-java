@@ -15,9 +15,7 @@ import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
-import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -83,8 +81,8 @@ public class SystemsServiceTest
   private static final String[] tags1 = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
   private static final String[] tags2 = {"value3", "value4"};
-  private static final Notes notes1 = new Notes("{\"project\": \"myproj1\", \"testdata\": \"abc1\"}");
-  private static final Notes notes2 = new Notes("{\"project\": \"myproj2\", \"testdata\": \"abc2\"}");
+  private static final Object notes1 = TapisGsonUtils.getGson().fromJson("{\"project\": \"myproj1\", \"testdata\": \"abc1\"}", JsonObject.class);
+  private static final Object notes2 = TapisGsonUtils.getGson().fromJson("{\"project\": \"myproj2\", \"testdata\": \"abc2\"}", JsonObject.class);
   private static final String scrubbedText = "{}";
 
   private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
@@ -282,8 +280,8 @@ public class SystemsServiceTest
   public void testUpdateSystem() throws Exception
   {
     TSystem sys0 = sysE;
-    String createText = "{\"update\": \"0-create\"}";
-    String patch1Text = "{\"update\": \"1-patch1\"}";
+    String createText = "{\"testUpdate\": \"0-create\"}";
+    String patch1Text = "{\"testUpdate\": \"1-patch1\"}";
     PatchSystem patchSystem = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
             prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
             prot2.getProxyPort(), cap2List, tags2, notes2);
@@ -293,9 +291,24 @@ public class SystemsServiceTest
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Update using patchSys
     svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Text);
-    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+    TSystem tmpSys = svc.getSystemByName(authenticatedOwnerUsr, sys0.getName(), false, null);
     // Check common system attributes:
     checkCommonSysAttrs(sysE2, tmpSys);
+  }
+
+  // Test changing system owner
+  @Test
+  public void testChangeSystemOwner() throws Exception
+  {
+//    TSystem sys0 = sysG;
+//    String createText = "{\"testChangeOwner\": \"0-create\"}";
+//    String newOwnerName = testUser2;
+//    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createText);
+//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+//    // Change owner using api
+//    svc.changeSystemOwner(authenticatedOwnerUsr, sys0.getName(), newOwnerName);
+//    TSystem tmpSys = svc.getSystemByName(authenticatedTestUsr2, sys0.getName(), false, null);
+//    // Check common system attributes:TODO check expected updates have happened
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -902,17 +915,11 @@ public class SystemsServiceTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    Assert.assertNotNull(sys0.getNotes(), "Orig Notes was null");
-    Assert.assertNotNull(tmpSys.getNotes(), "Fetched Notes was null");
-    String origNotesStr = sys0.getNotes().getStringData();
-    String tmpNotesStr = tmpSys.getNotes().getStringData();
-    Assert.assertFalse(StringUtils.isBlank(origNotesStr), "Orig Notes string was blank");
-    Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Fetched Notes string was blank");
-    System.out.println("Found notes: " + tmpNotesStr);
-    JsonObject tmpObj = TapisGsonUtils.getGson().fromJson(tmpNotesStr, JsonObject.class);
-    JsonObject origNotes = TapisGsonUtils.getGson().fromJson(origNotesStr, JsonObject.class);
-    Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Notes string not found.");
-    Assert.assertNotNull(tmpObj, "Error parsing Notes string");
+    Assert.assertNotNull(sys0.getNotes(), "Orig Notes should not be null");
+    Assert.assertNotNull(tmpSys.getNotes(), "Fetched Notes should not be null");
+    System.out.println("Found notes: " + sys0.getNotes().toString());
+    JsonObject tmpObj = (JsonObject) tmpSys.getNotes();
+    JsonObject origNotes = (JsonObject) sys0.getNotes();
     Assert.assertTrue(tmpObj.has("project"));
     String projStr = origNotes.get("project").getAsString();
     Assert.assertEquals(tmpObj.get("project").getAsString(), projStr);
