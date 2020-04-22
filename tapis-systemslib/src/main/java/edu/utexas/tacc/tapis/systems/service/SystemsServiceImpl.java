@@ -211,7 +211,7 @@ public class SystemsServiceImpl implements SystemsService
     }
     catch (Exception e0)
     {
-      // Attempt to undo all changes and then re-throw the exception
+      // Something went wrong. Attempt to undo all changes and then re-throw the exception
       // Log error
       String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
       _log.error(msg);
@@ -312,6 +312,7 @@ public class SystemsServiceImpl implements SystemsService
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - name of system
    * @param newOwnerName - User name of new owner
+   * @return Number of items updated
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - Resulting TSystem would be in an invalid state
    * @throws IllegalArgumentException - invalid parameter passed in
@@ -319,7 +320,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotFoundException - System not found
    */
   @Override
-  public void changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
+  public int changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
           throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
   {
     SystemOperation op = SystemOperation.changeOwner;
@@ -350,7 +351,7 @@ public class SystemsServiceImpl implements SystemsService
     checkAuth(authenticatedUser, op, systemName, tmpSystem.getOwner(), null, null);
 
     // If new owner same as old owner then this is a no-op
-    if (newOwnerName.equals(oldOwnerName)) return;
+    if (newOwnerName.equals(oldOwnerName)) return 0;
 
     // ----------------- Make all updates --------------------
     // Changes not in single DB transaction. Need to handle failure of role/perms/creds operations
@@ -373,7 +374,7 @@ public class SystemsServiceImpl implements SystemsService
     }
     catch (Exception e0)
     {
-      // Something went wrong. Attempt to restore owner name and permissions
+      // Something went wrong. Attempt to undo all changes and then re-throw the exception
       try { dao.updateSystemOwner(systemId, oldOwnerName); } catch (Exception e) {}
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
@@ -381,7 +382,9 @@ public class SystemsServiceImpl implements SystemsService
       try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
       try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
       try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); } catch (Exception e) {}
+      throw e0;
     }
+    return 1;
   }
 
   /**

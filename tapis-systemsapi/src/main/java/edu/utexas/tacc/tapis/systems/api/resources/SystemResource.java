@@ -455,7 +455,6 @@ public class SystemResource
    * @param systemName - name of the system
    * @param userName - name of the new owner
    * @param prettyPrint - pretty print the output
-   * @param payloadStream - request body
    * @return response containing reference to updated object
    */
   @POST
@@ -468,8 +467,8 @@ public class SystemResource
                   "Change owner of a system.",
           tags = "systems",
           responses = {
-                  @ApiResponse(responseCode = "200", description = "System updated.",
-                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+                  @ApiResponse(responseCode = "200", description = "System owner updated.",
+                          content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
                   @ApiResponse(responseCode = "401", description = "Not authorized.",
                           content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                   @ApiResponse(responseCode = "404", description = "System not found.",
@@ -481,7 +480,7 @@ public class SystemResource
   public Response changeSystemOwner(@PathParam("sysName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                    InputStream payloadStream, @Context SecurityContext securityContext)
+                                    @Context SecurityContext securityContext)
   {
     String opName = "changeSystemOwner";
     String msg;
@@ -499,9 +498,10 @@ public class SystemResource
     AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ---------------------------- Make service call to update the system -------------------------------
+    int changeCount;
     try
     {
-      systemsService.changeSystemOwner(authenticatedUser, systemName, userName);
+      changeCount = systemsService.changeSystemOwner(authenticatedUser, systemName, userName);
     }
     catch (NotFoundException e)
     {
@@ -542,9 +542,10 @@ public class SystemResource
 
     // ---------------------------- Success -------------------------------
     // Success means updates were applied
-    ResultResourceUrl respUrl = new ResultResourceUrl();
-    respUrl.url = _request.getRequestURL().toString();
-    RespResourceUrl resp1 = new RespResourceUrl(respUrl);
+    // Return the number of objects impacted.
+    ResultChangeCount count = new ResultChangeCount();
+    count.changes = changeCount;
+    RespChangeCount resp1 = new RespChangeCount(count);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
             ApiUtils.getMsgAuth("SYSAPI_UPDATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
   }

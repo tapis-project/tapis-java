@@ -27,7 +27,7 @@ public interface SystemsService
   int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
           throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException, NotFoundException;
 
-  void changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
+  int changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
           throws TapisException, NotAuthorizedException, IllegalStateException, IllegalArgumentException, NotFoundException;
 
   int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName)

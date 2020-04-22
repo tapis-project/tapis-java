@@ -277,10 +277,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public int updateSystemOwner(int systemId, String newOwnerName) throws TapisException
+  public void updateSystemOwner(int systemId, String newOwnerName) throws TapisException
   {
     String opName = "changeOwner";
-    int rows = -1;
     // ------------------------- Check Input -------------------------
     if (systemId < 1) LibUtils.logAndThrowNullParmException(opName, "systemId");
     if (StringUtils.isBlank(newOwnerName)) LibUtils.logAndThrowNullParmException(opName, "newOwnerName");
@@ -296,7 +295,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       PreparedStatement pstmt = conn.prepareStatement(sql);
       pstmt.setString(1, newOwnerName);
       pstmt.setInt(2, systemId);
-      rows = pstmt.executeUpdate();
+      pstmt.executeUpdate();
       // Persist update record
       String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
       addUpdate(conn, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
@@ -313,7 +312,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
-    return rows;
   }
 
   /**
