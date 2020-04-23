@@ -76,7 +76,7 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
  * Annotations map HTTP verb + endpoint to method invocation.
  *
  */
-@Path("/")
+@Path("/v3/systems")
 public class SystemResource
 {
   // ************************************************************************

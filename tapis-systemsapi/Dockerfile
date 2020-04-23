@@ -32,7 +32,6 @@ ENV JAVA_TOOL_OPTIONS -agentlib:jdwp=transport=dt_socket,address=8000,server=y,s
                       -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false \
                       -Dcom.sun.management.jmxremote.ssl=false 
 
-# TODO turn on debuggin
 # Server port, debug port and jmx port
 EXPOSE 8080
 EXPOSE 8000

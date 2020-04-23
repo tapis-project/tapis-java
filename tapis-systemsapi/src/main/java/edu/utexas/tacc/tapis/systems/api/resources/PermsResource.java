@@ -51,7 +51,7 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
  * Permissions are stored in the Security Kernel
  *
  */
-@Path("/perms")
+@Path("/v3/systems/perms")
 public class PermsResource
 {
   // ************************************************************************

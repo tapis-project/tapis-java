@@ -58,7 +58,7 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
  * Secrets are stored in the Security Kernel
  *
  */
-@Path("/credential")
+@Path("/v3/systems/credential")
 public class CredentialResource
 {
   // ************************************************************************

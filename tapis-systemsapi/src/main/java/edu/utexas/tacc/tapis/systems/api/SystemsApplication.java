@@ -35,7 +35,9 @@ import java.net.URI;
 //       but the file on disk (tapis-systemsapi/src/main/resources/openapi.json) does contains the paths.
 // NOTE: All the paths in the openapi file on disk (tapis-systemsapi/src/main/resources/openapi.json) are
 //       missing the prefix /v3/systems
-@ApplicationPath("v3/systems")
+// NOTE: ApplicationPath changed from "v3/systems" to "/" since each resource class includes "/v3/systems" in the
+//       path set at the class level. See SystemResource.java, PermsResource.java, etc.
+@ApplicationPath("/")
 public class SystemsApplication extends ResourceConfig
 {
   // For all logging use println or similar so we do not have a dependency on a logging subsystem.
@@ -94,7 +96,7 @@ public class SystemsApplication extends ResourceConfig
    */
   public static void main(String[] args) throws Exception
   {
-    final URI BASE_URI = URI.create("http://0.0.0.0:8080/v3/systems");
+    final URI BASE_URI = URI.create("http://0.0.0.0:8080/");
     ResourceConfig config = new SystemsApplication();
     final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(BASE_URI, config, false);
     server.start();

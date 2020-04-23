@@ -48,9 +48,9 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
         @Tag(name = "systems", description = "manage systems")
     },
     servers = {
-      @Server(url = "/v3/systems", description = "Base URL")
-//      @Server(url = "http://localhost:8080/v3/systems", description = "Local test environment")
-//      @Server(url = "https://dev.develop.tapis.io/v3", description = "Development environment")
+//      @Server(url = "v3/systems", description = "Base URL")
+      @Server(url = "http://localhost:8080/", description = "Local test environment"),
+      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
     },
     externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
@@ -61,7 +61,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
   in= SecuritySchemeIn.HEADER,
   paramName="X-Tapis-Token"
 )
-@Path("/")
+@Path("/v3/systems")
 public class SystemsResource
 {
   /* **************************************************************************** */
