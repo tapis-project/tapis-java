@@ -73,14 +73,14 @@ public class SecurityApplication
     
     private void printSecrets()
     {
-        File f = new File("\n/tmp/sk-secrets");
-        System.out.println("***** /tmp/sk-secrets isFile(): " + f.isFile());
+        File f = new File("/tmp/sk-secrets");
+        System.out.println("\n***** /tmp/sk-secrets isFile(): " + f.isFile());
         System.out.println("***** /tmp/sk-secrets isDir() : " + f.isDirectory());
         if (f.isFile()) printFile(f);
         if (f.isDirectory()) for (File file : f.listFiles()) printFile(file);
 
-        f = new File("\n/tmp/sk-vault-secrets");
-        System.out.println("***** /tmp/sk-vault-secrets isFile(): " + f.isFile());
+        f = new File("/tmp/sk-vault-secrets");
+        System.out.println("\n***** /tmp/sk-vault-secrets isFile(): " + f.isFile());
         System.out.println("***** /tmp/sk-vault-secrets isDir() : " + f.isDirectory());
         if (f.isFile()) printFile(f);
         if (f.isDirectory()) for (File file : f.listFiles()) printFile(file);
