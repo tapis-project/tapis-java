@@ -16,11 +16,11 @@ public interface SystemsDao
                     String updateJsonStr, String scrubbedText)
           throws TapisException, IllegalStateException;
 
-  void updateSystemOwner(int systemId, String newOwnerName) throws TapisException;
+  void updateSystemOwner(AuthenticatedUser authenticatedUser, int systemId, String newOwnerName) throws TapisException;
 
-  int softDeleteTSystem(int systemId) throws TapisException;
+  int softDeleteTSystem(AuthenticatedUser authenticatedUser, int systemId) throws TapisException;
 
-  void addUpdateRecord(int systemId, String opName, String upd_json, String upd_text) throws TapisException;
+  void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text) throws TapisException;
 
   int hardDeleteTSystem(String tenant, String name) throws TapisException;
 

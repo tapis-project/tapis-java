@@ -28,7 +28,7 @@ final class SqlStatements
       "UPDATE systems SET owner = ? WHERE id = ?";
 
   static final String ADD_UPDATE =
-    "INSERT INTO system_updates (system_id, operation, upd_json, upd_text) VALUES (?, ?::operation_type, ?, ?)";
+    "INSERT INTO system_updates (system_id, user_name, operation, upd_json, upd_text) VALUES (?, ?, ?::operation_type, ?, ?)";
 
   // Get all rows selecting all attributes.
   static final String SELECT_ALL_SYSTEMS =

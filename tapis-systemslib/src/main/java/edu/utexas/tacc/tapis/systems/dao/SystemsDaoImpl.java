@@ -148,7 +148,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       persistJobCapabilities(conn, system, systemId);
 
       // Persist update record
-      addUpdate(conn, systemId, SystemOperation.create.name(), createJsonStr, scrubbedText);
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.create.name(), createJsonStr, scrubbedText);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, rs);
@@ -254,7 +254,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       }
 
       // Persist update record
-      addUpdate(conn, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
@@ -277,7 +277,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public void updateSystemOwner(int systemId, String newOwnerName) throws TapisException
+  public void updateSystemOwner(AuthenticatedUser authenticatedUser, int systemId, String newOwnerName) throws TapisException
   {
     String opName = "changeOwner";
     // ------------------------- Check Input -------------------------
@@ -298,7 +298,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.executeUpdate();
       // Persist update record
       String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
-      addUpdate(conn, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
     }
@@ -319,7 +319,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public int softDeleteTSystem(int systemId) throws TapisException
+  public int softDeleteTSystem(AuthenticatedUser authenticatedUser, int systemId) throws TapisException
   {
     String opName = "softDeleteSystem";
     int rows = -1;
@@ -340,7 +340,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       rows = pstmt.executeUpdate();
 
       // Persist update record
-      addUpdate(conn, systemId, SystemOperation.softDelete.name(), EMPTY_JSON, null);
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.softDelete.name(), EMPTY_JSON, null);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
@@ -735,7 +735,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public void addUpdateRecord(int systemId, String opName, String upd_json, String upd_text) throws TapisException
+  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text) throws TapisException
   {
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -743,7 +743,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-      addUpdate(conn, systemId, opName, upd_json, upd_text);
+      addUpdate(conn, authenticatedUser, systemId, opName, upd_json, upd_text);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
@@ -768,7 +768,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * Given an sql connection and basic info add an update record
    *
    */
-  private void addUpdate(Connection conn, int systemId, String opName, String upd_json, String upd_text)
+  private void addUpdate(Connection conn, AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text)
           throws SQLException
   {
     String updJsonStr = (StringUtils.isBlank(upd_json)) ? EMPTY_JSON : upd_json;
@@ -781,9 +781,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     String sql = SqlStatements.ADD_UPDATE;
     PreparedStatement pstmt = conn.prepareStatement(sql);
     pstmt.setInt(1, systemId);
-    pstmt.setString(2, opName);
-    pstmt.setObject(3, pGobject);
-    pstmt.setString(4, upd_text);
+    pstmt.setString(2, authenticatedUser.getName());
+    pstmt.setString(3, opName);
+    pstmt.setObject(4, pGobject);
+    pstmt.setString(5, upd_text);
     pstmt.execute();
     pstmt.close();
   }

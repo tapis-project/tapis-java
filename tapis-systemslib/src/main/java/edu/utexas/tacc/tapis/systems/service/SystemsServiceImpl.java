@@ -360,7 +360,7 @@ public class SystemsServiceImpl implements SystemsService
     var skClient = getSKClient(authenticatedUser);
     try {
       // ------------------- Make Dao call to update the system owner -----------------------------------
-      dao.updateSystemOwner(systemId, newOwnerName);
+      dao.updateSystemOwner(authenticatedUser, systemId, newOwnerName);
       // Add permissions for new owner
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       skClient.grantUserPermission(systemTenantName, newOwnerName, systemsPermSpec);
@@ -375,7 +375,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e0)
     {
       // Something went wrong. Attempt to undo all changes and then re-throw the exception
-      try { dao.updateSystemOwner(systemId, oldOwnerName); } catch (Exception e) {}
+      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
       try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
@@ -439,7 +439,7 @@ public class SystemsServiceImpl implements SystemsService
       }
     }
     // Delete the system
-    return dao.softDeleteTSystem(system.getId());
+    return dao.softDeleteTSystem(authenticatedUser, system.getId());
   }
 
   /**
@@ -716,7 +716,7 @@ public class SystemsServiceImpl implements SystemsService
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
@@ -779,7 +779,7 @@ public class SystemsServiceImpl implements SystemsService
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
     return changeCount;
   }
 
@@ -898,7 +898,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
@@ -956,7 +956,7 @@ public class SystemsServiceImpl implements SystemsService
     String updateJsonStr = TapisGsonUtils.getGson().toJson(userName);
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(systemId, op.name(), updateJsonStr, null);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, null);
     return changeCount;
   }
 

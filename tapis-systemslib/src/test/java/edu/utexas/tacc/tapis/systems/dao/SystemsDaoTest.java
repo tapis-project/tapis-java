@@ -197,7 +197,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    dao.updateSystemOwner(itemId, "newOwner");
+    dao.updateSystemOwner(authenticatedUser, itemId, "newOwner");
     TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertEquals(tmpSystem.getOwner(), "newOwner");
   }
@@ -209,7 +209,7 @@ public class SystemsDaoTest
     int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    dao.softDeleteTSystem(itemId);
+    dao.softDeleteTSystem(authenticatedUser, itemId);
     TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0.getName());
   }
