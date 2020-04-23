@@ -1,5 +1,10 @@
 package edu.utexas.tacc.tapis.security.api;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import javax.ws.rs.ApplicationPath;
 
 import org.glassfish.jersey.server.ResourceConfig;
@@ -61,5 +66,35 @@ public class SecurityApplication
             e.printStackTrace();
             throw e;
         }
+        
+        // TEST CODE
+        printSecrets();
+    }
+    
+    private void printSecrets()
+    {
+        File f = new File("\n/tmp/sk-secrets");
+        System.out.println("***** /tmp/sk-secrets isFile(): " + f.isFile());
+        System.out.println("***** /tmp/sk-secrets isDir() : " + f.isDirectory());
+        if (f.isFile()) printFile(f);
+        if (f.isDirectory()) for (File file : f.listFiles()) printFile(file);
+
+        f = new File("\n/tmp/sk-vault-secrets");
+        System.out.println("***** /tmp/sk-vault-secrets isFile(): " + f.isFile());
+        System.out.println("***** /tmp/sk-vault-secrets isDir() : " + f.isDirectory());
+        if (f.isFile()) printFile(f);
+        if (f.isDirectory()) for (File file : f.listFiles()) printFile(file);
+    }
+    
+    private void printFile(File file)
+    {
+        System.out.println("***** Printing " + file.getAbsolutePath() + "\n");
+        
+        try {
+            System.out.println(new String(Files.readAllBytes(Paths.get(file.getAbsolutePath()))));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("***** -----------------------------\n");
     }
 }
