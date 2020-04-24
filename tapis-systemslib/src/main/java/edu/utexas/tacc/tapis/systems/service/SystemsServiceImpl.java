@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -68,6 +66,9 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Constants **************************************
   // ************************************************************************
+  public static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
+  public static final String SYSTEMS_DEFAULT_MASTER_TENANT = "master";
+
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
@@ -76,7 +77,6 @@ public class SystemsServiceImpl implements SystemsService
   private static final Set<Permission> READMODIFY_PERMS = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
   private static final String PERM_SPEC_PREFIX = "system:";
 
-  private static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
   private static final String HDR_TAPIS_TOKEN = "X-Tapis-Token";
   private static final String HDR_TAPIS_TENANT = "X-Tapis-Tenant";
   private static final String HDR_TAPIS_USER = "X-Tapis-User";
@@ -413,7 +413,7 @@ public class SystemsServiceImpl implements SystemsService
     // If system does not exist or has been soft deleted then 0 changes
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return 0;
 
-      // ------------------------- Check service level authorization -------------------------
+    // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
 
     TSystem system = dao.getTSystemByName(systemTenantName, systemName);
@@ -512,28 +512,39 @@ public class SystemsServiceImpl implements SystemsService
    * @param systemName - Name of the system
    * @return true if system exists and has not been soft deleted, false otherwise
    * @throws TapisException - for Tapis related exceptions
+   * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException
+  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
   {
+    SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
     if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
-    return dao.checkForTSystemByName(systemTenantName, systemName, false);
+
+    // We need owner to check auth and if system not there cannot find owner, so cannot do auth check if no system
+    if (dao.checkForTSystemByName(systemTenantName, systemName, false)) {
+      // ------------------------- Check service level authorization -------------------------
+      checkAuth(authenticatedUser, op, systemName, null, null, null);
+      return true;
+    }
+    return false;
   }
 
   /**
    * getSystemByName
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
-   * @return TSystem - populated instance or null if not found.
+   * @param getCreds - flag indicating if credentials for effectiveUserId should be included
+   * @param accMethod - (optional) return credentials for specified access method instead of default access method
+   * @return TSystem - populated instance or null if not found or user not authorized.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod1)
+  public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod)
           throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.read;
@@ -545,7 +556,8 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return null
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 
     // ------------------------- Check service level authorization -------------------------
@@ -559,10 +571,10 @@ public class SystemsServiceImpl implements SystemsService
     // If requested and effectiveUserid is not ${apiUserId} (i.e. is static) then retrieve credentials from Security Kernel
     if (getCreds && !result.getEffectiveUserId().equals(TSystem.APIUSERID_VAR))
     {
-      AccessMethod accMethod = result.getDefaultAccessMethod();
+      AccessMethod tmpAccMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
-      if (accMethod1 != null) accMethod = accMethod1;
-      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, accMethod);
+      if (accMethod != null) tmpAccMethod = accMethod;
+      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, tmpAccMethod);
       result.setAccessCredential(cred);
     }
     return result;
@@ -595,10 +607,9 @@ public class SystemsServiceImpl implements SystemsService
    * @param authenticatedUser - principal user containing tenant and user info
    * @return - list of systems
    * @throws TapisException - for Tapis related exceptions
-   * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException, NotAuthorizedException
+  public List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -621,8 +632,9 @@ public class SystemsServiceImpl implements SystemsService
    * Get system owner
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
-   * @return - Owner or null if system not found
+   * @return - Owner or null if system not found or user not authorized
    * @throws TapisException - for Tapis related exceptions
+   * @throws NotAuthorizedException - unauthorized
    */
   @Override
   public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
@@ -635,7 +647,8 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist or has been soft deleted return null
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 
     // ------------------------- Check service level authorization -------------------------
@@ -676,10 +689,10 @@ public class SystemsServiceImpl implements SystemsService
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
-    int systemId = dao.getTSystemId(systemTenantName, systemName);
-
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
+
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
 
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
@@ -743,14 +756,15 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist or has been soft deleted then return 0 changes
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist or has been soft deleted then return 0 changes
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return 0;
+
+    // ------------------------- Check service level authorization -------------------------
+    checkAuth(authenticatedUser, op, systemName, null, null, null);
 
     // Retrieve the system Id. Used to add an update record.
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-
-    // ------------------------- Check service level authorization -------------------------
-    checkAuth(authenticatedUser, op, systemName, null, userName, permissions);
 
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
@@ -911,7 +925,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException, IllegalStateException
+          throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.removeCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -962,6 +976,10 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Get credential for given system, user and access method
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param accessMethod - (optional) return credentials for specified access method instead of default access method
    * @return Credential - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized

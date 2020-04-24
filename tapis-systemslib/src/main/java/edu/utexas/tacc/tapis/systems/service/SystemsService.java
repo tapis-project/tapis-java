@@ -34,13 +34,13 @@ public interface SystemsService
           throws TapisException, NotAuthorizedException;
 
   boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName)
-          throws TapisException;
+          throws TapisException, NotAuthorizedException;
 
   TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accessMethod)
           throws TapisException, NotAuthorizedException;
 
   List<String> getSystemNames(AuthenticatedUser authenticatedUser)
-          throws TapisException, NotAuthorizedException;
+          throws TapisException;
 
   String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName)
           throws TapisException, NotAuthorizedException;

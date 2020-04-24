@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.Factory;
 
+import static edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl.SYSTEMS_DEFAULT_MASTER_TENANT;
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 
 /**
@@ -25,11 +26,10 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
     String tokenSvcUrl = null;
     try {
       // TODO: remove hard coded values
-      // TODO/TBD: Get master tenant from tenant service or from env?
+      // TODO/TBD: Get master tenant from tenant service or from env? Keep hard coded default?
       // Get service master tenant from the env
       svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
-      // TODO remove hard coded fallback?
-      if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = "master";
+      if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
       var svcJWTParms = new ServiceJWTParms();
       svcJWTParms.setTenant(svcMasterTenant);
       // Use TenantManager to get tenant info. Needed for tokens base URLs. E.g. https://dev.develop.tapis.io

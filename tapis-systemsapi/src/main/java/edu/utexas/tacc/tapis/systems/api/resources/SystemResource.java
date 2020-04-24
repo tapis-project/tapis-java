@@ -28,9 +28,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -187,7 +185,6 @@ public class SystemResource
     String opName = "createSystem";
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
-    String msg;
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -201,7 +198,7 @@ public class SystemResource
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
-    String rawJson;
+    String rawJson, msg;
     try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
@@ -342,7 +339,6 @@ public class SystemResource
                                InputStream payloadStream, @Context SecurityContext securityContext)
   {
     String opName = "updateSystem";
-    String msg;
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
 
@@ -358,7 +354,7 @@ public class SystemResource
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
-    String rawJson;
+    String rawJson, msg;
     try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
@@ -483,7 +479,6 @@ public class SystemResource
                                     @Context SecurityContext securityContext)
   {
     String opName = "changeSystemOwner";
-    String msg;
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
 
@@ -499,6 +494,7 @@ public class SystemResource
 
     // ---------------------------- Make service call to update the system -------------------------------
     int changeCount;
+    String msg;
     try
     {
       changeCount = systemsService.changeSystemOwner(authenticatedUser, systemName, userName);
@@ -770,13 +766,12 @@ public class SystemResource
    */
   private static TSystem createTSystemFromRequest(ReqCreateSystem req)
   {
-    TSystem system = new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
-                                 req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
-                                 req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
-                                 req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
-                                 req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
-                                 req.jobCapabilities, req.tags, req.notes, null, null);
-    return system;
+    return new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
+                       req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
+                       req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
+                       req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
+                       req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
+                       req.jobCapabilities, req.tags, req.notes, null, null);
   }
 
   /**
@@ -784,10 +779,9 @@ public class SystemResource
    */
   private static PatchSystem createPatchSystemFromRequest(ReqUpdateSystem req)
   {
-    PatchSystem patchSystem = new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
-                                  req.defaultAccessMethod, req.transferMethods, req.port, req.useProxy,
-                                  req.proxyHost, req.proxyPort, req.jobCapabilities, req.tags, req.notes);
-    return patchSystem;
+    return new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
+                           req.defaultAccessMethod, req.transferMethods, req.port, req.useProxy,
+                           req.proxyHost, req.proxyPort, req.jobCapabilities, req.tags, req.notes);
   }
 
   /**
@@ -839,7 +833,8 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
+    else if (system1.getTransferMethods() != null &&
+            system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
