@@ -1,10 +1,15 @@
 package edu.utexas.tacc.tapis.meta.api.resources;
 
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+import javax.ws.rs.core.EntityTag;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -21,6 +26,9 @@ public class CoreResponse {
   private String coreResponsebody;
   private String coreMsg;
   private int statusCode;
+  private String etag;
+  private String location;
+  private boolean basicResponse;
   
   /**
    * map the response from the core server request to our jaxrs response framework.
@@ -50,6 +58,9 @@ public class CoreResponse {
   private void captureCoreResponseHeaders(okhttp3.Response coreResponse) {
     _log.debug("Capture Headers from core response ...");
     headers = coreResponse.headers().toMultimap();
+    this.etag = coreResponse.header("ETag");
+    this.location = coreResponse.header("Location");
+    
     _log.debug(logResponseHeaders());
   }
   
@@ -76,8 +87,25 @@ public class CoreResponse {
     statusCode = coreResponse.code();
   }
   
+  public String getEtagValueFromHeaders(){
+    String etagValue = null;
+    if(headers.containsKey("ETag")){
+      List<String> etagList = headers.get("ETag");
+      etagValue = etagList.get(0);
+    }
+    return etagValue;
+  }
   
-/*************************************************
+  public String getLocationFromHeaders(){
+    String locationValue = null;
+    if(headers.containsKey("Location")){
+      List<String> locationList = headers.get("Location");
+      locationValue = locationList.get(0);
+    }
+    return locationValue;
+  }
+  
+  /*************************************************
 *     Print functions for core server Response
  ************************************************/
  
@@ -87,7 +115,7 @@ public class CoreResponse {
     Iterator<Map.Entry<String, List<String>>> iterator = headers.entrySet().iterator();
     while (iterator.hasNext()) {
       Map.Entry<String, List<String>> entry = iterator.next();
-      System.out.println(entry.getKey() + ":" + entry.getValue());
+      _log.debug(entry.getKey() + ":" + entry.getValue());
     }
     return sb.toString();
   }
@@ -100,6 +128,15 @@ public class CoreResponse {
     }
   }
   
+  protected String getBasicResponse(){
+    RespBasic resp = new RespBasic();
+    resp.status = String.valueOf(this.getStatusCode());
+    resp.message = this.coreMsg;
+    resp.version = TapisUtils.getTapisVersion();
+    resp.result = this.coreResponsebody;
+    return TapisGsonUtils.getGson().toJson(resp);
+  }
+  
   private void printMethod() {
     _log.debug("http method used : " + this.method);
   }
@@ -108,14 +145,11 @@ public class CoreResponse {
     _log.debug("http msg returned : " + coreMsg);
   }
   
-  
   /*************************************************
    *   Getters and Setters
    *************************************************/
 
-  public Map<String, List<String>> getHeaders() {
-    return headers;
-  }
+  public Map<String, List<String>> getHeaders() { return headers; }
   
   public String getCoreResponsebody() {
     return coreResponsebody;
@@ -140,4 +174,17 @@ public class CoreResponse {
   public void setStatusCode(int statusCode) {
     this.statusCode = statusCode;
   }
+  
+  public String getEtag() { return etag; }
+  
+  public void setEtag(String etag) { this.etag = etag; }
+  
+  public boolean isBasicResponse() { return basicResponse; }
+  
+  public void setBasicResponse(boolean basicResponse) { this.basicResponse = basicResponse; }
+  
+  public String getLocation() { return location; }
+  
+  public void setLocation(String location) { this.location = location; }
+  
 }
