@@ -224,9 +224,21 @@ X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json
 
-{ "name": "test document 35 4.17.2020-11:10", "jimmyList":["1","3"],"description": "new whatever"}
+{ "name": "slt test document 36 4.24.2020-16:03", "jimmyList":["1","3"],"description": "new whatever"}
 
 ###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
+# HTTP/1.1 201 Created
+# X-Powered-By: restheart.org
+# Location: http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e9de1dca93eebf39fcad799
+# Access-Control-Expose-Headers: Location, ETag, X-Powered-By
+# Date: Mon, 20 Apr 2020 17:54:36 GMT
+# Connection: keep-alive
+# Access-Control-Allow-Origin: *
+# ETag: 5e9de1dc67b9fd58b6da151f
+# Access-Control-Allow-Credentials: true
+# Content-Type: application/json
+# Content-Length: 0
+
 
 ##############################################################
 #     document endpoints
@@ -259,7 +271,7 @@ Content-Type: application/json
 # streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
 ###
-GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -306,8 +318,8 @@ Content-Type: application/json
 #
 # curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streamsTACCAdmin" http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
 #
-DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
-X-Tapis-Token: $jwt
+DELETE http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
+X-Tapis-Token:
 X-Tapis-Tenant: dev
 X-Tapis-User: streamsTACCAdmin
 

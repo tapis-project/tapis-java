@@ -197,7 +197,7 @@ Content-Type: application/json
 # /v3/meta/StreamsTACCDB/Proj1/   streamsTACCAdmin
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/5e4bff5ea93eebf39fbecda1
 ###
-DELETE http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+DELETE http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5ea35424a93eebf39fcc0826
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -222,7 +222,7 @@ Content-Type: application/json
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
 ###
 
-GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
+GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5ea35424a93eebf39fcc0826
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -233,7 +233,7 @@ Content-Type: application/json
 
 #  patch  to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
 ###
-PATCH http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
+PATCH http://localhost:8080/v3/meta/StreamsTACCDB/Proj1/5ea35424a93eebf39fcc0826
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
