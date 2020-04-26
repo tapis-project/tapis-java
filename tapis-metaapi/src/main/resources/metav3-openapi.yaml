@@ -329,7 +329,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
+        - name: basic
           in: query
           schema:
             type: boolean
@@ -810,8 +810,6 @@ paths:
               schema:
                 type: object
       deprecated: false
-
-
 
 components:
   securitySchemes:

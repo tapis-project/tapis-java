@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.meta.api.resources;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 public class CoreResponse {
   
@@ -128,13 +131,32 @@ public class CoreResponse {
     }
   }
   
-  protected String getBasicResponse(){
+  protected String getBasicResponse(String location){
     RespBasic resp = new RespBasic();
     resp.status = String.valueOf(this.getStatusCode());
     resp.message = this.coreMsg;
     resp.version = TapisUtils.getTapisVersion();
-    resp.result = this.coreResponsebody;
+    String oid = getOidFromLocation(location);
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\"_id\":").append(oid).append("}");
+    JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
+    resp.result = jsonObject;
     return TapisGsonUtils.getGson().toJson(resp);
+  }
+  
+  private String getOidFromLocation(String location){
+    // need to parse location which looks like this
+    // http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/sltCollectionTst/5ea5bf3ca93eebf39fcc563b
+    StringTokenizer st = new StringTokenizer(location,"/");
+    
+    // make the assumption this a a URL to a resource location with the ending value
+    // the oid of the created document
+    String oid = "";
+    while (st.hasMoreElements()) {
+      oid = st.nextToken();
+      // we just need the last token which should be the oid
+    }
+    return oid;
   }
   
   private void printMethod() {

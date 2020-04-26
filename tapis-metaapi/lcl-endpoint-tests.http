@@ -148,7 +148,6 @@ Content-Type: application/json
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/TstCollection
 #  with ETag
 ###
-
 DELETE http://localhost:8080/v3/meta/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin

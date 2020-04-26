@@ -56,7 +56,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     SKClient skClient = new SKClient(runTime.getSkSvcURL(), runTime.getMetaToken());
     
     //   map the request to permissions
-    String permissionsSpec = mapRequestToPermissions(requestContext);
+    String permissionsSpec = mapRequestToPermissions(requestContext,threadContext.getJwtTenantId());
     
     // is this request permitted
     boolean isPermitted = false;
@@ -169,11 +169,12 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
    * @param requestContext
    * @return  the String representing a permissions spec for comparison
    */
-  private String mapRequestToPermissions(ContainerRequestContext requestContext) {
+  private String mapRequestToPermissions(ContainerRequestContext requestContext, String tenantId) {
     String requestMethod = requestContext.getMethod();
     String requestUri = requestContext.getUriInfo().getPath();
     // getting the tenant info
-    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(requestUri, "dev");
+    // TODO pull tenant info for checking permissions
+    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(requestUri, tenantId);
     String permSpec = mapper.convert(requestMethod);
     
     return permSpec;

@@ -258,9 +258,9 @@ public class ResourceBucket {
     // Trace this request.
     if (_log.isTraceEnabled()) {
       String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
-          "deleteCollection", _request.getRequestURL());
+          "createDocument", _request.getRequestURL());
       _log.trace(msg);
-      _log.trace("Delete collection "+collection+" in " + db );
+      _log.trace("Create document  in " + collection );
     }
   
     // Get the json payload to proxy to back end
@@ -282,21 +282,30 @@ public class ResourceBucket {
     // we will always return a response for a request that means something
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyPostRequest(jsonPayloadToProxy.toString());
+  
+    String result = null;
+    String etag = coreResponse.getEtag();
+    String location = coreResponse.getLocationFromHeaders();
     
+  
     if(basic){
-      coreResponse.setBasicResponse(basic);
+      result = coreResponse.getBasicResponse(location);
+    }else {
+      result =  coreResponse.getCoreResponsebody();
     }
-    
-    String result = coreResponse.getBasicResponse();
-    
-    
+  
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(result);
-    String etag = coreResponse.getEtag();
+    
     if(!StringUtils.isBlank(etag)){
      responseBuilder.tag(etag);
     }
+    
+    if(!StringUtils.isBlank(location)){
+      responseBuilder.header("location",location);
+    }
+  
     Response response = responseBuilder.build();
   
     return response;
@@ -607,13 +616,14 @@ public class ResourceBucket {
   @Produces(MediaType.APPLICATION_JSON)
   public javax.ws.rs.core.Response useAggregation(@PathParam("db") String db,
                                                   @PathParam("collection") String collection,
-                                                  @PathParam("aggregation") String aggregation) {
+                                                  @PathParam("aggregation") String aggregation,
+                                                  @QueryParam("avars") String agvars) {
     // Trace this request.
     if (_log.isTraceEnabled()) {
       String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
-          "addAggregation", _request.getRequestURL());
+          "getAggregation", _request.getRequestURL());
       _log.trace(msg);
-      _log.trace("Add an aggregation in " + db + "/" + collection);
+      _log.trace("Get aggregation in " + db + "/" + collection);
     }
   
     return javax.ws.rs.core.Response.status(200).entity("{ TODO }").build();
