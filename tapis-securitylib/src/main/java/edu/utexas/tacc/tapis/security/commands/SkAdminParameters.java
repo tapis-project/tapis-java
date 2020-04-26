@@ -40,6 +40,7 @@ public class SkAdminParameters
     /*                                 Fields                                 */
     /* ********************************************************************** */
     // --------- Action Parameters ---------
+    // At least one of the following 4 parameters must be set.
     @Option(name = "-c", required = false, aliases = {"-create"}, 
             usage = "create secrets that don't already exist",
             forbids={"-u"})
@@ -61,25 +62,31 @@ public class SkAdminParameters
     public boolean deployReplace;
     
     // --------- Required Parameters -------
+    // There has to be input.
     @Option(name = "-i", required = true, aliases = {"-input"}, 
             metaVar = "<file path>", usage = "the json input file or folder")
     public String jsonInput;
     
-    @Option(name = "-j", required = true, aliases = {"-jwtenv"}, 
-            usage = "JWT environment variable name")
-    public String jwtEnv;
+    // SK or Vault url.
+    @Option(name = "-b", required = true, aliases = {"-baseurl"}, 
+            metaVar = "<base sk or vault url>", usage = "SK: http(s)://host/v3, Vault: http(s)://host:32342)")
+    public String baseUrl;
     
     // --------- Kube Parameters -----------
+    // Kube parameter are necessary if a deploy action is specified.
     @Option(name = "-kt", required = false, aliases = {"-kubeToken"}, 
-            usage = "kubernetes access token environment variable name")
+            usage = "kubernetes access token environment variable name",
+            depends={"-ku","-kn"})
     public String kubeTokenEnv;
     
     @Option(name = "-ku", required = false, aliases = {"-kubeUrl"}, 
-            usage = "kubernetes API server URL")
+            usage = "kubernetes API server URL",
+                    depends={"-kt","-kn"})
     public String kubeUrl;
     
     @Option(name = "-kn", required = false, aliases = {"-kubeNS"}, 
-            usage = "kubernetes namespace to be accessed")
+            usage = "kubernetes namespace to be accessed",
+                    depends={"-ku","-kt"})
     public String kubeNS;
     
     @Option(name = "-kssl", required = false, 
@@ -87,10 +94,24 @@ public class SkAdminParameters
     public boolean kubeValidateSSL = false;
     
     // --------- SK Parameters -------------
-    @Option(name = "-b", required = false, aliases = {"-baseurl"}, 
-            metaVar = "<base sk url>", usage = "SK base url (scheme://host/v3)")
-    public String baseUrl = DFT_BASE_SK_URL;
+    // SK or Vault parameters are always required, but not both.
+    @Option(name = "-j", required = false, aliases = {"-jwtenv"}, 
+            usage = "JWT environment variable name",
+            forbids={"-vr","-vs"})
+    public String jwtEnv;
     
+    // --------- Vault Parameters ----------
+    // SK or Vault parameters are always required, but not both
+    @Option(name = "-vr", required = false, aliases = {"-vaultRole"}, 
+            usage = "vault role-id",
+            forbids={"-j"}, depends={"-vs"})
+    public String vaultRoleId;
+    
+    @Option(name = "-vs", required = false, aliases = {"-vaultSecret"}, 
+            usage = "vault secret-id",
+            forbids={"-j"}, depends={"-vr"})
+    public String vaultSecretId;
+       
     // --------- General Parameters --------
     @Option(name = "-passwordlen", required = false,  
             usage = "number of random bytes in generated passwords")
@@ -123,6 +144,18 @@ public class SkAdminParameters
       initializeParms(args);
       validateParms();
     }
+    
+    /* **************************************************************************** */
+    /*                               Public Methods                                 */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* useSK:                                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine if we are using SK or going directly to Vault.
+     * 
+     * @return true if using SK, false if using Vault
+     */
+    public boolean useSK() {return jwt != null;}
     
     /* **************************************************************************** */
     /*                               Private Methods                                */
@@ -171,10 +204,20 @@ public class SkAdminParameters
       // Display help and exit program.
       if (help)
         {
-         String s = "\nSkAdmin for creating and deploying secret to Kubernetes.";
+         String s = "\nSkAdmin for creating and deploying secrets to Kubernetes.";
          System.out.println(s);
          System.out.println("\nSkAdmin [options...]\n");
          parser.printUsage(System.out);
+         
+         // Add a usage blurb.
+         s = "\n\nUse either the -c or -u option to change secrets in Vault. Use the -dm " +
+             "\nor -dr option to deploy secrets to Kubernetes." +
+             "\n\nAccess to Vault secrets is always required. Use either the -j option " +
+             "\nto access the secrets using the Security Kernel or the {-vr, -vs} options " +
+             "\nto accress the secrets by going directly to Vault. Set the baseurl to " +
+             "\nmatch the access method.  Set the {-kn, -kt, -ku} options when deploying " +
+             "\nsecrets to Kubernetes.\n";
+         System.out.println(s);
          System.exit(0);
         }
     }
@@ -206,34 +249,26 @@ public class SkAdminParameters
             throw new TapisException(msg);
         }
         
-        // Read the JWT into memory.
-        jwt = System.getenv(jwtEnv);
-        if (StringUtils.isBlank(jwt)) {
-            String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
+        // Make sure Vault access is configured either directly or through SK.
+        if (StringUtils.isBlank(jwtEnv) && StringUtils.isBlank(vaultRoleId)) {
+            String msg = "Either an SK JWT or a Vault role-id/secret-id pair must be provided.";
             _log.error(msg);
             throw new TapisException(msg);
+        }
+        
+        // Read the JWT into memory.
+        if (jwtEnv != null) {
+            jwt = System.getenv(jwtEnv);
+            if (StringUtils.isBlank(jwt)) {
+                String msg = "Unable to read a JWT from environment variable " + jwtEnv + ".";
+                _log.error(msg);
+                throw new TapisException(msg);
+            }
         }
         
         // Make sure we have a kubernetes token if we need it.
         if (deployMerge || deployReplace) 
         {
-            // Make sure all kube parameters are present.
-            if (StringUtils.isBlank(kubeNS)) {
-                String msg = "A Kubernetes namespace is required when deploying to Kubernetes.";
-                _log.error(msg);
-                throw new TapisException(msg);
-            }
-            if (StringUtils.isBlank(kubeUrl)) {
-                String msg = "A Kubernetes server URL is required when deploying to Kubernetes.";
-                _log.error(msg);
-                throw new TapisException(msg);
-            }
-            if (StringUtils.isBlank(kubeTokenEnv)) {
-                String msg = "A Kubernetes token environment variable is required when deploying to Kubernetes.";
-                _log.error(msg);
-                throw new TapisException(msg);
-            }
-            
             // Get the kube token.
             kubeToken = System.getenv(kubeTokenEnv);
             if (StringUtils.isBlank(kubeToken)) {

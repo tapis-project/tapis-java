@@ -32,6 +32,13 @@ import edu.utexas.tacc.tapis.security.commands.processors.SkAdminJwtSigningProce
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminKubeDeployer;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminServicePwdProcessor;
 import edu.utexas.tacc.tapis.security.commands.processors.SkAdminUserProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultDBCredentialProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultJwtPublicProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultJwtSigningProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultManagerParms;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultServicePwdProcessor;
+import edu.utexas.tacc.tapis.security.commands.processors.SkAdminVaultUserProcessor;
+import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -109,7 +116,13 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * to Kubernetes using JwtSigning input.  To deploy the public key to Kubernetes,
  * use separate JwtPublic input stanzas for each public key.  Results report 
  * a combined tally for JwtSigning and JwtPublic under the JWT Signing Keys 
- * heading.  
+ * heading. 
+ * 
+ * JwtPublic stanza can also be used independently of whether a key pair resides
+ * in SK.  If the optional publicKey value is provided in the JwtPublic input
+ * stanza, then that value will be used without consulting SK.  In addition, if
+ * that value starts with the "file:" string, the publicKey will be assigned the
+ * contents of the specified file.  
  * 
  * @author rcardone
  */
@@ -212,8 +225,6 @@ public class SkAdmin
     public void admin()
      throws TapisException
     {
-        //var keyPair = generateKeyPair();
-        
         // Load the input file or files into a pojo.
         _secrets = loadSecrets();
         
@@ -313,8 +324,11 @@ public class SkAdmin
                     secret.secret = generatePassword();
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_DBCRED_MISSING_PARM", 
                                                  "kubeSecretName", secret.dbservice,
@@ -426,8 +440,11 @@ public class SkAdmin
                 }
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -458,17 +475,14 @@ public class SkAdmin
         if (_secrets.jwtpublic == null || _secrets.jwtpublic.isEmpty())
             return true;
         
-        // Iterate throught the secrets.
+        // Iterate throught the secrets. JSON schema validation makes sure
+        // the required kube deployment parameters are set.
         for (var secret : _secrets.jwtpublic) {
             
-            // At a minimum, the private key must be specified.
-            if (StringUtils.isBlank(secret.publicKey)) {
-                String msg = MsgUtils.getMsg("SK_ADMIN_JWTSIGNING_MISSING_PARM", 
-                                             "publicKey", secret.tenant, 
-                                             secret.secretName);
-                _log.error(msg);
-                return false;
-            }
+            // If the public key is not specified it will be retrieved during 
+            // deployment. This approach allows public keys to come from one of
+            // 3 sources:  inline text, a referenced file, or from SK/Vault. 
+            if (StringUtils.isBlank(secret.publicKey)) return true;
             
             // Read the public key PEM file if one is provided.
             if (secret.publicKey.startsWith(READ_FILE)) {
@@ -514,7 +528,7 @@ public class SkAdmin
             
                 if (StringUtils.isBlank(secret.password)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
-                                                 "password", secret.tenant, secret.service,
+                                                 "password", secret.tenant, secret.user,
                                                  secret.secretName);
                     _log.error(msg);
                     return false;
@@ -525,19 +539,22 @@ public class SkAdmin
                     secret.password = generatePassword();
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
-                                                 secret.service, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
                 if (StringUtils.isBlank(secret.kubeSecretKey)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_SERVICEPWD_MISSING_PARM", 
                                                  "kubeSecretKey", secret.tenant, 
-                                                 secret.service, secret.secretName);
+                                                 secret.user, secret.secretName);
                     _log.error(msg);
                     return false;
                 }
@@ -570,10 +587,17 @@ public class SkAdmin
                     _log.error(msg);
                     return false;
                 }
+                
+                // Do we need to generate a password?
+                if (GENERATE_SECRET.equals(secret.value)) 
+                    secret.value = generatePassword();
             }
         
-            // Kube changes.
-            if (_parms.deployMerge || _parms.deployReplace) {
+            // If deploying, then we need either all or none of the deployment parms.
+            if ((_parms.deployMerge || _parms.deployReplace)  &&
+                ((StringUtils.isBlank(secret.kubeSecretName)  && !StringUtils.isBlank(secret.kubeSecretKey))  || 
+                 (!StringUtils.isBlank(secret.kubeSecretName) &&  StringUtils.isBlank(secret.kubeSecretKey))))
+            {
                 if (StringUtils.isBlank(secret.kubeSecretName)) {
                     String msg = MsgUtils.getMsg("SK_ADMIN_USER_MISSING_PARM", 
                                                  "kubeSecretName", secret.tenant, 
@@ -604,16 +628,48 @@ public class SkAdmin
      */
     private void createProcessors()
     {
-        _dbCredentialProcessor = 
-            new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
-        _jwtSigningProcessor = 
-            new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
-        _jwtPublicProcessor = 
+        // We use different processors depending on how we interact with vault.
+        if (_parms.useSK()) {
+            // All secret creation or updating goes through SK.
+            _dbCredentialProcessor = 
+                new SkAdminDBCredentialProcessor(_secrets.dbcredential, _parms);
+            _jwtSigningProcessor = 
+                new SkAdminJwtSigningProcessor(_secrets.jwtsigning, _parms);
+            _jwtPublicProcessor = 
                 new SkAdminJwtPublicProcessor(_secrets.jwtpublic, _parms);
-        _servicePwdProcessor = 
-            new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
-        _userProcessor = 
-            new SkAdminUserProcessor(_secrets.user, _parms);
+            _servicePwdProcessor = 
+                new SkAdminServicePwdProcessor(_secrets.servicepwd, _parms);
+            _userProcessor = 
+                new SkAdminUserProcessor(_secrets.user, _parms);
+        }
+        else {
+            // Initialize the vault manager singleton.  If we can't
+            // get to vault there's no point in continuing.
+            var vaultParms = new SkAdminVaultManagerParms();
+            vaultParms.setVaultAddress(_parms.baseUrl);
+            vaultParms.setVaultRoleId(_parms.vaultRoleId);
+            vaultParms.setVaultSecretId(_parms.vaultSecretId);
+            try {VaultManager.getInstance(vaultParms);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("SK_ADMIN_VAULT_INIT_ERROR", 
+                                                 vaultParms.getVaultAddress(),
+                                                 e.getMessage());
+                    _log.error(msg, e);
+                    throw e;
+                }
+            
+            // All secret creation or updating goes directly to Vault.
+            _dbCredentialProcessor = 
+                new SkAdminVaultDBCredentialProcessor(_secrets.dbcredential, _parms);
+            _jwtSigningProcessor = 
+                new SkAdminVaultJwtSigningProcessor(_secrets.jwtsigning, _parms);
+            _jwtPublicProcessor = 
+                new SkAdminVaultJwtPublicProcessor(_secrets.jwtpublic, _parms);
+            _servicePwdProcessor = 
+                new SkAdminVaultServicePwdProcessor(_secrets.servicepwd, _parms);
+            _userProcessor = 
+                new SkAdminVaultUserProcessor(_secrets.user, _parms);
+        }
     }
     
     /* ---------------------------------------------------------------------- */
@@ -789,7 +845,7 @@ public class SkAdmin
         // Make sure the json conforms to the expected schema.
         try {JsonValidator.validate(spec);}
           catch (TapisJSONException e) {
-            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+            String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", file.getAbsolutePath());
             _log.error(msg, e);
             throw new TapisException(msg, e);
           }
@@ -803,6 +859,9 @@ public class SkAdmin
             _log.error(msg, e);
             throw new TapisException(msg, e);
         }
+        
+        // Catalog the input file.
+        _results.addInputFile(file.getAbsolutePath());
 
         // Return the wrapper content.
         return wrapper.secrets;

@@ -87,7 +87,7 @@ public final class RuntimeParameters
 
 	// Service config
 	private String servicePassword;
-	private String setServiceMasterTenant;
+	private String serviceMasterTenant;
 
 	// Service base URLs - tokens, tenants, Security Kernel
 	private String tokensSvcURL;
@@ -635,8 +635,8 @@ public final class RuntimeParameters
 		this.jdbcURL = jdbcURL;
 	}
 
-	public String getSetServiceMasterTenant() { return setServiceMasterTenant; }
-	private void setServiceMasterTenant(String t) {setServiceMasterTenant = t; }
+	public String getServiceMasterTenant() { return serviceMasterTenant; }
+	private void setServiceMasterTenant(String t) { serviceMasterTenant = t; }
 
 	public String getServicePassword() { return servicePassword; }
 	private void setServicePassword(String p) {servicePassword = p; }

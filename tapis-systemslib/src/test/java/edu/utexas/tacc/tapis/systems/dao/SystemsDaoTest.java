@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
@@ -47,44 +48,43 @@ public class SystemsDaoTest
   private static final String scrubbedJson = "{}";
   private static final String[] tags = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
-  private static final String notes = "{\"project\":\"myproj1\", \"testdata\":\"abc\"}";
-  private static JsonObject notesJO = gson.fromJson(notes, JsonObject.class);
+  private static final Notes notes = new Notes("{\"project\":\"myproj1\", \"testdata\":\"abc\"}");
 
   TSystem sys1 = new TSystem(-1, tenantName, "Dsys1", "description 1", SystemType.LINUX, "owner1", "host1", true,
           "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDir1", "jobLocalArchDir1", "jobRemoteArchSystem1","jobRemoteArchDir1",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys2 = new TSystem(-1, tenantName, "Dsys2", "description 2", SystemType.LINUX, "owner2", "host2", true,
           "effUser2", prot2.getAccessMethod(), null,"bucket2", "/root2", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Dsys3", "description 3", SystemType.OBJECT_STORE, "owner3", "host3", true,
           "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
           prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3","jobRemoteArchDir3",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys4 = new TSystem(-1, tenantName, "Dsys4", "description 4", SystemType.LINUX, "owner4", "host4", true,
           "effUser4", prot4.getAccessMethod(), null,"bucket4", "/root4", prot4.getTransferMethods(),
           prot4.getPort(), prot4.isUseProxy(), prot4.getProxyHost(), prot4.getProxyPort(),false,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4","jobRemoteArchDir4",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys5 = new TSystem(-1, tenantName, "Dsys5", "description 5", SystemType.LINUX, "owner5", "host5", true,
           "effUser5", prot5.getAccessMethod(), null,"bucket5", "/root5", prot5.getTransferMethods(),
           prot5.getPort(), prot5.isUseProxy(), prot5.getProxyHost(), prot5.getProxyPort(),false,
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5","jobRemoteArchDir5",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys6 = new TSystem(-1, tenantName, "Dsys6", "description 6", SystemType.LINUX, "owner6", "host6", true,
           "effUser6", prot6.getAccessMethod(), null,"bucket6", "/root6", prot6.getTransferMethods(),
           prot6.getPort(), prot6.isUseProxy(), prot6.getProxyHost(), prot6.getProxyPort(),false,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6","jobRemoteArchDir6",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
   TSystem sys7 = new TSystem(-1, tenantName, "Dsys7", "description 7", SystemType.LINUX, "owner7", "host7", true,
           "effUser7", prot7.getAccessMethod(), null,"bucket7", "/root7", prot7.getTransferMethods(),
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
-          null, tags, notesJO, null, null);
+          null, tags, notes, null, null);
 
   @BeforeSuite
   public void setup() throws Exception
@@ -103,7 +103,7 @@ public class SystemsDaoTest
   public void testCreate() throws Exception
   {
     TSystem sys0 = sys1;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
@@ -111,7 +111,7 @@ public class SystemsDaoTest
   @Test
   public void testGetByName() throws Exception {
     TSystem sys0 = sys2;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
@@ -151,7 +151,7 @@ public class SystemsDaoTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    String notesStr = tmpSys.getNotes().toString();
+    String notesStr = tmpSys.getNotes().getStringData();
     System.out.println("Found notes: " + notesStr);
     Assert.assertFalse(StringUtils.isBlank(notesStr), "Notes string not found");
     JsonObject obj = JsonParser.parseString(notesStr).getAsJsonObject();
@@ -166,10 +166,10 @@ public class SystemsDaoTest
   @Test
   public void testGetSystemNames() throws Exception {
     TSystem sys0 = sys3;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     sys0 = sys4;
-    itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<String> systemNames = dao.getTSystemNames(tenantName);
     for (String name : systemNames) {
@@ -183,7 +183,7 @@ public class SystemsDaoTest
   @Test
   public void testGetSystems() throws Exception {
     TSystem sys0 = sys5;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     List<TSystem> systems = dao.getTSystems(tenantName);
     for (TSystem system : systems) {
@@ -193,12 +193,12 @@ public class SystemsDaoTest
 
   // Test deleting a single item
   @Test
-  public void testDelete() throws Exception {
+  public void testSofDelete() throws Exception {
     TSystem sys0 = sys6;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     System.out.println("Created item with id: " + itemId);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    dao.deleteTSystem(sys0.getTenant(), sys0.getName());
+    dao.softDeleteTSystem(sys0.getTenant(), sys0.getName());
     TSystem tmpSystem = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys0.getName());
   }
@@ -208,7 +208,7 @@ public class SystemsDaoTest
   public void testNoTxfr() throws Exception
   {
     TSystem sys0 = sys7;
-    int itemId = dao.createTSystem(authenticatedUser, sys0, scrubbedJson);
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     TSystem tmpSys = dao.getTSystemByName(sys0.getTenant(), sys0.getName());
     Assert.assertNotNull(tmpSys, "Failed to create item: " + sys0.getName());
@@ -239,13 +239,14 @@ public class SystemsDaoTest
   public void teardown() throws Exception {
     System.out.println("Executing AfterSuite teardown method");
     //Remove all objects created by tests
-    dao.deleteTSystem(sys1.getTenant(), sys1.getName());
+    dao.hardDeleteTSystem(sys1.getTenant(), sys1.getName());
     TSystem tmpSystem = dao.getTSystemByName(sys1.getTenant(), sys1.getName());
     Assert.assertNull(tmpSystem, "System not deleted. System name: " + sys1.getName());
-    dao.deleteTSystem(sys2.getTenant(), sys2.getName());
-    dao.deleteTSystem(sys3.getTenant(), sys3.getName());
-    dao.deleteTSystem(sys4.getTenant(), sys4.getName());
-    dao.deleteTSystem(sys5.getTenant(), sys5.getName());
-    dao.deleteTSystem(sys7.getTenant(), sys7.getName());
+    dao.hardDeleteTSystem(sys2.getTenant(), sys2.getName());
+    dao.hardDeleteTSystem(sys3.getTenant(), sys3.getName());
+    dao.hardDeleteTSystem(sys4.getTenant(), sys4.getName());
+    dao.hardDeleteTSystem(sys5.getTenant(), sys5.getName());
+    dao.hardDeleteTSystem(sys6.getTenant(), sys6.getName());
+    dao.hardDeleteTSystem(sys7.getTenant(), sys7.getName());
   }
 }

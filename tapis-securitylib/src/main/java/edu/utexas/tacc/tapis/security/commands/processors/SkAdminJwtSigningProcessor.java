@@ -19,7 +19,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SkAdminJwtSigningProcessor
+public class SkAdminJwtSigningProcessor
  extends SkAdminAbstractProcessor<SkAdminJwtSigning>
 {
     /* ********************************************************************** */
@@ -45,7 +45,7 @@ public final class SkAdminJwtSigningProcessor
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                            Protected Methods                           */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
@@ -100,7 +100,7 @@ public final class SkAdminJwtSigningProcessor
             parms.setUser(secret.user);
             parms.setSecretName(secret.secretName);
             
-            // Add the password into the map field. We hardcode
+            // Add the keys into the map field. We hardcode
             // the key names in the map that gets saved as the 
             // actual secret map in vault. 
             var map = new HashMap<String,String>();
@@ -111,15 +111,6 @@ public final class SkAdminJwtSigningProcessor
             
             // Make the write call.
             metadata = _skClient.writeSecret(parms.getTenant(), parms.getUser(), parms);
-        }
-        catch (TapisClientException e) {
-            // Not found is ok.
-            if (e.getCode() != 404) {
-                // Save the error condition for this secret.
-                _results.recordFailure(msgOp, SecretType.JWTSigning, 
-                                       makeFailureMessage(msgOp, secret, e.getMessage()));
-                return;
-            }
         }
         catch (Exception e) {
             // Save the error condition for this secret.
@@ -139,6 +130,12 @@ public final class SkAdminJwtSigningProcessor
     @Override
     protected void deploy(SkAdminJwtSigning secret, ISkAdminDeployRecorder recorder)
     {
+        // Is this secret slated for deployment?
+        if (StringUtils.isBlank(secret.kubeSecretName)) {
+            _results.recordDeploySkipped(makeSkippedDeployMessage(secret));
+            return;
+        }    
+        
         // See if the secret already exists.
         SkSecret skSecret = null;
         try {skSecret = readSecret(secret);} 
@@ -171,23 +168,10 @@ public final class SkAdminJwtSigningProcessor
     }    
 
     /* ---------------------------------------------------------------------- */
-    /* readSecret:                                                            */
-    /* ---------------------------------------------------------------------- */
-    private SkSecret readSecret(SkAdminJwtSigning secret) 
-      throws TapisException
-    {
-     // Try to read a secret.  HTTP 404 is returned if not found.
-        var parms = new SKSecretReadParms(SecretType.JWTSigning);
-        parms.setTenant(secret.tenant);
-        parms.setUser(secret.user);
-        parms.setSecretName(secret.secretName);
-        return _skClient.readSecret(parms);
-    }
-    
-    /* ---------------------------------------------------------------------- */
     /* makeFailureMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeFailureMessage(Op op, SkAdminJwtSigning secret, String errorMsg)
+    @Override
+    protected String makeFailureMessage(Op op, SkAdminJwtSigning secret, String errorMsg)
     {
         // Set the failed flag to alert any subsequent processing.
         secret.failed = true;
@@ -199,7 +183,8 @@ public final class SkAdminJwtSigningProcessor
     /* ---------------------------------------------------------------------- */
     /* makeSkippedMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeSkippedMessage(Op op, SkAdminJwtSigning secret)
+    @Override
+    protected String makeSkippedMessage(Op op, SkAdminJwtSigning secret)
     {
         return " SKIPPED " + op.name() + " for JWT secret \"" + secret.secretName +
                "\" in tenant \"" + secret.tenant + 
@@ -209,9 +194,38 @@ public final class SkAdminJwtSigningProcessor
     /* ---------------------------------------------------------------------- */
     /* makeSuccessMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeSuccessMessage(Op op, SkAdminJwtSigning secret)
+    @Override
+    protected String makeSuccessMessage(Op op, SkAdminJwtSigning secret)
     {
         return " SUCCESSFUL " + op.name() + " of JWT secret \"" + secret.secretName +
                "\" in tenant " + secret.tenant + "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeSkippedDeployMessage(SkAdminJwtSigning secret)
+    {
+        return " SKIPPED deployment of JWT secret \"" + secret.secretName +
+               "\" in tenant \"" + secret.tenant + 
+               "\": No target Kubernetes secret specified.";
+    }
+
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* readSecret:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private SkSecret readSecret(SkAdminJwtSigning secret) 
+      throws TapisException
+    {
+     // Try to read a secret.  HTTP 404 is returned if not found.
+        var parms = new SKSecretReadParms(SecretType.JWTSigning);
+        parms.setTenant(secret.tenant);
+        parms.setUser(secret.user);
+        parms.setSecretName(secret.secretName);
+        return _skClient.readSecret(parms);
     }
 }

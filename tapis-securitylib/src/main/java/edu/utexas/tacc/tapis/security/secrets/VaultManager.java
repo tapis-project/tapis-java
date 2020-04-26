@@ -252,7 +252,7 @@ public final class VaultManager
         _log.info(MsgUtils.getMsg("SK_VAULT_APPROLE_TOKEN_ACQUIRED", _tokenAuth.isAuthRenewable(), _tokenAuth.getAuthLeaseDuration(), policies));
     
         // Start the token renewal thread.
-        startTokenRenewalThread();
+        if (!_parms.isVaultRenewalDisabled()) startTokenRenewalThread();
     }
     
     /* ---------------------------------------------------------------------- */

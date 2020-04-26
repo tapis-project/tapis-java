@@ -27,7 +27,7 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
       // TODO: remove hard coded values
       // TODO/TBD: Get master tenant from tenant service or from env?
       // Get service master tenant from the env
-      svcMasterTenant = RuntimeParameters.getInstance().getSetServiceMasterTenant();
+      svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
       // TODO remove hard coded fallback?
       if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = "master";
       var svcJWTParms = new ServiceJWTParms();
@@ -42,7 +42,6 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
       svcJWTParms.setTokensBaseUrl(tokenSvcUrl);
       // Get service password from the env
       String svcPassword = RuntimeParameters.getInstance().getServicePassword();
-      // TODO Remove this. In case needed temp svc password: 3qLT0gy3MQrQKIiljEIRa2ieMEBIYMUdYeNjIgyPSZs=
       if (StringUtils.isBlank(svcPassword))
       {
         String msg = LibUtils.getMsg("SYSLIB_NO_SVC_PASSWD", svcMasterTenant, tokenSvcUrl);

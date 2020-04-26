@@ -28,7 +28,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  * 
  * @author rcardone
  */
-public final class SkAdminJwtPublicProcessor
+public class SkAdminJwtPublicProcessor
  extends SkAdminAbstractProcessor<SkAdminJwtPublic>
 {
     /* ********************************************************************** */
@@ -50,7 +50,7 @@ public final class SkAdminJwtPublicProcessor
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                           Protected Methods                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
@@ -70,31 +70,38 @@ public final class SkAdminJwtPublicProcessor
     @Override
     protected void deploy(SkAdminJwtPublic secret, ISkAdminDeployRecorder recorder)
     {
-        // See if the secret already exists.
-        SkSecret skSecret = null;
-        try {skSecret = readSecret(secret);} 
-        catch (Exception e) {
-            // Save the error condition for this secret.
-            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
-                                   makeFailureMessage(Op.deploy, secret, e.getMessage()));
-            return;
-        }
+        // Is a public key value already assigned?
+        String value = secret.publicKey;
         
-        // This shouldn't happen.
-        if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
-            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
-                                   makeFailureMessage(Op.deploy, secret, msg));
-            return;
-        }
+        // If necessary try to read the public key from SK.
+        if (StringUtils.isBlank(value)) 
+        {
+            // See if the secret already exists.
+            SkSecret skSecret = null;
+            try {skSecret = readSecret(secret);} 
+            catch (Exception e) {
+                // Save the error condition for this secret.
+                _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                       makeFailureMessage(Op.deploy, secret, e.getMessage()));
+                return;
+            }
         
-        // Validate the specified secret key's value.
-        String value = skSecret.getSecretMap().get(DEFAULT_PUBLIC_KEY_NAME);
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
-                                   makeFailureMessage(Op.deploy, secret, msg));
-            return;
+            // This shouldn't happen.
+            if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
+                String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+                _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                       makeFailureMessage(Op.deploy, secret, msg));
+                return;
+            }
+        
+            // Validate the specified secret key's value.
+            value = skSecret.getSecretMap().get(DEFAULT_PUBLIC_KEY_NAME);
+            if (StringUtils.isBlank(value)) {
+                String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+                _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                       makeFailureMessage(Op.deploy, secret, msg));
+                return;
+            }
         }
         
         // Record the value as is (no need to base64 encode here).  Use standard key name.
@@ -103,6 +110,32 @@ public final class SkAdminJwtPublicProcessor
               value);
     }    
 
+    /* ---------------------------------------------------------------------- */
+    /* makeFailureMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeFailureMessage(Op op, SkAdminJwtPublic secret, String errorMsg)
+    {
+        // Set the failed flag to alert any subsequent processing.
+        secret.failed = true;
+        return " FAILED to " + op.name() + " JWT public key \"" + secret.secretName +
+               "\" in tenant \"" + secret.tenant + 
+               "\": " + errorMsg;
+    }
+
+    // Unused methods.
+    @Override
+    protected String makeSkippedMessage(Op op, SkAdminJwtPublic secret) {return null;}
+
+    @Override
+    protected String makeSuccessMessage(Op op, SkAdminJwtPublic secret) {return null;}
+
+    @Override
+    protected String makeSkippedDeployMessage(SkAdminJwtPublic secret) {return null;}
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
@@ -115,17 +148,5 @@ public final class SkAdminJwtPublicProcessor
         parms.setUser(secret.user);
         parms.setSecretName(secret.secretName);
         return _skClient.readSecret(parms);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeFailureMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    private String makeFailureMessage(Op op, SkAdminJwtPublic secret, String errorMsg)
-    {
-        // Set the failed flag to alert any subsequent processing.
-        secret.failed = true;
-        return " FAILED to " + op.name() + " JWT public key \"" + secret.secretName +
-               "\" in tenant \"" + secret.tenant + 
-               "\": " + errorMsg;
     }
 }

@@ -40,6 +40,7 @@ CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SO
 --                                     SYSTEMS
 -- ----------------------------------------------------------------------------------------
 -- Systems table
+-- Basic system attributes
 CREATE TABLE systems
 (
   id          SERIAL PRIMARY KEY,
@@ -66,12 +67,13 @@ CREATE TABLE systems
   job_remote_archive_dir VARCHAR(1024),
   tags       JSONB NOT NULL,
   notes      JSONB NOT NULL,
-  raw_req    VARCHAR NOT NULL,
-  created     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-  updated     TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+  deleted    BOOLEAN NOT NULL DEFAULT false,
+  created    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+  updated    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   UNIQUE (tenant,name)
 );
 ALTER TABLE systems OWNER TO tapis;
+CREATE INDEX sys_tenant_name_idx ON systems (tenant, name);
 COMMENT ON COLUMN systems.id IS 'System id';
 COMMENT ON COLUMN systems.tenant IS 'Tenant name associated with system';
 COMMENT ON COLUMN systems.name IS 'Unique name for the system';
@@ -96,30 +98,46 @@ COMMENT ON COLUMN systems.job_remote_archive_system IS 'Remote system on which j
 COMMENT ON COLUMN systems.job_remote_archive_dir IS 'Parent directory used for archiving job output files on a remote system';
 COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
 COMMENT ON COLUMN systems.notes IS 'Notes for general information stored as JSON';
-COMMENT ON COLUMN systems.raw_req IS 'Raw text data used to create the item';
+COMMENT ON COLUMN systems.deleted IS 'Indicates if system has been soft deleted';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
+
+-- System updates table
+-- Track update requests for systems
+CREATE TABLE system_updates
+(
+    id     SERIAL PRIMARY KEY,
+    system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
+    upd_json JSONB NOT NULL,
+    upd_raw VARCHAR,
+    created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+);
+ALTER TABLE system_updates OWNER TO tapis;
+COMMENT ON COLUMN system_updates.id IS 'System update request id';
+COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
+COMMENT ON COLUMN system_updates.upd_json IS 'Json representing the update - with secrets scrubbed';
+COMMENT ON COLUMN system_updates.upd_raw IS 'Text data supplied by client - secrets should be scrubbed';
+COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 
 -- ----------------------------------------------------------------------------------------
 --                               CAPABILITIES
 -- ----------------------------------------------------------------------------------------
 -- Capabilities table
+-- Capabilities associated with a system
 -- All columns are specified NOT NULL to make queries easier. <col> = null is not the same as <col> is null
 CREATE TABLE capabilities
 (
     id     SERIAL PRIMARY KEY,
-    tenant VARCHAR(24) NOT NULL,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
-    category   capability_category_type NOT NULL,
+    category capability_category_type NOT NULL,
     name   VARCHAR(256) NOT NULL DEFAULT '',
     value  VARCHAR(256) NOT NULL DEFAULT '',
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     updated TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    UNIQUE (tenant, system_id, category, name)
+    UNIQUE (system_id, category, name)
 );
 ALTER TABLE capabilities OWNER TO tapis;
 COMMENT ON COLUMN capabilities.id IS 'Capability id';
-COMMENT ON COLUMN capabilities.tenant IS 'Name of tenant';
 COMMENT ON COLUMN capabilities.system_id IS 'Id of system supporting the capability';
 COMMENT ON COLUMN capabilities.category IS 'Category for grouping of capabilities';
 COMMENT ON COLUMN capabilities.name IS 'Name of capability';

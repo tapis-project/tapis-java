@@ -1,32 +1,30 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
-import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretMetadata;
-import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
-import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
-import edu.utexas.tacc.tapis.security.client.model.SecretType;
+import edu.utexas.tacc.tapis.security.authz.impl.VaultImpl;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecret;
+import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
 import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminUser;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public class SkAdminUserProcessor
- extends SkAdminAbstractProcessor<SkAdminUser>
+public final class SkAdminVaultUserProcessor
+ extends SkAdminUserProcessor
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SkAdminUserProcessor.class);
+    private static final Logger _log = LoggerFactory.getLogger(SkAdminVaultUserProcessor.class);
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -34,7 +32,8 @@ public class SkAdminUserProcessor
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SkAdminUserProcessor(List<SkAdminUser> secrets, SkAdminParameters parms)
+    public SkAdminVaultUserProcessor(List<SkAdminUser> secrets, 
+                                     SkAdminParameters parms)
     {
         super(secrets, parms);
     }
@@ -50,29 +49,27 @@ public class SkAdminUserProcessor
     {
         // See if the secret already exists.
         SkSecret skSecret = null;
-        try {skSecret = readSecret(secret);} 
-        catch (TapisClientException e) {
-            // Not found is ok.
-            if (e.getCode() != 404) {
+        try {skSecret = readSecret(secret);}
+        catch (TapisImplException e) {
+            if (e.condition != Condition.NOT_FOUND) {
                 // Save the error condition for this secret.
-                _results.recordFailure(Op.create, SecretType.User, 
+                _results.recordFailure(Op.create, secret.getClientSecretType(), 
                                        makeFailureMessage(Op.create, secret, e.getMessage()));
                 return;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // Save the error condition for this secret.
-            _results.recordFailure(Op.create, SecretType.User, 
+            _results.recordFailure(Op.create, secret.getClientSecretType(), 
                                    makeFailureMessage(Op.create, secret, e.getMessage()));
             return;
         }
-        
-        // Don't overwrite the secret.  Note that even if the user's key isn't
+
+        // Don't overwrite the secret.  Note that even if "password" isn't
         // present in the existing secret, that fact that the secret exists
         // is enough to cause us to skip the update.  We may in the future
         // want to make this a cumulative secret update operation.
         if (skSecret != null) {
-            _results.recordSkipped(Op.create, SecretType.User, 
+            _results.recordSkipped(Op.create, secret.getClientSecretType(), 
                                    makeSkippedMessage(Op.create, secret));
             return;
         }
@@ -87,34 +84,39 @@ public class SkAdminUserProcessor
     @Override
     protected void update(SkAdminUser secret, Op msgOp)
     {
+        // ------------------------- Path Processing --------------------------
+        // Null response means the secret type and its required parameters are present.
+        SecretPathMapperParms secretPathParms;
+        try {secretPathParms = secret.getSecretPathParms();}
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            // Save the error condition for this secret.
+            _results.recordFailure(msgOp, secret.getClientSecretType(), 
+                                   makeFailureMessage(msgOp, secret, e.getMessage()));
+          return;
+        }
+        
+        // Get the secret's key/value pair(s). 
+        var secretMap = secret.getSecretMap();
+        
+        // ------------------------ Request Processing ------------------------
         SkSecretMetadata metadata = null;
         try {
-            // Initialize
-            var parms = new SKSecretWriteParms(SecretType.User);
-            parms.setTenant(secret.tenant);
-            parms.setUser(secret.user);  
-            parms.setSecretName(secret.secretName);
-            
-            // Add the user's key/value into the map field.  
-            var map = new HashMap<String,String>();
-            map.put(secret.key, secret.value);
-            parms.setData(map);
-            
-            // Make the write call.
-            metadata = _skClient.writeSecret(parms.getTenant(), parms.getUser(), parms);
+            metadata = VaultImpl.getInstance().secretWrite(secret.tenant, secret.user, 
+                                                           secretPathParms, secretMap);
         }
         catch (Exception e) {
             // Save the error condition for this secret.
-            _results.recordFailure(msgOp, SecretType.User, 
+            _results.recordFailure(msgOp, secret.getClientSecretType(), 
                                    makeFailureMessage(msgOp, secret, e.getMessage()));
             return;
         }
         
         // Success.
-        _results.recordSuccess(msgOp, SecretType.User, 
+        _results.recordSuccess(msgOp, secret.getClientSecretType(), 
                                makeSuccessMessage(msgOp, secret));        
     }
-    
+
     /* ---------------------------------------------------------------------- */
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
@@ -132,24 +134,24 @@ public class SkAdminUserProcessor
         try {skSecret = readSecret(secret);} 
         catch (Exception e) {
             // Save the error condition for this secret.
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, secret.getClientSecretType(), 
                                    makeFailureMessage(Op.deploy, secret, e.getMessage()));
             return;
         }
         
         // This shouldn't happen.
-        if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
+        if (skSecret == null || skSecret.secretMap.isEmpty()) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, secret.getClientSecretType(), 
                                    makeFailureMessage(Op.deploy, secret, msg));
             return;
         }
         
         // Validate the specified secret key's value.
-        String value = skSecret.getSecretMap().get(secret.key);
+        String value = skSecret.secretMap.get(secret.key);
         if (StringUtils.isBlank(value)) {
             String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
-            _results.recordFailure(Op.deploy, SecretType.User, 
+            _results.recordFailure(Op.deploy, secret.getClientSecretType(), 
                     makeFailureMessage(Op.deploy, secret, msg));
             return;
         }
@@ -158,69 +160,18 @@ public class SkAdminUserProcessor
         recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, value);
     }    
     
-    /* ---------------------------------------------------------------------- */
-    /* makeFailureMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    protected String makeFailureMessage(Op op, SkAdminUser secret, String errorMsg)
-    {
-        // Set the failed flag to alert any subsequent processing.
-        secret.failed = true;
-        return " FAILED to " + op.name() + " secret \"" + secret.secretName +
-               "\" with key \"" + secret.key + 
-               "\" for user \"" + secret.user + "\" in tenant \"" + secret.tenant + 
-               "\": " + errorMsg;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSkippedMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    protected String makeSkippedMessage(Op op, SkAdminUser secret)
-    {
-        return " SKIPPED " + op.name() + " for secret \"" + secret.secretName +
-               "\" with key \"" + secret.key +
-               "\" for user \"" + secret.user + "\" in tenant \"" + secret.tenant + 
-               "\": Already exists.";
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSuccessMessage:                                                    */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    protected String makeSuccessMessage(Op op, SkAdminUser secret)
-    {
-        return " SUCCESSFUL " + op.name() + " of secret \"" + secret.secretName +
-               "\" with key \"" + secret.key +
-               "\" for user \"" + secret.user + "\" in tenant " + secret.tenant + "\".";
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* makeSkippedDeployMessage:                                              */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    protected String makeSkippedDeployMessage(SkAdminUser secret)
-    {
-        return " SKIPPED deployment of secret \"" + secret.secretName +
-               "\" with key \"" + secret.key +
-               "\" for user \"" + secret.user + "\" in tenant \"" + secret.tenant + 
-               "\": No target Kubernetes secret specified.";
-    }
-
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
-    private SkSecret readSecret(SkAdminUser secret) 
-      throws TapisException
+    private SkSecret readSecret(SkAdminUser secret)
+     throws Exception, TapisImplException
     {
-        // Try to read a secret.  HTTP 404 is returned if not found.
-        var parms = new SKSecretReadParms(SecretType.User);
-        parms.setTenant(secret.tenant);
-        parms.setUser(secret.user);
-        parms.setSecretName(secret.secretName);
-        return _skClient.readSecret(parms);
+        // Null response means the secret type and its required parameters are present.
+        SecretPathMapperParms secretPathParms = secret.getSecretPathParms();
+        return VaultImpl.getInstance().secretRead(secret.tenant, secret.user, secretPathParms, 
+                                                  DEFAULT_SECRET_VERSION);
     }
 }

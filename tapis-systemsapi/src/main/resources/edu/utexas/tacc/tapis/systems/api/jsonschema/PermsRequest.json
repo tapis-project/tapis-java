@@ -5,6 +5,7 @@
   "additionalProperties": false,
 
   "type": "object",
+  "required": [ "permissions" ],
   "properties": {
     "permissions": {
       "type": "array",
@@ -16,9 +17,5 @@
         "enum": ["READ","MODIFY","DELETE","read","modify","delete","*"]
       }
     }
-  },
-
-  "required": [
-    "permissions"
-  ]
+  }
 }

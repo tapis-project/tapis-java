@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.security.commands.model;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -35,13 +36,18 @@ public final class SkAdminResults
     
     // Kubernetes deployment outcomes.
     private int secretsDeployments;
+    private int secretsDeploymentsSkipped;
     private int secretsDeploymentsFailed;
     private int secretsDeploymentKeys;
+    private int secretsDeploymentKeysSkipped;
     private int secretsDeploymentKeysFailed;
     
     // Summary generation information.
     private int keyPairsGenerated;
     private int passwordsGenerated;
+    
+    // Input file list.
+    private ArrayList<String> inputFiles = new ArrayList<>();
     
     // Detailed information.  Deployment results are for kubernetes secrets,
     // which can contain multiple types of SK secrets. 
@@ -76,6 +82,11 @@ public final class SkAdminResults
     }
     
     /* ---------------------------------------------------------------------- */
+    /* addInputFile:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public void addInputFile(String filename){inputFiles.add(filename);}
+    
+    /* ---------------------------------------------------------------------- */
     /* recordSuccess:                                                         */
     /* ---------------------------------------------------------------------- */
     public void recordSuccess(Op op, SecretType type, String message)
@@ -94,6 +105,18 @@ public final class SkAdminResults
                 _log.error(msg);
                 break;
         }
+        
+        // Record the message.
+        addMessage(type, message);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* recordSkipped:                                                         */
+    /* ---------------------------------------------------------------------- */
+    public void recordSkipped(Op op, SecretType type, String message)
+    {
+        // Tally the outcome.
+        secretsSkipped++;
         
         // Record the message.
         addMessage(type, message);
@@ -125,6 +148,19 @@ public final class SkAdminResults
     }
     
     /* ---------------------------------------------------------------------- */
+    /* recordDeploySkipped:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public void recordDeploySkipped(String message)
+    {
+        // Tally the outcome.
+        secretsDeploymentsSkipped++;
+        secretsDeploymentKeysSkipped++;
+        
+        // Record the message.
+        deployMsgs.add(message);
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* recordDeployFailure:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Failure message not tied to a specific secret type.  This covers the
@@ -144,18 +180,6 @@ public final class SkAdminResults
         // Record the message.
         deployMsgs.add(message);
     }   
-    
-    /* ---------------------------------------------------------------------- */
-    /* recordSkipped:                                                         */
-    /* ---------------------------------------------------------------------- */
-    public void recordSkipped(Op op, SecretType type, String message)
-    {
-        // Tally the outcome.
-        secretsSkipped++;
-        
-        // Record the message.
-        addMessage(type, message);
-    }
     
     /* ---------------------------------------------------------------------- */
     /* incrementKeyPairsGenerated:                                            */
@@ -200,6 +224,11 @@ public final class SkAdminResults
     {
         // Hand build the output.
         var buf = new StringBuilder(1024);
+        buf.append("----------- Input -------------\n");
+        buf.append("--> Input files:\n");
+        var lit = inputFiles.listIterator();
+        while (lit.hasNext()) {buf.append("    "); buf.append(lit.next()); buf.append("\n");}
+        buf.append("\n");
         buf.append("----------- Summary -----------\n");
         buf.append("Secrets created:               ");
         buf.append(secretsCreated);
@@ -218,6 +247,12 @@ public final class SkAdminResults
         buf.append("\n");
         buf.append("Secrets deploymentKeys:        ");
         buf.append(secretsDeploymentKeys);
+        buf.append("\n");
+        buf.append("Secrets deploymentsSkipped:    ");
+        buf.append(secretsDeploymentsSkipped);
+        buf.append("\n");
+        buf.append("Secrets deploymentKeysSkipped: ");
+        buf.append(secretsDeploymentKeysSkipped);
         buf.append("\n");
         buf.append("Secrets deploymentsFailed:     ");
         buf.append(secretsDeploymentsFailed);
