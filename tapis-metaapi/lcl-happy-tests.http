@@ -29,6 +29,7 @@ Content-Type: application/json
 ###  api:3
 GET http://localhost:8080/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
+X-JWT-Assertion-dev: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
 Content-Type: application/json

@@ -9,8 +9,12 @@ public class MetaAppConstants {
   
   public final static String META_REQUEST_PREFIX = "/v3/meta/";
   
-  public final static String TAPIS_USER_HEADER_NAME = "X-Tapis-User";
-  public final static String TAPIS_TENANT_HEADER_NAME = "X-Tapis-Tenant";
+  public final static String TAPIS_USER_HEADER_NAME    = "X-Tapis-User";
+  public final static String TAPIS_TENANT_HEADER_NAME  = "X-Tapis-Tenant";
+  public final static String TAPIS_JWT_HEADER_NAME     = "X-Tapis-Token";
+  public final static String V2_JWT_AUTH_HEADER_PREFIX = "X-JWT-Assertion-";
+  public final static String ETAG_NAME                 = "ETag";
+  
   
   // Set Permissions checking
   public static boolean TAPIS_ENVONLY_META_PERMISSIONS_CHECK = true;

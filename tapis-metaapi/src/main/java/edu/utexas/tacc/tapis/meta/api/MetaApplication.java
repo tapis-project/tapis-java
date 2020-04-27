@@ -19,15 +19,11 @@ public class MetaApplication extends ResourceConfig {
     
     // Register the swagger resources that allow the
     // documentation endpoints to be automatically generated.
+    // TODO expand to all endpoints for auto generation of openapi definition
     register(OpenApiResource.class);
     register(AcceptHeaderOpenApiResource.class);
     
     // We specify what packages JAX-RS should recursively scan
-    // to find annotations.  By setting the value to the top-level
-    // aloe directory in all projects, we can use JAX-RS annotations
-    // in any aloe class.  In particular, the filter classes in
-    // tapis-sharedapi will be discovered whenever that project is
-    // included as a maven dependency.
     packages("edu.utexas.tacc.tapis");
     setApplicationName("meta");
   

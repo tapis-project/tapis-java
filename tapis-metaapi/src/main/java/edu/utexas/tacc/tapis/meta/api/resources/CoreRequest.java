@@ -128,16 +128,25 @@ public class CoreRequest {
   public CoreResponse  proxyDeleteRequest(HttpHeaders _httpHeaders){
     // path url here has stripped out /v3/meta to make the correct path request
     //  to core server
-    String headerValue = _httpHeaders.getHeaderString("If-Match");
-    headerValue = (headerValue == null) ? "" : headerValue;
-    
-    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    okhttp3.Request coreRequest = new Request.Builder()
-        .url(pathURL)
-        .addHeader("If-Match",headerValue)
-        .delete()
-        .build();
   
+    String headerValue = null;
+    okhttp3.Request coreRequest = null;
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    
+    if(_httpHeaders.getRequestHeaders().containsKey("If-Match")){
+      headerValue = _httpHeaders.getHeaderString("If-Match");
+      coreRequest = new Request.Builder()
+          .url(pathURL)
+          .addHeader("If-Match",headerValue)
+          .delete()
+          .build();
+    }else {
+      coreRequest = new Request.Builder()
+          .url(pathURL)
+          .delete()
+          .build();
+    }
+    
     Response response = null;
     CoreResponse coreResponse = new CoreResponse();
     try {
