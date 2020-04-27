@@ -15,8 +15,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +33,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @OpenAPIDefinition(
     security = {@SecurityRequirement(name = "TapisJWT")},
@@ -48,9 +48,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
         @Tag(name = "systems", description = "manage systems")
     },
     servers = {
-      @Server(url = "/v3/systems", description = "Base URL")
-//      @Server(url = "http://localhost:8080/v3/systems", description = "Local test environment")
-//      @Server(url = "https://dev.develop.tapis.io/v3", description = "Development environment")
+//      @Server(url = "v3/systems", description = "Base URL")
+      @Server(url = "http://localhost:8080/", description = "Local test environment"),
+      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
     },
     externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
@@ -61,7 +61,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
   in= SecuritySchemeIn.HEADER,
   paramName="X-Tapis-Token"
 )
-@Path("/")
+@Path("/v3/systems")
 public class SystemsResource
 {
   /* **************************************************************************** */

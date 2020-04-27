@@ -8,7 +8,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -29,9 +28,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,15 +37,13 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.glassfish.grizzly.http.server.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
-import org.glassfish.grizzly.http.server.Request;
-
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
@@ -67,6 +62,7 @@ import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SECRETS_MASK;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
@@ -78,7 +74,7 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
  * Annotations map HTTP verb + endpoint to method invocation.
  *
  */
-@Path("/")
+@Path("/v3/systems")
 public class SystemResource
 {
   // ************************************************************************
@@ -90,16 +86,10 @@ public class SystemResource
   // Json schema resource files.
   private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
-  // String used to mask secrets in json
-  private static final String SECRETS_MASK = "***";
 
   // Field names used in Json
-  private static final String TSYSTEM_FIELD = "System";
-  private static final String PSYSTEM_FIELD = "PatchSystem";
   private static final String NAME_FIELD = "name";
   private static final String NOTES_FIELD = "notes";
-  private static final String NOTES_STRING_FIELD = "stringData";
-  private static final String NOTES_JSON_FIELD = "jsonData";
   private static final String SYSTEM_TYPE_FIELD = "systemType";
   private static final String HOST_FIELD = "host";
   private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
@@ -195,7 +185,6 @@ public class SystemResource
     String opName = "createSystem";
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
-    String msg;
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
@@ -209,7 +198,7 @@ public class SystemResource
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
-    String rawJson;
+    String rawJson, msg;
     try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
@@ -227,11 +216,10 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    ReqCreateSystem req;
     // ------------------------- Create a TSystem from the json and validate constraints -------------------------
-    TSystem system;
     try {
-      ReqCreateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
-      system = req.System;
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqCreateSystem.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -240,17 +228,19 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
+    // Create a TSystem from the request
+    TSystem system = createTSystemFromRequest(req);
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
 
     // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, TSYSTEM_FIELD);
+    Object notes = extractNotes(rawJson);
     system.setNotes(notes);
 
     // Mask any secret info that might be contained in rawJson
     String scrubbedJson = rawJson;
-    if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson, TSYSTEM_FIELD);
+    if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson);
 
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
@@ -349,7 +339,6 @@ public class SystemResource
                                InputStream payloadStream, @Context SecurityContext securityContext)
   {
     String opName = "updateSystem";
-    String msg;
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
 
@@ -365,7 +354,7 @@ public class SystemResource
 
     // ------------------------- Extract and validate payload -------------------------
     // Read the payload into a string.
-    String rawJson;
+    String rawJson, msg;
     try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
     catch (Exception e)
     {
@@ -384,10 +373,9 @@ public class SystemResource
     }
 
     // ------------------------- Create a PatchSystem from the json and validate constraints -------------------------
-    PatchSystem patchSystem;
+    ReqUpdateSystem req;
     try {
-      ReqUpdateSystem req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
-      patchSystem = req.PatchSystem;
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSystem.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -395,12 +383,13 @@ public class SystemResource
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
+    PatchSystem patchSystem = createPatchSystemFromRequest(req);
     // Update tenant name and system name
     patchSystem.setTenant(authenticatedUser.getTenantId());
     patchSystem.setName(systemName);
 
     // Extract Notes from the raw json.
-    Notes notes = extractNotes(rawJson, PSYSTEM_FIELD);
+    Object notes = extractNotes(rawJson);
     patchSystem.setNotes(notes);
 
     // No attributes are required. Constraints validated and defaults filled in on server side.
@@ -453,6 +442,106 @@ public class SystemResource
     ResultResourceUrl respUrl = new ResultResourceUrl();
     respUrl.url = _request.getRequestURL().toString();
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            ApiUtils.getMsgAuth("SYSAPI_UPDATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
+  }
+
+  /**
+   * Change owner of a system
+   * @param systemName - name of the system
+   * @param userName - name of the new owner
+   * @param prettyPrint - pretty print the output
+   * @return response containing reference to updated object
+   */
+  @POST
+  @Path("{sysName}/changeOwner/{userName}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+          summary = "Change owner of a system",
+          description =
+                  "Change owner of a system.",
+          tags = "systems",
+          responses = {
+                  @ApiResponse(responseCode = "200", description = "System owner updated.",
+                          content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "System not found.",
+                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+          }
+  )
+  public Response changeSystemOwner(@PathParam("sysName") String systemName,
+                                    @PathParam("userName") String userName,
+                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                                    @Context SecurityContext securityContext)
+  {
+    String opName = "changeSystemOwner";
+    // Trace this request.
+    if (_log.isTraceEnabled()) logRequest(opName);
+
+    // ------------------------- Retrieve and validate thread context -------------------------
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    // ---------------------------- Make service call to update the system -------------------------------
+    int changeCount;
+    String msg;
+    try
+    {
+      changeCount = systemsService.changeSystemOwner(authenticatedUser, systemName, userName);
+    }
+    catch (NotFoundException e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_NOT_FOUND", authenticatedUser, systemName);
+      _log.warn(msg);
+      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    catch (IllegalStateException e)
+    {
+      if (e.getMessage().contains("SYSLIB_UNAUTH"))
+      {
+        // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_UNAUTH", authenticatedUser, systemName, opName);
+        _log.warn(msg);
+        return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+      else
+      {
+        // IllegalStateException indicates an Invalid PatchSystem was passed in
+        msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+    }
+    catch (IllegalArgumentException e)
+    {
+      // IllegalArgumentException indicates somehow a bad argument made it this far
+      msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    // Success means updates were applied
+    // Return the number of objects impacted.
+    ResultChangeCount count = new ResultChangeCount();
+    count.changes = changeCount;
+    RespChangeCount resp1 = new RespChangeCount(count);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
             ApiUtils.getMsgAuth("SYSAPI_UPDATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
   }
@@ -673,6 +762,29 @@ public class SystemResource
   /* **************************************************************************** */
 
   /**
+   * Create a TSystem from a ReqCreateSystem
+   */
+  private static TSystem createTSystemFromRequest(ReqCreateSystem req)
+  {
+    return new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
+                       req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
+                       req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
+                       req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
+                       req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
+                       req.jobCapabilities, req.tags, req.notes, null, null);
+  }
+
+  /**
+   * Create a PatchSystem from a ReqUpdateSystem
+   */
+  private static PatchSystem createPatchSystemFromRequest(ReqUpdateSystem req)
+  {
+    return new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
+                           req.defaultAccessMethod, req.transferMethods, req.port, req.useProxy,
+                           req.proxyHost, req.proxyPort, req.jobCapabilities, req.tags, req.notes);
+  }
+
+  /**
    * Fill in defaults and check constraints on TSystem attributes
    * Check values. name, host, accessMethod must be set. effectiveUserId is restricted.
    * If transfer mechanism S3 is supported then bucketName must be set.
@@ -691,16 +803,6 @@ public class SystemResource
     String name = system1.getName();
     String msg;
     var errMessages = new ArrayList<String>();
-    // Check that Notes contains json
-    try
-    {
-      JsonParser.parseString(system1.getNotes().getStringData());
-    }
-    catch (JsonSyntaxException e)
-    {
-      msg = ApiUtils.getMsg("SYSAPI_INVALID_NOTES_INPUT");
-      errMessages.add(msg);
-    }
     if (StringUtils.isBlank(system1.getName()))
     {
       msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", NAME_FIELD);
@@ -731,7 +833,8 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
+    else if (system1.getTransferMethods() != null &&
+            system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
@@ -757,34 +860,16 @@ public class SystemResource
 
   /**
    * Extract notes from the incoming json
-   * Top level field is either System or PatchSystem
-   * NOTE: This is not ideal but could not find a better way that worked for both curl requests
-   *       and the auto-generated client.
-   * Information is present as stringData or jsonData or both.
-   * stringData takes precedence over jsonData
    */
-  private static Notes extractNotes(String rawJson, String topLevelFieldName)
+  private static Object extractNotes(String rawJson)
   {
-    Notes notes = new Notes(TSystem.DEFAULT_NOTES_STR);
+    Object notes = TSystem.DEFAULT_NOTES;
     // Check inputs
-    if (StringUtils.isBlank(rawJson) || StringUtils.isBlank(topLevelFieldName)) return notes;
-    // Make sure we have the expected top level object
-    JsonObject rawObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (rawObj == null || !rawObj.has(topLevelFieldName)) return notes;
-    // Extract the top level object and (if there) the nested notes object
-    var topObj = rawObj.getAsJsonObject(topLevelFieldName);
+    if (StringUtils.isBlank(rawJson)) return notes;
+    // Turn the request string into a json object and extract the notes object
+    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
     if (!topObj.has(NOTES_FIELD)) return notes;
-    var notesObj = topObj.getAsJsonObject(NOTES_FIELD);
-    // If notes object has string data then it takes precedence
-    // else if jsonData present use it
-    // else return default value
-    if (notesObj.has(NOTES_STRING_FIELD)) {
-      JsonElement stringDataObj = notesObj.get(NOTES_STRING_FIELD);
-      notes = new Notes(stringDataObj.getAsString());
-    } else if (notesObj.has(NOTES_JSON_FIELD)) {
-      var jsonObj = notesObj.getAsJsonObject(NOTES_JSON_FIELD);
-      notes = new Notes(jsonObj.toString());
-    }
+    notes = topObj.getAsJsonObject(NOTES_FIELD);
     return notes;
   }
 
@@ -794,13 +879,11 @@ public class SystemResource
    * @param rawJson Json from request
    * @return A string with any secrets masked out
    */
-  private static String maskCredSecrets(String rawJson, String topLevelFieldName)
+  private static String maskCredSecrets(String rawJson)
   {
     if (StringUtils.isBlank(rawJson)) return rawJson;
     // Get the Json object and prepare to extract info from it
-    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-    if (topObj == null || !topObj.has(topLevelFieldName)) return rawJson;
-    var sysObj = topObj.getAsJsonObject(topLevelFieldName);
+    JsonObject sysObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
     if (!sysObj.has(ACCESS_CREDENTIAL_FIELD)) return rawJson;
     var credObj = sysObj.getAsJsonObject(ACCESS_CREDENTIAL_FIELD);
     maskSecret(credObj, CredentialResource.PASSWORD_FIELD);
@@ -811,9 +894,7 @@ public class SystemResource
     maskSecret(credObj, CredentialResource.CERTIFICATE_FIELD);
     sysObj.remove(ACCESS_CREDENTIAL_FIELD);
     sysObj.add(ACCESS_CREDENTIAL_FIELD, credObj);
-    topObj.remove(topLevelFieldName);
-    topObj.add(topLevelFieldName, sysObj);
-    return topObj.toString();
+    return sysObj.toString();
   }
 
   /**

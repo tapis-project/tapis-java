@@ -15,9 +15,7 @@ import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
-import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -77,14 +75,15 @@ public class SystemsServiceTest
   private static final Protocol protA = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protB = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
   private static final Protocol protC = new Protocol(AccessMethod.PKI_KEYS, null, -1, false, null,-1);
+  private static final Set<Permission> testPermsALL = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY, Permission.ALL));
   private static final Set<Permission> testPermsREADMODIFY = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
   private static final Set<Permission> testPermsREAD = new HashSet<>(Set.of(Permission.READ));
   private static final Set<Permission> testPermsMODIFY = new HashSet<>(Set.of(Permission.MODIFY));
   private static final String[] tags1 = {"value1", "value2", "a",
       "a long tag with spaces and numbers (1 3 2) and special characters [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped."};
   private static final String[] tags2 = {"value3", "value4"};
-  private static final Notes notes1 = new Notes("{\"project\": \"myproj1\", \"testdata\": \"abc1\"}");
-  private static final Notes notes2 = new Notes("{\"project\": \"myproj2\", \"testdata\": \"abc2\"}");
+  private static final Object notes1 = TapisGsonUtils.getGson().fromJson("{\"project\": \"myproj1\", \"testdata\": \"abc1\"}", JsonObject.class);
+  private static final Object notes2 = TapisGsonUtils.getGson().fromJson("{\"project\": \"myproj2\", \"testdata\": \"abc2\"}", JsonObject.class);
   private static final String scrubbedText = "{}";
 
   private static final Capability capA1 = new Capability(Category.SCHEDULER, "Type", "Slurm");
@@ -178,6 +177,11 @@ public class SystemsServiceTest
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirF", "jobLocalArchDirF", "jobRemoteArchSystemF","jobRemoteArchDirF",
           null, tags1, notes1, null, null);
+  TSystem sysG = new TSystem(-1, tenantName, "SsysG", "description G", SystemType.LINUX, ownerUser, "hostG", true,
+          "effUserG", prot1.getAccessMethod(), null,"bucketG", "/rootG", prot1.getTransferMethods(),
+          prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
+          "jobLocalWorkDirG", "jobLocalArchDirG", "jobRemoteArchSystemG","jobRemoteArchDirG",
+          cap1List, tags1, notes1, null, null);
 
   @BeforeSuite
   public void setUp() throws Exception
@@ -282,8 +286,8 @@ public class SystemsServiceTest
   public void testUpdateSystem() throws Exception
   {
     TSystem sys0 = sysE;
-    String createText = "{\"update\": \"0-create\"}";
-    String patch1Text = "{\"update\": \"1-patch1\"}";
+    String createText = "{\"testUpdate\": \"0-create\"}";
+    String patch1Text = "{\"testUpdate\": \"1-patch1\"}";
     PatchSystem patchSystem = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
             prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
             prot2.getProxyPort(), cap2List, tags2, notes2);
@@ -293,9 +297,32 @@ public class SystemsServiceTest
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Update using patchSys
     svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Text);
-    TSystem tmpSys = svc.getSystemByName(authenticatedFilesSvc, sys0.getName(), false, null);
+    TSystem tmpSys = svc.getSystemByName(authenticatedOwnerUsr, sys0.getName(), false, null);
     // Check common system attributes:
     checkCommonSysAttrs(sysE2, tmpSys);
+  }
+
+  // Test changing system owner
+  @Test
+  public void testChangeSystemOwner() throws Exception
+  {
+    TSystem sys0 = sysG;
+    String createText = "{\"testChangeOwner\": \"0-create\"}";
+    String newOwnerName = testUser2;
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createText);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // Change owner using api
+    svc.changeSystemOwner(authenticatedOwnerUsr, sys0.getName(), newOwnerName);
+    TSystem tmpSys = svc.getSystemByName(authenticatedTestUsr2, sys0.getName(), false, null);
+    Assert.assertEquals(tmpSys.getOwner(), newOwnerName);
+    // Check expected auxillary updates have happened
+    // New owner should be able to retrieve permissions and have the ALL permission
+    Set<Permission> userPerms = svc.getUserPermissions(authenticatedTestUsr2, sys0.getName(), newOwnerName);
+    Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
+    Assert.assertTrue(userPerms.contains(Permission.ALL));
+    // Original owner should no longer have the ALL permission
+    userPerms = svc.getUserPermissions(authenticatedTestUsr2, sys0.getName(), ownerUser);
+    Assert.assertFalse(userPerms.contains(Permission.ALL));
   }
 
   // Check that when a system is created variable substitution is correct for:
@@ -425,14 +452,14 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Create user perms for the system
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     // Get the system perms for the user and make sure permissions are there
     Set<Permission> userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
     Assert.assertNotNull(userPerms, "Null returned when retrieving perms.");
     Assert.assertEquals(userPerms.size(), testPermsREADMODIFY.size(), "Incorrect number of perms returned.");
     for (Permission perm: testPermsREADMODIFY) { if (!userPerms.contains(perm)) Assert.fail("User perms should contain permission: " + perm.name()); }
     // Remove perms for the user. Should return a change count of 2
-    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY);
+    int changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     Assert.assertEquals(changeCount, 2, "Change count incorrect when revoking permissions.");
     // Get the system perms for the user and make sure permissions are gone.
     userPerms = svc.getUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1);
@@ -450,7 +477,7 @@ public class SystemsServiceTest
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     // Store and retrieve multiple secret types: password, ssh keys, access key and secret
-    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0);
+    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0, scrubbedText);
     // Use files service AuthenticatedUser since only certain services can retrieve the cred.
     Credential cred1 = svc.getUserCredential(authenticatedFilesSvc, sys0.getName(), testUser1, AccessMethod.PASSWORD);
     // Verify credentials
@@ -474,7 +501,7 @@ public class SystemsServiceTest
 
     // Set just ACCESS_KEY only and test
     cred0 = new Credential(null, null, null, "fakeAccessKey2", "fakeAccessSecret2", null);
-    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0);
+    svc.createUserCredential(authenticatedOwnerUsr, sys0.getName(), testUser1, cred0, scrubbedText);
     cred1 = svc.getUserCredential(authenticatedFilesSvc, sys0.getName(), testUser1, AccessMethod.ACCESS_KEY);
     Assert.assertEquals(cred1.getAccessKey(), cred0.getAccessKey());
     Assert.assertEquals(cred1.getAccessSecret(), cred0.getAccessSecret());
@@ -526,12 +553,12 @@ public class SystemsServiceTest
     Assert.assertNull(perms, "Perms list was not null for non-existent system");
 
     // Revoke perm with no system should return 0 changes
-    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY);
+    changeCount = svc.revokeUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY, scrubbedText);
     Assert.assertEquals(changeCount, 0, "Change count incorrect when revoking perms for non-existent system.");
 
     // Grant perm with no system should throw an exception
     boolean pass = false;
-    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedOwnerUsr, fakeSystemName, fakeUserName, testPermsREADMODIFY, scrubbedText); }
     catch (TapisException tce)
     {
       Assert.assertTrue(tce.getMessage().startsWith("SYSLIB_NOT_FOUND"));
@@ -556,7 +583,7 @@ public class SystemsServiceTest
     // Create credential with no system should throw an exception
     pass = false;
     cred = new Credential(null, null, null, null,"fakeAccessKey2", "fakeAccessSecret2");
-    try { svc.createUserCredential(authenticatedOwnerUsr, fakeSystemName, fakeUserName, cred); }
+    try { svc.createUserCredential(authenticatedOwnerUsr, fakeSystemName, fakeUserName, cred, scrubbedText); }
     catch (TapisException te)
     {
       Assert.assertTrue(te.getMessage().startsWith("SYSLIB_NOT_FOUND"));
@@ -607,8 +634,8 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD, scrubbedText);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY, scrubbedText);
 
     // READ - deny user not owner/admin and no READ or MODIFY access
     pass = false;
@@ -664,7 +691,23 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
 
-    // TODO CHANGE_OWNER - deny user not owner/admin, deny service
+    // CHANGE_OWNER - deny user not owner/admin, deny service
+    pass = false;
+    try { svc.changeSystemOwner(authenticatedTestUsr1, sys0.getName(), testUser2); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
+    pass = false;
+    try { svc.changeSystemOwner(authenticatedFilesSvc, sys0.getName(), testUser2); }
+    catch (NotAuthorizedException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
 
     // GET_PERMS - deny user not owner/admin and no READ or MODIFY access
     pass = false;
@@ -678,7 +721,7 @@ public class SystemsServiceTest
 
     // GRANT_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedTestUsr1, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -686,7 +729,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), testUser1, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -696,7 +739,7 @@ public class SystemsServiceTest
 
     // REVOKE_PERMS - deny user not owner/admin, deny service
     pass = false;
-    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPermsREADMODIFY); }
+    try { svc.revokeUserPermissions(authenticatedTestUsr1, sys0.getName(), ownerUser, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -704,7 +747,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPermsREADMODIFY); }
+    try { svc.grantUserPermissions(authenticatedFilesSvc, sys0.getName(), ownerUser, testPermsREADMODIFY, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -714,7 +757,7 @@ public class SystemsServiceTest
 
     // SET_CRED - deny user not owner/admin and not target user, deny service
     pass = false;
-    try { svc.createUserCredential(authenticatedTestUsr1, sys0.getName(), ownerUser, cred0); }
+    try { svc.createUserCredential(authenticatedTestUsr1, sys0.getName(), ownerUser, cred0, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -722,7 +765,7 @@ public class SystemsServiceTest
     }
     Assert.assertTrue(pass);
     pass = false;
-    try { svc.createUserCredential(authenticatedFilesSvc, sys0.getName(), ownerUser, cred0); }
+    try { svc.createUserCredential(authenticatedFilesSvc, sys0.getName(), ownerUser, cred0, scrubbedText); }
     catch (NotAuthorizedException e)
     {
       Assert.assertTrue(e.getMessage().startsWith("HTTP 401 Unauthorized"));
@@ -785,8 +828,8 @@ public class SystemsServiceTest
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     // Grant Usr1 - READ and Usr2 - MODIFY
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD);
-    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser1, testPermsREAD, scrubbedText);
+    svc.grantUserPermissions(authenticatedOwnerUsr, sys0.getName(), testUser2, testPermsMODIFY, scrubbedText);
 
     // READ - allow owner, service, with READ only, with MODIFY only
     boolean pass = true;
@@ -828,12 +871,12 @@ public class SystemsServiceTest
   {
     System.out.println("Executing AfterSuite teardown method");
     // Remove non-owner permissions granted during the tests
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
     //Remove all objects created by tests
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys1.getName());
     TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, sys1.getName(), false, null);
@@ -852,6 +895,7 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysD.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysG.getName());
   }
 
   /**
@@ -902,17 +946,11 @@ public class SystemsServiceTest
       System.out.println("Found tag: " + tagStr);
     }
     // Verify notes
-    Assert.assertNotNull(sys0.getNotes(), "Orig Notes was null");
-    Assert.assertNotNull(tmpSys.getNotes(), "Fetched Notes was null");
-    String origNotesStr = sys0.getNotes().getStringData();
-    String tmpNotesStr = tmpSys.getNotes().getStringData();
-    Assert.assertFalse(StringUtils.isBlank(origNotesStr), "Orig Notes string was blank");
-    Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Fetched Notes string was blank");
-    System.out.println("Found notes: " + tmpNotesStr);
-    JsonObject tmpObj = TapisGsonUtils.getGson().fromJson(tmpNotesStr, JsonObject.class);
-    JsonObject origNotes = TapisGsonUtils.getGson().fromJson(origNotesStr, JsonObject.class);
-    Assert.assertFalse(StringUtils.isBlank(tmpNotesStr), "Notes string not found.");
-    Assert.assertNotNull(tmpObj, "Error parsing Notes string");
+    Assert.assertNotNull(sys0.getNotes(), "Orig Notes should not be null");
+    Assert.assertNotNull(tmpSys.getNotes(), "Fetched Notes should not be null");
+    System.out.println("Found notes: " + sys0.getNotes().toString());
+    JsonObject tmpObj = (JsonObject) tmpSys.getNotes();
+    JsonObject origNotes = (JsonObject) sys0.getNotes();
     Assert.assertTrue(tmpObj.has("project"));
     String projStr = origNotes.get("project").getAsString();
     Assert.assertEquals(tmpObj.get("project").getAsString(), projStr);

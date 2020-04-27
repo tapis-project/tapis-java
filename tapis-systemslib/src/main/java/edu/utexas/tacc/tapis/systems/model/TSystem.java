@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +41,7 @@ public final class TSystem
   public static final String DEFAULT_OWNER = APIUSERID_VAR;
   public static final boolean DEFAULT_ENABLED = true;
   public static final String DEFAULT_EFFECTIVEUSERID = APIUSERID_VAR;
-  public static final String DEFAULT_NOTES_STR = "{}";
+  public static final JsonObject DEFAULT_NOTES = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
   public static final String DEFAULT_TAGS_STR = "{}";
   public static final String[] DEFAULT_TAGS = new String[0];
   public static final List<TransferMethod> DEFAULT_TRANSFER_METHODS = Collections.emptyList();
@@ -57,6 +59,8 @@ public final class TSystem
   public enum Permission {ALL, READ, MODIFY}
   public enum AccessMethod {PASSWORD, PKI_KEYS, ACCESS_KEY, CERT}
   public enum TransferMethod {SFTP, S3}
+  public enum SystemOperation {create, read, modify, softDelete, hardDelete, changeOwner, getPerms,
+                               grantPerms, revokePerms, setCred, removeCred, getCred}
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -90,7 +94,7 @@ public final class TSystem
   private String jobRemoteArchiveDir; // Parent directory used for archiving job output files on remote system
   private List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   private String[] tags;       // List of arbitrary tags as strings
-  private Notes notes;      // Simple metadata as json
+  private Object notes;      // Simple metadata as json
 
 
   // ************************************************************************
@@ -119,7 +123,7 @@ public final class TSystem
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
                  String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1, List<Capability> jobCapabilities1,
-                 String[] tags1, Notes notes1, Instant created1, Instant updated1)
+                 String[] tags1, Object notes1, Instant created1, Instant updated1)
   {
     id = id1;
     created = created1;
@@ -197,10 +201,7 @@ public final class TSystem
     if (StringUtils.isBlank(system.getOwner())) system.setOwner(DEFAULT_OWNER);
     if (StringUtils.isBlank(system.getEffectiveUserId())) system.setEffectiveUserId(DEFAULT_EFFECTIVEUSERID);
     if (system.getTags() == null) system.setTags(DEFAULT_TAGS);
-    if (system.getNotes() == null || StringUtils.isBlank(system.getNotes().getStringData()))
-    {
-      system.setNotes(new Notes(DEFAULT_NOTES_STR));
-    }
+    if (system.getNotes() == null) system.setNotes(DEFAULT_NOTES);
     if (system.getTransferMethods() == null) system.setTransferMethods(DEFAULT_TRANSFER_METHODS);
     return system;
   }
@@ -300,6 +301,6 @@ public final class TSystem
     return this;
   }
 
-  public Notes getNotes() { return notes; }
-  public TSystem setNotes(Notes n) { notes = n; return this; }
+  public Object getNotes() { return notes; }
+  public TSystem setNotes(Object n) { notes = n; return this; }
 }

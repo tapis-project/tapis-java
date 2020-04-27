@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.model;
 
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /*
  * Credential class representing an access credential stored in the Security Kernel.
@@ -21,6 +22,8 @@ public final class Credential
 
   // Top level name for storing system secrets
   public static final String TOP_LEVEL_SECRET_NAME = "S1";
+  // String used to mask secrets
+  public static final String SECRETS_MASK = "***";
 
   // Keys for constructing map when writing secrets to Security Kernel
   public static final String SK_KEY_PASSWORD = "password";
@@ -56,6 +59,24 @@ public final class Credential
     accessKey = accessKey1;
     accessSecret = accessSecret1;
     certificate = cert1;
+  }
+
+  /* ********************************************************************** */
+  /*                        Public methods                                  */
+  /* ********************************************************************** */
+  /**
+   * Create a credential with secrets masked out
+   */
+  public static Credential createMaskedCredential(Credential credential)
+  {
+    String accessKey, accessSecret, password, privateKey, publicKey, cert;
+    accessKey = (!StringUtils.isBlank(credential.getAccessKey())) ? SECRETS_MASK : credential.getAccessKey();
+    accessSecret = (!StringUtils.isBlank(credential.getAccessSecret())) ? SECRETS_MASK : credential.getAccessSecret();
+    password = (!StringUtils.isBlank(credential.getPassword())) ? SECRETS_MASK : credential.getPassword();
+    privateKey = (!StringUtils.isBlank(credential.getPrivateKey())) ? SECRETS_MASK : credential.getPrivateKey();
+    publicKey = (!StringUtils.isBlank(credential.getPublicKey())) ? SECRETS_MASK : credential.getPublicKey();
+    cert = (!StringUtils.isBlank(credential.getCertificate())) ? SECRETS_MASK : credential.getCertificate();
+    return new Credential(password, privateKey, publicKey, accessKey, accessSecret, cert);
   }
 
   /* ********************************************************************** */

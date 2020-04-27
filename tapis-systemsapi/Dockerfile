@@ -4,7 +4,7 @@
 #   $TAG            the tag for image identification
 #
 ##########################################################################
-FROM tomcat:8.5-jdk13-openjdk-oracle
+FROM openjdk:13-jdk-oracle
 
 ARG VER
 ARG GIT_COMMIT
@@ -18,9 +18,9 @@ COPY target/v3#systems.jar .
 
 
 # Environment variables for testing without JWT
-ENV TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS true
-ENV TAPIS_ENVONLY_JWT_OPTIONAL true
-ENV TAPIS_ENVONLY_SKIP_JWT_VERIFY true
+# ENV TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS true
+# ENV TAPIS_ENVONLY_JWT_OPTIONAL true
+# ENV TAPIS_ENVONLY_SKIP_JWT_VERIFY true
 
 # Other environment variables
 ENV TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
@@ -32,7 +32,6 @@ ENV JAVA_TOOL_OPTIONS -agentlib:jdwp=transport=dt_socket,address=8000,server=y,s
                       -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false \
                       -Dcom.sun.management.jmxremote.ssl=false 
 
-# TODO turn on debuggin
 # Server port, debug port and jmx port
 EXPOSE 8080
 EXPOSE 8000

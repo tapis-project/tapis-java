@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.systems.model.Notes;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.postgresql.util.PGobject;
@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
@@ -37,6 +38,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsDaoImpl.class);
+
+  private static final String EMPTY_JSON = "{}";
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -88,11 +91,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (StringUtils.isNotBlank(system.getEffectiveUserId())) effectiveUserId = system.getEffectiveUserId();
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
-      String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (system.getNotes() != null && !StringUtils.isBlank(system.getNotes().getStringData()))
-      {
-        notesStr = system.getNotes().getStringData();
-      }
+      JsonObject notesObj = TSystem.DEFAULT_NOTES;
+      if (system.getNotes() != null) notesObj = (JsonObject) system.getNotes();
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -101,7 +101,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       tagsJsonb.setValue(tagsStr);
       var notesJsonb = new PGobject();
       notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesStr);
+      notesJsonb.setValue(notesObj.toString());
 
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.CREATE_SYSTEM;
@@ -139,25 +139,16 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         throw new TapisException(msg);
       }
       systemId = rs.getInt(1);
+      pstmt.close();
       rs.close();
       rs = null;
+      pstmt = null;
 
       // Persist job capabilities
       persistJobCapabilities(conn, system, systemId);
 
-      // Convert updateJsonStr to jsonb object.
-      var createJsonb = new PGobject();
-      createJsonb.setType("jsonb");
-      createJsonb.setValue(createJsonStr);
-
-      // Persist update record with a sequence number of 0
-      sql = SqlStatements.ADD_UPDATE;
-      // Prepare the statement and execute it
-      pstmt = conn.prepareStatement(sql);
-      pstmt.setInt(1, systemId);
-      pstmt.setObject(2, createJsonb);
-      pstmt.setString(3, scrubbedText);
-      pstmt.execute();
+      // Persist update record
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.create.name(), createJsonStr, scrubbedText);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, rs);
@@ -226,11 +217,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (StringUtils.isNotBlank(patchedSystem.getEffectiveUserId())) effectiveUserId = patchedSystem.getEffectiveUserId();
       String tagsStr = TSystem.DEFAULT_TAGS_STR;
       if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
-      String notesStr =  TSystem.DEFAULT_NOTES_STR;
-      if (patchedSystem.getNotes() != null && !StringUtils.isBlank(patchedSystem.getNotes().getStringData()))
-      {
-        notesStr = patchedSystem.getNotes().getStringData();
-      }
+      JsonObject notesObj =  TSystem.DEFAULT_NOTES;
+      if (patchedSystem.getNotes() != null) notesObj = (JsonObject) patchedSystem.getNotes();
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
@@ -239,7 +227,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       tagsJsonb.setValue(tagsStr);
       var notesJsonb = new PGobject();
       notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesStr);
+      notesJsonb.setValue(notesObj.toString());
 
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.UPDATE_SYSTEM;
@@ -265,19 +253,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         persistJobCapabilities(conn, patchedSystem, systemId);
       }
 
-      // Convert updateJsonStr to jsonb object.
-      var updateJsonb = new PGobject();
-      updateJsonb.setType("jsonb");
-      updateJsonb.setValue(updateJsonStr);
-
       // Persist update record
-      sql = SqlStatements.ADD_UPDATE;
-      // Prepare the statement and execute it
-      pstmt = conn.prepareStatement(sql);
-      pstmt.setInt(1, systemId);
-      pstmt.setObject(2, updateJsonb);
-      pstmt.setString(3, scrubbedText);
-      pstmt.execute();
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
@@ -296,17 +273,58 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   }
 
   /**
+   * Update owner of a system given system Id and new owner name
+   *
+   */
+  @Override
+  public void updateSystemOwner(AuthenticatedUser authenticatedUser, int systemId, String newOwnerName) throws TapisException
+  {
+    String opName = "changeOwner";
+    // ------------------------- Check Input -------------------------
+    if (systemId < 1) LibUtils.logAndThrowNullParmException(opName, "systemId");
+    if (StringUtils.isBlank(newOwnerName)) LibUtils.logAndThrowNullParmException(opName, "newOwnerName");
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+      // Prepare the statement, fill in placeholders and execute
+      String sql = SqlStatements.UPDATE_SYSTEM_OWNER;
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, newOwnerName);
+      pstmt.setInt(2, systemId);
+      pstmt.executeUpdate();
+      // Persist update record
+      String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+  }
+
+  /**
    * Soft delete a system record given the system name.
    *
    */
   @Override
-  public int softDeleteTSystem(String tenant, String name) throws TapisException
+  public int softDeleteTSystem(AuthenticatedUser authenticatedUser, int systemId) throws TapisException
   {
     String opName = "softDeleteSystem";
     int rows = -1;
     // ------------------------- Check Input -------------------------
-    if (StringUtils.isBlank(tenant)) LibUtils.logAndThrowNullParmException(opName, "tenant");
-    if (StringUtils.isBlank(name)) LibUtils.logAndThrowNullParmException(opName, "name");
+    if (systemId < 1) LibUtils.logAndThrowNullParmException(opName, "systemId");
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -316,11 +334,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
 
       // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.SOFT_DELETE_SYSTEM_BY_NAME;
+      String sql = SqlStatements.SOFT_DELETE_SYSTEM_BY_ID;
       PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
+      pstmt.setInt(1, systemId);
       rows = pstmt.executeUpdate();
+
+      // Persist update record
+      addUpdate(conn, authenticatedUser, systemId, SystemOperation.softDelete.name(), EMPTY_JSON, null);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
@@ -665,9 +685,109 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     return effectiveUserId;
   }
 
+  /**
+   * getSystemId
+   * @param tenant - name of tenant
+   * @param name - name of system
+   * @return systemId or -1 if no system found
+   * @throws TapisException - on error
+   */
+  @Override
+  public int getTSystemId(String tenant, String name) throws TapisException
+  {
+    int systemId = -1;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+
+      // Get the select command.
+      String sql = SqlStatements.SELECT_SYSTEM_ID;
+
+      // Prepare the statement, fill in placeholders and execute
+      PreparedStatement pstmt = conn.prepareStatement(sql);
+      pstmt.setString(1, tenant);
+      pstmt.setString(2, name);
+      ResultSet rs = pstmt.executeQuery();
+      if (rs.next()) systemId = rs.getInt(1);
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+    return systemId;
+  }
+
+  /**
+   * Add an update record given the system Id and operation type
+   *
+   */
+  @Override
+  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text) throws TapisException
+  {
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+      addUpdate(conn, authenticatedUser, systemId, opName, upd_json, upd_text);
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, null, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_INSERT_FAILURE", "systems");
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
+  }
+
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
+
+  /**
+   * Given an sql connection and basic info add an update record
+   *
+   */
+  private void addUpdate(Connection conn, AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text)
+          throws SQLException
+  {
+    String updJsonStr = (StringUtils.isBlank(upd_json)) ? EMPTY_JSON : upd_json;
+    // Convert upd_json to jsonb object.
+    var pGobject = new PGobject();
+    pGobject.setType("jsonb");
+    pGobject.setValue(updJsonStr);
+
+    // Persist update record
+    String sql = SqlStatements.ADD_UPDATE;
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, systemId);
+    pstmt.setString(2, authenticatedUser.getName());
+    pstmt.setString(3, opName);
+    pstmt.setObject(4, pGobject);
+    pstmt.setString(5, upd_text);
+    pstmt.execute();
+    pstmt.close();
+  }
 
   /**
    * Given an sql connection check to see if specified system exists and has/has not been soft deleted
@@ -783,7 +903,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
                             rs.getString(22), // jobRemoteArchiveSystemDir
                             jobCaps,
                             TapisGsonUtils.getGson().fromJson(rs.getString(23), String[].class), // tags
-                            new Notes(rs.getString(24)), // notes
+                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
                             rs.getTimestamp(25).toInstant(), // created
                             rs.getTimestamp(26).toInstant()); // updated
     }

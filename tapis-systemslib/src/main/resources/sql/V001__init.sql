@@ -32,6 +32,8 @@ SET search_path TO tapis_sys;
 
 -- Types
 CREATE TYPE system_type_type AS ENUM ('LINUX', 'OBJECT_STORE');
+CREATE TYPE operation_type AS ENUM ('create', 'modify', 'softDelete', 'hardDelete', 'changeOwner',
+                                    'grantPerms', 'revokePerms', 'setCred', 'removeCred');
 CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'ACCESS_KEY', 'CERT');
 CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
 CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
@@ -108,15 +110,19 @@ CREATE TABLE system_updates
 (
     id     SERIAL PRIMARY KEY,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
+    user_name VARCHAR(60) NOT NULL,
+    operation operation_type NOT NULL,
     upd_json JSONB NOT NULL,
-    upd_raw VARCHAR,
+    upd_text VARCHAR,
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 ALTER TABLE system_updates OWNER TO tapis;
 COMMENT ON COLUMN system_updates.id IS 'System update request id';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
+COMMENT ON COLUMN system_updates.user_name IS 'User who requested the update';
+COMMENT ON COLUMN system_updates.operation IS 'Type of update operation';
 COMMENT ON COLUMN system_updates.upd_json IS 'Json representing the update - with secrets scrubbed';
-COMMENT ON COLUMN system_updates.upd_raw IS 'Text data supplied by client - secrets should be scrubbed';
+COMMENT ON COLUMN system_updates.upd_text IS 'Text data supplied by client - secrets should be scrubbed';
 COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 
 -- ----------------------------------------------------------------------------------------

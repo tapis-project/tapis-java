@@ -1,9 +1,21 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import org.apache.commons.lang3.StringUtils;
+import org.jvnet.hk2.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretVersionMetadata;
@@ -27,27 +39,17 @@ import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
+import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jvnet.hk2.annotations.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.NotFoundException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static edu.utexas.tacc.tapis.systems.model.Credential.*;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PRIVATE_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PUBLIC_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.TOP_LEVEL_SECRET_NAME;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.DEFAULT_EFFECTIVEUSERID;
 import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
@@ -64,6 +66,9 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Constants **************************************
   // ************************************************************************
+  public static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
+  public static final String SYSTEMS_DEFAULT_MASTER_TENANT = "master";
+
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
 
@@ -72,7 +77,6 @@ public class SystemsServiceImpl implements SystemsService
   private static final Set<Permission> READMODIFY_PERMS = new HashSet<>(Set.of(Permission.READ, Permission.MODIFY));
   private static final String PERM_SPEC_PREFIX = "system:";
 
-  private static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
   private static final String HDR_TAPIS_TOKEN = "X-Tapis-Token";
   private static final String HDR_TAPIS_TENANT = "X-Tapis-Tenant";
   private static final String HDR_TAPIS_USER = "X-Tapis-User";
@@ -85,8 +89,6 @@ public class SystemsServiceImpl implements SystemsService
   // ************************************************************************
   // *********************** Enums ******************************************
   // ************************************************************************
-  private enum SystemOperation {create, read, modify, softDelete, hardDelete, changeOwner, getPerms,
-                                grantPerms, revokePerms, setCred, removeCred, getCred}
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -115,7 +117,7 @@ public class SystemsServiceImpl implements SystemsService
    * Secrets in the text should be masked.
    * @param authenticatedUser - principal user containing tenant and user info
    * @param system - Pre-populated TSystem object
-   * @param scrubbedText - Text used to create the TSystem object - secrets should be scrubbed.
+   * @param scrubbedText - Text used to create the TSystem object - secrets should be scrubbed. Saved in update record.
    * @return Sequence id of object created
    * @throws TapisException - for Tapis related exceptions
    * @throws IllegalStateException - system exists OR TSystem in invalid state
@@ -209,14 +211,14 @@ public class SystemsServiceImpl implements SystemsService
     }
     catch (Exception e0)
     {
-      // Attempt to undo all changes and then re-throw the exception
+      // Something went wrong. Attempt to undo all changes and then re-throw the exception
       // Log error
       String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
       _log.error(msg);
 
       // Rollback
       // Remove system from DB
-      if (itemId != -1) try {dao.softDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
+      if (itemId != -1) try {dao.hardDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
       // Remove perms
       String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
       String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
@@ -250,12 +252,13 @@ public class SystemsServiceImpl implements SystemsService
    *   jobCanExec, jobLocalWorkingDir, jobLocalArchiveDir, jobRemoteArchiveSystem, jobRemoteArchiveDir
    * @param authenticatedUser - principal user containing tenant and user info
    * @param patchSystem - Pre-populated PatchSystem object
-   * @param scrubbedText - Text used to create the PatchSystem object - secrets should be scrubbed.
+   * @param scrubbedText - Text used to create the PatchSystem object - secrets should be scrubbed. Saved in update record.
    * @return Sequence id of object updated
    * @throws TapisException - for Tapis related exceptions
-   * @throws IllegalStateException - system exists OR TSystem in invalid state
+   * @throws IllegalStateException - Resulting TSystem would be in an invalid state
    * @throws IllegalArgumentException - invalid parameter passed in
    * @throws NotAuthorizedException - unauthorized
+   * @throws NotFoundException - System not found
    */
   @Override
   public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
@@ -305,6 +308,86 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
+   * Change owner of a system
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param newOwnerName - User name of new owner
+   * @return Number of items updated
+   * @throws TapisException - for Tapis related exceptions
+   * @throws IllegalStateException - Resulting TSystem would be in an invalid state
+   * @throws IllegalArgumentException - invalid parameter passed in
+   * @throws NotAuthorizedException - unauthorized
+   * @throws NotFoundException - System not found
+   */
+  @Override
+  public int changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
+          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+  {
+    SystemOperation op = SystemOperation.changeOwner;
+    if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(newOwnerName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    // Extract various names for convenience
+    String tenantName = authenticatedUser.getTenantId();
+    String apiUserId = authenticatedUser.getName();
+    String systemTenantName = tenantName;
+    // For service request use oboTenant for tenant associated with the system
+    if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
+
+    // ---------------------------- Check inputs ------------------------------------
+    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(apiUserId))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ARG", authenticatedUser, systemName));
+
+    // System must already exist and not be soft deleted
+    if (!dao.checkForTSystemByName(systemTenantName, systemName, false))
+         throw new NotFoundException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
+
+    // Retrieve the system being updated
+    TSystem tmpSystem = dao.getTSystemByName(systemTenantName, systemName);
+    int systemId = tmpSystem.getId();
+    String oldOwnerName = tmpSystem.getOwner();
+
+    // ------------------------- Check service level authorization -------------------------
+    checkAuth(authenticatedUser, op, systemName, tmpSystem.getOwner(), null, null);
+
+    // If new owner same as old owner then this is a no-op
+    if (newOwnerName.equals(oldOwnerName)) return 0;
+
+    // ----------------- Make all updates --------------------
+    // Changes not in single DB transaction. Need to handle failure of role/perms/creds operations
+    // Use try/catch to rollback any changes in case of failure.
+    // Get SK client now. If we cannot get this rollback not needed.
+    var skClient = getSKClient(authenticatedUser);
+    try {
+      // ------------------- Make Dao call to update the system owner -----------------------------------
+      dao.updateSystemOwner(authenticatedUser, systemId, newOwnerName);
+      // Add permissions for new owner
+      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+      skClient.grantUserPermission(systemTenantName, newOwnerName, systemsPermSpec);
+      // TODO remove addition of files related permSpec
+      // Give owner files service related permission for root directory
+      String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
+      skClient.grantUserPermission(systemTenantName, newOwnerName, filesPermSpec);
+      // Remove permissions from old owner
+      skClient.revokeUserPermission(systemTenantName, oldOwnerName, systemsPermSpec);
+      // TODO: Notify files service of the change
+    }
+    catch (Exception e0)
+    {
+      // Something went wrong. Attempt to undo all changes and then re-throw the exception
+      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
+      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); } catch (Exception e) {}
+      throw e0;
+    }
+    return 1;
+  }
+
+  /**
    * Soft delete a system record given the system name.
    * Also remove credentials from the Security Kernel
    *
@@ -330,11 +413,12 @@ public class SystemsServiceImpl implements SystemsService
     // If system does not exist or has been soft deleted then 0 changes
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return 0;
 
-      // ------------------------- Check service level authorization -------------------------
+    // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
 
-    String owner = dao.getTSystemOwner(systemTenantName, systemName);
-    String effectiveUserId = dao.getTSystemEffectiveUserId(systemTenantName, systemName);
+    TSystem system = dao.getTSystemByName(systemTenantName, systemName);
+    String owner = system.getOwner();
+    String effectiveUserId = system.getEffectiveUserId();
     // Resolve effectiveUserId if necessary
     effectiveUserId = resolveEffectiveUserId(effectiveUserId, owner, apiUserId);
 
@@ -355,7 +439,7 @@ public class SystemsServiceImpl implements SystemsService
       }
     }
     // Delete the system
-    return dao.softDeleteTSystem(tenantName, systemName);
+    return dao.softDeleteTSystem(authenticatedUser, system.getId());
   }
 
   /**
@@ -428,28 +512,39 @@ public class SystemsServiceImpl implements SystemsService
    * @param systemName - Name of the system
    * @return true if system exists and has not been soft deleted, false otherwise
    * @throws TapisException - for Tapis related exceptions
+   * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException
+  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
   {
+    SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
     if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
-    return dao.checkForTSystemByName(systemTenantName, systemName, false);
+
+    // We need owner to check auth and if system not there cannot find owner, so cannot do auth check if no system
+    if (dao.checkForTSystemByName(systemTenantName, systemName, false)) {
+      // ------------------------- Check service level authorization -------------------------
+      checkAuth(authenticatedUser, op, systemName, null, null, null);
+      return true;
+    }
+    return false;
   }
 
   /**
    * getSystemByName
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
-   * @return TSystem - populated instance or null if not found.
+   * @param getCreds - flag indicating if credentials for effectiveUserId should be included
+   * @param accMethod - (optional) return credentials for specified access method instead of default access method
+   * @return TSystem - populated instance or null if not found or user not authorized.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod1)
+  public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod)
           throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.read;
@@ -461,11 +556,9 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist then return null
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
-//TODO/TBD    // If system does not exist then throw an exception
-//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
@@ -478,10 +571,10 @@ public class SystemsServiceImpl implements SystemsService
     // If requested and effectiveUserid is not ${apiUserId} (i.e. is static) then retrieve credentials from Security Kernel
     if (getCreds && !result.getEffectiveUserId().equals(TSystem.APIUSERID_VAR))
     {
-      AccessMethod accMethod = result.getDefaultAccessMethod();
+      AccessMethod tmpAccMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
-      if (accMethod1 != null) accMethod = accMethod1;
-      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, accMethod);
+      if (accMethod != null) tmpAccMethod = accMethod;
+      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, tmpAccMethod);
       result.setAccessCredential(cred);
     }
     return result;
@@ -514,10 +607,9 @@ public class SystemsServiceImpl implements SystemsService
    * @param authenticatedUser - principal user containing tenant and user info
    * @return - list of systems
    * @throws TapisException - for Tapis related exceptions
-   * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException, NotAuthorizedException
+  public List<String> getSystemNames(AuthenticatedUser authenticatedUser) throws TapisException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -540,8 +632,9 @@ public class SystemsServiceImpl implements SystemsService
    * Get system owner
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system
-   * @return - Owner or null if system not found
+   * @return - Owner or null if system not found or user not authorized
    * @throws TapisException - for Tapis related exceptions
+   * @throws NotAuthorizedException - unauthorized
    */
   @Override
   public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
@@ -554,7 +647,8 @@ public class SystemsServiceImpl implements SystemsService
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist or has been soft deleted return null
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
 
     // ------------------------- Check service level authorization -------------------------
@@ -570,17 +664,23 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Grant permissions to a user for a system
    * NOTE: This only impacts the default user role
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param permissions - list of permissions to be granted
+   * @param updateText - Client provided text used to create the permissions list. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
+  public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Set<Permission> permissions, String updateText)
     throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.grantPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
@@ -592,12 +692,13 @@ public class SystemsServiceImpl implements SystemsService
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, null, null);
 
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
+
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
 
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
-        permissions == null || permissions.isEmpty())
+    if (StringUtils.isBlank(tenantName) || permissions == null || permissions.isEmpty())
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
@@ -607,6 +708,9 @@ public class SystemsServiceImpl implements SystemsService
 
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
 
     // Assign perms to user. SK creates a default role for the user
     try
@@ -622,44 +726,61 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
+    // Create a record of the update
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
    * Revoke permissions from a user for a system
    * NOTE: This only impacts the default user role
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param permissions - list of permissions to be revoked
+   * @param updateText - Client provided text used to create the permissions list. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName, Set<Permission> permissions)
+  public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Set<Permission> permissions, String updateText)
     throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.revokePerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
-    // If system does not exist or has been soft deleted then return 0 changes
+    // We need owner to check auth and if system not there cannot find owner, so
+    // if system does not exist or has been soft deleted then return 0 changes
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return 0;
 
     // ------------------------- Check service level authorization -------------------------
-    checkAuth(authenticatedUser, op, systemName, null, userName, permissions);
+    checkAuth(authenticatedUser, op, systemName, null, null, null);
+
+    // Retrieve the system Id. Used to add an update record.
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
 
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
 
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) ||
-      permissions == null || permissions.isEmpty())
+    if (StringUtils.isBlank(tenantName) || permissions == null || permissions.isEmpty())
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
 
     var skClient = getSKClient(authenticatedUser);
     int changeCount;
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
+
     try {
       changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions );
     }
@@ -669,13 +790,19 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
+    // Create a record of the update
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
     return changeCount;
   }
 
   /**
    * Get list of system permissions for a user
    * NOTE: This retrieves permissions from all roles.
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
    * @return List of permissions
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
@@ -686,16 +813,14 @@ public class SystemsServiceImpl implements SystemsService
   {
     SystemOperation op = SystemOperation.getPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
     // If system does not exist or has been soft deleted then return null
     if (!dao.checkForTSystemByName(systemTenantName, systemName, false)) return null;
-//TODO/TBD    // If system does not exist then throw an exception
-//    if (!dao.checkForTSystemByName(systemTenantName, systemName))
-//      throw new TapisException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, systemName));
 
     // ------------------------- Check service level authorization -------------------------
     checkAuth(authenticatedUser, op, systemName, null, userName, null);
@@ -727,17 +852,23 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Store or update credential for given system and user.
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param credential - list of permissions to be granted
+   * @param updateText - Client provided text used to create the credential - secrets should be scrubbed. Saved in update record.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, Credential credential)
+  public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName,
+                                   Credential credential, String updateText)
           throws TapisException, NotAuthorizedException, IllegalStateException
   {
     SystemOperation op = SystemOperation.setCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
@@ -754,12 +885,15 @@ public class SystemsServiceImpl implements SystemsService
     String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName) || credential == null)
+    if (StringUtils.isBlank(tenantName) || credential == null)
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
     // Create credential
     try
     {
@@ -771,21 +905,32 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+
+    // Construct Json string representing the update, with actual secrets masked out
+    Credential maskedCredential = Credential.createMaskedCredential(credential);
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(maskedCredential);
+
+    // Create a record of the update
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
   }
 
   /**
    * Delete credential for given system and user
-   *
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
   public int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException, IllegalStateException
+          throws TapisException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.removeCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
@@ -802,12 +947,15 @@ public class SystemsServiceImpl implements SystemsService
     String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(tenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+    if (StringUtils.isBlank(tenantName))
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
     // Get the Security Kernel client
     var skClient = getSKClient(authenticatedUser);
+
+    // TODO: Mutliple txns. Need to handle failure
+    // TODO: Use try/catch to rollback in case of failure.
     try {
       changeCount = deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, userName);
     }
@@ -817,11 +965,21 @@ public class SystemsServiceImpl implements SystemsService
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CRED_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
+
+    // Construct Json string representing the update
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(userName);
+    // Create a record of the update
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
+    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, null);
     return changeCount;
   }
 
   /**
    * Get credential for given system, user and access method
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param systemName - name of system
+   * @param userName - Target user for operation
+   * @param accessMethod - (optional) return credentials for specified access method instead of default access method
    * @return Credential - populated instance or null if not found.
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
@@ -832,7 +990,8 @@ public class SystemsServiceImpl implements SystemsService
   {
     SystemOperation op = SystemOperation.getCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
-    if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
+    if (StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+         throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
@@ -851,7 +1010,7 @@ public class SystemsServiceImpl implements SystemsService
     String apiUserId = authenticatedUser.getName();
 
     // Check inputs. If anything null or empty throw an exception
-    if (StringUtils.isBlank(oboTenantName) || StringUtils.isBlank(systemName) || StringUtils.isBlank(userName))
+    if (StringUtils.isBlank(oboTenantName))
     {
       throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT"));
     }
@@ -981,16 +1140,6 @@ public class SystemsServiceImpl implements SystemsService
   {
     String msg;
     var errMessages = new ArrayList<String>();
-    // Check that Notes contains json
-    try
-    {
-      JsonParser.parseString(system.getNotes().getStringData());
-    }
-    catch (JsonSyntaxException e)
-    {
-      msg = LibUtils.getMsg("SYSLIB_INVALID_NOTES_INPUT");
-      errMessages.add(msg);
-    }
     // Check for valid effectiveUserId
     // For CERT access the effectiveUserId cannot be static string other than owner
     String effectiveUserId = system.getEffectiveUserId();

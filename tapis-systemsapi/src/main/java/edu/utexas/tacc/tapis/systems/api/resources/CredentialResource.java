@@ -1,22 +1,5 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
-import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
-import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
-import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
-import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,6 +33,24 @@ import javax.ws.rs.core.UriInfo;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
+import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
+import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
+
 /*
  * JAX-RS REST resource for Tapis System credentials
  * Contains annotations which generate the OpenAPI specification documents.
@@ -57,7 +58,7 @@ import java.nio.charset.StandardCharsets;
  * Secrets are stored in the Security Kernel
  *
  */
-@Path("/credential")
+@Path("/v3/systems/credential")
 public class CredentialResource
 {
   // ************************************************************************
@@ -208,9 +209,8 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    Credential credential;
     ReqCreateCredential req = TapisGsonUtils.getGson().fromJson(json, ReqCreateCredential.class);
-    credential = req.credential;
+    Credential credential = new Credential(req.password, req.privateKey, req.publicKey, req.accessKey, req.accessSecret, req.certificate);
 
     // If one of PKI keys is missing then reject
     resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
@@ -221,11 +221,15 @@ public class CredentialResource
                                  credential.getAccessKey(), credential.getAccessSecret());
     if (resp != null) return resp;
 
+    // Create json with secrets masked out. This is recorded by the service as part of the update record.
+    Credential maskedCredential = Credential.createMaskedCredential(credential);
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(maskedCredential);
+
     // ------------------------- Perform the operation -------------------------
     // Make the service call to create or update the credential
     try
     {
-      systemsService.createUserCredential(authenticatedUser, systemName, userName, credential);
+      systemsService.createUserCredential(authenticatedUser, systemName, userName, credential, updateJsonStr);
     }
     catch (Exception e)
     {
