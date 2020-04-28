@@ -43,7 +43,7 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"taccMetaAdmin","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:::"}
+{"user":"streams","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:StreamsTACCDB::"}
 
 ###
 
