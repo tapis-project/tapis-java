@@ -7,9 +7,10 @@ Content-Type: application/json
 
 ###
 
-##################################### streamsTACCAdmin user #################################################
-# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
-
+##################################### streams user #################################################
+# streams  these tests are hitting the dev deployment of RH-core
+# run with streams.master service token settings
+#
 ##############################################################
 #      DB endpoints
 ##############################################################
@@ -18,8 +19,8 @@ Content-Type: application/json
 ###   db list collections
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 > {%
@@ -34,8 +35,8 @@ Content-Type: application/json
 ###   db metadata
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User:streams
+X-Tapis-Tenant:master
 Content-Type: application/json
 
 > {%
@@ -50,8 +51,8 @@ Content-Type: application/json
 ###   no perms and db does not exist
 GET https://dev.develop.tapis.io/v3/meta/sltst
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  results  403 request for this uri path meta:dev:GET:sltst:: is NOT permitted.
@@ -62,8 +63,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  results  200
@@ -73,8 +74,8 @@ Content-Type: application/json
 ###
 POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###   results 405   "Method Not Allowed"
@@ -85,8 +86,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/testdb/
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -100,8 +101,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -111,8 +112,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -122,8 +123,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -134,8 +135,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  result
@@ -145,8 +146,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -156,8 +157,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 ###  result msg with ETag header
 # ETag: 5e4c452b537bd1305796e5e2
@@ -173,8 +174,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 If-Match: 5e4c452b537bd1305796e5e2
 Content-Type: application/json
 
@@ -192,8 +193,8 @@ Content-Type: application/json
 ###
 POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  result 201  er  Created
@@ -203,11 +204,11 @@ Content-Type: application/json
 ###
 POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
-{ "name": "test document slt 4.18.2020-14:21", "jimmyList":["1","3"],"description": "new whatever"}
+{ "name": "test document slt 4.28.2020-15:17", "jimmyList":["1","3"],"description": "new whatever"}
 
 ###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
 
@@ -223,8 +224,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3/5e9de1dca93eebf39fcad799
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  result 204  er  no Content
@@ -236,8 +237,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  result is a 409 without ETag
@@ -247,8 +248,8 @@ Content-Type: application/json
 ###  5e9493a5a93eebf39fc88d65
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -258,8 +259,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 { "site_name": "mysite7",
@@ -277,8 +278,8 @@ Content-Type: application/json
 ###
 PATCH https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 {
@@ -292,8 +293,8 @@ Content-Type: application/json
 ###
 POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 { "site_name": "mysite7",
@@ -311,8 +312,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -321,12 +322,12 @@ Content-Type: application/json
 #
 #    Anagha test delete
 #
-# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streamsTACCAdmin" https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streams" https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
 #
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
 X-Tapis-Token: {{token}}
-X-Tapis-Tenant: dev
-X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: master
+X-Tapis-User: streams
 
 ###
 
@@ -339,8 +340,8 @@ X-Tapis-User: streamsTACCAdmin
 ###  5e9493a5a93eebf39fc88d65
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -353,8 +354,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -363,8 +364,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes/testIndex
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 {"keys": { "document.lat": 1 } }
@@ -375,8 +376,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -384,8 +385,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3?filter={"instruments.inst_id": {"$eq":78 } }
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -393,8 +394,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3?filter={"instruments.inst_id":{"$eq":78 }}&keys={"instruments.$":1}&keys={"site_id":1}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
