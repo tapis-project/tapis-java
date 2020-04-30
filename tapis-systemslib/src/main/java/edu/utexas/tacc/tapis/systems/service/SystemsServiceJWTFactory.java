@@ -47,6 +47,10 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
         String msg = LibUtils.getMsg("SYSLIB_NO_SVC_PASSWD", svcMasterTenant, tokenSvcUrl);
         throw new RuntimeException(msg);
       }
+      // TODO remove
+      System.out.println("$%%$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$%$%$%%%%%%%%%%%%%%");
+      System.out.println("DEBUG: Using tokensSvcUrl: " + tokenSvcUrl + " svcMasterTenant: " + svcMasterTenant + " and svcPassword: " + svcPassword);
+      System.out.println("$%%$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$%$%$%%%%%%%%%%%%%%");
       return new ServiceJWT(svcJWTParms, svcPassword);
     }
     catch (TapisException te)
