@@ -45,8 +45,9 @@ public class RuntimeParameters {
   }
   
   // service locations.
-  private String  tenantBaseUrl ="https://dev.develop.tapis.io/";
-  private String skSvcURL = "https://dev.develop.tapis.io/v3";
+  private String tenantBaseUrl = "https://dev.develop.tapis.io/";
+  private String skSvcURL      = "https://dev.develop.tapis.io/v3";
+  private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
   private String metaToken;
   
   // The slf4j/logback target directory and file.
