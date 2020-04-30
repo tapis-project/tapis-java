@@ -383,10 +383,7 @@ public class SystemResource
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
-    PatchSystem patchSystem = createPatchSystemFromRequest(req);
-    // Update tenant name and system name
-    patchSystem.setTenant(authenticatedUser.getTenantId());
-    patchSystem.setName(systemName);
+    PatchSystem patchSystem = createPatchSystemFromRequest(req, authenticatedUser.getTenantId(), systemName);
 
     // Extract Notes from the raw json.
     Object notes = extractNotes(rawJson);
@@ -777,11 +774,15 @@ public class SystemResource
   /**
    * Create a PatchSystem from a ReqUpdateSystem
    */
-  private static PatchSystem createPatchSystemFromRequest(ReqUpdateSystem req)
+  private static PatchSystem createPatchSystemFromRequest(ReqUpdateSystem req, String tenantName, String systemName)
   {
-    return new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
+    PatchSystem patchSystem = new PatchSystem(req.description, req.host, req.enabled, req.effectiveUserId,
                            req.defaultAccessMethod, req.transferMethods, req.port, req.useProxy,
                            req.proxyHost, req.proxyPort, req.jobCapabilities, req.tags, req.notes);
+    // Update tenant name and system name
+    patchSystem.setTenant(tenantName);
+    patchSystem.setName(systemName);
+    return patchSystem;
   }
 
   /**
@@ -813,17 +814,17 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", SYSTEM_TYPE_FIELD);
       errMessages.add(msg);
     }
-    else if (StringUtils.isBlank(system1.getHost()))
+    if (StringUtils.isBlank(system1.getHost()))
     {
       msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", HOST_FIELD);
       errMessages.add(msg);
     }
-    else if (system1.getDefaultAccessMethod() == null)
+    if (system1.getDefaultAccessMethod() == null)
     {
       msg = ApiUtils.getMsg("SYSAPI_CREATE_MISSING_ATTR", DEFAULT_ACCESS_METHOD_FIELD);
       errMessages.add(msg);
     }
-    else if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
+    if (system1.getDefaultAccessMethod().equals(AccessMethod.CERT) &&
             !effectiveUserId.equals(TSystem.APIUSERID_VAR) &&
             !effectiveUserId.equals(TSystem.OWNER_VAR) &&
             !StringUtils.isBlank(owner) &&
@@ -833,14 +834,14 @@ public class SystemResource
       msg = ApiUtils.getMsg("SYSAPI_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system1.getTransferMethods() != null &&
+    if (system1.getTransferMethods() != null &&
             system1.getTransferMethods().contains(TransferMethod.S3) && StringUtils.isBlank(system1.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = ApiUtils.getMsg("SYSAPI_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
-    else if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    if (system1.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = ApiUtils.getMsg("SYSAPI_CRED_DISALLOWED_INPUT");

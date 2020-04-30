@@ -1153,14 +1153,14 @@ public class SystemsServiceImpl implements SystemsService
       msg = LibUtils.getMsg("SYSLIB_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getTransferMethods() != null && system.getTransferMethods().contains(TransferMethod.S3) &&
+    if (system.getTransferMethods() != null && system.getTransferMethods().contains(TransferMethod.S3) &&
              StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = LibUtils.getMsg("SYSLIB_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    if (system.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = LibUtils.getMsg("SYSLIB_CRED_DISALLOWED_INPUT");

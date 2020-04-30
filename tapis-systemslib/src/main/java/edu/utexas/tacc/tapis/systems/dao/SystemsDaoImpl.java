@@ -246,6 +246,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       pstmt.setObject(12, notesJsonb);
       pstmt.setInt(13, systemId);
       pstmt.execute();
+      pstmt.close();
 
       // If jobCapabilities updated then replace them
       if (patchSystem.getJobCapabilities() != null) {
@@ -257,7 +258,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       addUpdate(conn, authenticatedUser, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -831,6 +832,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         pstmt.setString(3, cap.getName());
         pstmt.setString(4, valStr);
         pstmt.execute();
+        pstmt.close();
       }
     }
   }
@@ -844,6 +846,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     PreparedStatement pstmt = conn.prepareStatement(sql);
     pstmt.setInt(1, systemId);
     pstmt.execute();
+    pstmt.close();
   }
 
   /**
