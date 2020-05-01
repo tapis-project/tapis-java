@@ -42,14 +42,6 @@ class AbstractResource
     private static final Logger _log = LoggerFactory.getLogger(AbstractResource.class);
 
     /* **************************************************************************** */
-    /*                                    Fields                                    */
-    /* **************************************************************************** */
-    // Role name validator.  Require names to start with alphabetic characters and 
-    // be followed by zero or more alphanumeric characters and underscores.  Note that
-    // in particular special characters are disallowed by this regex.
-    private static final Pattern _namePattern = Pattern.compile("^\\p{Alpha}(\\p{Alnum}|_)*");
-    
-    /* **************************************************************************** */
     /*                             Protected Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
