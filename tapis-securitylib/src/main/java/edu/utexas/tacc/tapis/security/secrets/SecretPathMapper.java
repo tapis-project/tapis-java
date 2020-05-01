@@ -310,17 +310,17 @@ public final class SecretPathMapper
     {
         // Check required inputs.
         if (StringUtils.isBlank(_parms.getDbHost())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDBCredentialPath", "dbhost");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbHost", "dbhost");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(_parms.getDbName())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDBCredentialPath", "dbname");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbName", "dbname");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(_parms.getDbService())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJWTSigningPath", "dbservice");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbService", "dbservice");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
