@@ -9,7 +9,7 @@
 ######################################################
 
 ### SK get permissions for user using taccMetaAdmin:master service token
-GET https://dev.develop.tapis.io/v3/security/user/perms/taccMetaAdmin?tenant=dev
+GET https://dev.develop.tapis.io/v3/security/user/perms/taccMetaAdmin?tenant=master
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
@@ -25,7 +25,7 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"streamsTACCAdmin","tenant":"dev","permSpec":"meta:dev:DELETE:StreamsTACCDB:*:*"}
+{"user":"streams","tenant":"dev","permSpec":"meta:dev:DELETE:StreamsTACCDB:*:*"}
 
 ###
 # true
