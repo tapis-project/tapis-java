@@ -305,7 +305,7 @@ public class SystemResource
    * @return response containing reference to updated object
    */
   @PATCH
-  @Path("{sysName}")
+  @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
@@ -334,7 +334,7 @@ public class SystemResource
                           content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
           }
   )
-  public Response updateSystem(@PathParam("sysName") String systemName,
+  public Response updateSystem(@PathParam("systemName") String systemName,
                                @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                InputStream payloadStream, @Context SecurityContext securityContext)
   {
@@ -451,7 +451,7 @@ public class SystemResource
    * @return response containing reference to updated object
    */
   @POST
-  @Path("{sysName}/changeOwner/{userName}")
+  @Path("{systemName}/changeOwner/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
@@ -470,7 +470,7 @@ public class SystemResource
                           content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
           }
   )
-  public Response changeSystemOwner(@PathParam("sysName") String systemName,
+  public Response changeSystemOwner(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                     @Context SecurityContext securityContext)
@@ -552,7 +552,7 @@ public class SystemResource
    * @return Response with system object as the result
    */
   @GET
-  @Path("{sysName}")
+  @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
@@ -576,7 +576,7 @@ public class SystemResource
             content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
       }
   )
-  public Response getSystemByName(@PathParam("sysName") String systemName,
+  public Response getSystemByName(@PathParam("systemName") String systemName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
                                   @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
@@ -697,7 +697,7 @@ public class SystemResource
    * @return - response with change count as the result
    */
   @DELETE
-  @Path("{sysName}")
+  @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
@@ -715,7 +715,7 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response deleteSystemByName(@PathParam("sysName") String systemName,
+  public Response deleteSystemByName(@PathParam("systemName") String systemName,
                                      @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                      @Context SecurityContext securityContext)
   {
