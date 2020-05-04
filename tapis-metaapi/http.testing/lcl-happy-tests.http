@@ -9,8 +9,8 @@
 ###  api:1
 GET http://localhost:8080/v3/meta/
 X-Tapis-Token: {{token}}
-X-Tapis-User: taccMetaAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: meta
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###   api:1
@@ -29,9 +29,9 @@ Content-Type: application/json
 ###  api:3
 GET http://localhost:8080/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
-X-JWT-Assertion-dev: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+# X-JWT-Assertion-dev: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###   api:3
@@ -42,10 +42,10 @@ Content-Type: application/json
 
 # get collection metadata
 ###
-GET http://localhost:8080/v3/meta/StreamsTACCDB/4-2-coll-tst/_meta
+GET http://localhost:8080/v3/meta/StreamsTACCDB/tstTmp/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: streams
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
@@ -62,11 +62,11 @@ Content-Type: application/json
 
 # delete a collection in a db
 ###
-DELETE http://localhost:8080/v3/meta/StreamsTACCDB/4-2-coll-tst
+DELETE http://localhost:8080/v3/meta/StreamsTACCDB/tstTmp
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
-If-Match: 5e8dd2019e0e923a1874e332
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+If-Match: 5ea9e432cbfaba615f5b393d
 Content-Type: application/json
 
 
