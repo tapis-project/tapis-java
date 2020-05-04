@@ -70,3 +70,4 @@ Icon
 /deployment/tapis-metaapi/meta/
 /tapis-metaapi/rest-client.private.env.json
 /tapis-metaapi/http.testing/rest-client.private.env.json
+/tapis-metaapi/http.testing/archive-env.json
