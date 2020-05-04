@@ -25,9 +25,10 @@ public class IntegrationTests {
   @BeforeClass
   public static void before(){
     System.out.println("Setting up ....");
-    RestAssured.baseURI = "http://localhost";
+    // RestAssured.baseURI = "http://localhost";
+    RestAssured.baseURI = "https://dev.develop.tapis.io";
     RestAssured.basePath = "/v3/meta/";
-    RestAssured.port = 8080;
+    // RestAssured.port = 80;
     token = System.getenv("token");
     user = "streams";
     tenant = "master";
@@ -38,25 +39,26 @@ public class IntegrationTests {
                                          .contentType("application/json");
   }
   
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void sanityTest(){
-   // meta:master token
-    IntegrationTests.requestSpecification
+   // streams master token
+    Response response = IntegrationTests.requestSpecification
               .get("StreamsTACCDB")
               .then()
-              .statusCode(200).toString();
+              .statusCode(200).extract().response();
+    response.getBody().print();
   }
   
   /**************************************************
    *    root endpoints
    **************************************************/
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void rootTest(){
-    // meta:master token
-    IntegrationTests.requestSpecification
+    Response response = IntegrationTests.requestSpecification
         .get("")
         .then()
-        .statusCode(200).toString();
+        .statusCode(200).extract().response();
+    response.getBody().print();
   }
   
   /**************************************************
@@ -102,7 +104,7 @@ public class IntegrationTests {
    *    collection endpoints
    **************************************************/
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void createCollection(){
     RestAssured.defaultParser = Parser.JSON;
     Response response = IntegrationTests.requestSpecification
@@ -110,7 +112,7 @@ public class IntegrationTests {
         .then()
         .statusCode(201).extract().response();
     // TODO etag from header
-    // this.etagDB = response.jsonPath().getString("_etag.$oid");
+    this.etagCollection = response.jsonPath().getString("_etag.$oid");
   }
   
   @Test(enabled = true)
@@ -143,7 +145,7 @@ public class IntegrationTests {
     System.out.println(response.toString());
   }
   
-  @Test(enabled = true)
+  @Test(enabled = false)
   public void createDocument(){
     RestAssured.defaultParser = Parser.JSON;
     String requestBody = "{ \"_id\":\"testdoc\",\"name\": \""+IntegrationTests.testrun+"\", \"jimmyList\":[\"1\",\"3\"],\"description\": \"new whatever\"}";
