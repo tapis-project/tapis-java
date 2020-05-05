@@ -729,7 +729,7 @@ public class SystemsServiceImpl implements SystemsService
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
   }
 
   /**
@@ -793,7 +793,7 @@ public class SystemsServiceImpl implements SystemsService
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
     return changeCount;
   }
 
@@ -912,7 +912,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
   }
 
   /**
@@ -970,7 +970,7 @@ public class SystemsServiceImpl implements SystemsService
     String updateJsonStr = TapisGsonUtils.getGson().toJson(userName);
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, null);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, null);
     return changeCount;
   }
 

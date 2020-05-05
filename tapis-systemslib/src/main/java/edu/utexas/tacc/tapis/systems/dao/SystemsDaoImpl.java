@@ -7,14 +7,21 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.impl.DSL;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.*;
+
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Capability.Category;
@@ -67,7 +74,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     if (system.getDefaultAccessMethod() == null) LibUtils.logAndThrowNullParmException(opName, "defaultAccessMethod");
 
     // Convert transferMethods into a string
-    String transferMethodsStr = LibUtils.getTransferMethodsAsString(system.getTransferMethods());
+//    String transferMethodsStr = LibUtils.getTransferMethodsAsString(system.getTransferMethods());
+//    TransferMethod[] txfrMethods = (TransferMethod[]) system.getTransferMethods().toArray();
+    // Convert transferMethods into array of strings
+    String[] transferMethodsStrArray = LibUtils.getTransferMethodsAsStringArray(system.getTransferMethods());
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     String proxyHost = TSystem.DEFAULT_PROXYHOST;
@@ -79,9 +89,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
       // Check to see if system exists or has been soft deleted. If yes then throw IllegalStateException
-      boolean doesExist = checkForTSystem(conn, system.getTenant(), system.getName(), true);
+      boolean doesExist = checkForTSystem(db, system.getTenant(), system.getName(), true);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
@@ -96,62 +107,49 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
-      var tagsJsonb = new PGobject();
-      tagsJsonb.setType("jsonb");
-      tagsJsonb.setValue(tagsStr);
-      var notesJsonb = new PGobject();
-      notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesObj.toString());
+//      var tagsJsonb = new PGobject();
+//      tagsJsonb.setType("jsonb");
+//      tagsJsonb.setValue(tagsStr);
+//      var notesJsonb =  new PGobject();
+//      notesJsonb.setType("jsonb");
+//      notesJsonb.setValue(notesObj.toString());
 
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CREATE_SYSTEM;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, system.getTenant());
-      pstmt.setString(2, system.getName());
-      pstmt.setString(3, system.getDescription());
-      pstmt.setString(4, system.getSystemType().name());
-      pstmt.setString(5, owner);
-      pstmt.setString(6, system.getHost());
-      pstmt.setBoolean(7, system.isEnabled());
-      pstmt.setString(8, effectiveUserId);
-      pstmt.setString(9, system.getDefaultAccessMethod().name());
-      pstmt.setString(10, system.getBucketName());
-      pstmt.setString(11, system.getRootDir());
-      pstmt.setString(12, transferMethodsStr);
-      pstmt.setInt(13, system.getPort());
-      pstmt.setBoolean(14, system.isUseProxy());
-      pstmt.setString(15, proxyHost);
-      pstmt.setInt(16, system.getProxyPort());
-      pstmt.setBoolean(17, system.getJobCanExec());
-      pstmt.setString(18, system.getJobLocalWorkingDir());
-      pstmt.setString(19, system.getJobLocalArchiveDir());
-      pstmt.setString(20, system.getJobRemoteArchiveSystem());
-      pstmt.setString(21, system.getJobRemoteArchiveDir());
-      pstmt.setObject(22, tagsJsonb);
-      pstmt.setObject(23, notesJsonb);
-      pstmt.execute();
-      // The generated sequence id should come back as result
-      ResultSet rs = pstmt.getResultSet();
-      if (rs == null || !rs.next())
-      {
-        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
-        _log.error(msg);
-        throw new TapisException(msg);
-      }
-      systemId = rs.getInt(1);
-      pstmt.close();
-      rs.close();
-      rs = null;
-      pstmt = null;
+      Record record = db.insertInto(SYSTEMS)
+              .set(SYSTEMS.TENANT, system.getTenant())
+              .set(SYSTEMS.NAME, system.getName())
+              .set(SYSTEMS.DESCRIPTION, system.getDescription())
+              .set(SYSTEMS.SYSTEM_TYPE, system.getSystemType())
+              .set(SYSTEMS.OWNER, owner)
+              .set(SYSTEMS.HOST, system.getHost())
+              .set(SYSTEMS.ENABLED, system.isEnabled())
+              .set(SYSTEMS.EFFECTIVE_USER_ID, effectiveUserId)
+              .set(SYSTEMS.DEFAULT_ACCESS_METHOD, system.getDefaultAccessMethod())
+              .set(SYSTEMS.BUCKET_NAME, system.getBucketName())
+              .set(SYSTEMS.ROOT_DIR, system.getRootDir())
+              .set(SYSTEMS.TRANSFER_METHODS, transferMethodsStrArray)
+              .set(SYSTEMS.PORT, system.getPort())
+              .set(SYSTEMS.USE_PROXY, system.isUseProxy())
+              .set(SYSTEMS.PROXY_HOST, proxyHost)
+              .set(SYSTEMS.PROXY_PORT, system.getProxyPort())
+              .set(SYSTEMS.JOB_CAN_EXEC, system.getJobCanExec())
+              .set(SYSTEMS.JOB_LOCAL_WORKING_DIR, system.getJobLocalWorkingDir())
+              .set(SYSTEMS.JOB_LOCAL_ARCHIVE_DIR, system.getJobLocalArchiveDir())
+              .set(SYSTEMS.JOB_REMOTE_ARCHIVE_SYSTEM, system.getJobRemoteArchiveSystem())
+              .set(SYSTEMS.JOB_REMOTE_ARCHIVE_DIR, system.getJobRemoteArchiveDir())
+              .set(SYSTEMS.TAGS_JSONB, TapisGsonUtils.getGson().fromJson(tagsStr, JsonElement.class))
+              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .returningResult(SYSTEMS.ID)
+              .fetchOne();
+      systemId = record.getValue(SYSTEMS.ID);
 
       // Persist job capabilities
       persistJobCapabilities(conn, system, systemId);
 
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.create.name(), createJsonStr, scrubbedText);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.create, createJsonStr, scrubbedText);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -195,7 +193,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     int systemId = patchedSystem.getId();
 
     // Convert transferMethods into a string
-    String transferMethodsStr = LibUtils.getTransferMethodsAsString(patchedSystem.getTransferMethods());
+//    String transferMethodsStr = LibUtils.getTransferMethodsAsString(patchedSystem.getTransferMethods());
+    // Convert transferMethods into array of strings
+    String[] transferMethodsStrArray = LibUtils.getTransferMethodsAsStringArray(patchedSystem.getTransferMethods());
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     String proxyHost = TSystem.DEFAULT_PROXYHOST;
@@ -207,9 +207,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
       // Check to see if system exists and has not been soft deleted. If no then throw IllegalStateException
-      boolean doesExist = checkForTSystem(conn, tenant, name, false);
+      boolean doesExist = checkForTSystem(db, tenant, name, false);
       if (!doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, name));
 
       // Make sure effectiveUserId, notes and tags are all set
@@ -222,40 +223,35 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Convert tags and notes to jsonb objects.
       // Tags is a list of strings and notes is a JsonObject
-      var tagsJsonb = new PGobject();
-      tagsJsonb.setType("jsonb");
-      tagsJsonb.setValue(tagsStr);
-      var notesJsonb = new PGobject();
-      notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesObj.toString());
+//      var tagsJsonb = new PGobject();
+//      tagsJsonb.setType("jsonb");
+//      tagsJsonb.setValue(tagsStr);
+//      var notesJsonb = new PGobject();
+//      notesJsonb.setType("jsonb");
+//      notesJsonb.setValue(notesObj.toString());
 
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.UPDATE_SYSTEM;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, patchedSystem.getDescription());
-      pstmt.setString(2, patchedSystem.getHost());
-      pstmt.setBoolean(3, patchedSystem.isEnabled());
-      pstmt.setString(4, effectiveUserId);
-      pstmt.setString(5, patchedSystem.getDefaultAccessMethod().name());
-      pstmt.setString(6, transferMethodsStr);
-      pstmt.setInt(7, patchedSystem.getPort());
-      pstmt.setBoolean(8, patchedSystem.isUseProxy());
-      pstmt.setString(9, proxyHost);
-      pstmt.setInt(10, patchedSystem.getProxyPort());
-      pstmt.setObject(11, tagsJsonb);
-      pstmt.setObject(12, notesJsonb);
-      pstmt.setInt(13, systemId);
-      pstmt.execute();
-      pstmt.close();
+      db.update(SYSTEMS)
+              .set(SYSTEMS.DESCRIPTION, patchedSystem.getDescription())
+              .set(SYSTEMS.HOST, patchedSystem.getHost())
+              .set(SYSTEMS.ENABLED, patchedSystem.isEnabled())
+              .set(SYSTEMS.EFFECTIVE_USER_ID, effectiveUserId)
+              .set(SYSTEMS.DEFAULT_ACCESS_METHOD, patchedSystem.getDefaultAccessMethod())
+              .set(SYSTEMS.TRANSFER_METHODS, transferMethodsStrArray)
+              .set(SYSTEMS.PORT, patchedSystem.getPort())
+              .set(SYSTEMS.USE_PROXY, patchedSystem.isUseProxy())
+              .set(SYSTEMS.PROXY_HOST, proxyHost)
+              .set(SYSTEMS.PROXY_PORT, patchedSystem.getProxyPort())
+              .set(SYSTEMS.TAGS_JSONB, TapisGsonUtils.getGson().fromJson(tagsStr, JsonElement.class))
+              .set(SYSTEMS.NOTES_JSONB, notesObj).execute();
 
       // If jobCapabilities updated then replace them
       if (patchSystem.getJobCapabilities() != null) {
-        removeJobCapabilities(conn, systemId);
+        db.deleteFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).execute();
         persistJobCapabilities(conn, patchedSystem, systemId);
       }
 
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.modify, updateJsonStr, scrubbedText);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
@@ -291,17 +287,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.UPDATE_SYSTEM_OWNER;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, newOwnerName);
-      pstmt.setInt(2, systemId);
-      pstmt.executeUpdate();
+      DSLContext db = DSL.using(conn);
+      db.update(SYSTEMS).set(SYSTEMS.OWNER, newOwnerName).where(SYSTEMS.ID.eq(systemId)).execute();
       // Persist update record
       String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.changeOwner, updateJsonStr , null);
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -333,6 +325,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
       // Prepare the statement, fill in placeholders and execute
       String sql = SqlStatements.SOFT_DELETE_SYSTEM_BY_ID;
@@ -341,7 +334,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       rows = pstmt.executeUpdate();
 
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.softDelete.name(), EMPTY_JSON, null);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.softDelete, EMPTY_JSON, null);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, pstmt, null);
@@ -361,7 +354,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * Hard delete a system record given the system name.
-   *
    */
   @Override
   public int hardDeleteTSystem(String tenant, String name) throws TapisException
@@ -376,27 +368,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     Connection conn = null;
     try
     {
-      // Get a database connection.
       conn = getConnection();
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.HARD_DELETE_SYSTEM_BY_NAME;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      rows = pstmt.executeUpdate();
-
-      // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      DSLContext db = DSL.using(conn);
+      db.deleteFrom(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant),SYSTEMS.NAME.eq(name)).execute();
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
-      // Rollback transaction and throw an exception
       LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
     }
     finally
     {
-      // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
     return rows;
@@ -419,8 +401,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
       // Run the sql
-      result = checkForTSystem(conn, tenant, name, includeDeleted);
+      result = checkForTSystem(db, tenant, name, includeDeleted);
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
     }
@@ -562,25 +545,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     // The result list is always non-null.
     var list = new ArrayList<String>();
 
-    // ------------------------- Call SQL ----------------------------
     Connection conn = null;
     try
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Get the select command.
-      String sql = SqlStatements.SELECT_ALL_SYSTEM_NAMES;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      ResultSet rs = pstmt.executeQuery();
+      // ------------------------- Call SQL ----------------------------
+      // Use jOOQ to build query string
+      DSLContext db = DSL.using(conn);
+      Result<?> result = db.select(SYSTEMS.NAME).from(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant)).fetch();
       // Iterate over result
-      while (rs.next()) list.add(rs.getString(1));
-
-      // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      for (Record r : result) { list.add(r.get(SYSTEMS.NAME)); }
     }
     catch (Exception e)
     {
@@ -592,7 +567,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
-
     return list;
   }
 
@@ -736,7 +710,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text) throws TapisException
+  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, SystemOperation op, String upd_json,
+                              String upd_text) throws TapisException
   {
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -744,7 +719,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-      addUpdate(conn, authenticatedUser, systemId, opName, upd_json, upd_text);
+      DSLContext db = DSL.using(conn);
+      addUpdate(db, authenticatedUser, systemId, op, upd_json, upd_text);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
@@ -769,49 +745,32 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * Given an sql connection and basic info add an update record
    *
    */
-  private void addUpdate(Connection conn, AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text)
-          throws SQLException
+  private void addUpdate(DSLContext db, AuthenticatedUser authenticatedUser, int systemId,
+                         SystemOperation op, String upd_json, String upd_text)
   {
     String updJsonStr = (StringUtils.isBlank(upd_json)) ? EMPTY_JSON : upd_json;
-    // Convert upd_json to jsonb object.
-    var pGobject = new PGobject();
-    pGobject.setType("jsonb");
-    pGobject.setValue(updJsonStr);
-
     // Persist update record
-    String sql = SqlStatements.ADD_UPDATE;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setInt(1, systemId);
-    pstmt.setString(2, authenticatedUser.getName());
-    pstmt.setString(3, opName);
-    pstmt.setObject(4, pGobject);
-    pstmt.setString(5, upd_text);
-    pstmt.execute();
-    pstmt.close();
+    db.insertInto(SYSTEM_UPDATES)
+            .set(SYSTEM_UPDATES.SYSTEM_ID, systemId)
+            .set(SYSTEM_UPDATES.USER_NAME, authenticatedUser.getName())
+            .set(SYSTEM_UPDATES.OPERATION, op)
+            .set(SYSTEM_UPDATES.UPD_JSONB, TapisGsonUtils.getGson().fromJson(updJsonStr, JsonElement.class))
+            .set(SYSTEM_UPDATES.UPD_TEXT, upd_text)
+            .execute();
   }
 
   /**
    * Given an sql connection check to see if specified system exists and has/has not been soft deleted
-   * @param conn - Sql connection
+   * @param db - jooq context
    * @param tenant - name of tenant
    * @param name - name of system
    * @param includeDeleted -if soft deleted systems should be included
    * @return - true if system exists, else false
-   * @throws SQLException -
    */
-  private static boolean checkForTSystem(Connection conn, String tenant, String name, boolean includeDeleted)
-          throws SQLException
+  private static boolean checkForTSystem(DSLContext db, String tenant, String name, boolean includeDeleted)
   {
-    boolean result = false;
-    // Prepare the statement, fill in placeholders and execute
-    String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
-    if (includeDeleted) sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME_ALL;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setString(1, tenant);
-    pstmt.setString(2, name);
-    ResultSet rs = pstmt.executeQuery();
-    if (rs != null && rs.next()) result = rs.getBoolean(1);
-    return result;
+    if (includeDeleted) return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant));
+    else return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant),SYSTEMS.DELETED.eq(false));
   }
 
   /**
@@ -820,33 +779,20 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static void persistJobCapabilities(Connection conn, TSystem tSystem, int systemId) throws SQLException
   {
     var jobCapabilities = tSystem.getJobCapabilities();
-    if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
-      String sql = SqlStatements.ADD_CAPABILITY;
-      for (Capability cap : jobCapabilities) {
-        String valStr = "";
-        if (cap.getValue() != null ) valStr = cap.getValue();
-        // Prepare the statement and execute it
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setInt(1, systemId);
-        pstmt.setString(2, cap.getCategory().name());
-        pstmt.setString(3, cap.getName());
-        pstmt.setString(4, valStr);
-        pstmt.execute();
-        pstmt.close();
-      }
-    }
-  }
+    if (jobCapabilities == null || jobCapabilities.isEmpty()) return;
 
-  /**
-   * Remove job capabilities given an sql connection and a system id
-   */
-  private static void removeJobCapabilities(Connection conn, int systemId) throws SQLException
-  {
-    String sql = SqlStatements.DELETE_CAPABILITES;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setInt(1, systemId);
-    pstmt.execute();
-    pstmt.close();
+    // Use jOOQ
+    DSLContext db = DSL.using(conn);
+
+    for (Capability cap : jobCapabilities) {
+      String valStr = "";
+      if (cap.getValue() != null ) valStr = cap.getValue();
+      db.insertInto(CAPABILITIES).set(CAPABILITIES.SYSTEM_ID, systemId)
+              .set(CAPABILITIES.CATEGORY, cap.getCategory())
+              .set(CAPABILITIES.NAME, cap.getName())
+              .set(CAPABILITIES.VALUE, valStr)
+              .execute();
+    }
   }
 
   /**

@@ -46,6 +46,7 @@ public final class TSystem
   public static final String[] DEFAULT_TAGS = new String[0];
   public static final List<TransferMethod> DEFAULT_TRANSFER_METHODS = Collections.emptyList();
   public static final String EMPTY_TRANSFER_METHODS_STR = "{}";
+  public static final String[] EMPTY_TRANSFER_METHODS_STR_ARRAY = {};
   public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
   public static final int DEFAULT_PORT = -1;
   public static final boolean DEFAULT_USEPROXY = false;

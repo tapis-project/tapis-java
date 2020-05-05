@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.utils;
 
+import com.sun.java.accessibility.util.Translator;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
@@ -13,9 +14,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.stream.Stream;
 
 /*
    Utility class containing general use static methods.
@@ -119,7 +122,6 @@ public class LibUtils
 
   /**
    * Return List of transfer methods as a comma delimited list of strings surrounded by curly braces.
-   * @return
    */
   public static String getTransferMethodsAsString(List<TransferMethod> txfrMethods)
   {
@@ -132,6 +134,15 @@ public class LibUtils
     sb.append(txfrMethods.get(txfrMethods.size()-1).name());
     sb.append("}");
     return sb.toString();
+  }
+
+  /**
+   * Return String[] array of transfer methods
+   */
+  public static String[] getTransferMethodsAsStringArray(List<TransferMethod> txfrMethods)
+  {
+    if (txfrMethods == null || txfrMethods.size() == 0) return TSystem.EMPTY_TRANSFER_METHODS_STR_ARRAY;
+    return txfrMethods.stream().map(TransferMethod::name).toArray(String[]::new);
   }
 
   /**

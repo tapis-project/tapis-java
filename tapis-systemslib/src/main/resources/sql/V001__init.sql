@@ -35,7 +35,7 @@ CREATE TYPE system_type_type AS ENUM ('LINUX', 'OBJECT_STORE');
 CREATE TYPE operation_type AS ENUM ('create', 'modify', 'softDelete', 'hardDelete', 'changeOwner',
                                     'grantPerms', 'revokePerms', 'setCred', 'removeCred');
 CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'ACCESS_KEY', 'CERT');
-CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
+-- CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
 CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
 
 -- ----------------------------------------------------------------------------------------
@@ -57,7 +57,8 @@ CREATE TABLE systems
   default_access_method  access_meth_type NOT NULL,
   bucket_name    VARCHAR(63),
   root_dir       VARCHAR(1024),
-  transfer_methods transfer_meth_type[] NOT NULL,
+  transfer_methods TEXT[],
+--  transfer_methods transfer_meth_type[] NOT NULL,
   port       INTEGER NOT NULL DEFAULT -1,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256) NOT NULL DEFAULT '',
@@ -67,8 +68,8 @@ CREATE TABLE systems
   job_local_archive_dir VARCHAR(1024),
   job_remote_archive_system VARCHAR(256),
   job_remote_archive_dir VARCHAR(1024),
-  tags       JSONB NOT NULL,
-  notes      JSONB NOT NULL,
+  tags_jsonb  JSONB NOT NULL,
+  notes_jsonb JSONB NOT NULL,
   deleted    BOOLEAN NOT NULL DEFAULT false,
   created    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
@@ -98,8 +99,8 @@ COMMENT ON COLUMN systems.job_local_working_dir IS 'Parent directory from which 
 COMMENT ON COLUMN systems.job_local_archive_dir IS 'Parent directory used for archiving job output files';
 COMMENT ON COLUMN systems.job_remote_archive_system IS 'Remote system on which job output files will be archived';
 COMMENT ON COLUMN systems.job_remote_archive_dir IS 'Parent directory used for archiving job output files on a remote system';
-COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
-COMMENT ON COLUMN systems.notes IS 'Notes for general information stored as JSON';
+COMMENT ON COLUMN systems.tags_jsonb IS 'Tags for user supplied key:value pairs';
+COMMENT ON COLUMN systems.notes_jsonb IS 'Notes for general information stored as JSON';
 COMMENT ON COLUMN systems.deleted IS 'Indicates if system has been soft deleted';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
@@ -112,7 +113,7 @@ CREATE TABLE system_updates
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
     user_name VARCHAR(60) NOT NULL,
     operation operation_type NOT NULL,
-    upd_json JSONB NOT NULL,
+    upd_jsonb JSONB NOT NULL,
     upd_text VARCHAR,
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
@@ -121,7 +122,7 @@ COMMENT ON COLUMN system_updates.id IS 'System update request id';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
 COMMENT ON COLUMN system_updates.user_name IS 'User who requested the update';
 COMMENT ON COLUMN system_updates.operation IS 'Type of update operation';
-COMMENT ON COLUMN system_updates.upd_json IS 'Json representing the update - with secrets scrubbed';
+COMMENT ON COLUMN system_updates.upd_jsonb IS 'JSON representing the update - with secrets scrubbed';
 COMMENT ON COLUMN system_updates.upd_text IS 'Text data supplied by client - secrets should be scrubbed';
 COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 
