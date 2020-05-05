@@ -1,6 +1,10 @@
 package edu.utexas.tacc.tapis.meta.api;
 
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -12,8 +16,7 @@ import javax.ws.rs.ApplicationPath;
 @ApplicationPath("/meta")
 public class MetaApplication extends ResourceConfig {
   
-  public MetaApplication()
-  {
+  public MetaApplication() throws TapisException {
     // Log our existence.
     System.out.println("**** Starting tapis-metaapi ****");
     
@@ -35,8 +38,18 @@ public class MetaApplication extends ResourceConfig {
       // The base url of the tenants service is a required input parameter.
       // We actually retrieve the tenant list from the tenant service now
       // to fail fast if we can't access the list.
-      String url = RuntimeParameters.getInstance().getTenantBaseUrl();
+      RuntimeParameters runTime = RuntimeParameters.getInstance();
+      String url = runTime.getTenantBaseUrl();
       TenantManager.getInstance(url).getTenants();
+      
+      // Do we also fail if we can't get a service token?
+      // todo set runtime set Tokens
+      ServiceJWTParms serviceJWTParms = new ServiceJWTParms();
+      serviceJWTParms.setServiceName("meta");
+      serviceJWTParms.setTenant("master");
+      serviceJWTParms.setTokensBaseUrl(runTime.getTenantBaseUrl());
+      ServiceJWT serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
+      runTime.setMetaToken(serviceJWT.getAccessJWT());
     } catch (Exception e) {
       // We don't depend on the logging subsystem.
       System.out.println("**** FAILURE TO INITIALIZE: tapis-metaapi ****");

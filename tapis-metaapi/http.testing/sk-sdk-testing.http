@@ -8,7 +8,7 @@
 #
 ######################################################
 
-### SK get permissions for user using taccMetaAdmin:master service token
+### SK get permissions for user using meta:master service token
 GET https://dev.develop.tapis.io/v3/security/user/perms/taccMetaAdmin?tenant=master
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
@@ -48,14 +48,14 @@ Content-Type: application/json
 ###
 
 
-### SK grant permission for a user streamsTACCAdmin all operations except delete
-POST https://dev.develop.tapis.io/v3/security/user/grantUserPermission?tenant=dev
+### SK grant permission for a user meta all operations except delete
+POST https://dev.develop.tapis.io/v3/security/user/grantUserPermission?tenant=master
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"pysdk","tenant":"dev","permSpec":"meta:dev:GET,POST,PUT,PATCH,DELETE:testdb:*:*"}
+{"user":"meta","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:*:*:*"}
 
 ###
 
@@ -66,7 +66,7 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"taccMetaAdmin","tenant":"master","permSpec":"meta:dev:GET:StreamsTACCDB::"}
+{"user":"meta","tenant":"master","permSpec":"meta:master:GET:StreamsTACCDB::"}
 
 ###
 

@@ -181,7 +181,10 @@ public class ResourceBucket {
     }
   
     StringBuffer pathUrl = new StringBuffer(_request.getRequestURI());
-    pathUrl.append("?"+_request.getQueryString());
+
+    if(!StringUtils.isEmpty(_request.getQueryString())){
+      pathUrl.append("?"+_request.getQueryString());
+    }
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());

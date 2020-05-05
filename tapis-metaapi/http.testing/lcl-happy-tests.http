@@ -76,8 +76,8 @@ Content-Type: application/json
 ###
 GET http://localhost:8080/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: meta
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###
