@@ -43,13 +43,7 @@ public class MetaApplication extends ResourceConfig {
       TenantManager.getInstance(url).getTenants();
       
       // Do we also fail if we can't get a service token?
-      // todo set runtime set Tokens
-      ServiceJWTParms serviceJWTParms = new ServiceJWTParms();
-      serviceJWTParms.setServiceName("meta");
-      serviceJWTParms.setTenant("master");
-      serviceJWTParms.setTokensBaseUrl(runTime.getTenantBaseUrl());
-      ServiceJWT serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
-      runTime.setMetaToken(serviceJWT.getAccessJWT());
+      runTime.setServiceJWT();
     } catch (Exception e) {
       // We don't depend on the logging subsystem.
       System.out.println("**** FAILURE TO INITIALIZE: tapis-metaapi ****");
