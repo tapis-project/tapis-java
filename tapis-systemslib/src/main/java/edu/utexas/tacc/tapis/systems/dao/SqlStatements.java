@@ -13,14 +13,14 @@ final class SqlStatements
     "INSERT INTO systems (tenant, name, description, system_type, owner, host, enabled, effective_user_id, " +
       "default_access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
       "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
-      "tags_jsonb, notes_jsonb) " +
+      "tags, notes_jsonb) " +
       "VALUES (?, ?, ?, ?::system_type_type, ?, ?, ?, ?, ?::access_meth_type, ?, ?, ?::transfer_meth_type[], ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "RETURNING id";
 
   static final String UPDATE_SYSTEM =
     "UPDATE systems SET description = ?, host = ?, enabled = ?, effective_user_id = ?, " +
       "default_access_method = ?::access_meth_type, transfer_methods = ?::transfer_meth_type[], " +
-      "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags_jsonb = ?, notes_jsonb = ? " +
+      "port = ?, use_proxy = ?, proxy_host = ?, proxy_port = ?, tags = ?, notes_jsonb = ? " +
       "WHERE id = ?";
 
   static final String UPDATE_SYSTEM_OWNER =
@@ -34,7 +34,7 @@ final class SqlStatements
     "SELECT id, tenant, name, description, system_type, owner, host, enabled, effective_user_id, " +
       "default_access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
       "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
-      "tags_jsonb, notes_jsonb, created, updated " +
+      "tags, notes_jsonb, deleted, created, updated " +
       "FROM systems " +
       "WHERE tenant = ? AND deleted = false ORDER BY name ASC";
 
@@ -47,7 +47,7 @@ final class SqlStatements
     "SELECT id, tenant, name, description, system_type, owner, host, enabled, effective_user_id, " +
       "default_access_method, bucket_name, root_dir, transfer_methods, port, use_proxy, proxy_host, proxy_port, " +
       "job_can_exec, job_local_working_dir, job_local_archive_dir, job_remote_archive_system, job_remote_archive_dir, " +
-      "tags_jsonb, notes_jsonb, created, updated " +
+      "tags, notes_jsonb, deleted, created, updated " +
       "FROM systems " +
       "WHERE tenant = ? AND name = ? AND deleted = false";
 

@@ -96,92 +96,93 @@ public class SystemsServiceTest
   private static final Capability capC2 = new Capability(Category.SOFTWARE, "OpenMP", "3.1");
   private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2));
 
+  // Constructor initializes all attributes except for JobCapabilitys and Credential
   TSystem sys1 = new TSystem(-1, tenantName, "Ssys1", "description 1", SystemType.LINUX, ownerUser, "host1", true,
-          "effUser1", prot1.getAccessMethod(), null,"bucket1", "/root1", prot1.getTransferMethods(),
+          "effUser1", prot1.getAccessMethod(), "bucket1", "/root1", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDir1", "jobLocalArchDir1", "jobRemoteArchSystem1","jobRemoteArchDir1",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys2 = new TSystem(-1, tenantName, "Ssys2", "description 2", SystemType.LINUX, ownerUser, "host2", true,
-          "effUser2", prot2.getAccessMethod(), null,"bucket2", "/root2", prot2.getTransferMethods(),
+          "effUser2", prot2.getAccessMethod(), "bucket2", "/root2", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDir2", "jobLocalArchDir2", "jobRemoteArchSystem2","jobRemoteArchDir2",
-          cap1List, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys3 = new TSystem(-1, tenantName, "Ssys3", "description 3", SystemType.OBJECT_STORE, ownerUser, "host3", true,
-          "effUser3", prot3.getAccessMethod(), null,"bucket3", "/root3", prot3.getTransferMethods(),
+          "effUser3", prot3.getAccessMethod(), "bucket3", "/root3", prot3.getTransferMethods(),
           prot3.getPort(), prot3.isUseProxy(), prot3.getProxyHost(), prot3.getProxyPort(),false,
           "jobLocalWorkDir3", "jobLocalArchDir3", "jobRemoteArchSystem3","jobRemoteArchDir3",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys4 = new TSystem(-1, tenantName, "Ssys4", "description 4", SystemType.LINUX, ownerUser, "host4", true,
-          "effUser4", prot4.getAccessMethod(), null,"bucket4", "/root4", prot4.getTransferMethods(),
+          "effUser4", prot4.getAccessMethod(), "bucket4", "/root4", prot4.getTransferMethods(),
           prot4.getPort(), prot4.isUseProxy(), prot4.getProxyHost(), prot4.getProxyPort(),false,
           "jobLocalWorkDir4", "jobLocalArchDir4", "jobRemoteArchSystem4","jobRemoteArchDir4",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys5 = new TSystem(-1, tenantName, "Ssys5", "description 5", SystemType.LINUX, ownerUser, "host5", true,
-          "effUser5", prot5.getAccessMethod(), null,"bucket5", "/root5", prot5.getTransferMethods(),
+          "effUser5", prot5.getAccessMethod(), "bucket5", "/root5", prot5.getTransferMethods(),
           prot5.getPort(), prot5.isUseProxy(), prot5.getProxyHost(), prot5.getProxyPort(),false,
           "jobLocalWorkDir5", "jobLocalArchDir5", "jobRemoteArchSystem5","jobRemoteArchDir5",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys6 = new TSystem(-1, tenantName, "Ssys6", "description 6", SystemType.LINUX, ownerUser, "host6", true,
-          "effUser6", prot6.getAccessMethod(), null,"bucket6", "/root6", prot6.getTransferMethods(),
+          "effUser6", prot6.getAccessMethod(), "bucket6", "/root6", prot6.getTransferMethods(),
           prot6.getPort(), prot6.isUseProxy(), prot6.getProxyHost(), prot6.getProxyPort(),false,
           "jobLocalWorkDir6", "jobLocalArchDir6", "jobRemoteArchSystem6","jobRemoteArchDir6",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys7 = new TSystem(-1, tenantName, "Ssys7", "description 7", SystemType.LINUX, ownerUser, "host7", true,
-          "effUser7", prot7.getAccessMethod(), null,"bucket7", "/root7", prot7.getTransferMethods(),
+          "effUser7", prot7.getAccessMethod(), "bucket7", "/root7", prot7.getTransferMethods(),
           prot7.getPort(), prot7.isUseProxy(), prot7.getProxyHost(), prot7.getProxyPort(),false,
           "jobLocalWorkDir7", "jobLocalArchDir7", "jobRemoteArchSystem7","jobRemoteArchDir7",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys8 = new TSystem(-1, tenantName, "Ssys8", "description 8", SystemType.LINUX, "${apiUserId}", "host8", false,
-          "${owner}", prot8.getAccessMethod(), null,"bucket8-${tenant}-${apiUserId}", "/root8/${tenant}",
+          "${owner}", prot8.getAccessMethod(), "bucket8-${tenant}-${apiUserId}", "/root8/${tenant}",
           prot8.getTransferMethods(), prot8.getPort(), prot8.isUseProxy(), prot8.getProxyHost(), prot8.getProxyPort(),false,
           "jobLocalWorkDir8/${owner}/${tenant}/${apiUserId}", "jobLocalArchDir8/${apiUserId}",
           "jobRemoteArchSystem8","jobRemoteArchDir8${owner}${tenant}${apiUserId}",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sys9 = new TSystem(-1, tenantName, "Ssys9", "description 9", SystemType.LINUX, ownerUser, "host9", true,
-          ownerUser, prot9.getAccessMethod(), null,"bucket9", "/root9", prot9.getTransferMethods(),
+          ownerUser, prot9.getAccessMethod(), "bucket9", "/root9", prot9.getTransferMethods(),
           prot9.getPort(), prot9.isUseProxy(), prot9.getProxyHost(), prot9.getProxyPort(),false,
           "jobLocalWorkDir9", "jobLocalArchDir9", "jobRemoteArchSystem9","jobRemoteArchDir9",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sysA = new TSystem(-1, tenantName, "SsysA", "description A", SystemType.LINUX, ownerUser, "hostA", true,
-          "effUserA", protA.getAccessMethod(), null,"bucketA", "/rootA", protA.getTransferMethods(),
+          "effUserA", protA.getAccessMethod(), "bucketA", "/rootA", protA.getTransferMethods(),
           protA.getPort(), protA.isUseProxy(), protA.getProxyHost(), protA.getProxyPort(),false,
           "jobLocalWorkDirA", "jobLocalArchDirA", "jobRemoteArchSystemA","jobRemoteArchDirA",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sysB = new TSystem(-1, tenantName, "SsysB", "description B", SystemType.LINUX, ownerUser, "hostB", true,
-          "effUserB", protB.getAccessMethod(), null,"bucketB", "/rootB", protB.getTransferMethods(),
+          "effUserB", protB.getAccessMethod(), "bucketB", "/rootB", protB.getTransferMethods(),
           protB.getPort(), protB.isUseProxy(), protB.getProxyHost(), protB.getProxyPort(),false,
           "jobLocalWorkDirB", "jobLocalArchDirB", "jobRemoteArchSystemB","jobRemoteArchDirB",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sysC = new TSystem(-1, tenantName, "SsysC", null, SystemType.LINUX, null, "hostC", true,
-          null, protC.getAccessMethod(), null,null, null, protC.getTransferMethods(),
+          null, protC.getAccessMethod(), null, null, protC.getTransferMethods(),
           protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
           null, null, null, null,
-          null, null, null, null, null);
+          null, null, false, null, null);
   TSystem sysD = new TSystem(-1, tenantName, "SsysD", null, SystemType.LINUX, ownerUser, "hostD", true,
-          "effUserD", protC.getAccessMethod(), null,null, null, protC.getTransferMethods(),
+          "effUserD", protC.getAccessMethod(), null, null, protC.getTransferMethods(),
           protC.getPort(), protC.isUseProxy(), protC.getProxyHost(), protC.getProxyPort(),false,
           null, null, null, null,
-          null, null, null, null, null);
+          null, null, false, null, null);
   TSystem sysE = new TSystem(-1, tenantName, "SsysE", "description E", SystemType.LINUX, ownerUser, "hostE", true,
-          "effUserE", prot1.getAccessMethod(), null,"bucketE", "/rootE", prot1.getTransferMethods(),
+          "effUserE", prot1.getAccessMethod(), "bucketE", "/rootE", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirE", "jobLocalArchDirE", "jobRemoteArchSystemE","jobRemoteArchDirE",
-          cap1List, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sysE2 = new TSystem(-1, tenantName, "SsysE", "description PATCHED", SystemType.LINUX, ownerUser, "hostPATCHED", false,
-          "effUserPATCHED", prot2.getAccessMethod(), null,"bucketE", "/rootE", prot2.getTransferMethods(),
+          "effUserPATCHED", prot2.getAccessMethod(), "bucketE", "/rootE", prot2.getTransferMethods(),
           prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(),false,
           "jobLocalWorkDirE", "jobLocalArchDirE", "jobRemoteArchSystemE","jobRemoteArchDirE",
-          cap2List, tags2, notes2, null, null);
+          tags2, notes2, false, null, null);
   TSystem sysF = new TSystem(-1, tenantName, "SsysF", "description F", SystemType.LINUX, ownerUser, "hostF", true,
-          "effUserF", prot1.getAccessMethod(), null,"bucketF", "/rootF", prot1.getTransferMethods(),
+          "effUserF", prot1.getAccessMethod(), "bucketF", "/rootF", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirF", "jobLocalArchDirF", "jobRemoteArchSystemF","jobRemoteArchDirF",
-          null, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
   TSystem sysG = new TSystem(-1, tenantName, "SsysG", "description G", SystemType.LINUX, ownerUser, "hostG", true,
-          "effUserG", prot1.getAccessMethod(), null,"bucketG", "/rootG", prot1.getTransferMethods(),
+          "effUserG", prot1.getAccessMethod(), "bucketG", "/rootG", prot1.getTransferMethods(),
           prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),false,
           "jobLocalWorkDirG", "jobLocalArchDirG", "jobRemoteArchSystemG","jobRemoteArchDirG",
-          cap1List, tags1, notes1, null, null);
+          tags1, notes1, false, null, null);
 
   @BeforeSuite
   public void setUp() throws Exception
@@ -220,6 +221,7 @@ public class SystemsServiceTest
     authenticatedTestUsr2 = new AuthenticatedUser(testUser2, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser2, tenantName, null, null);
     authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null);
 
+    sys2.setJobCapabilities(cap1List);
     // Cleanup anything leftover from previous failed run
     tearDown();
   }
@@ -248,6 +250,7 @@ public class SystemsServiceTest
   public void testGetSystemByName() throws Exception
   {
     TSystem sys0 = sys2;
+    sys0.setJobCapabilities(cap1List);
     Credential cred0 = new Credential("fakePassword", "fakePrivateKey", "fakePublicKey",
             "fakeAccessKey", "fakeAccessSecret", "fakeCert");
     sys0.setAccessCredential(cred0);
@@ -286,6 +289,7 @@ public class SystemsServiceTest
   public void testUpdateSystem() throws Exception
   {
     TSystem sys0 = sysE;
+    sys0.setJobCapabilities(cap1List);
     String createText = "{\"testUpdate\": \"0-create\"}";
     String patch1Text = "{\"testUpdate\": \"1-patch1\"}";
     PatchSystem patchSystem = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
@@ -299,6 +303,7 @@ public class SystemsServiceTest
     svc.updateSystem(authenticatedOwnerUsr, patchSystem, patch1Text);
     TSystem tmpSys = svc.getSystemByName(authenticatedOwnerUsr, sys0.getName(), false, null);
     // Check common system attributes:
+    sysE2.setJobCapabilities(cap2List);
     checkCommonSysAttrs(sysE2, tmpSys);
   }
 
@@ -307,6 +312,7 @@ public class SystemsServiceTest
   public void testChangeSystemOwner() throws Exception
   {
     TSystem sys0 = sysG;
+    sys0.setJobCapabilities(cap1List);
     String createText = "{\"testChangeOwner\": \"0-create\"}";
     String newOwnerName = testUser2;
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, createText);

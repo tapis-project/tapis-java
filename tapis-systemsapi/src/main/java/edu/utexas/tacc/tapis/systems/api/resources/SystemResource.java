@@ -763,12 +763,15 @@ public class SystemResource
    */
   private static TSystem createTSystemFromRequest(ReqCreateSystem req)
   {
-    return new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
-                       req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
+    TSystem system = new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
+                       req.enabled, req.effectiveUserId, req.defaultAccessMethod,
                        req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
                        req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
                        req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
-                       req.jobCapabilities, req.tags, req.notes, null, null);
+                       req.tags, req.notes, false, null, null);
+    system.setAccessCredential(req.accessCredential);
+    system.setJobCapabilities(req.jobCapabilities);
+    return system;
   }
 
   /**

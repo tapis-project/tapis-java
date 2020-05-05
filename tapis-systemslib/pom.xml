@@ -149,7 +149,10 @@
 <!--                      <converter>edu.utexas.tacc.tapis.systems.dao.TransferMethodArrayConverter</converter>-->
 <!--                    </customType>-->
 <!--                  </customTypes>-->
+
+                  <!-- ****************************************** -->
                   <!-- Register custom bindings -->
+                  <!-- ****************************************** -->
                   <!-- Bind Postgresql JSONB type to Gson JsonElement -->
                   <forcedTypes>
                     <forcedType>
@@ -159,7 +162,9 @@
                       <includeExpression>.*_jsonb</includeExpression>
                       <includeTypes>.*</includeTypes>
                     </forcedType>
+                    <!-- ****************************************** -->
                     <!-- Bind our enum types for convenience -->
+                    <!-- ****************************************** -->
                     <forcedType>
                       <userType>edu.utexas.tacc.tapis.systems.model.Capability.Category</userType>
                       <!-- Use built-in enum converter -->
@@ -186,6 +191,12 @@
                       <includeExpression>systems\.default_access_method</includeExpression>
                       <includeTypes>.*</includeTypes>
                     </forcedType>
+<!--                    <forcedType>-->
+<!--                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod</userType>-->
+<!--                       <enumConverter>true</enumConverter>-->
+<!--                        <includeExpression>systems\.transfer_methods</includeExpression>-->
+<!--                        <includeTypes>.*</includeTypes>-->
+<!--                      </forcedType>-->
 <!--                    <forcedType>-->
 <!--                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod[]</userType>-->
 <!--                      <converter>edu.utexas.tacc.tapis.systems.dao.TransferMethodArrayConverter</converter>-->

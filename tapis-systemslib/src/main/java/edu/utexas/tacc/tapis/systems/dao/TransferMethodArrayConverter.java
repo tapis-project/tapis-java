@@ -4,20 +4,20 @@ import org.jooq.Converter;
 import org.jooq.EnumType;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 
-public class TransferMethodArrayConverter implements Converter<EnumType[], TransferMethod[]>
+public class TransferMethodArrayConverter implements Converter<String[], TransferMethod[]>
 {
-  public TransferMethod[] from(EnumType[] ea)
+  public TransferMethod[] from(String[] sa)
   {
     TransferMethod[] ta = {};
     return ta;
   }
 
-  public EnumType[] to(TransferMethod[] ta)
+  public String[] to(TransferMethod[] ta)
   {
-    EnumType[] ea = {};
-    return ea;
+    String[] sa = {};
+    return sa;
   }
 
-  public Class<EnumType[]> fromType() { return EnumType[].class; }
+  public Class<String[]> fromType() { return String[].class; }
   public Class<TransferMethod[]> toType() { return TransferMethod[].class; }
 }

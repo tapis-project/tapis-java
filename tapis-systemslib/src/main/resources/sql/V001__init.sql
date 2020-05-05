@@ -68,7 +68,7 @@ CREATE TABLE systems
   job_local_archive_dir VARCHAR(1024),
   job_remote_archive_system VARCHAR(256),
   job_remote_archive_dir VARCHAR(1024),
-  tags_jsonb  JSONB NOT NULL,
+  tags        TEXT[] NOT NULL,
   notes_jsonb JSONB NOT NULL,
   deleted    BOOLEAN NOT NULL DEFAULT false,
   created    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
@@ -99,7 +99,7 @@ COMMENT ON COLUMN systems.job_local_working_dir IS 'Parent directory from which 
 COMMENT ON COLUMN systems.job_local_archive_dir IS 'Parent directory used for archiving job output files';
 COMMENT ON COLUMN systems.job_remote_archive_system IS 'Remote system on which job output files will be archived';
 COMMENT ON COLUMN systems.job_remote_archive_dir IS 'Parent directory used for archiving job output files on a remote system';
-COMMENT ON COLUMN systems.tags_jsonb IS 'Tags for user supplied key:value pairs';
+COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
 COMMENT ON COLUMN systems.notes_jsonb IS 'Notes for general information stored as JSON';
 COMMENT ON COLUMN systems.deleted IS 'Indicates if system has been soft deleted';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';

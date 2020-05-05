@@ -4,6 +4,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 
 /*
@@ -37,13 +38,29 @@ public final class Capability
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(Capability.class);
 
+  private int id;           // Unique database sequence number
+  private int systemid;
+
   private final Category category; // Type or category of capability
   private final String name;   // Name of the capability
   private final String value;  // Value or range of values
+  private Instant created; // UTC time for when record was created
+  private Instant updated; // UTC time for when record was last updated
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
+  public Capability(int id1, int systemid1, Category category1, String name1, String value1, Instant created1, Instant updated1)
+  {
+    id = id1;
+    systemid = systemid1;
+    created = created1;
+    updated = updated1;
+    category = category1;
+    name = name1;
+    value = value1;
+  }
+
   public Capability(Category category1, String name1, String value1)
   {
     category = category1;

@@ -15,9 +15,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -143,6 +145,15 @@ public class LibUtils
   {
     if (txfrMethods == null || txfrMethods.size() == 0) return TSystem.EMPTY_TRANSFER_METHODS_STR_ARRAY;
     return txfrMethods.stream().map(TransferMethod::name).toArray(String[]::new);
+  }
+
+  /**
+   * Return TransferMethod[] from String[]
+   */
+  public static List<TransferMethod> getTransferMethodsFromStringArray(String[] txfrMethods)
+  {
+    if (txfrMethods == null || txfrMethods.length == 0) return Collections.emptyList();
+    return Arrays.stream(txfrMethods).map(TransferMethod::valueOf).collect(Collectors.toList());
   }
 
   /**
