@@ -27,13 +27,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantAdminRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantUserRoleWithPermission;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeAdminRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserPermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeUserRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsAdmin;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
@@ -85,6 +88,12 @@ public final class UserResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserHasRoleMultiRequest.json";
     private static final String FILE_SK_USER_IS_PERMITTED_MULTI_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UserIsPermittedMultiRequest.json";
+    private static final String FILE_SK_GRANT_ADMIN_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/GrantAdminRoleRequest.json";
+    private static final String FILE_SK_REVOKE_ADMIN_ROLE_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RevokeAdminRoleRequest.json";
+    private static final String FILE_SK_USER_IS_ADMIN_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UserIsAdminRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -451,8 +460,7 @@ public final class UserResource
          
          // Assign the role to the user.
          int rows = 0;
-         try {rows = getUserImpl().grantRole(tenant, requestor, user, roleName);
-         }
+         try {rows = getUserImpl().grantRole(tenant, requestor, user, roleName);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role", roleName);
              }
@@ -562,6 +570,304 @@ public final class UserResource
              MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles revoked"), prettyPrint, r)).build();
      }
 
+     /* ---------------------------------------------------------------------------- */
+     /* grantAdminRole:                                                              */
+     /* ---------------------------------------------------------------------------- */
+     /** Grant the administrative role to a user in a tenant.  The jwt tenant must
+      * match the user's tenant exactly, normal allowable tenant processing does not
+      * apply here.
+      */
+     @POST
+     @Path("/grantAdminRole")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Grant a user the tenant administrator role.  A valid tenant and user "
+                     + "must be specified in the request body.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqGrantAdminRole.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Role assigned to user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response grantAdminRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "grantRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqGrantAdminRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_GRANT_ADMIN_ROLE_REQUEST, 
+                                   ReqGrantAdminRole.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "grantRole", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Make sure the target tenant and the jwt tenant are the same.
+         // Null means the check passed.  
+         Response resp = checkSameTenant(tenant, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // The requestor will always be non-null after the above check. 
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         
+         // Assign the role to the user.
+         int rows = 0;
+         try {rows = getUserImpl().grantAdminRole(tenant, requestor, user);}
+             catch (Exception e) {
+                 return getExceptionResponse(e, null, prettyPrint, "Role", UserImpl.ADMIN_ROLE_NAME);
+             }
+         
+         // Populate the response.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles assigned"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* revokeAdminRole:                                                             */
+     /* ---------------------------------------------------------------------------- */
+     /** Revoke the administrative role from a user in a tenant.  The jwt tenant must
+      * match the user's tenant exactly, normal allowable tenant processing does not
+      * apply here.
+      */
+     @POST
+     @Path("/revokeAdminRole")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Revoke the previously granted tenant administrator role from a user. "
+                     + "No action is taken if the user is not currently assigned the role. "
+                     + "This request is idempotent.\n\n"
+                     + ""
+                     + "A valid tenant and user must be specified in the request body.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRevokeAdminRole.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Role removed from user.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response revokeAdminRole(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                    InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "revokeUserRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRevokeAdminRole payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REVOKE_ADMIN_ROLE_REQUEST, 
+                                   ReqRevokeAdminRole.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "revokeUserRole", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         
+         // ------------------------- Check Tenant -----------------------------
+         // Make sure the target tenant and the jwt tenant are the same.
+         // Null means the check passed.  
+         Response resp = checkSameTenant(tenant, prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // The requestor will always be non-null after the above check. 
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         
+         // Remove the role from the user.
+         int rows = 0;
+         try {rows = getUserImpl().revokeAdminRole(tenant, requestor, user);}
+             catch (TapisNotFoundException e) {
+                 // Remove calls are idempotent so we simply log the
+                 // occurrence and let normal processing take place.
+                 _log.warn(e.getMessage());
+             }
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("SK_REMOVE_USER_ROLE_ERROR",  
+                                              tenant, UserImpl.ADMIN_ROLE_NAME, 
+                                              user, e.getMessage());
+                 return getExceptionResponse(e, msg, prettyPrint);
+             }
+         
+         // Populate the response.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "User", rows + " roles revoked"), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* isAdmin:                                                                     */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/isAdmin")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Check whether a user in a tenant has been assigned "
+                     + "the tenant administrator role, either directly or transitively.",
+             tags = "user",
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsAdmin.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Check completed.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespAuthorized.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response isAdmin(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                             InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "hasRole", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUserIsAdmin payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_USER_IS_ADMIN_REQUEST, 
+                                   ReqUserIsAdmin.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "hasRole", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Repackage into a multi-role request.
+         ReqUserHasRoleMulti multi = new ReqUserHasRoleMulti();
+         multi.tenant = payload.tenant;
+         multi.user   = payload.user;
+         multi.roleNames = new String[] {UserImpl.ADMIN_ROLE_NAME};
+         
+         // Call the real method.
+         return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY, multi);
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* getAdmins:                                                                   */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/admins/{tenant}")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get all users assigned the tenant administrator role ($!tenant_admin).",
+             tags = "user",
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Sorted list of administrator users.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response getAdmins(@PathParam("tenant") String tenant,
+                               @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "getAdmins", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // Call the real method.
+         return getUsersWithRole(UserImpl.ADMIN_ROLE_NAME, tenant, prettyPrint);
+     }
+     
      /* ---------------------------------------------------------------------------- */
      /* grantUserPermission:                                                         */
      /* ---------------------------------------------------------------------------- */

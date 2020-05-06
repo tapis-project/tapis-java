@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/RevokeAdminRoleRequest",
+    "description": "Top-level schema for a request to revoke the tenant admin role from a user.",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "tenant",
+        "user"
+    ]
+}
+
+
