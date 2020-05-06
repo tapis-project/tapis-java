@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.security.PermitAll;
@@ -1230,6 +1231,7 @@ public final class UserResource
          multi.tenant = payload.tenant;
          multi.user   = payload.user;
          multi.roleNames = new String[] {payload.roleName};
+         multi.orAdmin = payload.orAdmin;
          
          // Call the real method.
          return hasRoleMulti(payloadStream, prettyPrint, AuthOperation.ANY, multi);
@@ -1379,9 +1381,10 @@ public final class UserResource
              
          // Transfer to a new payload object.
          ReqUserIsPermittedMulti multi = new ReqUserIsPermittedMulti();
-         multi.tenant = payload.tenant;
-         multi.user   = payload.user;
+         multi.tenant    = payload.tenant;
+         multi.user      = payload.user;
          multi.permSpecs = new String[] {payload.permSpec};
+         multi.orAdmin   = payload.orAdmin;
          
          // Call the real method.
          return isPermittedMulti(payloadStream, prettyPrint, AuthOperation.ANY, multi);
@@ -1722,6 +1725,16 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      /* hasRoleMulti:                                                                */
      /* ---------------------------------------------------------------------------- */
+     /** Check whether the user is assigned at least one or all of the roles depending
+      * on the op parameter.  Certain optimizations can be taken when the ANY operation
+      * is used, so that's preferred choice when there's only one role to check. 
+      * 
+      * @param payloadStream the stream to fill in parameters if payload is null
+      * @param prettyPrint format output
+      * @param op ANY or ALL
+      * @param payload parameters already filled in
+      * @return
+      */
      private Response hasRoleMulti(InputStream payloadStream, boolean prettyPrint, 
                                    AuthOperation op, ReqUserHasRoleMulti payload)
      {
@@ -1744,6 +1757,7 @@ public final class UserResource
          String   tenant    = payload.tenant;
          String   user      = payload.user;
          String[] roleNames = payload.roleNames;
+         boolean  orAdmin   = payload.orAdmin;
          
          // ------------------------- Check Tenant -----------------------------
          // Null means the jwt tenant and user are validated.  By passing in a null
@@ -1752,6 +1766,12 @@ public final class UserResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // We can optimize the ANY case by adding the admin role to the role array.
+         if (orAdmin && (op == AuthOperation.ANY)) {
+             roleNames = Arrays.copyOf(roleNames, roleNames.length + 1);
+             roleNames[roleNames.length - 1] = UserImpl.ADMIN_ROLE_NAME;
+         }
+         
          // Get the names.
          boolean authorized;
          try {authorized = getUserImpl().hasRole(tenant, user, roleNames, op);}
@@ -1760,6 +1780,18 @@ public final class UserResource
                                               tenant, user, e.getMessage());
                  return getExceptionResponse(e, msg, prettyPrint);
              }
+         
+         // When authorization fails, check for admin role in the ALL operation case.
+         if (!authorized && orAdmin && (op != AuthOperation.ANY)) {
+             try {authorized = getUserImpl().hasRole(tenant, user, 
+                                                     new String[] {UserImpl.ADMIN_ROLE_NAME}, 
+                                                     AuthOperation.ANY);}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
+                                              tenant, user, e.getMessage());
+                 return getExceptionResponse(e, msg, prettyPrint);
+             }
+         }
          
          // Set the result payload.
          ResultAuthorized authResp = new ResultAuthorized();
@@ -1803,6 +1835,7 @@ public final class UserResource
          String   tenant    = payload.tenant;
          String   user      = payload.user;
          String[] permSpecs = payload.permSpecs;
+         boolean  orAdmin   = payload.orAdmin;
          
          // ------------------------- Check Tenant -----------------------------
          // Null means the jwt tenant and user are validated.  By passing in a null
@@ -1812,13 +1845,24 @@ public final class UserResource
          
          // ------------------------ Request Processing ------------------------
          boolean authorized;
-         try {authorized = getUserImpl().isPermitted(tenant, user, permSpecs, op);
-         }
+         try {authorized = getUserImpl().isPermitted(tenant, user, permSpecs, op);}
              catch (Exception e) {
                  String msg = MsgUtils.getMsg("SK_USER_GET_PERMISSIONS_ERROR", 
                                               tenant, user, e.getMessage());
                  return getExceptionResponse(e, msg, prettyPrint);
              }
+         
+         // When authorization fails check is user is an admin.
+         if (!authorized && orAdmin) {
+             try {authorized = getUserImpl().hasRole(tenant, user, 
+                                                     new String[] {UserImpl.ADMIN_ROLE_NAME}, 
+                                                     AuthOperation.ANY);}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
+                                              tenant, user, e.getMessage());
+                 return getExceptionResponse(e, msg, prettyPrint);
+             }
+         }
          
          // Set the result payload.
          ResultAuthorized authResp = new ResultAuthorized();
