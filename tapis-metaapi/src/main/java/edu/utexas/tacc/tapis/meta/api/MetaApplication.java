@@ -35,8 +35,12 @@ public class MetaApplication extends ResourceConfig {
       // The base url of the tenants service is a required input parameter.
       // We actually retrieve the tenant list from the tenant service now
       // to fail fast if we can't access the list.
-      String url = RuntimeParameters.getInstance().getTenantBaseUrl();
+      RuntimeParameters runTime = RuntimeParameters.getInstance();
+      String url = runTime.getTenantBaseUrl();
       TenantManager.getInstance(url).getTenants();
+      
+      // Do we also fail if we can't get a service token?
+      runTime.setServiceJWT();
     } catch (Exception e) {
       // We don't depend on the logging subsystem.
       System.out.println("**** FAILURE TO INITIALIZE: tapis-metaapi ****");
