@@ -80,7 +80,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       DSLContext db = DSL.using(conn);
 
       // Check to see if system exists or has been soft deleted. If yes then throw IllegalStateException
-      boolean doesExist = checkForTSystem(db, system.getTenant(), system.getName(), true);
+      boolean doesExist = checkForSystem(db, system.getTenant(), system.getName(), true);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
@@ -187,7 +187,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       DSLContext db = DSL.using(conn);
 
       // Check to see if system exists and has not been soft deleted. If no then throw IllegalStateException
-      boolean doesExist = checkForTSystem(db, tenant, name, false);
+      boolean doesExist = checkForSystem(db, tenant, name, false);
       if (!doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, name));
 
       // Make sure effectiveUserId, notes and tags are all set
@@ -294,7 +294,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Get a database connection.
       conn = getConnection();
       DSLContext db = DSL.using(conn);
-      db.update(SYSTEMS).set(SYSTEMS.DELETED, true).where(SYSTEMS.ID.eq(systemId)).execute();
+      // If system does not exist or has been soft deleted return 0
+      if (!db.fetchExists(SYSTEMS, SYSTEMS.ID.eq(systemId), SYSTEMS.DELETED.eq(false)))
+      {
+        return 0;
+      }
+      rows = db.update(SYSTEMS).set(SYSTEMS.DELETED, true).where(SYSTEMS.ID.eq(systemId)).execute();
       // Persist update record
       addUpdate(db, authenticatedUser, systemId, SystemOperation.softDelete, EMPTY_JSON, null);
 
@@ -365,7 +370,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
       DSLContext db = DSL.using(conn);
       // Run the sql
-      result = checkForTSystem(db, tenant, name, includeDeleted);
+      result = checkForSystem(db, tenant, name, includeDeleted);
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
     }
@@ -702,7 +707,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @param includeDeleted -if soft deleted systems should be included
    * @return - true if system exists, else false
    */
-  private static boolean checkForTSystem(DSLContext db, String tenant, String name, boolean includeDeleted)
+  private static boolean checkForSystem(DSLContext db, String tenant, String name, boolean includeDeleted)
   {
     if (includeDeleted) return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant));
     else return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant),SYSTEMS.DELETED.eq(false));
