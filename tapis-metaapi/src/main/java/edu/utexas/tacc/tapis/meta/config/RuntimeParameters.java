@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.meta.config;
 
-import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -8,6 +7,8 @@ import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class RuntimeParameters {
   private String skSvcURL      = "https://dev.develop.tapis.io/v3";
   private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
   private String metaToken;
+  private ServiceJWT serviceJWT;
   
   // The slf4j/logback target directory and file.
   private String  logDirectory;
@@ -58,6 +60,9 @@ public class RuntimeParameters {
   
   // these need to move to shared library
   public static final String SERVICE_NAME_META  = "meta";
+  public static final String SERVICE_USER_NAME  = "meta";
+  public static final String SERVICE_TENANT_NAME = "master";
+  
   
   private RuntimeParameters() throws TapisRuntimeException {
     TapisInput tapisInput = new TapisInput(RuntimeParameters.SERVICE_NAME_META);
@@ -250,5 +255,28 @@ public class RuntimeParameters {
   
   public void setCoreServer(String coreServer) {
     this.coreServer = coreServer;
+  }
+  
+  public void setServiceJWT(){
+    _log.debug("calling setServiceJWT ...");
+    ServiceJWTParms serviceJWTParms = new ServiceJWTParms();
+    serviceJWTParms.setAccessTTL(43200); // 12 hrs
+    serviceJWTParms.setRefreshTTL(43200);
+    serviceJWTParms.setServiceName(RuntimeParameters.SERVICE_USER_NAME);
+    serviceJWTParms.setTenant(RuntimeParameters.SERVICE_TENANT_NAME);
+    serviceJWTParms.setTokensBaseUrl(this.getTenantBaseUrl());
+    serviceJWT = null;
+    try {
+      serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
+    } catch (TapisException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public String getSeviceToken(){
+    if(serviceJWT == null || serviceJWT.hasExpiredAccessJWT()){
+      setServiceJWT();
+    }
+    return serviceJWT.getAccessJWT();
   }
 }

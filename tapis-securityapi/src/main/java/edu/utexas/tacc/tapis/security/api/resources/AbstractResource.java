@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -196,6 +195,48 @@ class AbstractResource
         return null;
     }
 
+    /* ---------------------------------------------------------------------------- */
+    /* checkSameTenant:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Check that the threadlocal cache has valid JWT information.  Use that 
+     * information to check that the tenant parameter is the same as the tenant
+     * specified in the jwt.
+     * 
+     * Return null if the check succeed, otherwise return the error response.
+     * 
+     * @param tenant the tenant explicitly passed as a request parameter
+     * @param prettyPrint whether to pretty print the response or not
+     * @return null on success, a response on error
+     */
+    protected Response checkSameTenant(String tenant, boolean prettyPrint)
+    {
+        // Get the thread local context and validate context parameters.  The
+        // tenantId and user are set in the jaxrc filter classes that process
+        // each request before processing methods are invoked.
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+        if (!threadContext.validate()) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+          _log.error(msg);
+          return Response.status(Status.BAD_REQUEST).
+              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+        }
+        
+        // Compare the tenant in the JWT to the tenant parameter.
+        String jwtTenant = threadContext.getJwtTenantId();
+        if (!jwtTenant.equals(tenant)) {
+            String jwtUser   = threadContext.getJwtUser();
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
+                                         jwtUser, jwtTenant, tenant);
+            _log.error(msg);
+            return Response.status(Status.BAD_REQUEST).
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+            
+        }
+        
+        // Success
+        return null;
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getExceptionResponse:                                                        */
     /* ---------------------------------------------------------------------------- */

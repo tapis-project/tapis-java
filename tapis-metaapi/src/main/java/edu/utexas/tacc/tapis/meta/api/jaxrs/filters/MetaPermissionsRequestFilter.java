@@ -53,7 +53,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     RuntimeParameters runTime = RuntimeParameters.getInstance();
     
     //   Use Meta master token for call to SK
-    SKClient skClient = new SKClient(runTime.getSkSvcURL(), runTime.getMetaToken());
+    SKClient skClient = new SKClient(runTime.getSkSvcURL(), runTime.getSeviceToken());
     
     //   map the request to permissions
     String permissionsSpec = mapRequestToPermissions(requestContext,threadContext.getJwtTenantId());
