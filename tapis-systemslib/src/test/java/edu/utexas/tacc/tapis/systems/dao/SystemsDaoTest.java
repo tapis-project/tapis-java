@@ -7,6 +7,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.Protocol;
 import edu.utexas.tacc.tapis.systems.model.Capability;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -282,6 +283,40 @@ public class SystemsDaoTest
     Assert.assertEquals(txfrMethodsList.size(), 0);
   }
 
+  // Test behavior when system is missing, especially for cases where service layer depends on the behavior.
+  //  update - throws not found exception
+  //  getByName - returns null
+  //  checkByName - returns false
+  //  getOwner - returns null
+  @Test
+  public void testMissingSystem() throws Exception {
+    String fakeSystemName = "AMissingSystemName";
+    PatchSystem patchSys = new PatchSystem("description PATCHED", "hostPATCHED", false, "effUserPATCHED",
+            prot2.getAccessMethod(), prot2.getTransferMethods(), prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(),
+            prot2.getProxyPort(), cap1List, tags, notes);
+    patchSys.setTenant(tenantName);
+    patchSys.setName(fakeSystemName);
+    TSystem patchedSystem = new TSystem(1, tenantName, fakeSystemName, "description", SystemType.LINUX, "owner", "host", true,
+            "effUser", prot0.getAccessMethod(), "bucket", "/root", prot0.getTransferMethods(),
+            prot0.getPort(), prot0.isUseProxy(), prot0.getProxyHost(), prot0.getProxyPort(), false,
+            "jobLocalWorkDir", "jobLocalArchDir", "jobRemoteArchSystem","jobRemoteArchDir",
+            tags, notes, false, null, null);
+    // Make sure system does not exist
+    Assert.assertFalse(dao.checkForTSystemByName(tenantName, fakeSystemName, true));
+    Assert.assertFalse(dao.checkForTSystemByName(tenantName, fakeSystemName, false));
+    // update should throw not found exception
+    boolean pass = false;
+    try { dao.updateTSystem(authenticatedUser, patchedSystem, patchSys, scrubbedJson, null); }
+    catch (IllegalStateException e)
+    {
+      Assert.assertTrue(e.getMessage().startsWith("SYSLIB_NOT_FOUND"));
+      pass = true;
+    }
+    Assert.assertTrue(pass);
+    Assert.assertNull(dao.getTSystemByName(tenantName, fakeSystemName));
+    Assert.assertNull(dao.getTSystemOwner(tenantName, fakeSystemName));
+  }
+
   @AfterSuite
   public void teardown() throws Exception {
     System.out.println("Executing AfterSuite teardown method");
@@ -295,6 +330,7 @@ public class SystemsDaoTest
     dao.hardDeleteTSystem(sys5.getTenant(), sys5.getName());
     dao.hardDeleteTSystem(sys6.getTenant(), sys6.getName());
     dao.hardDeleteTSystem(sys7.getTenant(), sys7.getName());
-    dao.hardDeleteTSystem(sys7.getTenant(), sys8.getName());
+    dao.hardDeleteTSystem(sys8.getTenant(), sys8.getName());
+    dao.hardDeleteTSystem(sys9.getTenant(), sys9.getName());
   }
 }

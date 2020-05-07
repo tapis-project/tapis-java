@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,14 +22,9 @@ import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
-import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
-import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /*
  * Class to handle persistence for Tapis System objects.
@@ -113,7 +106,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
               .set(SYSTEMS.BUCKET_NAME, system.getBucketName())
               .set(SYSTEMS.ROOT_DIR, system.getRootDir())
               .set(SYSTEMS.TRANSFER_METHODS, transferMethodsStrArray)
-//              .set(SYSTEMS.TRANSFER_METHODS, system.getTransferMethods())
               .set(SYSTEMS.PORT, system.getPort())
               .set(SYSTEMS.USE_PROXY, system.isUseProxy())
               .set(SYSTEMS.PROXY_HOST, proxyHost)
@@ -414,29 +406,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (r == null) return null;
       else result = r.into(TSystem.class);
 
-      // Prepare the statement, fill in placeholders and execute
-//      String sql = SqlStatements.SELECT_SYSTEM_BY_NAME;
-//      PreparedStatement pstmt = conn.prepareStatement(sql);
-//      pstmt.setString(1, tenant);
-//      pstmt.setString(2, name);
-//      ResultSet rsSys = pstmt.executeQuery();
-//      // Should get one row back. If not close out and return.
-//      if (rsSys == null || !rsSys.next())
-//      {
-//        LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
-//        return null;
-//      }
-//
-//      // Pull out the system id so we can use it to get capabilities
-//      int systemId = rsSys.getInt(1);
-
-      // Retrieve job capabilities
-      List<Capability> jobCaps = retrieveJobCaps(db, result.getId());
-
-      result.setJobCapabilities(jobCaps);
-
-      // Use results to populate system object
-//      result = populateTSystem(rsSys, jobCaps);
+      // Retrieve and set job capabilities
+      result.setJobCapabilities(retrieveJobCaps(db, result.getId()));
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
@@ -451,7 +422,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
-
     return result;
   }
 
@@ -475,28 +445,39 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
       DSLContext db = DSL.using(conn);
 
-      // Get the select command.
-      String sql = SqlStatements.SELECT_ALL_SYSTEMS;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      ResultSet rs = pstmt.executeQuery();
-      // Iterate over results
-      if (rs != null)
+      Result<SystemsRecord> results = db.selectFrom(SYSTEMS)
+              .where(SYSTEMS.TENANT.eq(tenant),SYSTEMS.DELETED.eq(false))
+              .fetch();
+      if (results == null || results.isEmpty()) return list;
+      for (SystemsRecord r : results)
       {
-        while (rs.next())
-        {
-          // Retrieve job capabilities
-          int systemId = rs.getInt(1);
-          List<Capability> jobCaps = retrieveJobCaps(db, systemId);
-          TSystem system = populateTSystem(rs, jobCaps);
-          if (system != null) list.add(system);
-        }
+        TSystem s = r.into(TSystem.class);
+        s.setJobCapabilities(retrieveJobCaps(db, s.getId()));
+        list.add(s);
       }
 
+//      // Get the select command.
+//      String sql = SqlStatements.SELECT_ALL_SYSTEMS;
+//
+//      // Prepare the statement, fill in placeholders and execute
+//      PreparedStatement pstmt = conn.prepareStatement(sql);
+//      pstmt.setString(1, tenant);
+//      ResultSet rs = pstmt.executeQuery();
+//      // Iterate over results
+//      if (rs != null)
+//      {
+//        while (rs.next())
+//        {
+//          // Retrieve job capabilities
+//          int systemId = rs.getInt(1);
+//          List<Capability> jobCaps = retrieveJobCaps(db, systemId);
+//          TSystem system = populateTSystem(rs, jobCaps);
+//          if (system != null) list.add(system);
+//        }
+//      }
+
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -746,65 +727,65 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     }
   }
 
-  /**
-   * populateTSystem
-   * Instantiate and populate an object using a result set. The cursor for the
-   *   ResultSet must be advanced to the desired result.
-   *
-   * @param rs the result set containing one or more items, cursor at desired item
-   * @return the new, fully populated job object or null if there is a problem
-   * @throws TapisJDBCException - on error
-   */
-  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
-  {
-    // Quick check.
-    if (rs == null) return null;
-
-    TSystem tSystem;
-    try
-    {
-      String[] tagsStrArray = (String[]) (rs.getArray(23)).getArray();
-      // Populate transfer methods
-      List<TransferMethod> txfrMethodsList = LibUtils.getTransferMethodsFromStringArray((String[]) (rs.getArray(13)).getArray());
-      // Create the TSystem
-      tSystem = new TSystem(rs.getInt(1), // id
-                            rs.getString(2), // tenant
-                            rs.getString(3), // name
-                            rs.getString(4), // description
-                            SystemType.valueOf(rs.getString(5)), // system type
-                            rs.getString(6), // owner
-                            rs.getString(7), // host
-                            rs.getBoolean(8), //enabled
-                            rs.getString(9), // effectiveUserId
-                            AccessMethod.valueOf(rs.getString(10)),
-                            rs.getString(11), // bucketName
-                            rs.getString(12), // rootDir
-                            txfrMethodsList,
-                            rs.getInt(14), // port
-                            rs.getBoolean(15), // useProxy
-                            rs.getString(16), //proxyHost
-                            rs.getInt(17), // proxyPort
-                            rs.getBoolean(18), // jobCanExec
-                            rs.getString(19), // jobLocalWorkingDir
-                            rs.getString(20), // jobLocalArchiveDir
-                            rs.getString(21), // jobRemoteArchiveSystem
-                            rs.getString(22), // jobRemoteArchiveSystemDir
-                            tagsStrArray, // tags
-                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
-                            rs.getBoolean(25), // deleted
-                            rs.getTimestamp(26).toInstant(), // created
-                            rs.getTimestamp(27).toInstant()); // updated
-    }
-    catch (Exception e)
-    {
-      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisJDBCException(msg, e);
-    }
-    tSystem.setJobCapabilities(jobCaps);
-    return tSystem;
-  }
-
+//  /**
+//   * populateTSystem
+//   * Instantiate and populate an object using a result set. The cursor for the
+//   *   ResultSet must be advanced to the desired result.
+//   *
+//   * @param rs the result set containing one or more items, cursor at desired item
+//   * @return the new, fully populated job object or null if there is a problem
+//   * @throws TapisJDBCException - on error
+//   */
+//  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
+//  {
+//    // Quick check.
+//    if (rs == null) return null;
+//
+//    TSystem tSystem;
+//    try
+//    {
+//      String[] tagsStrArray = (String[]) (rs.getArray(23)).getArray();
+//      // Populate transfer methods
+//      List<TransferMethod> txfrMethodsList = LibUtils.getTransferMethodsFromStringArray((String[]) (rs.getArray(13)).getArray());
+//      // Create the TSystem
+//      tSystem = new TSystem(rs.getInt(1), // id
+//                            rs.getString(2), // tenant
+//                            rs.getString(3), // name
+//                            rs.getString(4), // description
+//                            SystemType.valueOf(rs.getString(5)), // system type
+//                            rs.getString(6), // owner
+//                            rs.getString(7), // host
+//                            rs.getBoolean(8), //enabled
+//                            rs.getString(9), // effectiveUserId
+//                            AccessMethod.valueOf(rs.getString(10)),
+//                            rs.getString(11), // bucketName
+//                            rs.getString(12), // rootDir
+//                            txfrMethodsList,
+//                            rs.getInt(14), // port
+//                            rs.getBoolean(15), // useProxy
+//                            rs.getString(16), //proxyHost
+//                            rs.getInt(17), // proxyPort
+//                            rs.getBoolean(18), // jobCanExec
+//                            rs.getString(19), // jobLocalWorkingDir
+//                            rs.getString(20), // jobLocalArchiveDir
+//                            rs.getString(21), // jobRemoteArchiveSystem
+//                            rs.getString(22), // jobRemoteArchiveSystemDir
+//                            tagsStrArray, // tags
+//                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
+//                            rs.getBoolean(25), // deleted
+//                            rs.getTimestamp(26).toInstant(), // created
+//                            rs.getTimestamp(27).toInstant()); // updated
+//    }
+//    catch (Exception e)
+//    {
+//      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
+//      _log.error(msg, e);
+//      throw new TapisJDBCException(msg, e);
+//    }
+//    tSystem.setJobCapabilities(jobCaps);
+//    return tSystem;
+//  }
+//
   private static List<Capability> retrieveJobCaps(DSLContext db, int systemId)
   {
     List<Capability> capRecords = db.selectFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).fetchInto(Capability.class);
