@@ -148,6 +148,7 @@ public final class SecurityResource
   @GET
   @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
   @Operation(
           description = "Logged connectivity test.",
           tags = "general",
