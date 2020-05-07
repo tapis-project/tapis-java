@@ -14,6 +14,9 @@
           "roleNames": {
             "type": "array",
             "items": {"type": "string"}
+          },
+          "orAdmin": {
+            "type": "boolean"
           }
         },
     "required": [

@@ -4,13 +4,11 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class ReqUserIsPermitted
+public class ReqGrantAdminRole
  implements IReqBody
 {
-    public String  tenant;
-    public String  user;
-    public String  permSpec;
-    public boolean orAdmin;
+    public String tenant;
+    public String user;
 
     /** Return a user-appropriate error message on failed validation
      *  and return null if validation succeeds.
@@ -20,11 +18,9 @@ public final class ReqUserIsPermitted
     {
         // Final checks.
         if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "tenant");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantUserRole", "tenant");
         if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "user");
-        if (StringUtils.isBlank(permSpec)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "isPermitted", "permSpec");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "grantUserRole", "user");
         
         // Success.
         return null;
