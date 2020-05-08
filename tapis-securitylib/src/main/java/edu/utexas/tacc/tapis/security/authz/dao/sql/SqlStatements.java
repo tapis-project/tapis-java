@@ -202,6 +202,16 @@ public class SqlStatements
       "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
       "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";
+  
+  // Strict versions of above commands that are not idempotent.
+  public static final String USER_ADD_ROLE_BY_ID_STRICT =
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
+      "VALUES (?, ?, ?, ?, ?)";
+
+  // Strict versions of above commands that are not idempotent.
+  public static final String USER_ADD_ROLE_BY_ID_NOT_STRICT =
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
+      "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
 
   // If the role's tenant does not match the passed in tenant, the insert will fail.
   public static final String USER_DELETE_ROLE_BY_ID =
@@ -232,9 +242,4 @@ public class SqlStatements
           "AND r.id = u.role_id AND r.id = pm.role_id " +
           "AND r.tenant = ? AND pm.permission :op ? " +
           "ORDER BY u.user_name";
-  
-  // Strict versions of above commands that are not idempotent.
-  public static final String USER_ADD_ROLE_BY_ID_STRICT =
-      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
-      "VALUES (?, ?, ?, ?, ?)";
 }

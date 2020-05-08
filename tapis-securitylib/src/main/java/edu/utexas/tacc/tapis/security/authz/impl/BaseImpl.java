@@ -29,8 +29,12 @@ abstract class BaseImpl
     // " < > # % { } | \ ^ ~ [ ] ` and space.
     public static final char RESERVED_NAME_CHAR = '$';
     
-    // SK generated role names start with a reserved 2 character sequence.
+    // SK generated user default role names.
     public static final String USER_DEFAULT_ROLE_PREFIX = RESERVED_NAME_CHAR + "$";
+
+    // SK generated administrative role name prefix.
+    public static final String INTERNAL_ROLE_PREFIX = RESERVED_NAME_CHAR + "!";
+    public static final String ADMIN_ROLE_NAME = INTERNAL_ROLE_PREFIX + "tenant_admin";
 
     // Role name max characters allowed in database.
     public static final int MAX_USER_NAME_LEN = 58;
