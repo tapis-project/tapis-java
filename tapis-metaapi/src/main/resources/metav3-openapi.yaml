@@ -32,6 +32,8 @@ tags:
     description: The documents hosted in a collection.
   - name: index
     description: The indexes for a collection
+  - name: aggregations
+    description: The aggregations available in the database.
 
 paths:
   /meta/:
@@ -138,6 +140,11 @@ paths:
       description: Delete a database.
       operationId: deleteDB
       parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
         - name: db
           in: path
           required: true
@@ -369,9 +376,9 @@ paths:
       description: Delete a collection in the database.
       operationId: deleteCollection
       parameters:
-        - in: header
-          required: false
-          name: If-Match
+        - name: If-Match
+          in: header
+          required: true
           schema:
             type: string
         - name: db
