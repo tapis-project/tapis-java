@@ -64,10 +64,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // Is this a request with a Service token?
     if(threadContext.getAccountType() == TapisThreadContext.AccountType.service){
       isPermitted = serviceJWT(threadContext, skClient, permissionsSpec);
-    }
-    
-    // Is this a request with a User token?
-    if(threadContext.getAccountType() == TapisThreadContext.AccountType.user){
+    }else if(threadContext.getAccountType() == TapisThreadContext.AccountType.user){      // Is this a request with a User token?
       isPermitted = userJWT(threadContext, skClient, permissionsSpec);
     }
     
@@ -79,7 +76,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
           .append(permissionsSpec)
           .append(" is NOT permitted.");
       
-      _log.debug(msg.toString());
+      _log.info(msg.toString());
       requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity(msg.toString()).build());
       return;
     }

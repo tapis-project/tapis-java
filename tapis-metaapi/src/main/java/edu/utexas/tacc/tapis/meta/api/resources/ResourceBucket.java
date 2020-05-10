@@ -290,7 +290,7 @@ public class ResourceBucket {
     String etag = coreResponse.getEtag();
     String location = coreResponse.getLocationFromHeaders();
     
-  
+    // if the basic flag is thrown let's get the location header result
     if(basic){
       result = coreResponse.getBasicResponse(location);
     }else {
