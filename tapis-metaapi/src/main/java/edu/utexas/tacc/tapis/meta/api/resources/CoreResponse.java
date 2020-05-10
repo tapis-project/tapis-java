@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.meta.api.resources;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
@@ -13,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.EntityTag;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +35,7 @@ public class CoreResponse {
   private String etag;
   private String location;
   private boolean basicResponse;
+  private String documentId;
   
   /**
    * map the response from the core server request to our jaxrs response framework.
@@ -100,12 +104,38 @@ public class CoreResponse {
   }
   
   public String getLocationFromHeaders(){
-    String locationValue = null;
+    String coreLocation = null;
+    // Our location header from the response will have the id of the resouce (document) at the
+    // trailing end of the url location.
+    // We should rewrite the location for the final response to our tenantbase
+    // and capture the id to be used for basic tapis response
     if(headers.containsKey("Location")){
       List<String> locationList = headers.get("Location");
-      locationValue = locationList.get(0);
+      coreLocation = locationList.get(0);
     }
-    return locationValue;
+    // rewrite location
+    try {
+      URL coreLocationUrl = new URL(coreLocation);
+      String corePath = coreLocationUrl.getPath();
+      StringBuilder newUrlString = new StringBuilder();
+  
+      newUrlString.append(removeLastSlash(RuntimeParameters.getInstance().getTenantBaseUrl()))
+                  .append(corePath);
+      documentId = getOidFromLocation(corePath);
+      location = newUrlString.toString();
+      
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    }
+  
+    return location;
+  }
+  
+  private String removeLastSlash(String url) {
+    if(url.endsWith("/")) {
+      return url.substring(0, url.lastIndexOf("/"));
+    }
+    return url;
   }
   
   /*************************************************
@@ -136,17 +166,16 @@ public class CoreResponse {
     resp.status = String.valueOf(this.getStatusCode());
     resp.message = this.coreMsg;
     resp.version = TapisUtils.getTapisVersion();
-    String oid = getOidFromLocation(location);
     StringBuilder sb = new StringBuilder();
-    sb.append("{\"_id\":").append(oid).append("}");
+    sb.append("{\"_id\":").append(documentId).append("}");
     JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
     resp.result = jsonObject;
     return TapisGsonUtils.getGson().toJson(resp);
   }
   
   private String getOidFromLocation(String location){
-    // need to parse location which looks like this
-    // http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB/sltCollectionTst/5ea5bf3ca93eebf39fcc563b
+    // need to parse path with ending id which looks like this
+    // /StreamsTACCDB/sltCollectionTst/5ea5bf3ca93eebf39fcc563b
     StringTokenizer st = new StringTokenizer(location,"/");
     
     // make the assumption this a a URL to a resource location with the ending value
@@ -209,4 +238,7 @@ public class CoreResponse {
   
   public void setLocation(String location) { this.location = location; }
   
+  public String getDocumentId() { return documentId; }
+  
+  public void setDocumentId(String documentId) { this.documentId = documentId; }
 }
