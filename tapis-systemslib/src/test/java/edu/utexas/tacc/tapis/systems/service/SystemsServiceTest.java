@@ -391,17 +391,17 @@ public class SystemsServiceTest
     Assert.assertTrue(systemNames.contains(sys4.getName()), "List of systems did not contain system name: " + sys4.getName());
   }
 
-//  @Test
-//  public void testGetSystems() throws Exception
-//  {
-//    TSystem sys0 = sys5;
-//    int itemId = svc.createSystem(authenticatedUser, sys0, scrubbedText);
-//    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-//    List<TSystem> systems = svc.getSystems(authenticatedUser);
-//    for (TSystem system : systems) {
-//      System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
-//    }
-//  }
+  @Test
+  public void testGetSystems() throws Exception
+  {
+    TSystem sys0 = sys5;
+    int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    List<TSystem> systems = svc.getSystems(authenticatedOwnerUsr);
+    for (TSystem system : systems) {
+      System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
+    }
+  }
 
   @Test
   public void testSoftDelete() throws Exception
