@@ -47,6 +47,39 @@ Content-Type: application/json
 
 ###
 
+#  ERROR Path
+###   no perms and db does not exist
+GET https://dev.develop.tapis.io/v3/meta/sltst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  results  403 request for this uri path meta:dev:GET:sltst:: is NOT permitted.
+
+
+#  ERROR Path
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  results  200
+
+#  ERROR Path
+#  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/   DB already exists
+###
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###   results 405   "Method Not Allowed"
+
 #  TODO
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 #  requires the If-Match: 5d95ed1dab3cf85b199ed3b6 Header value
