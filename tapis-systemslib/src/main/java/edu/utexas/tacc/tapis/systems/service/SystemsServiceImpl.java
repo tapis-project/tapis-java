@@ -580,27 +580,37 @@ public class SystemsServiceImpl implements SystemsService
     return result;
   }
 
-//  /**
-//   * Get all systems
-//   * @param authenticatedUser - principal user containing tenant and user info
-//   * @return List of TSystem objects
-//   * @throws TapisException - for Tapis related exceptions
-//   * @throws NotAuthorizedException - unauthorized
-//   */
-//  @Override
-//  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser) throws TapisException, NotAuthorizedException
-//  {
-//    SystemOperation op = SystemOperation.read;
-//    // ------------------------- Check service level authorization -------------------------
-//    checkAuth(authenticatedUser, op, null, null, null, null);
-//
-//    List<TSystem> result = dao.getTSystems(authenticatedUser.getTenantId());
-//    for (TSystem sys : result)
-//    {
-//      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), authenticatedUser.getName()));
-//    }
-//    return result;
-//  }
+  /**
+   * Get all systems
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @return List of TSystem objects
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser) throws TapisException
+  {
+    SystemOperation op = SystemOperation.read;
+    if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+
+    // Get all system names
+    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId());
+    var allowedSystems = new ArrayList<TSystem>();
+    // Filter based on user authorization
+    for (TSystem system : systems)
+    {
+      try {
+        checkAuth(authenticatedUser, op, system.getName(), null, null, null);
+        allowedSystems.add(system);
+      }
+      catch (NotAuthorizedException e) { }
+    }
+    for (TSystem system : allowedSystems)
+    {
+      system.setEffectiveUserId(resolveEffectiveUserId(system.getEffectiveUserId(), system.getOwner(),
+                                authenticatedUser.getName()));
+    }
+    return allowedSystems;
+  }
 
   /**
    * Get list of system names

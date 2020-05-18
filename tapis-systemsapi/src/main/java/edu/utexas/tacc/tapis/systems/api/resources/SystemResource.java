@@ -30,6 +30,7 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -632,20 +633,20 @@ public class SystemResource
   }
 
   /**
-   * getSystemNames
+   * getSystems
    * @param prettyPrint - pretty print the output
-   * @return - list of system names
+   * @return - list of systems
    */
   @GET
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-    summary = "Retrieve list of system names",
-    description = "Retrieve list of system names.",
+    summary = "Retrieve list of systems",
+    description = "Retrieve list of systems.",
     tags = "systems",
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
-                   content = @Content(schema = @Schema(implementation = RespNameArray.class))),
+                   content = @Content(schema = @Schema(implementation = RespSystemArray.class))),
       @ApiResponse(responseCode = "400", description = "Input error.",
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
       @ApiResponse(responseCode = "401", description = "Not authorized.",
@@ -654,8 +655,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystemNames(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 @Context SecurityContext securityContext)
+  public Response getSystems(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                             @Context SecurityContext securityContext)
   {
     String opName = "getSystems";
     // Trace this request.
@@ -671,8 +672,8 @@ public class SystemResource
     AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // ------------------------- Retrieve all records -----------------------------
-    List<String> systemNames;
-    try { systemNames = systemsService.getSystemNames(authenticatedUser); }
+    List<TSystem> systems;
+    try { systems = systemsService.getSystems(authenticatedUser); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
@@ -681,11 +682,9 @@ public class SystemResource
     }
 
     // ---------------------------- Success -------------------------------
-    if (systemNames == null) systemNames = Collections.emptyList();
-    int cnt = systemNames.size();
-    ResultNameArray names = new ResultNameArray();
-    names.names = systemNames.toArray(new String[0]);
-    RespNameArray resp1 = new RespNameArray(names);
+    if (systems == null) systems = Collections.emptyList();
+    int cnt = systems.size();
+    RespSystemArray resp1 = new RespSystemArray(systems);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
         MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp1)).build();
   }
