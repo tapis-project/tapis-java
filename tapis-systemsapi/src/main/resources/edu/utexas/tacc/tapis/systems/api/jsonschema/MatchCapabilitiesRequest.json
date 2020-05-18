@@ -32,12 +32,12 @@
     "AND": {
       "type": "object",
       "required": ["AND"],
-      "properties": { "AND": { "$ref": "#/definitions/ConditionPair" } }
+      "properties": { "AND": { "$ref": "#/definitions/ConditionList" } }
     },
     "OR": {
       "type": "object",
       "required": ["OR"],
-      "properties": { "OR": { "$ref": "#/definitions/ConditionPair" } }
+      "properties": { "OR": { "$ref": "#/definitions/ConditionList" } }
     },
     "EQ": {
       "type": "object",
@@ -50,6 +50,6 @@
       "properties": { "NEQ": { "$ref": "#/definitions/StringPair" } }
     },
     "StringPair": { "type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"} },
-    "ConditionPair": { "type": "array", "minItems": 2, "items": {"$ref":"#/definitions/MatchCondition" } }
+    "ConditionList": { "type": "array", "minItems": 2, "items": {"$ref":"#/definitions/MatchCondition" } }
   }
 }
