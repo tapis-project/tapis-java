@@ -43,7 +43,6 @@ public class TapisJDBCMigrate
     
   // The userid that services use.
   private static final String TAPIS_USER = "tapis"; 
-  private static final String DFT_TAPIS_USER_PASSWORD = "password"; // change on 1st use
   
   // The schema search path for the tapis user and database.
   private static final String SEARCH_PATH = "public";
@@ -427,7 +426,7 @@ public class TapisJDBCMigrate
   {
       // Create the tapis user.
       String sql = "CREATE USER " + TAPIS_USER + " PASSWORD '" + 
-                   DFT_TAPIS_USER_PASSWORD + "'";
+                   _parms.tapisPassword + "'";
       Statement stmt = conn.createStatement();
       stmt.execute(sql);
       stmt.close();
