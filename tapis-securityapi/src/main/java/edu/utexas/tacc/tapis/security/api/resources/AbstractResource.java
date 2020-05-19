@@ -117,6 +117,32 @@ class AbstractResource
     /* ---------------------------------------------------------------------------- */
     /* checkTenant:                                                                 */
     /* ---------------------------------------------------------------------------- */
+    /** Check that the thread context has the required fields filled in.  This is
+     * an abbreviated version of the checkTenant() methods that can avoid duplicating  
+     * ckecks that will be performed during SKCheckAuthz authorization.
+     * 
+     * @param prettyPrint whether to pretty print the response or not
+     * @return null on success, a response on error
+     */
+    protected Response validateThreadContext(boolean prettyPrint)
+    {
+        // Get the thread local context and validate context parameters.  The
+        // tenantId and user are set in the jaxrc filter classes that process
+        // each request before processing methods are invoked.
+        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+        if (!threadContext.validate()) {
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+          _log.error(msg);
+          return Response.status(Status.BAD_REQUEST).
+              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+        }
+        
+        return null;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* checkTenant:                                                                 */
+    /* ---------------------------------------------------------------------------- */
     /** Check that the threadlocal cache has valid JWT information.  Use that 
      * information to check that the tenant and user specified as request parameters
      * are authorized for the requester.

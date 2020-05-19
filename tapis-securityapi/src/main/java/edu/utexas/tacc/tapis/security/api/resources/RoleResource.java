@@ -39,6 +39,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
 import edu.utexas.tacc.tapis.security.api.responses.RespPathPrefixes;
 import edu.utexas.tacc.tapis.security.api.responses.RespRole;
+import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
 import edu.utexas.tacc.tapis.security.authz.permissions.PermissionTransformer.Transformation;
@@ -354,10 +355,23 @@ public final class RoleResource
          String roleName = payload.roleName;
          String description = payload.description;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Null means the jwt tenant is validated.
+         Response resp = checkTenantUser(tenant, null, prettyPrint);
          if (resp != null) return resp;
+         
+         // Authorization passed if a null error message is returned.
+         String authMsg = SKCheckAuthz.configure(tenant, user)
+                             .setCheckMatchesJwtIdentity()
+                             .setCheckIsAdmin()
+                             .setCheckServiceOBO()
+                             .check();
+         if (authMsg != null)
+         {
+             _log.error(authMsg);
+             return Response.status(Status.UNAUTHORIZED).
+               entity(TapisRestUtils.createErrorResponse(authMsg, prettyPrint)).build();
+         }
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
@@ -980,10 +994,25 @@ public final class RoleResource
          String parentRoleName = payload.parentRoleName;
          String childRoleName = payload.childRoleName;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Null means the jwt tenant is validated.
+         Response resp = checkTenantUser(tenant, null, prettyPrint);
          if (resp != null) return resp;
+         
+         // Authorization passed if a null error message is returned.
+         String authMsg = SKCheckAuthz.configure(tenant, user)
+                             .setCheckMatchesJwtIdentity()
+                             .setCheckIsAdmin()
+                             .setCheckServiceAllowed()
+                             .addOwnedRole(parentRoleName)
+                             .addOwnedRole(childRoleName)
+                             .check();
+         if (authMsg != null)
+         {
+             _log.error(authMsg);
+             return Response.status(Status.UNAUTHORIZED).
+               entity(TapisRestUtils.createErrorResponse(authMsg, prettyPrint)).build();
+         }
          
          // ------------------------ Request Processing ------------------------
          // Add the child role to the parent.
