@@ -215,7 +215,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
               .set(SYSTEMS.PROXY_HOST, proxyHost)
               .set(SYSTEMS.PROXY_PORT, patchedSystem.getProxyPort())
               .set(SYSTEMS.TAGS, tagsStrArray)
-              .set(SYSTEMS.NOTES_JSONB, notesObj).execute();
+              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .where(SYSTEMS.ID.eq(systemId))
+              .execute();
 
       // If jobCapabilities updated then replace them
       if (patchSystem.getJobCapabilities() != null) {

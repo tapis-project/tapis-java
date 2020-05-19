@@ -4,12 +4,10 @@
 package edu.utexas.tacc.tapis.systems.gen.jooq.tables;
 
 
-import com.google.gson.JsonElement;
-
-import edu.utexas.tacc.tapis.systems.dao.JSONBToJsonElementBinding;
 import edu.utexas.tacc.tapis.systems.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.systems.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.systems.gen.jooq.TapisSys;
+import edu.utexas.tacc.tapis.systems.gen.jooq.enums.TransferMethType;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
@@ -22,6 +20,7 @@ import org.jooq.Field;
 import org.jooq.ForeignKey;
 import org.jooq.Identity;
 import org.jooq.Index;
+import org.jooq.JSONB;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Schema;
@@ -39,7 +38,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Systems extends TableImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = 1291300292;
+    private static final long serialVersionUID = -1164520421;
 
     /**
      * The reference instance of <code>tapis_sys.systems</code>
@@ -117,7 +116,7 @@ public class Systems extends TableImpl<SystemsRecord> {
     /**
      * The column <code>tapis_sys.systems.transfer_methods</code>. List of supported transfer methods
      */
-    public final TableField<SystemsRecord, String[]> TRANSFER_METHODS = createField(DSL.name("transfer_methods"), org.jooq.impl.SQLDataType.CLOB.getArrayDataType(), this, "List of supported transfer methods");
+    public final TableField<SystemsRecord, TransferMethType[]> TRANSFER_METHODS = createField(DSL.name("transfer_methods"), org.jooq.impl.SQLDataType.VARCHAR.asEnumDataType(edu.utexas.tacc.tapis.systems.gen.jooq.enums.TransferMethType.class).getArrayDataType(), this, "List of supported transfer methods");
 
     /**
      * The column <code>tapis_sys.systems.port</code>. Port number used to access a system
@@ -167,12 +166,12 @@ public class Systems extends TableImpl<SystemsRecord> {
     /**
      * The column <code>tapis_sys.systems.tags</code>. Tags for user supplied key:value pairs
      */
-    public final TableField<SystemsRecord, String[]> TAGS = createField(DSL.name("tags"), org.jooq.impl.SQLDataType.CLOB.getArrayDataType(), this, "Tags for user supplied key:value pairs");
+    public final TableField<SystemsRecord, JSONB> TAGS = createField(DSL.name("tags"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Tags for user supplied key:value pairs");
 
     /**
-     * The column <code>tapis_sys.systems.notes_jsonb</code>. Notes for general information stored as JSON
+     * The column <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
-    public final TableField<SystemsRecord, JsonElement> NOTES_JSONB = createField(DSL.name("notes_jsonb"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Notes for general information stored as JSON", new JSONBToJsonElementBinding());
+    public final TableField<SystemsRecord, JSONB> NOTES = createField(DSL.name("notes"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Notes for general information stored as JSON");
 
     /**
      * The column <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted

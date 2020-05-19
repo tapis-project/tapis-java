@@ -4,9 +4,6 @@
 package edu.utexas.tacc.tapis.systems.gen.jooq.tables;
 
 
-import com.google.gson.JsonElement;
-
-import edu.utexas.tacc.tapis.systems.dao.JSONBToJsonElementBinding;
 import edu.utexas.tacc.tapis.systems.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.systems.gen.jooq.TapisSys;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemUpdatesRecord;
@@ -19,6 +16,7 @@ import java.util.List;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
 import org.jooq.Identity;
+import org.jooq.JSONB;
 import org.jooq.Name;
 import org.jooq.Record;
 import org.jooq.Row7;
@@ -37,7 +35,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
 
-    private static final long serialVersionUID = -947007226;
+    private static final long serialVersionUID = 122922529;
 
     /**
      * The reference instance of <code>tapis_sys.system_updates</code>
@@ -73,9 +71,9 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
     public final TableField<SystemUpdatesRecord, SystemOperation> OPERATION = createField(DSL.name("operation"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.systems.gen.jooq.enums.OperationType.class), this, "Type of update operation", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.systems.gen.jooq.enums.OperationType, edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation>(edu.utexas.tacc.tapis.systems.gen.jooq.enums.OperationType.class, edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation.class));
 
     /**
-     * The column <code>tapis_sys.system_updates.upd_jsonb</code>. JSON representing the update - with secrets scrubbed
+     * The column <code>tapis_sys.system_updates.upd_json</code>. Json representing the update - with secrets scrubbed
      */
-    public final TableField<SystemUpdatesRecord, JsonElement> UPD_JSONB = createField(DSL.name("upd_jsonb"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "JSON representing the update - with secrets scrubbed", new JSONBToJsonElementBinding());
+    public final TableField<SystemUpdatesRecord, JSONB> UPD_JSON = createField(DSL.name("upd_json"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Json representing the update - with secrets scrubbed");
 
     /**
      * The column <code>tapis_sys.system_updates.upd_text</code>. Text data supplied by client - secrets should be scrubbed
@@ -180,7 +178,7 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Row7<Integer, Integer, String, SystemOperation, JsonElement, String, LocalDateTime> fieldsRow() {
+    public Row7<Integer, Integer, String, SystemOperation, JSONB, String, LocalDateTime> fieldsRow() {
         return (Row7) super.fieldsRow();
     }
 }
