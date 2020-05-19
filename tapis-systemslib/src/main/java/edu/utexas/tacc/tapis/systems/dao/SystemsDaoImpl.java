@@ -8,7 +8,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.impl.DSL;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.*;
+import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.SYSTEMS;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
@@ -38,6 +41,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static final Logger _log = LoggerFactory.getLogger(SystemsDaoImpl.class);
 
   private static final String EMPTY_JSON = "{}";
+
+  public enum SqlCompareOperator { EQ, LT, GT; }
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -437,7 +442,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws TapisException - on error
    */
   @Override
-  public List<TSystem> getTSystems(String tenant) throws TapisException
+  public List<TSystem> getTSystems(String tenant, List<String> selectList) throws TapisException
   {
     // The result list is always non-null.
     var list = new ArrayList<TSystem>();
@@ -450,9 +455,29 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       conn = getConnection();
       DSLContext db = DSL.using(conn);
 
-      Result<SystemsRecord> results = db.selectFrom(SYSTEMS)
-              .where(SYSTEMS.TENANT.eq(tenant),SYSTEMS.DELETED.eq(false))
-              .fetch();
+      // Begin where condition for this query
+      Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
+      // TODO Parse selectList and add to the WHERE clause
+      if (selectList != null && !selectList.isEmpty())
+      {
+        for (String selectStr : selectList)
+        {
+          // TODO Parse select value into column name, operator and value
+          // Format must be column_name(op)value
+          String[] parsedStrArray = selectStr.split("[\\(\\)]", 3);
+          // TODO Validate result
+          String column = parsedStrArray[0];
+          var op = SqlCompareOperator.valueOf(parsedStrArray[1].toUpperCase());
+          String val = parsedStrArray[2];
+          // TODO Add the condition to the WHERE clause
+          _log.error("*************************************************Adding where condition: " + selectStr);
+          // TODO: Check that column exists in table
+          Field<Object> col = DSL.field(DSL.name(column));
+          whereCondition = addCondition(whereCondition, col, op, val);
+        }
+      }
+
+      Result<SystemsRecord> results = db.selectFrom(SYSTEMS).where(whereCondition).fetch();
       if (results == null || results.isEmpty()) return list;
       for (SystemsRecord r : results)
       {
@@ -795,5 +820,22 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   {
     List<Capability> capRecords = db.selectFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).fetchInto(Capability.class);
     return capRecords;
+  }
+
+  private Condition addCondition(Condition cond, Field<Object> col, SqlCompareOperator op, String val)
+  {
+    Condition retCond = cond;
+    switch (op) {
+      case EQ:
+        retCond = cond.and(col.eq(val));
+        break;
+      case GT:
+        retCond =  cond.and(col.gt(val));
+        break;
+      case LT:
+        retCond =  cond.and(col.lt(val));
+        break;
+    }
+    return retCond;
   }
 }

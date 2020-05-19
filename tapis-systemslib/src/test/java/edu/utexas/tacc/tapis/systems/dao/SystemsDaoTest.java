@@ -210,7 +210,7 @@ public class SystemsDaoTest
     TSystem sys0 = sys5;
     int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = dao.getTSystems(tenantName);
+    List<TSystem> systems = dao.getTSystems(tenantName, null);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }

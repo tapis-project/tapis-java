@@ -549,7 +549,6 @@ public class SystemResource
    * @param systemName - name of the system
    * @param getCreds - should credentials of effectiveUser be included
    * @param accessMethodStr - access method to use instead of default
-   * @param prettyPrint - pretty print the output
    * @return Response with system object as the result
    */
   @GET
@@ -580,7 +579,6 @@ public class SystemResource
   public Response getSystemByName(@PathParam("systemName") String systemName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                   @Context SecurityContext securityContext)
   {
     String opName = "getSystemByName";
@@ -589,6 +587,8 @@ public class SystemResource
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    _log.error(" *************************************** Using prettyPrint = " + prettyPrint);
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -634,7 +634,6 @@ public class SystemResource
 
   /**
    * getSystems
-   * @param prettyPrint - pretty print the output
    * @return - list of systems
    */
   @GET
@@ -655,8 +654,7 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystems(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                             @Context SecurityContext securityContext)
+  public Response getSystems(@Context SecurityContext securityContext)
   {
     String opName = "getSystems";
     // Trace this request.
@@ -665,6 +663,10 @@ public class SystemResource
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    _log.error(" *************************************** Using prettyPrint = " + prettyPrint);
+    List<String> selectList = threadContext.getSelectList();
+    if (selectList != null && !selectList.isEmpty()) _log.error(" *************************************** Using selectList. First value = " + selectList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -673,7 +675,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     List<TSystem> systems;
-    try { systems = systemsService.getSystems(authenticatedUser); }
+    try { systems = systemsService.getSystems(authenticatedUser, selectList); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());

@@ -403,7 +403,7 @@ public class SystemsServiceTest
     TSystem sys0 = sys5;
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = svc.getSystems(authenticatedOwnerUsr);
+    List<TSystem> systems = svc.getSystems(authenticatedOwnerUsr, null);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
