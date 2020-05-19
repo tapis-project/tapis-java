@@ -75,5 +75,7 @@ public class SecurityApplication
                 e.printStackTrace();
                 throw e;
             }
+        
+        System.out.println("**** tapis-securityapi Initialized ****");
     }
 }
