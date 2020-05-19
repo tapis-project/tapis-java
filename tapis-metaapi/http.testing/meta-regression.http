@@ -1,0 +1,25 @@
+##############################################################
+#
+#   meta regression tests
+#   static user meta with master token
+#   static db testdb
+#   permissions to everything from root level of mongodb host
+#
+#   run with meta.master environment
+#
+#
+##############################################################
+
+##############################################################
+#      DB endpoints
+##############################################################
+
+###  sanity test to see if service is alive
+GET http://dev.develop.tapis.io/v3/meta/
+X-Tapis-Token: {{token}}
+X-Tapis-User: meta
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
