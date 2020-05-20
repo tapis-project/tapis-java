@@ -18,6 +18,12 @@ import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;;
 public class TapisJDBCMigrateParms 
 {
  /* **************************************************************************** */
+ /*                                 Constants                                    */
+ /* **************************************************************************** */
+ // Default password for the service's runtime, non-admin user (tapis).
+ private static final String DFT_TAPIS_USER_PASSWORD = "password"; // change on 1st use  
+    
+ /* **************************************************************************** */
  /*                                  Fields                                      */
  /* **************************************************************************** */
   @Option(name = "-h", required = true, aliases = {"-host"}, 
@@ -31,6 +37,10 @@ public class TapisJDBCMigrateParms
   @Option(name = "-pw", required = true, aliases = {"-password"}, 
       metaVar = "<string>", usage = "database admin user's password")
   public String password;
+
+  @Option(name = "-tpw", required = false, aliases = {"-tapisPassword"}, 
+          metaVar = "<string>", usage = "tapis user's password")
+      public String tapisPassword = DFT_TAPIS_USER_PASSWORD;
 
   @Option(name = "-cmddir", required = false, aliases = {"-cmddirectory"}, 
 	  metaVar = "<string>", usage = "Directory of SQL command files as specifiedy by Flyway")
