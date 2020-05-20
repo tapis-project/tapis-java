@@ -30,6 +30,8 @@ public final class TSystem
   // *********************** Constants **************************************
   // ************************************************************************
 
+  public static final String ROLE_READ_PREFIX = "Systems_R_";
+  public static final String ROLE_MODIFY_PREFIX = "Systems_M_";
   // Allowed substitution variables
   public static final String APIUSERID_VAR = "${apiUserId}";
   public static final String OWNER_VAR = "${owner}";
