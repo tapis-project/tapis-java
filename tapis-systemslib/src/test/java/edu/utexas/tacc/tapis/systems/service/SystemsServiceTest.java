@@ -187,7 +187,7 @@ public class SystemsServiceTest
   @BeforeSuite
   public void setUp() throws Exception
   {
-    System.out.println("Executing BeforeSuite setup method");
+    System.out.println("Executing BeforeSuite setup method: " + SystemsServiceTest.class.getSimpleName());
     // Setup for HK2 dependency injection
     ServiceLocator locator = ServiceLocatorUtilities.createAndPopulateServiceLocator();
     ServiceLocatorUtilities.bind(locator, new AbstractBinder() {
@@ -875,7 +875,7 @@ public class SystemsServiceTest
   @AfterSuite
   public void tearDown() throws Exception
   {
-    System.out.println("Executing AfterSuite teardown method");
+    System.out.println("Executing AfterSuite teardown method" + SystemsServiceTest.class.getSimpleName());
     // Remove non-owner permissions granted during the tests
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY, scrubbedText);

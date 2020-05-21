@@ -102,7 +102,7 @@ public class SystemsDaoTest
   @BeforeSuite
   public void setup() throws Exception
   {
-    System.out.println("Executing BeforeSuite setup method");
+    System.out.println("Executing BeforeSuite setup method: " + SystemsDaoTest.class.getSimpleName());
     dao = new SystemsDaoImpl();
     // Initialize authenticated user
     authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, null, null, null, null);
@@ -322,7 +322,7 @@ public class SystemsDaoTest
 
   @AfterSuite
   public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown method");
+    System.out.println("Executing AfterSuite teardown method" + SystemsDaoTest.class.getSimpleName());
     //Remove all objects created by tests
     dao.hardDeleteTSystem(sys1.getTenant(), sys1.getName());
     TSystem tmpSystem = dao.getTSystemByName(sys1.getTenant(), sys1.getName());

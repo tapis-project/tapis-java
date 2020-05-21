@@ -35,7 +35,6 @@ CREATE TYPE system_type_type AS ENUM ('LINUX', 'OBJECT_STORE');
 CREATE TYPE operation_type AS ENUM ('create', 'modify', 'softDelete', 'hardDelete', 'changeOwner',
                                     'grantPerms', 'revokePerms', 'setCred', 'removeCred');
 CREATE TYPE access_meth_type AS ENUM ('PASSWORD', 'PKI_KEYS', 'ACCESS_KEY', 'CERT');
--- CREATE TYPE transfer_meth_type AS ENUM ('SFTP', 'S3');
 CREATE TYPE capability_category_type AS ENUM ('SCHEDULER', 'OS', 'HARDWARE', 'SOFTWARE', 'JOB', 'CONTAINER', 'MISC', 'CUSTOM');
 
 -- ----------------------------------------------------------------------------------------
@@ -58,7 +57,6 @@ CREATE TABLE systems
   bucket_name    VARCHAR(63),
   root_dir       VARCHAR(1024),
   transfer_methods TEXT[],
---  transfer_methods transfer_meth_type[] NOT NULL,
   port       INTEGER NOT NULL DEFAULT -1,
   use_proxy  BOOLEAN NOT NULL DEFAULT false,
   proxy_host VARCHAR(256) NOT NULL DEFAULT '',
@@ -109,7 +107,7 @@ COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated'
 -- Track update requests for systems
 CREATE TABLE system_updates
 (
-    id     SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
     user_name VARCHAR(60) NOT NULL,
     operation operation_type NOT NULL,

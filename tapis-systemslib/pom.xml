@@ -76,17 +76,17 @@
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq-meta</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq-codegen</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
   </dependencies>
 
@@ -100,9 +100,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
-            
+
+      <!-- surefire plugin is for running unit tests -->
       <plugin>
-        <!-- The version is set in the parent pom -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
@@ -111,11 +111,22 @@
           </suiteXmlFiles>
         </configuration>
       </plugin>
+      <!-- failsafe plugin is for running integration tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <skip>${skipITs}</skip>
+          <environmentVariables>
+            <APP_ENV>test</APP_ENV>
+            <TAPIS_SERVICE_PASSWORD>S4nUNjL6JCwmCw3QQWR7Lyx1J/ayV6BEnAwTBi5sJ8E=</TAPIS_SERVICE_PASSWORD>
+          </environmentVariables>
+        </configuration>
+      </plugin>
 
       <plugin>
         <groupId>org.jooq</groupId>
         <artifactId>jooq-codegen-maven</artifactId>
-        <version>3.13.1</version>
         <executions>
           <execution>
             <id>jooq-codegen</id>
