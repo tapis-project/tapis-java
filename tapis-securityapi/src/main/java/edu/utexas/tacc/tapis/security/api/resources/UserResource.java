@@ -40,6 +40,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserHasRoleMulti;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsAdmin;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermitted;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
+import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -184,9 +185,9 @@ public final class UserResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -253,10 +254,9 @@ public final class UserResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict read access to a user's roles.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -358,10 +358,9 @@ public final class UserResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict read access to a user's permissions.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -449,10 +448,12 @@ public final class UserResource
          String user   = payload.user;
          String roleName = payload.roleName;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict which users can be granted a role.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -539,10 +540,12 @@ public final class UserResource
          String user   = payload.user;
          String roleName = payload.roleName;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict from which users a role can be revoked.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -636,10 +639,11 @@ public final class UserResource
          String tenant = payload.tenant;
          String user   = payload.user;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Make sure the target tenant and the jwt tenant are the same.
-         // Null means the check passed.  
-         Response resp = checkSameTenant(tenant, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -729,10 +733,11 @@ public final class UserResource
          String tenant = payload.tenant;
          String user   = payload.user;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Make sure the target tenant and the jwt tenant are the same.
-         // Null means the check passed.  
-         Response resp = checkSameTenant(tenant, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -936,10 +941,12 @@ public final class UserResource
          String user     = payload.user;
          String permSpec = payload.permSpec;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict to which users a permission can be granted.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .setCheckIsService()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1039,10 +1046,11 @@ public final class UserResource
          // Construct the user's default role name.
          String roleName = getRoleImpl().getUserDefaultRolename(user);
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict from which users a permission can be revoked.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
@@ -1138,10 +1146,12 @@ public final class UserResource
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict to which users a permission can be granted.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
@@ -1523,10 +1533,9 @@ public final class UserResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict which users can make this call.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1611,10 +1620,10 @@ public final class UserResource
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict which users can make this call.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1759,10 +1768,9 @@ public final class UserResource
          String[] roleNames = payload.roleNames;
          boolean  orAdmin   = payload.orAdmin;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict the users that can be queried.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1837,10 +1845,9 @@ public final class UserResource
          String[] permSpecs = payload.permSpecs;
          boolean  orAdmin   = payload.orAdmin;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.  By passing in a null
-         // user we do not restrict the users that can be queried.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------

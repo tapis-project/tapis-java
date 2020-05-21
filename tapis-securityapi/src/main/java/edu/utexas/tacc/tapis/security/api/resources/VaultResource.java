@@ -38,6 +38,7 @@ import edu.utexas.tacc.tapis.security.api.responses.RespSecretList;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecretMeta;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecretVersionMetadata;
 import edu.utexas.tacc.tapis.security.api.responses.RespVersions;
+import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecret;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
@@ -246,11 +247,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -260,6 +256,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -415,11 +418,6 @@ public final class VaultResource
          var secretMap = new HashMap<String,Object>();
          if (payload.data != null) secretMap.putAll(payload.data);
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -429,6 +427,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -568,11 +573,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -582,6 +582,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -719,11 +726,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -733,6 +735,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -871,11 +880,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -885,6 +889,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1003,11 +1014,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1017,6 +1023,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1134,11 +1147,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1148,6 +1156,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1264,11 +1279,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1278,6 +1288,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1375,9 +1392,11 @@ public final class VaultResource
          // slashes.  This is typically handled in SecretPathMapperParms. 
          if (secretName != null) secretName = secretName.replace('+', '/');
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setValidatePassword()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------

@@ -140,8 +140,8 @@ public final class SecretPathMapper
                 // This should never happen as long as all cases are covered.
                 var secretTypes = new ArrayList<String>();
                 for (SecretType t : SecretType.values()) secretTypes.add(t.name());
-                String msg =  MsgUtils.getMsg("SK_VAULT_INVALID_SECRET_TYPE", "SecretPathMapper", 
-                                              _parms.secretType, secretTypes);
+                String msg =  MsgUtils.getMsg("SK_VAULT_INVALID_SECRET_TYPE", 
+                                              _parms.secretType.name(), secretTypes);
                 _log.error(msg);
                 throw new TapisImplException(msg, Condition.INTERNAL_SERVER_ERROR);
         }

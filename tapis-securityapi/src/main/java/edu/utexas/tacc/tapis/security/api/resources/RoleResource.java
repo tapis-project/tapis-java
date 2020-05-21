@@ -179,9 +179,9 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -253,9 +253,9 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -356,22 +356,13 @@ public final class RoleResource
          String description = payload.description;
          
          // ------------------------- Check Authz ------------------------------
-         // Null means the jwt tenant is validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
-         if (resp != null) return resp;
-         
-         // Authorization passed if a null error message is returned.
-         String authMsg = SKCheckAuthz.configure(tenant, user)
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckMatchesJwtIdentity()
                              .setCheckIsAdmin()
                              .setCheckServiceOBO()
-                             .check();
-         if (authMsg != null)
-         {
-             _log.error(authMsg);
-             return Response.status(Status.UNAUTHORIZED).
-               entity(TapisRestUtils.createErrorResponse(authMsg, prettyPrint)).build();
-         }
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Create the role.
@@ -449,9 +440,12 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -525,9 +519,9 @@ public final class RoleResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -621,9 +615,12 @@ public final class RoleResource
          String user   = payload.user;
          String newRoleName = payload.newRoleName;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -707,9 +704,12 @@ public final class RoleResource
          String user = payload.user;
          String description = payload.description;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -809,9 +809,12 @@ public final class RoleResource
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -899,9 +902,12 @@ public final class RoleResource
          String roleName = payload.roleName;
          String permSpec = payload.permSpec;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -995,24 +1001,13 @@ public final class RoleResource
          String childRoleName = payload.childRoleName;
          
          // ------------------------- Check Authz ------------------------------
-         // Null means the jwt tenant is validated.
-         Response resp = checkTenantUser(tenant, null, prettyPrint);
-         if (resp != null) return resp;
-         
-         // Authorization passed if a null error message is returned.
-         String authMsg = SKCheckAuthz.configure(tenant, user)
-                             .setCheckMatchesJwtIdentity()
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
-                             .setCheckServiceAllowed()
                              .addOwnedRole(parentRoleName)
                              .addOwnedRole(childRoleName)
-                             .check();
-         if (authMsg != null)
-         {
-             _log.error(authMsg);
-             return Response.status(Status.UNAUTHORIZED).
-               entity(TapisRestUtils.createErrorResponse(authMsg, prettyPrint)).build();
-         }
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Add the child role to the parent.
@@ -1099,9 +1094,13 @@ public final class RoleResource
          String parentRoleName = payload.parentRoleName;
          String childRoleName = payload.childRoleName;
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(parentRoleName)
+                             .addOwnedRole(childRoleName)
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
@@ -1231,9 +1230,9 @@ public final class RoleResource
          if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
          if (StringUtils.isBlank(newPrefix)) newPrefix = "";
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, null).check(prettyPrint);
          if (resp != null) return resp;
          
         // ------------------------ Request Processing ------------------------
@@ -1384,9 +1383,11 @@ public final class RoleResource
          if (StringUtils.isBlank(oldPrefix)) oldPrefix = "";
          if (StringUtils.isBlank(newPrefix)) newPrefix = "";
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
