@@ -4,6 +4,7 @@
 # Generated files
 openapi.json
 openapi.yaml
+#**/src/main/java/edu/utexas/tacc/tapis/**/gen/
 
 # Log file
 *.log

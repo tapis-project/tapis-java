@@ -32,6 +32,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -634,7 +636,6 @@ public class SystemResource
 
   /**
    * getSystems
-   * @param prettyPrint - pretty print the output
    * @return - list of systems
    */
   @GET
@@ -644,6 +645,12 @@ public class SystemResource
     summary = "Retrieve list of systems",
     description = "Retrieve list of systems.",
     tags = "systems",
+    parameters = {
+      @Parameter(name = "pretty", description = "Pretty print the response",
+                 in = ParameterIn.QUERY, required = false,
+                 schema = @Schema(type = "boolean")
+                )
+    },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
                    content = @Content(schema = @Schema(implementation = RespSystemArray.class))),
@@ -655,8 +662,7 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystems(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                             @Context SecurityContext securityContext)
+  public Response getSystems(@Context SecurityContext securityContext)
   {
     String opName = "getSystems";
     // Trace this request.
@@ -665,6 +671,10 @@ public class SystemResource
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    _log.error(" *************************************** Using prettyPrint = " + prettyPrint);
+    List<String> selectList = threadContext.getSelectList();
+    if (selectList != null && !selectList.isEmpty()) _log.error(" *************************************** Using selectList. First value = " + selectList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -673,7 +683,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     List<TSystem> systems;
-    try { systems = systemsService.getSystems(authenticatedUser); }
+    try { systems = systemsService.getSystems(authenticatedUser, selectList); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
@@ -762,12 +772,24 @@ public class SystemResource
    */
   private static TSystem createTSystemFromRequest(ReqCreateSystem req)
   {
-    return new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
-                       req.enabled, req.effectiveUserId, req.defaultAccessMethod, req.accessCredential,
+/*
+  public TSystem(int id1, String tenant1, String name1, String description1, SystemType systemType1,
+                 String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
+                 String bucketName1, String rootDir1,
+                 List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
+                 boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
+                 String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1,
+                 String[] tags1, Object notes1, boolean deleted1, Instant created1, Instant updated1)
+ */
+    var system = new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
+                       req.enabled, req.effectiveUserId, req.defaultAccessMethod,
                        req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
                        req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
                        req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
-                       req.jobCapabilities, req.tags, req.notes, null, null);
+                       req.tags, req.notes, false, null, null);
+    system.setAccessCredential(req.accessCredential);
+    system.setJobCapabilities(req.jobCapabilities);
+    return system;
   }
 
   /**

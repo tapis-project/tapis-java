@@ -58,6 +58,7 @@ public class SystemsApplication extends ResourceConfig
     // tapis-sharedapi will be discovered whenever that project is
     // included as a maven dependency.
     packages("edu.utexas.tacc.tapis");
+    packages("edu.utexas.tacc.tapis2");
 
     // Set the application name.
     // Note that this has no impact on base URL
