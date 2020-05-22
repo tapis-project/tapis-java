@@ -115,7 +115,6 @@ public class PermsResource
 
   /**
    * Assign specified permissions for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -148,12 +147,12 @@ public class PermsResource
   )
   public Response grantUserPerms(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  InputStream payloadStream,
                                  @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -216,7 +215,6 @@ public class PermsResource
 
   /**
    * getUserPerms
-   * @param prettyPrint - pretty print the output
    * @return Response with list of permissions
    */
   @GET
@@ -242,12 +240,12 @@ public class PermsResource
       }
   )
   public Response getUserPerms(@PathParam("systemName") String systemName,
-                                @PathParam("userName") String userName,
-                                @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                               @PathParam("userName") String userName,
                                @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -294,7 +292,6 @@ public class PermsResource
 
   /**
    * Revoke permission for given system and user.
-   * @param prettyPrint - pretty print the output
    * @return basic response
    */
   @DELETE
@@ -321,11 +318,11 @@ public class PermsResource
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permissionStr,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -381,7 +378,6 @@ public class PermsResource
 
   /**
    * Revoke permissions for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -411,9 +407,8 @@ public class PermsResource
     }
   )
   public Response revokeUserPerms(@PathParam("systemName") String systemName,
-                                 @PathParam("userName") String userName,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 InputStream payloadStream,
+                                  @PathParam("userName") String userName,
+                                  InputStream payloadStream,
                                   @Context SecurityContext securityContext)
   {
     String msg;
@@ -427,6 +422,7 @@ public class PermsResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);

@@ -30,7 +30,6 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -45,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
@@ -55,10 +55,8 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
-import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -147,7 +145,6 @@ public class SystemResource
 
   /**
    * Create a system
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return response containing reference to created object
    */
@@ -182,7 +179,7 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response createSystem(@QueryParam("pretty") @DefaultValue("false") boolean prettyPrint, InputStream payloadStream,
+  public Response createSystem(InputStream payloadStream,
                                @Context SecurityContext securityContext)
   {
     String opName = "createSystem";
@@ -191,6 +188,7 @@ public class SystemResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -303,7 +301,6 @@ public class SystemResource
   /**
    * Update a system
    * @param systemName - name of the system
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return response containing reference to updated object
    */
@@ -338,7 +335,6 @@ public class SystemResource
           }
   )
   public Response updateSystem(@PathParam("systemName") String systemName,
-                               @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                InputStream payloadStream, @Context SecurityContext securityContext)
   {
     String opName = "updateSystem";
@@ -347,6 +343,7 @@ public class SystemResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -450,7 +447,6 @@ public class SystemResource
    * Change owner of a system
    * @param systemName - name of the system
    * @param userName - name of the new owner
-   * @param prettyPrint - pretty print the output
    * @return response containing reference to updated object
    */
   @POST
@@ -475,7 +471,6 @@ public class SystemResource
   )
   public Response changeSystemOwner(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
-                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                     @Context SecurityContext securityContext)
   {
     String opName = "changeSystemOwner";
@@ -484,6 +479,7 @@ public class SystemResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -551,7 +547,6 @@ public class SystemResource
    * @param systemName - name of the system
    * @param getCreds - should credentials of effectiveUser be included
    * @param accessMethodStr - access method to use instead of default
-   * @param prettyPrint - pretty print the output
    * @return Response with system object as the result
    */
   @GET
@@ -582,7 +577,6 @@ public class SystemResource
   public Response getSystemByName(@PathParam("systemName") String systemName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                  @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                   @Context SecurityContext securityContext)
   {
     String opName = "getSystemByName";
@@ -591,6 +585,7 @@ public class SystemResource
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -672,7 +667,6 @@ public class SystemResource
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     boolean prettyPrint = threadContext.getPrettyPrint();
-    _log.error(" *************************************** Using prettyPrint = " + prettyPrint);
     List<String> selectList = threadContext.getSelectList();
     if (selectList != null && !selectList.isEmpty()) _log.error(" *************************************** Using selectList. First value = " + selectList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -702,7 +696,6 @@ public class SystemResource
   /**
    * deleteSystemByName
    * @param systemName - name of the system to delete
-   * @param prettyPrint - pretty print the output
    * @return - response with change count as the result
    */
   @DELETE
@@ -725,7 +718,6 @@ public class SystemResource
     }
   )
   public Response deleteSystemByName(@PathParam("systemName") String systemName,
-                                     @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                      @Context SecurityContext securityContext)
   {
     String opName = "deleteSystemByName";
@@ -735,6 +727,7 @@ public class SystemResource
     // Check that we have all we need from the context, the tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 

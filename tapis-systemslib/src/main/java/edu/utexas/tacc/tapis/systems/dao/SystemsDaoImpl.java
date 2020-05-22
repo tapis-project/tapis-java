@@ -6,11 +6,13 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.impl.DSL;
@@ -356,6 +358,42 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       LibUtils.finalCloseDB(conn);
     }
     return rows;
+  }
+
+  /**
+   * checkDB
+   * Check that we can connect with DB and that the main table of the service exists.
+   * @return true if all OK else returns false
+   */
+  @Override
+  public boolean checkDB()
+  {
+    boolean result = true;
+    Connection conn = null;
+    try
+    {
+      conn = getConnection();
+      DSLContext db = DSL.using(conn);
+      // execute SELECT to_regclass('tapis_sys.systems');
+      // Build and execute a simple postgresql statement to check for the table
+      String sql = "SELECT to_regclass('" + SYSTEMS.getName() + "')";
+      Result<Record> ret = db.resultQuery(sql).fetch();
+      if (ret == null || ret.isEmpty() || ret.getValue(0,0) == null) result = false;
+      LibUtils.closeAndCommitDB(conn, null, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback always logs msg and throws exception.
+      // In this case of a simple check we ignore the exception, we just want the log msg
+      try { LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems"); }
+      catch (Exception e1) { }
+      result = false;
+    }
+    finally
+    {
+      LibUtils.finalCloseDB(conn);
+    }
+    return result;
   }
 
   /**

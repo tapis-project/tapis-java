@@ -548,6 +548,15 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
+   * Check that we can connect with DB and that the main table of the service exists.
+   * @return true if all OK else returns false
+   */
+  public boolean checkDB()
+  {
+    return dao.checkDB();
+  }
+
+  /**
    * checkForSystemByName
    * @param authenticatedUser - principal user containing tenant and user info
    * @param systemName - Name of the system

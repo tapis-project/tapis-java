@@ -77,10 +77,11 @@ public class SystemsApplication extends ResourceConfig
       register(new AbstractBinder() {
         @Override
         protected void configure() {
-          bind(SystemsServiceImpl.class).to(SystemsService.class);
-          bind(SystemsDaoImpl.class).to(SystemsDao.class);
-          bindFactory(SystemsServiceJWTFactory.class).to(ServiceJWT.class);
-          bind(SKClient.class).to(SKClient.class);
+          bind(SystemsServiceImpl.class).to(SystemsService.class); // Used in Resource classes for most service calls
+          bind(SystemsServiceImpl.class).to(SystemsServiceImpl.class); // Used in SystemsResource for checkDB
+          bind(SystemsDaoImpl.class).to(SystemsDao.class); // Used in service impl
+          bindFactory(SystemsServiceJWTFactory.class).to(ServiceJWT.class); // Used in service impl and SystemsResource
+          bind(SKClient.class).to(SKClient.class); // Used in service impl
         }
       });
 
