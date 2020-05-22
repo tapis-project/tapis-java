@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -46,8 +45,8 @@ public final class SKCheckAuthz
     
     // Identity checks.
     private boolean _checkMatchesJwtIdentity;
+    private boolean _checkMatchesOBOIdentity;
     private boolean _checkIsAdmin;
-    private boolean _checkServiceOBO;
     private boolean _checkIsService;
     
     // Secrets checks.
@@ -87,8 +86,8 @@ public final class SKCheckAuthz
     /* **************************************************************************** */
     // Roles and user checks.
     public SKCheckAuthz setCheckMatchesJwtIdentity() {_checkMatchesJwtIdentity = true; return this;}
+    public SKCheckAuthz setCheckMatchesOBOIdentity() {_checkMatchesOBOIdentity = true; return this;}
     public SKCheckAuthz setCheckIsAdmin() {_checkIsAdmin = true; return this;}
-    public SKCheckAuthz setCheckServiceOBO() {_checkServiceOBO = true; return this;}
     public SKCheckAuthz setCheckIsService() {_checkIsService = true; return this;}
     
     // Secrets checks.
@@ -168,7 +167,7 @@ public final class SKCheckAuthz
     {
         // Validate the thread context and allowable tenant on service tokens.
         // Request tenant null check performed in called method.
-        String validateMsg = validateTenantContext();
+        String validateMsg = validateRequestTenantContext();
         if (validateMsg != null) return validateMsg;
         
         // Try to order checks by least expensive and most often used.
@@ -176,10 +175,11 @@ public final class SKCheckAuthz
         // with "short-circuiting" behavior.
         if (_checkIsService && checkIsService()) return null;
         if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity()) return null;
+        if (_checkMatchesOBOIdentity && checkMatchesOBOIdentity()) return null;
         if (_checkIsAdmin && checkIsAdmin()) return null;
-        if (_checkServiceOBO && checkServiceOBO()) return null;
-        if (_requiredRoles != null && checkRequiredRoles()) return null;
+        
         if (_ownedRoles != null && checkOwnedRoles()) return null;
+        if (_requiredRoles != null && checkRequiredRoles()) return null;
         
         if (_checkSecrets && checkSecrets()) return null;
         if (_validatePassword && validatePassword()) return null;
@@ -192,18 +192,22 @@ public final class SKCheckAuthz
     /*                               Private Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
-    /* validateTenantContext:                                                       */
+    /* validateRequestTenantContext:                                                */
     /* ---------------------------------------------------------------------------- */
     /** This method first validates the thread context, which allows all subsequent 
-     * checks to be performed without risk of NPEs.  For service tokens, we check
-     * that the jwt tenant is allowed to be used on behalf of the request tenant.
+     * checks to be performed without risk of NPEs on threadlocal data.  
+     * 
+     * For service tokens, we check that the jwt tenant is allowed to be used on 
+     * behalf of the request tenant.  Also check that the request tenant is the
+     * same as the OBO tenant.
+     * 
      * For user tokens, we check that the jwt and request tenants are the same.
      * 
      * This method does not use the _reqUser field, so it's ok if it's null.
      * 
      * @return null for success, an error message on failure
      */
-    private String validateTenantContext()
+    private String validateRequestTenantContext()
     {
         // Get the thread local context and validate context parameters.  The
         // tenantId and user are set in the jaxrc filter classes that process
@@ -229,6 +233,17 @@ public final class SKCheckAuthz
         // Service accounts are allowed more latitude than user accounts.
         // Specifically, they can specify tenants other than that in their jwt.
         if (accountType == AccountType.service) {
+            // Make sure the OBO tenant is the same as the request tenant.
+            var oboTenant = _threadContext.getOboTenantId();
+            if (!_reqTenant.equals(oboTenant)) {
+                String jwtUser = _threadContext.getJwtUser();
+                String msg = MsgUtils.getMsg("SK_REQUEST_OBO_TENANT_MISMATCH", 
+                                             jwtUser, oboTenant, _reqTenant);
+                _log.error(msg);
+                return msg;
+            }
+            
+            // Make sure the service's jwt covers the request tenant.
             boolean allowedTenant;
             try {allowedTenant = TapisRestUtils.isAllowedTenant(jwtTenant, _reqTenant);}
                 catch (Exception e) {
@@ -262,6 +277,44 @@ public final class SKCheckAuthz
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* validateRequestUserContext:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Perform the following checks regarding the request user field.
+     * 
+     *      1. Check that the field is not null.
+     *      2. Check if the request user@tenant is the jwt user@tenant.
+     *      3. Otherwise, on service tokens check that the request user@tenant
+     *         is the OBO user@tenant.
+     * 
+     * @return
+     */
+    private boolean validateRequestUserContext()
+    {
+        // Make sure the request user has been assigned for this check.
+        if (StringUtils.isBlank(_reqUser)) {
+            var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateRequestUserContext", "_reqUser");
+            _log.error(msg);
+            return false;
+        }
+        
+        // See if the jwt and request user@tenant are the same.
+        if (_threadContext.getJwtTenantId().equals(_reqTenant) &&
+            _threadContext.getJwtUser().equals(_reqUser)) return true;
+        
+        // With service jwts we already known that the request tenant
+        // is allowed by the jwt tenant.  This check certifies that the
+        // OBO and jwt identities are exactly the same.
+        if (_threadContext.getAccountType() == AccountType.service) {
+            // Restrict the request identity to be the OBO identity.
+            if (_reqTenant.equals(_threadContext.getOboTenantId()) &&
+                _reqUser.equals(_threadContext.getOboUser())) 
+               return true;
+        }
+        
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* checkMatchesJwtIdentity:                                                     */
     /* ---------------------------------------------------------------------------- */
     /** Check that the jwt identity exactly matches the request tenant and user.
@@ -287,17 +340,42 @@ public final class SKCheckAuthz
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* checkIsService:                                                              */
+    /* checkMatchesOBOIdentity:                                                     */
     /* ---------------------------------------------------------------------------- */
-    /** Check that the jwt identity represents a service.
+    /** Check that the identity provided on the OBO headers is one on behalf of whom
+     * this service is acting.  First, the service's tenant as expressed in the jwt 
+     * must be allowed to act on behalf of the request tenant. This has already 
+     * been checked in validateTenantContext().  Next, the request user and tenant 
+     * must match the OBO user and tenant as originally specified in the request
+     * headers.  This effectively authorizes the service to perform any action on 
+     * behalf of the OBO identity.
      * 
      * @return true if passes check, false otherwise.
      */
-    private boolean checkIsService()
+    private boolean checkMatchesOBOIdentity()
     {
-        // See if the jwt and request user@tenant are the same.
-        if (_threadContext.getAccountType() == AccountType.service) return true;
-        _failedChecks.add("IsService");
+        // Make sure the request user has been assigned for this check.
+        if (_reqUser == null) {
+            var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "checkServiceOBO", "_reqUser");
+            _log.error(msg);
+            _failedChecks.add("MatchesOnBehalfOfIdentity");
+            return false;
+        }
+        
+        // Start pessimistically.
+        boolean allowedIdentity = false;
+        
+        // Only services need apply.
+        if (_threadContext.getAccountType() == AccountType.service) {
+            // Restrict the request identity to be the OBO identity.
+            if (_reqTenant.equals(_threadContext.getOboTenantId()) &&
+                _reqUser.equals(_threadContext.getOboUser())) 
+               allowedIdentity = true;
+        }
+        
+        // What happened?
+        if (allowedIdentity) return true;
+        _failedChecks.add("MatchesOnBehalfOfIdentity");
         return false;
     }
 
@@ -333,41 +411,17 @@ public final class SKCheckAuthz
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* checkServiceOBO:                                                             */
+    /* checkIsService:                                                              */
     /* ---------------------------------------------------------------------------- */
-    /** Check that the identity provided on the OBO headers is one on behalf of whom
-     * this service is acting.  First, the service's tenant as expressed in the jwt 
-     * must be allowed to act on behalf of the request tenant. This has already 
-     * been checked in validateTenantContext().  Next, the request user and tenant 
-     * must match the OBO user and tenant as originally specified in the request
-     * headers.  This effectively authorizes the service to perform any action on 
-     * behalf of the OBO identity.
+    /** Check that the jwt identity represents a service.
      * 
      * @return true if passes check, false otherwise.
      */
-    private boolean checkServiceOBO()
+    private boolean checkIsService()
     {
-        // Make sure the request user has been assigned for this check.
-        if (_reqUser == null) {
-            var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "checkServiceOBO", "_reqUser");
-            _log.error(msg);
-        }
-        
-        // Start pessimistically.
-        boolean allowedIdentity = false;
-        
-        // Only services need apply.
-        if (_threadContext.getAccountType() == AccountType.service) {
-            // Restrict the request identity to be the OBO identity.
-            if (_reqUser != null &&
-                _reqTenant.equals(_threadContext.getOboTenantId()) &&
-                _reqUser.equals(_threadContext.getOboUser())) 
-               allowedIdentity = true;
-        }
-        
-        // What happened?
-        if (allowedIdentity) return true;
-        _failedChecks.add("ServiceOnBehalfOf");
+        // See if the jwt and request user@tenant are the same.
+        if (_threadContext.getAccountType() == AccountType.service) return true;
+        _failedChecks.add("IsService");
         return false;
     }
 
@@ -398,8 +452,12 @@ public final class SKCheckAuthz
             var roleImpl = RoleImpl.getInstance();
             for (String roleName : _ownedRoles) {
                 // The request and role tenants are guaranteed to be the same.
+                // We expect the request user to own the role or the obo user
+                // to own it on service jwts.
                 var skRole = roleImpl.getRoleByName(_reqTenant, roleName);
-                if (skRole == null || !_reqUser.equals(skRole.getCreatedby())) 
+                if (skRole == null || !_reqUser.equals(skRole.getCreatedby()) ||
+                    !(_threadContext.getAccountType() == AccountType.service &&
+                      _threadContext.getOboUser().equals(skRole.getCreatedby()))) 
                 {
                     // The role doesn't exist or request user is not its owner.
                     authorized = false;
@@ -416,7 +474,7 @@ public final class SKCheckAuthz
         
         // We want to further check that the request tenant and user match
         // those in the jwt or the obo headers (on service tokens).
-        if (authorized) authorized = checkMatchesJwtIdentity() || checkServiceOBO();
+        if (authorized) authorized = checkMatchesJwtIdentity() || checkMatchesOBOIdentity();
         
         // What happened?
         if (authorized) return true;
@@ -550,6 +608,18 @@ public final class SKCheckAuthz
     /* secretCheckServicePwd:                                                       */
     /* ---------------------------------------------------------------------------- */
     private boolean secretCheckServicePwd()
+    {return secretCheckServiceRequestIdentity("ServicePassword");}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validatePassword:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    private boolean validatePassword()
+    {return secretCheckServiceRequestIdentity("ValidatePassword");}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* secretCheckServiceRequestIdentity:                                           */
+    /* ---------------------------------------------------------------------------- */
+    private boolean secretCheckServiceRequestIdentity(String checkName)
     {
         // Start pessimistically.
         boolean authorized = false;
@@ -560,10 +630,10 @@ public final class SKCheckAuthz
             _threadContext.getJwtTenantId().equals(_reqTenant) &&
             _threadContext.getJwtUser().equals(_reqUser))
             authorized = true;
-
+        
         // What happened?
         if (authorized) return true;
-        _failedChecks.add("ServicePassword");
+        _failedChecks.add(checkName);
         return false;
     }
     
@@ -584,27 +654,6 @@ public final class SKCheckAuthz
         // What happened?
         if (authorized) return true;
         _failedChecks.add("UserSecret");
-        return false;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* validatePassword:                                                            */
-    /* ---------------------------------------------------------------------------- */
-    private boolean validatePassword()
-    {
-        // Start pessimistically.
-        boolean authorized = false;
-        
-        // We need to be a specific service.
-        if (_reqUser != null &&
-            _threadContext.getAccountType() == AccountType.service &&
-            _threadContext.getJwtTenantId().equals(_reqTenant) &&
-            _threadContext.getJwtUser().equals(_reqUser))
-            authorized = true;
-        
-        // What happened?
-        if (authorized) return true;
-        _failedChecks.add("ValidatePassword");
         return false;
     }
     

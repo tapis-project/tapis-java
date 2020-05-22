@@ -1050,6 +1050,8 @@ public final class UserResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsService()
+                             .setCheckMatchesJwtIdentity()
                              .check(prettyPrint);
          if (resp != null) return resp;
          
