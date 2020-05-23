@@ -49,7 +49,14 @@
       "required": ["NEQ"],
       "properties": { "NEQ": { "$ref": "#/definitions/StringPair" } }
     },
-    "StringPair": { "type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"} },
+    "StringPair": {
+      "type": "object",
+      "required": ["Attribute", "Value"],
+      "properties": {
+        "Attribute": { "type": "string" },
+        "Value": { "type": "string" }
+      }
+    },
     "ConditionList": { "type": "array", "minItems": 2, "items": {"$ref":"#/definitions/MatchCondition" } }
   }
 }

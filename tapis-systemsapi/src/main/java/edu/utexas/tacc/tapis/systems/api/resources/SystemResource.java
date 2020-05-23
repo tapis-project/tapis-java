@@ -631,7 +631,7 @@ public class SystemResource
 
   /**
    * getSystems
-   * @return - list of systems
+   * @return - list of systems accessible by requester.
    */
   @GET
   @Consumes(MediaType.APPLICATION_JSON)

@@ -189,6 +189,7 @@ public class SystemsResource
    */
   @GET
   @Path("/readycheck")
+  @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
