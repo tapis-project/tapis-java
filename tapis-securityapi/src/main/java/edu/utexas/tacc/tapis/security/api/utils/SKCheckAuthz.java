@@ -37,8 +37,8 @@ public final class SKCheckAuthz
     /*                                    Fields                                    */
     /* **************************************************************************** */
     // Constructor parameters.
-    private final String                _reqTenant;
-    private final String                _reqUser;
+    private final String                _reqTenant;  // never null
+    private final String                _reqUser;    // can be null
     private final SecretPathMapperParms _secretPathParms;
     private final TapisThreadContext    _threadContext;
     private final ArrayList<String>     _failedChecks = new ArrayList<>();;
@@ -137,9 +137,6 @@ public final class SKCheckAuthz
         // Perform the actual checks.
         String emsg = checkMsg();
         if (emsg == null) return null;
-        
-        // Log the error.
-        _log.error(emsg);
         
         // Determine the http failure code.
         Status status;
@@ -426,7 +423,7 @@ public final class SKCheckAuthz
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* checkIsRoleOwner:                                                            */
+    /* checkOwnedRoles:                                                             */
     /* ---------------------------------------------------------------------------- */
     /** Checks the user identified in the request is the role owner.  If more than one
      * role is in the _ownedRoles list, all roles must be owned by the request user. 
@@ -614,7 +611,10 @@ public final class SKCheckAuthz
     /* validatePassword:                                                            */
     /* ---------------------------------------------------------------------------- */
     private boolean validatePassword()
-    {return secretCheckServiceRequestIdentity("ValidatePassword");}
+    {
+        return  secretCheckIsTokensService() ||
+                secretCheckServiceRequestIdentity("ValidatePassword");
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* secretCheckServiceRequestIdentity:                                           */
