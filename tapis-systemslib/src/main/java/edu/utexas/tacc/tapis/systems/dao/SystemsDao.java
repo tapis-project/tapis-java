@@ -32,7 +32,7 @@ public interface SystemsDao
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;
 
-  List<TSystem> getTSystems(String tenant, List<String> selectList) throws TapisException;
+  List<TSystem> getTSystems(String tenant, List<String> searchList, List<Integer> IDs) throws TapisException;
 
   List<String> getTSystemNames(String tenant) throws TapisException;
 

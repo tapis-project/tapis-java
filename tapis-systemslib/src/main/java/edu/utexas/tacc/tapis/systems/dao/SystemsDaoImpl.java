@@ -478,14 +478,19 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /**
    * getSystems
    * @param tenant - tenant name
+   * @param searchList - optional list of conditions used for searching
+   * @param IDs - list of system IDs to consider. null indicates no restriction.
    * @return - list of TSystem objects
    * @throws TapisException - on error
    */
   @Override
-  public List<TSystem> getTSystems(String tenant, List<String> selectList) throws TapisException
+  public List<TSystem> getTSystems(String tenant, List<String> searchList, List<Integer> IDs) throws TapisException
   {
     // The result list is always non-null.
     var list = new ArrayList<TSystem>();
+
+    // If no IDs in list then we are done.
+    if (IDs != null && IDs.isEmpty()) return list;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -497,25 +502,27 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Begin where condition for this query
       Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
-      // TODO Parse selectList and add to the WHERE clause
-      if (selectList != null && !selectList.isEmpty())
+      // Parse searchList and add conditions to the WHERE clause
+      if (searchList != null && !searchList.isEmpty())
       {
-        for (String selectStr : selectList)
+        for (String selectStr : searchList)
         {
-          // TODO Parse select value into column name, operator and value
+          // Parse search value into column name, operator and value
           // Format must be column_name(op)value
           String[] parsedStrArray = selectStr.split("[\\(\\)]", 3);
           // TODO Validate result
           String column = parsedStrArray[0];
           var op = SqlCompareOperator.valueOf(parsedStrArray[1].toUpperCase());
           String val = parsedStrArray[2];
-          // TODO Add the condition to the WHERE clause
-          _log.error("*************************************************Adding where condition: " + selectStr);
+          // Add the condition to the WHERE clause
           // TODO: Check that column exists in table
           Field<Object> col = DSL.field(DSL.name(column));
           whereCondition = addCondition(whereCondition, col, op, val);
         }
       }
+
+      // Add IN condition for list of IDs
+      if (IDs != null && !IDs.isEmpty()) whereCondition = whereCondition.and(SYSTEMS.ID.in(IDs));
 
       Result<SystemsRecord> results = db.selectFrom(SYSTEMS).where(whereCondition).fetch();
       if (results == null || results.isEmpty()) return list;
@@ -525,26 +532,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         s.setJobCapabilities(retrieveJobCaps(db, s.getId()));
         list.add(s);
       }
-
-//      // Get the select command.
-//      String sql = SqlStatements.SELECT_ALL_SYSTEMS;
-//
-//      // Prepare the statement, fill in placeholders and execute
-//      PreparedStatement pstmt = conn.prepareStatement(sql);
-//      pstmt.setString(1, tenant);
-//      ResultSet rs = pstmt.executeQuery();
-//      // Iterate over results
-//      if (rs != null)
-//      {
-//        while (rs.next())
-//        {
-//          // Retrieve job capabilities
-//          int systemId = rs.getInt(1);
-//          List<Capability> jobCaps = retrieveJobCaps(db, systemId);
-//          TSystem system = populateTSystem(rs, jobCaps);
-//          if (system != null) list.add(system);
-//        }
-//      }
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);

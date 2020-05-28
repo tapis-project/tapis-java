@@ -2,7 +2,7 @@
 -- postgres commands to create all tables, indices and other database artifacts required.
 -- Prerequisites:
 -- Create DB named tapissysdb and user named tapis
---   CREATE DATABASE tapissysdb;
+--   CREATE DATABASE tapissysdb ENCODING='UTF8' LC_COLLATE='en_US.utf8' LC_CTYPE='en_US.utf8';
 --   CREATE USER tapis WITH ENCRYPTED PASSWORD '<password>'
 --   GRANT ALL PRIVILEGES ON DATABASE tapissysdb TO tapis;
 -- Fast way to check for table. Might use this at startup during an init phase.
