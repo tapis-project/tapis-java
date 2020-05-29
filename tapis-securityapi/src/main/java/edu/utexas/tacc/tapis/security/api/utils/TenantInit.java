@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
@@ -78,7 +79,13 @@ public final class TenantInit
             try {
                 admins = UserImpl.getInstance().getUsersWithRole(tenant, 
                                                     UserImpl.ADMIN_ROLE_NAME);
-            } catch (Exception e) {
+            }
+            catch (TapisNotFoundException e) {
+                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_WARN", tenant, 
+                                              UserImpl.ADMIN_ROLE_NAME, e.getMessage());
+                _log.warn(msg);
+            }
+            catch (Exception e) {
                 // This should not happen even if the tenant and role don't exist.
                 // We log the problem but proceed.
                 String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", tenant, 
@@ -98,6 +105,9 @@ public final class TenantInit
                 // the role if necessary.  This calls the internal grant method 
                 // that does not check whether the requestor is an administrator. 
                 UserImpl.getInstance().grantAdminRoleInternal(tenant, SK_USER, user);
+                String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, user,
+                                             UserImpl.ADMIN_ROLE_NAME);
+                _log.info(msg);
             } catch (Exception e) {
                 // Log the error and continue on.
                 String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
