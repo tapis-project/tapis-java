@@ -3,11 +3,11 @@ package edu.utexas.tacc.tapis.securitymigrate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.migrate.TapisJDBCMigrate;
-import edu.utexas.tacc.tapis.migrate.TapisJDBCMigrateParms;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;
+import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrate;
+import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrateParms;
 
 /** This utility program migrates the TAPIS_DB_NAME using Flyway.  The options for this 
  * program are implemented in MigrateParms, which can be viewed by running this program 
