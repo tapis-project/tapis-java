@@ -26,11 +26,6 @@
             <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tapis-migrate</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>args4j</groupId>
             <artifactId>args4j</artifactId>
         </dependency>
