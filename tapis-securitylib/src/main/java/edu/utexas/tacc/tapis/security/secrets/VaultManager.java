@@ -44,7 +44,7 @@ public final class VaultManager
     private static VaultManager _instance;
     
     // Save the parms object.
-    private final IVaultManagerParms _parms;
+    private static IVaultManagerParms _parms;
     
     // SK's vault token authentication response that contains its token.
     private AuthResponse _tokenAuth;
@@ -111,7 +111,11 @@ public final class VaultManager
     /* ---------------------------------------------------------------------- */
     /** Return the singleton instance with custom exception handling.  If the
      * boolean parameter is true, then a null singleton can be returned. 
-     * Otherwise, a runtime exception is thrown.  
+     * Otherwise, a runtime exception is thrown.
+     * 
+     * This method performs on-demand initialization retries as long as an
+     * initial attempt to initialize to vault provided configuration parameters
+     * These parameters will be reused on all subsequent initialization attempts.
      * 
      * @param allowNullResult true allows a null return instead of an exception
      *           when the singleton doesn't exist.
@@ -122,8 +126,16 @@ public final class VaultManager
     public static VaultManager getInstance(boolean allowNullResult)
      throws TapisRuntimeException
     {
+        // Try to initialize if a previous attempt failed.
+        if (_instance == null && _parms != null)
+            if (!allowNullResult) return getInstance(_parms);
+              else {
+                  try {getInstance(_parms);} catch (Exception e) {}
+                  return _instance;
+              }
+        
         // Make sure we have an initialed instance.
-        if (!allowNullResult && _instance == null) {
+        if (_instance == null && !allowNullResult) {
             String msg = MsgUtils.getMsg("SK_NO_SECRETS_CONTEXT");
             throw new TapisRuntimeException(msg);
         }
