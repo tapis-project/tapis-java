@@ -15,6 +15,9 @@ import edu.utexas.tacc.tapis.systems.service.SystemsServiceJWTFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.message.filtering.SelectableEntityFilteringFeature;
+import org.glassfish.jersey.moxy.json.MoxyJsonConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -50,6 +53,12 @@ public class SystemsApplication extends ResourceConfig
     // documentation endpoints to be automatically generated.
     register(OpenApiResource.class);
     register(AcceptHeaderOpenApiResource.class);
+
+    // Setup and register Jersey's dynamic filtering
+    property(SelectableEntityFilteringFeature.QUERY_PARAM_NAME, "select");
+    register(SelectableEntityFilteringFeature.class);
+    // To use Jackson in place of Moxy for json parsing register JacksonFeature.class instead
+    register(new MoxyJsonConfig().setFormattedOutput(true).resolver());
 
     // We specify what packages JAX-RS should recursively scan
     // to find annotations.  By setting the value to the top-level
@@ -100,6 +109,7 @@ public class SystemsApplication extends ResourceConfig
   {
     final URI BASE_URI = URI.create("http://0.0.0.0:8080/");
     ResourceConfig config = new SystemsApplication();
+    // Create and start the server
     final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(BASE_URI, config, false);
     server.start();
   }

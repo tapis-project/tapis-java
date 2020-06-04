@@ -123,7 +123,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
               .set(SYSTEMS.JOB_REMOTE_ARCHIVE_SYSTEM, system.getJobRemoteArchiveSystem())
               .set(SYSTEMS.JOB_REMOTE_ARCHIVE_DIR, system.getJobRemoteArchiveDir())
               .set(SYSTEMS.TAGS, tagsStrArray)
-              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .set(SYSTEMS.NOTES, notesObj)
               .returningResult(SYSTEMS.ID)
               .fetchOne();
       systemId = record.getValue(SYSTEMS.ID);
@@ -217,7 +217,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
               .set(SYSTEMS.PROXY_HOST, proxyHost)
               .set(SYSTEMS.PROXY_PORT, patchedSystem.getProxyPort())
               .set(SYSTEMS.TAGS, tagsStrArray)
-              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .set(SYSTEMS.NOTES, notesObj)
               .where(SYSTEMS.ID.eq(systemId))
               .execute();
 
@@ -746,7 +746,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
             .set(SYSTEM_UPDATES.SYSTEM_ID, systemId)
             .set(SYSTEM_UPDATES.USER_NAME, authenticatedUser.getName())
             .set(SYSTEM_UPDATES.OPERATION, op)
-            .set(SYSTEM_UPDATES.UPD_JSONB, TapisGsonUtils.getGson().fromJson(updJsonStr, JsonElement.class))
+            .set(SYSTEM_UPDATES.UPD_JSON, TapisGsonUtils.getGson().fromJson(updJsonStr, JsonElement.class))
             .set(SYSTEM_UPDATES.UPD_TEXT, upd_text)
             .execute();
   }

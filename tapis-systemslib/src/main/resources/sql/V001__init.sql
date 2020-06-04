@@ -18,6 +18,12 @@
 -- All temporal values written to the database are required to be UTC, all temporal
 -- values read from the database can be assumed to be UTC.
 
+-- NOTES for jOOQ
+--   When a POJO has a default constructor (which is needed for jersey's SelectableEntityFilteringFeature)
+--     then column names must match POJO attributes (with convention an_attr -> anAttr)
+--     in order for jOOQ to set the attribute during Record.into()
+--     Possibly another option would be to create a custom mapper to be used by Record.into()
+--
 -- Create the schema and set the search path
 CREATE SCHEMA IF NOT EXISTS tapis_sys AUTHORIZATION tapis;
 ALTER ROLE tapis SET search_path = 'tapis_sys';
@@ -66,8 +72,8 @@ CREATE TABLE systems
   job_local_archive_dir VARCHAR(1024),
   job_remote_archive_system VARCHAR(256),
   job_remote_archive_dir VARCHAR(1024),
-  tags        TEXT[] NOT NULL,
-  notes_jsonb JSONB NOT NULL,
+  tags       TEXT[] NOT NULL,
+  notes      JSONB NOT NULL,
   deleted    BOOLEAN NOT NULL DEFAULT false,
   created    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
@@ -98,7 +104,7 @@ COMMENT ON COLUMN systems.job_local_archive_dir IS 'Parent directory used for ar
 COMMENT ON COLUMN systems.job_remote_archive_system IS 'Remote system on which job output files will be archived';
 COMMENT ON COLUMN systems.job_remote_archive_dir IS 'Parent directory used for archiving job output files on a remote system';
 COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
-COMMENT ON COLUMN systems.notes_jsonb IS 'Notes for general information stored as JSON';
+COMMENT ON COLUMN systems.notes IS 'Notes for general information stored as JSON';
 COMMENT ON COLUMN systems.deleted IS 'Indicates if system has been soft deleted';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';
@@ -111,7 +117,7 @@ CREATE TABLE system_updates
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
     user_name VARCHAR(60) NOT NULL,
     operation operation_type NOT NULL,
-    upd_jsonb JSONB NOT NULL,
+    upd_json JSONB NOT NULL,
     upd_text VARCHAR,
     created TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
@@ -120,7 +126,7 @@ COMMENT ON COLUMN system_updates.id IS 'System update request id';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
 COMMENT ON COLUMN system_updates.user_name IS 'User who requested the update';
 COMMENT ON COLUMN system_updates.operation IS 'Type of update operation';
-COMMENT ON COLUMN system_updates.upd_jsonb IS 'JSON representing the update - with secrets scrubbed';
+COMMENT ON COLUMN system_updates.upd_json IS 'JSON representing the update - with secrets scrubbed';
 COMMENT ON COLUMN system_updates.upd_text IS 'Text data supplied by client - secrets should be scrubbed';
 COMMENT ON COLUMN system_updates.created IS 'UTC time for when record was created';
 

@@ -168,6 +168,7 @@ public class SystemsDaoTest
     }
     // Verify notes
     JsonObject obj = (JsonObject) tmpSys.getNotes();
+    Assert.assertNotNull(obj, "Notes object was null");
     Assert.assertTrue(obj.has("project"));
     Assert.assertEquals(obj.get("project").getAsString(), notesObj.get("project").getAsString());
     Assert.assertTrue(obj.has("testdata"));

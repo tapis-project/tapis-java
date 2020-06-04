@@ -7,7 +7,11 @@ import java.util.List;
 
 public final class RespSystemArray extends RespAbstract
 {
-    public RespSystemArray(List<TSystem> result) { this.result = result;}
-    
-    public List<TSystem> result;
+  /**
+   * Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
+   */
+  public RespSystemArray() { }
+
+  public RespSystemArray(List<TSystem> result) { this.result = result; }
+  public List<TSystem> result;
 }

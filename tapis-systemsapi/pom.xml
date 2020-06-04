@@ -28,10 +28,20 @@
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-servlet</artifactId>
     </dependency>
-    <!-- Allows jersey to parse json if found on classpath -->
+    <!-- Include jersey-media-moxy to allow for parsing of json if found on classpath -->
     <dependency>
       <groupId>org.glassfish.jersey.media</groupId>
       <artifactId>jersey-media-moxy</artifactId>
+    </dependency>
+    <!-- Include jersey-entity-filtering and jersey-media-json-jackson for SelectableEntityFilteringFeature -->
+    <dependency>
+      <groupId>org.glassfish.jersey.ext</groupId>
+      <artifactId>jersey-entity-filtering</artifactId>
+      <version>${jersey-container-servlet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
     </dependency>
     <dependency>
         <groupId>org.glassfish.jersey.inject</groupId>

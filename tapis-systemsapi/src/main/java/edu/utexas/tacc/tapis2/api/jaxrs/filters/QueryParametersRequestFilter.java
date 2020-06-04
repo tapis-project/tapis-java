@@ -100,17 +100,6 @@ public class QueryParametersRequestFilter implements ContainerRequestFilter
       threadContext.setSearchList(parmList);
     }
 
-    // Look for and extract attributes query parameter.
-    if (queryParameters.containsKey(PARM_ATTRIBUTES))
-    {
-      String parmValue = queryParameters.get(PARM_ATTRIBUTES).get(0);
-      _log.trace("Found query parameter. Name: " + PARM_ATTRIBUTES + " Value: " + parmValue);
-      // Split attributes into list of strings
-      // TODO/TBD validate?
-      List<String> attrList = Arrays.asList(parmValue.split(","));
-      threadContext.setReturnAttributesList(attrList);
-    }
-
     // Look for and extract limit query parameter.
     if (queryParameters.containsKey(PARM_LIMIT))
     {
