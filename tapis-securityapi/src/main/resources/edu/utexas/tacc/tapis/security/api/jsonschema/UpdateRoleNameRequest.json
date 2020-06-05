@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/UpdateRoleRequest",
-    "description": "Top-level schema for a role update request",
+    "$id": "http://tapis.tacc.utexas.edu/UpdateRoleNameRequest",
+    "description": "Top-level schema for a role name update request",
     "additionalProperties": false,
     "type": "object",
         "properties": {

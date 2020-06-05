@@ -452,9 +452,9 @@ public final class SKCheckAuthz
                 // We expect the request user to own the role or the obo user
                 // to own it on service jwts.
                 var skRole = roleImpl.getRoleByName(_reqTenant, roleName);
-                if (skRole == null || !_reqUser.equals(skRole.getCreatedby()) ||
+                if (skRole == null || !_reqUser.equals(skRole.getOwner()) ||
                     !(_threadContext.getAccountType() == AccountType.service &&
-                      _threadContext.getOboUser().equals(skRole.getCreatedby()))) 
+                      _threadContext.getOboUser().equals(skRole.getOwner()))) 
                 {
                     // The role doesn't exist or request user is not its owner.
                     authorized = false;

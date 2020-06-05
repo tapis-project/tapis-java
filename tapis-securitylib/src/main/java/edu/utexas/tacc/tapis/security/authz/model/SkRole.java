@@ -27,6 +27,7 @@ public final class SkRole
     private String  createdby;
     private Instant updated;
     private String  updatedby;
+    private String  owner;
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
@@ -282,5 +283,13 @@ public final class SkRole
 
     public void setUpdatedby(String updatedby) {
         this.updatedby = updatedby;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 }

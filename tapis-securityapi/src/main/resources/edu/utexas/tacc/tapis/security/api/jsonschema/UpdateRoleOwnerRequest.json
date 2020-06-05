@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$id": "http://tapis.tacc.utexas.edu/UpdateRoleDescriptionRequest",
-    "description": "Top-level schema for a role description update request",
+    "$id": "http://tapis.tacc.utexas.edu/UpdateRoleOwnerRequest",
+    "description": "Top-level schema for a role owner update request",
     "additionalProperties": false,
     "type": "object",
         "properties": {
@@ -11,14 +11,14 @@
           "user": {
             "type": "string"
           },
-          "description": {
+          "newOwner": {
             "type": "string"
           }
         },
     "required": [
         "tenant",
         "user",
-        "description"
+        "newOwner"
     ]
 }
 

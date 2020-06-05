@@ -26,7 +26,7 @@ public final class TenantInit
     private static final Logger _log = LoggerFactory.getLogger(TenantInit.class);
     
     // The user representing SK.
-    private static final String SK_USER = "SecurityKernel";
+    private static final String SK_USER = UserImpl.SK_USER;
 
     /* ********************************************************************** */
     /*                                Fields                                  */

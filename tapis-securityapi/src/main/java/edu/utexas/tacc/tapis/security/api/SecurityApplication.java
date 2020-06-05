@@ -13,7 +13,40 @@ import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@OpenAPIDefinition(
+        info = @Info(title = "Tapis Security API",
+                     version = "0.1",
+                     description = "The Tapis Security API provides access to the " +
+                     "Tapis Security Kernel authorization and secrets facilities.",
+                     license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
+                     contact = @Contact(name = "CICSupport", 
+                                        email = "cicsupport@tacc.utexas.edu")),
+        tags = {@Tag(name = "role", description = "manage roles and permissions"),
+                @Tag(name = "user", description = "assign roles and permissions to users"),
+                @Tag(name = "vault", description = "manage application and user secrets"),
+                @Tag(name = "general", description = "informational endpoints")},
+        servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
+        externalDocs = @ExternalDocumentation(description = "Tapis Home",
+                                     url = "https://tacc-cloud.readthedocs.io/projects/agave/en/latest/")
+)
+@SecurityScheme(
+        name="TapisJWT",
+        description="Tapis signed JWT token authentication",
+        type=SecuritySchemeType.APIKEY,
+        in=SecuritySchemeIn.HEADER,
+        paramName="X-Tapis-Token"
+)
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
 // container (command line) and in an IDE (eclipse). 

@@ -37,8 +37,10 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleName;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleOwner;
 import edu.utexas.tacc.tapis.security.api.responses.RespPathPrefixes;
 import edu.utexas.tacc.tapis.security.api.responses.RespRole;
+import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.model.SkRole;
@@ -59,6 +61,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/role")
 public final class RoleResource 
@@ -75,6 +78,8 @@ public final class RoleResource
         "/edu/utexas/tacc/tapis/security/api/jsonschema/CreateRoleRequest.json";
     private static final String FILE_SK_UPDATE_ROLE_NAME_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleNameRequest.json";
+    private static final String FILE_SK_UPDATE_ROLE_OWNER_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleOwnerRequest.json";
     private static final String FILE_SK_UPDATE_ROLE_DESCRIPTION_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/UpdateRoleDescriptionRequest.json";
     private static final String FILE_SK_ADD_ROLE_PERM_REQUEST = 
@@ -143,10 +148,12 @@ public final class RoleResource
      @GET
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get the names of all roles in the tenant in alphabetic order.\n\n"
+             description = "Get the names of all roles in the tenant in alphabetic order.  "
+                     + "Future enhancements will include search filtering.\n\n"
                      + ""
                      + "A valid tenant must be specified as a query parameter.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of role names returned.",
                      content = @Content(schema = @Schema(
@@ -217,6 +224,7 @@ public final class RoleResource
          description = "Get the named role's definition.  A valid tenant must be "
                        + "specified as a query parameter.",
          tags = "role",
+         security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
                content = @Content(schema = @Schema(
@@ -303,6 +311,7 @@ public final class RoleResource
                            + ""
                            + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -368,7 +377,8 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().createRole(tenant, user, roleName, description);
+             String creator = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             rows = getRoleImpl().createRole(tenant, user, creator, roleName, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint);
@@ -400,6 +410,7 @@ public final class RoleResource
          description = "Delete the named role. A valid tenant and user must be "
                        + "specified as query parameters.",
          tags = "role",
+         security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
              {@ApiResponse(responseCode = "200", description = "Role deleted.",
                  content = @Content(schema = @Schema(
@@ -482,6 +493,7 @@ public final class RoleResource
                  + "only retrieve permissions directly assigned to the role.  A valid "
                  + "tenant must be specified.",
          tags = "role",
+         security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
                content = @Content(schema = @Schema(
@@ -563,6 +575,7 @@ public final class RoleResource
                            + ""
                            + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -597,6 +610,15 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
+         // Make sure the existing role name is not reserved.
+         if (!SKApiUtils.isValidName(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "roleName",
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // Parse and validate the json in the request payload, which must exist.
          ReqUpdateRoleName payload = null;
          try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_NAME_REQUEST, 
@@ -638,6 +660,104 @@ public final class RoleResource
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
              MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint)).build();
      }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* updateRoleOwner:                                                             */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/updateOwner/{roleName}")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Update an existing role owner using a request body.  "
+                           + ""
+                           + "A valid tenant and user must be specified in the request body.",
+             tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleOwner.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Role owner updated.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "404", description = "Named role not found.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response updateRoleOwner(@PathParam("roleName") String roleName,
+                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                     InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "updateRoleOwner", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Make sure the existing role name is not reserved.
+         if (!SKApiUtils.isValidName(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "roleName",
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Parse and validate the json in the request payload, which must exist.
+         ReqUpdateRoleOwner payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_OWNER_REQUEST, 
+                                   ReqUpdateRoleOwner.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "updateRoleOwner", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String tenant = payload.tenant;
+         String user   = payload.user;
+         String newOwner = payload.newOwner;
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Create the role.
+         int rows = 0;
+         try {
+             rows = getRoleImpl().updateRoleOwner(tenant, user, roleName, newOwner);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
+             return getExceptionResponse(e, msg, prettyPrint, "Role");
+         }
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Role", roleName), prettyPrint)).build();
+     }
 
      /* ---------------------------------------------------------------------------- */
      /* updateRoleDescription:                                                       */
@@ -651,6 +771,7 @@ public final class RoleResource
                            + "The size limit on a description is 2048 characters.  "
                            + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -686,6 +807,15 @@ public final class RoleResource
          }
          
          // ------------------------- Input Processing -------------------------
+         // Make sure the existing role name is not reserved.
+         if (!SKApiUtils.isValidName(roleName)) {
+             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "updateRoleName", "roleName",
+                                          roleName);
+             _log.error(msg);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
          // Parse and validate the json in the request payload, which must exist.
          ReqUpdateRoleDescription payload = null;
          try {payload = getPayload(payloadStream, FILE_SK_UPDATE_ROLE_DESCRIPTION_REQUEST, 
@@ -757,6 +887,7 @@ public final class RoleResource
                          + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -850,6 +981,7 @@ public final class RoleResource
              description = "Remove a permission from a role using a request body.  "
                      + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -948,6 +1080,7 @@ public final class RoleResource
                          + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1042,6 +1175,7 @@ public final class RoleResource
              description = "Remove a child role from a parent role using a request body.  "
                      + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1170,6 +1304,7 @@ public final class RoleResource
                          + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1323,6 +1458,7 @@ public final class RoleResource
                          + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,

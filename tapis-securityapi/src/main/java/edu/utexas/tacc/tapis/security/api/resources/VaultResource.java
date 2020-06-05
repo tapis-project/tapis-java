@@ -57,6 +57,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 /** Endpoints that communicate with Hashicorp Vault.
  * 
@@ -192,6 +193,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
                       content = @Content(schema = @Schema(
@@ -352,6 +354,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -509,6 +512,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -663,6 +667,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -816,6 +821,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -963,6 +969,7 @@ public final class VaultResource
                          + "  - **service** - *no query parameters*\n"
                          + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret read.",
                       content = @Content(schema = @Schema(
@@ -1097,6 +1104,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secrets listed.",
                       content = @Content(schema = @Schema(
@@ -1228,6 +1236,7 @@ public final class VaultResource
                            + "  - **service** - *no query parameters*\n"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret completely removed.",
                       content = @Content(schema = @Schema(
@@ -1335,6 +1344,7 @@ public final class VaultResource
                            + "converted to slashes upon receipt, allowing secrets to be "
                            + "arranged in folders.\n\n",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,

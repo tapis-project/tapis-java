@@ -60,6 +60,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/user")
 public final class UserResource
@@ -153,6 +154,7 @@ public final class UserResource
              description = "Get the names of all users in the tenant that "
                            + "have been granted a role or permission.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of user names.",
                      content = @Content(schema = @Schema(
@@ -221,6 +223,7 @@ public final class UserResource
              description = "Get the roles assigned to a user in the specified tenant, "
                      + "including those assigned transively.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of roles names assigned to the user.",
                      content = @Content(schema = @Schema(
@@ -323,6 +326,7 @@ public final class UserResource
                      + "    stream:dev:read,write,exec:project1\n\n"
                      + "",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "List of permissions assigned to the user.",
                      content = @Content(schema = @Schema(
@@ -397,6 +401,7 @@ public final class UserResource
              description = "Grant a user the specified role.  A valid tenant and user "
                      + "must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -492,6 +497,7 @@ public final class UserResource
                      + ""
                      + "A valid tenant and user must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -589,6 +595,7 @@ public final class UserResource
              description = "Grant a user the tenant administrator role.  A valid tenant and user "
                      + "must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -686,6 +693,7 @@ public final class UserResource
                      + ""
                      + "A valid tenant and user must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -781,6 +789,7 @@ public final class UserResource
              description = "Check whether a user in a tenant has been assigned "
                      + "the tenant administrator role, either directly or transitively.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -843,6 +852,7 @@ public final class UserResource
      @Operation(
              description = "Get all users assigned the tenant administrator role ($!tenant_admin).",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of administrator users.",
                      content = @Content(schema = @Schema(
@@ -893,6 +903,7 @@ public final class UserResource
                      + "The change count returned can range from zero to three "
                      + "depending on how many insertions and updates were actually required.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -995,6 +1006,7 @@ public final class UserResource
                      + ""
                      + "A valid tenant and user must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1096,6 +1108,7 @@ public final class UserResource
                          + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1195,6 +1208,7 @@ public final class UserResource
              description = "Check whether a user in a tenant has been assigned "
                      + "the specified role, either directly or transitively.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1260,6 +1274,7 @@ public final class UserResource
              description = "Check whether a user in a tenant has been assigned "
                      + "any of the roles specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1304,6 +1319,7 @@ public final class UserResource
              description = "Check whether a user in a tenant has been assigned "
                      + "all of the roles specified in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1348,6 +1364,7 @@ public final class UserResource
              description = "Check whether specified permission matches a permission "
                            + "assigned to the user, either directly or transitively.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1413,6 +1430,7 @@ public final class UserResource
              description = "Check whether a user's permissions satisfy any of the "
                            + "permission specifications contained in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1457,6 +1475,7 @@ public final class UserResource
              description = "Check whether a user's permissions satisfy all of the "
                            + "permission specifications contained in the request body.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1499,6 +1518,7 @@ public final class UserResource
      @Operation(
              description = "Get all users assigned a role.  The role must exist in the tenant.",
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a role.",
                      content = @Content(schema = @Schema(
@@ -1590,6 +1610,7 @@ public final class UserResource
                + "The wildcard character cannot appear as the first character in the permSpec.",
 
              tags = "user",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Sorted list of users assigned a permission.",
                      content = @Content(schema = @Schema(

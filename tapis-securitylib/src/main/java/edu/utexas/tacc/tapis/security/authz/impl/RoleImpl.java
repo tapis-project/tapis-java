@@ -131,7 +131,7 @@ public final class RoleImpl
     /* createRole:                                                            */
     /* ---------------------------------------------------------------------- */
     public int createRole(String tenant, String user, String roleName, 
-                          String description) 
+                          String creator, String description) 
      throws TapisImplException
     {
         // Get the dao.
@@ -145,7 +145,7 @@ public final class RoleImpl
         
         // Create the role.
         int rows = 0;
-        try {rows = dao.createRole(tenant, user, roleName, description);}
+        try {rows = dao.createRole(tenant, user, creator, roleName, description);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", 
                                              tenant, user, roleName);
@@ -262,6 +262,41 @@ public final class RoleImpl
         // Create the role.
         int rows = 0;
         try {rows = dao.updateRoleName(tenant, user, roleName, newRoleName);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);  
+            }
+        
+        // Treat misguided updates as errors.
+        if (rows == 0) {
+            String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+            _log.error(msg);
+            throw new TapisNotFoundException(msg, roleName);
+        }
+        
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* updateRoleName:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public int updateRoleOwner(String tenant, String user, String roleName,
+                              String newOwner) 
+     throws TapisImplException, TapisNotFoundException
+    {
+        // Get the dao.
+        SkRoleDao dao = null;
+        try {dao = getSkRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
+             }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.updateRoleOwner(tenant, user, roleName, newOwner);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
                 _log.error(msg, e);
