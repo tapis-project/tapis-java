@@ -575,7 +575,7 @@ public class SystemResource
       tags = "systems",
       parameters = {
         @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean")),
-        @Parameter(name = "select", description = "Resource attributes to include when returning results",
+        @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
                    in = ParameterIn.QUERY, schema = @Schema(type = "string"))
       },
       responses = {
@@ -642,7 +642,9 @@ public class SystemResource
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
     RespSystem resp1 = new RespSystem(system);
-    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
+    Response tmpResp = createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
+    return tmpResp;
+//    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
   }
 
   /**
@@ -658,7 +660,7 @@ public class SystemResource
     tags = "systems",
     parameters = {
       @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean")),
-      @Parameter(name = "select", description = "Resource attributes to include when returning results",
+      @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
                  in = ParameterIn.QUERY, schema = @Schema(type = "string")),
       @Parameter(name = "search", description = "Search conditions to use when retrieving results",
                  in = ParameterIn.QUERY, schema = @Schema(type = "string"))

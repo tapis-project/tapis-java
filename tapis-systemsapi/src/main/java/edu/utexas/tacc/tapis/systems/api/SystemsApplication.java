@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.systems.api;
 import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
+import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
@@ -57,8 +59,15 @@ public class SystemsApplication extends ResourceConfig
     // Setup and register Jersey's dynamic filtering
     property(SelectableEntityFilteringFeature.QUERY_PARAM_NAME, "select");
     register(SelectableEntityFilteringFeature.class);
-    // To use Jackson in place of Moxy for json parsing register JacksonFeature.class instead
-    register(new MoxyJsonConfig().setFormattedOutput(true).resolver());
+    // Register either Jackson or Moxy for SelectableEntityFiltering
+    // NOTE: Using Moxy works when running from Intellij IDE but breaks things when running in docker.
+    register(new MoxyJsonConfig().resolver());
+//    register(new MoxyJsonConfig().setFormattedOutput(true).resolver());
+//    register(JacksonFeature.class);
+
+    // Needed for returning a standard Tapis response for non-Tapis exceptions.
+    register(TapisExceptionMapper.class);
+    register(ValidationExceptionMapper.class);
 
     // We specify what packages JAX-RS should recursively scan
     // to find annotations.  By setting the value to the top-level

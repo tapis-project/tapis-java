@@ -35,6 +35,10 @@
     </dependency>
     <!-- Include jersey-entity-filtering and jersey-media-json-jackson for SelectableEntityFilteringFeature -->
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.glassfish.jersey.ext</groupId>
       <artifactId>jersey-entity-filtering</artifactId>
       <version>${jersey-container-servlet.version}</version>
@@ -111,24 +115,44 @@
           </archive>
         </configuration>
       </plugin>
-
+<!-- Looks like removing shaded jar and copying dependencies instead
+     may solve SelectableEntityFilteringFeature problem. Needs more testing.
+     Previously found needed to use JacksonFeature instead of moxy to avoid error when running under docker
+     but needed to run moxy instead of JacksonFeature to avoid problem with not returning these attributes: notes, created, upddated.
+-->
+        <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.1.1</version>
+            <executions>
+                <execution>
+                    <phase>prepare-package</phase>
+                    <goals>
+                        <goal>copy-dependencies</goal>
+                    </goals>
+                    <configuration>
+                        <includeScope>runtime</includeScope>
+                        <outputDirectory>target/dependencies</outputDirectory>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
       <!-- *** Create shaded fat jar for standalone execution *** -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
-        <configuration>
-          <createDependencyReducedPom>false</createDependencyReducedPom>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+<!--      <plugin>-->
+<!--        <groupId>org.apache.maven.plugins</groupId>-->
+<!--        <artifactId>maven-shade-plugin</artifactId>-->
+<!--        <version>${maven-shade-plugin.version}</version>-->
+<!--        <configuration>-->
+<!--          <createDependencyReducedPom>false</createDependencyReducedPom>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <phase>package</phase>-->
+<!--            <goals>-->
+<!--              <goal>shade</goal>-->
+<!--            </goals>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
 
       <!-- Generate the openapi documentation from the code -->
       <plugin>
