@@ -56,6 +56,7 @@ public class SecurityApplication
 {
     public SecurityApplication()
     {
+        // ------------------ Unrecoverable Errors ------------------
         // Log our existence.
         System.out.println("**** Starting tapis-securityapi ****");
         
@@ -73,14 +74,27 @@ public class SecurityApplication
         packages("edu.utexas.tacc.tapis");
         setApplicationName("security"); 
         
+        // Initialize our parameters.  A failure here is unrecoverable.
+        RuntimeParameters parms = null;
+        try {parms = RuntimeParameters.getInstance();}
+            catch (Exception e) {
+                // We don't depend on the logging subsystem.
+                System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi RuntimeParameters ****");
+                e.printStackTrace();
+                throw e;
+            }
+        System.out.println("**** SUCCESS:  RuntimeParameters read ****");
+        
+        // ------------------- Recoverable Errors -------------------
         // Force runtime initialization of vault.
-        try {VaultManager.getInstance(RuntimeParameters.getInstance());}
+        boolean success = false;
+        try {VaultManager.getInstance(parms); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
                 System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi VaultManager ****");
                 e.printStackTrace();
-                throw e;
             }
+        if (success) System.out.println("**** SUCCESS:  VaultManager initialized ****");
         
         // Force runtime initialization of the tenant manager.  This creates the
         // singleton instance of the TenantManager that can then be accessed by
@@ -91,24 +105,27 @@ public class SecurityApplication
             // The base url of the tenants service is a required input parameter.
             // We actually retrieve the tenant list from the tenant service now
             // to fail fast if we can't access the list.
-            String url = RuntimeParameters.getInstance().getTenantBaseUrl();
+            String url = parms.getTenantBaseUrl();
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
             // We don't depend on the logging subsystem.
             System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager ****");
             e.printStackTrace();
-            throw e;
         }
+        if (tenantMap != null)
+            System.out.println("**** SUCCESS:  " + tenantMap.size() + " tenants retrieved ****");
         
         // Initialize tenant roles and administrators.
-        try {TenantInit.initializeTenants(tenantMap);}
+        success = false;
+        try {TenantInit.initializeTenants(tenantMap); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
                 System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantInit ****");
                 e.printStackTrace();
-                throw e;
             }
+        if (success) System.out.println("**** SUCCESS:  Tenant admins initialized ****");
         
+        // We're done.
         System.out.println("**** tapis-securityapi Initialized ****");
     }
 }

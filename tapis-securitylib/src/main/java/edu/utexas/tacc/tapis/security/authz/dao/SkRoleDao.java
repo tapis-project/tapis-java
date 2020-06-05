@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -32,6 +33,9 @@ public final class SkRoleDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SkRoleDao.class);
+  
+  // Keep track of the last monitoring outcome.
+  private static final AtomicBoolean _lastQueryDBSucceeded = new AtomicBoolean(true);
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -1092,7 +1096,8 @@ public final class SkRoleDao
   /* ---------------------------------------------------------------------- */
   /* queryDB:                                                               */
   /* ---------------------------------------------------------------------- */
-  /** Probe connectivity to the specified table.
+  /** Probe connectivity to the specified table.  This method is called during
+   * monitoring so most errors are not logged to avoid filling up our logs.
    * 
    * @param tableName the tenant id
    * @return 0 or 1 depending on whether the table is empty or not
@@ -1134,27 +1139,26 @@ public final class SkRoleDao
     
           // Commit the transaction.
           conn.commit();
+          
+          // Toggle the last outcome flag if necessary.
+          if (_lastQueryDBSucceeded.compareAndSet(false, true))
+              _log.info(MsgUtils.getMsg("DB_SELECT_ID_ERROR_CLEARED"));
       }
       catch (Exception e)
       {
           // Rollback transaction.
           try {if (conn != null) conn.rollback();}
-              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+              catch (Exception e1){}
           
+          // Log the first error after a reigning success.
           String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "tableName", tableName, e.getMessage());
-          _log.error(msg, e);
+          if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg, e); 
           throw new TapisException(msg, e);
       }
       finally {
           // Always return the connection back to the connection pool.
           try {if (conn != null) conn.close();}
-            catch (Exception e) 
-            {
-              // If commit worked, we can swallow the exception.  
-              // If not, the commit exception will be thrown.
-              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-              _log.error(msg, e);
-            }
+            catch (Exception e){} 
       }
       
       return rows;

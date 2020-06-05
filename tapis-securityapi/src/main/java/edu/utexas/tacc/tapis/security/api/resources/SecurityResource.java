@@ -24,6 +24,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
@@ -52,6 +53,9 @@ public final class SecurityResource
     
     // The table we query during readiness checks.
     private static final String QUERY_TABLE = "sk_role";
+    
+    // Keep track of the last db monitoring outcome.
+    private static final AtomicBoolean _lastQueryDBSucceeded = new AtomicBoolean(true);
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -102,9 +106,6 @@ public final class SecurityResource
     
      // Count the number of healthchecks requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
-     
-     // The flag set after the first successful database readiness check.
-     private static final AtomicBoolean _readyDBOnce = new AtomicBoolean();
      
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -177,46 +178,39 @@ public final class SecurityResource
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
                    content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class))),
+               @ApiResponse(responseCode = "503", description = "Service unavailable.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class)))}
       )
   public Response checkHealth()
   {
-      // Get the current check count.
-      long checkNum = _healthChecks.incrementAndGet();
+      // Assign the current check count to the probe result object.
+      var skProbe = new SkProbe();
+      skProbe.checkNum = _healthChecks.incrementAndGet();
       
-      // Check the database only after a DB readiness check has succeeded.
-      if (_readyDBOnce.get()) 
-          if (!queryDB(DB_HEALTH_TIMEOUT_MS)) {
-              // Failure case.
-              RespBasic r = new RespBasic("Health DB check " + checkNum + " failed.");
-              String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
-              return Response.status(Status.SERVICE_UNAVAILABLE).
-                  entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-          }
+      // Check the database.
+      if (queryDB(DB_HEALTH_TIMEOUT_MS)) skProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (!queryTenants()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-      }
+      if (queryTenants()) skProbe.tenantsAccess = true;
       
       // Check the health of vault.
       var vaultMgr = VaultManager.getInstance(true);
-      if (vaultMgr == null || !vaultMgr.isHealthy()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Health secrets check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      if (vaultMgr != null && vaultMgr.isHealthy()) skProbe.vaultAccess = true;
+      
+      // Create the response object.
+      RespProbe r = new RespProbe(skProbe);
+      
+      // Failure case.
+      if (skProbe.failed()) {
+        String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
+        return Response.status(Status.SERVICE_UNAVAILABLE).
+            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
       }
       
       // ---------------------------- Success ------------------------------- 
       // Create the response payload.
-      RespBasic r = new RespBasic("Healthcheck " + checkNum + " received.");
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_HEALTHY", "Security Kernel"), false, r)).build();
   }
@@ -254,49 +248,39 @@ public final class SecurityResource
           responses = 
               {@ApiResponse(responseCode = "200", description = "Service ready.",
                    content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class))),
+               @ApiResponse(responseCode = "503", description = "Service unavailable.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class)))}
       )
   public Response ready()
   {
-      // Get the current check count.
-      long checkNum = _readyChecks.incrementAndGet();
+      // Assign the current check count to the probe result object.
+      var skProbe = new SkProbe();
+      skProbe.checkNum = _readyChecks.incrementAndGet();
       
-      // Test connectivity only if no success has ever been recorded.
-      // There could be a race condition here but the worst that could
-      // happen is an extra readiness check or two would query the db.
-      if (!_readyDBOnce.get()) 
-          if (queryDB(DB_READY_TIMEOUT_MS)) _readyDBOnce.set(true);
-            else {
-                // Failure case.
-                RespBasic r = new RespBasic("Readiness DB check " + checkNum + " failed.");
-                String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-                return Response.status(Status.SERVICE_UNAVAILABLE).
-                    entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-            }
+      // Check the database.
+      if (queryDB(DB_READY_TIMEOUT_MS)) skProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (!queryTenants()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-      }
+      if (queryTenants()) skProbe.tenantsAccess = true;
       
       // Check the readiness of vault.
       var vaultMgr = VaultManager.getInstance(true);
-      if (vaultMgr == null || !vaultMgr.isReady()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness secrets check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      if (vaultMgr != null && vaultMgr.isReady()) skProbe.vaultAccess = true;
+      
+      // Create the response object.
+      RespProbe r = new RespProbe(skProbe);
+      
+      // Failure case.
+      if (skProbe.failed()) {
+        String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+        return Response.status(Status.SERVICE_UNAVAILABLE).
+            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
       }
       
       // ---------------------------- Success -------------------------------
       // Create the response payload.
-      RespBasic r = new RespBasic("Readiness check " + checkNum + " received.");
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_READY", "Security Kernel"), false, r)).build();
   }
@@ -307,7 +291,7 @@ public final class SecurityResource
   /* ---------------------------------------------------------------------------- */
   /* queryDB:                                                                     */
   /* ---------------------------------------------------------------------------- */
-  /** Probe the database with a simple database query.
+  /** Probe the database with a simple database query and minimal logging.
    * 
    * @param timeoutMillis millisecond limit for success
    * @return true for success, false otherwise
@@ -328,14 +312,15 @@ public final class SecurityResource
           if (elapsed > timeoutMillis) {
               String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
                                            "Excessive query time (" + elapsed + " milliseconds)");
-              _log.error(msg);
+              if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg);
               success = false;
-          }
+          } else if (_lastQueryDBSucceeded.compareAndSet(false, true))
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "database"));
       }
       catch (Exception e) {
           // Any exception causes us to report failure.
           String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
-          _log.error(msg, e);
+          if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg, e);
           success = false;
       }
       
@@ -373,4 +358,17 @@ public final class SecurityResource
       return success;
   }
   
+  /* **************************************************************************** */
+  /*                                    Fields                                    */
+  /* **************************************************************************** */
+  // Simple class to collect probe results.
+  public final static class SkProbe
+  {
+      public long    checkNum;
+      public boolean databaseAccess;
+      public boolean vaultAccess;
+      public boolean tenantsAccess;
+      
+      public boolean failed() {return !(databaseAccess && vaultAccess && tenantsAccess);}
+  }
 }

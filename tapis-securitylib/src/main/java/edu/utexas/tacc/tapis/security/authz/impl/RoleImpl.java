@@ -605,6 +605,12 @@ public final class RoleImpl
     /* ---------------------------------------------------------------------- */
     /* queryDB:                                                               */
     /* ---------------------------------------------------------------------- */
+    /** This monitoring method does very little logging to avoid log thrashing.
+     * 
+     * @param tableName the table to be queried
+     * @return 0 or 1 on success
+     * @throws TapisImplException on error
+     */
     public int queryDB(String tableName) throws TapisImplException
     {
         // Get the dao.
@@ -621,7 +627,6 @@ public final class RoleImpl
         try {rows = dao.queryDB(tableName);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("DB_QUERY_DB_ERROR", tableName);
-            _log.error(msg, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
          }
 

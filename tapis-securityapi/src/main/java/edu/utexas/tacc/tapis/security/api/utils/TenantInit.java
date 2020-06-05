@@ -108,7 +108,8 @@ public final class TenantInit
                 String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, user,
                                              UserImpl.ADMIN_ROLE_NAME);
                 _log.info(msg);
-            } catch (Exception e) {
+            } 
+            catch (Exception e) {
                 // Log the error and continue on.
                 String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
                                              user, e.getMessage());
