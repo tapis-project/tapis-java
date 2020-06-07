@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.security.PermitAll;
@@ -27,15 +26,14 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.LogSiteToggle;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public final class SecurityResource
@@ -55,7 +53,7 @@ public final class SecurityResource
     private static final String QUERY_TABLE = "sk_role";
     
     // Keep track of the last db monitoring outcome.
-    private static final AtomicBoolean _lastQueryDBSucceeded = new AtomicBoolean(true);
+    private static final LogSiteToggle _lastQueryDBSucceeded = new LogSiteToggle();
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -310,17 +308,21 @@ public final class SecurityResource
           // Did the query take too long?
           long elapsed = Instant.now().toEpochMilli() - startTime;
           if (elapsed > timeoutMillis) {
-              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                           "Excessive query time (" + elapsed + " milliseconds)");
-              if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg);
+              if (_lastQueryDBSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                               "Excessive query time (" + elapsed + " milliseconds)");
+                  _log.error(msg);
+              }
               success = false;
-          } else if (_lastQueryDBSucceeded.compareAndSet(false, true))
+          } else if (_lastQueryDBSucceeded.toggleOn())
               _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "database"));
       }
       catch (Exception e) {
-          // Any exception causes us to report failure.
-          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
-          if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg, e);
+          // Any exception causes us to report failure on first recent occurrence.
+          if (_lastQueryDBSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
+              _log.error(msg, e);
+          }
           success = false;
       }
       

@@ -7,7 +7,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -19,6 +18,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.LogSiteToggle;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
  * database.  If this subproject becomes its own service, then it will
@@ -35,7 +35,7 @@ public final class SkRoleDao
   private static final Logger _log = LoggerFactory.getLogger(SkRoleDao.class);
   
   // Keep track of the last monitoring outcome.
-  private static final AtomicBoolean _lastQueryDBSucceeded = new AtomicBoolean(true);
+  private static final LogSiteToggle _lastQueryDBSucceeded = new LogSiteToggle();
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -1141,7 +1141,7 @@ public final class SkRoleDao
           conn.commit();
           
           // Toggle the last outcome flag if necessary.
-          if (_lastQueryDBSucceeded.compareAndSet(false, true))
+          if (_lastQueryDBSucceeded.toggleOn())
               _log.info(MsgUtils.getMsg("DB_SELECT_ID_ERROR_CLEARED"));
       }
       catch (Exception e)
@@ -1152,7 +1152,7 @@ public final class SkRoleDao
           
           // Log the first error after a reigning success.
           String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "tableName", tableName, e.getMessage());
-          if (_lastQueryDBSucceeded.compareAndSet(true, false)) _log.error(msg, e); 
+          if (_lastQueryDBSucceeded.toggleOff()) _log.error(msg, e); 
           throw new TapisException(msg, e);
       }
       finally {
