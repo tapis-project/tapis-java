@@ -69,6 +69,7 @@
         <filtering>true</filtering>
         <includes>
           <include>**/tapis.version</include>
+          <include>**/tapis.fullversion</include>
           <include>**/git.info</include>
           <include>**/build.time</include>
         </includes>
@@ -86,6 +87,7 @@
         </includes>
         <excludes>
           <exclude>**/tapis.version</exclude>
+          <exclude>**/tapis.fullversion</exclude>
           <exclude>**/git.info</exclude>
           <exclude>**/build.time</exclude>
         </excludes>

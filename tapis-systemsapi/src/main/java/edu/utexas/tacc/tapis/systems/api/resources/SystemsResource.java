@@ -20,6 +20,9 @@ import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
@@ -167,8 +170,13 @@ public class SystemsResource
     // Get the current check count.
     long checkNum = _healthCheckCount.incrementAndGet();
     RespBasic resp = new RespBasic("Health check received. Count: " + checkNum);
-    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service"), false, resp)).build();
+
+    // Manually create a success response with git info included in version
+    resp.status = ResponseWrapper.RESPONSE_STATUS.success.name();
+    resp.message = MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service");
+    resp.version = TapisUtils.getTapisFullVersion();
+    String respStr = TapisGsonUtils.getGson().toJson(resp);
+    return Response.status(Status.OK).entity(respStr).build();
   }
 
   /**
