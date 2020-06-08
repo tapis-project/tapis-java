@@ -667,8 +667,6 @@ public class SystemResource
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     boolean prettyPrint = threadContext.getPrettyPrint();
-    List<String> selectList = threadContext.getSelectList();
-    if (selectList != null && !selectList.isEmpty()) _log.error(" *************************************** Using selectList. First value = " + selectList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -677,7 +675,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     List<TSystem> systems;
-    try { systems = systemsService.getSystems(authenticatedUser, selectList); }
+    try { systems = systemsService.getSystems(authenticatedUser, null); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());

@@ -65,6 +65,6 @@ public class SelectRequestFilter implements ContainerRequestFilter
 //    uriBuilder.replaceQueryParam(PARM_NAME, (Object[]) null).build();
 //    requestContext.setRequestUri(uriBuilder.build());
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-    threadContext.setSelectList(parmList);
+//    threadContext.setSelectList(parmList);
   }
 }

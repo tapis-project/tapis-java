@@ -122,6 +122,7 @@
     <orderEntry type="library" name="Maven: javax.validation:validation-api:1.1.0.Final" level="project" />
     <orderEntry type="module" module-name="tapis-systemslib" />
     <orderEntry type="module" module-name="tapis-shared-db" />
+    <orderEntry type="library" name="Maven: org.flywaydb:flyway-core:6.0.8" level="project" />
     <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:3.2.3" level="project" />
     <orderEntry type="library" name="Maven: p6spy:p6spy:3.8.3" level="project" />
     <orderEntry type="module" module-name="security-client" />
