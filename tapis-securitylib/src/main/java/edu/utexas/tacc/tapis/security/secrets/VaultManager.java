@@ -13,6 +13,7 @@ import com.bettercloud.vault.response.AuthResponse;
 
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
 public final class VaultManager
   implements Thread.UncaughtExceptionHandler
@@ -36,6 +37,11 @@ public final class VaultManager
     
     // HTTP status codes.
     private static final int HTTP_FORBIDDEN = 403;
+    
+    // Keep track of the last monitoring outcome.
+    private static final CallSiteToggle _lastSSLConfigSucceeded   = new CallSiteToggle();
+    private static final CallSiteToggle _lastVaultConfigSucceeded = new CallSiteToggle();
+    private static final CallSiteToggle _lastAppLoginSucceeded    = new CallSiteToggle();
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -218,14 +224,14 @@ public final class VaultManager
         SkSslConfig sslConfig;
         try {
             // TODO: Finish configuring for https authentication.  This currently will not work.
-            if (_parms.isVaultSslVerify()) {
+            if (_parms.isVaultSslVerify()) 
                 sslConfig = (SkSslConfig) new SkSslConfig().verify(true).build();
-            } 
             else 
                 sslConfig = (SkSslConfig) new SkSslConfig().verify(false).build();
+            _lastSSLConfigSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_SSL_CONFIG_ERROR", e.getMessage());
-            _log.error(msg, e);
+            if (_lastSSLConfigSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         
@@ -239,9 +245,10 @@ public final class VaultManager
                             readTimeout(_parms.getVaultReadTimeout()).
                             sslConfig(sslConfig).
                             build();
+            _lastVaultConfigSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_CONFIG_ERROR", e.getMessage());
-            _log.error(msg, e);
+            if (_lastVaultConfigSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         
@@ -250,9 +257,10 @@ public final class VaultManager
         try {
             _vault = new Vault(_vaultConfig);
             _tokenAuth = _vault.auth().loginByAppRole(_parms.getVaultRoleId(), _parms.getVaultSecretId());
+            _lastAppLoginSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_APPROLE_LOGIN_FAILED", e.getMessage());
-            _log.error(msg, e);
+            if (_lastAppLoginSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         

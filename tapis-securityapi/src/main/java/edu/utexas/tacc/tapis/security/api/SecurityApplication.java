@@ -79,7 +79,7 @@ public class SecurityApplication
         try {parms = RuntimeParameters.getInstance();}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
-                System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi RuntimeParameters ****");
+                System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi RuntimeParameters [ABORTING] ****");
                 e.printStackTrace();
                 throw e;
             }

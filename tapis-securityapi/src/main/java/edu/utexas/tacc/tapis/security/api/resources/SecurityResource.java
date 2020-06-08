@@ -54,6 +54,7 @@ public final class SecurityResource
     
     // Keep track of the last db monitoring outcome.
     private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
+    private static final CallSiteToggle _lastQueryTenantsSucceeded = new CallSiteToggle();
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -345,15 +346,20 @@ public final class SecurityResource
           // Make sure the cached tenants map is not null.
           var tenantMap = TenantManager.getInstance().getTenants();
           if (tenantMap == null) {
-              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                           "Null tenants map.");
-              _log.error(msg);
+              if (_lastQueryTenantsSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                               "Null tenants map.");
+                  _log.error(msg);
+              }
               success = false;
-          }
+          } else if (_lastQueryTenantsSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "tenants"));
       } catch (Exception e) {
-          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                       e.getMessage());
-          _log.error(msg, e);
+          if (_lastQueryTenantsSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                           e.getMessage());
+              _log.error(msg, e);
+          }
           success = false;
       }
       
