@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.utils.LogSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -53,7 +53,7 @@ public final class SecurityResource
     private static final String QUERY_TABLE = "sk_role";
     
     // Keep track of the last db monitoring outcome.
-    private static final LogSiteToggle _lastQueryDBSucceeded = new LogSiteToggle();
+    private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
