@@ -531,9 +531,9 @@ public class SystemsServiceImpl implements SystemsService
 
   /**
    * Check that we can connect with DB and that the main table of the service exists.
-   * @return true if all OK else returns false
+   * @return null if all OK else return an Exception
    */
-  public boolean checkDB()
+  public Exception checkDB()
   {
     return dao.checkDB();
   }

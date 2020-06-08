@@ -26,7 +26,7 @@ public interface SystemsDao
 
   int hardDeleteTSystem(String tenant, String name) throws TapisException;
 
-  boolean checkDB();
+  Exception checkDB();
 
   boolean checkForTSystemByName(String tenant, String name, boolean includeDeleted) throws TapisException;
 
