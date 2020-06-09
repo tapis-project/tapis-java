@@ -60,9 +60,10 @@ public class SystemsApplication extends ResourceConfig
     property(SelectableEntityFilteringFeature.QUERY_PARAM_NAME, "select");
     register(SelectableEntityFilteringFeature.class);
     // Register either Jackson or Moxy for SelectableEntityFiltering
-    // NOTE: Using Moxy works when running from Intellij IDE but breaks things when running in docker.
+    // NOTE: Using shaded jar and Moxy works when running from Intellij IDE but breaks things when running in docker.
+    // NOTE: Using Jackson results in following TSystem attributes not being returned: notes, created, updated.
+    // NOTE: Using unshaded jar and Moxy appears to resolve all issues.
     register(new MoxyJsonConfig().resolver());
-//    register(new MoxyJsonConfig().setFormattedOutput(true).resolver());
 //    register(JacksonFeature.class);
 
     // Needed for returning a standard Tapis response for non-Tapis exceptions.

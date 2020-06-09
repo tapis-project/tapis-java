@@ -642,9 +642,7 @@ public class SystemResource
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
     RespSystem resp1 = new RespSystem(system);
-    Response tmpResp = createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
-    return tmpResp;
-//    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
+    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
   }
 
   /**
@@ -687,7 +685,7 @@ public class SystemResource
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     boolean prettyPrint = threadContext.getPrettyPrint();
     List<String> searchList = threadContext.getSearchList();
-    if (searchList != null && !searchList.isEmpty()) _log.error(" *************************************** Using searchList. First value = " + searchList.get(0));
+    if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 

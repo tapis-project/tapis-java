@@ -44,8 +44,8 @@ Service URL: http://locahost:8080/v3/systems
 
 Startup:
   mvn clean install
-  tapis-systemsapi/docker_build.sh
-  tapis-systemsapi/docker_run.sh <svc_password>
+  deployment/tapis-systemsapi/docker_build.sh
+  deployment/tapis-systemsapi/docker_run.sh <svc_password>
 
 Env:
   TAPIS_DB_CONNECTION_POOL_SIZE=3
