@@ -24,7 +24,7 @@ export GIT_COMMIT=${GIT_COMMIT}
 # Basically, we take the second word in the git.info file.
 if [ -z "${GIT_COMMIT}" ]
 then 
-    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${SRVC}/classes/git.info)" 
+    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/classes/git.info)" 
 fi
 
 echo "VER: $VER"

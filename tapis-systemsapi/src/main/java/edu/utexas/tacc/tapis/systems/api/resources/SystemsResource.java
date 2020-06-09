@@ -1,6 +1,9 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.security.PermitAll;
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -15,6 +18,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,9 +37,11 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import org.jooq.tools.StringUtils;
 
 @OpenAPIDefinition(
     security = {@SecurityRequirement(name = "TapisJWT")},
@@ -107,6 +114,18 @@ public class SystemsResource
   @Context
   private Request _request;
 
+  // Count the number of health check requests received.
+  private static final AtomicLong _healthCheckCount = new AtomicLong();
+
+  // Count the number of health check requests received.
+  private static final AtomicLong _readyCheckCount = new AtomicLong();
+
+  // **************** Inject Services using HK2 ****************
+  @Inject
+  private SystemsServiceImpl svcImpl;
+  @Inject
+  private ServiceJWT serviceJWT;
+
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
@@ -132,8 +151,138 @@ public class SystemsResource
   )
   public Response healthCheck()
   {
-    RespBasic resp = new RespBasic("Healthcheck");
+    // Get the current check count.
+    long checkNum = _healthCheckCount.incrementAndGet();
+    RespBasic resp = new RespBasic("Health check received. Count: " + checkNum);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
       MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service"), false, resp)).build();
+  }
+
+  /**
+   * Lightweight non-authenticated ready check endpoint.
+   * Note that no JWT is required on this call and no logging is done.
+   * Based on similar method in tapis-securityapi.../SecurityResource
+   *
+   * For this service readiness means service can:
+   *    - retrieve tenants map
+   *    - get a service JWT
+   *    - connect to the DB and verify and that main service table exists
+   *
+   * It's intended as the endpoint that monitoring applications can use to check
+   * whether the application is ready to accept traffic.  In particular, kubernetes
+   * can use this endpoint as part of its pod readiness check.
+   *
+   * Note that no JWT is required on this call.
+   *
+   * A good synopsis of the difference between liveness and readiness checks:
+   *
+   * ---------
+   * The probes have different meaning with different results:
+   *
+   *    - failing liveness probes  -> restart pod
+   *    - failing readiness probes -> do not send traffic to that pod
+   *
+   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   * ---------
+   *
+   * @return a success response if all is ok
+   */
+  @GET
+  @Path("/readycheck")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
+  @Operation(
+          description = "Ready check.",
+          tags = "general",
+          responses =
+                  {@ApiResponse(responseCode = "200", description = "Service ready.",
+                          content = @Content(schema = @Schema(
+                                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                          @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+  )
+  public Response readyCheck()
+  {
+    // Get the current check count.
+    long checkNum = _readyCheckCount.incrementAndGet();
+
+    // Check that we can get tenants list
+    if (!checkTenants())
+    {
+      RespBasic r = new RespBasic("Readiness tenants check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+
+    // Check that we have a service JWT
+    if (!checkJWT())
+    {
+      RespBasic r = new RespBasic("Readiness JWT check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+
+    // Check that we can connect to the DB
+    if (!checkDB())
+    {
+      RespBasic r = new RespBasic("Readiness DB check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+
+
+    // ---------------------------- Success -------------------------------
+    // Create the response payload.
+    RespBasic resp = new RespBasic("Ready check passed. Count: " + checkNum);
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_READY", "Systems Service"), false, resp)).build();
+  }
+
+  /* **************************************************************************** */
+  /*                                Private Methods                               */
+  /* **************************************************************************** */
+
+  /**
+   * Verify that we have a valid service JWT.
+   * @return true for success, false otherwise
+   */
+  private boolean checkJWT()
+  {
+    boolean result = true;
+    try {
+      String jwt = serviceJWT.getAccessJWT();
+      if (StringUtils.isBlank(jwt)) result = false;
+    }
+    catch (Exception e) { result = false; }
+    return result;
+  }
+
+  /**
+   * Probe the database with a simple database query.
+   * @return true for success, false otherwise
+   */
+  private boolean checkDB()
+  {
+    boolean result;
+    try { result = svcImpl.checkDB(); }
+    catch (Exception e) { result = false; }
+    return result;
+  }
+
+  /**
+   * Retrieve the cached tenants map.
+   * @return true if can get a valid list of tenants, false otherwise
+   */
+  private boolean checkTenants()
+  {
+    boolean result = true;
+    try
+    {
+      // Make sure the cached tenants map is not null or empty.
+      var tenantMap = TenantManager.getInstance().getTenants();
+      if (tenantMap == null || tenantMap.isEmpty()) result = false;
+    }
+    catch (Exception e) { result = false; }
+    return result;
   }
 }

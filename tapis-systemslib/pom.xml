@@ -73,6 +73,21 @@
       <groupId>org.glassfish.jersey.test-framework</groupId>
       <artifactId>jersey-test-framework-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-meta</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-codegen</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -85,9 +100,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
-            
+
+      <!-- surefire plugin is for running unit tests -->
       <plugin>
-        <!-- The version is set in the parent pom -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
@@ -96,6 +111,136 @@
           </suiteXmlFiles>
         </configuration>
       </plugin>
+      <!-- failsafe plugin is for running integration tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <skip>${skipITs}</skip>
+          <environmentVariables>
+            <APP_ENV>test</APP_ENV>
+            <TAPIS_SERVICE_PASSWORD>S4nUNjL6JCwmCw3QQWR7Lyx1J/ayV6BEnAwTBi5sJ8E=</TAPIS_SERVICE_PASSWORD>
+          </environmentVariables>
+        </configuration>
+      </plugin>
+
+<!-- TODO Need to make jOOQ code gen plugin optional, preferably using command line option -->
+<!--      Look at maven profiles -->
+<!--      <plugin>-->
+<!--        <groupId>org.jooq</groupId>-->
+<!--        <artifactId>jooq-codegen-maven</artifactId>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <id>jooq-codegen</id>-->
+<!--            <phase>generate-sources</phase>-->
+<!--            <goals> <goal>generate</goal> </goals>-->
+<!--            <configuration>-->
+<!--              <jdbc>-->
+<!--                <driver>org.postgresql.Driver</driver>-->
+<!--                <url>jdbc:postgresql://localhost:5432/tapissysdb</url>-->
+<!--                <user>tapis</user>-->
+<!--                <password>password</password>-->
+<!--              </jdbc>-->
+<!--              <generator>-->
+<!--                <name>org.jooq.codegen.JavaGenerator</name>-->
+<!--                <database>-->
+<!--                  <name>org.jooq.meta.postgres.PostgresDatabase</name>-->
+<!--                  <inputSchema>tapis_sys</inputSchema>-->
+<!--                  &lt;!&ndash; Include everything from the schema &ndash;&gt;-->
+<!--                  <includes>.*</includes>-->
+<!--                  &lt;!&ndash; All elements that are excluded from your schema-->
+<!--                       (A Java regular expression. Use the pipe to separate several expressions).-->
+<!--                       Excludes match before includes, i.e. excludes have a higher priority &ndash;&gt;-->
+<!--&lt;!&ndash;                  <excludes></excludes>&ndash;&gt;-->
+
+
+<!--                  &lt;!&ndash; Register custom types &ndash;&gt;-->
+<!--&lt;!&ndash;                  <customTypes>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <customType>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <name>TransferMethodArrayType</name>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <type>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod[]</type>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <converter>edu.utexas.tacc.tapis.systems.dao.TransferMethodArrayConverter</converter>&ndash;&gt;-->
+<!--&lt;!&ndash;                    </customType>&ndash;&gt;-->
+<!--&lt;!&ndash;                  </customTypes>&ndash;&gt;-->
+
+<!--                  &lt;!&ndash; ****************************************** &ndash;&gt;-->
+<!--                  &lt;!&ndash; Register custom bindings &ndash;&gt;-->
+<!--                  &lt;!&ndash; ****************************************** &ndash;&gt;-->
+<!--                  &lt;!&ndash; Bind Postgresql JSONB type to Gson JsonElement &ndash;&gt;-->
+<!--                  <forcedTypes>-->
+<!--                    <forcedType>-->
+<!--                      <userType>com.google.gson.JsonElement</userType>-->
+<!--                      <binding>edu.utexas.tacc.tapis.systems.dao.JSONBToJsonElementBinding</binding>-->
+<!--                      &lt;!&ndash; Match only certain columns, no need to filter on type &ndash;&gt;-->
+<!--                      <includeExpression>.*_jsonb</includeExpression>-->
+<!--                      <includeTypes>.*</includeTypes>-->
+<!--                    </forcedType>-->
+<!--                    &lt;!&ndash; ****************************************** &ndash;&gt;-->
+<!--                    &lt;!&ndash; Bind our enum types for convenience &ndash;&gt;-->
+<!--                    &lt;!&ndash; ****************************************** &ndash;&gt;-->
+<!--                    <forcedType>-->
+<!--                      <userType>edu.utexas.tacc.tapis.systems.model.Capability.Category</userType>-->
+<!--                      &lt;!&ndash; Use built-in enum converter &ndash;&gt;-->
+<!--                      <enumConverter>true</enumConverter>-->
+<!--                      &lt;!&ndash; Explicitly match one column. &ndash;&gt;-->
+<!--                      <includeExpression>capabilities\.category</includeExpression>-->
+<!--                      <includeTypes>.*</includeTypes>-->
+<!--                    </forcedType>-->
+<!--                    <forcedType>-->
+<!--                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation</userType>-->
+<!--                      <enumConverter>true</enumConverter>-->
+<!--                      <includeExpression>system_updates\.operation</includeExpression>-->
+<!--                      <includeTypes>.*</includeTypes>-->
+<!--                    </forcedType>-->
+<!--                    <forcedType>-->
+<!--                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.SystemType</userType>-->
+<!--                      <enumConverter>true</enumConverter>-->
+<!--                      <includeExpression>systems\.system_type</includeExpression>-->
+<!--                      <includeTypes>.*</includeTypes>-->
+<!--                    </forcedType>-->
+<!--                    <forcedType>-->
+<!--                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod</userType>-->
+<!--                      <enumConverter>true</enumConverter>-->
+<!--                      <includeExpression>systems\.default_access_method</includeExpression>-->
+<!--                      <includeTypes>.*</includeTypes>-->
+<!--                    </forcedType>-->
+<!--&lt;!&ndash;                    <forcedType>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod</userType>&ndash;&gt;-->
+<!--&lt;!&ndash;                       <enumConverter>true</enumConverter>&ndash;&gt;-->
+<!--&lt;!&ndash;                        <includeExpression>systems\.transfer_methods</includeExpression>&ndash;&gt;-->
+<!--&lt;!&ndash;                        <includeTypes>.*</includeTypes>&ndash;&gt;-->
+<!--&lt;!&ndash;                      </forcedType>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <forcedType>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod[]</userType>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <converter>edu.utexas.tacc.tapis.systems.dao.TransferMethodArrayConverter</converter>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <includeExpression>systems\.transfer_methods</includeExpression>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <includeTypes>.*</includeTypes>&ndash;&gt;-->
+<!--&lt;!&ndash;                    </forcedType>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <forcedType>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <name>TransferMethodArrayType</name>&ndash;&gt;-->
+<!--&lt;!&ndash;                      <expression>systems\.transfer_methods</expression>&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod</userType>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <enumConverter>true</enumConverter>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <includeExpression>.*</includeExpression>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <includeTypes>transfer_meth_type</includeTypes>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;                        &lt;!&ndash;                      <converter>edu.utexas.tacc.tapis.systems.dao.TransferMethodArrayConverter</converter>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <userType>edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod[]</userType>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <includeExpression>systems\.transfer_methods</includeExpression>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;                      <includeTypes>.*</includeTypes>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;                    </forcedType>&ndash;&gt;-->
+<!--                  </forcedTypes>-->
+<!--                </database>-->
+<!--                <target>-->
+<!--                  &lt;!&ndash; The destination package of your generated classes (within the destination directory) &ndash;&gt;-->
+<!--                  <packageName>edu.utexas.tacc.tapis.systems.gen.jooq</packageName>-->
+<!--                  &lt;!&ndash; The destination directory of your generated classes. Using Maven directory layout here &ndash;&gt;-->
+<!--                  <directory>src/main/java</directory>-->
+<!--                </target>-->
+<!--              </generator>-->
+<!--            </configuration>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
     </plugins>
 
     <finalName>systemslib</finalName>

@@ -30,6 +30,8 @@ public final class TSystem
   // *********************** Constants **************************************
   // ************************************************************************
 
+  public static final String ROLE_READ_PREFIX = "Systems_R_";
+  public static final String ROLE_MODIFY_PREFIX = "Systems_M_";
   // Allowed substitution variables
   public static final String APIUSERID_VAR = "${apiUserId}";
   public static final String OWNER_VAR = "${owner}";
@@ -46,6 +48,7 @@ public final class TSystem
   public static final String[] DEFAULT_TAGS = new String[0];
   public static final List<TransferMethod> DEFAULT_TRANSFER_METHODS = Collections.emptyList();
   public static final String EMPTY_TRANSFER_METHODS_STR = "{}";
+  public static final String[] EMPTY_TRANSFER_METHODS_STR_ARRAY = {};
   public static final String DEFAULT_TRANSFER_METHODS_STR = EMPTY_TRANSFER_METHODS_STR;
   public static final int DEFAULT_PORT = -1;
   public static final boolean DEFAULT_USEPROXY = false;
@@ -67,8 +70,6 @@ public final class TSystem
   // ************************************************************************
 
   private int id;           // Unique database sequence number
-  private Instant created; // UTC time for when record was created
-  private Instant updated; // UTC time for when record was last updated
 
   private String tenant;     // Name of the tenant for which the system is defined
   private String name;       // Name of the system
@@ -95,7 +96,10 @@ public final class TSystem
   private List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   private String[] tags;       // List of arbitrary tags as strings
   private Object notes;      // Simple metadata as json
+  private boolean deleted;
 
+  private Instant created; // UTC time for when record was created
+  private Instant updated; // UTC time for when record was last updated
 
   // ************************************************************************
   // *********************** Constructors ***********************************
@@ -114,20 +118,18 @@ public final class TSystem
   }
 
   /**
-   * Constructor using all attributes. Useful for testing.
-   * Make defensive copies as needed. Note Credential is immutable so no need for copy.
+   * Constructor for jOOQ with input parameter matching order of columns in DB
+   * Also useful for testing
    */
   public TSystem(int id1, String tenant1, String name1, String description1, SystemType systemType1,
                  String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
-                 Credential accessCredential1, String bucketName1, String rootDir1,
+                 String bucketName1, String rootDir1,
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
-                 String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1, List<Capability> jobCapabilities1,
-                 String[] tags1, Object notes1, Instant created1, Instant updated1)
+                 String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1,
+                 String[] tags1, Object notes1, boolean deleted1, Instant created1, Instant updated1)
   {
     id = id1;
-    created = created1;
-    updated = updated1;
     tenant = tenant1;
     name = name1;
     description = description1;
@@ -137,10 +139,27 @@ public final class TSystem
     enabled = enabled1;
     effectiveUserId = effectiveUserId1;
     defaultAccessMethod = defaultAccessMethod1;
-    accessCredential = accessCredential1;
     bucketName = bucketName1;
     rootDir = rootDir1;
-    transferMethods = (transferMethods1 == null) ? null : new ArrayList<>(transferMethods1);
+    // When jOOQ does a conversion transferMethods come in as String objects.
+    // A custom converter should handle it but it is not clear how to implement the converter/binding.
+    // So far all attempts have failed.
+//    transferMethods = (transferMethods1 == null) ? null : new ArrayList<>(transferMethods1);
+    transferMethods = new ArrayList<>();
+    if (transferMethods1 != null && !transferMethods1.isEmpty())
+    {
+      if ((Object) transferMethods1.get(0) instanceof String)
+      {
+        for (Object o : transferMethods1)
+        {
+          transferMethods.add(TransferMethod.valueOf(o.toString()));
+        }
+      }
+      else
+      {
+        transferMethods = new ArrayList<>(transferMethods1);
+      }
+    }
     port = port1;
     useProxy = useProxy1;
     proxyHost = proxyHost1;
@@ -150,9 +169,11 @@ public final class TSystem
     jobLocalArchiveDir = jobLocalArchiveDir1;
     jobRemoteArchiveSystem = jobRemoteArchiveSystem1;
     jobRemoteArchiveDir = jobRemoteArchiveDir1;
-    jobCapabilities = (jobCapabilities1 == null) ? null : new ArrayList<>(jobCapabilities1);
     tags = (tags1 == null) ? null : tags1.clone();
     notes = notes1;
+    deleted = deleted1;
+    created = created1;
+    updated = updated1;
   }
 
   /**
@@ -190,6 +211,7 @@ public final class TSystem
     jobCapabilities = (t.getJobCapabilities() == null) ? null :  new ArrayList<>(t.getJobCapabilities());
     tags = (t.getTags() == null) ? null : t.getTags().clone();
     notes = t.getNotes();
+    deleted = t.isDeleted();
   }
 
   // ************************************************************************
@@ -256,7 +278,7 @@ public final class TSystem
     return (transferMethods == null) ? null : new ArrayList<>(transferMethods);
   }
   public TSystem setTransferMethods(List<TransferMethod> t) {
-    transferMethods = (t == null) ? null : new ArrayList<>(t);
+    transferMethods = (t == null) ? DEFAULT_TRANSFER_METHODS : new ArrayList<>(t);
     return this;
   }
 
@@ -303,4 +325,6 @@ public final class TSystem
 
   public Object getNotes() { return notes; }
   public TSystem setNotes(Object n) { notes = n; return this; }
+
+  public boolean isDeleted() { return deleted; }
 }

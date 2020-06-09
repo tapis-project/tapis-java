@@ -39,6 +39,9 @@ public interface SystemsService
   TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accessMethod)
           throws TapisException, NotAuthorizedException;
 
+  List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> selectList)
+          throws TapisException;
+
   List<String> getSystemNames(AuthenticatedUser authenticatedUser)
           throws TapisException;
 
