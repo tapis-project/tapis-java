@@ -6,10 +6,28 @@ public interface SkConstants
     // role names always begin this character and users cannot create such names.
     //
     // To make our life easier, tapis reserved characters that might appear in a
-    // URL should be URL safe.  These include alphanumerics [0-9a-zA-Z], 
-    // special characters $-_.+!*'(), and URL reserved characters ; / ? : @ = &.
-    // In particular, these characters are not URL-safe and need to be escaped: 
-    // " < > # % { } | \ ^ ~ [ ] ` and space.
+    // URL should be URL safe.  This is much easier said than done.  Theoretical
+    // and de facto differences complicate matter, as does the difference between
+    // URIs (RFC 3986) and URLs (RFC 1738), and the fact that certain characters
+    // are reserved in some parts of a URL and not in others.  As opposed to the
+    // RFCs, readable references include:
+    // 
+    //      https://en.wikipedia.org/wiki/Percent-encoding
+    //      https://perishablepress.com/stop-using-unsafe-characters-in-urls/
+    //      https://help.marklogic.com/Knowledgebase/Article/View/251/0/using-url-encoding-to-handle-special-characters-in-a-document-uri
+    //
+    // URI unreserved characters include alphanumerics [0-9a-zA-Z] and 
+    // special characters:   - _ . ~
+    //
+    // URI reserved characters that probably should be avoided:
+    //
+    //      ! * ' ( ) ; : @ & = + $ , / ? # [ ]
+    //
+    // Characters that are not URL-safe and need to be escaped according to 
+    // the second web site referenced above:
+    //  
+    //      " < > # % { } | \ ^ ~ [ ] ` and space
+    //
     public static final char RESERVED_NAME_CHAR = '$';
     
     // SK generated user default role names.
