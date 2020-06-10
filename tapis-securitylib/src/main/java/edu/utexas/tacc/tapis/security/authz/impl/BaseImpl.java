@@ -161,4 +161,12 @@ abstract class BaseImpl
     /* ---------------------------------------------------------------------------- */
     public String getUserDefaultRolename(String user)
     {return USER_DEFAULT_ROLE_PREFIX + user;}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* makeTenantTokenGeneratorRolename:                                            */
+    /* ---------------------------------------------------------------------------- */
+    public String makeTenantTokenGeneratorRolename(String tenant)
+    {
+        return tenant + TENANT_TOKEN_GENERATOR_ROLE_SUFFIX;
+    }
 }

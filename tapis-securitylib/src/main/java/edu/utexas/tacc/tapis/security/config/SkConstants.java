@@ -41,6 +41,10 @@ public interface SkConstants
     public static final String INTERNAL_USER_PREFIX = RESERVED_NAME_CHAR + "~";
     public static final String SK_USER = INTERNAL_USER_PREFIX + "SecurityKernel";
 
+    // Other Tapis internally used roles.
+    public static final String TENANT_TOKEN_GENERATOR_ROLE_SUFFIX  = "_token_generator";
+    public static final String TENANT_CREATOR_ROLE = "tenant_creator";
+
     // Role name max characters allowed in database.
     public static final int MAX_USER_NAME_LEN = 58;
 }

@@ -68,6 +68,9 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     private void initialize()
     {
+        // One time initialization for tenants service.
+        initializeTenantServiceRole();
+        
         // Inspect each tenant.
         for (var entry : _tenantMap.entrySet()) 
         {
@@ -81,7 +84,7 @@ public final class TenantInit
                                                     UserImpl.ADMIN_ROLE_NAME);
             }
             catch (TapisNotFoundException e) {
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_WARN", tenant, 
+                String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", tenant, 
                                               UserImpl.ADMIN_ROLE_NAME, e.getMessage());
                 _log.warn(msg);
             }
@@ -96,25 +99,97 @@ public final class TenantInit
             // Did we get at least one admin?
             if (admins != null && !admins.isEmpty()) continue;
             
+            // ----------------------- Admin Role -----------------------
             // TODO: get user from tenant record
-            String user = "admin";  // ************* Temp code
+            String adminUser = "admin";  // ************* Temp code
             
             // Create and assign the admin role to the default tenant administrator.
             try {
                 // Assign role to the default administrator for this tenant, creating
                 // the role if necessary.  This calls the internal grant method 
                 // that does not check whether the requestor is an administrator. 
-                UserImpl.getInstance().grantAdminRoleInternal(tenant, SK_USER, user);
-                String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, user,
+                UserImpl.getInstance().grantAdminRoleInternal(tenant, SK_USER, adminUser);
+                String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
                                              UserImpl.ADMIN_ROLE_NAME);
                 _log.info(msg);
             } 
             catch (Exception e) {
                 // Log the error and continue on.
                 String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
-                                             user, e.getMessage());
+                                             adminUser, e.getMessage());
                 _log.error(msg, e);
             }
+            
+            // ------------------- Authenticator Role -------------------
+            // TODO: get authenticator service from tenant record
+            String authService = "authenticator";  // ************* Temp code
+            String authServiceTenant = "master";
+            
+            // Create and assign the authenticator role to the tenant's auth service.
+            try {
+                // Assign role to the default authenticator for this tenant, creating
+                // the role if necessary.  This calls the internal grant method 
+                // that does not check whether the requestor is an administrator.
+                String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
+                String desc = "Tenant token generator role";
+                UserImpl.getInstance().grantRoleInternal(authServiceTenant, SK_USER, 
+                                                         authService, roleName, desc);
+                String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", authServiceTenant,
+                                             authService, roleName);
+                _log.info(msg);
+            } catch (Exception e) {
+                // Log the error and continue on.
+                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", authServiceTenant, 
+                                             authService, e.getMessage());
+                _log.error(msg, e);
+            }
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* initializeTenantServiceRole:                                           */
+    /* ---------------------------------------------------------------------- */
+    private void initializeTenantServiceRole()
+    {
+        // Designate the tenants service identifiers.
+        final String tenant = "master";
+        final String tenantService = "tenants";
+        final String roleName = UserImpl.TENANT_CREATOR_ROLE;
+        
+        // Get the list of all users with the tenant creator role.
+        List<String> creators = null;
+        try {creators = UserImpl.getInstance().getUsersWithRole(tenant, roleName);}
+        catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", tenant, 
+                                          roleName, e.getMessage());
+            _log.warn(msg);
+        }
+        catch (Exception e) {
+            // This should not happen even if the tenant and role don't exist.
+            // We log the problem but proceed.
+            String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", tenant, 
+                                        roleName, e.getMessage());
+            _log.error(msg, e);
+        } 
+        
+        // Does the tenants service have the required role?
+        if (creators != null && creators.contains(tenantService)) return;
+        
+        // ------------------ Tenant Creator Role -------------------
+        // Create and assign the tenant creator role to the Tapis tenants service.
+        try {
+            // Assign role to the default authenticator for this tenant, creating
+            // the role if necessary.  This calls the internal grant method 
+            // that does not check whether the requestor is an administrator.
+            String desc = "Tenants service creator role";
+            UserImpl.getInstance().grantRoleInternal(tenant, SK_USER, tenantService, roleName, desc);
+            String msg = MsgUtils.getMsg("SK_TENANT_CREATOR_ASSIGNED", tenant, tenantService, roleName);
+            _log.info(msg);
+        } catch (Exception e) {
+            // Log the error and continue on.
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
+                                         tenantService, e.getMessage());
+            _log.error(msg, e);
         }
     }
 }
