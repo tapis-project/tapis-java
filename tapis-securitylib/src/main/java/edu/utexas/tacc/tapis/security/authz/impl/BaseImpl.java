@@ -35,6 +35,10 @@ abstract class BaseImpl
     // SK generated administrative role name prefix.
     public static final String INTERNAL_ROLE_PREFIX = RESERVED_NAME_CHAR + "!";
     public static final String ADMIN_ROLE_NAME = INTERNAL_ROLE_PREFIX + "tenant_admin";
+    
+    // Other Tapis internally used roles.
+    public static final String TENANT_TOKEN_GENERATOR_ROLE_SUFFIX  = "_token_generator";
+    public static final String TENANT_CREATOR_ROLE = "tenant_creator";
 
     // Role name max characters allowed in database.
     public static final int MAX_USER_NAME_LEN = 58;
@@ -179,4 +183,12 @@ abstract class BaseImpl
     /* ---------------------------------------------------------------------------- */
     public String getUserDefaultRolename(String user)
     {return USER_DEFAULT_ROLE_PREFIX + user;}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* makeTenantTokenGeneratorRolename:                                            */
+    /* ---------------------------------------------------------------------------- */
+    public String makeTenantTokenGeneratorRolename(String tenant)
+    {
+        return tenant + TENANT_TOKEN_GENERATOR_ROLE_SUFFIX;
+    }
 }
