@@ -40,7 +40,6 @@ public class QueryParametersRequestFilter implements ContainerRequestFilter
   // Query parameter names
   private static final String PARM_PRETTY = "pretty";
   private static final String PARM_SEARCH = "search";
-  private static final String PARM_ATTRIBUTES = "attributes";
   private static final String PARM_LIMIT = "limit";
   private static final String PARM_AFTER = "start_after";
 
@@ -70,7 +69,7 @@ public class QueryParametersRequestFilter implements ContainerRequestFilter
       // TODO/TBD: Log error and abort or log warning and continue? Depends on parameter?
       if (queryParameters.get(PARM_PRETTY).size() != 1)
       {
-        String msg = "Invalid pretty pint query parameter: Multiple values specified.";
+        String msg = "Invalid pretty print query parameter: Multiple values specified.";
         _log.error(msg);
         requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).entity(msg).build());
         return;
@@ -93,11 +92,25 @@ public class QueryParametersRequestFilter implements ContainerRequestFilter
     // Look for and extract search query parameter.
     if (queryParameters.containsKey(PARM_SEARCH))
     {
-      // TODO Collapse to single valued query parm that contains list of search conditions
       _log.trace("Found query parameter. Name: " + PARM_SEARCH);
       List<String> parmList = queryParameters.get(PARM_SEARCH);
-      for (String p : parmList) _log.trace("    SearchCondition: " + p);
-      threadContext.setSearchList(parmList);
+      if (parmList.size() != 1)
+      {
+        String msg = "Invalid search query parameter: One and only one value must be specified.";
+        _log.error(msg);
+        requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).entity(msg).build());
+        return;
+      }
+      String searchListStr = parmList.get(0);
+      _log.trace("    SearchCondition: " + searchListStr);
+      // TODO Validate search string has form <cond>+<cond>+ ...
+      //      where <cond> = <attr>.<op>.<value>
+      // Parse search string into a list of conditions
+      List<String> searchConditions = Arrays.asList(searchListStr.split("~"));
+      // TODO Validate each condition has the form <attr>.<op>.<value>
+
+      // Add list of search conditions to thread context
+      threadContext.setSearchList(searchConditions);
     }
 
     // Look for and extract limit query parameter.

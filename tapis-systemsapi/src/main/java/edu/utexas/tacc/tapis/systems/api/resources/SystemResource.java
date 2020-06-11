@@ -660,7 +660,8 @@ public class SystemResource
       @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean")),
       @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
                  in = ParameterIn.QUERY, schema = @Schema(type = "string")),
-      @Parameter(name = "search", description = "Search conditions to use when retrieving results",
+      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
+                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
                  in = ParameterIn.QUERY, schema = @Schema(type = "string"))
     },
     responses = {
