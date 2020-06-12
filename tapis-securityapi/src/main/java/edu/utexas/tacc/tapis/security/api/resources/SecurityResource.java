@@ -117,13 +117,12 @@ public final class SecurityResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Logged connectivity test.",
+          description = "Logged connectivity test. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "401", description = "Not authorized."),
                @ApiResponse(responseCode = "500", description = "Server error.")}
       )
   public Response sayHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -172,7 +171,7 @@ public final class SecurityResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght health check for liveness.",
+          description = "Lightwieght health check for liveness. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
@@ -242,7 +241,7 @@ public final class SecurityResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght readiness check.",
+          description = "Lightwieght readiness check. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Service ready.",

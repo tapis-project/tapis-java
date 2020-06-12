@@ -191,6 +191,18 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
+                           + ""
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -352,6 +364,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -510,6 +533,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -665,6 +699,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -819,6 +864,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -967,6 +1023,17 @@ public final class VaultResource
                          + "  - **jwtsigning** - *no query parameters*\n"
                          + "  - **user** - *no query parameters*\n"
                          + "  - **service** - *no query parameters*\n"
+                         + ""
+                         + "### Authorization\n"
+                         + ""
+                         + "Requestors are authorized based on the secret type specified in the "
+                         + "URL path.  The following authorizations are enforced:\n\n"
+                         + ""
+                         + "- system: limited to the systems service\n"
+                         + "- dbcred: any service\n"
+                         + "- jwtsigning: limited to the tokens service\n"
+                         + "- user: any user\n"
+                         + "- service: any service"
                          + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1102,6 +1169,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1234,6 +1312,17 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1342,7 +1431,10 @@ public final class VaultResource
                            + "Secrets can be arranged hierarchically by using the \"+\" "
                            + "characters in the *secretName*.  These characters will be "
                            + "converted to slashes upon receipt, allowing secrets to be "
-                           + "arranged in folders.\n\n",
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "Only services can make this request."
+                           + "",
              tags = "vault",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 

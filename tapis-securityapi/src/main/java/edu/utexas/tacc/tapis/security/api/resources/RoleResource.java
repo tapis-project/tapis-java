@@ -309,7 +309,14 @@ public final class RoleResource
                            + "2048 characters long.  If the role already exists, this "
                            + "request has no effect.\n\n"
                            + ""
-                           + "A valid tenant and user must be specified in the request body.",
+                           + "A valid tenant and user must be specified in the request body.  "
+                           + "The user@tenant in the request payload is authorized and becomes "
+                           + "the new role's owner only if:\n\n"
+                           + ""
+                           + "- the user@tenant in a user JWT is the same as the user@tenant in the request payload, or\n"
+                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                           + "- the user@tenant in a service JWT is allowed to act on behalf of the request tenant."
+                           + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -367,8 +374,8 @@ public final class RoleResource
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsService()
                              .setCheckMatchesJwtIdentity()
-                             .setCheckMatchesOBOIdentity()
                              .setCheckIsAdmin()
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -408,7 +415,18 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
          description = "Delete the named role. A valid tenant and user must be "
-                       + "specified as query parameters.",
+                       + "specified as query parameters.\n\n"
+                       + ""
+                       + "The user@tenant specified in "
+                       + "the request query parameters is authorized to delete the role "
+                       + "only if:\n\n"
+                       + ""
+                       + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                       + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                       + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                       + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                       + ""
+                       + "",
          tags = "role",
          security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
@@ -455,6 +473,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -568,12 +587,20 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role using a request body.  "
+             description = "Update an existing role's name using a request body.  "
                            + "Role names are case sensitive, alphanumeric strings "
                            + "that can contain underscores but must begin with an alphabetic "
                            + "character.  The limit on role name is 58 characters.\n\n"
                            + ""
-                           + "A valid tenant and user must be specified in the request body.",
+                           + "The user@tenant specified in "
+                           + "the request payload is authorized to update the role name "
+                           + "only if:\n\n"
+                           + ""
+                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -641,6 +668,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -669,9 +697,17 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role owner using a request body.  "
+             description = "Update an existing role's owner using a request body.\n\n"
                            + ""
-                           + "A valid tenant and user must be specified in the request body.",
+                           + "The user@tenant specified in "
+                           + "the request payload is authorized to update the role owner "
+                           + "only if:\n\n"
+                           + ""
+                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -739,6 +775,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -767,9 +804,18 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role using a request body.  "
-                           + "The size limit on a description is 2048 characters.  "
-                           + "A valid tenant and user must be specified in the request body.",
+             description = "Update an existing role's decription using a request body.  "
+                           + "The size limit on a description is 2048 characters.\n\n"
+                           + ""
+                           + "The user@tenant specified in "
+                           + "the request payload is authorized to update the role description "
+                           + "only if:\n\n"
+                           + ""
+                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -838,6 +884,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -885,7 +932,15 @@ public final class RoleResource
                          + "It's the application's responsibility to escape those characters in "
                          + "a manner that is safe in the application's domain.\n\n"
                          + ""
-                         + "A valid tenant and user must be specified in the request body.",
+                         + "The user@tenant specified in "
+                         + "the request payload is authorized to add a permission to the role "
+                         + "only if:\n\n"
+                         + ""
+                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -944,6 +999,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -979,7 +1035,17 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Remove a permission from a role using a request body.  "
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "A valid tenant and user must be specified in the request body.\n\n"
+                     + ""
+                     + "The user@tenant specified in "
+                     + "the request payload is authorized to remove a permission from the role "
+                     + "only if:\n\n"
+                     + ""
+                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1038,6 +1104,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -1078,7 +1145,15 @@ public final class RoleResource
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the child is added and the change count is one.\n\n"
                          + ""
-                         + "A valid tenant and user must be specified in the request body.",
+                         + "The user@tenant specified in "
+                         + "the request payload is authorized to a child role to the parent role "
+                         + "only if:\n\n"
+                         + ""
+                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of the owner of both roles, or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1137,6 +1212,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(parentRoleName)
                              .addOwnedRole(childRoleName)
                              .check(prettyPrint);
@@ -1173,7 +1249,17 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Remove a child role from a parent role using a request body.  "
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "A valid tenant and user must be specified in the request body.\n\n"
+                     + ""
+                     + "The user@tenant specified in "
+                     + "the request payload is authorized to remove a permission from the role "
+                     + "only if:\n\n"
+                     + ""
+                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of the parent role owner, or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1232,8 +1318,8 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(parentRoleName)
-                             .addOwnedRole(childRoleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
          
@@ -1456,7 +1542,11 @@ public final class RoleResource
                          + "The response indicates the number of changed permission "
                          + "specifications.\n\n"
                          + ""
-                         + "A valid tenant and user must be specified in the request body.",
+                         + "The path prefix replacement operation is authorized only if:\n\n"
+                         + ""
+                         + "- the user@tenant in the JWT represents a tenant administrator, or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1523,6 +1613,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .check(prettyPrint);
          if (resp != null) return resp;
          
@@ -1563,18 +1654,13 @@ public final class RoleResource
      @PermitAll
      @Operation(
              description = 
-               "Get a user's default role. The default role can be explicitly created "
-               + "by a POST call or implicitly by the system whenever it's needed and "
-               + "it doesn't already exist. "
+               "Get a user's default role. The default role is implicitly created by the system "
+               + "when needed if it doesn't already exist. No authorization required.\n\n"
                + ""
-               + "A user's default role is *currently* constructed by prepending '$$' to the "
+               + "A user's default role is constructed by prepending '$$' to the "
                + "user's name.  This implies the maximum length of a user name is 58 since "
                + "role names are limited to 60 characters.\n\n"
-               + ""
-               + "Since the default role name may be constructed differently in the future, "
-               + "this API is the recommended way to determine the default role."
                + "",
-
              tags = "role",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "The user's default role name.",

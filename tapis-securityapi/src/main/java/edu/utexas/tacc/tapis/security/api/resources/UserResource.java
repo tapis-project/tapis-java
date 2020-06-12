@@ -399,7 +399,17 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the specified role.  A valid tenant and user "
-                     + "must be specified in the request body.",
+                     + "must be specified in the request body.\n\n"
+                     + ""
+                     + "The user@tenant specified in "
+                     + "the request payload is authorized to grant the role "
+                     + "only if:\n\n"
+                     + ""
+                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -457,6 +467,7 @@ public final class UserResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -495,7 +506,15 @@ public final class UserResource
                      + "is taken if the user is not currently assigned the role. "
                      + "This request is idempotent.\n\n"
                      + ""
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "The user@tenant specified in "
+                     + "the request payload is authorized to revoke the role "
+                     + "only if:\n\n"
+                     + ""
+                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -550,6 +569,7 @@ public final class UserResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -593,7 +613,10 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Grant a user the tenant administrator role.  A valid tenant and user "
-                     + "must be specified in the request body.",
+                     + "must be specified in the request body.  The user specified in the JWT must "
+                     + "themselves be an administrator.\n\n"
+                     + ""
+                     + "A valid tenant and user must be specified in the request body.",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -688,10 +711,12 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Revoke the previously granted tenant administrator role from a user. "
-                     + "No action is taken if the user is not currently assigned the role. "
-                     + "This request is idempotent.\n\n"
+                     + "No action is taken if the user is not currently assigned the role "
+                     + "(the request is idempotent).  The request will not be honored if "
+                     + "revoking the role would leave the tenant with no administrator.\n\n"
                      + ""
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "The user specified in the JWT must themselves be an administrator "
+                     + "and a valid tenant and user must be specified in the request body.",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -901,7 +926,10 @@ public final class UserResource
                      + "user/defaultRole or role/defaultRole endpoints.\n\n"
                      + ""
                      + "The change count returned can range from zero to three "
-                     + "depending on how many insertions and updates were actually required.",
+                     + "depending on how many insertions and updates were actually required\n\n"
+                     + ""
+                     + "The caller must be an administrator or service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1004,7 +1032,9 @@ public final class UserResource
                      + "The change count returned can be zero or one "
                      + "depending on how many permissions were revoked.\n\n"
                      + ""
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "A valid tenant and user must be specified in the request body.  "
+                     + "The caller must be an administrator, a service or the user themselves."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1106,6 +1136,15 @@ public final class UserResource
                          + "to the user.  The change count returned can range from zero to two "
                          + "depending on how many insertions were actually required.\n\n"
                          + ""
+                         + "The user@tenant specified in "
+                         + "the request payload is authorized to grant the role "
+                         + "only if:\n\n"
+                         + ""
+                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
+                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
+                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + ""
                          + "A valid tenant and user must be specified in the request body.",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1165,6 +1204,7 @@ public final class UserResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
+                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -1679,18 +1719,13 @@ public final class UserResource
      @PermitAll
      @Operation(
              description = 
-               "Get a user's default role. The default role can be explicitly created "
-               + "by a POST call or implicitly by the system whenever it's needed and "
-               + "it doesn't already exist. "
+               "Get a user's default role. The default role is implicitly created by the system "
+               + "when needed if it doesn't already exist. No authorization required.\n\n"
                + ""
-               + "A user's default role is *currently* constructed by prepending '$$' to the "
+               + "A user's default role is constructed by prepending '$$' to the "
                + "user's name.  This implies the maximum length of a user name is 58 since "
-               + "role names are limited to 60 characters.\n\n"
-               + ""
-               + "Since the default role name may be constructed differently in the future, "
-               + "this API is the recommended way to determine the default role."
+               + "role names are limited to 60 characters."
                + "",
-
              tags = "user",
              responses = 
                  {@ApiResponse(responseCode = "200", description = "The user's default role name.",

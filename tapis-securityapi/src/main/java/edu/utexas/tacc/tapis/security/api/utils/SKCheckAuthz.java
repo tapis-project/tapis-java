@@ -47,6 +47,7 @@ public final class SKCheckAuthz
     private boolean _checkMatchesJwtIdentity;
     private boolean _checkMatchesOBOIdentity;
     private boolean _checkIsAdmin;
+    private boolean _checkIsOBOAdmin;
     private boolean _checkIsService;
     
     // Secrets checks.
@@ -87,8 +88,9 @@ public final class SKCheckAuthz
     // Roles and user checks.
     public SKCheckAuthz setCheckMatchesJwtIdentity() {_checkMatchesJwtIdentity = true; return this;}
     public SKCheckAuthz setCheckMatchesOBOIdentity() {_checkMatchesOBOIdentity = true; return this;}
-    public SKCheckAuthz setCheckIsAdmin() {_checkIsAdmin = true; return this;}
-    public SKCheckAuthz setCheckIsService() {_checkIsService = true; return this;}
+    public SKCheckAuthz setCheckIsAdmin()    {_checkIsAdmin = true; return this;}
+    public SKCheckAuthz setCheckIsOBOAdmin() {_checkIsOBOAdmin = true; return this;}
+    public SKCheckAuthz setCheckIsService()  {_checkIsService = true; return this;}
     
     // Secrets checks.
     public SKCheckAuthz setCheckSecrets() {_checkSecrets = true; return this;}
@@ -158,6 +160,9 @@ public final class SKCheckAuthz
      * to be returned and the remaining tests are skipped.  The tests are generally
      * ordered from least expensive to most expensive.
      * 
+     * Note: Since _reqUser can legitimately be null on some API calls, every use of 
+     * _reqUser needs to be protected by an explicit null check.
+     * 
      * @return null if authorization matches, otherwise return an error message.
      */
     public String checkMsg()
@@ -174,6 +179,7 @@ public final class SKCheckAuthz
         if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity()) return null;
         if (_checkMatchesOBOIdentity && checkMatchesOBOIdentity()) return null;
         if (_checkIsAdmin && checkIsAdmin()) return null;
+        if (_checkIsOBOAdmin && checkIsOBOAdmin()) return null;
         
         if (_ownedRoles != null && checkOwnedRoles()) return null;
         if (_requiredRoles != null && checkRequiredRoles()) return null;
@@ -274,44 +280,6 @@ public final class SKCheckAuthz
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* validateRequestUserContext:                                                  */
-    /* ---------------------------------------------------------------------------- */
-    /** Perform the following checks regarding the request user field.
-     * 
-     *      1. Check that the field is not null.
-     *      2. Check if the request user@tenant is the jwt user@tenant.
-     *      3. Otherwise, on service tokens check that the request user@tenant
-     *         is the OBO user@tenant.
-     * 
-     * @return
-     */
-    private boolean validateRequestUserContext()
-    {
-        // Make sure the request user has been assigned for this check.
-        if (StringUtils.isBlank(_reqUser)) {
-            var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateRequestUserContext", "_reqUser");
-            _log.error(msg);
-            return false;
-        }
-        
-        // See if the jwt and request user@tenant are the same.
-        if (_threadContext.getJwtTenantId().equals(_reqTenant) &&
-            _threadContext.getJwtUser().equals(_reqUser)) return true;
-        
-        // With service jwts we already known that the request tenant
-        // is allowed by the jwt tenant.  This check certifies that the
-        // OBO and jwt identities are exactly the same.
-        if (_threadContext.getAccountType() == AccountType.service) {
-            // Restrict the request identity to be the OBO identity.
-            if (_reqTenant.equals(_threadContext.getOboTenantId()) &&
-                _reqUser.equals(_threadContext.getOboUser())) 
-               return true;
-        }
-        
-        return false;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
     /* checkMatchesJwtIdentity:                                                     */
     /* ---------------------------------------------------------------------------- */
     /** Check that the jwt identity exactly matches the request tenant and user.
@@ -408,6 +376,38 @@ public final class SKCheckAuthz
     }
 
     /* ---------------------------------------------------------------------------- */
+    /* checkIsOBOAdmin:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Check that the on-behalf-of identity is an administrator.
+     * 
+     * @return true if passes check, false otherwise.
+     */
+    private boolean checkIsOBOAdmin()
+    {
+        // See if the obo user has admin privileges.
+        boolean authorized = false;
+        if (_threadContext.getAccountType() == AccountType.service)
+            try {
+                var userImpl = UserImpl.getInstance();
+                authorized = userImpl.hasRole(_threadContext.getOboTenantId(),
+                                              _threadContext.getOboUser(), 
+                                              new String[] {UserImpl.ADMIN_ROLE_NAME}, 
+                                              AuthOperation.ANY);
+            }
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
+                                             _threadContext.getOboTenantId(), 
+                                             _threadContext.getOboUser(), e.getMessage());
+                _log.error(msg, e);
+            }
+        
+        // What happened?
+        if (authorized) return true;
+        _failedChecks.add("IsOboAdmin");
+        return false;
+    }
+
+    /* ---------------------------------------------------------------------------- */
     /* checkIsService:                                                              */
     /* ---------------------------------------------------------------------------- */
     /** Check that the jwt identity represents a service.
@@ -456,7 +456,8 @@ public final class SKCheckAuthz
                     !(_threadContext.getAccountType() == AccountType.service &&
                       _threadContext.getOboUser().equals(skRole.getOwner()))) 
                 {
-                    // The role doesn't exist or request user is not its owner.
+                    // The role doesn't exist, the request user is not its owner
+                    // or the obo user is not the owner.
                     authorized = false;
                     break;
                 }
