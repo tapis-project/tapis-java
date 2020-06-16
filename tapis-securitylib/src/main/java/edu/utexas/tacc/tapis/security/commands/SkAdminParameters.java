@@ -28,8 +28,8 @@ public class SkAdminParameters
     private static final String DFT_BASE_SK_URL = "http:/localhost:8080/v3";
     
     // Secret generation defaults.
-    private static final int DFT_PASSWORD_BYTES = 32;
-    private static final int MIN_PASSWORD_BYTES = 16;
+    private static final int DFT_PASSWORD_BYTES = 12;
+    private static final int MIN_PASSWORD_BYTES = 8;
     
     // Output choices.
     public static final String OUTPUT_TEXT = "text";
