@@ -17,6 +17,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.TreeMap;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -879,7 +880,7 @@ public class SkAdmin
         // Generate the random bytes and return the base 64 representation.
         byte[] bytes = new byte[_parms.passwordLength];
         getRand().nextBytes(bytes);
-        String password = Base64.getEncoder().encodeToString(bytes);
+        String password = Hex.encodeHexString(bytes);
         _results.incrementPasswordsGenerated();
         return password;
     }
