@@ -91,8 +91,19 @@ public class RuntimeParameters {
     parm = inputProperties.getProperty("tapis.meta.service.token");
     if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
+    parm = inputProperties.getProperty("tapis.meta.service.tenantBaseUrl");
+    if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
+    parm = inputProperties.getProperty("tapis.meta.service.skSvcURL");
+    if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
+    parm = inputProperties.getProperty("tapis.meta.service.tokenBaseUrl");
+    if (!StringUtils.isBlank(parm)) setMetaToken(parm);
+  
+    // private String tenantBaseUrl = "https://dev.develop.tapis.io/";
+    // private String skSvcURL      = "https://dev.develop.tapis.io/v3";
+    // private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
+    // https://master.staging.tapis.io/v3/meta
   }
   
   /** Initialize the singleton instance of this class.
