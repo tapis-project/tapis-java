@@ -649,8 +649,30 @@ public final class UserImpl
       throws TapisImplException, TapisNotFoundException
     {
         // The tenant admin role.
-        final String roleName = ADMIN_ROLE_NAME;
-        
+        String desc = "Administrator role for tenant " + tenant;
+        return grantRoleInternal(tenant, requestor, user, ADMIN_ROLE_NAME, desc);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* grantRoleInternal:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Grant the any internal-use role to the user without checking whether the
+     * requestor is also an administrator.  This method should only be used
+     * by SK code, never by clients.
+     * 
+     * @param tenant the tenant id
+     * @param requestor the caller's name
+     * @param user the user being grant the role
+     * @param roleName the role to be created
+     * @param desc the role's description
+     * @return the number of rows changed
+     * @throws TapisImplException on error
+     * @throws TapisNotFoundException if the role is not found
+     */
+    public int grantRoleInternal(String tenant, String requestor, String user,
+                                 String roleName, String desc) 
+      throws TapisImplException, TapisNotFoundException
+    {
         // Get the dao.
         SkUserRoleDao userDao = null;
         try {userDao = getSkUserRoleDao();}
@@ -661,7 +683,6 @@ public final class UserImpl
             }
         
         // Create and assign the role.
-        String desc = "Administrator role for tenant " + tenant;
         boolean strict = false;
         int rows = 0;
         try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc, strict);}

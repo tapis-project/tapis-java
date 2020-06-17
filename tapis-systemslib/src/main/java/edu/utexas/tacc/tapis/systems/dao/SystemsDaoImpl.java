@@ -1,32 +1,35 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.systems.model.PatchSystem;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 import org.apache.commons.lang3.StringUtils;
-import org.postgresql.util.PGobject;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Query;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.*;
+import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.SYSTEMS;
+
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
-import edu.utexas.tacc.tapis.systems.model.Capability.Category;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
-import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
-import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /*
  * Class to handle persistence for Tapis System objects.
@@ -40,6 +43,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static final Logger _log = LoggerFactory.getLogger(SystemsDaoImpl.class);
 
   private static final String EMPTY_JSON = "{}";
+
+  public enum SqlCompareOperator { EQ, LT, GT; }
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -66,8 +71,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     if (system.getSystemType() == null) LibUtils.logAndThrowNullParmException(opName, "systemType");
     if (system.getDefaultAccessMethod() == null) LibUtils.logAndThrowNullParmException(opName, "defaultAccessMethod");
 
-    // Convert transferMethods into a string
-    String transferMethodsStr = LibUtils.getTransferMethodsAsString(system.getTransferMethods());
+    // Convert transferMethods into array of strings
+    String[] transferMethodsStrArray = LibUtils.getTransferMethodsAsStringArray(system.getTransferMethods());
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     String proxyHost = TSystem.DEFAULT_PROXYHOST;
@@ -79,9 +84,10 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
       // Check to see if system exists or has been soft deleted. If yes then throw IllegalStateException
-      boolean doesExist = checkForTSystem(conn, system.getTenant(), system.getName(), true);
+      boolean doesExist = checkForSystem(db, system.getTenant(), system.getName(), true);
       if (doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_SYS_EXISTS", authenticatedUser, system.getName()));
 
       // Make sure owner, effectiveUserId, notes and tags are all set
@@ -89,69 +95,47 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       if (StringUtils.isNotBlank(system.getOwner())) owner = system.getOwner();
       String effectiveUserId = TSystem.DEFAULT_EFFECTIVEUSERID;
       if (StringUtils.isNotBlank(system.getEffectiveUserId())) effectiveUserId = system.getEffectiveUserId();
-      String tagsStr = TSystem.DEFAULT_TAGS_STR;
-      if (system.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(system.getTags());
+      String[] tagsStrArray = TSystem.DEFAULT_TAGS;
+      if (system.getTags() != null) tagsStrArray = system.getTags();
       JsonObject notesObj = TSystem.DEFAULT_NOTES;
       if (system.getNotes() != null) notesObj = (JsonObject) system.getNotes();
 
-      // Convert tags and notes to jsonb objects.
-      // Tags is a list of strings and notes is a JsonObject
-      var tagsJsonb = new PGobject();
-      tagsJsonb.setType("jsonb");
-      tagsJsonb.setValue(tagsStr);
-      var notesJsonb = new PGobject();
-      notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesObj.toString());
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.CREATE_SYSTEM;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, system.getTenant());
-      pstmt.setString(2, system.getName());
-      pstmt.setString(3, system.getDescription());
-      pstmt.setString(4, system.getSystemType().name());
-      pstmt.setString(5, owner);
-      pstmt.setString(6, system.getHost());
-      pstmt.setBoolean(7, system.isEnabled());
-      pstmt.setString(8, effectiveUserId);
-      pstmt.setString(9, system.getDefaultAccessMethod().name());
-      pstmt.setString(10, system.getBucketName());
-      pstmt.setString(11, system.getRootDir());
-      pstmt.setString(12, transferMethodsStr);
-      pstmt.setInt(13, system.getPort());
-      pstmt.setBoolean(14, system.isUseProxy());
-      pstmt.setString(15, proxyHost);
-      pstmt.setInt(16, system.getProxyPort());
-      pstmt.setBoolean(17, system.getJobCanExec());
-      pstmt.setString(18, system.getJobLocalWorkingDir());
-      pstmt.setString(19, system.getJobLocalArchiveDir());
-      pstmt.setString(20, system.getJobRemoteArchiveSystem());
-      pstmt.setString(21, system.getJobRemoteArchiveDir());
-      pstmt.setObject(22, tagsJsonb);
-      pstmt.setObject(23, notesJsonb);
-      pstmt.execute();
-      // The generated sequence id should come back as result
-      ResultSet rs = pstmt.getResultSet();
-      if (rs == null || !rs.next())
-      {
-        String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "systems");
-        _log.error(msg);
-        throw new TapisException(msg);
-      }
-      systemId = rs.getInt(1);
-      pstmt.close();
-      rs.close();
-      rs = null;
-      pstmt = null;
+      Record record = db.insertInto(SYSTEMS)
+              .set(SYSTEMS.TENANT, system.getTenant())
+              .set(SYSTEMS.NAME, system.getName())
+              .set(SYSTEMS.DESCRIPTION, system.getDescription())
+              .set(SYSTEMS.SYSTEM_TYPE, system.getSystemType())
+              .set(SYSTEMS.OWNER, owner)
+              .set(SYSTEMS.HOST, system.getHost())
+              .set(SYSTEMS.ENABLED, system.isEnabled())
+              .set(SYSTEMS.EFFECTIVE_USER_ID, effectiveUserId)
+              .set(SYSTEMS.DEFAULT_ACCESS_METHOD, system.getDefaultAccessMethod())
+              .set(SYSTEMS.BUCKET_NAME, system.getBucketName())
+              .set(SYSTEMS.ROOT_DIR, system.getRootDir())
+              .set(SYSTEMS.TRANSFER_METHODS, transferMethodsStrArray)
+              .set(SYSTEMS.PORT, system.getPort())
+              .set(SYSTEMS.USE_PROXY, system.isUseProxy())
+              .set(SYSTEMS.PROXY_HOST, proxyHost)
+              .set(SYSTEMS.PROXY_PORT, system.getProxyPort())
+              .set(SYSTEMS.JOB_CAN_EXEC, system.getJobCanExec())
+              .set(SYSTEMS.JOB_LOCAL_WORKING_DIR, system.getJobLocalWorkingDir())
+              .set(SYSTEMS.JOB_LOCAL_ARCHIVE_DIR, system.getJobLocalArchiveDir())
+              .set(SYSTEMS.JOB_REMOTE_ARCHIVE_SYSTEM, system.getJobRemoteArchiveSystem())
+              .set(SYSTEMS.JOB_REMOTE_ARCHIVE_DIR, system.getJobRemoteArchiveDir())
+              .set(SYSTEMS.TAGS, tagsStrArray)
+              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .returningResult(SYSTEMS.ID)
+              .fetchOne();
+      systemId = record.getValue(SYSTEMS.ID);
 
       // Persist job capabilities
-      persistJobCapabilities(conn, system, systemId);
+      persistJobCapabilities(db, system, systemId);
 
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.create.name(), createJsonStr, scrubbedText);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.create, createJsonStr, scrubbedText);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -194,8 +178,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     String name = patchedSystem.getName();
     int systemId = patchedSystem.getId();
 
-    // Convert transferMethods into a string
-    String transferMethodsStr = LibUtils.getTransferMethodsAsString(patchedSystem.getTransferMethods());
+    // Convert transferMethods into array of strings
+    String[] transferMethodsStrArray = LibUtils.getTransferMethodsAsStringArray(patchedSystem.getTransferMethods());
 
     // Convert nulls to default values. Postgres adheres to sql standard of <col> = null is not the same as <col> is null
     String proxyHost = TSystem.DEFAULT_PROXYHOST;
@@ -207,57 +191,47 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
       // Check to see if system exists and has not been soft deleted. If no then throw IllegalStateException
-      boolean doesExist = checkForTSystem(conn, tenant, name, false);
+      boolean doesExist = checkForSystem(db, tenant, name, false);
       if (!doesExist) throw new IllegalStateException(LibUtils.getMsgAuth("SYSLIB_NOT_FOUND", authenticatedUser, name));
 
       // Make sure effectiveUserId, notes and tags are all set
       String effectiveUserId = TSystem.DEFAULT_EFFECTIVEUSERID;
       if (StringUtils.isNotBlank(patchedSystem.getEffectiveUserId())) effectiveUserId = patchedSystem.getEffectiveUserId();
-      String tagsStr = TSystem.DEFAULT_TAGS_STR;
-      if (patchedSystem.getTags() != null) tagsStr = TapisGsonUtils.getGson().toJson(patchedSystem.getTags());
+      String[] tagsStrArray = TSystem.DEFAULT_TAGS;
+      if (patchedSystem.getTags() != null) tagsStrArray = patchedSystem.getTags();
       JsonObject notesObj =  TSystem.DEFAULT_NOTES;
       if (patchedSystem.getNotes() != null) notesObj = (JsonObject) patchedSystem.getNotes();
 
-      // Convert tags and notes to jsonb objects.
-      // Tags is a list of strings and notes is a JsonObject
-      var tagsJsonb = new PGobject();
-      tagsJsonb.setType("jsonb");
-      tagsJsonb.setValue(tagsStr);
-      var notesJsonb = new PGobject();
-      notesJsonb.setType("jsonb");
-      notesJsonb.setValue(notesObj.toString());
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.UPDATE_SYSTEM;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, patchedSystem.getDescription());
-      pstmt.setString(2, patchedSystem.getHost());
-      pstmt.setBoolean(3, patchedSystem.isEnabled());
-      pstmt.setString(4, effectiveUserId);
-      pstmt.setString(5, patchedSystem.getDefaultAccessMethod().name());
-      pstmt.setString(6, transferMethodsStr);
-      pstmt.setInt(7, patchedSystem.getPort());
-      pstmt.setBoolean(8, patchedSystem.isUseProxy());
-      pstmt.setString(9, proxyHost);
-      pstmt.setInt(10, patchedSystem.getProxyPort());
-      pstmt.setObject(11, tagsJsonb);
-      pstmt.setObject(12, notesJsonb);
-      pstmt.setInt(13, systemId);
-      pstmt.execute();
+      db.update(SYSTEMS)
+              .set(SYSTEMS.DESCRIPTION, patchedSystem.getDescription())
+              .set(SYSTEMS.HOST, patchedSystem.getHost())
+              .set(SYSTEMS.ENABLED, patchedSystem.isEnabled())
+              .set(SYSTEMS.EFFECTIVE_USER_ID, effectiveUserId)
+              .set(SYSTEMS.DEFAULT_ACCESS_METHOD, patchedSystem.getDefaultAccessMethod())
+              .set(SYSTEMS.TRANSFER_METHODS, transferMethodsStrArray)
+              .set(SYSTEMS.PORT, patchedSystem.getPort())
+              .set(SYSTEMS.USE_PROXY, patchedSystem.isUseProxy())
+              .set(SYSTEMS.PROXY_HOST, proxyHost)
+              .set(SYSTEMS.PROXY_PORT, patchedSystem.getProxyPort())
+              .set(SYSTEMS.TAGS, tagsStrArray)
+              .set(SYSTEMS.NOTES_JSONB, notesObj)
+              .where(SYSTEMS.ID.eq(systemId))
+              .execute();
 
       // If jobCapabilities updated then replace them
       if (patchSystem.getJobCapabilities() != null) {
-        removeJobCapabilities(conn, systemId);
-        persistJobCapabilities(conn, patchedSystem, systemId);
+        db.deleteFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).execute();
+        persistJobCapabilities(db, patchedSystem, systemId);
       }
 
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.modify.name(), updateJsonStr, scrubbedText);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.modify, updateJsonStr, scrubbedText);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -290,17 +264,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.UPDATE_SYSTEM_OWNER;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, newOwnerName);
-      pstmt.setInt(2, systemId);
-      pstmt.executeUpdate();
+      DSLContext db = DSL.using(conn);
+      db.update(SYSTEMS).set(SYSTEMS.OWNER, newOwnerName).where(SYSTEMS.ID.eq(systemId)).execute();
       // Persist update record
       String updateJsonStr = TapisGsonUtils.getGson().toJson(newOwnerName);
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.changeOwner.name(), updateJsonStr , null);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.changeOwner, updateJsonStr , null);
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -332,18 +302,18 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.SOFT_DELETE_SYSTEM_BY_ID;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setInt(1, systemId);
-      rows = pstmt.executeUpdate();
-
+      DSLContext db = DSL.using(conn);
+      // If system does not exist or has been soft deleted return 0
+      if (!db.fetchExists(SYSTEMS, SYSTEMS.ID.eq(systemId), SYSTEMS.DELETED.eq(false)))
+      {
+        return 0;
+      }
+      rows = db.update(SYSTEMS).set(SYSTEMS.DELETED, true).where(SYSTEMS.ID.eq(systemId)).execute();
       // Persist update record
-      addUpdate(conn, authenticatedUser, systemId, SystemOperation.softDelete.name(), EMPTY_JSON, null);
+      addUpdate(db, authenticatedUser, systemId, SystemOperation.softDelete, EMPTY_JSON, null);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -360,7 +330,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * Hard delete a system record given the system name.
-   *
    */
   @Override
   public int hardDeleteTSystem(String tenant, String name) throws TapisException
@@ -375,30 +344,56 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     Connection conn = null;
     try
     {
-      // Get a database connection.
       conn = getConnection();
-
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.HARD_DELETE_SYSTEM_BY_NAME;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      rows = pstmt.executeUpdate();
-
-      // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, null);
+      DSLContext db = DSL.using(conn);
+      db.deleteFrom(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant),SYSTEMS.NAME.eq(name)).execute();
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
-      // Rollback transaction and throw an exception
       LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems");
     }
     finally
     {
-      // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
     return rows;
+  }
+
+  /**
+   * checkDB
+   * Check that we can connect with DB and that the main table of the service exists.
+   * @return true if all OK else returns false
+   */
+  @Override
+  public boolean checkDB()
+  {
+    boolean result = true;
+    Connection conn = null;
+    try
+    {
+      conn = getConnection();
+      DSLContext db = DSL.using(conn);
+      // execute SELECT to_regclass('tapis_sys.systems');
+      // Build and execute a simple postgresql statement to check for the table
+      String sql = "SELECT to_regclass('" + SYSTEMS.getName() + "')";
+      Result<Record> ret = db.resultQuery(sql).fetch();
+      if (ret == null || ret.isEmpty() || ret.getValue(0,0) == null) result = false;
+      LibUtils.closeAndCommitDB(conn, null, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback always logs msg and throws exception.
+      // In this case of a simple check we ignore the exception, we just want the log msg
+      try { LibUtils.rollbackDB(conn, e,"DB_DELETE_FAILURE", "systems"); }
+      catch (Exception e1) { }
+      result = false;
+    }
+    finally
+    {
+      LibUtils.finalCloseDB(conn);
+    }
+    return result;
   }
 
   /**
@@ -418,8 +413,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
       // Run the sql
-      result = checkForTSystem(conn, tenant, name, includeDeleted);
+      result = checkForSystem(db, tenant, name, includeDeleted);
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
     }
@@ -453,31 +449,18 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
+      SystemsRecord r = db.selectFrom(SYSTEMS)
+              .where(SYSTEMS.TENANT.eq(tenant),SYSTEMS.NAME.eq(name),SYSTEMS.DELETED.eq(false))
+              .fetchOne();
+      if (r == null) return null;
+      else result = r.into(TSystem.class);
 
-      // Prepare the statement, fill in placeholders and execute
-      String sql = SqlStatements.SELECT_SYSTEM_BY_NAME;
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      ResultSet rsSys = pstmt.executeQuery();
-      // Should get one row back. If not close out and return.
-      if (rsSys == null || !rsSys.next())
-      {
-        LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
-        return null;
-      }
-
-      // Pull out the system id so we can use it to get capabilities
-      int systemId = rsSys.getInt(1);
-
-      // Retrieve job capabilities
-      List<Capability> jobCaps = retrieveJobCaps(systemId, conn);
-
-      // Use results to populate system object
-      result = populateTSystem(rsSys, jobCaps);
+      // Retrieve and set job capabilities
+      result.setJobCapabilities(retrieveJobCaps(db, result.getId()));
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rsSys);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -489,7 +472,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
-
     return result;
   }
 
@@ -500,7 +482,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @throws TapisException - on error
    */
   @Override
-  public List<TSystem> getTSystems(String tenant) throws TapisException
+  public List<TSystem> getTSystems(String tenant, List<String> selectList) throws TapisException
   {
     // The result list is always non-null.
     var list = new ArrayList<TSystem>();
@@ -511,29 +493,61 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
+      DSLContext db = DSL.using(conn);
 
-      // Get the select command.
-      String sql = SqlStatements.SELECT_ALL_SYSTEMS;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      ResultSet rs = pstmt.executeQuery();
-      // Iterate over results
-      if (rs != null)
+      // Begin where condition for this query
+      Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
+      // TODO Parse selectList and add to the WHERE clause
+      if (selectList != null && !selectList.isEmpty())
       {
-        while (rs.next())
+        for (String selectStr : selectList)
         {
-          // Retrieve job capabilities
-          int systemId = rs.getInt(1);
-          List<Capability> jobCaps = retrieveJobCaps(systemId, conn);
-          TSystem system = populateTSystem(rs, jobCaps);
-          if (system != null) list.add(system);
+          // TODO Parse select value into column name, operator and value
+          // Format must be column_name(op)value
+          String[] parsedStrArray = selectStr.split("[\\(\\)]", 3);
+          // TODO Validate result
+          String column = parsedStrArray[0];
+          var op = SqlCompareOperator.valueOf(parsedStrArray[1].toUpperCase());
+          String val = parsedStrArray[2];
+          // TODO Add the condition to the WHERE clause
+          _log.error("*************************************************Adding where condition: " + selectStr);
+          // TODO: Check that column exists in table
+          Field<Object> col = DSL.field(DSL.name(column));
+          whereCondition = addCondition(whereCondition, col, op, val);
         }
       }
 
+      Result<SystemsRecord> results = db.selectFrom(SYSTEMS).where(whereCondition).fetch();
+      if (results == null || results.isEmpty()) return list;
+      for (SystemsRecord r : results)
+      {
+        TSystem s = r.into(TSystem.class);
+        s.setJobCapabilities(retrieveJobCaps(db, s.getId()));
+        list.add(s);
+      }
+
+//      // Get the select command.
+//      String sql = SqlStatements.SELECT_ALL_SYSTEMS;
+//
+//      // Prepare the statement, fill in placeholders and execute
+//      PreparedStatement pstmt = conn.prepareStatement(sql);
+//      pstmt.setString(1, tenant);
+//      ResultSet rs = pstmt.executeQuery();
+//      // Iterate over results
+//      if (rs != null)
+//      {
+//        while (rs.next())
+//        {
+//          // Retrieve job capabilities
+//          int systemId = rs.getInt(1);
+//          List<Capability> jobCaps = retrieveJobCaps(db, systemId);
+//          TSystem system = populateTSystem(rs, jobCaps);
+//          if (system != null) list.add(system);
+//        }
+//      }
+
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -561,25 +575,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     // The result list is always non-null.
     var list = new ArrayList<String>();
 
-    // ------------------------- Call SQL ----------------------------
     Connection conn = null;
     try
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Get the select command.
-      String sql = SqlStatements.SELECT_ALL_SYSTEM_NAMES;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      ResultSet rs = pstmt.executeQuery();
+      // ------------------------- Call SQL ----------------------------
+      // Use jOOQ to build query string
+      DSLContext db = DSL.using(conn);
+      Result<?> result = db.select(SYSTEMS.NAME).from(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant)).fetch();
       // Iterate over result
-      while (rs.next()) list.add(rs.getString(1));
-
-      // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      for (Record r : result) { list.add(r.get(SYSTEMS.NAME)); }
     }
     catch (Exception e)
     {
@@ -591,7 +597,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
-
     return list;
   }
 
@@ -606,26 +611,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   public String getTSystemOwner(String tenant, String name) throws TapisException
   {
     String owner = null;
-
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
     try
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Get the select command.
-      String sql = SqlStatements.SELECT_SYSTEM_OWNER;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      ResultSet rs = pstmt.executeQuery();
-      if (rs.next()) owner = rs.getString(1);
+      DSLContext db = DSL.using(conn);
+      owner = db.selectFrom(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant), SYSTEMS.NAME.eq(name)).fetchOne(SYSTEMS.OWNER);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -658,19 +654,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Get the select command.
-      String sql = SqlStatements.SELECT_SYSTEM_EFFECTIVEUSERID;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      ResultSet rs = pstmt.executeQuery();
-      if (rs.next()) effectiveUserId = rs.getString(1);
+      DSLContext db = DSL.using(conn);
+      effectiveUserId = db.selectFrom(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant), SYSTEMS.NAME.eq(name)).fetchOne(SYSTEMS.EFFECTIVE_USER_ID);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -703,19 +691,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-
-      // Get the select command.
-      String sql = SqlStatements.SELECT_SYSTEM_ID;
-
-      // Prepare the statement, fill in placeholders and execute
-      PreparedStatement pstmt = conn.prepareStatement(sql);
-      pstmt.setString(1, tenant);
-      pstmt.setString(2, name);
-      ResultSet rs = pstmt.executeQuery();
-      if (rs.next()) systemId = rs.getInt(1);
+      DSLContext db = DSL.using(conn);
+      systemId = db.selectFrom(SYSTEMS).where(SYSTEMS.TENANT.eq(tenant), SYSTEMS.NAME.eq(name)).fetchOne(SYSTEMS.ID);
 
       // Close out and commit
-      LibUtils.closeAndCommitDB(conn, pstmt, rs);
+      LibUtils.closeAndCommitDB(conn, null, null);
     }
     catch (Exception e)
     {
@@ -735,7 +715,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    *
    */
   @Override
-  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text) throws TapisException
+  public void addUpdateRecord(AuthenticatedUser authenticatedUser, int systemId, SystemOperation op, String upd_json,
+                              String upd_text) throws TapisException
   {
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -743,7 +724,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     {
       // Get a database connection.
       conn = getConnection();
-      addUpdate(conn, authenticatedUser, systemId, opName, upd_json, upd_text);
+      DSLContext db = DSL.using(conn);
+      addUpdate(db, authenticatedUser, systemId, op, upd_json, upd_text);
 
       // Close out and commit
       LibUtils.closeAndCommitDB(conn, null, null);
@@ -768,202 +750,132 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * Given an sql connection and basic info add an update record
    *
    */
-  private void addUpdate(Connection conn, AuthenticatedUser authenticatedUser, int systemId, String opName, String upd_json, String upd_text)
-          throws SQLException
+  private void addUpdate(DSLContext db, AuthenticatedUser authenticatedUser, int systemId,
+                         SystemOperation op, String upd_json, String upd_text)
   {
     String updJsonStr = (StringUtils.isBlank(upd_json)) ? EMPTY_JSON : upd_json;
-    // Convert upd_json to jsonb object.
-    var pGobject = new PGobject();
-    pGobject.setType("jsonb");
-    pGobject.setValue(updJsonStr);
-
     // Persist update record
-    String sql = SqlStatements.ADD_UPDATE;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setInt(1, systemId);
-    pstmt.setString(2, authenticatedUser.getName());
-    pstmt.setString(3, opName);
-    pstmt.setObject(4, pGobject);
-    pstmt.setString(5, upd_text);
-    pstmt.execute();
-    pstmt.close();
+    db.insertInto(SYSTEM_UPDATES)
+            .set(SYSTEM_UPDATES.SYSTEM_ID, systemId)
+            .set(SYSTEM_UPDATES.USER_NAME, authenticatedUser.getName())
+            .set(SYSTEM_UPDATES.OPERATION, op)
+            .set(SYSTEM_UPDATES.UPD_JSONB, TapisGsonUtils.getGson().fromJson(updJsonStr, JsonElement.class))
+            .set(SYSTEM_UPDATES.UPD_TEXT, upd_text)
+            .execute();
   }
 
   /**
    * Given an sql connection check to see if specified system exists and has/has not been soft deleted
-   * @param conn - Sql connection
+   * @param db - jooq context
    * @param tenant - name of tenant
    * @param name - name of system
    * @param includeDeleted -if soft deleted systems should be included
    * @return - true if system exists, else false
-   * @throws SQLException -
    */
-  private static boolean checkForTSystem(Connection conn, String tenant, String name, boolean includeDeleted)
-          throws SQLException
+  private static boolean checkForSystem(DSLContext db, String tenant, String name, boolean includeDeleted)
   {
-    boolean result = false;
-    // Prepare the statement, fill in placeholders and execute
-    String sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME;
-    if (includeDeleted) sql = SqlStatements.CHECK_FOR_SYSTEM_BY_NAME_ALL;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setString(1, tenant);
-    pstmt.setString(2, name);
-    ResultSet rs = pstmt.executeQuery();
-    if (rs != null && rs.next()) result = rs.getBoolean(1);
-    return result;
+    if (includeDeleted) return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant));
+    else return db.fetchExists(SYSTEMS, SYSTEMS.NAME.eq(name),SYSTEMS.TENANT.eq(tenant),SYSTEMS.DELETED.eq(false));
   }
 
   /**
    * Persist job capabilities given an sql connection and a system
    */
-  private static void persistJobCapabilities(Connection conn, TSystem tSystem, int systemId) throws SQLException
+  private static void persistJobCapabilities(DSLContext db, TSystem tSystem, int systemId)
   {
     var jobCapabilities = tSystem.getJobCapabilities();
-    if (jobCapabilities != null && !jobCapabilities.isEmpty()) {
-      String sql = SqlStatements.ADD_CAPABILITY;
-      for (Capability cap : jobCapabilities) {
-        String valStr = "";
-        if (cap.getValue() != null ) valStr = cap.getValue();
-        // Prepare the statement and execute it
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setInt(1, systemId);
-        pstmt.setString(2, cap.getCategory().name());
-        pstmt.setString(3, cap.getName());
-        pstmt.setString(4, valStr);
-        pstmt.execute();
-      }
+    if (jobCapabilities == null || jobCapabilities.isEmpty()) return;
+
+    for (Capability cap : jobCapabilities) {
+      String valStr = "";
+      if (cap.getValue() != null ) valStr = cap.getValue();
+      db.insertInto(CAPABILITIES).set(CAPABILITIES.SYSTEM_ID, systemId)
+              .set(CAPABILITIES.CATEGORY, cap.getCategory())
+              .set(CAPABILITIES.NAME, cap.getName())
+              .set(CAPABILITIES.VALUE, valStr)
+              .execute();
     }
   }
 
-  /**
-   * Remove job capabilities given an sql connection and a system id
-   */
-  private static void removeJobCapabilities(Connection conn, int systemId) throws SQLException
+//  /**
+//   * populateTSystem
+//   * Instantiate and populate an object using a result set. The cursor for the
+//   *   ResultSet must be advanced to the desired result.
+//   *
+//   * @param rs the result set containing one or more items, cursor at desired item
+//   * @return the new, fully populated job object or null if there is a problem
+//   * @throws TapisJDBCException - on error
+//   */
+//  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
+//  {
+//    // Quick check.
+//    if (rs == null) return null;
+//
+//    TSystem tSystem;
+//    try
+//    {
+//      String[] tagsStrArray = (String[]) (rs.getArray(23)).getArray();
+//      // Populate transfer methods
+//      List<TransferMethod> txfrMethodsList = LibUtils.getTransferMethodsFromStringArray((String[]) (rs.getArray(13)).getArray());
+//      // Create the TSystem
+//      tSystem = new TSystem(rs.getInt(1), // id
+//                            rs.getString(2), // tenant
+//                            rs.getString(3), // name
+//                            rs.getString(4), // description
+//                            SystemType.valueOf(rs.getString(5)), // system type
+//                            rs.getString(6), // owner
+//                            rs.getString(7), // host
+//                            rs.getBoolean(8), //enabled
+//                            rs.getString(9), // effectiveUserId
+//                            AccessMethod.valueOf(rs.getString(10)),
+//                            rs.getString(11), // bucketName
+//                            rs.getString(12), // rootDir
+//                            txfrMethodsList,
+//                            rs.getInt(14), // port
+//                            rs.getBoolean(15), // useProxy
+//                            rs.getString(16), //proxyHost
+//                            rs.getInt(17), // proxyPort
+//                            rs.getBoolean(18), // jobCanExec
+//                            rs.getString(19), // jobLocalWorkingDir
+//                            rs.getString(20), // jobLocalArchiveDir
+//                            rs.getString(21), // jobRemoteArchiveSystem
+//                            rs.getString(22), // jobRemoteArchiveSystemDir
+//                            tagsStrArray, // tags
+//                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
+//                            rs.getBoolean(25), // deleted
+//                            rs.getTimestamp(26).toInstant(), // created
+//                            rs.getTimestamp(27).toInstant()); // updated
+//    }
+//    catch (Exception e)
+//    {
+//      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
+//      _log.error(msg, e);
+//      throw new TapisJDBCException(msg, e);
+//    }
+//    tSystem.setJobCapabilities(jobCaps);
+//    return tSystem;
+//  }
+//
+  private static List<Capability> retrieveJobCaps(DSLContext db, int systemId)
   {
-    String sql = SqlStatements.DELETE_CAPABILITES;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setInt(1, systemId);
-    pstmt.execute();
+    List<Capability> capRecords = db.selectFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).fetchInto(Capability.class);
+    return capRecords;
   }
 
-  /**
-   * populateTSystem
-   * Instantiate and populate an object using a result set. The cursor for the
-   *   ResultSet must be advanced to the desired result.
-   *
-   * @param rs the result set containing one or more items, cursor at desired item
-   * @return the new, fully populated job object or null if there is a problem
-   * @throws TapisJDBCException - on error
-   */
-  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
+  private Condition addCondition(Condition cond, Field<Object> col, SqlCompareOperator op, String val)
   {
-    // Quick check.
-    if (rs == null) return null;
-
-    TSystem tSystem;
-    try
-    {
-      // Populate transfer methods
-      List<TransferMethod> txfrMethodsList = new ArrayList<>();
-      String txfrMethodsStr = rs.getString(13);
-      if (txfrMethodsStr != null && !StringUtils.isBlank(txfrMethodsStr))
-      {
-        // Strip off surrounding braces and convert strings to enums
-        // NOTE: All values should be valid due to enforcement of type in DB and json schema validation
-        String[] txfrMethodsStrArray = (txfrMethodsStr.substring(1, txfrMethodsStr.length() - 1)).split(",");
-        for (String tmech : txfrMethodsStrArray)
-        {
-          if (!StringUtils.isBlank(tmech)) txfrMethodsList.add(TransferMethod.valueOf(tmech));
-        }
-      }
-
-      // Create the TSystem
-      tSystem = new TSystem(rs.getInt(1), // id
-                            rs.getString(2), // tenant
-                            rs.getString(3), // name
-                            rs.getString(4), // description
-                            SystemType.valueOf(rs.getString(5)), // system type
-                            rs.getString(6), // owner
-                            rs.getString(7), // host
-                            rs.getBoolean(8), //enabled
-                            rs.getString(9), // effectiveUserId
-                            AccessMethod.valueOf(rs.getString(10)),
-                            null, // accessCredential
-                            rs.getString(11), // bucketName
-                            rs.getString(12), // rootDir
-                            txfrMethodsList,
-                            rs.getInt(14), // port
-                            rs.getBoolean(15), // useProxy
-                            rs.getString(16), //proxyHost
-                            rs.getInt(17), // proxyPort
-                            rs.getBoolean(18), // jobCanExec
-                            rs.getString(19), // jobLocalWorkingDir
-                            rs.getString(20), // jobLocalArchiveDir
-                            rs.getString(21), // jobRemoteArchiveSystem
-                            rs.getString(22), // jobRemoteArchiveSystemDir
-                            jobCaps,
-                            TapisGsonUtils.getGson().fromJson(rs.getString(23), String[].class), // tags
-                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
-                            rs.getTimestamp(25).toInstant(), // created
-                            rs.getTimestamp(26).toInstant()); // updated
+    Condition retCond = cond;
+    switch (op) {
+      case EQ:
+        retCond = cond.and(col.eq(val));
+        break;
+      case GT:
+        retCond =  cond.and(col.gt(val));
+        break;
+      case LT:
+        retCond =  cond.and(col.lt(val));
+        break;
     }
-    catch (Exception e)
-    {
-      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisJDBCException(msg, e);
-    }
-    return tSystem;
-  }
-
-  /**
-   * populateCapability
-   * Instantiate and populate an object using a result set. The cursor for the
-   *   ResultSet must be advanced to the desired result.
-   *
-   * @param rs the result set containing one or more items, cursor at desired item
-   * @return the new, fully populated job object or null if there is a problem
-   * @throws TapisJDBCException - on error
-   */
-  private static Capability populateCapability(ResultSet rs) throws TapisJDBCException
-  {
-    // Quick check.
-    if (rs == null) return null;
-
-    Capability capability;
-    try
-    {
-      // Create the Capability
-      capability = new Capability(Category.valueOf(rs.getString(1)), // category
-                                  rs.getString(2), // name
-                                  rs.getString(3)); // value
-    }
-    catch (Exception e)
-    {
-      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-      _log.error(msg, e);
-      throw new TapisJDBCException(msg, e);
-    }
-    return capability;
-  }
-
-  private static List<Capability> retrieveJobCaps(int systemId, Connection conn)
-          throws TapisJDBCException, SQLException
-  {
-    List<Capability> jobCaps = new ArrayList<>();
-    String sql = SqlStatements.SELECT_SYSTEM_CAPS;
-    PreparedStatement pstmt = conn.prepareStatement(sql);
-    pstmt.setInt(1, systemId);
-    ResultSet rsCaps = pstmt.executeQuery();
-    // Iterate over results
-    if (rsCaps != null)
-    {
-      while (rsCaps.next())
-      {
-        Capability cap = populateCapability(rsCaps);
-        if (cap != null) jobCaps.add(cap);
-      }
-    }
-    return jobCaps;
+    return retCond;
   }
 }

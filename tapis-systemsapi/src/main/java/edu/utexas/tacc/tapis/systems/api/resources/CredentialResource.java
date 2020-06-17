@@ -127,7 +127,6 @@ public class CredentialResource
 
   /**
    * Store or update credential for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -160,7 +159,6 @@ public class CredentialResource
   )
   public Response createUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
-                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                        InputStream payloadStream,
                                        @Context SecurityContext securityContext)
   {
@@ -175,6 +173,7 @@ public class CredentialResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -249,7 +248,6 @@ public class CredentialResource
   /**
    * getUserCredential
    * @param accessMethodStr - access method to use instead of default
-   * @param prettyPrint - pretty print the output
    * @return Response
    */
   @GET
@@ -277,11 +275,11 @@ public class CredentialResource
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                     @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -342,7 +340,6 @@ public class CredentialResource
 
   /**
    * Remove credential for given system and user.
-   * @param prettyPrint - pretty print the output
    * @return basic response
    */
   @DELETE
@@ -367,11 +364,11 @@ public class CredentialResource
   )
   public Response removeUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
-                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                        @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -178,22 +179,39 @@ public class SystemsServiceImpl implements SystemsService
     // Creation of system and role/perms/creds not in single DB transaction. Need to handle failure of role/perms/creds operations
     // Use try/catch to rollback any writes in case of failure.
     int itemId = -1;
+    String roleNameR = null;
+    String roleNameM = null;
+    String systemsPermSpecR = getPermSpecStr(systemTenantName, systemName, Permission.READ);
+    String systemsPermSpecM = getPermSpecStr(systemTenantName, systemName, Permission.MODIFY);
+    String systemsPermSpecALL = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+    String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
     // Get SK client now. If we cannot get this rollback not needed.
     var skClient = getSKClient(authenticatedUser);
     try {
       // ------------------- Make Dao call to persist the system -----------------------------------
-       itemId = dao.createTSystem(authenticatedUser, system, createJsonStr, scrubbedText);
+      itemId = dao.createTSystem(authenticatedUser, system, createJsonStr, scrubbedText);
 
-      // ------------------- Add permissions -----------------------------------
+      // Add permission roles for the system
+      roleNameR = TSystem.ROLE_READ_PREFIX + itemId;
+      roleNameM = TSystem.ROLE_MODIFY_PREFIX + itemId;
+      skClient.createRole(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
+      skClient.createRole(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM, "Role allowing MODIFY for system " + systemName);
+      skClient.addRolePermission(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
+      skClient.addRolePermission(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM, systemsPermSpecM);
+
+      // ------------------- Add permissions and role assignments -----------------------------
       // Give owner and possibly effectiveUser access to the system
-      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
-      skClient.grantUserPermission(systemTenantName, system.getOwner(), systemsPermSpec);
+      // TODO/TBD: Use user perm in default role OR just roleR, roleM OR are both useful?
+      skClient.grantUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL);
+      skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameR);
+      skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameM);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
-        skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpec);
+        skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL);
+        skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameR);
+        skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameM);
       }
       // TODO remove addition of files related permSpec
       // Give owner/effectiveUser files service related permission for root directory
-      String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
       skClient.grantUserPermission(systemTenantName, system.getOwner(), filesPermSpec);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
         skClient.grantUserPermission(systemTenantName, effectiveUserId, filesPermSpec);
@@ -218,24 +236,30 @@ public class SystemsServiceImpl implements SystemsService
 
       // Rollback
       // Remove system from DB
-      if (itemId != -1) try {dao.hardDeleteTSystem(tenantName, systemName); } catch (Exception e) {}
+      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); } catch (Exception e) {}
       // Remove perms
-      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
-      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpec); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); } catch (Exception e) {}
       try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
       try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
+      // Remove role assignments and roles
+      if (!StringUtils.isBlank(roleNameR)) {
+        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
+        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
+        try { skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
+      }
+      if (!StringUtils.isBlank(roleNameM)) {
+        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameM);  } catch (Exception e) {}
+        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameM);  } catch (Exception e) {}
+        try { skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM);  } catch (Exception e) {}
+      }
       // Remove creds
-      try
-      {
-        if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
-          String accessUser = effectiveUserId;
-          if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-          // Use private internal method instead of public API to skip auth and other checks not needed here.
-          deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser);
-        }
-      } catch (Exception e) {}
+      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+        String accessUser = effectiveUserId;
+        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+        // Use private internal method instead of public API to skip auth and other checks not needed here.
+        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); } catch (Exception e) {}
+      }
       throw e0;
     }
     return itemId;
@@ -362,7 +386,7 @@ public class SystemsServiceImpl implements SystemsService
       // ------------------- Make Dao call to update the system owner -----------------------------------
       dao.updateSystemOwner(authenticatedUser, systemId, newOwnerName);
       // Add permissions for new owner
-      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
+      String systemsPermSpec = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
       skClient.grantUserPermission(systemTenantName, newOwnerName, systemsPermSpec);
       // TODO remove addition of files related permSpec
       // Give owner files service related permission for root directory
@@ -376,8 +400,8 @@ public class SystemsServiceImpl implements SystemsService
     {
       // Something went wrong. Attempt to undo all changes and then re-throw the exception
       try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
-      String systemsPermSpec = getPermSpecStr(tenantName, systemName, Permission.ALL);
-      String filesPermSpec = "files:" + tenantName + ":*:" + systemName;
+      String systemsPermSpec = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+      String filesPermSpec = "files:" + systemName + ":*:" + systemName;
       try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
       try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
       try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
@@ -459,8 +483,8 @@ public class SystemsServiceImpl implements SystemsService
     if (StringUtils.isBlank(systemName)) throw new IllegalArgumentException(LibUtils.getMsgAuth("SYSLIB_NULL_INPUT_SYSTEM", authenticatedUser));
     // Extract various names for convenience
     String tenantName = authenticatedUser.getTenantId();
-    String systemTenantName = authenticatedUser.getTenantId();
     String apiUserId = authenticatedUser.getName();
+    String systemTenantName = authenticatedUser.getTenantId();
     // For service request use oboTenant for tenant associated with the system
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) systemTenantName = authenticatedUser.getOboTenantId();
 
@@ -472,6 +496,7 @@ public class SystemsServiceImpl implements SystemsService
 
     String owner = dao.getTSystemOwner(systemTenantName, systemName);
     String effectiveUserId = dao.getTSystemEffectiveUserId(systemTenantName, systemName);
+    int systemId = dao.getTSystemId(systemTenantName, systemName);
     // Resolve effectiveUserId if necessary
     effectiveUserId = resolveEffectiveUserId(effectiveUserId, owner, apiUserId);
 
@@ -495,15 +520,40 @@ public class SystemsServiceImpl implements SystemsService
     // TODO/TBD: How to make sure all perms for a system are removed?
     // TODO: See if it makes sense to have a SK method to do this in one operation
     // Use Security Kernel client to find all users with perms associated with the system.
-    String permSpec = PERM_SPEC_PREFIX + tenantName + ":%:" + systemName;
-    var userNames = skClient.getUsersWithPermission(tenantName, permSpec);
+    String permSpec = PERM_SPEC_PREFIX + systemTenantName + ":%:" + systemName;
+    var userNames = skClient.getUsersWithPermission(systemTenantName, permSpec);
     // Revoke all perms for all users
     for (String userName : userNames) {
       revokePermissions(skClient, systemTenantName, systemName, userName, ALL_PERMS);
     }
+    // Remove role assignments and roles
+    String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
+    String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
+    // Remove role assignments for owner and effective user
+    skClient.revokeUserRole(systemTenantName, owner, roleNameR);
+    skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);
+    skClient.revokeUserRole(systemTenantName, owner, roleNameM);
+    skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameM);
+    // Remove role assignments for other users
+    userNames = skClient.getUsersWithRole(systemTenantName, roleNameR);
+    for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
+    userNames = skClient.getUsersWithRole(systemTenantName, roleNameM);
+    for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameM);
+    // Remove the roles
+    skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);
+    skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM);
 
     // Delete the system
-    return dao.hardDeleteTSystem(tenantName, systemName);
+    return dao.hardDeleteTSystem(systemTenantName, systemName);
+  }
+
+  /**
+   * Check that we can connect with DB and that the main table of the service exists.
+   * @return true if all OK else returns false
+   */
+  public boolean checkDB()
+  {
+    return dao.checkDB();
   }
 
   /**
@@ -580,27 +630,39 @@ public class SystemsServiceImpl implements SystemsService
     return result;
   }
 
-//  /**
-//   * Get all systems
-//   * @param authenticatedUser - principal user containing tenant and user info
-//   * @return List of TSystem objects
-//   * @throws TapisException - for Tapis related exceptions
-//   * @throws NotAuthorizedException - unauthorized
-//   */
-//  @Override
-//  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser) throws TapisException, NotAuthorizedException
-//  {
-//    SystemOperation op = SystemOperation.read;
-//    // ------------------------- Check service level authorization -------------------------
-//    checkAuth(authenticatedUser, op, null, null, null, null);
-//
-//    List<TSystem> result = dao.getTSystems(authenticatedUser.getTenantId());
-//    for (TSystem sys : result)
-//    {
-//      sys.setEffectiveUserId(resolveEffectiveUserId(sys.getEffectiveUserId(), sys.getOwner(), authenticatedUser.getName()));
-//    }
-//    return result;
-//  }
+  /**
+   * Get all systems
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @return List of TSystem objects
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> selectList) throws TapisException
+  {
+    SystemOperation op = SystemOperation.read;
+    if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+
+    // TODO Validate selectList input
+
+    // Get all systems
+    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId(), selectList);
+    var allowedSystems = new ArrayList<TSystem>();
+    // Filter based on user authorization
+    for (TSystem system : systems)
+    {
+      try {
+        checkAuth(authenticatedUser, op, system.getName(), null, null, null);
+        allowedSystems.add(system);
+      }
+      catch (NotAuthorizedException e) { }
+    }
+    for (TSystem system : allowedSystems)
+    {
+      system.setEffectiveUserId(resolveEffectiveUserId(system.getEffectiveUserId(), system.getOwner(),
+                                authenticatedUser.getName()));
+    }
+    return allowedSystems;
+  }
 
   /**
    * Get list of system names
@@ -712,9 +774,23 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Mutliple txns. Need to handle failure
     // TODO: Use try/catch to rollback in case of failure.
 
-    // Assign perms to user. SK creates a default role for the user
+    // Assign perms and roles to user.
     try
     {
+      // Grant permission roles as appropriate, RoleR, RoleM
+      String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
+      String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
+      for (Permission perm : permissions)
+      {
+        if (perm.equals(Permission.READ)) skClient.grantUserRole(systemTenantName, userName, roleNameR);
+        else if (perm.equals(Permission.MODIFY)) skClient.grantUserRole(systemTenantName, userName, roleNameM);
+        else if (perm.equals(Permission.ALL))
+        {
+          skClient.grantUserRole(systemTenantName, userName, roleNameR);
+          skClient.grantUserRole(systemTenantName, userName, roleNameM);
+        }
+      }
+      // Assign perms to user. SK creates a default role for the user
       for (String permSpec : permSpecSet)
       {
         skClient.grantUserPermission(systemTenantName, userName, permSpec);
@@ -729,7 +805,7 @@ public class SystemsServiceImpl implements SystemsService
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
   }
 
   /**
@@ -782,18 +858,29 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Use try/catch to rollback in case of failure.
 
     try {
-      changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions );
+      // Revoke permission roles as appropriate, RoleR, RoleM
+      String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
+      String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
+      for (Permission perm : permissions) {
+        if (perm.equals(Permission.READ)) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
+        else if (perm.equals(Permission.MODIFY)) skClient.revokeUserRole(systemTenantName, userName, roleNameM);
+        else if (perm.equals(Permission.ALL)) {
+          skClient.revokeUserRole(systemTenantName, userName, roleNameR);
+          skClient.revokeUserRole(systemTenantName, userName, roleNameM);
+        }
+      }
+      changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions);
     }
-    // If tapis client exception then log error and convert to TapisException
     catch (TapisClientException tce)
     {
+      // If tapis client exception then log error and convert to TapisException
       _log.error(tce.toString());
       throw new TapisException(LibUtils.getMsgAuth("SYSLIB_PERM_SK_ERROR", authenticatedUser, systemName, op.name()), tce);
     }
     // Construct Json string representing the update
     String updateJsonStr = TapisGsonUtils.getGson().toJson(permissions);
     // Create a record of the update
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
     return changeCount;
   }
 
@@ -912,7 +999,7 @@ public class SystemsServiceImpl implements SystemsService
 
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, updateText);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, updateText);
   }
 
   /**
@@ -970,7 +1057,7 @@ public class SystemsServiceImpl implements SystemsService
     String updateJsonStr = TapisGsonUtils.getGson().toJson(userName);
     // Create a record of the update
     int systemId = dao.getTSystemId(systemTenantName, systemName);
-    dao.addUpdateRecord(authenticatedUser, systemId, op.name(), updateJsonStr, null);
+    dao.addUpdateRecord(authenticatedUser, systemId, op, updateJsonStr, null);
     return changeCount;
   }
 
@@ -1153,14 +1240,14 @@ public class SystemsServiceImpl implements SystemsService
       msg = LibUtils.getMsg("SYSLIB_INVALID_EFFECTIVEUSERID_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getTransferMethods() != null && system.getTransferMethods().contains(TransferMethod.S3) &&
+    if (system.getTransferMethods() != null && system.getTransferMethods().contains(TransferMethod.S3) &&
              StringUtils.isBlank(system.getBucketName()))
     {
       // For S3 support bucketName must be set
       msg = LibUtils.getMsg("SYSLIB_S3_NOBUCKET_INPUT");
       errMessages.add(msg);
     }
-    else if (system.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
+    if (system.getAccessCredential() != null && effectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       // If effectiveUserId is dynamic then providing credentials is disallowed
       msg = LibUtils.getMsg("SYSLIB_CRED_DISALLOWED_INPUT");
@@ -1519,21 +1606,4 @@ public class SystemsServiceImpl implements SystemsService
     if (p.getNotes() != null) p1.setNotes(p.getNotes());
     return p1;
   }
-
-// TODO *************** remove debug output ********************
-//  private static void printPermInfoForUser(SKClient skClient, String userName)
-//  {
-//    if (skClient == null || userName == null) return;
-//    try {
-//      // Test retrieving all roles for a user
-//      List<String> roles = skClient.getUserRoles(userName);
-//      _log.error("User " + userName + " has the following roles: ");
-//      for (String role : roles) { _log.error("  role: " + role); }
-//      // Test retrieving all perms for a user
-//      List<String> perms = skClient.getUserPerms(userName, null, null);
-//      _log.error("User " + userName + " has the following permissions: ");
-//      for (String perm : perms) { _log.error("  perm: " + perm); }
-//    } catch (Exception e) { _log.error(e.toString()); }
-//  }
-// TODO *************** remove tests ********************
 }
