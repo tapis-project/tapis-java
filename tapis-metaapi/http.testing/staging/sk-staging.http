@@ -15,6 +15,17 @@ Content-Type: application/json
 
 ###
 
+### SK grant permission for a user meta all operations except delete
+POST https://master.staging.tapis.io/v3/security/user/grantUserPermission?tenant=master
+X-Tapis-Token: {{token}}
+X-Tapis-User: {{user}}
+X-Tapis-Tenant:{{tenant}}
+Content-Type: application/json
+
+{"user":"meta","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:*:*:*"}
+
+###
+
 
 
 

@@ -91,13 +91,13 @@ public class RuntimeParameters {
     parm = inputProperties.getProperty("tapis.meta.service.token");
     if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
-    parm = inputProperties.getProperty("tapis.meta.service.tenantBaseUrl");
+    parm = System.getenv("tapis.meta.service.tenantBaseUrl");
     if (!StringUtils.isBlank(parm)) setTenantBaseUrl(parm);
   
-    parm = inputProperties.getProperty("tapis.meta.service.skSvcURL");
+    parm = System.getenv("tapis.meta.service.skSvcURL");
     if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
   
-    parm = inputProperties.getProperty("tapis.meta.service.tokenBaseUrl");
+    parm = System.getenv("tapis.meta.service.tokenBaseUrl");
     if (!StringUtils.isBlank(parm)) setTokenBaseUrl(parm);
   
     // private String tenantBaseUrl = "https://dev.develop.tapis.io/";
