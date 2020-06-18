@@ -1,5 +1,5 @@
 ###  sanity test to see if service is alive
-GET http://c002.rodeo.tacc.utexas.edu:30401/index.html
+GET http://c002.rodeo.tacc.utexas.edu:32263/
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -46,7 +46,7 @@ Content-Type: application/json
 # streamsTACCAdmin   
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB
+PUT http://c002.rodeo.tacc.utexas.edu:32263/StreamsStagingDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
