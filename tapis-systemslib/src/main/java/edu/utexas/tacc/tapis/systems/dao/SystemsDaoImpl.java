@@ -8,14 +8,10 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.impl.DSL;
@@ -561,24 +557,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Begin where condition for this query
       Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
-//      // Parse searchList and add conditions to the WHERE clause
-//      if (searchList != null && !searchList.isEmpty())
-//      {
-//        for (String selectStr : searchList)
-//        {
-//          // Parse search value into column name, operator and value
-//          // Format must be column_name.operator.column_value
-//          String[] parsedStrArray = selectStr.split("[\\.\\)]", 3);
-//          // TODO Validate result
-//          String column = parsedStrArray[0];
-//          var op = SqlCompareOperator.valueOf(parsedStrArray[1].toUpperCase());
-//          String val = parsedStrArray[2];
-//          // Add the condition to the WHERE clause
-//          // TODO: Check that column exists in table
-//          Field<Object> col = DSL.field(DSL.name(column));
-//          whereCondition = addCondition(whereCondition, col, op, val);
-//        }
-//      }
+
 //      // TODO REMOVE
 //      // Iterate over all columns and show the type
 //      Field<?>[] cols = SYSTEMS.fields();

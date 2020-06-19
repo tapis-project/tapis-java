@@ -6,8 +6,7 @@
       <env name="TAPIS_REQUEST_LOGGING_FILTER_PREFIXES" value="/v3/systems" />
       <env name="TAPIS_ENVONLY_SKIP_JWT_VERIFY" value="true" />
       <env name="TAPIS_ENVONLY_KEYSTORE_PASSWORD" value="password" />
-      <env name="TAPIS_SVC_URL_TOKENS" value="https://dev.develop.tapis.io" />
-      <env name="TAPIS_SVC_URL_TENANTS" value="https://dev.develop.tapis.io" />
+      <env name="TAPIS_TENANT_SVC_BASEURL" value="https://dev.develop.tapis.io" />
       <env name="TAPIS_SERVICE_PASSWORD" value="S4nUNjL6JCwmCw3QQWR7Lyx1J/ayV6BEnAwTBi5sJ8E=" />
     </envs>
     <option name="INCLUDE_PROVIDED_SCOPE" value="true" />

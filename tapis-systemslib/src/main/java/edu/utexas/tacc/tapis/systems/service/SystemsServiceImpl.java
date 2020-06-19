@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
@@ -45,6 +46,7 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
+import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
@@ -68,6 +70,7 @@ public class SystemsServiceImpl implements SystemsService
   // *********************** Constants **************************************
   // ************************************************************************
   public static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
+  public static final String SYSTEMS_ADMIN_DESCRIPTION = "Administrative role for Systems service";
   public static final String SYSTEMS_DEFAULT_MASTER_TENANT = "master";
 
   // Tracing.
@@ -191,8 +194,8 @@ public class SystemsServiceImpl implements SystemsService
 
       // Add permission roles for the system
       roleNameR = TSystem.ROLE_READ_PREFIX + itemId;
-      skClient.createRole(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
-      skClient.addRolePermission(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
+      skClient.createRole(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
+      skClient.addRolePermission(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
       // Give owner and possibly effectiveUser access to the system
@@ -239,7 +242,7 @@ public class SystemsServiceImpl implements SystemsService
       if (!StringUtils.isBlank(roleNameR)) {
         try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
         try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
+        try { skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
       }
       // Remove creds
       if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
@@ -523,10 +526,48 @@ public class SystemsServiceImpl implements SystemsService
     userNames = skClient.getUsersWithRole(systemTenantName, roleNameR);
     for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
     // Remove the roles
-    skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);
+    skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);
 
     // Delete the system
     return dao.hardDeleteTSystem(systemTenantName, systemName);
+  }
+
+  /**
+   * Initialize the service:
+   *   Check for Systems admin role. If not found create it
+   */
+  public void initService() throws TapisException
+  {
+    // Get service master tenant
+    String svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
+    if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
+    // Create user for SK client
+    AuthenticatedUser svcUser =
+        new AuthenticatedUser(SERVICE_NAME_SYSTEMS, svcMasterTenant, TapisThreadContext.AccountType.service.name(),
+                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null);
+    // Use SK client to check for admin role and create it if necessary
+    var skClient = getSKClient(svcUser);
+    // Check for admin role
+    SkRole adminRole = null;
+    try
+    {
+      adminRole = skClient.getRoleByName(svcMasterTenant, SYSTEMS_ADMIN_ROLE);
+    }
+    catch (TapisClientException e)
+    {
+      if (!e.getTapisMessage().startsWith("TAPIS_NOT_FOUND")) throw e;
+    }
+    // TODO: Move msgs to properties file
+    if (adminRole == null)
+    {
+      _log.info("Systems administrative role not found. Role name: " + SYSTEMS_ADMIN_ROLE);
+      skClient.createRole(svcMasterTenant, SERVICE_NAME_SYSTEMS, SYSTEMS_ADMIN_ROLE, SYSTEMS_ADMIN_DESCRIPTION);
+      _log.info("Systems administrative created. Role name: " + SYSTEMS_ADMIN_ROLE);
+    }
+    else
+    {
+      _log.info("Systems administrative role found. Role name: " + SYSTEMS_ADMIN_ROLE);
+    }
   }
 
   /**
@@ -1328,7 +1369,7 @@ public class SystemsServiceImpl implements SystemsService
   {
     // Check service and user requests separately to avoid confusing a service name with a user name
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) {
-      // Service check
+      // This is a service request. The user name will be the service name. E.g. files, jobs, etc
       switch (operation) {
         case read:
           if (SVCLIST_READ.contains(authenticatedUser.getName())) return;
@@ -1421,8 +1462,12 @@ public class SystemsServiceImpl implements SystemsService
    */
   private boolean hasAdminRole(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    var skClient = getSKClient(authenticatedUser);
-    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
+    // TODO Temporarily just require that user has SystemsAdmin in the name.
+    // TODO: Use sk isAdmin method ot require that user have the tenant admin role
+//    var skClient = getSKClient(authenticatedUser);
+//    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
+    if (authenticatedUser.getName().contains("SystemsAdmin")) return true;
+    else return false;
   }
 
   /**
