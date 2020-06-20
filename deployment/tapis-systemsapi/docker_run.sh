@@ -1,19 +1,43 @@
 #!/bin/sh
+# Start up local docker image for tapis/systems service.
+# Environment value must be passed in as first argument: dev, staging, prod
+# Service password must be passed in as second argument.
+# Following services from a running tapis3 are required: tenants, tokens, security-kernel
+# Base URL for remote services is determined by environment value passed in.
+# Systems service is available at http://localhost:8080/v3/systems
+
 PrgName=$(basename "$0")
 
-USAGE1="Usage: $PRG_NAME <service_password>"
+USAGE1="Usage: $PRG_NAME { dev, staging, prod } <service_password>"
 
 # Run docker image for Systems service
 BUILD_DIR=../../tapis-systemsapi/target
+ENV=$1
+SVC_PASSWORD=$2
+TAG="tapis/systems:${ENV}"
 
 ##########################################################
 # Check number of arguments.
 ##########################################################
-if [ $# -ne 1 ]; then
-  echo "Please provide service password"
-  echo "$USAGE1"
+if [ $# -ne 2 ]; then
+  echo "Please provide environment and service password"
+  echo $USAGE1
   exit 1
 fi
+
+# Set base url for services we depend on (tenants, tokens, security-kernel)
+if [ "$ENV" = "dev" ]; then
+ BASE_URL="https://master.develop.tapis.io"
+elif [ "$ENV" = "staging" ]; then
+ BASE_URL="https://master.staging.tapis.io"
+elif [ "$ENV" = "prod" ]; then
+ BASE_URL="https://master.tapis.io"
+else
+  echo $USAGE1
+  exit 1
+fi
+
+
 
 # Determine absolute path to location from which we are running.
 export RUN_DIR=$(pwd)
@@ -27,12 +51,14 @@ if [ ! -d "$BUILD_DIR" ]; then
   exit 1
 fi
 
-SVC_PASSWD=$1
+VER=$(cat "$BUILD_DIR/classes/tapis.version")
+echo
+echo "Build version: $VER"
+echo
 
-export VER=$(cat "$BUILD_DIR/classes/tapis.version")
-export TAG="tapis/systems:${VER}"
-# docker run -d --rm --network="host" -p 7070:8080 -p 7000:8000 ${TAG}
 # Running with network=host exposes ports directly. Only works for linux
-docker run -e TAPIS_SERVICE_PASSWORD="${SVC_PASSWD}" -d --rm --network="host" "${TAG}"
+docker run -e TAPIS_SERVICE_PASSWORD="${SVC_PASSWORD}" \
+           -e TAPIS_TENANT_SVC_BASEURL="$BASE_URL" \
+           -d --rm --network="host" "${TAG}"
 
 cd "$RUN_DIR"

@@ -4,6 +4,7 @@ import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
@@ -55,7 +56,8 @@ public class SystemsApplication extends ResourceConfig
   public SystemsApplication() throws TapisException
   {
     // Log our existence.
-    System.out.println("**** Starting tapis-systems ****");
+    // Output version information on startup
+    System.out.println("**** Starting tapis-systems. Version: " + TapisUtils.getTapisFullVersion() + " ****");
 
     // Register the swagger resources that allow the
     // documentation endpoints to be automatically generated.
