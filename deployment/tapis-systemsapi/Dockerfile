@@ -8,10 +8,6 @@
 ##########################################################################
 FROM openjdk:13-jdk-oracle
 
-ARG VER
-ARG GIT_BRANCH
-ARG GIT_COMMIT
-
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
 WORKDIR /app
