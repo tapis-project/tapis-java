@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to create user and schema if they do not exist.
 # Postgres password must be set in env var POSTGRES_PASSWORD
-PrgName=`basename $0`
+PrgName=$(basename "$0")
 
 # DB_HOST=systems-postgres
 DB_HOST=localhost

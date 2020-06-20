@@ -1,10 +1,12 @@
 #!/bin/bash
 # Script to drop the DB by using a docker image to run psql
 # Postgres password must be set in env var POSTGRES_PASSWORD
-PrgName=`basename $0`
+PrgName=$(basename "$0")
 
-# DB_HOST=systems-postgres
-DB_HOST=localhost
+if [ -z "$DB_HOST" ]; then
+  DB_HOST=systems-postgres
+fi
+
 DB_USER=postgres
 DB_NAME=tapissysdb
 DB_PW=${POSTGRES_PASSWORD}
@@ -26,6 +28,6 @@ fi
 
 # Running with network=host exposes ports directly. Only works for linux
 # docker run -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash << create_db.sh
-docker run -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash << EOF
-PGPASSWORD=${POSTGRES_PASSWORD} psql --host=${DB_HOST} --username=${DB_USER} -q -c "DROP DATABASE ${DB_NAME}"
+docker run -e DB_PW="${DB_PW}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash << EOF
+PGPASSWORD=${DB_PW} psql --host=${DB_HOST} --username=${DB_USER} -q -c "DROP DATABASE ${DB_NAME}"
 EOF
