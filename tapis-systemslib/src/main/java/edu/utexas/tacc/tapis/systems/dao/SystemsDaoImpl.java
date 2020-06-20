@@ -9,6 +9,7 @@ import java.util.Map;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
+import org.flywaydb.core.Flyway;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -449,6 +450,17 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       LibUtils.finalCloseDB(conn);
     }
     return result;
+  }
+
+  /**
+   * migrateDB
+   * Use Flyway to make sure DB schema is at the latest version
+   */
+  @Override
+  public void migrateDB() throws TapisException
+  {
+    Flyway flyway = Flyway.configure().dataSource(getDataSource()).load();
+    flyway.migrate();
   }
 
   /**

@@ -28,6 +28,8 @@ public interface SystemsDao
 
   Exception checkDB();
 
+  void migrateDB() throws TapisException;
+
   boolean checkForTSystemByName(String tenant, String name, boolean includeDeleted) throws TapisException;
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;

@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.systems.service;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
+import org.flywaydb.core.Flyway;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -568,6 +569,8 @@ public class SystemsServiceImpl implements SystemsService
     {
       _log.info("Systems administrative role found. Role name: " + SYSTEMS_ADMIN_ROLE);
     }
+    // Make sure DB is present and updated to latest version
+    dao.migrateDB();
   }
 
   /**

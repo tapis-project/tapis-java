@@ -18,7 +18,6 @@ fi
 
 BUILD_DIR=../../tapis-systemsapi/target
 ENV=$1
-PUSH=$2
 
 # Check number of arguments
 if [ $# -lt 1 -o $# -gt 2 ]; then
