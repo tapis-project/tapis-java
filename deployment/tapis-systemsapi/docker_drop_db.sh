@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to create the DB by using a docker image to run psql
+# Script to drop the DB by using a docker image to run psql
 # Postgres password must be set in env var POSTGRES_PASSWORD
 PrgName=`basename $0`
 
@@ -25,10 +25,7 @@ fi
 # EOF
 
 # Running with network=host exposes ports directly. Only works for linux
-# docker run -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash < create_db.sh
+# docker run -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash << create_db.sh
 docker run -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" -i --rm --network="host" bitnami/postgresql:latest /bin/bash << EOF
-# Create database if it does not exist by running a psql command
-echo "SELECT 'CREATE DATABASE ${DB_NAME} ENCODING=\"UTF8\" LC_COLLATE=\"en_US.utf8\" LC_CTYPE=\"en_US.utf8\" ' \
-  WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec" \
-  | PGPASSWORD=${POSTGRES_PASSWORD} psql --host=localhost --username=postgres
+PGPASSWORD=${POSTGRES_PASSWORD} psql --host=${DB_HOST} --username=${DB_USER} -q -c "DROP DATABASE ${DB_NAME}"
 EOF
