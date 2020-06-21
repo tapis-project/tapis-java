@@ -14,6 +14,12 @@
   <name>Tapis Systems Library</name>
   <description>Backend library for Tapis Systems Service</description>
 
+  <!-- DB connect properties for jOOQ and Flyway -->
+  <properties>
+    <db.url>jdbc:postgresql://localhost:5432/tapissysdb</db.url>
+    <db.username>tapis</db.username>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -133,11 +139,32 @@
   </build>
 
   <profiles>
-  <!-- Profile to conditionally run jooq code generation -->
+  <!-- Profile to conditionally run flyway DB migration and jooq code generation -->
+  <!-- To be used when DB schema is updated -->
+  <!-- When DB schema changes need to re-run flyway and jOOQ code generation -->
   <profile>
-    <id>jooq-gen</id>
+    <id>db-update</id>
     <build>
     <plugins>
+    <!-- **************** Run Flyway **************** -->
+    <plugin>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-maven-plugin</artifactId>
+      <executions>
+        <execution>
+          <phase>generate-sources</phase>
+          <goals> <goal>migrate</goal> </goals>
+        </execution>
+      </executions>
+      <configuration>
+        <url>${db.url}</url>
+        <user>${db.username}</user>
+        <locations>
+          <location>filesystem:src/main/resources/db/migration</location>
+        </locations>
+      </configuration>
+    </plugin>
+    <!-- **************** Run jOOQ **************** -->
     <plugin>
       <groupId>org.jooq</groupId>
       <artifactId>jooq-codegen-maven</artifactId>
@@ -149,8 +176,8 @@
           <configuration>
             <jdbc>
               <driver>org.postgresql.Driver</driver>
-              <url>jdbc:postgresql://localhost:5432/tapissysdb</url>
-              <user>tapis</user>
+              <url>${db.url}</url>
+              <user>${db.username}</user>
               <password>password</password>
             </jdbc>
             <generator>

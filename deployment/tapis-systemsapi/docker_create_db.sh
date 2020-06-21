@@ -28,5 +28,5 @@ docker run -e DB_PW="${DB_PW}" -i --rm --network="host" bitnami/postgresql:lates
 # Create database if it does not exist by running a psql command
 echo "SELECT 'CREATE DATABASE ${DB_NAME} ENCODING=\"UTF8\" LC_COLLATE=\"en_US.utf8\" LC_CTYPE=\"en_US.utf8\" ' \
   WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec" \
-  | PGPASSWORD=${DB_PW} psql --host=localhost --username=postgres
+  | PGPASSWORD=${DB_PW} psql --host=${DB_HOST} --username=${DB_USER}
 EOF
