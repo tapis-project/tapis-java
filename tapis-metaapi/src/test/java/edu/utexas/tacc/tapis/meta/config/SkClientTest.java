@@ -17,12 +17,16 @@ public class SkClientTest {
     String TAPIS_USER_HEADER = "X-Tapis-User";
     String TAPIS_TENANT_HEADER = "X-Tapis-Tenant";
     
-    skClient.addDefaultHeader(TAPIS_USER_HEADER, "streamsTACCAdmin");
+    skClient.addDefaultHeader(TAPIS_USER_HEADER, "streams");
     // todo this will change based on header processing so just hardwire for now
-    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, "dev");
-    Boolean isAuthorized = skClient.isPermitted("dev","streamsTACCAdmin", "meta:dev:GET,POST,PUT:StreamsTACCDB:*:*");
+    skClient.addDefaultHeader(TAPIS_TENANT_HEADER, "master");
+    Boolean isAuthorized = skClient.isPermitted("dev","streams", "meta:dev:GET,POST,PUT:StreamsTACCDB:*:*");
     // List roles = skClient.getUserNames();
     System.out.println(isAuthorized);
+    
+    
+    
+    
     
   }
 }
