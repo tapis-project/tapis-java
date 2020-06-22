@@ -45,6 +45,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.utils.Base62;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 /** The utility class create or update secrets in SK and, optionally, deploy those
@@ -879,7 +880,7 @@ public class SkAdmin
         // Generate the random bytes and return the base 64 representation.
         byte[] bytes = new byte[_parms.passwordLength];
         getRand().nextBytes(bytes);
-        String password = Base64.getEncoder().encodeToString(bytes);
+        String password = Base62.base62Encode(bytes);
         _results.incrementPasswordsGenerated();
         return password;
     }

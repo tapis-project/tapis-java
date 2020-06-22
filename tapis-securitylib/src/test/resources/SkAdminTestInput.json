@@ -3,13 +3,13 @@
         "servicepwd":[
             {
                 "tenant":     "dev",
-                "service":    "jobs",
+                "user":       "jobs",
                 "secretName": "mysecret1",
                 "password":   "abcdefghijklmnop"
             },
             {
                 "tenant":     "dev",
-                "service":    "jobs",
+                "user":       "jobs",
                 "secretName": "mysecret2",
                 "password":   "1234567890123456"
             }

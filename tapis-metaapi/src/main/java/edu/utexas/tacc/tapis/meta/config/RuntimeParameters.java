@@ -91,8 +91,19 @@ public class RuntimeParameters {
     parm = inputProperties.getProperty("tapis.meta.service.token");
     if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
+    parm = System.getenv("tapis.meta.service.tenantBaseUrl");
+    if (!StringUtils.isBlank(parm)) setTenantBaseUrl(parm);
   
+    parm = System.getenv("tapis.meta.service.skSvcURL");
+    if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
   
+    parm = System.getenv("tapis.meta.service.tokenBaseUrl");
+    if (!StringUtils.isBlank(parm)) setTokenBaseUrl(parm);
+  
+    // private String tenantBaseUrl = "https://dev.develop.tapis.io/";
+    // private String skSvcURL      = "https://dev.develop.tapis.io/v3";
+    // private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
+    // https://master.staging.tapis.io/v3/meta
   }
   
   /** Initialize the singleton instance of this class.
@@ -209,21 +220,21 @@ public class RuntimeParameters {
     buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
   }
   
-  public String getTenantBaseUrl() {
-    return this.tenantBaseUrl;
-  }
+  public String getTenantBaseUrl() { return this.tenantBaseUrl; }
   
   public void setTenantBaseUrl(String tenantBaseUrl) {
     this.tenantBaseUrl = tenantBaseUrl;
   }
   
-  public String getSkSvcURL() {
-    return skSvcURL;
-  }
+  public String getSkSvcURL() { return skSvcURL; }
   
   public void setSkSvcURL(String skSvcURL) {
     this.skSvcURL = skSvcURL;
   }
+  
+  public String getTokenBaseUrl() { return tokenBaseUrl; }
+  
+  public void setTokenBaseUrl(String tokenBaseUrl) { this.tokenBaseUrl = tokenBaseUrl; }
   
   public String getMetaToken() {
     return metaToken;

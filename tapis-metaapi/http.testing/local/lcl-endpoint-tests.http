@@ -5,7 +5,7 @@
 #      DB endpoints
 ##############################################################
 ###   db exits
-GET http://localhost:8080/v3/meta/StreamsTACCDB
+GET http://localhost:8080/v3/meta/StreamsStagingDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
 X-Tapis-Tenant: {{tenant}}
