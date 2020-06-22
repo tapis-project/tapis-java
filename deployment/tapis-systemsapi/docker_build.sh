@@ -59,36 +59,40 @@ cd $BUILD_DIR || exit
 VER=$(cat classes/tapis.version)
 GIT_BRANCH=$(awk '{print $1}' classes/git.info)
 GIT_COMMIT=$(awk '{print $2}' classes/git.info)
-TAG1="${REPO}/systems:${ENV}-${VER}-${GIT_COMMIT}-$(date +%Y%m%d%H%M)"
-TAG2="${REPO}/systems:${ENV}"
-TAG3="${REPO}/systems:latest"
+TAG_UNIQ="${REPO}/systems:${ENV}-${VER}-${GIT_COMMIT}-$(date +%Y%m%d%H%M)"
+TAG_ENV_VER="${REPO}/systems:${ENV}-${VER}"
+TAG_ENV="${REPO}/systems:${ENV}"
+TAG_LATEST="${REPO}/systems:latest"
 
 # Build image from Dockerfile
-echo "Building local image using primary tag: $TAG1"
+echo "Building local image using primary tag: $TAG_UNIQ"
 echo "  ENV=        ${ENV}"
 echo "  VER=        ${VER}"
 echo "  GIT_BRANCH= ${GIT_BRANCH}"
 echo "  GIT_COMMIT= ${GIT_BRANCH}"
 docker build -f Dockerfile \
    --label VER="${VER}" --label GIT_COMMIT="${GIT_COMMIT}" --label GIT_BRANCH="${GIT_BRANCH}" \
-    -t "${TAG1}" .
+    -t "${TAG_UNIQ}" .
 
-# Create second tag for remote repo
-echo "Creating second image tag: $TAG2"
-docker tag "$TAG1" "$TAG2"
+# Create other tags for remote repo
+echo "Creating ENV image tag: $TAG_ENV"
+docker tag "$TAG_UNIQ" "$TAG_ENV"
+echo "Creating ENV_VER image tag: $TAG_ENV_VER"
+docker tag "$TAG_UNIQ" "$TAG_ENV_VER"
 
 # Push to remote repo
 if [ "x$2" = "x-push" ]; then
   if [ "$ENV" = "prod" ]; then
-    echo "Creating third image tag for prod env: $TAG3"
-    docker tag "$TAG1" "$TAG3"
+    echo "Creating third image tag for prod env: $TAG_LATEST"
+    docker tag "$TAG_UNIQ" "$TAG_LATEST"
   fi
   echo "Pushing images to docker hub."
   # NOTE: Use current login. Jenkins job does login
-  docker push "$TAG1"
-  docker push "$TAG2"
+  docker push "$TAG_UNIQ"
+  docker push "$TAG_ENV_VER"
+  docker push "$TAG_ENV"
   if [ "$ENV" = "prod" ]; then
-    docker push "$TAG3"
+    docker push "$TAG_LATEST"
   fi
 fi
 cd "$RUN_DIR"
