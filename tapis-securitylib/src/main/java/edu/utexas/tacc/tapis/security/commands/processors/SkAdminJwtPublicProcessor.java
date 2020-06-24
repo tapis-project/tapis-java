@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
@@ -140,7 +141,7 @@ public class SkAdminJwtPublicProcessor
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
     private SkSecret readSecret(SkAdminJwtPublic secret) 
-      throws TapisException
+      throws TapisException, TapisClientException
     {
         // Try to read a secret.  HTTP 404 is returned if not found.
         var parms = new SKSecretReadParms(SecretType.JWTSigning);
