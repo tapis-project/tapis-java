@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -1011,7 +1012,8 @@ public class SystemsServiceTest
    * System owner name is set using name from AuthenticateUser passed in which may be
    *   different from owner name set in the TSystem passed in.
    */
-  private int createSystemWithOwnerAndName(TSystem sys, AuthenticatedUser owner, String altName) throws TapisException
+  private int createSystemWithOwnerAndName(TSystem sys, AuthenticatedUser owner, String altName)
+          throws TapisException, TapisClientException
   {
     TSystem sys0 = new TSystem(sys);
     if (!StringUtils.isBlank(altName))
