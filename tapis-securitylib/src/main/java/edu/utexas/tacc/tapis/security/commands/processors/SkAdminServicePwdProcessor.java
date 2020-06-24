@@ -216,7 +216,7 @@ public class SkAdminServicePwdProcessor
     /* readSecret:                                                            */
     /* ---------------------------------------------------------------------- */
     private SkSecret readSecret(SkAdminServicePwd secret) 
-      throws TapisException
+      throws TapisException, TapisClientException
     {
         // Try to read a secret.  HTTP 404 is returned if not found.
         var parms = new SKSecretReadParms(SecretType.ServicePwd);
