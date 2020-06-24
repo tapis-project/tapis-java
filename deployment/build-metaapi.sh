@@ -12,7 +12,7 @@
 #
 ###########################################################
 export VER=$TAPIS_VERSION
-export TAPIS_ENV=$TAPIS_ENV
+export TAPIS_ENV=dev
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
@@ -36,14 +36,14 @@ echo "GIT_COMMIT: $GIT_COMMIT"
 echo "WAR_NAME: $WAR_NAME"
 echo ""
 
-cd tapis-metaapi
+# cd tapis-metaapi
 # echo " ***   do a build on metaapi  "
 # echo " ***   mvn clean install -DskipTests"
-mvn clean install -DskipTests
+# mvn clean install -DskipTests
 
 echo "";echo ""
 
-cd ..  # jump back up to project root directory
+# cd ..  # jump back up to project root directory
 
 echo "***      removing any old service war meta directory from Docker build context"
 echo "***      $IMAGE_BUILD_DIR/$WAR_NAME "
@@ -71,7 +71,7 @@ echo "";echo ""
 
 echo "***    push the image to docker hub "
 echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
-               docker push "$TAG-$TAPIS_ENV"
+#               docker push "$TAG-$TAPIS_ENV"
 
 
 echo "***      "
