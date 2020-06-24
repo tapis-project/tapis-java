@@ -11,7 +11,7 @@
 # usage : $TAPIS_ROOT/deployment/build-metaapi.sh
 #
 ###########################################################
-export VER=$VER
+export VER=$TAPIS_VERSION
 export TAPIS_ENV=$TAPIS_ENV
 export SRVC=meta
 export SRVC_API=${SRVC}api
@@ -72,16 +72,6 @@ echo "";echo ""
 echo "***    push the image to docker hub "
 echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
                docker push "$TAG-$TAPIS_ENV"
-
-
-# echo "***      export the image file name and tag as META_IMAGE "
-# echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
-#                export META_IMAGE=$TAG-$TAPIS_ENV
-#                echo "$META_IMAGE" > "$WORKSPACE"/image.txt
-
-
-# echo "image file written : $(cat image.txt)"
-
 
 
 echo "***      "
