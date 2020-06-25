@@ -1,5 +1,6 @@
-##################################### taccMetaAdmin user #################################################
-# taccMetaAdmin   these tests are hitting the dev deployment of RH-core
+##################################### meta service user #################################################
+# meta  these tests are hitting the prod deployment
+# data :
 
 ##############################################################
 #      Root endpoints
@@ -7,7 +8,7 @@
 
 #   root lists DBs
 ###  api:1
-GET https://master.prod.tapis.io/v3/meta/tapistst
+GET https://master.tapis.io/v3/meta/StreamsProdDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: meta
 X-Tapis-Tenant: master
@@ -27,7 +28,7 @@ Content-Type: application/json
 
 #   db exists and lists Collections
 ###  api:3
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB
+GET https://master.tapis.io/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
 # X-JWT-Assertion-dev: {{token}}
 X-Tapis-User: streams
@@ -42,7 +43,7 @@ Content-Type: application/json
 
 # get collection metadata
 ###
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst/_meta
+GET https://master.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst/_meta
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -52,7 +53,7 @@ Content-Type: application/json
 
 # create a collection in a db
 ###
-PUT https://master.staging.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst
+PUT https://master.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -62,7 +63,7 @@ Content-Type: application/json
 
 # delete a collection in a db
 ###
-DELETE https://master.staging.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst
+DELETE https://master.tapis.io/v3/meta/StreamsTACCDB/4-2-coll-tst
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -74,7 +75,7 @@ Content-Type: application/json
 
 #  get a default document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
 ###
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1
+GET https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -84,7 +85,7 @@ Content-Type: application/json
 
 #  query for documents under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1 returns a list of documents
 ###
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
+GET https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -96,7 +97,7 @@ Content-Type: application/json
 # create a document in a collection
 #  post with request body to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
 ###
-POST https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1
+POST https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -113,7 +114,7 @@ Content-Type: application/json
 #  update a document
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+PUT https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -124,7 +125,7 @@ Content-Type: application/json
 #  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
 ###
 
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+GET https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -138,7 +139,7 @@ Content-Type: application/json
 ###
 
 
-DELETE https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1/tstLatIndex
+DELETE https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1/tstLatIndex
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -152,7 +153,7 @@ Content-Type: application/json
 ##############################################################
 # get a list of indexes on collection
 ###
-GET https://master.staging.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes
+GET https://master.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -162,7 +163,7 @@ Content-Type: application/json
 
 # create an index on collection
 ###
-PUT https://master.staging.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
+PUT https://master.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -174,7 +175,7 @@ Content-Type: application/json
 
 # delete an index on collection
 ###
-DELETE https://master.staging.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
+DELETE https://master.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -187,7 +188,7 @@ Content-Type: application/json
 # streams
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-DELETE https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1
+DELETE https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -201,7 +202,7 @@ Content-Type: application/json
 
 #  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-POST https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
+POST https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
@@ -212,7 +213,7 @@ Content-Type: application/json
 
 #  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-DELETE https://master.staging.tapis.io/v3/meta/StreamsTACCDB/Proj1
+DELETE https://master.tapis.io/v3/meta/StreamsTACCDB/Proj1
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master
