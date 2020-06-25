@@ -59,7 +59,7 @@ cd $BUILD_DIR || exit
 VER=$(cat classes/tapis.version)
 GIT_BRANCH=$(awk '{print $1}' classes/git.info)
 GIT_COMMIT=$(awk '{print $2}' classes/git.info)
-TAG_UNIQ="${REPO}/systems:${ENV}-${VER}-${GIT_COMMIT}-$(date +%Y%m%d%H%M)"
+TAG_UNIQ="${REPO}/systems:${ENV}-${VER}-$(date +%Y%m%d%H%M)-${GIT_COMMIT}"
 TAG_ENV_VER="${REPO}/systems:${ENV}-${VER}"
 TAG_ENV="${REPO}/systems:${ENV}"
 TAG_LATEST="${REPO}/systems:latest"
