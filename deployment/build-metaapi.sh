@@ -8,11 +8,20 @@
 #
 # environment : TAPIS_VERSION set to the version in tapis/pom.xml 
 #
-# usage : $TAPIS_ROOT/deployment/build-metaapi.sh
+# usage : $TAPIS_ROOT/deployment/build-metaapi.sh <env branch>
+#  example deployment/build-metaapi.sh dev
 #
 ###########################################################
+
+USAGE="Usage: deployment/build-metaapi.sh <env branch> "
+
 export VER=$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout)
-export TAPIS_ENV=dev
+export TAPIS_ENV=$1
+# Check number of arguments
+if [ $# -lt 1 ]; then
+  echo $USAGE
+  exit 1
+fi
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
@@ -85,11 +94,12 @@ echo "***      VERBOSE_IMAGE_NAME should look like tapis/metaapi:dev-0.0.1-89827
 echo "***      VERBOSE_IMAGE_NAME $VERBOSE_IMAGE_NAME"
 echo ""
 echo "***      Push to docker hub : docker push $IMAGE_NAME"
-                docker push "$IMAGE_NAME"
+                # docker push "$IMAGE_NAME"
 echo ""
 echo "***      Tag and Push to private registry : docker push jenkins2.tacc.utexas.edu:5000/$VERBOSE_IMAGE_NAME"
-	            docker tag tapis/metaapi:jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME} tapis/metaapi:$IMAGE_NAME
-	            docker push tapis/metaapi:jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
+	            docker tag $IMAGE_NAME jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
+	            docker images
+	            # docker push jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
 
 # echo "***      "
 # echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
