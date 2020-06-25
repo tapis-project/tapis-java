@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.meta.config;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -279,7 +280,7 @@ public class RuntimeParameters {
     serviceJWT = null;
     try {
       serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
-    } catch (TapisException e) {
+    } catch (TapisException | TapisClientException e) {
       e.printStackTrace();
     }
   }

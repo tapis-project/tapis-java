@@ -28,7 +28,7 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -131,7 +131,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException
+          throws TapisException, TapisClientException, IllegalStateException, IllegalArgumentException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.create;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -278,7 +278,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+          throws TapisException, TapisClientException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
   {
     SystemOperation op = SystemOperation.modify;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -337,7 +337,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException, TapisClientException
   {
     SystemOperation op = SystemOperation.changeOwner;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -414,7 +414,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.softDelete;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -468,7 +468,8 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
-  public int hardDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public int hardDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName)
+          throws TapisException, TapisClientException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.hardDelete;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -537,7 +538,7 @@ public class SystemsServiceImpl implements SystemsService
    * Initialize the service:
    *   Check for Systems admin role. If not found create it
    */
-  public void initService() throws TapisException
+  public void initService() throws TapisException, TapisClientException
   {
     // Get service master tenant
     String svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
@@ -591,7 +592,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -621,7 +622,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -664,7 +665,8 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> searchList) throws TapisException
+  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> searchList)
+          throws TapisException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -718,7 +720,7 @@ public class SystemsServiceImpl implements SystemsService
         checkAuth(authenticatedUser, op, name, null, null, null);
         allowedNames.add(name);
       }
-      catch (NotAuthorizedException e) { }
+      catch (NotAuthorizedException | TapisClientException e) { }
     }
     return allowedNames;
   }
@@ -732,7 +734,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -770,7 +772,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Set<Permission> permissions, String updateText)
-    throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.grantPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -852,7 +854,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Set<Permission> permissions, String updateText)
-    throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.revokePerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -923,7 +925,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.getPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -977,7 +979,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Credential credential, String updateText)
-          throws TapisException, NotAuthorizedException, IllegalStateException
+          throws TapisException, NotAuthorizedException, IllegalStateException, TapisClientException
   {
     SystemOperation op = SystemOperation.setCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1039,7 +1041,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.removeCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1100,7 +1102,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, TapisClientException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.getCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1368,7 +1370,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   private void checkAuth(AuthenticatedUser authenticatedUser, SystemOperation operation, String systemName,
                          String owner, String targetUser, Set<Permission> perms)
-      throws TapisException, NotAuthorizedException, IllegalStateException
+      throws TapisException, TapisClientException, NotAuthorizedException, IllegalStateException
   {
     // Check service and user requests separately to avoid confusing a service name with a user name
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) {
@@ -1434,7 +1436,8 @@ public class SystemsServiceImpl implements SystemsService
    * If all systems return null else return list of IDs
    * An empty list indicates no systems allowed.
    */
-  private List<Integer> getAllowedSystemIDs(AuthenticatedUser authenticatedUser, String systemTenantName) throws TapisException
+  private List<Integer> getAllowedSystemIDs(AuthenticatedUser authenticatedUser, String systemTenantName)
+          throws TapisException, TapisClientException
   {
     // If requester is a service or an admin then all systems allowed
     // TODO: for all services or just some, such as files and jobs?
@@ -1476,7 +1479,8 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId has the specified permission
    */
-  private boolean isPermitted(AuthenticatedUser authenticatedUser, String systemName, Permission perm) throws TapisException
+  private boolean isPermitted(AuthenticatedUser authenticatedUser, String systemName, Permission perm)
+          throws TapisException, TapisClientException
   {
     var skClient = getSKClient(authenticatedUser);
     String permSpecStr = getPermSpecStr(authenticatedUser.getTenantId(), systemName, perm);
@@ -1486,7 +1490,8 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId has any of the set of permissions
    */
-  private boolean isPermittedAny(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms) throws TapisException
+  private boolean isPermittedAny(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms)
+          throws TapisException, TapisClientException
   {
     var skClient = getSKClient(authenticatedUser);
     var permSpecs = new ArrayList<String>();
@@ -1499,7 +1504,8 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId who is not owner or admin is authorized to revoke permissions
    */
-  private boolean allowUserRevokePerm(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms) throws TapisException
+  private boolean allowUserRevokePerm(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms)
+          throws TapisException, TapisClientException
   {
     if (perms.contains(Permission.MODIFY)) return isPermitted(authenticatedUser, systemName, Permission.MODIFY);
     if (perms.contains(Permission.READ)) return isPermittedAny(authenticatedUser, systemName, READMODIFY_PERMS);
@@ -1532,7 +1538,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   private static void createCredential(SKClient skClient, Credential credential, String tenantName, String apiUserId,
                                        String systemName, String systemTenantName, String userName)
-          throws TapisException
+          throws TapisClientException
   {
     // Construct basic SK secret parameters including tenant, system and user for credential
     var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
@@ -1575,7 +1581,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   private static int deleteCredential(SKClient skClient, String tenantName, String apiUserId,
                                       String systemTenantName, String systemName, String userName)
-          throws TapisException
+          throws TapisClientException
   {
     int changeCount = 0;
     // Return 0 if credential does not exist

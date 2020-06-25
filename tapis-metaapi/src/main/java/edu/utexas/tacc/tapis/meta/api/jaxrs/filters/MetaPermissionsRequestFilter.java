@@ -5,7 +5,7 @@ import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
 import edu.utexas.tacc.tapis.meta.utils.MetaSKPermissionsMapper;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.security.TapisSecurityContext;

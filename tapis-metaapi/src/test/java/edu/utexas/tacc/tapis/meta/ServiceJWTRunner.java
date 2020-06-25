@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.meta;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
@@ -15,7 +16,7 @@ public class ServiceJWTRunner {
     try {
       ServiceJWT serviceJWT = new ServiceJWT(parms,servicePassword);
       System.out.println(serviceJWT.getAccessJWT());
-    } catch (TapisException e) {
+    } catch (TapisException | TapisClientException e) {
       e.printStackTrace();
     }
   }

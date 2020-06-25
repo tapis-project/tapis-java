@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
@@ -49,7 +50,7 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
       }
       return new ServiceJWT(svcJWTParms, svcPassword);
     }
-    catch (TapisException te)
+    catch (TapisException | TapisClientException te)
     {
       String msg = LibUtils.getMsg("SYSLIB_SVCJWT_ERROR", svcMasterTenant, tokenSvcUrl);
       throw new RuntimeException(msg, te);
