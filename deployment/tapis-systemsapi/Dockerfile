@@ -1,20 +1,20 @@
 ##########################################################################
 # Dockerfile for Tapis systems service
+# This file must be placed in the build directory (tapis-systemsapi/target)
+#   before docker build is run.
 #
 #   $TAG            the tag for image identification
 #
 ##########################################################################
 FROM openjdk:13-jdk-oracle
 
-ARG VER
-ARG GIT_COMMIT
-
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
 WORKDIR /app
 
 # Copy jar file into place
-COPY target/v3#systems.jar .
+COPY "v3#systems.jar" .
+COPY /dependencies dependencies
 
 
 # Environment variables for testing without JWT
@@ -37,4 +37,4 @@ EXPOSE 8080
 EXPOSE 8000
 EXPOSE 9090
 
-CMD ["java", "-Xms4g", "-Xmx4g", "-jar", "v3#systems.jar"]
+CMD ["java", "-Xms4g", "-Xmx4g", "-cp", "v3#systems.jar:dependencies/*", "edu.utexas.tacc.tapis.systems.api.SystemsApplication"]

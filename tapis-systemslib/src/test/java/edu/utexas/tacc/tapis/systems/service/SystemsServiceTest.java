@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -19,6 +20,7 @@ import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.jooq.tools.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -51,7 +53,7 @@ public class SystemsServiceTest
   private SystemsService svc;
   private SystemsServiceImpl svcImpl;
   private AuthenticatedUser authenticatedOwnerUsr, authenticatedTestUsr0, authenticatedTestUsr1, authenticatedTestUsr2,
-          authenticatedAdminUsr, authenticatedFilesSvc;
+          authenticatedTestUsr3, authenticatedAdminUsr, authenticatedFilesSvc;
   // Test data
   private static final String tenantName = "dev";
   private static final String ownerUser = "owner1";
@@ -61,6 +63,7 @@ public class SystemsServiceTest
   private static final String testUser0 = "testuser0";
   private static final String testUser1 = "testuser1";
   private static final String testUser2 = "testuser2";
+  private static final String testUser3 = "testuser3";
   private static final List<TransferMethod> txfrMethodsList = new ArrayList<>(List.of(TransferMethod.SFTP, TransferMethod.S3));
   private static final List<TransferMethod> txfrMethodsEmpty = new ArrayList<>();
   private static final Protocol prot1 = new Protocol(AccessMethod.PKI_KEYS, txfrMethodsList, -1, false, "",-1);
@@ -208,9 +211,6 @@ public class SystemsServiceTest
 
     // Initialize services
     svc = locator.getService(SystemsService.class);
-//    SystemsDao dao = locator.getService(SystemsDaoImpl.class);
-//    ServiceJWT svcJWT = locator.getService(ServiceJWT.class);
-//    svcImpl = new SystemsServiceImpl(dao, svcJWT);
     svcImpl = locator.getService(SystemsServiceImpl.class);
 
     // Initialize authenticated user and service
@@ -219,6 +219,7 @@ public class SystemsServiceTest
     authenticatedTestUsr0 = new AuthenticatedUser(testUser0, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser0, tenantName, null, null);
     authenticatedTestUsr1 = new AuthenticatedUser(testUser1, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser1, tenantName, null, null);
     authenticatedTestUsr2 = new AuthenticatedUser(testUser2, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser2, tenantName, null, null);
+    authenticatedTestUsr3 = new AuthenticatedUser(testUser3, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser3, tenantName, null, null);
     authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null);
 
     sys2.setJobCapabilities(cap1List);
@@ -407,6 +408,31 @@ public class SystemsServiceTest
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
+  }
+
+  // Check that user only sees systems they are authorized to see.
+  @Test
+  public void testGetSystemsAuth() throws Exception
+  {
+    // Create 3 systems, 2 of which are owned by testUser3.
+    String sys1Name = sys5.getName() + "a";
+    String sys2Name = sys5.getName() + "b";
+    String sys3Name = sys5.getName() + "c";
+    int itemId = createSystemWithOwnerAndName(sys5, authenticatedTestUsr3, sys1Name);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    itemId = createSystemWithOwnerAndName(sys5, authenticatedTestUsr3, sys2Name);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    itemId = createSystemWithOwnerAndName(sys5, authenticatedOwnerUsr, sys3Name);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    // When retrieving systems as testUser3 only 2 should be returned
+    List<TSystem> systems = svc.getSystems(authenticatedTestUsr3, null);
+    System.out.println("Total number of systems retrieved: " + systems.size());
+    for (TSystem system : systems)
+    {
+      System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
+      Assert.assertTrue(system.getName().equals(sys1Name) || system.getName().equalsIgnoreCase(sys2Name));
+    }
+    Assert.assertEquals(2, systems.size());
   }
 
   @Test
@@ -881,7 +907,8 @@ public class SystemsServiceTest
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysA.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysD.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
+// TODO why is following revoke causing an exception?
+    //    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedText);
     svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser2, testPermsREADMODIFY, scrubbedText);
     //Remove all objects created by tests
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys1.getName());
@@ -902,6 +929,9 @@ public class SystemsServiceTest
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysE.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysF.getName());
     svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sysG.getName());
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys5.getName() + "a");
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys5.getName() + "b");
+    svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, sys5.getName() + "c");
   }
 
   /**
@@ -976,5 +1006,22 @@ public class SystemsServiceTest
       Assert.assertTrue(capNamesFound.contains(capSeedItem.getName()),
               "List of capabilities did not contain a capability named: " + capSeedItem.getName());
     }
+  }
+  /**
+   * Create a system using alternate system name if provided
+   * System owner name is set using name from AuthenticateUser passed in which may be
+   *   different from owner name set in the TSystem passed in.
+   */
+  private int createSystemWithOwnerAndName(TSystem sys, AuthenticatedUser owner, String altName)
+          throws TapisException, TapisClientException
+  {
+    TSystem sys0 = new TSystem(sys);
+    if (!StringUtils.isBlank(altName))
+    {
+      sys0.setName(altName);
+    }
+    sys0.setOwner(owner.getName());
+    int itemId = svc.createSystem(owner, sys0, scrubbedText);
+    return itemId;
   }
 }

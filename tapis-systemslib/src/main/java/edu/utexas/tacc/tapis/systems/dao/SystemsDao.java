@@ -26,13 +26,15 @@ public interface SystemsDao
 
   int hardDeleteTSystem(String tenant, String name) throws TapisException;
 
-  boolean checkDB();
+  Exception checkDB();
+
+  void migrateDB() throws TapisException;
 
   boolean checkForTSystemByName(String tenant, String name, boolean includeDeleted) throws TapisException;
 
   TSystem getTSystemByName(String tenant, String name) throws TapisException;
 
-  List<TSystem> getTSystems(String tenant, List<String> selectList) throws TapisException;
+  List<TSystem> getTSystems(String tenant, List<String> searchList, List<Integer> IDs) throws TapisException;
 
   List<String> getTSystemNames(String tenant) throws TapisException;
 

@@ -3,6 +3,10 @@ package edu.utexas.tacc.tapis.systems.api;
 import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
+import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
@@ -12,9 +16,14 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceJWTFactory;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.internal.inject.InjectionManager;
+import org.glassfish.jersey.message.filtering.SelectableEntityFilteringFeature;
+import org.glassfish.jersey.moxy.json.MoxyJsonConfig;
+import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -40,16 +49,36 @@ import java.net.URI;
 @ApplicationPath("/")
 public class SystemsApplication extends ResourceConfig
 {
+  // Locator used for HK2 injection on application startup
+  private static ServiceLocator locator;
+
   // For all logging use println or similar so we do not have a dependency on a logging subsystem.
-  public SystemsApplication()
+  public SystemsApplication() throws TapisException
   {
     // Log our existence.
-    System.out.println("**** Starting tapis-systems ****");
+    // Output version information on startup
+    System.out.println("**** Starting tapis-systems. Version: " + TapisUtils.getTapisFullVersion() + " ****");
 
     // Register the swagger resources that allow the
     // documentation endpoints to be automatically generated.
     register(OpenApiResource.class);
     register(AcceptHeaderOpenApiResource.class);
+
+    // Setup and register Jersey's dynamic filtering
+    property(SelectableEntityFilteringFeature.QUERY_PARAM_NAME, "select");
+    register(SelectableEntityFilteringFeature.class);
+    // Register either Jackson or Moxy for SelectableEntityFiltering
+    // NOTE: Using shaded jar and Moxy works when running from Intellij IDE but breaks things when running in docker.
+    // NOTE: Using Jackson results in following TSystem attributes not being returned: notes, created, updated.
+    // NOTE: Using unshaded jar and Moxy appears to resolve all issues.
+    register(new MoxyJsonConfig().resolver());
+//    register(JacksonFeature.class);
+
+    // Register classes needed for returning a standard Tapis response for non-Tapis exceptions.
+    register(TapisExceptionMapper.class);
+    register(ValidationExceptionMapper.class);
+    // Register service class for calling init method during application startup
+    register(SystemsServiceImpl.class);
 
     // We specify what packages JAX-RS should recursively scan
     // to find annotations.  By setting the value to the top-level
@@ -98,8 +127,22 @@ public class SystemsApplication extends ResourceConfig
    */
   public static void main(String[] args) throws Exception
   {
+    // Set base protocol and port. If mainly running in k8s this may not need to be configurable.
     final URI BASE_URI = URI.create("http://0.0.0.0:8080/");
+    // Initialize the application container
     ResourceConfig config = new SystemsApplication();
+    // Initialize the service
+    // In order to instantiate our service class using HK2 we need to create an application handler
+    //   which allows us to get an injection manager which is used to get a locator.
+    //   The locator allows us to get classes that have been registered using AbstractBinder.
+    // NOTE: As of Jersey 2.26 dependency injection was abstracted out to make it easier to use DI frameworks
+    //       other than HK2, although finding docs and examples on how to do so seems difficult.
+    ApplicationHandler handler = new ApplicationHandler(config);
+    InjectionManager im = handler.getInjectionManager();
+    ServiceLocator locator = im.getInstance(ServiceLocator.class);
+    SystemsServiceImpl svcImpl = locator.getService(SystemsServiceImpl.class);
+    svcImpl.initService();
+    // Create and start the server
     final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(BASE_URI, config, false);
     server.start();
   }

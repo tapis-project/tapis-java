@@ -31,7 +31,6 @@ public final class TSystem
   // ************************************************************************
 
   public static final String ROLE_READ_PREFIX = "Systems_R_";
-  public static final String ROLE_MODIFY_PREFIX = "Systems_M_";
   // Allowed substitution variables
   public static final String APIUSERID_VAR = "${apiUserId}";
   public static final String OWNER_VAR = "${owner}";
@@ -69,12 +68,13 @@ public final class TSystem
   // *********************** Fields *****************************************
   // ************************************************************************
 
+  // NOTE: In order to use jersey's SelectableEntityFilteringFeature fields cannot be final.
   private int id;           // Unique database sequence number
 
   private String tenant;     // Name of the tenant for which the system is defined
   private String name;       // Name of the system
   private String description; // Full description of the system
-  private final SystemType systemType; // Type of system, e.g. LINUX, OBJECT_STORE
+  private SystemType systemType; // Type of system, e.g. LINUX, OBJECT_STORE
   private String owner;      // User who owns the system and has full privileges
   private String host;       // Host name or IP address
   private boolean enabled; // Indicates if systems is currently enabled
@@ -88,7 +88,7 @@ public final class TSystem
   private boolean useProxy;  // Indicates if a system should be accessed through a proxy
   private String proxyHost;  // Name or IP address of proxy host
   private int proxyPort;     // Port number for proxy host
-  private final boolean jobCanExec; // Indicates if system will be used to execute jobs
+  private boolean jobCanExec; // Indicates if system will be used to execute jobs
   private String jobLocalWorkingDir; // Parent directory from which jobs are run, inputs and application assets are staged
   private String jobLocalArchiveDir; // Parent directory used for archiving job output files
   private String jobRemoteArchiveSystem; // Remote system on which job output files will be archived
@@ -104,6 +104,13 @@ public final class TSystem
   // ************************************************************************
   // *********************** Constructors ***********************************
   // ************************************************************************
+
+  /**
+   * Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
+   * NOTE: Adding a default constructor changes jOOQ behavior such that when Record.into() uses the default mapper
+   *       the column names and POJO attribute names must match (with convention an_attr -> anAttr).
+   */
+  public TSystem() { }
 
   /**
    * Constructor using only required attributes.
@@ -231,13 +238,19 @@ public final class TSystem
   // ************************************************************************
   // *********************** Accessors **************************************
   // ************************************************************************
+
+  // NOTE: Setters that are not public are in place in order to use jersey's SelectableEntityFilteringFeature.
+
   public int getId() { return id; }
+  void setId(int i) { id = i; };
 
   @Schema(type = "string")
   public Instant getCreated() { return created; }
+  void setCreated(Instant i) { created = i; };
 
   @Schema(type = "string")
   public Instant getUpdated() { return updated; }
+  void setUpdated(Instant i) { updated = i; };
 
   public String getTenant() { return tenant; }
   public TSystem setTenant(String s) { tenant = s; return this; }
@@ -249,6 +262,7 @@ public final class TSystem
   public TSystem setDescription(String d) { description = d; return this; }
 
   public SystemType getSystemType() { return systemType; }
+  void setSystemType(SystemType s) { systemType = s; };
 
   public String getOwner() { return owner; }
   public TSystem setOwner(String s) { owner = s;  return this;}
@@ -295,6 +309,7 @@ public final class TSystem
   public TSystem setProxyPort(int i) { proxyPort = i; return this; }
 
   public boolean getJobCanExec() { return jobCanExec; }
+  void setJobCanExec(boolean b) { jobCanExec = b; }
 
   public String getJobLocalWorkingDir() { return jobLocalWorkingDir; }
   public TSystem setJobLocalWorkingDir(String s) { jobLocalWorkingDir = s; return this; }
@@ -303,6 +318,7 @@ public final class TSystem
   public TSystem setJobLocalArchiveDir(String s) { jobLocalArchiveDir = s; return this; }
 
   public String getJobRemoteArchiveSystem() { return jobRemoteArchiveSystem; }
+  void setJobRemoteArchiveSystem(String s) { jobRemoteArchiveSystem = s; }
 
   public String getJobRemoteArchiveDir() { return jobRemoteArchiveDir; }
   public TSystem setJobRemoteArchiveDir(String s) { jobRemoteArchiveDir = s; return this; }
@@ -327,4 +343,5 @@ public final class TSystem
   public TSystem setNotes(Object n) { notes = n; return this; }
 
   public boolean isDeleted() { return deleted; }
+  void setDeleted(boolean b) { deleted = b; }
 }

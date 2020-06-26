@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.systems.utils;
 
-import com.sun.java.accessibility.util.Translator;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /*
    Utility class containing general use static methods.
@@ -47,9 +45,9 @@ public class LibUtils
   /**
    * Get a localized message using the specified key and parameters. Locale is null.
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param key
-   * @param parms
-   * @return
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsg(String key, Object... parms)
   {
@@ -60,9 +58,9 @@ public class LibUtils
    * Get a localized message using the specified key and parameters. Locale is null.
    * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param key
-   * @param parms
-   * @return
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsgAuth(String key, AuthenticatedUser authUser, Object... parms)
   {
@@ -79,10 +77,10 @@ public class LibUtils
   /**
    * Get a localized message using the specified locale, key and parameters.
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param locale
-   * @param key
-   * @param parms
-   * @return
+   * @param locale Locale for message
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsg(String key, Locale locale, Object... parms)
   {

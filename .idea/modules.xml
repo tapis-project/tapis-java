@@ -19,6 +19,7 @@
       <module fileurl="file://$PROJECT_DIR$/../tapis-shared-java/tapis-shared-java.iml" filepath="$PROJECT_DIR$/../tapis-shared-java/tapis-shared-java.iml" />
       <module fileurl="file://$PROJECT_DIR$/../tapis-shared-java/tapis-shared-lib/tapis-shared-lib.iml" filepath="$PROJECT_DIR$/../tapis-shared-java/tapis-shared-lib/tapis-shared-lib.iml" />
       <module fileurl="file://$PROJECT_DIR$/../tapis-shared-java/tapis-shared-queue/tapis-shared-queue.iml" filepath="$PROJECT_DIR$/../tapis-shared-java/tapis-shared-queue/tapis-shared-queue.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../tapis-shared-java/tapis-shared-searchlib/tapis-shared-searchlib.iml" filepath="$PROJECT_DIR$/../tapis-shared-java/tapis-shared-searchlib/tapis-shared-searchlib.iml" />
       <module fileurl="file://$PROJECT_DIR$/tapis-systemsapi/tapis-systemsapi.iml" filepath="$PROJECT_DIR$/tapis-systemsapi/tapis-systemsapi.iml" />
       <module fileurl="file://$PROJECT_DIR$/tapis-systemslib/tapis-systemslib.iml" filepath="$PROJECT_DIR$/tapis-systemslib/tapis-systemslib.iml" />
       <module fileurl="file://$PROJECT_DIR$/../tapis-client-java/tenants-client/tenants-client.iml" filepath="$PROJECT_DIR$/../tapis-client-java/tenants-client/tenants-client.iml" />

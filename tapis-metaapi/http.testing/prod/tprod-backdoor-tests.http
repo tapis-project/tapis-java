@@ -1,0 +1,334 @@
+###  sanity test to see if service is alive
+GET http://c002.rodeo.tacc.utexas.edu:31650/
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: streamsTACCAdmin
+# X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+##################################### streams user #################################################
+
+##############################################################
+#      DB endpoints
+##############################################################
+
+###   db list collections
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+###   db metadata   403 Forbidden  nginx/1.16.1
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  403 Forbidden  nginx/1.16.1
+
+###   no perms and db does not exist
+GET http://c002.rodeo.tacc.utexas.edu:31650/sltst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  results  403
+#   empty response
+
+
+# streams
+#  put with no arguements to StreamsProdDB /v3/meta/StreamsProdDB/
+###
+PUT http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: streamsTACCAdmin
+# X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  results  200
+#  ETag header is returned in headers
+#  ETag: 5e4b0c95537bd1305796e5d7
+
+# streamsTACCAdmin
+#  post with no args to StreamsProdDB /v3/meta/StreamsProdDB/   DB already exists
+###
+POST http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###   results 405
+
+
+# streamsTACCAdmin
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/
+#  requires the If-Match: 5d95ed1dab3cf85b199ed3b6 Header value
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/testdb/
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+##############################################################
+#     Collection endpoints
+##############################################################
+
+###   use streams master token
+PUT http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/sltCollectionTst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+###   use streams master token
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/sltCollectionTst/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+
+#  get a document list under StreamsProdDB/Proj1 /v3/meta/StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#   _meta StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#  _size StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/_size
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#  _indexes StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#  _indexes StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+
+#  get a document list under StreamsProdDB/Proj1 /v3/meta/StreamsProdDB/Proj1  with a query
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1?filter={'name':'test document 33'}&np=true
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  put with no arguements to StreamsProdDB /v3/meta/StreamsProdDB/
+###
+PUT http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  result
+# er ETag Header returned  ETag: 5e4c452b537bd1305796e5e2
+
+# /v3/meta/StreamsProdDB/TstCollection streamsTACCAdmin
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/TstCollection
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+###  result msg with ETag header
+
+# /v3/meta/StreamsProdDB/TstCollection streamsTACCAdmin
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/TstCollection
+#  with ETag
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+If-Match: 5e4c452b537bd1305796e5e2
+Content-Type: application/json
+
+###  result msg with ETag header
+# ETag: 5e4c452b537bd1305796e5e2
+
+
+# /v3/meta/StreamsProdDB/Proj1   streamsTACCAdmin
+#  post with no args and no request body to StreamsProdDB /v3/meta/StreamsProdDB/Proj1
+###
+POST http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  result 201  er  Created
+
+# /v3/meta/StreamsProdDB/Proj1   streamsTACCAdmin
+#  post with no args and no request body to StreamsProdDB /v3/meta/StreamsProdDB/Proj1
+###
+POST http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+{ "name": "slt test document 36 4.24.2020-16:03", "jimmyList":["1","3"],"description": "new whatever"}
+
+###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
+# HTTP/1.1 201 Created
+# X-Powered-By: restheart.org
+# Location: http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e9de1dca93eebf39fcad799
+# Access-Control-Expose-Headers: Location, ETag, X-Powered-By
+# Date: Mon, 20 Apr 2020 17:54:36 GMT
+# Connection: keep-alive
+# Access-Control-Allow-Origin: *
+# ETag: 5e9de1dc67b9fd58b6da151f
+# Access-Control-Allow-Credentials: true
+# Content-Type: application/json
+# Content-Length: 0
+
+
+##############################################################
+#     document endpoints
+##############################################################
+
+# /v3/meta/StreamsProdDB/Proj1/   streamsTACCAdmin
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/5e4bff5ea93eebf39fbecda1
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e4bff5ea93eebf39fbecda1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  result 204  er  no Content
+
+
+
+# streamsTACCAdmin
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  result is a 409 without ETag
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  get a document from StreamsProdDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsProdDB/Proj1
+###
+GET http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e9b2a9ba93eebf39fca5508
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  put with no arguements to StreamsProdDB /v3/meta/StreamsProdDB/
+###
+PUT http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e29ffe1a93eebf39fba93c4
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  post with no args to StreamsProdDB /v3/meta/StreamsProdDB/
+###
+POST http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e29ffe1a93eebf39fba93c4
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  delete with StreamsProdDB /v3/meta/StreamsProdDB/
+###
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streamsTACCAdmin
+X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###
+
+#####################################################
+#
+#    Anagha test delete
+#
+# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streamsTACCAdmin" http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e4bff5ea93eebf39fbecda1
+#
+DELETE http://c002.rodeo.tacc.utexas.edu:31650/StreamsProdDB/Proj1/5e9b2a9ba93eebf39fca5508
+X-Tapis-Token:
+X-Tapis-Tenant: dev
+X-Tapis-User: streamsTACCAdmin
+
+###
+
+
+
+
+
+
+
+

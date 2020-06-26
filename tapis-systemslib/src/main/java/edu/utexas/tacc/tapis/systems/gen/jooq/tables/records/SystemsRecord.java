@@ -22,7 +22,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = 1385037708;
+    private static final long serialVersionUID = 1514990404;
 
     /**
      * Setter for <code>tapis_sys.systems.id</code>. System id
@@ -347,16 +347,16 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.notes_jsonb</code>. Notes for general information stored as JSON
+     * Setter for <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
-    public void setNotesJsonb(JsonElement value) {
+    public void setNotes(JsonElement value) {
         set(23, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.notes_jsonb</code>. Notes for general information stored as JSON
+     * Getter for <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
-    public JsonElement getNotesJsonb() {
+    public JsonElement getNotes() {
         return (JsonElement) get(23);
     }
 
@@ -425,7 +425,7 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     /**
      * Create a detached, initialised SystemsRecord
      */
-    public SystemsRecord(Integer id, String tenant, String name, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AccessMethod defaultAccessMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, Boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir, String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String[] tags, JsonElement notesJsonb, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
+    public SystemsRecord(Integer id, String tenant, String name, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AccessMethod defaultAccessMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, Boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir, String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String[] tags, JsonElement notes, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
         super(Systems.SYSTEMS);
 
         set(0, id);
@@ -451,7 +451,7 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
         set(20, jobRemoteArchiveSystem);
         set(21, jobRemoteArchiveDir);
         set(22, tags);
-        set(23, notesJsonb);
+        set(23, notes);
         set(24, deleted);
         set(25, created);
         set(26, updated);

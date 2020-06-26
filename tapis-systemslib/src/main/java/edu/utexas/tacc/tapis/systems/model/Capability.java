@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.List;
 
 /*
  * Capability class representing a capability supported by a TSystem, such as what job schedulers the system supports,
@@ -38,18 +37,21 @@ public final class Capability
   // Logging
   private static final Logger _log = LoggerFactory.getLogger(Capability.class);
 
+  // NOTE: In order to use jersey's SelectableEntityFilteringFeature fields cannot be final.
   private int id;           // Unique database sequence number
   private int systemid;
 
-  private final Category category; // Type or category of capability
-  private final String name;   // Name of the capability
-  private final String value;  // Value or range of values
+  private Category category; // Type or category of capability
+  private String name;   // Name of the capability
+  private String value;  // Value or range of values
   private Instant created; // UTC time for when record was created
   private Instant updated; // UTC time for when record was last updated
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
+  // Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
+  public Capability() { }
   public Capability(int id1, int systemid1, Category category1, String name1, String value1, Instant created1, Instant updated1)
   {
     id = id1;
@@ -71,9 +73,13 @@ public final class Capability
   /* ********************************************************************** */
   /*                               Accessors                                */
   /* ********************************************************************** */
+  // NOTE: Setters that are not public are in place in order to use jersey's SelectableEntityFilteringFeature.
   public Category getCategory() { return category; }
+  void setCategory(Category c) { category = c; }
   public String getName() { return name; }
+  void setName(String s) { name = s; }
   public String getValue() { return value; }
+  void setValue(String s) { value = s; }
 
   @Override
   public String toString() {return TapisUtils.toString(this);}

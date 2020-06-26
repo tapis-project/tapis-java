@@ -46,7 +46,7 @@ Content-Type: application/json
 # streams   
 #  put with no arguements to StreamsStagingDB /v3/meta/StreamsStagingDB/
 ###
-PUT http://c002.rodeo.tacc.utexas.edu:32263/StreamsStagingDB
+PUT http://c002.rodeo.tacc.utexas.edu:32263/StreamsProdDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streams
 X-Tapis-Tenant: master

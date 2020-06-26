@@ -1,7 +1,9 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
+import org.flywaydb.core.Flyway;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +28,7 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -45,6 +47,7 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
+import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
@@ -68,6 +71,7 @@ public class SystemsServiceImpl implements SystemsService
   // *********************** Constants **************************************
   // ************************************************************************
   public static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
+  public static final String SYSTEMS_ADMIN_DESCRIPTION = "Administrative role for Systems service";
   public static final String SYSTEMS_DEFAULT_MASTER_TENANT = "master";
 
   // Tracing.
@@ -127,7 +131,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int createSystem(AuthenticatedUser authenticatedUser, TSystem system, String scrubbedText)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException
+          throws TapisException, TapisClientException, IllegalStateException, IllegalArgumentException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.create;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -180,9 +184,7 @@ public class SystemsServiceImpl implements SystemsService
     // Use try/catch to rollback any writes in case of failure.
     int itemId = -1;
     String roleNameR = null;
-    String roleNameM = null;
     String systemsPermSpecR = getPermSpecStr(systemTenantName, systemName, Permission.READ);
-    String systemsPermSpecM = getPermSpecStr(systemTenantName, systemName, Permission.MODIFY);
     String systemsPermSpecALL = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
     String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
     // Get SK client now. If we cannot get this rollback not needed.
@@ -193,22 +195,17 @@ public class SystemsServiceImpl implements SystemsService
 
       // Add permission roles for the system
       roleNameR = TSystem.ROLE_READ_PREFIX + itemId;
-      roleNameM = TSystem.ROLE_MODIFY_PREFIX + itemId;
-      skClient.createRole(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
-      skClient.createRole(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM, "Role allowing MODIFY for system " + systemName);
-      skClient.addRolePermission(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
-      skClient.addRolePermission(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM, systemsPermSpecM);
+      skClient.createRole(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
+      skClient.addRolePermission(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
       // Give owner and possibly effectiveUser access to the system
       // TODO/TBD: Use user perm in default role OR just roleR, roleM OR are both useful?
       skClient.grantUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL);
       skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameR);
-      skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameM);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
         skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL);
         skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameR);
-        skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameM);
       }
       // TODO remove addition of files related permSpec
       // Give owner/effectiveUser files service related permission for root directory
@@ -246,12 +243,7 @@ public class SystemsServiceImpl implements SystemsService
       if (!StringUtils.isBlank(roleNameR)) {
         try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
         try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
-      }
-      if (!StringUtils.isBlank(roleNameM)) {
-        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameM);  } catch (Exception e) {}
-        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameM);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM);  } catch (Exception e) {}
+        try { skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
       }
       // Remove creds
       if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
@@ -286,7 +278,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int updateSystem(AuthenticatedUser authenticatedUser, PatchSystem patchSystem, String scrubbedText)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+          throws TapisException, TapisClientException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
   {
     SystemOperation op = SystemOperation.modify;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -345,7 +337,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int changeSystemOwner(AuthenticatedUser authenticatedUser, String systemName, String newOwnerName)
-          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException
+          throws TapisException, IllegalStateException, IllegalArgumentException, NotAuthorizedException, NotFoundException, TapisClientException
   {
     SystemOperation op = SystemOperation.changeOwner;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -422,7 +414,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public int softDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.softDelete;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -476,7 +468,8 @@ public class SystemsServiceImpl implements SystemsService
    * @throws TapisException - for Tapis related exceptions
    * @throws NotAuthorizedException - unauthorized
    */
-  public int hardDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public int hardDeleteSystemByName(AuthenticatedUser authenticatedUser, String systemName)
+          throws TapisException, TapisClientException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.hardDelete;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -528,30 +521,64 @@ public class SystemsServiceImpl implements SystemsService
     }
     // Remove role assignments and roles
     String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
-    String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
     // Remove role assignments for owner and effective user
     skClient.revokeUserRole(systemTenantName, owner, roleNameR);
     skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);
-    skClient.revokeUserRole(systemTenantName, owner, roleNameM);
-    skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameM);
     // Remove role assignments for other users
     userNames = skClient.getUsersWithRole(systemTenantName, roleNameR);
     for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
-    userNames = skClient.getUsersWithRole(systemTenantName, roleNameM);
-    for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameM);
     // Remove the roles
-    skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameR);
-    skClient.deleteRoleByName(systemTenantName, TapisConstants.SERVICE_NAME_SYSTEMS, roleNameM);
+    skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);
 
     // Delete the system
     return dao.hardDeleteTSystem(systemTenantName, systemName);
   }
 
   /**
-   * Check that we can connect with DB and that the main table of the service exists.
-   * @return true if all OK else returns false
+   * Initialize the service:
+   *   Check for Systems admin role. If not found create it
    */
-  public boolean checkDB()
+  public void initService() throws TapisException, TapisClientException
+  {
+    // Get service master tenant
+    String svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
+    if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
+    // Create user for SK client
+    AuthenticatedUser svcUser =
+        new AuthenticatedUser(SERVICE_NAME_SYSTEMS, svcMasterTenant, TapisThreadContext.AccountType.service.name(),
+                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null);
+    // Use SK client to check for admin role and create it if necessary
+    var skClient = getSKClient(svcUser);
+    // Check for admin role
+    SkRole adminRole = null;
+    try
+    {
+      adminRole = skClient.getRoleByName(svcMasterTenant, SYSTEMS_ADMIN_ROLE);
+    }
+    catch (TapisClientException e)
+    {
+      if (!e.getTapisMessage().startsWith("TAPIS_NOT_FOUND")) throw e;
+    }
+    // TODO: Move msgs to properties file
+    if (adminRole == null)
+    {
+      _log.info("Systems administrative role not found. Role name: " + SYSTEMS_ADMIN_ROLE);
+      skClient.createRole(svcMasterTenant, SERVICE_NAME_SYSTEMS, SYSTEMS_ADMIN_ROLE, SYSTEMS_ADMIN_DESCRIPTION);
+      _log.info("Systems administrative created. Role name: " + SYSTEMS_ADMIN_ROLE);
+    }
+    else
+    {
+      _log.info("Systems administrative role found. Role name: " + SYSTEMS_ADMIN_ROLE);
+    }
+    // Make sure DB is present and updated to latest version
+    dao.migrateDB();
+  }
+
+  /**
+   * Check that we can connect with DB and that the main table of the service exists.
+   * @return null if all OK else return an Exception
+   */
+  public Exception checkDB()
   {
     return dao.checkDB();
   }
@@ -565,7 +592,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public boolean checkForSystemByName(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -595,7 +622,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public TSystem getSystemByName(AuthenticatedUser authenticatedUser, String systemName, boolean getCreds, AccessMethod accMethod)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -631,37 +658,45 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
-   * Get all systems
+   * Get all systems for which user has READ permission
    * @param authenticatedUser - principal user containing tenant and user info
+   * @param searchList - optional list of conditions used for searching
    * @return List of TSystem objects
    * @throws TapisException - for Tapis related exceptions
    */
   @Override
-  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> selectList) throws TapisException
+  public List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> searchList)
+          throws TapisException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+    // Determine tenant scope for user
+    String systemTenantName = authenticatedUser.getTenantId();
+    // For service request use oboTenant for tenant associated with the user
+    if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
+      systemTenantName = authenticatedUser.getOboTenantId();
 
-    // TODO Validate selectList input
+    // TODO Validate searchList input
 
-    // Get all systems
-    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId(), selectList);
-    var allowedSystems = new ArrayList<TSystem>();
-    // Filter based on user authorization
+    // Get list of IDs of systems for which requester has READ permission.
+    // This is either all systems (null) or a list of IDs based on roles.
+    List<Integer> allowedSystemIDs = getAllowedSystemIDs(authenticatedUser, systemTenantName);
+
+    // Get all allowed systems matching the search conditions
+    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId(), searchList, allowedSystemIDs);
+
     for (TSystem system : systems)
     {
-      try {
-        checkAuth(authenticatedUser, op, system.getName(), null, null, null);
-        allowedSystems.add(system);
-      }
-      catch (NotAuthorizedException e) { }
-    }
-    for (TSystem system : allowedSystems)
-    {
       system.setEffectiveUserId(resolveEffectiveUserId(system.getEffectiveUserId(), system.getOwner(),
-                                authenticatedUser.getName()));
+                 authenticatedUser.getName()));
     }
-    return allowedSystems;
+// This is a simple brute force way to only get allowed systems
+//      try {
+//        checkAuth(authenticatedUser, op, system.getName(), null, null, null);
+//        allowedSystems.add(system);
+//      }
+//      catch (NotAuthorizedException e) { }
+    return systems;
   }
 
   /**
@@ -685,7 +720,7 @@ public class SystemsServiceImpl implements SystemsService
         checkAuth(authenticatedUser, op, name, null, null, null);
         allowedNames.add(name);
       }
-      catch (NotAuthorizedException e) { }
+      catch (NotAuthorizedException | TapisClientException e) { }
     }
     return allowedNames;
   }
@@ -699,7 +734,7 @@ public class SystemsServiceImpl implements SystemsService
    * @throws NotAuthorizedException - unauthorized
    */
   @Override
-  public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException
+  public String getSystemOwner(AuthenticatedUser authenticatedUser, String systemName) throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.read;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -737,7 +772,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public void grantUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Set<Permission> permissions, String updateText)
-    throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.grantPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -779,15 +814,12 @@ public class SystemsServiceImpl implements SystemsService
     {
       // Grant permission roles as appropriate, RoleR, RoleM
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
-      String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
       for (Permission perm : permissions)
       {
         if (perm.equals(Permission.READ)) skClient.grantUserRole(systemTenantName, userName, roleNameR);
-        else if (perm.equals(Permission.MODIFY)) skClient.grantUserRole(systemTenantName, userName, roleNameM);
         else if (perm.equals(Permission.ALL))
         {
           skClient.grantUserRole(systemTenantName, userName, roleNameR);
-          skClient.grantUserRole(systemTenantName, userName, roleNameM);
         }
       }
       // Assign perms to user. SK creates a default role for the user
@@ -822,7 +854,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public int revokeUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Set<Permission> permissions, String updateText)
-    throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.revokePerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -860,13 +892,10 @@ public class SystemsServiceImpl implements SystemsService
     try {
       // Revoke permission roles as appropriate, RoleR, RoleM
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
-      String roleNameM = TSystem.ROLE_MODIFY_PREFIX + systemId;
       for (Permission perm : permissions) {
         if (perm.equals(Permission.READ)) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
-        else if (perm.equals(Permission.MODIFY)) skClient.revokeUserRole(systemTenantName, userName, roleNameM);
         else if (perm.equals(Permission.ALL)) {
           skClient.revokeUserRole(systemTenantName, userName, roleNameR);
-          skClient.revokeUserRole(systemTenantName, userName, roleNameM);
         }
       }
       changeCount = revokePermissions(skClient, systemTenantName, systemName, userName, permissions);
@@ -896,7 +925,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public Set<Permission> getUserPermissions(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.getPerms;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -950,7 +979,7 @@ public class SystemsServiceImpl implements SystemsService
   @Override
   public void createUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName,
                                    Credential credential, String updateText)
-          throws TapisException, NotAuthorizedException, IllegalStateException
+          throws TapisException, NotAuthorizedException, IllegalStateException, TapisClientException
   {
     SystemOperation op = SystemOperation.setCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1012,7 +1041,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public int deleteUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, NotAuthorizedException, TapisClientException
   {
     SystemOperation op = SystemOperation.removeCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1073,7 +1102,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   @Override
   public Credential getUserCredential(AuthenticatedUser authenticatedUser, String systemName, String userName, AccessMethod accessMethod)
-          throws TapisException, NotAuthorizedException
+          throws TapisException, TapisClientException, NotAuthorizedException
   {
     SystemOperation op = SystemOperation.getCred;
     if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
@@ -1341,11 +1370,11 @@ public class SystemsServiceImpl implements SystemsService
    */
   private void checkAuth(AuthenticatedUser authenticatedUser, SystemOperation operation, String systemName,
                          String owner, String targetUser, Set<Permission> perms)
-      throws TapisException, NotAuthorizedException, IllegalStateException
+      throws TapisException, TapisClientException, NotAuthorizedException, IllegalStateException
   {
     // Check service and user requests separately to avoid confusing a service name with a user name
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType())) {
-      // Service check
+      // This is a service request. The user name will be the service name. E.g. files, jobs, etc
       switch (operation) {
         case read:
           if (SVCLIST_READ.contains(authenticatedUser.getName())) return;
@@ -1403,18 +1432,55 @@ public class SystemsServiceImpl implements SystemsService
   }
 
   /**
+   * Determine all systems that a user is allowed to see.
+   * If all systems return null else return list of IDs
+   * An empty list indicates no systems allowed.
+   */
+  private List<Integer> getAllowedSystemIDs(AuthenticatedUser authenticatedUser, String systemTenantName)
+          throws TapisException, TapisClientException
+  {
+    // If requester is a service or an admin then all systems allowed
+    // TODO: for all services or just some, such as files and jobs?
+    if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()) ||
+        hasAdminRole(authenticatedUser)) return null;
+    var systemIDs = new ArrayList<Integer>();
+    // Get roles for user and extract system IDs
+    List<String> userRoles = getSKClient(authenticatedUser).getUserRoles(systemTenantName, authenticatedUser.getName());
+    // Find roles of the form Systems_R_<id> and generate a list of IDs
+    // TODO Create a function and turn this into a stream/lambda
+    for (String role: userRoles)
+    {
+      if (role.startsWith(TSystem.ROLE_READ_PREFIX))
+      {
+        String idStr = role.substring(role.indexOf(TSystem.ROLE_READ_PREFIX) + TSystem.ROLE_READ_PREFIX.length());
+        // If id part of string is not integer then ignore this role.
+        try {
+          Integer id = Integer.parseInt(idStr);
+          systemIDs.add(id);
+        } catch (NumberFormatException e) {};
+      }
+    }
+    return systemIDs;
+  }
+
+  /**
    * Check to see if apiUserId has the service admin role
    */
   private boolean hasAdminRole(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    var skClient = getSKClient(authenticatedUser);
-    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
+    // TODO Temporarily just require that user has SystemsAdmin in the name.
+    // TODO: Use sk isAdmin method ot require that user have the tenant admin role
+//    var skClient = getSKClient(authenticatedUser);
+//    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
+    if (authenticatedUser.getName().contains("SystemsAdmin")) return true;
+    else return false;
   }
 
   /**
    * Check to see if apiUserId has the specified permission
    */
-  private boolean isPermitted(AuthenticatedUser authenticatedUser, String systemName, Permission perm) throws TapisException
+  private boolean isPermitted(AuthenticatedUser authenticatedUser, String systemName, Permission perm)
+          throws TapisException, TapisClientException
   {
     var skClient = getSKClient(authenticatedUser);
     String permSpecStr = getPermSpecStr(authenticatedUser.getTenantId(), systemName, perm);
@@ -1424,7 +1490,8 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId has any of the set of permissions
    */
-  private boolean isPermittedAny(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms) throws TapisException
+  private boolean isPermittedAny(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms)
+          throws TapisException, TapisClientException
   {
     var skClient = getSKClient(authenticatedUser);
     var permSpecs = new ArrayList<String>();
@@ -1437,7 +1504,8 @@ public class SystemsServiceImpl implements SystemsService
   /**
    * Check to see if apiUserId who is not owner or admin is authorized to revoke permissions
    */
-  private boolean allowUserRevokePerm(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms) throws TapisException
+  private boolean allowUserRevokePerm(AuthenticatedUser authenticatedUser, String systemName, Set<Permission> perms)
+          throws TapisException, TapisClientException
   {
     if (perms.contains(Permission.MODIFY)) return isPermitted(authenticatedUser, systemName, Permission.MODIFY);
     if (perms.contains(Permission.READ)) return isPermittedAny(authenticatedUser, systemName, READMODIFY_PERMS);
@@ -1470,7 +1538,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   private static void createCredential(SKClient skClient, Credential credential, String tenantName, String apiUserId,
                                        String systemName, String systemTenantName, String userName)
-          throws TapisException
+          throws TapisClientException
   {
     // Construct basic SK secret parameters including tenant, system and user for credential
     var sParms = new SKSecretWriteParms(SecretType.System).setSecretName(TOP_LEVEL_SECRET_NAME);
@@ -1513,7 +1581,7 @@ public class SystemsServiceImpl implements SystemsService
    */
   private static int deleteCredential(SKClient skClient, String tenantName, String apiUserId,
                                       String systemTenantName, String systemName, String userName)
-          throws TapisException
+          throws TapisClientException
   {
     int changeCount = 0;
     // Return 0 if credential does not exist

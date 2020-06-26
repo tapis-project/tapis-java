@@ -24,7 +24,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord> implements Record7<Integer, Integer, String, SystemOperation, JsonElement, String, LocalDateTime> {
 
-    private static final long serialVersionUID = 857265471;
+    private static final long serialVersionUID = 998230281;
 
     /**
      * Setter for <code>tapis_sys.system_updates.id</code>. System update request id
@@ -83,16 +83,16 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
     }
 
     /**
-     * Setter for <code>tapis_sys.system_updates.upd_jsonb</code>. JSON representing the update - with secrets scrubbed
+     * Setter for <code>tapis_sys.system_updates.upd_json</code>. JSON representing the update - with secrets scrubbed
      */
-    public void setUpdJsonb(JsonElement value) {
+    public void setUpdJson(JsonElement value) {
         set(4, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.system_updates.upd_jsonb</code>. JSON representing the update - with secrets scrubbed
+     * Getter for <code>tapis_sys.system_updates.upd_json</code>. JSON representing the update - with secrets scrubbed
      */
-    public JsonElement getUpdJsonb() {
+    public JsonElement getUpdJson() {
         return (JsonElement) get(4);
     }
 
@@ -169,7 +169,7 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public Field<JsonElement> field5() {
-        return SystemUpdates.SYSTEM_UPDATES.UPD_JSONB;
+        return SystemUpdates.SYSTEM_UPDATES.UPD_JSON;
     }
 
     @Override
@@ -204,7 +204,7 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public JsonElement component5() {
-        return getUpdJsonb();
+        return getUpdJson();
     }
 
     @Override
@@ -239,7 +239,7 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public JsonElement value5() {
-        return getUpdJsonb();
+        return getUpdJson();
     }
 
     @Override
@@ -278,7 +278,7 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public SystemUpdatesRecord value5(JsonElement value) {
-        setUpdJsonb(value);
+        setUpdJson(value);
         return this;
     }
 
@@ -320,14 +320,14 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
     /**
      * Create a detached, initialised SystemUpdatesRecord
      */
-    public SystemUpdatesRecord(Integer id, Integer systemId, String userName, SystemOperation operation, JsonElement updJsonb, String updText, LocalDateTime created) {
+    public SystemUpdatesRecord(Integer id, Integer systemId, String userName, SystemOperation operation, JsonElement updJson, String updText, LocalDateTime created) {
         super(SystemUpdates.SYSTEM_UPDATES);
 
         set(0, id);
         set(1, systemId);
         set(2, userName);
         set(3, operation);
-        set(4, updJsonb);
+        set(4, updJson);
         set(5, updText);
         set(6, created);
     }

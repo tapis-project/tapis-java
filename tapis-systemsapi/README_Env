@@ -22,11 +22,11 @@ TAPIS_DB_PASSWORD
 TAPIS_TENANT_SVC_BASEURL
 TAPIS_SERVICE_PASSWORD
 
---------------------------
-Environments
---------------------------
+--------------------------------------------------------
+Environments (all URLs below are for the dev tenant)
+--------------------------------------------------------
 
-1. Local dev with IntelliJ IDE
+1. Local develop with IntelliJ IDE
 Service URL: http://locahost:8080/v3/systems
 Startup:
   Start from within IDE. Set service password as env variable
@@ -44,8 +44,8 @@ Service URL: http://locahost:8080/v3/systems
 
 Startup:
   mvn clean install
-  tapis-systemsapi/docker_build.sh
-  tapis-systemsapi/docker_run.sh <svc_password>
+  deployment/tapis-systemsapi/docker_build.sh dev
+  deployment/tapis-systemsapi/docker_run.sh <svc_password>
 
 Env:
   TAPIS_DB_CONNECTION_POOL_SIZE=3
@@ -71,7 +71,9 @@ Env:
   TAPIS_SERVICE_PASSWORD=****** (from k8s secret)
 
 4. K8s stage
-TBD Service URL: https://stage.tapis.io/v3/systems
+Service URL: https://dev.staging.tapis.io/v3/systems
+TBD
 
 5. K8s prod
-TBD Service URL: https://prod.tapis.io/v3/systems
+Service URL: https://dev.tapis.io/v3/systems
+TBD

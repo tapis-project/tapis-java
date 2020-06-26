@@ -30,6 +30,9 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -160,6 +163,9 @@ public class SystemResource
         "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
+    parameters = {
+      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+    },
     requestBody =
       @RequestBody(
         description = "A JSON object specifying information for the system to be created.",
@@ -315,6 +321,9 @@ public class SystemResource
                   "description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, " +
                   "port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.",
           tags = "systems",
+          parameters = {
+            @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+          },
           requestBody =
           @RequestBody(
                   description = "A JSON object specifying changes to be applied.",
@@ -458,6 +467,9 @@ public class SystemResource
           description =
                   "Change owner of a system.",
           tags = "systems",
+          parameters = {
+            @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+          },
           responses = {
                   @ApiResponse(responseCode = "200", description = "System owner updated.",
                           content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
@@ -561,6 +573,11 @@ public class SystemResource
           "included in the response. " +
           "Use query parameter accessMethod=<method> to override default access method.",
       tags = "systems",
+      parameters = {
+        @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean")),
+        @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
+                   in = ParameterIn.QUERY, schema = @Schema(type = "string"))
+      },
       responses = {
           @ApiResponse(responseCode = "200", description = "System found.",
             content = @Content(schema = @Schema(implementation = RespSystem.class))),
@@ -625,8 +642,7 @@ public class SystemResource
     // ---------------------------- Success -------------------------------
     // Success means we retrieved the system information.
     RespSystem resp1 = new RespSystem(system);
-    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), prettyPrint, resp1)).build();
+    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "System", systemName), resp1);
   }
 
   /**
@@ -641,10 +657,14 @@ public class SystemResource
     description = "Retrieve list of systems.",
     tags = "systems",
     parameters = {
-      @Parameter(name = "pretty", description = "Pretty print the response",
-                 in = ParameterIn.QUERY, required = false,
-                 schema = @Schema(type = "boolean")
-                )
+      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY,
+                 schema = @Schema(type = "boolean")),
+      @Parameter(name = "select", description = "Resource attributes to include when returning results. " +
+                                                "For example select=result.name,result.host",
+                 in = ParameterIn.QUERY, schema = @Schema(type = "string")),
+      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
+                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
+                 in = ParameterIn.QUERY, schema = @Schema(type = "string"))
     },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
@@ -667,6 +687,8 @@ public class SystemResource
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     boolean prettyPrint = threadContext.getPrettyPrint();
+    List<String> searchList = threadContext.getSearchList();
+    if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
@@ -675,7 +697,7 @@ public class SystemResource
 
     // ------------------------- Retrieve all records -----------------------------
     List<TSystem> systems;
-    try { systems = systemsService.getSystems(authenticatedUser, null); }
+    try { systems = systemsService.getSystems(authenticatedUser, searchList); }
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
@@ -687,8 +709,7 @@ public class SystemResource
     if (systems == null) systems = Collections.emptyList();
     int cnt = systems.size();
     RespSystemArray resp1 = new RespSystemArray(systems);
-    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-        MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), prettyPrint, resp1)).build();
+    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), resp1);
   }
 
   /**
@@ -704,6 +725,9 @@ public class SystemResource
     summary = "Soft delete a system given the system name",
     description = "Soft delete a system given the system name. ",
     tags = "systems",
+    parameters = {
+      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+    },
     responses = {
       @ApiResponse(responseCode = "200", description = "System deleted.",
         content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
@@ -938,4 +962,19 @@ public class SystemResource
             "  " + _request.getRequestURL());
     _log.trace(msg);
   }
+
+  /**
+   * Create an OK response given message and base response to put in result
+   * @param msg - message for resp.message
+   * @param resp - base response (the result)
+   * @return - Final response to return to client
+   */
+  private static Response createSuccessResponse(String msg, RespAbstract resp)
+  {
+    resp.message = msg;
+    resp.status = ResponseWrapper.RESPONSE_STATUS.success.name();
+    resp.version = TapisUtils.getTapisVersion();
+    return Response.ok(resp).build();
+  }
+
 }

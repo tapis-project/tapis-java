@@ -47,10 +47,11 @@ Here are the current enumerations and the locations where they are defined. Note
   Enumeration         Json Schema               Model class       Init SQL
   ===========         ================          ==============    =============
   SystemType          Definitions.json          model.TSystem     Yes
+  SystemOperation     <N/A>                     model.TSystem     Yes
   Permission          PermsRequest.json         model.TSystem     No
-  AccessMethod        Definitions.json          model.Protocol    Yes
-  TransferMethod      SystemCreateRequest.json  model.Protocol    Yes
-  CapabilityCategory  Definitions.json          model.Capability  Yes
+  AccessMethod        Definitions.json          model.TSystem    Yes
+  TransferMethod      SystemCreateRequest.json  model.TSystem     No
+  Capability          Definitions.json          model.Capability  Yes
 
 ------------
 Server Usage

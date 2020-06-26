@@ -26,13 +26,13 @@ COPY meta /usr/local/tomcat/webapps/v3/
 ENV CATALINA_HOME /usr/local/tomcat
 
 # Set most Java options here.
-ENV CATALINA_OPTS -Xms6g -Xmx6g
+ENV CATALINA_OPTS -Xms4g -Xmx4g
 
 # Debug port and http port
 EXPOSE 8000
 EXPOSE 8080
 
-LABEL "GIT_COMMIT"=$GIT_COMMIT
+LABEL "VER"=$VER "GIT_COMMIT"=$GIT_COMMIT
 
 # Launch Tomcat on startup
 CMD ${CATALINA_HOME}/bin/catalina.sh run

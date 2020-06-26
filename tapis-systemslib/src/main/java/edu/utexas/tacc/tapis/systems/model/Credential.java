@@ -37,16 +37,19 @@ public final class Credential
   /*                                 Fields                                 */
   /* ********************************************************************** */
 
-  private final String password; // Password for when accessMethod is PASSWORD
-  private final String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
-  private final String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
-  private final String accessKey; // Access key for when accessMethod is ACCESS_KEY
-  private final String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
-  private final String certificate; // SSH certificate for accessMethod is CERT
+  // NOTE: In order to use jersey's SelectableEntityFilteringFeature fields cannot be final.
+  private String password; // Password for when accessMethod is PASSWORD
+  private String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
+  private String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
+  private String accessKey; // Access key for when accessMethod is ACCESS_KEY
+  private String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
+  private String certificate; // SSH certificate for accessMethod is CERT
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
+  // Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
+  public Credential() { }
 
   /**
    * Simple constructor to populate all attributes

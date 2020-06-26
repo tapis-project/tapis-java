@@ -168,6 +168,7 @@ public class SystemsDaoTest
     }
     // Verify notes
     JsonObject obj = (JsonObject) tmpSys.getNotes();
+    Assert.assertNotNull(obj, "Notes object was null");
     Assert.assertTrue(obj.has("project"));
     Assert.assertEquals(obj.get("project").getAsString(), notesObj.get("project").getAsString());
     Assert.assertTrue(obj.has("testdata"));
@@ -210,10 +211,31 @@ public class SystemsDaoTest
     TSystem sys0 = sys5;
     int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
-    List<TSystem> systems = dao.getTSystems(tenantName, null);
+    List<TSystem> systems = dao.getTSystems(tenantName, null, null);
     for (TSystem system : systems) {
       System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
     }
+  }
+
+  // Test retrieving all systems in a list of IDs
+  @Test
+  public void testGetSystemsInIDList() throws Exception {
+    TSystem sys0 = new TSystem(sys5);
+    var idList = new ArrayList<Integer>();
+    sys0.setName(sys5.getName() + "a");
+    int itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    idList.add(itemId);
+    sys0.setName(sys5.getName() + "b");
+    itemId = dao.createTSystem(authenticatedUser, sys0, gson.toJson(sys0), scrubbedJson);
+    Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
+    idList.add(itemId);
+    List<TSystem> systems = dao.getTSystems(tenantName, null, idList);
+    for (TSystem system : systems) {
+      System.out.println("Found item with id: " + system.getId() + " and name: " + system.getName());
+      Assert.assertTrue(idList.contains(system.getId()));
+    }
+    Assert.assertEquals(idList.size(), systems.size());
   }
 
   // Test change system owner
@@ -335,5 +357,7 @@ public class SystemsDaoTest
     dao.hardDeleteTSystem(sys7.getTenant(), sys7.getName());
     dao.hardDeleteTSystem(sys8.getTenant(), sys8.getName());
     dao.hardDeleteTSystem(sys9.getTenant(), sys9.getName());
+    dao.hardDeleteTSystem(sys9.getTenant(), sys5.getName() + "a");
+    dao.hardDeleteTSystem(sys9.getTenant(), sys5.getName() + "b");
   }
 }

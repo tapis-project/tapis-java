@@ -39,7 +39,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Systems extends TableImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = 1291300292;
+    private static final long serialVersionUID = -1804696737;
 
     /**
      * The reference instance of <code>tapis_sys.systems</code>
@@ -170,9 +170,9 @@ public class Systems extends TableImpl<SystemsRecord> {
     public final TableField<SystemsRecord, String[]> TAGS = createField(DSL.name("tags"), org.jooq.impl.SQLDataType.CLOB.getArrayDataType(), this, "Tags for user supplied key:value pairs");
 
     /**
-     * The column <code>tapis_sys.systems.notes_jsonb</code>. Notes for general information stored as JSON
+     * The column <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
-    public final TableField<SystemsRecord, JsonElement> NOTES_JSONB = createField(DSL.name("notes_jsonb"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Notes for general information stored as JSON", new JSONBToJsonElementBinding());
+    public final TableField<SystemsRecord, JsonElement> NOTES = createField(DSL.name("notes"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "Notes for general information stored as JSON", new JSONBToJsonElementBinding());
 
     /**
      * The column <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
