@@ -31,7 +31,7 @@
       <!-- Properties can be overridden here         -->
       <!-- Individual projects may want to override. -->
       <!-- Skip integration tests -->
-      <skipITs>true</skipITs>
+      <skipIntegrationTests>true</skipIntegrationTests>
     </properties>
 
   <repositories>

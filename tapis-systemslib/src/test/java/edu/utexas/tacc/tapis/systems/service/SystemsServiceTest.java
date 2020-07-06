@@ -232,6 +232,8 @@ public class SystemsServiceTest
   {
     TSystem sys0 = sys1;
     int itemId = svc.createSystem(authenticatedOwnerUsr, sys0, scrubbedText);
+    // TODO remove - force fail for testing jenkins job
+    Assert.assertTrue(false);
     Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
   }
 
