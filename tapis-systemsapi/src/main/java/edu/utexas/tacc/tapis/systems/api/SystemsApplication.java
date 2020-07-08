@@ -49,11 +49,8 @@ import java.net.URI;
 @ApplicationPath("/")
 public class SystemsApplication extends ResourceConfig
 {
-  // Locator used for HK2 injection on application startup
-  private static ServiceLocator locator;
-
   // For all logging use println or similar so we do not have a dependency on a logging subsystem.
-  public SystemsApplication() throws TapisException
+  public SystemsApplication()
   {
     // Log our existence.
     // Output version information on startup
