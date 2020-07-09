@@ -642,16 +642,18 @@ public class SystemsServiceImpl implements SystemsService
 
     TSystem result = dao.getTSystemByName(systemTenantName, systemName);
     if (result == null) return null;
+    // Save unresolved effectiveUserId for checking if getting credentials makes sense
+    String unresolvedEffectiveUserId = result.getEffectiveUserId();
     // Resolve effectiveUserId if necessary
-    String effectiveUserId = resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId);
-    result.setEffectiveUserId(effectiveUserId);
+    String resolvedEffectiveUserId = resolveEffectiveUserId(result.getEffectiveUserId(), result.getOwner(), apiUserId);
+    result.setEffectiveUserId(resolvedEffectiveUserId);
     // If requested and effectiveUserid is not ${apiUserId} (i.e. is static) then retrieve credentials from Security Kernel
-    if (getCreds && !result.getEffectiveUserId().equals(TSystem.APIUSERID_VAR))
+    if (getCreds && !unresolvedEffectiveUserId.equals(TSystem.APIUSERID_VAR))
     {
       AccessMethod tmpAccMethod = result.getDefaultAccessMethod();
       // If accessMethod specified then use it instead of default access method defined for the system.
       if (accMethod != null) tmpAccMethod = accMethod;
-      Credential cred = getUserCredential(authenticatedUser, systemName, effectiveUserId, tmpAccMethod);
+      Credential cred = getUserCredential(authenticatedUser, systemName, unresolvedEffectiveUserId, tmpAccMethod);
       result.setAccessCredential(cred);
     }
     return result;
