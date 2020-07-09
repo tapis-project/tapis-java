@@ -126,10 +126,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
-          <skip>${skipITs}</skip>
+          <skip>${skipIntegrationTests}</skip>
           <environmentVariables>
             <APP_ENV>test</APP_ENV>
-            <TAPIS_SERVICE_PASSWORD>S4nUNjL6JCwmCw3QQWR7Lyx1J/ayV6BEnAwTBi5sJ8E=</TAPIS_SERVICE_PASSWORD>
           </environmentVariables>
         </configuration>
       </plugin>

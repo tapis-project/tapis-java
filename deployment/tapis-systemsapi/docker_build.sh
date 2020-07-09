@@ -1,6 +1,6 @@
 #!/bin/sh
 # Build and optionally push docker image for Systems service
-# This is the job run in Jenkins as part of job Systems-<ENV>-Build-Test-Publish-Images
+# This is the job run in Jenkins as part of job Java-MultiService-Build-Publish-Deploy-<ENV>
 # Environment name must be passed in as first argument
 # Existing docker login is used for push
 # Docker image is created with a unique tag: tapis/systems-<ENV>-<VER>-<COMMIT>-<YYYYmmddHHMM>
