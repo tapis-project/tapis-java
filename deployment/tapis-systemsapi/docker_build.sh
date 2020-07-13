@@ -77,7 +77,6 @@ echo "  ENV=        ${ENV}"
 echo "  VER=        ${VER}"
 echo "  GIT_BRANCH_LBL= ${GIT_BRANCH_LBL}"
 echo "  GIT_COMMIT_LBL= ${GIT_COMMIT_LBL}"
-exit 1
 docker build -f Dockerfile \
    --label VER="${VER}" --label GIT_COMMIT="${GIT_COMMIT_LBL}" --label GIT_BRANCH="${GIT_BRANCH_LBL}" \
     -t "${TAG_UNIQ}" .
