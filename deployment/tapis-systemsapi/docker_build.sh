@@ -68,7 +68,7 @@ TAG_LATEST="${REPO}/systems:latest"
 # If branch name is UNKNOWN or empty as might be the case in a jenkins job then
 #   set it to GIT_BRANCH. Jenkins jobs should have this set in the env.
 if [ -z "$GIT_BRANCH_LBL" -o "x$GIT_BRANCH_LBL" = "xUNKNOWN" ]; then
-  GIT_BRANCH_LBL=$GIT_BRANCH
+  GIT_BRANCH_LBL=$(echo "$GIT_BRANCH" | awk -F"/" '{print $2}')
 fi
 
 # Build image from Dockerfile
@@ -77,6 +77,7 @@ echo "  ENV=        ${ENV}"
 echo "  VER=        ${VER}"
 echo "  GIT_BRANCH_LBL= ${GIT_BRANCH_LBL}"
 echo "  GIT_COMMIT_LBL= ${GIT_COMMIT_LBL}"
+exit 1
 docker build -f Dockerfile \
    --label VER="${VER}" --label GIT_COMMIT="${GIT_COMMIT_LBL}" --label GIT_BRANCH="${GIT_BRANCH_LBL}" \
     -t "${TAG_UNIQ}" .
