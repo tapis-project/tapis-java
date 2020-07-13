@@ -41,3 +41,6 @@ export PRG_PATH=$(pwd)
 
 cd ../../tapis-systemslib
 mvn verify -DskipIntegrationTests=false -Dp6spy.config.modulelist=
+RET_CODE=$?
+cd $RUN_DIR
+exit $RET_CODE
