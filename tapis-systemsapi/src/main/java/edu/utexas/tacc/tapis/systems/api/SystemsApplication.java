@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.systems.api;
 import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
@@ -28,6 +27,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import org.jooq.tools.StringUtils;
 
 import java.net.URI;
 
@@ -49,11 +49,8 @@ import java.net.URI;
 @ApplicationPath("/")
 public class SystemsApplication extends ResourceConfig
 {
-  // Locator used for HK2 injection on application startup
-  private static ServiceLocator locator;
-
   // For all logging use println or similar so we do not have a dependency on a logging subsystem.
-  public SystemsApplication() throws TapisException
+  public SystemsApplication()
   {
     // Log our existence.
     // Output version information on startup
@@ -127,8 +124,13 @@ public class SystemsApplication extends ResourceConfig
    */
   public static void main(String[] args) throws Exception
   {
+    // If TAPIS_SERVICE_PORT set in env then use it.
+    // Useful for starting service locally on a busy system where 8080 may not be available.
+    String servicePort = System.getenv("TAPIS_SERVICE_PORT");
+    if (StringUtils.isBlank(servicePort)) servicePort = "8080";
+
     // Set base protocol and port. If mainly running in k8s this may not need to be configurable.
-    final URI BASE_URI = URI.create("http://0.0.0.0:8080/");
+    final URI BASE_URI = URI.create("http://0.0.0.0:" + servicePort + "/");
     // Initialize the application container
     ResourceConfig config = new SystemsApplication();
     // Initialize the service
