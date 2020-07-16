@@ -97,10 +97,9 @@ echo "***      Push to docker hub : docker push $IMAGE_NAME"
                 # docker push "$IMAGE_NAME"
 echo ""
 echo "***      Tag and Push to private registry : docker push jenkins2.tacc.utexas.edu:5000/$VERBOSE_IMAGE_NAME"
-	            # docker tag $IMAGE_NAME jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
-	            # docker push jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
+                # docker tag $IMAGE_NAME jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
+                # docker push jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
 
 # echo "***      "
 # echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
              #  rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}
-

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
+import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -895,6 +896,9 @@ public final class SkUserRoleDao
           String sql;
           if (strict) sql = SqlStatements.ROLE_INSERT_STRICT;
             else sql = SqlStatements.ROLE_INSERT;
+          
+          // Assign the owner to be the reserved sk user when creating a user default role.
+          String owner = roleName.startsWith(SkConstants.USER_DEFAULT_ROLE_PREFIX) ? SkConstants.SK_USER : requestor;
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -903,6 +907,7 @@ public final class SkUserRoleDao
           pstmt.setString(3, description);
           pstmt.setString(4, requestor);
           pstmt.setString(5, requestor);
+          pstmt.setString(6, owner);
 
           // Issue the call which will fail if the role already exists
           // and strict is set.

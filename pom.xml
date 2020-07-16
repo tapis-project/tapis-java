@@ -30,7 +30,8 @@
       <!-- Most properties set in parent tapis-bom   -->
       <!-- Properties can be overridden here         -->
       <!-- Individual projects may want to override. -->
-      <!-- Skip integration tests -->
+      <!-- Skip integration tests by default -->
+      <!-- Use mvn verify -DskipIntegrationTests=false to run integration tests -->
       <skipIntegrationTests>true</skipIntegrationTests>
     </properties>
 

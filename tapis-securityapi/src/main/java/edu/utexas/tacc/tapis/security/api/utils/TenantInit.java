@@ -26,7 +26,7 @@ public final class TenantInit
     private static final Logger _log = LoggerFactory.getLogger(TenantInit.class);
     
     // The user representing SK.
-    private static final String SK_USER = "SecurityKernel";
+    private static final String SK_USER = UserImpl.SK_USER;
 
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -112,7 +112,8 @@ public final class TenantInit
                 String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
                                              UserImpl.ADMIN_ROLE_NAME);
                 _log.info(msg);
-            } catch (Exception e) {
+            } 
+            catch (Exception e) {
                 // Log the error and continue on.
                 String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
                                              adminUser, e.getMessage());

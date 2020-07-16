@@ -37,7 +37,8 @@ if [ $# -eq 2 -a "x$2" != "x-push" ]; then
   exit 1
 fi
 
-# Determine absolute path to location from which we are running.
+# Determine absolute path to location from which we are running
+#  and change to that directory.
 export RUN_DIR=$(pwd)
 export PRG_RELPATH=$(dirname "$0")
 cd "$PRG_RELPATH"/. || exit
@@ -57,21 +58,27 @@ cd $BUILD_DIR || exit
 
 # Set variables used for build
 VER=$(cat classes/tapis.version)
-GIT_BRANCH=$(awk '{print $1}' classes/git.info)
-GIT_COMMIT=$(awk '{print $2}' classes/git.info)
+GIT_BRANCH_LBL=$(awk '{print $1}' classes/git.info)
+GIT_COMMIT_LBL=$(awk '{print $2}' classes/git.info)
 TAG_UNIQ="${REPO}/systems:${ENV}-${VER}-$(date +%Y%m%d%H%M)-${GIT_COMMIT}"
 TAG_ENV_VER="${REPO}/systems:${ENV}-${VER}"
 TAG_ENV="${REPO}/systems:${ENV}"
 TAG_LATEST="${REPO}/systems:latest"
 
+# If branch name is UNKNOWN or empty as might be the case in a jenkins job then
+#   set it to GIT_BRANCH. Jenkins jobs should have this set in the env.
+if [ -z "$GIT_BRANCH_LBL" -o "x$GIT_BRANCH_LBL" = "xUNKNOWN" ]; then
+  GIT_BRANCH_LBL=$(echo "$GIT_BRANCH" | awk -F"/" '{print $2}')
+fi
+
 # Build image from Dockerfile
 echo "Building local image using primary tag: $TAG_UNIQ"
 echo "  ENV=        ${ENV}"
 echo "  VER=        ${VER}"
-echo "  GIT_BRANCH= ${GIT_BRANCH}"
-echo "  GIT_COMMIT= ${GIT_BRANCH}"
+echo "  GIT_BRANCH_LBL= ${GIT_BRANCH_LBL}"
+echo "  GIT_COMMIT_LBL= ${GIT_COMMIT_LBL}"
 docker build -f Dockerfile \
-   --label VER="${VER}" --label GIT_COMMIT="${GIT_COMMIT}" --label GIT_BRANCH="${GIT_BRANCH}" \
+   --label VER="${VER}" --label GIT_COMMIT="${GIT_COMMIT_LBL}" --label GIT_BRANCH="${GIT_BRANCH_LBL}" \
     -t "${TAG_UNIQ}" .
 
 # Create other tags for remote repo

@@ -337,7 +337,7 @@ public final class UserImpl
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
             }
         
-        // Create the role.
+        // Assign the permission.
         int rows = 0;
         try {
             rows = rolePermDao.assignPermission(tenant, requestor, roleId, permSpec);

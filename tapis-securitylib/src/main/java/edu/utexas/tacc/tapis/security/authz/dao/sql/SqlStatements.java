@@ -20,36 +20,38 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLE =
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby"
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner"
       + " FROM sk_role";
   
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
       "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND name = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_BY_ID = 
       "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby FROM sk_role where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_SELECT_NAMES = 
       "SELECT name FROM sk_role where tenant = ? ORDER BY name";
   public static final String ROLE_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_INSERT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby, owner) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String ROLE_DELETE_BY_ID =
       "DELETE FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_DELETE_BY_NAME =
       "DELETE FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_ROLENAME = 
       "UPDATE sk_role SET name = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
+  public static final String ROLE_UPDATE_OWNER = 
+          "UPDATE sk_role SET owner = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_DESCRIPTION = 
       "UPDATE sk_role SET description = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
   
   // Strict version of above commands that are not idempotent.
   public static final String ROLE_INSERT_STRICT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby, owner) VALUES (?, ?, ?, ?, ?, ?)";
   
   /* ---------------------------------------------------------------------- */
   /* sk_role_permission:                                                    */

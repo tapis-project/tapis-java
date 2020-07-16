@@ -964,7 +964,7 @@ public class SystemsServiceTest
     // Verify transfer methods
     List<TransferMethod> tMethodsList = tmpSys.getTransferMethods();
     Assert.assertNotNull(tMethodsList);
-    Assert.assertNotNull(sys0.getTransferMethods());
+    Assert.assertNotNull(sys0.getTransferMethods(), "Orig TxfrMethods should not be null");
     for (TransferMethod txfrMethod : sys0.getTransferMethods())
     {
       Assert.assertTrue(tMethodsList.contains(txfrMethod), "List of transfer methods did not contain: " + txfrMethod.name());
@@ -972,8 +972,8 @@ public class SystemsServiceTest
     // Verify tags
     String[] origTags = sys0.getTags();
     String[] tmpTags = tmpSys.getTags();
-    Assert.assertNotNull(tmpTags, "Tags value was null");
-    Assert.assertNotNull(origTags);
+    Assert.assertNotNull(origTags, "Orig Tags should not be null");
+    Assert.assertNotNull(tmpTags, "Fetched Tags value should not be null");
     var tagsList = Arrays.asList(tmpTags);
     Assert.assertEquals(tmpTags.length, origTags.length, "Wrong number of tags.");
     for (String tagStr : origTags)
