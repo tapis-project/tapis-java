@@ -41,7 +41,8 @@ public final class SKCheckAuthz
     private final String                _reqUser;    // can be null
     private final SecretPathMapperParms _secretPathParms;
     private final TapisThreadContext    _threadContext;
-    private final ArrayList<String>     _failedChecks = new ArrayList<>();;
+    private final ArrayList<String>     _failedChecks = new ArrayList<>();
+    private final ArrayList<String>     _provisionalFailedChecks = new ArrayList<>();
     
     // Identity checks.
     private boolean _checkMatchesJwtIdentity;
@@ -176,7 +177,7 @@ public final class SKCheckAuthz
         // This sequencing of checks implements a logical disjunction
         // with "short-circuiting" behavior.
         if (_checkIsService && checkIsService()) return null;
-        if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity()) return null;
+        if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity(false)) return null;
         if (_checkMatchesOBOIdentity && checkMatchesOBOIdentity()) return null;
         if (_checkIsAdmin && checkIsAdmin()) return null;
         if (_checkIsOBOAdmin && checkIsOBOAdmin()) return null;
@@ -286,13 +287,14 @@ public final class SKCheckAuthz
      * 
      * @return true if passes check, false otherwise.
      */
-    private boolean checkMatchesJwtIdentity()
+    private boolean checkMatchesJwtIdentity(boolean failProvisionally)
     {
         // Make sure the request user has been assigned for this check.
         if (_reqUser == null) {
             var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "checkMatchesJwtIdentity", "_reqUser");
             _log.error(msg);
-            _failedChecks.add("MatchesJwtIdentity");
+            if (failProvisionally) _provisionalFailedChecks.add("MatchesJwtIdentity");
+              else _failedChecks.add("MatchesJwtIdentity");
             return false;
         }
             
@@ -300,7 +302,9 @@ public final class SKCheckAuthz
         if (_threadContext.getJwtTenantId().equals(_reqTenant) &&
             _threadContext.getJwtUser().equals(_reqUser)) return true;
         
-        _failedChecks.add("MatchesJwtIdentity");
+        // Record failure.
+        if (failProvisionally) _provisionalFailedChecks.add("MatchesJwtIdentity");
+          else _failedChecks.add("MatchesJwtIdentity");
         return false;
     }
 
@@ -470,9 +474,13 @@ public final class SKCheckAuthz
             authorized = false;
         }
         
-        // We want to further check that the request tenant and user match
-        // those in the jwt or the obo headers (on service tokens).
-        if (authorized) authorized = checkMatchesJwtIdentity() || checkMatchesOBOIdentity();
+        // We want to further check that the request tenant and user match those
+        // in the jwt or the obo headers (on service tokens).  Only one of the
+        // two checks must pass, so we provisionally fail the first check.
+        if (authorized) {
+        	authorized = checkMatchesJwtIdentity(true) || checkMatchesOBOIdentity();
+        	if (!authorized) reportProvisionalFailures();
+        }
         
         // What happened?
         if (authorized) return true;
@@ -544,7 +552,7 @@ public final class SKCheckAuthz
             break;
             
             case JWTSigning:
-                authorized = secretCheckIsTokensService();
+                authorized = secretCheckIsTokensService(true);
             break;
             
             case User:
@@ -586,7 +594,7 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     /* secretCheckIsTokensService:                                                  */
     /* ---------------------------------------------------------------------------- */
-    private boolean secretCheckIsTokensService()
+    private boolean secretCheckIsTokensService(boolean failProvisionally)
     {
         // Start pessimistically.
         boolean authorized = false;
@@ -594,11 +602,11 @@ public final class SKCheckAuthz
         // Are the path parms configured and is the caller the tokens service?  
         if (_threadContext.getAccountType() == AccountType.service &&
             _threadContext.getJwtUser().equals(TOKENS_SERVICE_NAME)) 
-           authorized = true;
+           return true;
         
-        // What happened?
-        if (authorized) return true;
-        _failedChecks.add("IsTokensService");
+        // Failure.
+        if (failProvisionally) _provisionalFailedChecks.add("IsTokensService");
+          else _failedChecks.add("IsTokensService");
         return false;
     }
     
@@ -613,8 +621,12 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     private boolean validatePassword()
     {
-        return  secretCheckIsTokensService() ||
-                secretCheckServiceRequestIdentity("ValidatePassword");
+    	// We provisionally fail the first check.
+        boolean authorized = secretCheckIsTokensService(false) ||
+                             secretCheckServiceRequestIdentity("ValidatePassword");
+        if (!authorized) reportProvisionalFailures();
+        
+        return authorized;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -659,6 +671,15 @@ public final class SKCheckAuthz
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* reportProvisionalFailures:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Use this method to report failed checks that could have been ignored if a 
+     * later check passed, but that didn't happen.  This approach allows us to detect
+     * failures we checking for a non-empty _failedChecks list.
+     */
+    private void reportProvisionalFailures() {_failedChecks.addAll(_provisionalFailedChecks);}
+    
+    /* ---------------------------------------------------------------------------- */
     /* makeFailureMessage:                                                          */
     /* ---------------------------------------------------------------------------- */
     private String makeFailureMessage()
@@ -671,7 +692,13 @@ public final class SKCheckAuthz
         // The caller is expected to log the message.
         String s = _failedChecks.stream().collect(Collectors.joining(", "));
         String msg = MsgUtils.getMsg("SK_API_AUTHORIZATION_FAILED", 
-                                     _reqTenant, _reqUser, s);
+                                     _reqTenant, _reqUser, 
+                                     _threadContext.getJwtTenantId(),
+                                     _threadContext.getJwtUser(),
+                                     _threadContext.getOboTenantId(),
+                                     _threadContext.getOboUser(),
+                                     _threadContext.getAccountType(),
+                                     s);
         _log.error(msg);
         return msg;
     }
