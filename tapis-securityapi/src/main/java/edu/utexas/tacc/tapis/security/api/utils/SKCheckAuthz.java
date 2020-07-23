@@ -242,7 +242,7 @@ public final class SKCheckAuthz
             if (!_reqTenant.equals(oboTenant)) {
                 String jwtUser = _threadContext.getJwtUser();
                 String msg = MsgUtils.getMsg("SK_REQUEST_OBO_TENANT_MISMATCH", 
-                                             jwtUser, oboTenant, _reqTenant);
+                                             jwtUser, jwtTenant, oboTenant, _reqTenant);
                 _log.error(msg);
                 return msg;
             }
@@ -269,7 +269,8 @@ public final class SKCheckAuthz
         } else {
             // User tokens require exact tenant matches.
             if (!jwtTenant.equals(_reqTenant)) {
-                var msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", 
+            	String jwtUser = _threadContext.getJwtUser();
+                var msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", jwtUser,
                                           jwtTenant, _reqTenant, accountType.name());
                 _log.error(msg);
                 return msg;
