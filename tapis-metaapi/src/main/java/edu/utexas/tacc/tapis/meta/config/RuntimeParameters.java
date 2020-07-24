@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.meta.config;
 
-import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -8,6 +8,8 @@ import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +47,11 @@ public class RuntimeParameters {
   }
   
   // service locations.
-  private String  tenantBaseUrl ="https://dev.develop.tapis.io/";
-  private String skSvcURL = "https://dev.develop.tapis.io/v3";
-  private String metaToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI4YmY4MjRmOC00ZGFlLTQ4MjEtYTlkMS1lYjczOTU5ZWFjM2UiLCJpc3MiOiJodHRwczovL21hc3Rlci5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InRhY2NNZXRhQWRtaW5AbWFzdGVyIiwidGFwaXMvdGVuYW50X2lkIjoibWFzdGVyIiwidGFwaXMvdG9rZW5fdHlwZSI6ImFjY2VzcyIsInRhcGlzL2RlbGVnYXRpb24iOmZhbHNlLCJ0YXBpcy9kZWxlZ2F0aW9uX3N1YiI6bnVsbCwidGFwaXMvdXNlcm5hbWUiOiJ0YWNjTWV0YUFkbWluIiwidGFwaXMvYWNjb3VudF90eXBlIjoic2VydmljZSIsImV4cCI6MTYxMzE4NTIyNn0.rsggdOQV-QuU4mgk1idHHhyI8-cR_5yML571Lt-osbRlinrrapEGoAkCQNqzL4k-rg2aI1VSx2cgpSVg2ZIB-D0k7nCQTMNEJNEbMcYC5AUU1RH5KoDKEZbuRkSEkfNPvClcB-TZIULrGdiv3yrERdDw64qzjGJQTdpXIN3YXTya4uZzU1XKKM3xMassh5jQo0r3jbKUf7eOE4ZPPAod88Qh7bGZdWCmyPEbaiOTgZ-15DZ4dpebjRG-qSWWLO0u91JoN-f3_rF1dvtuTCqSr4YLjQcliDLPVDePDiaDxqcBRwgohPU9M5RwUuMuD6dsQFeRt8aAW9lzHgCMcgyd9g";
-  //  "taccMetaAdmin.master": {
-  //    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI4YmY4MjRmOC00ZGFlLTQ4MjEtYTlkMS1lYjczOTU5ZWFjM2UiLCJpc3MiOiJodHRwczovL21hc3Rlci5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InRhY2NNZXRhQWRtaW5AbWFzdGVyIiwidGFwaXMvdGVuYW50X2lkIjoibWFzdGVyIiwidGFwaXMvdG9rZW5fdHlwZSI6ImFjY2VzcyIsInRhcGlzL2RlbGVnYXRpb24iOmZhbHNlLCJ0YXBpcy9kZWxlZ2F0aW9uX3N1YiI6bnVsbCwidGFwaXMvdXNlcm5hbWUiOiJ0YWNjTWV0YUFkbWluIiwidGFwaXMvYWNjb3VudF90eXBlIjoic2VydmljZSIsImV4cCI6MTYxMzE4NTIyNn0.rsggdOQV-QuU4mgk1idHHhyI8-cR_5yML571Lt-osbRlinrrapEGoAkCQNqzL4k-rg2aI1VSx2cgpSVg2ZIB-D0k7nCQTMNEJNEbMcYC5AUU1RH5KoDKEZbuRkSEkfNPvClcB-TZIULrGdiv3yrERdDw64qzjGJQTdpXIN3YXTya4uZzU1XKKM3xMassh5jQo0r3jbKUf7eOE4ZPPAod88Qh7bGZdWCmyPEbaiOTgZ-15DZ4dpebjRG-qSWWLO0u91JoN-f3_rF1dvtuTCqSr4YLjQcliDLPVDePDiaDxqcBRwgohPU9M5RwUuMuD6dsQFeRt8aAW9lzHgCMcgyd9g",
-  //    "user": "taccMetaAdmin",
-  //    "tenant": "master"
-  //  },
+  private String tenantBaseUrl = "https://dev.develop.tapis.io/";
+  private String skSvcURL      = "https://dev.develop.tapis.io/v3";
+  private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
+  private String metaToken;
+  private ServiceJWT serviceJWT;
   
   // The slf4j/logback target directory and file.
   private String  logDirectory;
@@ -62,6 +61,9 @@ public class RuntimeParameters {
   
   // these need to move to shared library
   public static final String SERVICE_NAME_META  = "meta";
+  public static final String SERVICE_USER_NAME  = "meta";
+  public static final String SERVICE_TENANT_NAME = "master";
+  
   
   private RuntimeParameters() throws TapisRuntimeException {
     TapisInput tapisInput = new TapisInput(RuntimeParameters.SERVICE_NAME_META);
@@ -86,9 +88,23 @@ public class RuntimeParameters {
   
     parm = inputProperties.getProperty("tapis.meta.log.file");
     if (!StringUtils.isBlank(parm)) setLogFile(parm);
-    
   
+    parm = inputProperties.getProperty("tapis.meta.service.token");
+    if (!StringUtils.isBlank(parm)) setMetaToken(parm);
   
+    parm = System.getenv("tapis.meta.service.tenantBaseUrl");
+    if (!StringUtils.isBlank(parm)) setTenantBaseUrl(parm);
+  
+    parm = System.getenv("tapis.meta.service.skSvcURL");
+    if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
+  
+    parm = System.getenv("tapis.meta.service.tokenBaseUrl");
+    if (!StringUtils.isBlank(parm)) setTokenBaseUrl(parm);
+  
+    // private String tenantBaseUrl = "https://dev.develop.tapis.io/";
+    // private String skSvcURL      = "https://dev.develop.tapis.io/v3";
+    // private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
+    // https://master.staging.tapis.io/v3/meta
   }
   
   /** Initialize the singleton instance of this class.
@@ -205,21 +221,21 @@ public class RuntimeParameters {
     buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
   }
   
-  public String getTenantBaseUrl() {
-    return this.tenantBaseUrl;
-  }
+  public String getTenantBaseUrl() { return this.tenantBaseUrl; }
   
   public void setTenantBaseUrl(String tenantBaseUrl) {
     this.tenantBaseUrl = tenantBaseUrl;
   }
   
-  public String getSkSvcURL() {
-    return skSvcURL;
-  }
+  public String getSkSvcURL() { return skSvcURL; }
   
   public void setSkSvcURL(String skSvcURL) {
     this.skSvcURL = skSvcURL;
   }
+  
+  public String getTokenBaseUrl() { return tokenBaseUrl; }
+  
+  public void setTokenBaseUrl(String tokenBaseUrl) { this.tokenBaseUrl = tokenBaseUrl; }
   
   public String getMetaToken() {
     return metaToken;
@@ -251,5 +267,28 @@ public class RuntimeParameters {
   
   public void setCoreServer(String coreServer) {
     this.coreServer = coreServer;
+  }
+  
+  public void setServiceJWT(){
+    _log.debug("calling setServiceJWT ...");
+    ServiceJWTParms serviceJWTParms = new ServiceJWTParms();
+    serviceJWTParms.setAccessTTL(43200); // 12 hrs
+    serviceJWTParms.setRefreshTTL(43200);
+    serviceJWTParms.setServiceName(RuntimeParameters.SERVICE_USER_NAME);
+    serviceJWTParms.setTenant(RuntimeParameters.SERVICE_TENANT_NAME);
+    serviceJWTParms.setTokensBaseUrl(this.getTenantBaseUrl());
+    serviceJWT = null;
+    try {
+      serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
+    } catch (TapisException | TapisClientException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public String getSeviceToken(){
+    if(serviceJWT == null || serviceJWT.hasExpiredAccessJWT()){
+      setServiceJWT();
+    }
+    return serviceJWT.getAccessJWT();
   }
 }

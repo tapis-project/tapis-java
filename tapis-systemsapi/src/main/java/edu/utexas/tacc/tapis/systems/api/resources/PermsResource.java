@@ -2,23 +2,6 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
-import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
-import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
-import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
-import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -43,6 +26,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
+import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
+
 /*
  * JAX-RS REST resource for Tapis System permissions
  * Contains annotations which generate the OpenAPI specification documents.
@@ -50,7 +51,7 @@ import java.util.stream.Collectors;
  * Permissions are stored in the Security Kernel
  *
  */
-@Path("/perms")
+@Path("/v3/systems/perms")
 public class PermsResource
 {
   // ************************************************************************
@@ -114,7 +115,6 @@ public class PermsResource
 
   /**
    * Assign specified permissions for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -147,12 +147,12 @@ public class PermsResource
   )
   public Response grantUserPerms(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  InputStream payloadStream,
                                  @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -175,16 +175,26 @@ public class PermsResource
     resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "grantUserPerms");
     if (resp != null) return resp;
 
+    // Read the payload into a string.
+    String json;
+    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_JSON_ERROR", authenticatedUser, systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new HashSet<Permission>();
-    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, payloadStream, permsList);
+    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, json, permsList);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to assign the permissions
     try
     {
-      systemsService.grantUserPermissions(authenticatedUser, systemName, userName, permsList);
+      systemsService.grantUserPermissions(authenticatedUser, systemName, userName, permsList, json);
     }
     catch (Exception e)
     {
@@ -205,7 +215,6 @@ public class PermsResource
 
   /**
    * getUserPerms
-   * @param prettyPrint - pretty print the output
    * @return Response with list of permissions
    */
   @GET
@@ -231,12 +240,12 @@ public class PermsResource
       }
   )
   public Response getUserPerms(@PathParam("systemName") String systemName,
-                                @PathParam("userName") String userName,
-                                @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
+                               @PathParam("userName") String userName,
                                @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -283,7 +292,6 @@ public class PermsResource
 
   /**
    * Revoke permission for given system and user.
-   * @param prettyPrint - pretty print the output
    * @return basic response
    */
   @DELETE
@@ -310,11 +318,11 @@ public class PermsResource
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permissionStr,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                  @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -344,7 +352,7 @@ public class PermsResource
     {
       Permission perm = Permission.valueOf(permissionStr);
       permsList.add(perm);
-      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList, null);
     }
     catch (IllegalArgumentException e)
     {
@@ -370,7 +378,6 @@ public class PermsResource
 
   /**
    * Revoke permissions for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -400,9 +407,8 @@ public class PermsResource
     }
   )
   public Response revokeUserPerms(@PathParam("systemName") String systemName,
-                                 @PathParam("userName") String userName,
-                                 @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
-                                 InputStream payloadStream,
+                                  @PathParam("userName") String userName,
+                                  InputStream payloadStream,
                                   @Context SecurityContext securityContext)
   {
     String msg;
@@ -416,6 +422,7 @@ public class PermsResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -429,16 +436,26 @@ public class PermsResource
     resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "revokeUserPerms");
     if (resp != null) return resp;
 
+    // Read the payload into a string.
+    String json;
+    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_JSON_ERROR", authenticatedUser, systemName, userName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
     // ------------------------- Extract and validate payload -------------------------
     var permsList = new HashSet<Permission>();
-    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, payloadStream, permsList);
+    resp = checkAndExtractPayload(authenticatedUser, systemName, userName, prettyPrint, json, permsList);
     if (resp != null) return resp;
 
     // ------------------------- Perform the operation -------------------------
     // Make the service call to revoke the permissions
     try
     {
-      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList);
+      systemsService.revokeUserPermissions(authenticatedUser, systemName, userName, permsList, json);
     }
     catch (Exception e)
     {
@@ -467,24 +484,14 @@ public class PermsResource
    * @param systemName - name of the system, for constructing response msg
    * @param userName - name of user associated with the perms request, for constructing response msg
    * @param prettyPrint - print flag used to construct response
-   * @param payloadStream - Stream for extracting request json
+   * @param json - Request json extracted from payloadStream
    * @param permsList - List for resulting permissions extracted from payload
    * @return - null if all checks OK else Response containing info
    */
   private Response checkAndExtractPayload(AuthenticatedUser authenticatedUser, String systemName, String userName, boolean prettyPrint,
-                                          InputStream payloadStream, Set<Permission> permsList)
+                                          String json, Set<Permission> permsList)
   {
     String msg;
-    // Read the payload into a string.
-    String json;
-    try { json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
-    catch (Exception e)
-    {
-      msg = ApiUtils.getMsgAuth("SYSAPI_PERMS_JSON_ERROR", authenticatedUser, systemName, userName, e.getMessage());
-      _log.error(msg, e);
-      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-    }
-
     // Create validator specification and validate the json against the schema
     JsonValidatorSpec spec = new JsonValidatorSpec(json, FILE_PERMS_REQUEST);
     try { JsonValidator.validate(spec); }

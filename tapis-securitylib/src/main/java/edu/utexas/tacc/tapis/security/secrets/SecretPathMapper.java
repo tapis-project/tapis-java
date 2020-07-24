@@ -140,8 +140,8 @@ public final class SecretPathMapper
                 // This should never happen as long as all cases are covered.
                 var secretTypes = new ArrayList<String>();
                 for (SecretType t : SecretType.values()) secretTypes.add(t.name());
-                String msg =  MsgUtils.getMsg("SK_VAULT_INVALID_SECRET_TYPE", "SecretPathMapper", 
-                                              _parms.secretType, secretTypes);
+                String msg =  MsgUtils.getMsg("SK_VAULT_INVALID_SECRET_TYPE", 
+                                              _parms.secretType.name(), secretTypes);
                 _log.error(msg);
                 throw new TapisImplException(msg, Condition.INTERNAL_SERVER_ERROR);
         }
@@ -310,24 +310,24 @@ public final class SecretPathMapper
     {
         // Check required inputs.
         if (StringUtils.isBlank(_parms.getDbHost())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDBCredentialPath", "dbhost");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbHost", "dbhost");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(_parms.getDbName())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDBCredentialPath", "dbname");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbName", "dbname");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(_parms.getDbService())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJWTSigningPath", "service");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getDbService", "dbservice");
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
         // Return the path for this secret type.
         return "secret/tapis/service/" + _parms.getDbService() + "/dbhost/" + 
-               _parms.getDbHost() + "/dbname/" + _parms.getDbName() + "/dbuser" +
+               _parms.getDbHost() + "/dbname/" + _parms.getDbName() + "/dbuser/" +
                user + "/credentials/" + _parms.getSecretName();
     }
 

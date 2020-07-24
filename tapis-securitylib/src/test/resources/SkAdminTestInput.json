@@ -3,13 +3,13 @@
         "servicepwd":[
             {
                 "tenant":     "dev",
-                "service":    "jobs",
+                "user":       "jobs",
                 "secretName": "mysecret1",
                 "password":   "abcdefghijklmnop"
             },
             {
                 "tenant":     "dev",
-                "service":    "jobs",
+                "user":       "jobs",
                 "secretName": "mysecret2",
                 "password":   "1234567890123456"
             }
@@ -28,6 +28,7 @@
         "jwtsigning": [
             {
                 "tenant":     "dev",
+                "user":       "bud",
                 "privateKey": "1234567890123456",
                 "secretName": "jwtcred"
             }
@@ -35,10 +36,11 @@
         
         "dbcredential":[
             {
+                "tenant":     "dev",
+                "user":       "dba",
                 "dbservice":  "jobs",
                 "dbhost":     "myhost.com",
                 "dbname":     "mydb",
-                "dbuser":     "dba",
                 "secret":     "1234567890123456",
                 "secretName": "dbpassword"
             }

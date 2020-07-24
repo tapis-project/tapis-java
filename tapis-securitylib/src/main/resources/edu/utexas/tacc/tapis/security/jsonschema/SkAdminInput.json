@@ -30,6 +30,12 @@
                     "items": {"$ref": "#/$defs/JwtSigning"},
                     "minItems": 0
                 },
+                "jwtpublic": {
+                    "description": "Zero or more public jwt signing keys.",
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/JwtPublic"},
+                    "minItems": 0
+                },
                 "user": {
                     "description": "Zero or more user secrets.",
                     "type": "array",
@@ -55,7 +61,7 @@
                     "minLength": 1,
                     "maxLength": 24
                 },
-                "service": {
+                "user": {
                     "description": "The service's name.",
                     "type": "string",
                     "minLength": 1,
@@ -74,7 +80,13 @@
                     "maxLength": 256
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -83,7 +95,7 @@
             "additionalProperties": false,
             "required": [
                 "tenant",
-                "service",
+                "user",
                 "secretName"
             ]
         },
@@ -122,7 +134,13 @@
                     "minLength": 0
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -170,7 +188,13 @@
                     "minLength": 16
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256
@@ -181,6 +205,49 @@
                 "tenant",
                 "user",
                 "secretName"
+            ]
+        },
+
+        "JwtPublic": {
+            "title": "JwtPublic",
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "description": "The user's tenant.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                },
+                "user": {
+                    "description": "The user's name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 58
+                },
+                "secretName": {
+                    "description": "The path name assigned to the secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "publicKey": {
+                    "description": "The public key in PEM format.",
+                    "type": "string",
+                    "minLength": 16
+                },
+                "kubeSecretName": {
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "tenant",
+                "user",
+                "secretName",
+                "kubeSecretName"
             ]
         },
 
@@ -230,7 +297,13 @@
                     "minLength": 16
                 },
                 "kubeSecretName": {
-                    "description": "The path name assigned of the secret in Kubernetes.",
+                    "description": "The name of the Kubernetes secret.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                },
+                "kubeSecretKey": {
+                    "description": "The specific key in the Kubernetes secret.",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 256

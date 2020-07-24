@@ -8,19 +8,35 @@
 #
 # environment : TAPIS_VERSION set to the version in tapis/pom.xml 
 #
-# usage : $TAPIS_ROOT/deployment/build-metaapi.sh
+# usage : $TAPIS_ROOT/deployment/build-metaapi.sh <env branch>
+#  example deployment/build-metaapi.sh dev
 #
 ###########################################################
-export VER=$VER
-export TAPIS_ENV=$TAPIS_ENV
+
+USAGE="Usage: deployment/build-metaapi.sh <env branch> "
+
+export VER=$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout)
+export TAPIS_ENV=$1
+# Check number of arguments
+if [ $# -lt 1 ]; then
+  echo $USAGE
+  exit 1
+fi
 export SRVC=meta
 export SRVC_API=${SRVC}api
 export TAPIS_ROOT=$(pwd)
 export SRVC_DIR="${TAPIS_ROOT}/tapis-${SRVC_API}/target"
-export TAG="tapis/${SRVC_API}:$VER"
+export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
+
+# changes in image naming now make these equivalent except for production which uses latest.
+export TAG=$TAPIS_ENV
+
+# here I'm going to build an image with all the info I need to easily distinguish the image from others
+# I can also double down with an endpoint that spits out info without auth.
+export IMAGE_NAME="tapis/${SRVC_API}:$TAPIS_ENV"
+export VERBOSE_IMAGE_NAME="tapis/${SRVC_API}:$TAPIS_ENV-$VER-$GIT_COMMIT"
 export IMAGE_BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC_API}"
 export BUILD_FILE="$IMAGE_BUILD_DIR/Dockerfile"
-export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
 export WAR_NAME=meta    # matches final name in pom file
 
 echo "VER: $VER"
@@ -29,7 +45,7 @@ echo "SRVC: $SRVC"
 echo "SRVC_API: $SRVC_API"
 echo "TAPIS_ROOT: $TAPIS_ROOT"
 echo "SRVC_DIR: $SRVC_DIR"
-echo "TAG: $TAG"
+echo "IMAGE_NAME: $IMAGE_NAME"
 echo "IMAGE_BUILD_DIR: $IMAGE_BUILD_DIR"
 echo "BUILD_FILE: $BUILD_FILE"
 echo "GIT_COMMIT: $GIT_COMMIT"
@@ -37,9 +53,11 @@ echo "WAR_NAME: $WAR_NAME"
 echo ""
 
 cd tapis-metaapi
-# echo " ***   do a build on metaapi  "
-# echo " ***   mvn clean install -DskipTests"
-mvn clean install -DskipTests
+echo " ***   do a build on metaapi  "
+echo " ***   mvn clean install -DskipTests"
+
+# for builds outside of jenkins run a maven clean install
+# mvn clean install -DskipTests
 
 echo "";echo ""
 
@@ -65,26 +83,23 @@ echo " ***   cd ${IMAGE_BUILD_DIR}"
 echo "";echo ""
 
 echo "***      building the docker image from deployment directory docker build tapis-${SRVC_API}/Dockerfile"
-echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV . "
-               docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG-$TAPIS_ENV .
+echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $IMAGE_NAME . "
+               docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $IMAGE_NAME .
 echo "";echo ""
 
 echo "***    push the image to docker hub "
-echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
-               docker push "$TAG-$TAPIS_ENV"
+echo "***      IMAGE_NAME should look like tapis/metaapi:dev"
+echo "***      IMAGE_NAME  $IMAGE_NAME"
+echo "***      VERBOSE_IMAGE_NAME should look like tapis/metaapi:dev-0.0.1-898273"
+echo "***      VERBOSE_IMAGE_NAME $VERBOSE_IMAGE_NAME"
+echo ""
+echo "***      Push to docker hub : docker push $IMAGE_NAME"
+                # docker push "$IMAGE_NAME"
+echo ""
+echo "***      Tag and Push to private registry : docker push jenkins2.tacc.utexas.edu:5000/$VERBOSE_IMAGE_NAME"
+                # docker tag $IMAGE_NAME jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
+                # docker push jenkins2.tacc.utexas.edu:5000/${VERBOSE_IMAGE_NAME}
 
-
-# echo "***      export the image file name and tag as META_IMAGE "
-# echo "***      export META_IMAGE=$TAG-$TAPIS_ENV"
-#                export META_IMAGE=$TAG-$TAPIS_ENV
-#                echo "$META_IMAGE" > "$WORKSPACE"/image.txt
-
-
-# echo "image file written : $(cat image.txt)"
-
-
-
-echo "***      "
-echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
+# echo "***      "
+# echo "***      rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}"
              #  rm -rf ${IMAGE_BUILD_DIR}/${WAR_NAME}
-

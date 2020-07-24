@@ -13,7 +13,8 @@ public class SKApiUtils
     /* **************************************************************************** */
     // Role name validator.  Require names to start with alphabetic characters and 
     // be followed by zero or more alphanumeric characters and underscores.  Note that
-    // in particular special characters are disallowed by this regex.
+    // in particular special characters are disallowed by this regex.  Most important,
+    // a leading $ character is reserved for SK generated names and must be rejected.
     private static final Pattern _namePattern = Pattern.compile("^\\p{Alpha}(\\p{Alnum}|_)*");
     
     /* **************************************************************************** */

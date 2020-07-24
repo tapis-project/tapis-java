@@ -13,6 +13,9 @@
           },
           "roleName": {
             "type": "string"
+          },
+          "orAdmin": {
+            "type": "boolean"
           }
         },
     "required": [

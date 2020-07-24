@@ -8,9 +8,10 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqUserHasRole
  implements IReqBody
 {
-    public String tenant;
-    public String user;
-    public String roleName;
+    public String  tenant;
+    public String  user;
+    public String  roleName;
+    public boolean orAdmin;
 
     /** Return a user-appropriate error message on failed validation
      *  and return null if validation succeeds.

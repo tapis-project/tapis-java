@@ -100,10 +100,11 @@ public class NestedRoleTest
     private void createRoles() throws TapisException
     {
         SkRoleDao dao = new SkRoleDao();
-        int rows = dao.createRole(tenant, user, "NestedTestRole1", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, "NestedTestRole2", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, "NestedTestRole3", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, "NestedTestRole4", "Role created by NestedRoleTest");
+        String creator = "NestedRoleTest";
+        int rows = dao.createRole(tenant, user, creator, "NestedTestRole1", "Role created by NestedRoleTest");
+        rows = dao.createRole(tenant, user, creator, "NestedTestRole2", "Role created by NestedRoleTest");
+        rows = dao.createRole(tenant, user, creator, "NestedTestRole3", "Role created by NestedRoleTest");
+        rows = dao.createRole(tenant, user, creator, "NestedTestRole4", "Role created by NestedRoleTest");
     }
     
     /* ---------------------------------------------------------------------- */

@@ -27,4 +27,4 @@ COPY $SRVC_JAR /usr/local/bin/securitymigrate.jar
 LABEL "GIT_COMMIT"=$GIT_COMMIT
 
 # Launch the migration script
-CMD java -jar /usr/local/bin/securitymigrate.jar -h $HOST -p $PORT -u $USER -pw $PW $FLAGS 
+CMD java -jar /usr/local/bin/securitymigrate.jar -h $HOST -p $PORT -u $USER -pw $PW -tpw $TPW $FLAGS 

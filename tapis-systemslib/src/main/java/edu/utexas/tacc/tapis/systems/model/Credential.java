@@ -1,9 +1,7 @@
 package edu.utexas.tacc.tapis.systems.model;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /*
  * Credential class representing an access credential stored in the Security Kernel.
@@ -11,6 +9,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
  *   the Security Kernel.
  * The secret information will depend on the system type and access method.
  *
+ * Immutable
  * This class is intended to represent an immutable object.
  * Please keep it immutable.
  *
@@ -23,6 +22,8 @@ public final class Credential
 
   // Top level name for storing system secrets
   public static final String TOP_LEVEL_SECRET_NAME = "S1";
+  // String used to mask secrets
+  public static final String SECRETS_MASK = "***";
 
   // Keys for constructing map when writing secrets to Security Kernel
   public static final String SK_KEY_PASSWORD = "password";
@@ -35,19 +36,20 @@ public final class Credential
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
-  // Logging
-  private static final Logger _log = LoggerFactory.getLogger(Credential.class);
 
-  private final String password; // Password for when accessMethod is PASSWORD
-  private final String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
-  private final String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
-  private final String accessKey; // Access key for when accessMethod is ACCESS_KEY
-  private final String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
-  private final String certificate; // SSH certificate for accessMethod is CERT
+  // NOTE: In order to use jersey's SelectableEntityFilteringFeature fields cannot be final.
+  private String password; // Password for when accessMethod is PASSWORD
+  private String privateKey; // Private key for when accessMethod is PKI_KEYS or CERT
+  private String publicKey; // Public key for when accessMethod is PKI_KEYS or CERT
+  private String accessKey; // Access key for when accessMethod is ACCESS_KEY
+  private String accessSecret; // Access secret for when accessMethod is ACCESS_KEY
+  private String certificate; // SSH certificate for accessMethod is CERT
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
+  // Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
+  public Credential() { }
 
   /**
    * Simple constructor to populate all attributes
@@ -60,6 +62,24 @@ public final class Credential
     accessKey = accessKey1;
     accessSecret = accessSecret1;
     certificate = cert1;
+  }
+
+  /* ********************************************************************** */
+  /*                        Public methods                                  */
+  /* ********************************************************************** */
+  /**
+   * Create a credential with secrets masked out
+   */
+  public static Credential createMaskedCredential(Credential credential)
+  {
+    String accessKey, accessSecret, password, privateKey, publicKey, cert;
+    accessKey = (!StringUtils.isBlank(credential.getAccessKey())) ? SECRETS_MASK : credential.getAccessKey();
+    accessSecret = (!StringUtils.isBlank(credential.getAccessSecret())) ? SECRETS_MASK : credential.getAccessSecret();
+    password = (!StringUtils.isBlank(credential.getPassword())) ? SECRETS_MASK : credential.getPassword();
+    privateKey = (!StringUtils.isBlank(credential.getPrivateKey())) ? SECRETS_MASK : credential.getPrivateKey();
+    publicKey = (!StringUtils.isBlank(credential.getPublicKey())) ? SECRETS_MASK : credential.getPublicKey();
+    cert = (!StringUtils.isBlank(credential.getCertificate())) ? SECRETS_MASK : credential.getCertificate();
+    return new Credential(password, privateKey, publicKey, accessKey, accessSecret, cert);
   }
 
   /* ********************************************************************** */

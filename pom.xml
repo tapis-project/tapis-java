@@ -7,7 +7,7 @@
     <parent>
       <groupId>edu.utexas.tacc.tapis</groupId>
       <artifactId>tapis-bom</artifactId>
-      <version>1.5-SNAPSHOT</version>
+      <version>1.10</version>
       <!-- Set empty relative path to avoid maven warning and-->
       <!--   ensure parent is found in local repository if that-->
       <!--   is the only place it exists.-->
@@ -29,10 +29,10 @@
     <properties>
       <!-- Most properties set in parent tapis-bom   -->
       <!-- Properties can be overridden here         -->
-      <!-- Version of tapis-shared-java to be used.  -->
       <!-- Individual projects may want to override. -->
-      <tapis-shared-java.version>1.1-SNAPSHOT</tapis-shared-java.version>
-      <tapis-client-java.version>1.1-SNAPSHOT</tapis-client-java.version>
+      <!-- Skip integration tests by default -->
+      <!-- Use mvn verify -DskipIntegrationTests=false to run integration tests -->
+      <skipIntegrationTests>true</skipIntegrationTests>
     </properties>
 
   <repositories>
@@ -67,6 +67,7 @@
         <filtering>true</filtering>
         <includes>
           <include>**/tapis.version</include>
+          <include>**/tapis.fullversion</include>
           <include>**/git.info</include>
           <include>**/build.time</include>
         </includes>
@@ -84,6 +85,7 @@
         </includes>
         <excludes>
           <exclude>**/tapis.version</exclude>
+          <exclude>**/tapis.fullversion</exclude>
           <exclude>**/git.info</exclude>
           <exclude>**/build.time</exclude>
         </excludes>

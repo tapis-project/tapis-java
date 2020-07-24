@@ -7,9 +7,10 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqUserIsPermittedMulti
  implements IReqBody
 {
-    public String tenant;
-    public String user;
+    public String   tenant;
+    public String   user;
     public String[] permSpecs;
+    public boolean  orAdmin;
 
     /** Return a user-appropriate error message on failed validation
      *  and return null if validation succeeds.

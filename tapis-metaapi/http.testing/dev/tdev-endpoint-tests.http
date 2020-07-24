@@ -1,0 +1,403 @@
+###  sanity test to see if service is alive
+GET http://dev.develop.tapis.io/v3/meta/
+X-Tapis-Token: {{token}}
+X-Tapis-User: taccMetaAdmin
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+##################################### streams user #################################################
+# streams  these tests are hitting the dev deployment of RH-core
+# run with streams.master service token settings
+#
+##############################################################
+#      DB endpoints
+##############################################################
+
+#  HAPPY Path
+###   db list collections
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+#  HAPPY Path
+###   db metadata
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User:streams
+X-Tapis-Tenant:master
+Content-Type: application/json
+
+> {%
+    client.test("Request StreamsTACCDB/_meta executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+#  ERROR Path
+###   no perms and db does not exist
+GET https://dev.develop.tapis.io/v3/meta/sltst
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  results  403 request for this uri path meta:dev:GET:sltst:: is NOT permitted.
+
+
+#  ERROR Path
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  results  200
+
+#  ERROR Path
+#  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/   DB already exists
+###
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###   results 405   "Method Not Allowed"
+
+#  TODO
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
+#  requires the If-Match: 5d95ed1dab3cf85b199ed3b6 Header value
+###
+DELETE https://dev.develop.tapis.io/v3/meta/testdb/
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+##############################################################
+#     Collection endpoints
+##############################################################
+
+#  HAPPY Path
+#  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+#  HAPPY Path
+#  get metadata for StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+#  HAPPY Path
+#  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1  with a query
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1?filter={'name':'test document 33'}&np=true
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  result
+# er ETag Header returned  ETag: 5e4c452b537bd1305796e5e2
+
+#  get a document list under StreamsTACCDB/Proj1 /v3/meta/StreamsTACCDB/Proj1  with a query
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+# /v3/meta/StreamsTACCDB/TstCollection streamsTACCAdmin
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/TstCollection
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+###  result msg with ETag header
+# ETag: 5e4c452b537bd1305796e5e2
+# {
+#   "http status code": 409,
+#   "http status description": "Conflict",
+#   "message": "The ETag must be provided using the 'If-Match' header"
+# }
+
+# /v3/meta/StreamsTACCDB/TstCollection streamsTACCAdmin
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/TstCollection
+#  with ETag
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/TstCollection
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+If-Match: 5e4c452b537bd1305796e5e2
+Content-Type: application/json
+
+###  result msg with ETag header
+# ETag: 5e4c452b537bd1305796e5e2
+# {
+#   "http status code": 409,
+#   "http status description": "Conflict",
+#   "message": "The ETag must be provided using the 'If-Match' header"
+# }
+
+
+# /v3/meta/StreamsTACCDB/Proj1   streamsTACCAdmin
+#  post with no args and no request body to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
+###
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  result 201  er  Created
+
+# /v3/meta/StreamsTACCDB/Proj1   streamsTACCAdmin
+#  post with no args and no request body to StreamsTACCDB /v3/meta/StreamsTACCDB/Proj1
+###
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "name": "test document slt 4.28.2020-15:17", "jimmyList":["1","3"],"description": "new whatever"}
+
+###  result 201  er  Created ETag: 5e4c4e6b537bd1305796e5e4
+
+
+
+
+##############################################################
+#     document endpoints
+##############################################################
+
+# /v3/meta/StreamsTACCDB/Proj1/   streamsTACCAdmin
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/5e4bff5ea93eebf39fbecda1
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3/5e9de1dca93eebf39fcad799
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  result 204  er  no Content
+
+
+
+# streamsTACCAdmin
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###  result is a 409 without ETag
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
+###  5e9493a5a93eebf39fc88d65
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/    # 5e29ffe1a93eebf39fba93c4
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3/5e8f32b1a93eebf39fc7c609
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "site_name": "mysite7",
+  "latitude": 1.0,
+  "longitude": 2,
+  "elevation": 1,
+  "description": "testing replace a doc again 4.14 12.31",
+  "site_id": 11
+}
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/    # 5e29ffe1a93eebf39fba93c4
+###
+PATCH https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{
+  "description": "testing modify a doc again 4.14 12.33"
+}
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  post with no args to StreamsTACCDB /v3/meta/StreamsTACCDB/
+###
+POST https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e8f32b1a93eebf39fc7c609
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "site_name": "mysite7",
+  "latitude": 1.0,
+  "longitude": 2,
+  "elevation": 1,
+  "description": "testing update a doc 4.14 12:32",
+  "site_id": 11
+}
+
+###
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  delete with StreamsTACCDB /v3/meta/StreamsTACCDB/
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+#####################################################
+#
+#    Anagha test delete
+#
+# curl -v -X DELETE -H "X-Tapis-Token:$jwt" -H "X-Tapis-Tenant:dev" -H "X-Tapis-User: streams" https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e4bff5ea93eebf39fbecda1
+#
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/5e9b2a9ba93eebf39fca5508
+X-Tapis-Token: {{token}}
+X-Tapis-Tenant: master
+X-Tapis-User: streams
+
+###
+
+
+
+
+
+# streamsTACCAdmin   these tests are hitting the dev deployment of RH-core
+#  get a document from StreamsTACCDB/Proj1/5e29ffe1a93eebf39fba93c4 /v3/meta/StreamsTACCDB/Proj1
+###  5e9493a5a93eebf39fc88d65
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+
+##############################################################
+#     Index endpoints
+##############################################################
+# get a list of indexes on collection
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+# create an index on collection
+###
+PUT https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj1/_indexes/testIndex
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{"keys": { "document.lat": 1 } }
+
+###
+
+# delete an index on collection
+###
+DELETE https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/_indexes/name1
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3?filter={"instruments.inst_id": {"$eq":78 } }
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+###
+GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/Proj3?filter={"instruments.inst_id":{"$eq":78 }}&keys={"instruments.$":1}&keys={"site_id":1}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+###
+
+

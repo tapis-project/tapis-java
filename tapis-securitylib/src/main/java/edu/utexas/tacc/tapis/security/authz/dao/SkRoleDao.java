@@ -18,6 +18,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
  * database.  If this subproject becomes its own service, then it will
@@ -32,6 +33,9 @@ public final class SkRoleDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SkRoleDao.class);
+  
+  // Keep track of the last monitoring outcome.
+  private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -346,13 +350,14 @@ public final class SkRoleDao
    * and the number of rows returned is 0. 
    * 
    * @param tenant the tenant
-   * @param user the creating user
+   * @param user the owning user
+   * @param creator the creating user
    * @param roleName role name
    * @param description role description
    * @return number of rows affected (0 or 1)
    * @throws TapisException if the role is not created for any reason
    */
-  public int createRole(String tenant, String user, String roleName, String description) 
+  public int createRole(String tenant, String user, String creator, String roleName, String description) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -364,6 +369,11 @@ public final class SkRoleDao
       }
       if (StringUtils.isBlank(user)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(creator)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "creator");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -394,8 +404,9 @@ public final class SkRoleDao
           pstmt.setString(1, tenant);
           pstmt.setString(2, roleName);
           pstmt.setString(3, description);
-          pstmt.setString(4, user);
-          pstmt.setString(5, user);
+          pstmt.setString(4, creator);
+          pstmt.setString(5, creator);
+          pstmt.setString(6, user);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -484,6 +495,98 @@ public final class SkRoleDao
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, newRoleName);
+          pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
+          pstmt.setString(3, user);
+          pstmt.setString(4, tenant);
+          pstmt.setString(5, roleName);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_UPDATE_FAILURE", "sk_role", roleName);
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* updateRoleName:                                                        */
+  /* ---------------------------------------------------------------------- */
+  /** Update the name of an existing role.  Zero is returned if no row was
+   * affect; 1 is returned when a row was updated.
+   *
+   * @param tenant the tenant
+   * @param user the creating user
+   * @param newRoleName current role name
+   * @param newRoleName new role name
+   * @return number of rows affected (0 or 1)
+   * @throws TapisException on error
+   */
+  public int updateRoleOwner(String tenant, String user, String roleName, String newOwner) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(user)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleName)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "roleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(newOwner)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "newOwner");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.ROLE_UPDATE_OWNER;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, newOwner);
           pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
           pstmt.setString(3, user);
           pstmt.setString(4, tenant);
@@ -993,7 +1096,8 @@ public final class SkRoleDao
   /* ---------------------------------------------------------------------- */
   /* queryDB:                                                               */
   /* ---------------------------------------------------------------------- */
-  /** Probe connectivity to the specified table.
+  /** Probe connectivity to the specified table.  This method is called during
+   * monitoring so most errors are not logged to avoid filling up our logs.
    * 
    * @param tableName the tenant id
    * @return 0 or 1 depending on whether the table is empty or not
@@ -1035,27 +1139,26 @@ public final class SkRoleDao
     
           // Commit the transaction.
           conn.commit();
+          
+          // Toggle the last outcome flag if necessary.
+          if (_lastQueryDBSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("DB_SELECT_ID_ERROR_CLEARED"));
       }
       catch (Exception e)
       {
           // Rollback transaction.
           try {if (conn != null) conn.rollback();}
-              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+              catch (Exception e1){}
           
+          // Log the first error after a reigning success.
           String msg = MsgUtils.getMsg("DB_SELECT_ID_ERROR", "tableName", tableName, e.getMessage());
-          _log.error(msg, e);
+          if (_lastQueryDBSucceeded.toggleOff()) _log.error(msg, e); 
           throw new TapisException(msg, e);
       }
       finally {
           // Always return the connection back to the connection pool.
           try {if (conn != null) conn.close();}
-            catch (Exception e) 
-            {
-              // If commit worked, we can swallow the exception.  
-              // If not, the commit exception will be thrown.
-              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-              _log.error(msg, e);
-            }
+            catch (Exception e){} 
       }
       
       return rows;
@@ -1109,6 +1212,7 @@ public final class SkRoleDao
         obj.setCreatedby(rs.getString(6));
         obj.setUpdated(rs.getTimestamp(7).toInstant());
         obj.setUpdatedby(rs.getString(8));
+        obj.setOwner(rs.getString(9));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

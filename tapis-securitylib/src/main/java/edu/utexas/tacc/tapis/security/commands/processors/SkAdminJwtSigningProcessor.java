@@ -7,18 +7,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminJwtSigning;
-import edu.utexas.tacc.tapis.security.commands.model.SkAdminServicePwd;
-import edu.utexas.tacc.tapis.security.commands.processors.SkAdminAbstractProcessor.Op;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SkAdminJwtSigningProcessor
+public class SkAdminJwtSigningProcessor
  extends SkAdminAbstractProcessor<SkAdminJwtSigning>
 {
     /* ********************************************************************** */
@@ -26,6 +27,10 @@ public final class SkAdminJwtSigningProcessor
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SkAdminJwtSigningProcessor.class);
+    
+    // Hardcoded public signing key information.  There should be a better way 
+    // to do this that doesn't overcomplicate the json input.
+    static final String PUBLIC_JWT_SIGNING_KUBE_KEY_SUFFIX  = "-publickey";
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -40,7 +45,7 @@ public final class SkAdminJwtSigningProcessor
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                            Protected Methods                           */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
@@ -50,14 +55,7 @@ public final class SkAdminJwtSigningProcessor
     {
         // See if the secret already exists.
         SkSecret skSecret = null;
-        try {
-            // First check if the secret already exists.
-            var parms = new SKSecretReadParms(SecretType.JWTSigning);
-            parms.setTenant(secret.tenant);
-            parms.setUser(secret.user);
-            parms.setSecretName(secret.secretName);
-            skSecret = _skClient.readSecret(parms);
-        } 
+        try {skSecret = readSecret(secret);} 
         catch (TapisClientException e) {
             // Not found is ok.
             if (e.getCode() != 404) {
@@ -102,7 +100,7 @@ public final class SkAdminJwtSigningProcessor
             parms.setUser(secret.user);
             parms.setSecretName(secret.secretName);
             
-            // Add the password into the map field. We hardcode
+            // Add the keys into the map field. We hardcode
             // the key names in the map that gets saved as the 
             // actual secret map in vault. 
             var map = new HashMap<String,String>();
@@ -113,15 +111,6 @@ public final class SkAdminJwtSigningProcessor
             
             // Make the write call.
             metadata = _skClient.writeSecret(parms.getTenant(), parms.getUser(), parms);
-        }
-        catch (TapisClientException e) {
-            // Not found is ok.
-            if (e.getCode() != 404) {
-                // Save the error condition for this secret.
-                _results.recordFailure(msgOp, SecretType.JWTSigning, 
-                                       makeFailureMessage(msgOp, secret, e.getMessage()));
-                return;
-            }
         }
         catch (Exception e) {
             // Save the error condition for this secret.
@@ -139,15 +128,50 @@ public final class SkAdminJwtSigningProcessor
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
     @Override
-    protected void deploy(SkAdminJwtSigning secret)
+    protected void deploy(SkAdminJwtSigning secret, ISkAdminDeployRecorder recorder)
     {
+        // Is this secret slated for deployment?
+        if (StringUtils.isBlank(secret.kubeSecretName)) {
+            _results.recordDeploySkipped(makeSkippedDeployMessage(secret));
+            return;
+        }    
         
+        // See if the secret already exists.
+        SkSecret skSecret = null;
+        try {skSecret = readSecret(secret);} 
+        catch (Exception e) {
+            // Save the error condition for this secret.
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                   makeFailureMessage(Op.deploy, secret, e.getMessage()));
+            return;
+        }
+        
+        // This shouldn't happen.
+        if (skSecret == null || skSecret.getSecretMap().isEmpty()) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                   makeFailureMessage(Op.deploy, secret, msg));
+            return;
+        }
+        
+        // Validate the specified secret key's value.
+        String value = skSecret.getSecretMap().get(DEFAULT_PRIVATE_KEY_NAME);
+        if (StringUtils.isBlank(value)) {
+            String msg = MsgUtils.getMsg("SK_ADMIN_NO_SECRET_FOUND");
+            _results.recordFailure(Op.deploy, SecretType.JWTSigning, 
+                                   makeFailureMessage(Op.deploy, secret, msg));
+            return;
+        }
+        
+        // Record the value as is (no need to base64 encode here).
+        recorder.addDeployRecord(secret.kubeSecretName, secret.kubeSecretKey, value);
     }    
 
     /* ---------------------------------------------------------------------- */
     /* makeFailureMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeFailureMessage(Op op, SkAdminJwtSigning secret, String errorMsg)
+    @Override
+    protected String makeFailureMessage(Op op, SkAdminJwtSigning secret, String errorMsg)
     {
         // Set the failed flag to alert any subsequent processing.
         secret.failed = true;
@@ -159,7 +183,8 @@ public final class SkAdminJwtSigningProcessor
     /* ---------------------------------------------------------------------- */
     /* makeSkippedMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeSkippedMessage(Op op, SkAdminJwtSigning secret)
+    @Override
+    protected String makeSkippedMessage(Op op, SkAdminJwtSigning secret)
     {
         return " SKIPPED " + op.name() + " for JWT secret \"" + secret.secretName +
                "\" in tenant \"" + secret.tenant + 
@@ -169,9 +194,38 @@ public final class SkAdminJwtSigningProcessor
     /* ---------------------------------------------------------------------- */
     /* makeSuccessMessage:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String makeSuccessMessage(Op op, SkAdminJwtSigning secret)
+    @Override
+    protected String makeSuccessMessage(Op op, SkAdminJwtSigning secret)
     {
         return " SUCCESSFUL " + op.name() + " of JWT secret \"" + secret.secretName +
                "\" in tenant " + secret.tenant + "\".";
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    protected String makeSkippedDeployMessage(SkAdminJwtSigning secret)
+    {
+        return " SKIPPED deployment of JWT secret \"" + secret.secretName +
+               "\" in tenant \"" + secret.tenant + 
+               "\": No target Kubernetes secret specified.";
+    }
+
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* readSecret:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private SkSecret readSecret(SkAdminJwtSigning secret) 
+      throws TapisException, TapisClientException
+    {
+     // Try to read a secret.  HTTP 404 is returned if not found.
+        var parms = new SKSecretReadParms(SecretType.JWTSigning);
+        parms.setTenant(secret.tenant);
+        parms.setUser(secret.user);
+        parms.setSecretName(secret.secretName);
+        return _skClient.readSecret(parms);
     }
 }

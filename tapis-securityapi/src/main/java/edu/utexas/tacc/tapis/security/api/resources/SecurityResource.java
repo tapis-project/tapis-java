@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.security.PermitAll;
@@ -24,51 +23,18 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.security.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
-@OpenAPIDefinition(
-        security = {@SecurityRequirement(name = "TapisJWT")},
-        info = @Info(title = "Tapis Security API",
-                     version = "0.1",
-                     description = "The Tapis Security API provides access to the " +
-                     "Tapis Security Kernel authorization and secrets facilities.",
-                     license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
-                     contact = @Contact(name = "CICSupport", 
-                                        email = "cicsupport@tacc.utexas.edu")),
-        tags = {@Tag(name = "role", description = "manage roles and permissions"),
-                @Tag(name = "user", description = "assign roles and permissions to users"),
-                @Tag(name = "vault", description = "manage application and user secrets"),
-                @Tag(name = "general", description = "informational endpoints")},
-        servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
-        externalDocs = @ExternalDocumentation(description = "Tapis Home",
-                                     url = "https://tacc-cloud.readthedocs.io/projects/agave/en/latest/")
-)
-@SecurityScheme(
-        name="TapisJWT",
-        description="Tapis signed JWT token authentication",
-        type=SecuritySchemeType.APIKEY,
-        in=SecuritySchemeIn.HEADER,
-        paramName="X-Tapis-Token"
-)
 @Path("/")
 public final class SecurityResource
  extends AbstractResource
@@ -85,6 +51,10 @@ public final class SecurityResource
     
     // The table we query during readiness checks.
     private static final String QUERY_TABLE = "sk_role";
+    
+    // Keep track of the last db monitoring outcome.
+    private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
+    private static final CallSiteToggle _lastQueryTenantsSucceeded = new CallSiteToggle();
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -136,9 +106,6 @@ public final class SecurityResource
      // Count the number of healthchecks requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
      
-     // The flag set after the first successful database readiness check.
-     private static final AtomicBoolean _readyDBOnce = new AtomicBoolean();
-     
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
@@ -148,14 +115,14 @@ public final class SecurityResource
   @GET
   @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
   @Operation(
-          description = "Logged connectivity test.",
+          description = "Logged connectivity test. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "401", description = "Not authorized."),
                @ApiResponse(responseCode = "500", description = "Server error.")}
       )
   public Response sayHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -204,51 +171,44 @@ public final class SecurityResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght health check for liveness.",
+          description = "Lightwieght health check for liveness. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
                    content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class))),
+               @ApiResponse(responseCode = "503", description = "Service unavailable.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class)))}
       )
   public Response checkHealth()
   {
-      // Get the current check count.
-      long checkNum = _healthChecks.incrementAndGet();
+      // Assign the current check count to the probe result object.
+      var skProbe = new SkProbe();
+      skProbe.checkNum = _healthChecks.incrementAndGet();
       
-      // Check the database only after a DB readiness check has succeeded.
-      if (_readyDBOnce.get()) 
-          if (!queryDB(DB_HEALTH_TIMEOUT_MS)) {
-              // Failure case.
-              RespBasic r = new RespBasic("Health DB check " + checkNum + " failed.");
-              String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
-              return Response.status(Status.SERVICE_UNAVAILABLE).
-                  entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-          }
+      // Check the database.
+      if (queryDB(DB_HEALTH_TIMEOUT_MS)) skProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (!queryTenants()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-      }
+      if (queryTenants()) skProbe.tenantsAccess = true;
       
       // Check the health of vault.
       var vaultMgr = VaultManager.getInstance(true);
-      if (vaultMgr == null || !vaultMgr.isHealthy()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Health secrets check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      if (vaultMgr != null && vaultMgr.isHealthy()) skProbe.vaultAccess = true;
+      
+      // Create the response object.
+      RespProbe r = new RespProbe(skProbe);
+      
+      // Failure case.
+      if (skProbe.failed()) {
+        String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Security Kernel");
+        return Response.status(Status.SERVICE_UNAVAILABLE).
+            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
       }
       
       // ---------------------------- Success ------------------------------- 
       // Create the response payload.
-      RespBasic r = new RespBasic("Healthcheck " + checkNum + " received.");
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_HEALTHY", "Security Kernel"), false, r)).build();
   }
@@ -281,54 +241,44 @@ public final class SecurityResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght readiness check.",
+          description = "Lightwieght readiness check. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Service ready.",
                    content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class))),
+               @ApiResponse(responseCode = "503", description = "Service unavailable.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.security.api.responses.RespProbe.class)))}
       )
   public Response ready()
   {
-      // Get the current check count.
-      long checkNum = _readyChecks.incrementAndGet();
+      // Assign the current check count to the probe result object.
+      var skProbe = new SkProbe();
+      skProbe.checkNum = _readyChecks.incrementAndGet();
       
-      // Test connectivity only if no success has ever been recorded.
-      // There could be a race condition here but the worst that could
-      // happen is an extra readiness check or two would query the db.
-      if (!_readyDBOnce.get()) 
-          if (queryDB(DB_READY_TIMEOUT_MS)) _readyDBOnce.set(true);
-            else {
-                // Failure case.
-                RespBasic r = new RespBasic("Readiness DB check " + checkNum + " failed.");
-                String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-                return Response.status(Status.SERVICE_UNAVAILABLE).
-                    entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-            }
+      // Check the database.
+      if (queryDB(DB_READY_TIMEOUT_MS)) skProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (!queryTenants()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness tenants check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
-      }
+      if (queryTenants()) skProbe.tenantsAccess = true;
       
       // Check the readiness of vault.
       var vaultMgr = VaultManager.getInstance(true);
-      if (vaultMgr == null || !vaultMgr.isReady()) {
-          // Failure case.
-          RespBasic r = new RespBasic("Readiness secrets check " + checkNum + " failed.");
-          String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
-          return Response.status(Status.SERVICE_UNAVAILABLE).
-              entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+      if (vaultMgr != null && vaultMgr.isReady()) skProbe.vaultAccess = true;
+      
+      // Create the response object.
+      RespProbe r = new RespProbe(skProbe);
+      
+      // Failure case.
+      if (skProbe.failed()) {
+        String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Security Kernel");
+        return Response.status(Status.SERVICE_UNAVAILABLE).
+            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
       }
       
       // ---------------------------- Success -------------------------------
       // Create the response payload.
-      RespBasic r = new RespBasic("Readiness check " + checkNum + " received.");
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
           MsgUtils.getMsg("TAPIS_READY", "Security Kernel"), false, r)).build();
   }
@@ -339,7 +289,7 @@ public final class SecurityResource
   /* ---------------------------------------------------------------------------- */
   /* queryDB:                                                                     */
   /* ---------------------------------------------------------------------------- */
-  /** Probe the database with a simple database query.
+  /** Probe the database with a simple database query and minimal logging.
    * 
    * @param timeoutMillis millisecond limit for success
    * @return true for success, false otherwise
@@ -358,16 +308,21 @@ public final class SecurityResource
           // Did the query take too long?
           long elapsed = Instant.now().toEpochMilli() - startTime;
           if (elapsed > timeoutMillis) {
-              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                           "Excessive query time (" + elapsed + " milliseconds)");
-              _log.error(msg);
+              if (_lastQueryDBSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                               "Excessive query time (" + elapsed + " milliseconds)");
+                  _log.error(msg);
+              }
               success = false;
-          }
+          } else if (_lastQueryDBSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "database"));
       }
       catch (Exception e) {
-          // Any exception causes us to report failure.
-          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
-          _log.error(msg, e);
+          // Any exception causes us to report failure on first recent occurrence.
+          if (_lastQueryDBSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
+              _log.error(msg, e);
+          }
           success = false;
       }
       
@@ -390,19 +345,37 @@ public final class SecurityResource
           // Make sure the cached tenants map is not null.
           var tenantMap = TenantManager.getInstance().getTenants();
           if (tenantMap == null) {
-              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                           "Null tenants map.");
-              _log.error(msg);
+              if (_lastQueryTenantsSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                               "Null tenants map.");
+                  _log.error(msg);
+              }
               success = false;
-          }
+          } else if (_lastQueryTenantsSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "tenants"));
       } catch (Exception e) {
-          String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
-                                       e.getMessage());
-          _log.error(msg, e);
+          if (_lastQueryTenantsSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                                           e.getMessage());
+              _log.error(msg, e);
+          }
           success = false;
       }
       
       return success;
   }
   
+  /* **************************************************************************** */
+  /*                                    Fields                                    */
+  /* **************************************************************************** */
+  // Simple class to collect probe results.
+  public final static class SkProbe
+  {
+      public long    checkNum;
+      public boolean databaseAccess;
+      public boolean vaultAccess;
+      public boolean tenantsAccess;
+      
+      public boolean failed() {return !(databaseAccess && vaultAccess && tenantsAccess);}
+  }
 }

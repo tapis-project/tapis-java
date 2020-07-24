@@ -1,0 +1,246 @@
+###  sanity test to see if service is alive
+# GET http://dev.develop.tapis.io/v3/meta/
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: taccMetaAdmin
+# X-Tapis-Tenant: master
+# Content-Type: application/json
+#
+# > {%
+#     client.test("Request root executed successfully", function() {
+#         client.assert(response.status === 200, "Response status is not 200");
+#     });
+# %}
+
+###
+
+##################################### streamsTACCAdmin user #################################################
+# streams  these tests are hitting the dev deployment of RH-core
+
+
+##############################################################
+#      setup for tests using creates for needed resources
+#       run with env  streams.master
+#       streams master token
+#  Assumes collection and other resouces do not exist
+##############################################################
+
+#  create a test collection tstTmp in db /v3/meta/db/collection
+###
+PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request {{db}} create collection executed successfully", function() {
+        client.assert(response.status === 201, "Response status is not 200");
+    });
+%}
+
+###
+
+#  create a document in /v3/meta/{{db}}/{{collection}}
+# adding a name on the end of a PUT will create a document by that name
+###
+PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "name": "test document slt 4.28.2020-15:23", "jimmyList":["1","3"],"description": "PUT tstDoc for testing"}
+
+> {%
+    client.test("Create document in collection executed successfully", function() {
+        client.assert(response.status === 201, "Response status is not 201");
+    });
+
+    client.test("Response content-type is json", function() {
+        var type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+%}
+
+###
+
+#  create a document in /v3/meta/{{db}}/{{collection}}
+# adding a name on the end of a PUT will create a document by that name and basic response  !!! PUT doesn't return basic response
+###
+PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc1?basic=true
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "name": "test document slt 4.28.2020-15:23", "jimmyList":["1","3"],"description": "PUT tstDoc1 for testing"}
+
+> {%
+    client.test("Create document in collection executed successfully", function() {
+        client.assert(response.status === 201, "Response status is not 201");
+    });
+
+    client.test("Response content-type is json", function() {
+        var type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+%}
+
+###
+
+#  create a document in /v3/meta/{{db}}/{{collection}}
+# adding a name on the end of a PUT will create a document by that name and basic response  !!! PUT doesn't return basic response
+###
+POST https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?basic=true
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+{ "name": "test document slt 4.28.2020-15:43", "jimmyList":["1","3"],"description": "POST a new document with basic response"}
+
+> {%
+    client.test("Create document in collection executed successfully", function() {
+        client.assert(response.status === 201, "Response status is not 201");
+    });
+
+    client.test("Response content-type is json", function() {
+        var type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+%}
+
+###  id 5ea9e6fea93eebf39fcd2601
+
+##############################################################
+#      DB endpoints
+##############################################################
+
+###   db list collections
+GET https://dev.develop.tapis.io/v3/meta/{{db}}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request {{db}} list collections executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+###   db metadata
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request get db metadata executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+##############################################################
+#     Collection endpoints
+##############################################################
+#
+#  get a document list under {{db}}/{{collection}} /v3/meta/{{db}}/{{collection}}
+#
+###
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request get list docs in collection executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+#
+#  get metadata for {{db}}/{{collection}} /v3/meta/{{db}}/{{collection}}
+#
+###
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/_meta
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request get list docs in collection executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+###
+
+#  query for list under {{db}}/{{collection}} /v3/meta/{{db}}/{{collection}}
+###
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?filter={"_id": "tstDoc"}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request get list docs in collection executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+###
+
+##############################################################
+#     Document endpoints
+##############################################################
+###
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Get a single document from collection executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+###
+
+###
+GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?filter={"_id": "tstDoc"}
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request get list docs in collection executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+###
+
+###
+DELETE https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Remove a single document from collection executed successfully", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+###
+

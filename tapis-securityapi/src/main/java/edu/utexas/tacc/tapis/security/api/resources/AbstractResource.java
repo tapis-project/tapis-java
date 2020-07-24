@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -41,14 +40,6 @@ class AbstractResource
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(AbstractResource.class);
 
-    /* **************************************************************************** */
-    /*                                    Fields                                    */
-    /* **************************************************************************** */
-    // Role name validator.  Require names to start with alphabetic characters and 
-    // be followed by zero or more alphanumeric characters and underscores.  Note that
-    // in particular special characters are disallowed by this regex.
-    private static final Pattern _namePattern = Pattern.compile("^\\p{Alpha}(\\p{Alnum}|_)*");
-    
     /* **************************************************************************** */
     /*                             Protected Methods                                */
     /* **************************************************************************** */
@@ -124,20 +115,19 @@ class AbstractResource
     protected VaultImpl getVaultImpl() {return VaultImpl.getInstance();}
     
     /* ---------------------------------------------------------------------------- */
-    /* checkTenant:                                                                 */
+    /* checkSameTenant:                                                             */
     /* ---------------------------------------------------------------------------- */
     /** Check that the threadlocal cache has valid JWT information.  Use that 
-     * information to check that the tenant and user specified as request parameters
-     * are authorized for the requester.
+     * information to check that the tenant parameter is the same as the tenant
+     * specified in the jwt.
      * 
      * Return null if the check succeed, otherwise return the error response.
      * 
      * @param tenant the tenant explicitly passed as a request parameter
-     * @param user the user explicitly passed as a request parameter, can be null
      * @param prettyPrint whether to pretty print the response or not
      * @return null on success, a response on error
      */
-    protected Response checkTenantUser(String tenant, String user, boolean prettyPrint)
+    protected Response checkSameTenant(String tenant, boolean prettyPrint)
     {
         // Get the thread local context and validate context parameters.  The
         // tenantId and user are set in the jaxrc filter classes that process
@@ -150,60 +140,22 @@ class AbstractResource
               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
         }
         
-        // Unpack some jwt information for convenience.
-        AccountType accountType = threadContext.getAccountType();
+        // Compare the tenant in the JWT to the tenant parameter.
         String jwtTenant = threadContext.getJwtTenantId();
-        String jwtUser   = threadContext.getJwtUser();
-        
-        // Validation depends on the account type.
-        if (accountType == AccountType.user) {
-            // Compare the tenant values for user accounts.
-            if (tenant != null) 
-                if (!jwtTenant.equals(tenant)) {
-                    String msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", 
-                                                 jwtTenant, tenant, accountType.name());
-                    _log.error(msg);
-                    return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-            }
-        
-            // Compare the user values.
-            if (user != null) 
-                if (!jwtUser.equals(user)) {
-                    String msg = MsgUtils.getMsg("SK_UNEXPECTED_USER_VALUE", 
-                                                 jwtUser, user, accountType.name());
-                    _log.error(msg);
-                    return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-                }
-        }
-        else if (tenant != null) {
-            // Service accounts are allowed more latitude than user accounts.
-            // Specifically, they can specify tenants other than that in their jwt. 
-            boolean allowedTenant;
-            try {allowedTenant = TapisRestUtils.isAllowedTenant(jwtTenant, tenant);}
-                catch (Exception e) {
-                    String msg = MsgUtils.getMsg("TAPIS_SECURITY_ALLOWABLE_TENANT_ERROR", 
-                                                 jwtUser, jwtTenant, tenant);
-                    _log.error(msg, e);
-                    return Response.status(Status.INTERNAL_SERVER_ERROR).
-                            entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-                }
-
-            // Can the new tenant id be used by the jwt tenant?
-            if (!allowedTenant) {
-                String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
-                                             jwtUser, jwtTenant, tenant);
-                _log.error(msg);
-                return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-            }
+        if (!jwtTenant.equals(tenant)) {
+            String jwtUser   = threadContext.getJwtUser();
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
+                                         jwtUser, jwtTenant, tenant);
+            _log.error(msg);
+            return Response.status(Status.BAD_REQUEST).
+                entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+            
         }
         
         // Success
         return null;
     }
-
+    
     /* ---------------------------------------------------------------------------- */
     /* getExceptionResponse:                                                        */
     /* ---------------------------------------------------------------------------- */

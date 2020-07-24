@@ -13,9 +13,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 /*
    Utility class containing general use static methods.
@@ -42,9 +45,9 @@ public class LibUtils
   /**
    * Get a localized message using the specified key and parameters. Locale is null.
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param key
-   * @param parms
-   * @return
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsg(String key, Object... parms)
   {
@@ -55,9 +58,9 @@ public class LibUtils
    * Get a localized message using the specified key and parameters. Locale is null.
    * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param key
-   * @param parms
-   * @return
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsgAuth(String key, AuthenticatedUser authUser, Object... parms)
   {
@@ -74,10 +77,10 @@ public class LibUtils
   /**
    * Get a localized message using the specified locale, key and parameters.
    * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
-   * @param locale
-   * @param key
-   * @param parms
-   * @return
+   * @param locale Locale for message
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
    */
   public static String getMsg(String key, Locale locale, Object... parms)
   {
@@ -119,7 +122,6 @@ public class LibUtils
 
   /**
    * Return List of transfer methods as a comma delimited list of strings surrounded by curly braces.
-   * @return
    */
   public static String getTransferMethodsAsString(List<TransferMethod> txfrMethods)
   {
@@ -132,6 +134,34 @@ public class LibUtils
     sb.append(txfrMethods.get(txfrMethods.size()-1).name());
     sb.append("}");
     return sb.toString();
+  }
+
+  /**
+   * Return String[] array of transfer methods
+   */
+  public static String[] getTransferMethodsAsStringArray(List<TransferMethod> txfrMethods)
+  {
+    if (txfrMethods == null || txfrMethods.size() == 0) return TSystem.EMPTY_TRANSFER_METHODS_STR_ARRAY;
+    return txfrMethods.stream().map(TransferMethod::name).toArray(String[]::new);
+  }
+
+  /**
+   * Return TransferMethod[] from String[]
+   */
+  public static List<TransferMethod> getTransferMethodsFromStringArray(String[] txfrMethods)
+  {
+    if (txfrMethods == null || txfrMethods.length == 0) return Collections.emptyList();
+    return Arrays.stream(txfrMethods).map(TransferMethod::valueOf).collect(Collectors.toList());
+  }
+
+  /**
+   * Log a TAPIS_NULL_PARAMETER exception and throw a TapisException
+   */
+  public static void logAndThrowNullParmException(String opName, String parmName) throws TapisException
+  {
+    String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", opName, parmName);
+    _log.error(msg);
+    throw new TapisException(msg);
   }
 
   // =============== DB Transaction Management ============================

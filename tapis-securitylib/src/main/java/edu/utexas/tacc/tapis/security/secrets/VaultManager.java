@@ -13,6 +13,7 @@ import com.bettercloud.vault.response.AuthResponse;
 
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
 public final class VaultManager
   implements Thread.UncaughtExceptionHandler
@@ -37,6 +38,11 @@ public final class VaultManager
     // HTTP status codes.
     private static final int HTTP_FORBIDDEN = 403;
     
+    // Keep track of the last monitoring outcome.
+    private static final CallSiteToggle _lastSSLConfigSucceeded   = new CallSiteToggle();
+    private static final CallSiteToggle _lastVaultConfigSucceeded = new CallSiteToggle();
+    private static final CallSiteToggle _lastAppLoginSucceeded    = new CallSiteToggle();
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -44,7 +50,7 @@ public final class VaultManager
     private static VaultManager _instance;
     
     // Save the parms object.
-    private final IVaultManagerParms _parms;
+    private static IVaultManagerParms _parms;
     
     // SK's vault token authentication response that contains its token.
     private AuthResponse _tokenAuth;
@@ -111,7 +117,11 @@ public final class VaultManager
     /* ---------------------------------------------------------------------- */
     /** Return the singleton instance with custom exception handling.  If the
      * boolean parameter is true, then a null singleton can be returned. 
-     * Otherwise, a runtime exception is thrown.  
+     * Otherwise, a runtime exception is thrown.
+     * 
+     * This method performs on-demand initialization retries as long as an
+     * initial attempt to initialize to vault provided configuration parameters
+     * These parameters will be reused on all subsequent initialization attempts.
      * 
      * @param allowNullResult true allows a null return instead of an exception
      *           when the singleton doesn't exist.
@@ -122,8 +132,16 @@ public final class VaultManager
     public static VaultManager getInstance(boolean allowNullResult)
      throws TapisRuntimeException
     {
+        // Try to initialize if a previous attempt failed.
+        if (_instance == null && _parms != null)
+            if (!allowNullResult) return getInstance(_parms);
+              else {
+                  try {getInstance(_parms);} catch (Exception e) {}
+                  return _instance;
+              }
+        
         // Make sure we have an initialed instance.
-        if (!allowNullResult && _instance == null) {
+        if (_instance == null && !allowNullResult) {
             String msg = MsgUtils.getMsg("SK_NO_SECRETS_CONTEXT");
             throw new TapisRuntimeException(msg);
         }
@@ -206,14 +224,14 @@ public final class VaultManager
         SkSslConfig sslConfig;
         try {
             // TODO: Finish configuring for https authentication.  This currently will not work.
-            if (_parms.isVaultSslVerify()) {
+            if (_parms.isVaultSslVerify()) 
                 sslConfig = (SkSslConfig) new SkSslConfig().verify(true).build();
-            } 
             else 
                 sslConfig = (SkSslConfig) new SkSslConfig().verify(false).build();
+            _lastSSLConfigSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_SSL_CONFIG_ERROR", e.getMessage());
-            _log.error(msg, e);
+            if (_lastSSLConfigSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         
@@ -227,9 +245,10 @@ public final class VaultManager
                             readTimeout(_parms.getVaultReadTimeout()).
                             sslConfig(sslConfig).
                             build();
+            _lastVaultConfigSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_CONFIG_ERROR", e.getMessage());
-            _log.error(msg, e);
+            if (_lastVaultConfigSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         
@@ -238,9 +257,10 @@ public final class VaultManager
         try {
             _vault = new Vault(_vaultConfig);
             _tokenAuth = _vault.auth().loginByAppRole(_parms.getVaultRoleId(), _parms.getVaultSecretId());
+            _lastAppLoginSucceeded.toggleOn();
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_VAULT_APPROLE_LOGIN_FAILED", e.getMessage());
-            _log.error(msg, e);
+            if (_lastAppLoginSucceeded.toggleOff()) _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
         }
         
@@ -252,7 +272,7 @@ public final class VaultManager
         _log.info(MsgUtils.getMsg("SK_VAULT_APPROLE_TOKEN_ACQUIRED", _tokenAuth.isAuthRenewable(), _tokenAuth.getAuthLeaseDuration(), policies));
     
         // Start the token renewal thread.
-        startTokenRenewalThread();
+        if (!_parms.isVaultRenewalDisabled()) startTokenRenewalThread();
     }
     
     /* ---------------------------------------------------------------------- */

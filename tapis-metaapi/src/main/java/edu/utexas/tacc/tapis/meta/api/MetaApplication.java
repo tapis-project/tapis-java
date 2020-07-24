@@ -1,6 +1,10 @@
 package edu.utexas.tacc.tapis.meta.api;
 
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -12,24 +16,17 @@ import javax.ws.rs.ApplicationPath;
 @ApplicationPath("/meta")
 public class MetaApplication extends ResourceConfig {
   
-  public MetaApplication()
-  {
+  public MetaApplication() throws TapisException {
     // Log our existence.
     System.out.println("**** Starting tapis-metaapi ****");
     
     // Register the swagger resources that allow the
     // documentation endpoints to be automatically generated.
+    // TODO expand to all endpoints for auto generation of openapi definition
     register(OpenApiResource.class);
     register(AcceptHeaderOpenApiResource.class);
-  
-  
     
     // We specify what packages JAX-RS should recursively scan
-    // to find annotations.  By setting the value to the top-level
-    // aloe directory in all projects, we can use JAX-RS annotations
-    // in any aloe class.  In particular, the filter classes in
-    // tapis-sharedapi will be discovered whenever that project is
-    // included as a maven dependency.
     packages("edu.utexas.tacc.tapis");
     setApplicationName("meta");
   
@@ -41,8 +38,12 @@ public class MetaApplication extends ResourceConfig {
       // The base url of the tenants service is a required input parameter.
       // We actually retrieve the tenant list from the tenant service now
       // to fail fast if we can't access the list.
-      String url = RuntimeParameters.getInstance().getTenantBaseUrl();
+      RuntimeParameters runTime = RuntimeParameters.getInstance();
+      String url = runTime.getTenantBaseUrl();
       TenantManager.getInstance(url).getTenants();
+      
+      // Do we also fail if we can't get a service token?
+      runTime.setServiceJWT();
     } catch (Exception e) {
       // We don't depend on the logging subsystem.
       System.out.println("**** FAILURE TO INITIALIZE: tapis-metaapi ****");

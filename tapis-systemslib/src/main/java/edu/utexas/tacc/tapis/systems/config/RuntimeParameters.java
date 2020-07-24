@@ -87,10 +87,9 @@ public final class RuntimeParameters
 
 	// Service config
 	private String servicePassword;
-	private String setServiceMasterTenant;
+	private String serviceMasterTenant;
 
-	// Service base URLs - tokens, tenants, Security Kernel
-	private String tokensSvcURL;
+	// Service base URLs - tenants, Security Kernel
 	private String tenantsSvcURL;
 	private String skSvcURL;
 
@@ -189,7 +188,7 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName());
     if (StringUtils.isBlank(parm)) setAllowTestHeaderParms(false);
       else {
-        try {setAllowTestHeaderParms(Boolean.valueOf(parm));}
+        try {setAllowTestHeaderParms(Boolean.parseBoolean(parm));}
           catch (Exception e) {
             // Stop on bad input.
             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -210,17 +209,14 @@ public final class RuntimeParameters
 
 		// --------------------- Base URLs for other services that this service requires ----------------------------
 		// Tenants service base URL is required. Throw runtime exception if not found.
-		// Tokens and Security Kernel base URLs are optional. Normally these are retrieved from the Tenants service.
-		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TENANTS.getEnvName());
+		// Security Kernel base URL is optional. Normally it is retrieved from the Tenants service.
+		parm = inputProperties.getProperty(EnvVar.TAPIS_TENANT_SVC_BASEURL.getEnvName());
 		if (StringUtils.isBlank(parm)) {
 			String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING", TapisConstants.SERVICE_NAME_SYSTEMS, "tenantsSvcUrl");
 			_log.error(msg);
 			throw new TapisRuntimeException(msg);
 		}
 		setTenantsSvcURL(parm);
-
-		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_TOKENS.getEnvName());
-		if (!StringUtils.isBlank(parm)) setTokensSvcURL(parm);
 
 		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_URL_SK.getEnvName());
 		if (!StringUtils.isBlank(parm)) setSkSvcURL(parm);
@@ -232,7 +228,7 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_DB_CONNECTION_POOL_SIZE.getEnvName());
     if (StringUtils.isBlank(parm)) setDbConnectionPoolSize(CONNECTION_POOL_SIZE);
       else {
-        try {setDbConnectionPoolSize(Integer.valueOf(parm));}
+        try {setDbConnectionPoolSize(Integer.parseInt(parm));}
           catch (Exception e) {
             // Stop on bad input.
             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -284,7 +280,7 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_DB_METER_MINUTES.getEnvName());
     if (StringUtils.isBlank(parm)) setDbMeterMinutes(DEFAULT_DB_METER_INTERVAL_MINUTES);
       else {
-        try {setDbConnectionPoolSize(Integer.valueOf(parm));}
+        try {setDbConnectionPoolSize(Integer.parseInt(parm));}
           catch (Exception e) {
             // Stop on bad input.
             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -314,7 +310,7 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_SMTP_AUTH.getEnvName());
     if (StringUtils.isBlank(parm)) setEmailAuth(false);
       else {
-          try {setEmailAuth(Boolean.valueOf(parm));}
+          try {setEmailAuth(Boolean.parseBoolean(parm));}
               catch (Exception e) {
                   // Stop on bad input.
                   String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -341,7 +337,7 @@ public final class RuntimeParameters
     parm = inputProperties.getProperty(EnvVar.TAPIS_SMTP_PORT.getEnvName());
     if (StringUtils.isBlank(parm)) setEmailPort(DEFAULT_EMAIL_PORT);
       else
-        try {setEmailPort(Integer.valueOf(parm));}
+        try {setEmailPort(Integer.parseInt(parm));}
           catch (Exception e) {
               // Stop on bad input.
               String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
@@ -429,8 +425,6 @@ public final class RuntimeParameters
 		buf.append(this.getDbMeterMinutes());
 
 		buf.append("\n------- Base Service URLs --------------------------");
-		buf.append("\ntapis.svc.tokens.url: ");
-		buf.append(tokensSvcURL);
 		buf.append("\ntapis.svc.tenants.url: ");
 		buf.append(tenantsSvcURL);
 		buf.append("\ntapis.svc.sk.url: ");
@@ -635,14 +629,11 @@ public final class RuntimeParameters
 		this.jdbcURL = jdbcURL;
 	}
 
-	public String getSetServiceMasterTenant() { return setServiceMasterTenant; }
-	private void setServiceMasterTenant(String t) {setServiceMasterTenant = t; }
+	public String getServiceMasterTenant() { return serviceMasterTenant; }
+	private void setServiceMasterTenant(String t) { serviceMasterTenant = t; }
 
 	public String getServicePassword() { return servicePassword; }
 	private void setServicePassword(String p) {servicePassword = p; }
-
-	public String getTokensSvcURL() { return tokensSvcURL; }
-	private void setTokensSvcURL(String url) {tokensSvcURL = url; }
 
 	public String getTenantsSvcURL() { return tenantsSvcURL; }
 	private void setTenantsSvcURL(String url) {tenantsSvcURL = url; }
@@ -776,13 +767,12 @@ public final class RuntimeParameters
 
 
     // TODO/TBD move this to shared TapisEnv?
-	private static enum EnvVar2 {
-		TAPIS_SVC_URL_TOKENS("tapis.svc.url.tokens"),
-		TAPIS_SVC_URL_TENANTS("tapis.svc.url.tenants"),
+    // TODO/TBD Remove sk url. Always look up from tenants svc
+	private enum EnvVar2 {
 		TAPIS_SVC_URL_SK("tapis.svc.url.sk"),
 		TAPIS_SVC_MASTER_TENANT("tapis.svc.master.tenant");
 
-		private String _envName;
+		private final String _envName;
 
 		EnvVar2(String envName) {
 			_envName = envName;

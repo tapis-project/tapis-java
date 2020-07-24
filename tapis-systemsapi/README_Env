@@ -1,0 +1,79 @@
+TapisV3 Systems Service Environments
+=======================================
+
+When the service starts it runs in one of 5 environments, listed below.
+
+Configuration settings come from one of three sources, listed here in order of precedence:
+  1. Env variables
+  2. edu/utexas/tacc/tapis/systems/service.properties
+  3. Hard coded defaults
+
+Establishment of configuration settings is handled by the class edu.utexas.tacc.tapis.systems.config.RuntimeParameters
+This class handles precedence, required parameters, hard coded defaults and so on.
+NOTES
+  - The tenants service provides base URLs for other services including tokens and security kernel.
+  - Local dev environments are configured to use services in the K8s dev environment
+
+List of main configuration settings:
+TAPIS_DB_CONNECTION_POOL_SIZE
+TAPIS_DB_JDBC_URL
+TAPIS_DB_USER
+TAPIS_DB_PASSWORD
+TAPIS_TENANT_SVC_BASEURL
+TAPIS_SERVICE_PASSWORD
+
+--------------------------------------------------------
+Environments (all URLs below are for the dev tenant)
+--------------------------------------------------------
+
+1. Local develop with IntelliJ IDE
+Service URL: http://locahost:8080/v3/systems
+Startup:
+  Start from within IDE. Set service password as env variable
+
+Env:
+  TAPIS_DB_CONNECTION_POOL_SIZE=3
+  TAPIS_DB_JDBC_URL=jdbc:postgresql://localhost:5432/tapissysdb
+  TAPIS_DB_USER=tapis
+  TAPIS_DB_PASSWORD=******
+  TAPIS_TENANT_SVC_BASEURL=https://dev.develop.tapis.io
+  TAPIS_SERVICE_PASSWORD=******
+
+2. Local dev with docker image
+Service URL: http://locahost:8080/v3/systems
+
+Startup:
+  mvn clean install
+  deployment/tapis-systemsapi/docker_build.sh dev
+  deployment/tapis-systemsapi/docker_run.sh <svc_password>
+
+Env:
+  TAPIS_DB_CONNECTION_POOL_SIZE=3
+  TAPIS_DB_JDBC_URL=jdbc:postgresql://localhost:5432/tapissysdb
+  TAPIS_DB_USER=tapis
+  TAPIS_DB_PASSWORD=******
+  TAPIS_TENANT_SVC_BASEURL=https://dev.develop.tapis.io
+  TAPIS_SERVICE_PASSWORD=******
+
+3. K8s dev
+Service URL: https://dev.develop.tapis.io/v3/systems
+
+Startup:
+  See README for instructions on deploying to dev
+
+Env:
+  Most settings from tapis-deploy/systems/api/api.yml
+  TAPIS_DB_CONNECTION_POOL_SIZE=10 (from hard coded default)
+  TAPIS_DB_JDBC_URL=jdbc:postgresql://systems-postgres:5432/tapissysdb
+  TAPIS_DB_USER=tapis
+  TAPIS_DB_PASSWORD=****** (from k8s secret)
+  TAPIS_TENANT_SVC_BASEURL=https://dev.develop.tapis.io
+  TAPIS_SERVICE_PASSWORD=****** (from k8s secret)
+
+4. K8s stage
+Service URL: https://dev.staging.tapis.io/v3/systems
+TBD
+
+5. K8s prod
+Service URL: https://dev.tapis.io/v3/systems
+TBD

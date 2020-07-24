@@ -5,7 +5,7 @@ import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
 import edu.utexas.tacc.tapis.meta.utils.MetaSKPermissionsMapper;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.security.TapisSecurityContext;
@@ -53,10 +53,10 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     RuntimeParameters runTime = RuntimeParameters.getInstance();
     
     //   Use Meta master token for call to SK
-    SKClient skClient = new SKClient(runTime.getSkSvcURL(), runTime.getMetaToken());
+    SKClient skClient = new SKClient(runTime.getSkSvcURL(), runTime.getSeviceToken());
     
     //   map the request to permissions
-    String permissionsSpec = mapRequestToPermissions(requestContext);
+    String permissionsSpec = mapRequestToPermissions(requestContext,threadContext.getJwtTenantId());
     
     // is this request permitted
     boolean isPermitted = false;
@@ -64,26 +64,26 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // Is this a request with a Service token?
     if(threadContext.getAccountType() == TapisThreadContext.AccountType.service){
       isPermitted = serviceJWT(threadContext, skClient, permissionsSpec);
-    }
-    
-    // Is this a request with a User token?
-    if(threadContext.getAccountType() == TapisThreadContext.AccountType.user){
+    }else if(threadContext.getAccountType() == TapisThreadContext.AccountType.user){      // Is this a request with a User token?
       isPermitted = userJWT(threadContext, skClient, permissionsSpec);
     }
     
     if(!isPermitted){
+      String uri = requestContext.getUriInfo().getPath();
+          uri = (uri.equals("")) ? "root" : uri;
       StringBuilder msg = new StringBuilder()
-          .append("request for this uri path ")
+          .append("request for this uri path "+uri+" permissions spec ")
           .append(permissionsSpec)
           .append(" is NOT permitted.");
       
-      _log.debug(msg.toString());
+      _log.info(msg.toString());
       requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity(msg.toString()).build());
+      return;
     }
     
     //------------------------------  permitted to continue  ------------------------------
     StringBuilder msg = new StringBuilder()
-        .append("request for this uri path ")
+        .append("request for this uri permission spec ")
         .append(permissionsSpec)
         .append(" is permitted.");
     
@@ -114,6 +114,15 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // check skClient.isPermitted against the requested uri path
     try {
       // checking obo tenant and user
+      StringBuilder msg = new StringBuilder();
+      msg.append("Permissions check for Tenant ")
+         .append(threadContext.getOboTenantId())
+         .append(", User ")
+         .append(threadContext.getOboUser())
+         .append(" with permissions ")
+         .append(permissionsSpec+".");
+      
+      _log.debug(msg.toString());
       isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
     } catch (TapisClientException e) {
       // todo add log msg for exception
@@ -152,11 +161,17 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
   }
   
   
-  private String mapRequestToPermissions(ContainerRequestContext requestContext) {
+  /**
+   * Turn the request uri into a SK permissions spec to check authorization
+   * @param requestContext
+   * @return  the String representing a permissions spec for comparison
+   */
+  private String mapRequestToPermissions(ContainerRequestContext requestContext, String tenantId) {
     String requestMethod = requestContext.getMethod();
     String requestUri = requestContext.getUriInfo().getPath();
     // getting the tenant info
-    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(requestUri, "dev");
+    // TODO pull tenant info for checking permissions
+    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(requestUri, tenantId);
     String permSpec = mapper.convert(requestMethod);
     
     return permSpec;

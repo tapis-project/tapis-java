@@ -337,7 +337,7 @@ public final class UserImpl
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
             }
         
-        // Create the role.
+        // Assign the permission.
         int rows = 0;
         try {
             rows = rolePermDao.assignPermission(tenant, requestor, roleId, permSpec);
@@ -599,6 +599,188 @@ public final class UserImpl
         return authorized;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* grantAdminRole:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Grant the administrator role only if the caller is an administrator in
+     * the tenant.
+     * 
+     * @param tenant the tenant id
+     * @param requestor the admin making the request
+     * @param user the user being grant the admin role
+     * @return the number of rows changed
+     * @throws TapisImplException on error
+     * @throws TapisNotFoundException if the role is not found
+     */
+    public int grantAdminRole(String tenant, String requestor, String user) 
+      throws TapisImplException, TapisNotFoundException
+    {
+        // The tenant admin role.
+        final String roleName = ADMIN_ROLE_NAME;
+        
+        // Make sure the requestor is an admin.  Null checks are performed here.
+        boolean requesterAdmin = hasRole(tenant, requestor, new String[] {roleName}, 
+                                         AuthOperation.ALL);
+        if (!requesterAdmin) {
+            String msg = MsgUtils.getMsg("SK_REQUESTOR_NOT_ADMIN", tenant, requestor);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST); 
+        }
+        
+        // Call the internal use only method to complete the grant.
+        return grantAdminRoleInternal(tenant, requestor, user);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* grantAdminRoleInternal:                                                */
+    /* ---------------------------------------------------------------------- */
+    /** Grant the administrator role to the user without checking whether the
+     * requestor is also an administrator.  This method should only be used
+     * by SK code, never by clients.
+     * 
+     * @param tenant the tenant id
+     * @param requestor the caller's name
+     * @param user the user being grant the admin role
+     * @return the number of rows changed
+     * @throws TapisImplException on error
+     * @throws TapisNotFoundException if the role is not found
+     */
+    public int grantAdminRoleInternal(String tenant, String requestor, String user) 
+      throws TapisImplException, TapisNotFoundException
+    {
+        // The tenant admin role.
+        String desc = "Administrator role for tenant " + tenant;
+        return grantRoleInternal(tenant, requestor, user, ADMIN_ROLE_NAME, desc);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* grantRoleInternal:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Grant the any internal-use role to the user without checking whether the
+     * requestor is also an administrator.  This method should only be used
+     * by SK code, never by clients.
+     * 
+     * @param tenant the tenant id
+     * @param requestor the caller's name
+     * @param user the user being grant the role
+     * @param roleName the role to be created
+     * @param desc the role's description
+     * @return the number of rows changed
+     * @throws TapisImplException on error
+     * @throws TapisNotFoundException if the role is not found
+     */
+    public int grantRoleInternal(String tenant, String requestor, String user,
+                                 String roleName, String desc) 
+      throws TapisImplException, TapisNotFoundException
+    {
+        // Get the dao.
+        SkUserRoleDao userDao = null;
+        try {userDao = getSkUserRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
+                _log.error(msg, e);
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR); 
+            }
+        
+        // Create and assign the role.
+        boolean strict = false;
+        int rows = 0;
+        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc, strict);}
+            catch (Exception e) {
+                // Interpret all errors as client request problems.
+                throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);
+            }
+        
+        return rows;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* revokeAdminRole:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Only admins can revoke admin privileges.  This method will not remove
+     * the admin role from the last administrator.  The database calls made in
+     * this method are in separate transactions, but that shouldn't lead to 
+     * inconsistencies in practice.
+     * 
+     * @param tenant the tenant id
+     * @param requestor the admin that is removing the role from user
+     * @param user the user that will no longer be an admin
+     * @return the number of rows affected (0 or 1)
+     * @throws TapisImplException on error
+     * @throws TapisNotFoundException if the role is not found
+     */
+    public int revokeAdminRole(String tenant, String requestor, String user) 
+      throws TapisImplException, TapisNotFoundException
+    {
+        // Check inputs not checked by called routines.
+        if (StringUtils.isBlank(requestor)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeAdminRole", "requestor");            
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);            
+        }
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "revokeAdminRole", "user");            
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);            
+        }
+        
+        // The tenant admin role.
+        final String roleName = ADMIN_ROLE_NAME;
+        
+        // Get all the users with the admin role.  Exceptions already logged.
+        List<String> admins = getUsersWithRole(tenant, roleName);
+        
+        // Make sure the requestor is an admin.  Null checks are performed here.
+        if (!admins.contains(requestor)) {
+            String msg = MsgUtils.getMsg("SK_REQUESTOR_NOT_ADMIN", tenant, requestor);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST); 
+        }
+              
+        // There's nothing to do if the user is not an admin.
+        if (!admins.contains(user)) return 0;
+        
+        // Make sure we don't delete the last administrator (requestor could equal user).
+        if (admins.size() < 2) {
+            String msg = MsgUtils.getMsg("SK_REVOKE_LAST_ADMIN_ERROR", tenant, user);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST); 
+        }
+
+        // Get the role id.
+        int roleId = 0;
+        try {roleId = getRoleId(tenant, roleName);}
+            catch (TapisNotFoundException e) {
+                _log.error(e.getMessage());
+                throw e;
+            }
+            catch (Exception e) {
+                _log.error(e.getMessage());
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);            
+            }
+
+        // Get the dao.
+        SkUserRoleDao dao = null;
+        try {dao = getSkUserRoleDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+
+        // Assign the role to the user.
+        int rows = 0;
+        try {rows = dao.removeUserRole(tenant, user, roleId);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_REMOVE_USER_ROLE_ERROR",  
+                                             tenant, roleId, user, e.getMessage());
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);            
+            }
+        
+        return rows;
+    }
+    
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
@@ -689,8 +871,9 @@ public final class UserImpl
 
         // Create and assign the role.
         String desc = "Default role for user " + user;
+        boolean strict = true;
         int rows = 0;
-        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc);}
+        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc, strict);}
             catch (Exception e) {
                 // Interpret all errors as client request problems.
                 throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);

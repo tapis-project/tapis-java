@@ -1,17 +1,19 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="SystemsApplication" type="Application" factoryName="Application" nameIsGenerated="true">
     <envs>
-      <env name="TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS" value="true" />
-      <env name="TAPIS_ENVONLY_JWT_OPTIONAL" value="true" />
       <env name="TAPIS_REQUEST_LOGGING_FILTER_PREFIXES" value="/v3/systems" />
-      <env name="TAPIS_ENVONLY_SKIP_JWT_VERIFY" value="true" />
-      <env name="TAPIS_ENVONLY_KEYSTORE_PASSWORD" value="password" />
-      <env name="TAPIS_SVC_URL_TOKENS" value="https://dev.develop.tapis.io" />
-      <env name="TAPIS_SVC_URL_TENANTS" value="https://dev.develop.tapis.io" />
+      <env name="TAPIS_TENANT_SVC_BASEURL" value="https://master.develop.tapis.io" />
+      <env name="TAPIS_SERVICE_PASSWORD" value="" />
+      <env name="TAPIS_DB_JDBC_URL" value="jdbc:postgresql://localhost:5432/tapissysdb" />
+      <env name="TAPIS_DB_USER" value="tapis" />
+      <env name="TAPIS_DB_PASSWORD" value="" />
+      <env name="DEVTST_TAPIS_DB_JDBC_URL" value="jdbc:postgresql://c002.rodeo.tacc.utexas.edu:32258/tapissysdb" />
+      <env name="LOCAL_TAPIS_DB_JDBC_URL" value="jdbc:postgresql://localhost:5432/tapissysdb" />
     </envs>
     <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
     <option name="MAIN_CLASS_NAME" value="edu.utexas.tacc.tapis.systems.api.SystemsApplication" />
     <module name="tapis-systemsapi" />
+    <option name="VM_PARAMETERS" value="-Dp6spy.config.modulelist=" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="edu.utexas.tacc.tapis.systems.api.*" />

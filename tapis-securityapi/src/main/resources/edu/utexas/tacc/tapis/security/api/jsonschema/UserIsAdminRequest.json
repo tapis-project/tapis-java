@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/UserIsAdminRequest",
+    "description": "Top-level schema for a request to check if a user is a tenant administrator.",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "tenant",
+        "user"
+    ]
+}
+
+

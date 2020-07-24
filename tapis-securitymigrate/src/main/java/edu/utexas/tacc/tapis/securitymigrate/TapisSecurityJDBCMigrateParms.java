@@ -7,9 +7,9 @@ import java.nio.charset.Charset;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
-import edu.utexas.tacc.tapis.migrate.TapisJDBCMigrateParms;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
-import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;;
+import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;
+import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrateParms;;
 
 /** This is a simple container class for parsed input values. It overrides the
  * some of the values in the superclass

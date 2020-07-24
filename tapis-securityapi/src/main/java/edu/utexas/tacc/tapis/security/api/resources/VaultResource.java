@@ -38,6 +38,7 @@ import edu.utexas.tacc.tapis.security.api.responses.RespSecretList;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecretMeta;
 import edu.utexas.tacc.tapis.security.api.responses.RespSecretVersionMetadata;
 import edu.utexas.tacc.tapis.security.api.responses.RespVersions;
+import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecret;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
@@ -56,6 +57,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 /** Endpoints that communicate with Hashicorp Vault.
  * 
@@ -189,8 +191,21 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
+                           + ""
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret written.",
                       content = @Content(schema = @Schema(
@@ -246,11 +261,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -260,6 +270,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -347,8 +364,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -415,11 +444,6 @@ public final class VaultResource
          var secretMap = new HashMap<String,Object>();
          if (payload.data != null) secretMap.putAll(payload.data);
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -429,6 +453,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -502,8 +533,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -568,11 +611,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -582,6 +620,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -654,8 +699,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -719,11 +776,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -733,6 +785,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -805,8 +864,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -871,11 +942,6 @@ public final class VaultResource
          List<Integer> versions = 
              payload.versions != null ? payload.versions : new ArrayList<>(); 
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -885,6 +951,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -950,8 +1023,20 @@ public final class VaultResource
                          + "  - **jwtsigning** - *no query parameters*\n"
                          + "  - **user** - *no query parameters*\n"
                          + "  - **service** - *no query parameters*\n"
+                         + ""
+                         + "### Authorization\n"
+                         + ""
+                         + "Requestors are authorized based on the secret type specified in the "
+                         + "URL path.  The following authorizations are enforced:\n\n"
+                         + ""
+                         + "- system: limited to the systems service\n"
+                         + "- dbcred: any service\n"
+                         + "- jwtsigning: limited to the tokens service\n"
+                         + "- user: any user\n"
+                         + "- service: any service"
                          + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret read.",
                       content = @Content(schema = @Schema(
@@ -1003,11 +1088,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1017,6 +1097,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1082,8 +1169,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secrets listed.",
                       content = @Content(schema = @Schema(
@@ -1134,11 +1233,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1148,6 +1242,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1211,8 +1312,20 @@ public final class VaultResource
                            + "  - **jwtsigning** - *no query parameters*\n"
                            + "  - **user** - *no query parameters*\n"
                            + "  - **service** - *no query parameters*\n"
+                           + ""
+                           + "### Authorization\n"
+                           + ""
+                           + "Requestors are authorized based on the secret type specified in the "
+                           + "URL path.  The following authorizations are enforced:\n\n"
+                           + ""
+                           + "- system: limited to the systems service\n"
+                           + "- dbcred: any service\n"
+                           + "- jwtsigning: limited to the tokens service\n"
+                           + "- user: any user\n"
+                           + "- service: any service"
                            + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {@ApiResponse(responseCode = "200", description = "Secret completely removed.",
                       content = @Content(schema = @Schema(
@@ -1264,11 +1377,6 @@ public final class VaultResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
-         if (resp != null) return resp;
-         
          // ------------------------- Path Processing --------------------------
          // Null response means the secret type and its required parameters are present.
          SecretPathMapperParms secretPathParms;
@@ -1278,6 +1386,13 @@ public final class VaultResource
                  _log.error(e.getMessage(), e);
                  return getExceptionResponse(e, e.getMessage(), prettyPrint);
              }
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user, secretPathParms)
+                             .setCheckSecrets()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Issue the vault call.
@@ -1316,8 +1431,12 @@ public final class VaultResource
                            + "Secrets can be arranged hierarchically by using the \"+\" "
                            + "characters in the *secretName*.  These characters will be "
                            + "converted to slashes upon receipt, allowing secrets to be "
-                           + "arranged in folders.\n\n",
+                           + "arranged in folders.\n\n"
+                           + ""
+                           + "Only services can make this request."
+                           + "",
              tags = "vault",
+             security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
                      required = true,
@@ -1375,9 +1494,11 @@ public final class VaultResource
          // slashes.  This is typically handled in SecretPathMapperParms. 
          if (secretName != null) secretName = secretName.replace('+', '/');
          
-         // ------------------------- Check Tenant -----------------------------
-         // Null means the jwt tenant and user are validated.
-         Response resp = checkTenantUser(tenant, user, prettyPrint);
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setValidatePassword()
+                             .check(prettyPrint);
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------

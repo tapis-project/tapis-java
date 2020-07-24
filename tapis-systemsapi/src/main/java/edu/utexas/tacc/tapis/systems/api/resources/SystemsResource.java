@@ -1,6 +1,9 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.security.PermitAll;
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -15,8 +18,15 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
+import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
+import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
+import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,10 +44,16 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import org.jooq.tools.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @OpenAPIDefinition(
-    security = {@SecurityRequirement(name = "Tapis JWT")},
+    security = {@SecurityRequirement(name = "TapisJWT")},
     info = @Info(
         title = "Tapis Systems API",
         version = "0.1",
@@ -48,9 +64,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
         @Tag(name = "systems", description = "manage systems")
     },
     servers = {
-      @Server(url = "/v3/systems", description = "Base URL")
-//      @Server(url = "http://localhost:8080/v3/systems", description = "Local test environment")
-//      @Server(url = "https://dev.develop.tapis.io/v3", description = "Development environment")
+//      @Server(url = "v3/systems", description = "Base URL")
+      @Server(url = "http://localhost:8080/", description = "Local test environment"),
+      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
     },
     externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
 )
@@ -61,12 +77,14 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
   in= SecuritySchemeIn.HEADER,
   paramName="X-Tapis-Token"
 )
-@Path("/")
+@Path("/v3/systems")
 public class SystemsResource
 {
   /* **************************************************************************** */
   /*                                   Constants                                  */
   /* **************************************************************************** */
+  // Local logger.
+  private static final Logger _log = LoggerFactory.getLogger(SystemsResource.class);
 
   /* **************************************************************************** */
   /*                                    Fields                                    */
@@ -107,6 +125,23 @@ public class SystemsResource
   @Context
   private Request _request;
 
+  // Count the number of health check requests received.
+  private static final AtomicLong _healthCheckCount = new AtomicLong();
+
+  // Count the number of health check requests received.
+  private static final AtomicLong _readyCheckCount = new AtomicLong();
+
+  // Use CallSiteToggle to limit logging for readyCheck endpoint
+  private static final CallSiteToggle checkTenantsOK = new CallSiteToggle();
+  private static final CallSiteToggle checkJWTOK = new CallSiteToggle();
+  private static final CallSiteToggle checkDBOK = new CallSiteToggle();
+
+  // **************** Inject Services using HK2 ****************
+  @Inject
+  private SystemsServiceImpl svcImpl;
+  @Inject
+  private ServiceJWT serviceJWT;
+
   /* **************************************************************************** */
   /*                                Public Methods                                */
   /* **************************************************************************** */
@@ -132,8 +167,181 @@ public class SystemsResource
   )
   public Response healthCheck()
   {
-    RespBasic resp = new RespBasic("Healthcheck");
+    // Get the current check count.
+    long checkNum = _healthCheckCount.incrementAndGet();
+    RespBasic resp = new RespBasic("Health check received. Count: " + checkNum);
+
+    // Manually create a success response with git info included in version
+    resp.status = ResponseWrapper.RESPONSE_STATUS.success.name();
+    resp.message = MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service");
+    resp.version = TapisUtils.getTapisFullVersion();
+    String respStr = TapisGsonUtils.getGson().toJson(resp);
+    return Response.status(Status.OK).entity(respStr).build();
+  }
+
+  /**
+   * Lightweight non-authenticated ready check endpoint.
+   * Note that no JWT is required on this call and CallSiteToggle is used to limit logging.
+   * Based on similar method in tapis-securityapi.../SecurityResource
+   *
+   * For this service readiness means service can:
+   *    - retrieve tenants map
+   *    - get a service JWT
+   *    - connect to the DB and verify and that main service table exists
+   *
+   * It's intended as the endpoint that monitoring applications can use to check
+   * whether the application is ready to accept traffic.  In particular, kubernetes
+   * can use this endpoint as part of its pod readiness check.
+   *
+   * Note that no JWT is required on this call.
+   *
+   * A good synopsis of the difference between liveness and readiness checks:
+   *
+   * ---------
+   * The probes have different meaning with different results:
+   *
+   *    - failing liveness probes  -> restart pod
+   *    - failing readiness probes -> do not send traffic to that pod
+   *
+   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   * ---------
+   *
+   * @return a success response if all is ok
+   */
+  @GET
+  @Path("/readycheck")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
+  @Operation(
+          description = "Ready check.",
+          tags = "general",
+          responses =
+                  {@ApiResponse(responseCode = "200", description = "Service ready.",
+                          content = @Content(schema = @Schema(
+                                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                          @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+  )
+  public Response readyCheck()
+  {
+    // Get the current check count.
+    long checkNum = _readyCheckCount.incrementAndGet();
+
+    // Check that we can get tenants list
+    Exception readyCheckException = checkTenants();
+    if (readyCheckException != null)
+    {
+      RespBasic r = new RespBasic("Readiness tenants check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      // We failed so set the log limiter check.
+      // TODO/TBD Do we need to also check exception type? Info would get lost if exception type changes.
+      if (checkTenantsOK.toggleOff())
+      {
+        _log.warn(msg, readyCheckException);
+        _log.warn(ApiUtils.getMsg("SYSAPI_READYCHECK_TENANTS_ERRTOGGLE_SET"));
+      }
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+    else
+    {
+      // We succeeded so clear the log limiter check.
+      if (checkTenantsOK.toggleOn()) _log.info(ApiUtils.getMsg("SYSAPI_READYCHECK_TENANTS_ERRTOGGLE_CLEARED"));
+    }
+
+    // Check that we have a service JWT
+    readyCheckException = checkJWT();
+    if (readyCheckException != null)
+    {
+      RespBasic r = new RespBasic("Readiness JWT check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      // We failed so set the log limiter check.
+      // TODO/TBD Do we need to also check exception type? Info would get lost if exception type changes.
+      if (checkJWTOK.toggleOff())
+      {
+        _log.warn(msg, readyCheckException);
+        _log.warn(ApiUtils.getMsg("SYSAPI_READYCHECK_JWT_ERRTOGGLE_SET"));
+      }
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+    else
+    {
+      // We succeeded so clear the log limiter check.
+      if (checkJWTOK.toggleOn()) _log.info(ApiUtils.getMsg("SYSAPI_READYCHECK_JWT_ERRTOGGLE_CLEARED"));
+    }
+
+    // Check that we can connect to the DB
+    readyCheckException = checkDB();
+    if (readyCheckException != null)
+    {
+      RespBasic r = new RespBasic("Readiness DB check failed. Check number: " + checkNum);
+      String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Systems Service");
+      // We failed so set the log limiter check.
+      // TODO/TBD Do we need to also check exception type? Info would get lost if exception type changes.
+      if (checkDBOK.toggleOff())
+      {
+        _log.warn(msg, readyCheckException);
+        _log.warn(ApiUtils.getMsg("SYSAPI_READYCHECK_DB_ERRTOGGLE_SET"));
+      }
+      return Response.status(Status.SERVICE_UNAVAILABLE).entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+    }
+    else
+    {
+      // We succeeded so clear the log limiter check.
+      if (checkDBOK.toggleOn()) _log.info(ApiUtils.getMsg("SYSAPI_READYCHECK_DB_ERRTOGGLE_CLEARED"));
+    }
+
+    // ---------------------------- Success -------------------------------
+    // Create the response payload.
+    RespBasic resp = new RespBasic("Ready check passed. Count: " + checkNum);
     return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-      MsgUtils.getMsg("TAPIS_HEALTHY", "Systems Service"), false, resp)).build();
+            MsgUtils.getMsg("TAPIS_READY", "Systems Service"), false, resp)).build();
+  }
+
+  /* **************************************************************************** */
+  /*                                Private Methods                               */
+  /* **************************************************************************** */
+
+  /**
+   * Verify that we have a valid service JWT.
+   * @return null if OK, otherwise return an exception
+   */
+  private Exception checkJWT()
+  {
+    Exception result = null;
+    try {
+      String jwt = serviceJWT.getAccessJWT();
+      if (StringUtils.isBlank(jwt)) result = new TapisClientException(LibUtils.getMsg("SYSLIB_CHECKJWT_EMPTY"));
+    }
+    catch (Exception e) { result = e; }
+    return result;
+  }
+
+  /**
+   * Check the database
+   * @return null if OK, otherwise return an exception
+   */
+  private Exception checkDB()
+  {
+    Exception result = null;
+    try { result = svcImpl.checkDB(); }
+    catch (Exception e) { result = e; }
+    return result;
+  }
+
+  /**
+   * Retrieve the cached tenants map.
+   * @return null if OK, otherwise return an exception
+   */
+  private Exception checkTenants()
+  {
+    Exception result = null;
+    try
+    {
+      // Make sure the cached tenants map is not null or empty.
+      var tenantMap = TenantManager.getInstance().getTenants();
+      if (tenantMap == null || tenantMap.isEmpty()) result = new TapisClientException(LibUtils.getMsg("SYSLIB_CHECKTENANTS_EMPTY"));
+    }
+    catch (Exception e) { result = e; }
+    return result;
   }
 }

@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.security.commands.processors;
 
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -11,8 +12,10 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.security.commands.SkAdminParameters;
+import edu.utexas.tacc.tapis.security.commands.model.ISkAdminDeployRecorder;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminAbstractSecret;
 import edu.utexas.tacc.tapis.security.commands.model.SkAdminResults;
+import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -28,10 +31,16 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     // Default secret key names.  These are the names of the keys inside the
     // secret map used when writing secrets.  Applications will expect these
     // names upon retrieval.
-    public static final String DEFAULT_KEY_NAME = "password";
+    public static final String DEFAULT_KEY_NAME         = "password";
     public static final String DEFAULT_PRIVATE_KEY_NAME = "privateKey";
     public static final String DEFAULT_PUBLIC_KEY_NAME  = "publicKey";
     
+    // Map of url secret type text to secret type enum.
+    private static final HashMap<String,SecretType> _secretTypeMap = initSecretTypeMap();
+    
+    // We're only interested in the latest version of any secret.
+    protected static final Integer DEFAULT_SECRET_VERSION = 0;
+   
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -64,14 +73,14 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
      * @param parms
      * @throws TapisRuntimeException
      */
-    public SkAdminAbstractProcessor(List<T> secrets, SkAdminParameters parms)
+    protected SkAdminAbstractProcessor(List<T> secrets, SkAdminParameters parms)
     {
         // Assign inputs.
         _secrets = secrets;
         _parms = parms;
         
-        // Create a single static SK client.
-        initSkClient(parms);
+        // Create a single static SK client only if we are going through SK.
+        if (_parms.useSK()) initSkClient(parms);
     }
     
     /* ********************************************************************** */
@@ -100,15 +109,15 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     /* ---------------------------------------------------------------------- */
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
-    public void deploy()
+    public void deploy(ISkAdminDeployRecorder recorder)
     {
         // Is there work?
         if (_secrets == null || _secrets.isEmpty()) return;
-        for (var secret : _secrets) if (!secret.failed) deploy(secret);
+        for (var secret : _secrets) if (!secret.failed) deploy(secret, recorder);
     }    
     
     /* ---------------------------------------------------------------------- */
-    /* disconnect:                                                            */
+    /* close:                                                                 */
     /* ---------------------------------------------------------------------- */
     public void close()
     {
@@ -131,7 +140,27 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
     /* ---------------------------------------------------------------------- */
     /* deploy:                                                                */
     /* ---------------------------------------------------------------------- */
-    protected abstract void deploy(T secret);
+    protected abstract void deploy(T secret, ISkAdminDeployRecorder recorder);
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeFailureMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    protected abstract String makeFailureMessage(Op op, T secret, String errorMsg);
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    protected abstract String makeSkippedMessage(Op op, T secret);
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSuccessMessage:                                                    */
+    /* ---------------------------------------------------------------------- */
+    protected abstract String makeSuccessMessage(Op op, T secret);
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSkippedDeployMessage:                                              */
+    /* ---------------------------------------------------------------------- */
+    protected abstract String makeSkippedDeployMessage(T secret);
     
     /* ********************************************************************** */
     /*                           Private Methods                              */
@@ -211,5 +240,22 @@ public abstract class SkAdminAbstractProcessor<T extends SkAdminAbstractSecret>
         // Set the headers.
         skClient.addDefaultHeader("X-Tapis-Tenant", tenant);
         skClient.addDefaultHeader("X-Tapis-User", user);
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* initSecretTypeMap:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Initialize a map with key secret type url text and value SecretType enumeration. 
+     * 
+     * @return the map of text to enum
+     */
+    private static HashMap<String,SecretType> initSecretTypeMap()
+    {
+        // Get a map of secret type text to secret type enum. The secret
+        // type text is what should appear in url paths.
+        SecretType[] types = SecretType.values();
+        var map = new HashMap<String,SecretType>(1 + types.length * 2);
+        for (int i = 0; i < types.length; i++) map.put(types[i].getUrlText(), types[i]);
+        return map;
     }
 }

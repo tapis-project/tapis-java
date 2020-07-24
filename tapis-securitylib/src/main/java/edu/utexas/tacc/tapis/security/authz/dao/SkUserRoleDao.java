@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
+import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -476,12 +477,12 @@ public final class SkUserRoleDao
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
       if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "tenant");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoleIdsAndNames", "tenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoles", "user");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getUserRoleIdsAndNames", "user");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -845,11 +846,13 @@ public final class SkUserRoleDao
    * @param requestor the role grantor
    * @param user the grantee
    * @param roleName the role name to be created.
+   * @param description the role's description
+   * @param strict true means fail if role already exists, false is idempotent
    * @return the number of changed db records
    * @throws TapisImplException on error
    */
   public int createAndAssignRole(String tenant, String requestor, String user, 
-                                 String roleName, String description)
+                                 String roleName, String description, boolean strict)
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -890,7 +893,12 @@ public final class SkUserRoleDao
 
           // -------------- 1. Create Role
           // Set the sql command.
-          String sql = SqlStatements.ROLE_INSERT_STRICT;
+          String sql;
+          if (strict) sql = SqlStatements.ROLE_INSERT_STRICT;
+            else sql = SqlStatements.ROLE_INSERT;
+          
+          // Assign the owner to be the reserved sk user when creating a user default role.
+          String owner = roleName.startsWith(SkConstants.USER_DEFAULT_ROLE_PREFIX) ? SkConstants.SK_USER : requestor;
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -899,8 +907,10 @@ public final class SkUserRoleDao
           pstmt.setString(3, description);
           pstmt.setString(4, requestor);
           pstmt.setString(5, requestor);
+          pstmt.setString(6, owner);
 
-          // Issue the call which will fail if the role already exists.
+          // Issue the call which will fail if the role already exists
+          // and strict is set.
           rows = pstmt.executeUpdate();
           
           // Close the statement.
@@ -933,7 +943,8 @@ public final class SkUserRoleDao
           
           // -------------- 3. Grant User Role
           // Set the sql command.
-          sql = SqlStatements.USER_ADD_ROLE_BY_ID_STRICT;
+          if (strict) sql = SqlStatements.USER_ADD_ROLE_BY_ID_STRICT;
+            else sql = SqlStatements.USER_ADD_ROLE_BY_ID_NOT_STRICT;
 
           // Prepare the statement and fill in the placeholders.
           pstmt = conn.prepareStatement(sql);
@@ -943,7 +954,8 @@ public final class SkUserRoleDao
           pstmt.setString(4, requestor);
           pstmt.setString(5, requestor);
 
-          // Issue the call which will fail if the user already has the role.
+          // Issue the call which will fail if the user already has the role
+          // and strict is set.
           rows += pstmt.executeUpdate();
 
           // Close the statement.

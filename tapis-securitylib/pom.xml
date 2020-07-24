@@ -56,6 +56,14 @@
             <groupId>edu.utexas.tacc.tapis</groupId>
             <artifactId>tapis-vault-java-driver</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kubernetes</groupId>
+            <artifactId>client-java</artifactId>
+        </dependency>        
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
 	</dependencies>
 	
     <build>

@@ -1,22 +1,5 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
-import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
-import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
-import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
-import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
-import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
-import edu.utexas.tacc.tapis.systems.service.SystemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,6 +33,24 @@ import javax.ws.rs.core.UriInfo;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
+import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
+import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
+import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
+import edu.utexas.tacc.tapis.systems.model.Credential;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.service.SystemsService;
+
 /*
  * JAX-RS REST resource for Tapis System credentials
  * Contains annotations which generate the OpenAPI specification documents.
@@ -57,7 +58,7 @@ import java.nio.charset.StandardCharsets;
  * Secrets are stored in the Security Kernel
  *
  */
-@Path("/credential")
+@Path("/v3/systems/credential")
 public class CredentialResource
 {
   // ************************************************************************
@@ -126,7 +127,6 @@ public class CredentialResource
 
   /**
    * Store or update credential for given system and user.
-   * @param prettyPrint - pretty print the output
    * @param payloadStream - request body
    * @return basic response
    */
@@ -159,7 +159,6 @@ public class CredentialResource
   )
   public Response createUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
-                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                        InputStream payloadStream,
                                        @Context SecurityContext securityContext)
   {
@@ -174,6 +173,7 @@ public class CredentialResource
 
     // ------------------------- Retrieve and validate thread context -------------------------
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
     // Check that we have all we need from the context, tenant name and apiUserId
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
@@ -208,9 +208,8 @@ public class CredentialResource
     }
 
     // Populate credential from payload
-    Credential credential;
     ReqCreateCredential req = TapisGsonUtils.getGson().fromJson(json, ReqCreateCredential.class);
-    credential = req.credential;
+    Credential credential = new Credential(req.password, req.privateKey, req.publicKey, req.accessKey, req.accessSecret, req.certificate);
 
     // If one of PKI keys is missing then reject
     resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
@@ -221,11 +220,15 @@ public class CredentialResource
                                  credential.getAccessKey(), credential.getAccessSecret());
     if (resp != null) return resp;
 
+    // Create json with secrets masked out. This is recorded by the service as part of the update record.
+    Credential maskedCredential = Credential.createMaskedCredential(credential);
+    String updateJsonStr = TapisGsonUtils.getGson().toJson(maskedCredential);
+
     // ------------------------- Perform the operation -------------------------
     // Make the service call to create or update the credential
     try
     {
-      systemsService.createUserCredential(authenticatedUser, systemName, userName, credential);
+      systemsService.createUserCredential(authenticatedUser, systemName, userName, credential, updateJsonStr);
     }
     catch (Exception e)
     {
@@ -245,7 +248,6 @@ public class CredentialResource
   /**
    * getUserCredential
    * @param accessMethodStr - access method to use instead of default
-   * @param prettyPrint - pretty print the output
    * @return Response
    */
   @GET
@@ -273,11 +275,11 @@ public class CredentialResource
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
-                                    @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                     @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
@@ -338,7 +340,6 @@ public class CredentialResource
 
   /**
    * Remove credential for given system and user.
-   * @param prettyPrint - pretty print the output
    * @return basic response
    */
   @DELETE
@@ -363,11 +364,11 @@ public class CredentialResource
   )
   public Response removeUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
-                                       @QueryParam("pretty") @DefaultValue("false") boolean prettyPrint,
                                        @Context SecurityContext securityContext)
   {
     String msg;
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
 
     // Trace this request.
     if (_log.isTraceEnabled())
