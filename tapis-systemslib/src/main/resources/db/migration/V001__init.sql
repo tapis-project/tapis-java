@@ -116,6 +116,7 @@ CREATE TABLE system_updates
     id SERIAL PRIMARY KEY,
     system_id SERIAL REFERENCES systems(id) ON DELETE CASCADE,
     user_name VARCHAR(60) NOT NULL,
+    user_tenant VARCHAR(24) NOT NULL,
     operation operation_type NOT NULL,
     upd_json JSONB NOT NULL,
     upd_text VARCHAR,
@@ -124,7 +125,8 @@ CREATE TABLE system_updates
 ALTER TABLE system_updates OWNER TO tapis;
 COMMENT ON COLUMN system_updates.id IS 'System update request id';
 COMMENT ON COLUMN system_updates.system_id IS 'Id of system being updated';
-COMMENT ON COLUMN system_updates.user_name IS 'User who requested the update';
+COMMENT ON COLUMN system_updates.user_name IS 'Name of user who requested the update';
+COMMENT ON COLUMN system_updates.user_tenant IS 'Tenant of user who requested the update';
 COMMENT ON COLUMN system_updates.operation IS 'Type of update operation';
 COMMENT ON COLUMN system_updates.upd_json IS 'JSON representing the update - with secrets scrubbed';
 COMMENT ON COLUMN system_updates.upd_text IS 'Text data supplied by client - secrets should be scrubbed';

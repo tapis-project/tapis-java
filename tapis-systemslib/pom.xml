@@ -18,6 +18,8 @@
   <properties>
     <db.url>jdbc:postgresql://localhost:5432/tapissysdb</db.url>
     <db.username>tapis</db.username>
+    <db.password>password</db.password>
+    <db.schema>tapis_sys</db.schema>
   </properties>
 
   <dependencies>
@@ -139,8 +141,15 @@
 
   <profiles>
   <!-- Profile to conditionally run flyway DB migration and jooq code generation -->
-  <!-- To be used when DB schema is updated -->
+  <!-- To be used when DB schema is updated                                  -->
   <!-- When DB schema changes need to re-run flyway and jOOQ code generation -->
+  <!--   To run check that db.password property is set correctly.            -->
+  <!--   Then unless flyway will be making the updates make sure the DB at   -->
+  <!--     db.url has the correct schema. May need to drop the current       -->
+  <!--     the schema if flyway is still on V001__init.sql                   -->
+  <!-- Finally run:                                                          -->
+  <!--   cd tapis-systemslib                                                 -->
+  <!--   mvn clean install -Pdb-update                                       -->
   <profile>
     <id>db-update</id>
     <build>
@@ -158,6 +167,10 @@
       <configuration>
         <url>${db.url}</url>
         <user>${db.username}</user>
+        <password>${db.password}</password>
+        <schemas>
+          <schema>${db.schema}</schema>
+        </schemas>
         <locations>
           <location>filesystem:src/main/resources/db/migration</location>
         </locations>
@@ -177,7 +190,7 @@
               <driver>org.postgresql.Driver</driver>
               <url>${db.url}</url>
               <user>${db.username}</user>
-              <password>password</password>
+              <password>${db.password}</password>
             </jdbc>
             <generator>
               <name>org.jooq.codegen.JavaGenerator</name>

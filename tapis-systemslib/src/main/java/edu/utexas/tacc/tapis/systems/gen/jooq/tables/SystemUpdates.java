@@ -21,7 +21,7 @@ import org.jooq.ForeignKey;
 import org.jooq.Identity;
 import org.jooq.Name;
 import org.jooq.Record;
-import org.jooq.Row7;
+import org.jooq.Row8;
 import org.jooq.Schema;
 import org.jooq.Table;
 import org.jooq.TableField;
@@ -37,7 +37,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
 
-    private static final long serialVersionUID = -1173929654;
+    private static final long serialVersionUID = 861314102;
 
     /**
      * The reference instance of <code>tapis_sys.system_updates</code>
@@ -63,9 +63,14 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
     public final TableField<SystemUpdatesRecord, Integer> SYSTEM_ID = createField(DSL.name("system_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('system_updates_system_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "Id of system being updated");
 
     /**
-     * The column <code>tapis_sys.system_updates.user_name</code>. User who requested the update
+     * The column <code>tapis_sys.system_updates.user_name</code>. Name of user who requested the update
      */
-    public final TableField<SystemUpdatesRecord, String> USER_NAME = createField(DSL.name("user_name"), org.jooq.impl.SQLDataType.VARCHAR(60).nullable(false), this, "User who requested the update");
+    public final TableField<SystemUpdatesRecord, String> USER_NAME = createField(DSL.name("user_name"), org.jooq.impl.SQLDataType.VARCHAR(60).nullable(false), this, "Name of user who requested the update");
+
+    /**
+     * The column <code>tapis_sys.system_updates.user_tenant</code>. Tenant of user who requested the update
+     */
+    public final TableField<SystemUpdatesRecord, String> USER_TENANT = createField(DSL.name("user_tenant"), org.jooq.impl.SQLDataType.VARCHAR(24).nullable(false), this, "Tenant of user who requested the update");
 
     /**
      * The column <code>tapis_sys.system_updates.operation</code>. Type of update operation
@@ -176,11 +181,11 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
     }
 
     // -------------------------------------------------------------------------
-    // Row7 type methods
+    // Row8 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row7<Integer, Integer, String, SystemOperation, JsonElement, String, LocalDateTime> fieldsRow() {
-        return (Row7) super.fieldsRow();
+    public Row8<Integer, Integer, String, String, SystemOperation, JsonElement, String, LocalDateTime> fieldsRow() {
+        return (Row8) super.fieldsRow();
     }
 }
