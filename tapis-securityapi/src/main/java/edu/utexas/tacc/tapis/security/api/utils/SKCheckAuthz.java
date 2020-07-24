@@ -451,20 +451,48 @@ public final class SKCheckAuthz
         // Start optimistically.
         boolean authorized = true;
         try {
+        	// This block checks the role owner identity, which add a 4th identity
+        	// to the usual 3: jwt, req, obo.
             var roleImpl = RoleImpl.getInstance();
             for (String roleName : _ownedRoles) {
-                // The request and role tenants are guaranteed to be the same.
-                // We expect the request user to own the role or the obo user
-                // to own it on service jwts.
+                // The request and role tenants are guaranteed to be the same
+            	// because we use the request tenant in the retrieval.
                 var skRole = roleImpl.getRoleByName(_reqTenant, roleName);
-                if (skRole == null || !_reqUser.equals(skRole.getOwner()) ||
-                    !(_threadContext.getAccountType() == AccountType.service &&
-                      _threadContext.getOboUser().equals(skRole.getOwner()))) 
-                {
-                    // The role doesn't exist, the request user is not its owner
-                    // or the obo user is not the owner.
-                    authorized = false;
-                    break;
+                
+                // Bad news.
+                if (skRole == null) {authorized = false; break;}
+                
+                // User jwt case.  Make sure the user identified in the JWT
+                // is owner of the role.
+                if (_threadContext.getAccountType() == AccountType.user) {
+                	if (!_threadContext.getJwtUser().equals(skRole.getOwner())) {
+                		authorized = false; break;
+                	}
+                } 
+                
+                // Service jwt case. Either one of two conditions must be true
+                // for the check to pass.
+                //
+                // Condition 1 checks that the user on behalf of whom this
+                // request is being made (the obo user) is the owner of the role.
+                // We already know the request and obo tenants are the same, so
+                // by transitivity we know the obo tenant and role tenant are the
+                // same.
+                //
+                // Condition 2 checks that the jwt user@tenant matches the 
+                // role's user@tenant.
+                //
+                // If neither of these conditions holds then the request will be
+                // rejected as unauthorized.
+                if (_threadContext.getAccountType() == AccountType.service) {
+                	if (!(_threadContext.getOboUser().equals(skRole.getOwner()))
+                		  &&
+                		!(_threadContext.getJwtUser().equals(skRole.getOwner()) &&
+                          _threadContext.getJwtTenantId().equals(skRole.getTenant()))
+                	     )		
+                	{
+                		authorized = false; break;
+                	}
                 }
             }
         } catch (Exception e) {
@@ -476,7 +504,7 @@ public final class SKCheckAuthz
         }
         
         // We want to further check that the request tenant and user match those
-        // in the jwt or the obo headers (on service tokens).  Only one of the
+        // in the jwt or in the obo headers (on service tokens).  Only one of the
         // two checks must pass, so we provisionally fail the first check.
         if (authorized) {
         	authorized = checkMatchesJwtIdentity(true) || checkMatchesOBOIdentity();
