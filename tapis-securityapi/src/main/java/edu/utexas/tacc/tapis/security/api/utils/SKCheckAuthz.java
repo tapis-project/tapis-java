@@ -503,13 +503,17 @@ public final class SKCheckAuthz
             authorized = false;
         }
         
-        // We want to further check that the request tenant and user match those
-        // in the jwt or in the obo headers (on service tokens).  Only one of the
-        // two checks must pass, so we provisionally fail the first check.
-        if (authorized) {
-        	authorized = checkMatchesJwtIdentity(true) || checkMatchesOBOIdentity();
-        	if (!authorized) reportProvisionalFailures();
-        }
+        // We recognize that any service could grant a role to any user by simply
+        // performing the following:
+        //
+        //  1. Querying the role to learn its owner.
+        //  2. Set the obo user to equal the role owner.
+        //  3. Set the request user@tenant to be any user, including the service itself.
+        //  4. Issue the grantRole call.
+        //
+        // A rogue or faulty service could grant any role to any user in a
+        // tenant, including the tenant admin role.  The calling method should
+        // prevent the granting of the tenant admin role.
         
         // What happened?
         if (authorized) return true;
