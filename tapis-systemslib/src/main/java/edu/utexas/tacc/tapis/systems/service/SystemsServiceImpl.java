@@ -187,20 +187,24 @@ public class SystemsServiceImpl implements SystemsService
     String systemsPermSpecR = getPermSpecStr(systemTenantName, systemName, Permission.READ);
     String systemsPermSpecALL = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
     String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
+
     // Get SK client now. If we cannot get this rollback not needed.
     var skClient = getSKClient(authenticatedUser);
     try {
       // ------------------- Make Dao call to persist the system -----------------------------------
       itemId = dao.createTSystem(authenticatedUser, system, createJsonStr, scrubbedText);
 
-      // Add permission roles for the system
+      // Add permission roles for the system. This is only used for filtering systems based on who is authz
+      //   to READ, so no other roles needed.
       roleNameR = TSystem.ROLE_READ_PREFIX + itemId;
-      skClient.createRole(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
-      skClient.addRolePermission(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
+      // TODO/TBD: Currently system owner owns the role. Plan is to have systems service own the role
+      //           This will need coordinated changes with SK
+      //   might need to munge system tenant into the role name (?)
+      skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
+      skClient.addRolePermission(systemTenantName, system.getOwner(), roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
-      // Give owner and possibly effectiveUser access to the system
-      // TODO/TBD: Use user perm in default role OR just roleR, roleM OR are both useful?
+      // Give owner and possibly effectiveUser full access to the system
       skClient.grantUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL);
       skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameR);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
@@ -243,7 +247,7 @@ public class SystemsServiceImpl implements SystemsService
       if (!StringUtils.isBlank(roleNameR)) {
         try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
         try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
+        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
       }
       // Remove creds
       if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
@@ -814,7 +818,7 @@ public class SystemsServiceImpl implements SystemsService
     // Assign perms and roles to user.
     try
     {
-      // Grant permission roles as appropriate, RoleR, RoleM
+      // Grant permission roles as appropriate, RoleR
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
       for (Permission perm : permissions)
       {
@@ -892,7 +896,7 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Use try/catch to rollback in case of failure.
 
     try {
-      // Revoke permission roles as appropriate, RoleR, RoleM
+      // Revoke permission roles as appropriate, RoleR
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
       for (Permission perm : permissions) {
         if (perm.equals(Permission.READ)) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
@@ -1191,24 +1195,24 @@ public class SystemsServiceImpl implements SystemsService
    */
   private SKClient getSKClient(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    String tenantName = authenticatedUser.getTenantId();
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
-    Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
+    Tenant userTenant = TenantManager.getInstance().getTenant(authenticatedUser.getTenantId());
 
     // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence.
     //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = RuntimeParameters.getInstance().getSkSvcURL();
-    if (StringUtils.isBlank(skURL)) skURL = tenant.getSecurityKernel();
+    if (StringUtils.isBlank(skURL)) skURL = userTenant.getSecurityKernel();
     if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CREATE_SK_URL_ERROR", authenticatedUser));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
-    skClient.setBasePath(skURL);
 
+    skClient.setBasePath(skURL);
     skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT());
-    // For service jwt pass along boTenant and oboUser in headers
-    // For user jwt use master tenant name and service name in headers
+
+    // For service jwt pass along oboTenant and oboUser in OBO headers
+    // For user jwt use authenticated user name and tenant in OBO headers
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
     {
       skClient.addDefaultHeader(HDR_TAPIS_TENANT, authenticatedUser.getOboTenantId());
@@ -1216,8 +1220,8 @@ public class SystemsServiceImpl implements SystemsService
     }
     else
     {
-      skClient.addDefaultHeader(HDR_TAPIS_TENANT, serviceJWT.getTenant());
-      skClient.addDefaultHeader(HDR_TAPIS_USER, serviceJWT.getServiceName());
+      skClient.addDefaultHeader(HDR_TAPIS_TENANT, authenticatedUser.getTenantId());
+      skClient.addDefaultHeader(HDR_TAPIS_USER, authenticatedUser.getName());
     }
     return skClient;
   }
@@ -1474,7 +1478,7 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Use sk isAdmin method ot require that user have the tenant admin role
 //    var skClient = getSKClient(authenticatedUser);
 //    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
-    if (authenticatedUser.getName().contains("SystemsAdmin")) return true;
+    if (authenticatedUser.getName().contains("SystemsAdmin") || authenticatedUser.getName().contains("admin")) return true;
     else return false;
   }
 

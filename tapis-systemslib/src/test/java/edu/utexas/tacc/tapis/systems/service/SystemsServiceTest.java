@@ -57,7 +57,8 @@ public class SystemsServiceTest
   // Test data
   private static final String tenantName = "dev";
   private static final String ownerUser = "owner1";
-  private static final String adminUser = "testSystemsAdminUsr";
+  // TODO: Currently admin user for a tenant is hard coded to be 'admin'
+  private static final String adminUser = "admin";
   private static final String masterTenantName = "master";
   private static final String filesSvcName = "files";
   private static final String testUser0 = "testuser0";
