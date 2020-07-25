@@ -470,19 +470,9 @@ public final class UserResource
                              .setCheckIsAdmin()
                              .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
+                             .setPreventAdminRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
-         
-         // Blacklist certain administrative roles.  We call this after the normal authz
-         // checking so that we know we have a validated threadlocal.
-         if (SkConstants.ADMIN_ROLE_NAME.equals(roleName)) {
-        	 var jwtTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
-        	 var jwtUser = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
-             String msg = MsgUtils.getMsg("SK_TENANT_GRANT_ADMIN_ERROR", jwtTenant, jwtUser);
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-            		 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
@@ -583,19 +573,9 @@ public final class UserResource
                              .setCheckIsAdmin()
                              .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
+                             .setPreventAdminRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
-         
-         // Blacklist certain administrative roles.  We call this after the normal authz
-         // checking so that we know we have a validated threadlocal.
-         if (SkConstants.ADMIN_ROLE_NAME.equals(roleName)) {
-        	 var jwtTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
-        	 var jwtUser = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
-             String msg = MsgUtils.getMsg("SK_TENANT_REVOKE_ADMIN_ERROR", jwtTenant, jwtUser);
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-            		 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
          
          // ------------------------ Request Processing ------------------------
          // Remove the role from the user.
@@ -1229,19 +1209,9 @@ public final class UserResource
                              .setCheckIsAdmin()
                              .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
+                             .setPreventAdminRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
-         
-         // Blacklist certain administrative roles.  We call this after the normal authz
-         // checking so that we know we have a validated threadlocal.
-         if (SkConstants.ADMIN_ROLE_NAME.equals(roleName)) {
-        	 var jwtTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
-        	 var jwtUser = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
-             String msg = MsgUtils.getMsg("SK_TENANT_GRANT_ADMIN_ERROR", jwtTenant, jwtUser);
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-            		 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
          
          // ------------------------ Request Processing ------------------------        
          // The requestor will always be non-null after the above check. 

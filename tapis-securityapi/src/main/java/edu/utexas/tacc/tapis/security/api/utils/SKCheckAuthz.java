@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
+import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
 import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -58,6 +59,10 @@ public final class SKCheckAuthz
     // Roles that the jwt user@tenant has some level of access.
     private ArrayList<String> _requiredRoles;
     private ArrayList<String> _ownedRoles;
+    
+    // Prevention switches.
+    private boolean _preventAdminRole;
+    private String  _preventAdminRoleName;
 
     /* **************************************************************************** */
     /*                                Constructors                                  */
@@ -111,6 +116,14 @@ public final class SKCheckAuthz
         return this;
     }
     
+    // Prevention switches.
+    public SKCheckAuthz setPreventAdminRole(String roleName) 
+    {
+    	_preventAdminRole = true; 
+    	_preventAdminRoleName = roleName;
+    	return this;
+    }
+    
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
@@ -131,15 +144,17 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     /* check:                                                                       */
     /* ---------------------------------------------------------------------------- */
-    /** Return the jaxrs response if an authorization check failed.
+    /** Return the jaxrs response if an authorization check failed.  This method 
+     * should be called before prevent() so that basic validation occurs.
      * 
      * @return null for authorized, a response object for failed authorization
      */
     public Response check(boolean prettyPrint)
     {
         // Perform the actual checks.
-        String emsg = checkMsg();
-        if (emsg == null) return null;
+        String emsg = checkMsg();              // At least 1 check must succeed.
+        if (emsg == null) emsg = preventMsg(); // All checks must succeed.
+        if (emsg == null) return null;         // Success.
         
         // Determine the http failure code.
         Status status;
@@ -190,6 +205,26 @@ public final class SKCheckAuthz
         
         // Returns a non-null error message only if at least one check failed.
         return makeFailureMessage();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* preventMsg:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Run the enabled prevention routines.  A failure of any one of them causes
+     * the request to be aborted.
+     * 
+     * @return null if there are no problems, otherwise return an error message.
+     */
+    public String preventMsg()
+    {
+    	// All enabled prevention routines must succeed for overall success. 
+    	if (_preventAdminRole) {
+    		String errorMsg = preventAdminRole();
+    		if (errorMsg != null) return errorMsg;
+    	}
+    	
+    	// No problems found.
+    	return null;
     }
     
     /* **************************************************************************** */
@@ -711,6 +746,27 @@ public final class SKCheckAuthz
      * failures we checking for a non-empty _failedChecks list.
      */
     private void reportProvisionalFailures() {_failedChecks.addAll(_provisionalFailedChecks);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* preventAdminRole:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Prevent the tenant admin role from being specified on certain APIs.
+     * 
+     * @return null if ok, an error message if the check fails
+     */
+    private String preventAdminRole()
+    {
+        // Blacklist certain administrative roles.  We call this after the normal authz
+        // checking so that we know we have a validated threadlocal.
+        if (SkConstants.ADMIN_ROLE_NAME.equals(_preventAdminRoleName)) {
+            return MsgUtils.getMsg("SK_TENANT_ADMIN_ROLE_ERROR", 
+            		               _threadContext.getJwtTenantId(), 
+            		               _threadContext.getJwtUser());
+        }
+        
+    	// No problem.
+    	return null;
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* makeFailureMessage:                                                          */
