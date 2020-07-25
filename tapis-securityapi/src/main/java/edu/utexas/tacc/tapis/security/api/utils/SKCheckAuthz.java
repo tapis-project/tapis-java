@@ -168,6 +168,9 @@ public final class SKCheckAuthz
           entity(TapisRestUtils.createErrorResponse(emsg, prettyPrint)).build();
     }
     
+    /* **************************************************************************** */
+    /*                               Private Methods                                */
+    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* checkMsg:                                                                    */
     /* ---------------------------------------------------------------------------- */
@@ -181,7 +184,7 @@ public final class SKCheckAuthz
      * 
      * @return null if authorization matches, otherwise return an error message.
      */
-    public String checkMsg()
+    private String checkMsg()
     {
         // Validate the thread context and allowable tenant on service tokens.
         // Request tenant null check performed in called method.
@@ -215,7 +218,7 @@ public final class SKCheckAuthz
      * 
      * @return null if there are no problems, otherwise return an error message.
      */
-    public String preventMsg()
+    private String preventMsg()
     {
     	// All enabled prevention routines must succeed for overall success. 
     	if (_preventAdminRole) {
@@ -227,9 +230,6 @@ public final class SKCheckAuthz
     	return null;
     }
     
-    /* **************************************************************************** */
-    /*                               Private Methods                                */
-    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* validateRequestTenantContext:                                                */
     /* ---------------------------------------------------------------------------- */
