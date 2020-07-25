@@ -5,9 +5,11 @@ package edu.utexas.tacc.tapis.systems.gen.jooq;
 
 
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Capabilities;
+import edu.utexas.tacc.tapis.systems.gen.jooq.tables.FlywaySchemaHistory;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.SystemUpdates;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Systems;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.CapabilitiesRecord;
+import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.FlywaySchemaHistoryRecord;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemUpdatesRecord;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
 
@@ -39,6 +41,7 @@ public class Keys {
 
     public static final UniqueKey<CapabilitiesRecord> CAPABILITIES_PKEY = UniqueKeys0.CAPABILITIES_PKEY;
     public static final UniqueKey<CapabilitiesRecord> CAPABILITIES_SYSTEM_ID_CATEGORY_NAME_KEY = UniqueKeys0.CAPABILITIES_SYSTEM_ID_CATEGORY_NAME_KEY;
+    public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = UniqueKeys0.FLYWAY_SCHEMA_HISTORY_PK;
     public static final UniqueKey<SystemUpdatesRecord> SYSTEM_UPDATES_PKEY = UniqueKeys0.SYSTEM_UPDATES_PKEY;
     public static final UniqueKey<SystemsRecord> SYSTEMS_PKEY = UniqueKeys0.SYSTEMS_PKEY;
     public static final UniqueKey<SystemsRecord> SYSTEMS_TENANT_NAME_KEY = UniqueKeys0.SYSTEMS_TENANT_NAME_KEY;
@@ -63,6 +66,7 @@ public class Keys {
     private static class UniqueKeys0 {
         public static final UniqueKey<CapabilitiesRecord> CAPABILITIES_PKEY = Internal.createUniqueKey(Capabilities.CAPABILITIES, "capabilities_pkey", new TableField[] { Capabilities.CAPABILITIES.ID }, true);
         public static final UniqueKey<CapabilitiesRecord> CAPABILITIES_SYSTEM_ID_CATEGORY_NAME_KEY = Internal.createUniqueKey(Capabilities.CAPABILITIES, "capabilities_system_id_category_name_key", new TableField[] { Capabilities.CAPABILITIES.SYSTEM_ID, Capabilities.CAPABILITIES.CATEGORY, Capabilities.CAPABILITIES.NAME }, true);
+        public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, "flyway_schema_history_pk", new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
         public static final UniqueKey<SystemUpdatesRecord> SYSTEM_UPDATES_PKEY = Internal.createUniqueKey(SystemUpdates.SYSTEM_UPDATES, "system_updates_pkey", new TableField[] { SystemUpdates.SYSTEM_UPDATES.ID }, true);
         public static final UniqueKey<SystemsRecord> SYSTEMS_PKEY = Internal.createUniqueKey(Systems.SYSTEMS, "systems_pkey", new TableField[] { Systems.SYSTEMS.ID }, true);
         public static final UniqueKey<SystemsRecord> SYSTEMS_TENANT_NAME_KEY = Internal.createUniqueKey(Systems.SYSTEMS, "systems_tenant_name_key", new TableField[] { Systems.SYSTEMS.TENANT, Systems.SYSTEMS.NAME }, true);

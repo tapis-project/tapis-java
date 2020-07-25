@@ -1,7 +1,7 @@
 {
   "$id": "http://tapis.tacc.utexas.edu/PermsRequest",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Schema for a permissions request - grant or revoke",
+  "description": "Schema for a request to grant or revoke permissions",
   "additionalProperties": false,
 
   "type": "object",

@@ -811,7 +811,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     // Persist update record
     db.insertInto(SYSTEM_UPDATES)
             .set(SYSTEM_UPDATES.SYSTEM_ID, systemId)
-            .set(SYSTEM_UPDATES.USER_NAME, authenticatedUser.getName())
+            .set(SYSTEM_UPDATES.USER_NAME, authenticatedUser.getOboUser())
+            .set(SYSTEM_UPDATES.USER_TENANT, authenticatedUser.getOboTenantId())
             .set(SYSTEM_UPDATES.OPERATION, op)
             .set(SYSTEM_UPDATES.UPD_JSON, TapisGsonUtils.getGson().fromJson(updJsonStr, JsonElement.class))
             .set(SYSTEM_UPDATES.UPD_TEXT, upd_text)
