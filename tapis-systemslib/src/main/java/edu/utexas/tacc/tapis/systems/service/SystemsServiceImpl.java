@@ -1,9 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
-import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
-import org.flywaydb.core.Flyway;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,7 +205,7 @@ public class SystemsServiceImpl implements SystemsService
 //      skClient.deleteRoleByName(systemTenantName, "systems", roleNameR);
 //      skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);
       skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
-      // TODO REMOVE
+      // TODO REMOVE DEBUG
       _log.error("authUser.user=" + authenticatedUser.getName());
       _log.error("authUser.tenant=" + authenticatedUser.getTenantId());
       _log.error("authUser.OboUser=" + authenticatedUser.getOboUser());
@@ -251,8 +249,6 @@ public class SystemsServiceImpl implements SystemsService
       // Log error
       String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
       _log.error(msg);
-      // TODO REMOVE
-//      _log.error("DEBUG: ROLLBACK SKIPPED");
 
       // Rollback
       // Remove system from DB
@@ -424,7 +420,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e0)
     {
       // Something went wrong. Attempt to undo all changes and then re-throw the exception
-      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
+      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "updateOwner", e.getMessage()));}
       String systemsPermSpec = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
       // TODO remove filesPermSpec related code
       String filesPermSpec = "files:" + systemName + ":*:" + systemName;
@@ -1485,6 +1481,10 @@ public class SystemsServiceImpl implements SystemsService
         hasAdminRole(authenticatedUser)) return null;
     var systemIDs = new ArrayList<Integer>();
     // Get roles for user and extract system IDs
+    // TODO: Need a way to make sure roles that a user has created and assigned to themselves are not included
+    //       Maybe a special role name? Or a search that only returns roles owned by "systems"
+    // TODO: Is it possible for a user to already have roles in this format that are assigned to them but not owned by "systems"?
+    //       If yes then it is a problem.
     List<String> userRoles = getSKClient(authenticatedUser).getUserRoles(systemTenantName, authenticatedUser.getName());
     // Find roles of the form Systems_R_<id> and generate a list of IDs
     // TODO Create a function and turn this into a stream/lambda
