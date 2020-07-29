@@ -186,6 +186,7 @@ public class SystemsServiceImpl implements SystemsService
     String roleNameR = null;
     String systemsPermSpecR = getPermSpecStr(systemTenantName, systemName, Permission.READ);
     String systemsPermSpecALL = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+    // TODO remove filesPermSpec related code
     String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
 
     // Get SK client now. If we cannot get this rollback not needed.
@@ -200,15 +201,17 @@ public class SystemsServiceImpl implements SystemsService
       // TODO/TBD: Currently system owner owns the role. Plan is to have systems service own the role
       //           This will need coordinated changes with SK
       //   might need to munge system tenant into the role name (?)
-      // TODO REMOVE? FIX?
-      // Delete role, because role may already exist due to failure to rollback
+      // TODO/TBD: Keep the delete? Also, currently it fails due to skauthz failure
+      // Delete role, because role may already exist due to failure of rollback
 //      _log.error("DELETE roleNameR="+ roleNameR);
 //      skClient.deleteRoleByName(systemTenantName, "systems", roleNameR);
 //      skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);
       skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
       // TODO REMOVE
-      String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, "DEBUG: ABOUT TO CALL skClient.addRolePermission");
-      _log.error(msg);
+      _log.error("authUser.user=" + authenticatedUser.getName());
+      _log.error("authUser.tenant=" + authenticatedUser.getTenantId());
+      _log.error("authUser.OboUser=" + authenticatedUser.getOboUser());
+      _log.error("authUser.OboTenant=" + authenticatedUser.getOboTenantId());
       _log.error("systemTenantName=" + systemTenantName);
       _log.error("system.getOwner=" + system.getOwner());
       _log.error("roleNameR="+ roleNameR);
@@ -225,7 +228,7 @@ public class SystemsServiceImpl implements SystemsService
         skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL);
         skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameR);
       }
-      // TODO remove addition of files related permSpec
+      // TODO remove filesPermSpec related code
       // Give owner/effectiveUser files service related permission for root directory
       skClient.grantUserPermission(systemTenantName, system.getOwner(), filesPermSpec);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
@@ -249,29 +252,39 @@ public class SystemsServiceImpl implements SystemsService
       String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
       _log.error(msg);
       // TODO REMOVE
-      _log.error("DEBUG: ROLLBACK SKIPPED");
+//      _log.error("DEBUG: ROLLBACK SKIPPED");
 
-//      // Rollback
-//      // Remove system from DB
-//      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); } catch (Exception e) {}
-//      // Remove perms
-//      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); } catch (Exception e) {}
-//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); } catch (Exception e) {}
-//      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
-//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
-//      // Remove role assignments and roles
-//      if (!StringUtils.isBlank(roleNameR)) {
-//        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
-//        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-//        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
-//      }
-//      // Remove creds
-//      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
-//        String accessUser = effectiveUserId;
-//        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-//        // Use private internal method instead of public API to skip auth and other checks not needed here.
-//        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); } catch (Exception e) {}
-//      }
+      // Rollback
+      // Remove system from DB
+      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "hardDelete", e.getMessage()));}
+      // Remove perms
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermOwner", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermEffUsr", e.getMessage()));}
+      // TODO remove filesPermSpec related code
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF1", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF2", e.getMessage()));}
+      // Remove role assignments and roles
+      if (!StringUtils.isBlank(roleNameR)) {
+        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleOwner", e.getMessage()));}
+        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleEffUsr", e.getMessage()));}
+        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "deleteRole", e.getMessage()));}
+      }
+      // Remove creds
+      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+        String accessUser = effectiveUserId;
+        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+        // Use private internal method instead of public API to skip auth and other checks not needed here.
+        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "deleteCred", e.getMessage()));}
+      }
       throw e0;
     }
     return itemId;
@@ -413,11 +426,16 @@ public class SystemsServiceImpl implements SystemsService
       // Something went wrong. Attempt to undo all changes and then re-throw the exception
       try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
       String systemsPermSpec = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+      // TODO remove filesPermSpec related code
       String filesPermSpec = "files:" + systemName + ":*:" + systemName;
-      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
-      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
-      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermNewOwner", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF1", e.getMessage()));}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "grantPermOldOwner", e.getMessage()));}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "grantPermF1", e.getMessage()));}
       throw e0;
     }
     return 1;
