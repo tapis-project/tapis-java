@@ -200,7 +200,21 @@ public class SystemsServiceImpl implements SystemsService
       // TODO/TBD: Currently system owner owns the role. Plan is to have systems service own the role
       //           This will need coordinated changes with SK
       //   might need to munge system tenant into the role name (?)
+      // TODO REMOVE? FIX?
+      // Delete role, because role may already exist due to failure to rollback
+//      _log.error("DELETE roleNameR="+ roleNameR);
+//      skClient.deleteRoleByName(systemTenantName, "systems", roleNameR);
+//      skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);
       skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
+      // TODO REMOVE
+      String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, "DEBUG: ABOUT TO CALL skClient.addRolePermission");
+      _log.error(msg);
+      _log.error("systemTenantName=" + systemTenantName);
+      _log.error("system.getOwner=" + system.getOwner());
+      _log.error("roleNameR="+ roleNameR);
+      _log.error("systemsPermSpecR=" + systemsPermSpecR);
+      _log.error("authenticatedUser.getJwt=" + authenticatedUser.getJwt());
+      _log.error("serviceJwt.getAccessJWT=" + serviceJWT.getAccessJWT());
       skClient.addRolePermission(systemTenantName, system.getOwner(), roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
@@ -234,28 +248,30 @@ public class SystemsServiceImpl implements SystemsService
       // Log error
       String msg = LibUtils.getMsgAuth("SYSLIB_CREATE_ERROR_ROLLBACK", authenticatedUser, systemName, e0.getMessage());
       _log.error(msg);
+      // TODO REMOVE
+      _log.error("DEBUG: ROLLBACK SKIPPED");
 
-      // Rollback
-      // Remove system from DB
-      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); } catch (Exception e) {}
-      // Remove perms
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
-      // Remove role assignments and roles
-      if (!StringUtils.isBlank(roleNameR)) {
-        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
-        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
-      }
-      // Remove creds
-      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
-        String accessUser = effectiveUserId;
-        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
-        // Use private internal method instead of public API to skip auth and other checks not needed here.
-        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); } catch (Exception e) {}
-      }
+//      // Rollback
+//      // Remove system from DB
+//      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); } catch (Exception e) {}
+//      // Remove perms
+//      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); } catch (Exception e) {}
+//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); } catch (Exception e) {}
+//      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
+//      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
+//      // Remove role assignments and roles
+//      if (!StringUtils.isBlank(roleNameR)) {
+//        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
+//        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
+//        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
+//      }
+//      // Remove creds
+//      if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
+//        String accessUser = effectiveUserId;
+//        if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
+//        // Use private internal method instead of public API to skip auth and other checks not needed here.
+//        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); } catch (Exception e) {}
+//      }
       throw e0;
     }
     return itemId;
