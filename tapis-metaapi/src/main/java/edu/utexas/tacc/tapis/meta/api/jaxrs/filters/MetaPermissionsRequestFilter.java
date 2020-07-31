@@ -13,8 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Priority;
+import javax.annotation.security.PermitAll;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.ResourceInfo;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.ext.Provider;
@@ -25,6 +28,8 @@ import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 @Provider
 @Priority(MetaAppConstants.META_FILTER_PRIORITY_PERMISSIONS)
 public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
+  @Context
+  private ResourceInfo resourceInfo;
   
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(MetaPermissionsRequestFilter.class);
@@ -48,7 +53,11 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
       _log.trace("Permissions Check is turned OFF!!! " + this.getClass().getSimpleName() + ".");
       return;
     }
-    
+  
+    // @PermitAll on the method takes precedence over @RolesAllowed on the class, allow all
+    // requests with @PermitAll to go through
+    if (resourceInfo.getResourceMethod().isAnnotationPresent(PermitAll.class)) return;
+  
     //   get the path and jwt from runtime parameters
     RuntimeParameters runTime = RuntimeParameters.getInstance();
     

@@ -173,6 +173,15 @@ public class CoreResponse {
     return TapisGsonUtils.getGson().toJson(resp);
   }
   
+  protected String getBasicResponse(){
+    RespBasic resp = new RespBasic();
+    resp.status = String.valueOf(this.getStatusCode());
+    resp.message = this.coreMsg;
+    resp.version = TapisUtils.getTapisVersion();
+    resp.result = "";
+    return TapisGsonUtils.getGson().toJson(resp);
+  }
+  
   private String getOidFromLocation(String location){
     // need to parse path with ending id which looks like this
     // /StreamsTACCDB/sltCollectionTst/5ea5bf3ca93eebf39fcc563b

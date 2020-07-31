@@ -41,7 +41,7 @@ public class CoreRequest {
   }
   
   // proxy GET request
-  public CoreResponse proxyGetRequest(){
+  public CoreResponse proxyGetResponse(){
     // path url here has stripped out /v3/meta to make the correct path request
     //  to core server
     okhttp3.Request coreRequest = new Request.Builder()
