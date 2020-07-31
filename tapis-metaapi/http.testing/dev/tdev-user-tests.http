@@ -1,6 +1,6 @@
 
 ###   db list collections
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB
+GET https://dev.develop.tapis.io/v3/meta/MyTstDB
 X-Tapis-Token: {{token}}
 Content-Type: application/json
 Accept: application/json
@@ -14,8 +14,8 @@ Accept: application/json
 
 ###
 
-// basic request
-GET https://dev.develop.tapis.io/v3/meta/StreamsTACCDB/sltCollectionTst/tstdoc2
+// basic request for document list
+GET https://dev.develop.tapis.io/v3/meta/MyTstDB/MyCollection
 X-Tapis-Token: {{token}}
 Content-Type: application/json
 Accept: application/json

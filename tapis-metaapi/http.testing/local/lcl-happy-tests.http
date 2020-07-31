@@ -2,6 +2,16 @@
 # taccMetaAdmin   these tests are hitting the dev deployment of RH-core
 
 ##############################################################
+#      info endpoints
+##############################################################
+
+#   healthcheck
+###  api:1
+GET http://localhost:8080/v3/meta/healthcheck
+
+###   api:1
+
+##############################################################
 #      Root endpoints
 ##############################################################
 
@@ -14,9 +24,6 @@ X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###   api:1
-
-
-
 
 ##################################### streams user #################################################
 # streams   these tests are hitting the dev deployment of RH-core

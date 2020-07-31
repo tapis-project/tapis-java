@@ -1,15 +1,15 @@
 ###  sanity test to see if service is alive
-# GET http://dev.develop.tapis.io/v3/meta/
-# X-Tapis-Token: {{token}}
-# X-Tapis-User: taccMetaAdmin
-# X-Tapis-Tenant: master
-# Content-Type: application/json
-#
-# > {%
-#     client.test("Request root executed successfully", function() {
-#         client.assert(response.status === 200, "Response status is not 200");
-#     });
-# %}
+GET http://dev.develop.tapis.io/v3/meta/
+X-Tapis-Token: {{token}}
+X-Tapis-User: meta
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request root executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 ###
 
