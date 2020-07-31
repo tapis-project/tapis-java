@@ -385,7 +385,7 @@ public final class RoleResource
          int rows = 0;
          try {
              String creator = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
-             rows = getRoleImpl().createRole(tenant, user, creator, roleName, description);
+             rows = getRoleImpl().createRole(tenant, user, roleName, creator, description);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", tenant, user, roleName);
              return getExceptionResponse(e, msg, prettyPrint);

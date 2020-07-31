@@ -5,6 +5,7 @@ package edu.utexas.tacc.tapis.systems.gen.jooq;
 
 
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Capabilities;
+import edu.utexas.tacc.tapis.systems.gen.jooq.tables.FlywaySchemaHistory;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.SystemUpdates;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Systems;
 
@@ -23,7 +24,7 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class TapisSys extends SchemaImpl {
 
-    private static final long serialVersionUID = 752323282;
+    private static final long serialVersionUID = 1542088768;
 
     /**
      * The reference instance of <code>tapis_sys</code>
@@ -34,6 +35,11 @@ public class TapisSys extends SchemaImpl {
      * The table <code>tapis_sys.capabilities</code>.
      */
     public final Capabilities CAPABILITIES = Capabilities.CAPABILITIES;
+
+    /**
+     * The table <code>tapis_sys.flyway_schema_history</code>.
+     */
+    public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
      * The table <code>tapis_sys.system_updates</code>.
@@ -72,6 +78,7 @@ public class TapisSys extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.<Table<?>>asList(
             Capabilities.CAPABILITIES,
+            FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             SystemUpdates.SYSTEM_UPDATES,
             Systems.SYSTEMS);
     }

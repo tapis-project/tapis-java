@@ -1,7 +1,9 @@
 package edu.utexas.tacc.tapis.security.api.utils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
+import io.jsonwebtoken.lang.Collections;
 
 /** This class makes sure each tenant has an administrator role defined and
  * at least one user assigned that role.  It gets its tenant information from
@@ -115,32 +118,39 @@ public final class TenantInit
             } 
             catch (Exception e) {
                 // Log the error and continue on.
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
+                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_ERROR", tenant, 
                                              adminUser, e.getMessage());
                 _log.error(msg, e);
             }
             
             // ------------------- Authenticator Role -------------------
             // TODO: get authenticator service from tenant record
-            String authService = "authenticator";  // ************* Temp code
-            String authServiceTenant = "master";
+            final String[] tokgenServices = {"authenticator", "abaco"};  // ************* Temp code
+            final String tokgenRoleTenant = "master";
+            final String tokgenRoleOwner = "tokens";
+            final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
+            final String desc = "Tenant token generator role";
             
             // Create and assign the authenticator role to the tenant's auth service.
             try {
                 // Assign role to the default authenticator for this tenant, creating
                 // the role if necessary.  This calls the internal grant method 
                 // that does not check whether the requestor is an administrator.
-                String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
-                String desc = "Tenant token generator role";
-                UserImpl.getInstance().grantRoleInternal(authServiceTenant, SK_USER, 
-                                                         authService, roleName, desc);
-                String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", authServiceTenant,
-                                             authService, roleName);
-                _log.info(msg);
+                //
+                // Assign each service.
+                for (String tokgenService : tokgenServices) { 
+                	UserImpl.getInstance().grantRoleInternal(tokgenRoleTenant, tokgenRoleOwner, 
+                                                         	 tokgenService, roleName, desc);
+                	String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", tokgenRoleTenant,
+                                             	 tokgenService, roleName);
+                	_log.info(msg);
+                }
             } catch (Exception e) {
                 // Log the error and continue on.
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", authServiceTenant, 
-                                             authService, e.getMessage());
+            	var list = Arrays.asList(tokgenServices);
+            	String s = list.stream().collect(Collectors.joining(", "));
+                String msg = MsgUtils.getMsg("SK_TENANT_INIT_TOKGEN_ERROR", tokgenRoleTenant, 
+                                             s, roleName, e.getMessage());
                 _log.error(msg, e);
             }
         }
@@ -187,7 +197,7 @@ public final class TenantInit
             _log.info(msg);
         } catch (Exception e) {
             // Log the error and continue on.
-            String msg = MsgUtils.getMsg("SK_TENANT_INIT_ERROR", tenant, 
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_CREATOR_ERROR", tenant, 
                                          tenantService, e.getMessage());
             _log.error(msg, e);
         }

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
+import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
 import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -41,7 +42,8 @@ public final class SKCheckAuthz
     private final String                _reqUser;    // can be null
     private final SecretPathMapperParms _secretPathParms;
     private final TapisThreadContext    _threadContext;
-    private final ArrayList<String>     _failedChecks = new ArrayList<>();;
+    private final ArrayList<String>     _failedChecks = new ArrayList<>();
+    private final ArrayList<String>     _provisionalFailedChecks = new ArrayList<>();
     
     // Identity checks.
     private boolean _checkMatchesJwtIdentity;
@@ -57,6 +59,10 @@ public final class SKCheckAuthz
     // Roles that the jwt user@tenant has some level of access.
     private ArrayList<String> _requiredRoles;
     private ArrayList<String> _ownedRoles;
+    
+    // Prevention switches.
+    private boolean _preventAdminRole;
+    private String  _preventAdminRoleName;
 
     /* **************************************************************************** */
     /*                                Constructors                                  */
@@ -110,6 +116,14 @@ public final class SKCheckAuthz
         return this;
     }
     
+    // Prevention switches.
+    public SKCheckAuthz setPreventAdminRole(String roleName) 
+    {
+    	_preventAdminRole = true; 
+    	_preventAdminRoleName = roleName;
+    	return this;
+    }
+    
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
@@ -130,15 +144,17 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     /* check:                                                                       */
     /* ---------------------------------------------------------------------------- */
-    /** Return the jaxrs response if an authorization check failed.
+    /** Return the jaxrs response if an authorization check failed.  This method 
+     * should be called before prevent() so that basic validation occurs.
      * 
      * @return null for authorized, a response object for failed authorization
      */
     public Response check(boolean prettyPrint)
     {
         // Perform the actual checks.
-        String emsg = checkMsg();
-        if (emsg == null) return null;
+        String emsg = checkMsg();              // At least 1 check must succeed.
+        if (emsg == null) emsg = preventMsg(); // All checks must succeed.
+        if (emsg == null) return null;         // Success.
         
         // Determine the http failure code.
         Status status;
@@ -152,6 +168,9 @@ public final class SKCheckAuthz
           entity(TapisRestUtils.createErrorResponse(emsg, prettyPrint)).build();
     }
     
+    /* **************************************************************************** */
+    /*                               Private Methods                                */
+    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* checkMsg:                                                                    */
     /* ---------------------------------------------------------------------------- */
@@ -165,7 +184,7 @@ public final class SKCheckAuthz
      * 
      * @return null if authorization matches, otherwise return an error message.
      */
-    public String checkMsg()
+    private String checkMsg()
     {
         // Validate the thread context and allowable tenant on service tokens.
         // Request tenant null check performed in called method.
@@ -176,7 +195,7 @@ public final class SKCheckAuthz
         // This sequencing of checks implements a logical disjunction
         // with "short-circuiting" behavior.
         if (_checkIsService && checkIsService()) return null;
-        if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity()) return null;
+        if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity(false)) return null;
         if (_checkMatchesOBOIdentity && checkMatchesOBOIdentity()) return null;
         if (_checkIsAdmin && checkIsAdmin()) return null;
         if (_checkIsOBOAdmin && checkIsOBOAdmin()) return null;
@@ -191,9 +210,26 @@ public final class SKCheckAuthz
         return makeFailureMessage();
     }
     
-    /* **************************************************************************** */
-    /*                               Private Methods                                */
-    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* preventMsg:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Run the enabled prevention routines.  A failure of any one of them causes
+     * the request to be aborted.
+     * 
+     * @return null if there are no problems, otherwise return an error message.
+     */
+    private String preventMsg()
+    {
+    	// All enabled prevention routines must succeed for overall success. 
+    	if (_preventAdminRole) {
+    		String errorMsg = preventAdminRole();
+    		if (errorMsg != null) return errorMsg;
+    	}
+    	
+    	// No problems found.
+    	return null;
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* validateRequestTenantContext:                                                */
     /* ---------------------------------------------------------------------------- */
@@ -241,7 +277,7 @@ public final class SKCheckAuthz
             if (!_reqTenant.equals(oboTenant)) {
                 String jwtUser = _threadContext.getJwtUser();
                 String msg = MsgUtils.getMsg("SK_REQUEST_OBO_TENANT_MISMATCH", 
-                                             jwtUser, oboTenant, _reqTenant);
+                                             jwtUser, jwtTenant, oboTenant, _reqTenant);
                 _log.error(msg);
                 return msg;
             }
@@ -268,7 +304,8 @@ public final class SKCheckAuthz
         } else {
             // User tokens require exact tenant matches.
             if (!jwtTenant.equals(_reqTenant)) {
-                var msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", 
+            	String jwtUser = _threadContext.getJwtUser();
+                var msg = MsgUtils.getMsg("SK_UNEXPECTED_TENANT_VALUE", jwtUser,
                                           jwtTenant, _reqTenant, accountType.name());
                 _log.error(msg);
                 return msg;
@@ -286,13 +323,14 @@ public final class SKCheckAuthz
      * 
      * @return true if passes check, false otherwise.
      */
-    private boolean checkMatchesJwtIdentity()
+    private boolean checkMatchesJwtIdentity(boolean failProvisionally)
     {
         // Make sure the request user has been assigned for this check.
         if (_reqUser == null) {
             var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "checkMatchesJwtIdentity", "_reqUser");
             _log.error(msg);
-            _failedChecks.add("MatchesJwtIdentity");
+            if (failProvisionally) _provisionalFailedChecks.add("MatchesJwtIdentity");
+              else _failedChecks.add("MatchesJwtIdentity");
             return false;
         }
             
@@ -300,7 +338,9 @@ public final class SKCheckAuthz
         if (_threadContext.getJwtTenantId().equals(_reqTenant) &&
             _threadContext.getJwtUser().equals(_reqUser)) return true;
         
-        _failedChecks.add("MatchesJwtIdentity");
+        // Record failure.
+        if (failProvisionally) _provisionalFailedChecks.add("MatchesJwtIdentity");
+          else _failedChecks.add("MatchesJwtIdentity");
         return false;
     }
 
@@ -446,20 +486,48 @@ public final class SKCheckAuthz
         // Start optimistically.
         boolean authorized = true;
         try {
+        	// This block checks the role owner identity, which add a 4th identity
+        	// to the usual 3: jwt, req, obo.
             var roleImpl = RoleImpl.getInstance();
             for (String roleName : _ownedRoles) {
-                // The request and role tenants are guaranteed to be the same.
-                // We expect the request user to own the role or the obo user
-                // to own it on service jwts.
+                // The request and role tenants are guaranteed to be the same
+            	// because we use the request tenant in the retrieval.
                 var skRole = roleImpl.getRoleByName(_reqTenant, roleName);
-                if (skRole == null || !_reqUser.equals(skRole.getOwner()) ||
-                    !(_threadContext.getAccountType() == AccountType.service &&
-                      _threadContext.getOboUser().equals(skRole.getOwner()))) 
-                {
-                    // The role doesn't exist, the request user is not its owner
-                    // or the obo user is not the owner.
-                    authorized = false;
-                    break;
+                
+                // Bad news.
+                if (skRole == null) {authorized = false; break;}
+                
+                // User jwt case.  Make sure the user identified in the JWT
+                // is owner of the role.
+                if (_threadContext.getAccountType() == AccountType.user) {
+                	if (!_threadContext.getJwtUser().equals(skRole.getOwner())) {
+                		authorized = false; break;
+                	}
+                } 
+                
+                // Service jwt case. Either one of two conditions must be true
+                // for the check to pass.
+                //
+                // Condition 1 checks that the user on behalf of whom this
+                // request is being made (the obo user) is the owner of the role.
+                // We already know the request and obo tenants are the same, so
+                // by transitivity we know the obo tenant and role tenant are the
+                // same.
+                //
+                // Condition 2 checks that the jwt user@tenant matches the 
+                // role's user@tenant.
+                //
+                // If neither of these conditions holds then the request will be
+                // rejected as unauthorized.
+                if (_threadContext.getAccountType() == AccountType.service) {
+                	if (!(_threadContext.getOboUser().equals(skRole.getOwner()))
+                		  &&
+                		!(_threadContext.getJwtUser().equals(skRole.getOwner()) &&
+                          _threadContext.getJwtTenantId().equals(skRole.getTenant()))
+                	     )		
+                	{
+                		authorized = false; break;
+                	}
                 }
             }
         } catch (Exception e) {
@@ -470,9 +538,17 @@ public final class SKCheckAuthz
             authorized = false;
         }
         
-        // We want to further check that the request tenant and user match
-        // those in the jwt or the obo headers (on service tokens).
-        if (authorized) authorized = checkMatchesJwtIdentity() || checkMatchesOBOIdentity();
+        // We recognize that any service could grant a role to any user by simply
+        // performing the following:
+        //
+        //  1. Querying the role to learn its owner.
+        //  2. Set the obo user to equal the role owner.
+        //  3. Set the request user@tenant to be any user, including the service itself.
+        //  4. Issue the grantRole call.
+        //
+        // A rogue or faulty service could grant any role to any user in a
+        // tenant, including the tenant admin role.  The calling method should
+        // prevent the granting of the tenant admin role.
         
         // What happened?
         if (authorized) return true;
@@ -544,7 +620,7 @@ public final class SKCheckAuthz
             break;
             
             case JWTSigning:
-                authorized = secretCheckIsTokensService();
+                authorized = secretCheckIsTokensService(true);
             break;
             
             case User:
@@ -586,7 +662,7 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     /* secretCheckIsTokensService:                                                  */
     /* ---------------------------------------------------------------------------- */
-    private boolean secretCheckIsTokensService()
+    private boolean secretCheckIsTokensService(boolean failProvisionally)
     {
         // Start pessimistically.
         boolean authorized = false;
@@ -594,11 +670,11 @@ public final class SKCheckAuthz
         // Are the path parms configured and is the caller the tokens service?  
         if (_threadContext.getAccountType() == AccountType.service &&
             _threadContext.getJwtUser().equals(TOKENS_SERVICE_NAME)) 
-           authorized = true;
+           return true;
         
-        // What happened?
-        if (authorized) return true;
-        _failedChecks.add("IsTokensService");
+        // Failure.
+        if (failProvisionally) _provisionalFailedChecks.add("IsTokensService");
+          else _failedChecks.add("IsTokensService");
         return false;
     }
     
@@ -613,8 +689,12 @@ public final class SKCheckAuthz
     /* ---------------------------------------------------------------------------- */
     private boolean validatePassword()
     {
-        return  secretCheckIsTokensService() ||
-                secretCheckServiceRequestIdentity("ValidatePassword");
+    	// We provisionally fail the first check.
+        boolean authorized = secretCheckIsTokensService(false) ||
+                             secretCheckServiceRequestIdentity("ValidatePassword");
+        if (!authorized) reportProvisionalFailures();
+        
+        return authorized;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -659,6 +739,36 @@ public final class SKCheckAuthz
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* reportProvisionalFailures:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Use this method to report failed checks that could have been ignored if a 
+     * later check passed, but that didn't happen.  This approach allows us to detect
+     * failures we checking for a non-empty _failedChecks list.
+     */
+    private void reportProvisionalFailures() {_failedChecks.addAll(_provisionalFailedChecks);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* preventAdminRole:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Prevent the tenant admin role from being specified on certain APIs.
+     * 
+     * @return null if ok, an error message if the check fails
+     */
+    private String preventAdminRole()
+    {
+        // Blacklist certain administrative roles.  We call this after the normal authz
+        // checking so that we know we have a validated threadlocal.
+        if (SkConstants.ADMIN_ROLE_NAME.equals(_preventAdminRoleName)) {
+            return MsgUtils.getMsg("SK_TENANT_ADMIN_ROLE_ERROR", 
+            		               _threadContext.getJwtTenantId(), 
+            		               _threadContext.getJwtUser());
+        }
+        
+    	// No problem.
+    	return null;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* makeFailureMessage:                                                          */
     /* ---------------------------------------------------------------------------- */
     private String makeFailureMessage()
@@ -671,7 +781,13 @@ public final class SKCheckAuthz
         // The caller is expected to log the message.
         String s = _failedChecks.stream().collect(Collectors.joining(", "));
         String msg = MsgUtils.getMsg("SK_API_AUTHORIZATION_FAILED", 
-                                     _reqTenant, _reqUser, s);
+                                     _reqTenant, _reqUser, 
+                                     _threadContext.getJwtTenantId(),
+                                     _threadContext.getJwtUser(),
+                                     _threadContext.getOboTenantId(),
+                                     _threadContext.getOboUser(),
+                                     _threadContext.getAccountType(),
+                                     s);
         _log.error(msg);
         return msg;
     }

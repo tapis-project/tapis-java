@@ -105,7 +105,7 @@ public class SystemsDaoTest
     System.out.println("Executing BeforeSuite setup method: " + SystemsDaoTest.class.getSimpleName());
     dao = new SystemsDaoImpl();
     // Initialize authenticated user
-    authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, null, null, null, null);
+    authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, apiUser, tenantName, null, null);
     sys1.setJobCapabilities(cap1List);
     sys2.setJobCapabilities(cap1List);
     // Cleanup anything leftover from previous failed run

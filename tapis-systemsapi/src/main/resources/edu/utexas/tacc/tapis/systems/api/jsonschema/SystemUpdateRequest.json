@@ -1,7 +1,7 @@
 {
   "$id": "http://tapis.tacc.utexas.edu/SystemUpdateRequest",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Schema for a system update request",
+  "description": "Schema for a request to update a system",
   "additionalProperties": false,
 
   "type": "object",

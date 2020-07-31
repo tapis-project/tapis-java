@@ -1,9 +1,7 @@
 package edu.utexas.tacc.tapis.systems.service;
 
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
-import edu.utexas.tacc.tapis.shared.TapisConstants;
 import org.apache.commons.lang3.StringUtils;
-import org.flywaydb.core.Flyway;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,28 +184,49 @@ public class SystemsServiceImpl implements SystemsService
     String roleNameR = null;
     String systemsPermSpecR = getPermSpecStr(systemTenantName, systemName, Permission.READ);
     String systemsPermSpecALL = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+    // TODO remove filesPermSpec related code
     String filesPermSpec = "files:" + systemTenantName + ":*:" + systemName;
+
     // Get SK client now. If we cannot get this rollback not needed.
     var skClient = getSKClient(authenticatedUser);
     try {
       // ------------------- Make Dao call to persist the system -----------------------------------
       itemId = dao.createTSystem(authenticatedUser, system, createJsonStr, scrubbedText);
 
-      // Add permission roles for the system
+      // Add permission roles for the system. This is only used for filtering systems based on who is authz
+      //   to READ, so no other roles needed.
       roleNameR = TSystem.ROLE_READ_PREFIX + itemId;
-      skClient.createRole(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, "Role allowing READ for system " + systemName);
-      skClient.addRolePermission(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR, systemsPermSpecR);
+      // TODO/TBD: Currently system owner owns the role. Plan is to have systems service own the role
+      //           This will need coordinated changes with SK
+      //   might need to munge system tenant into the role name (?)
+      // TODO/TBD: Keep the delete? Also, currently it fails due to skauthz failure
+      // Delete role, because role may already exist due to failure of rollback
+//      _log.error("DELETE roleNameR="+ roleNameR);
+//      skClient.deleteRoleByName(systemTenantName, "systems", roleNameR);
+//      skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);
+      skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
+      // TODO REMOVE DEBUG
+      _log.error("authUser.user=" + authenticatedUser.getName());
+      _log.error("authUser.tenant=" + authenticatedUser.getTenantId());
+      _log.error("authUser.OboUser=" + authenticatedUser.getOboUser());
+      _log.error("authUser.OboTenant=" + authenticatedUser.getOboTenantId());
+      _log.error("systemTenantName=" + systemTenantName);
+      _log.error("system.getOwner=" + system.getOwner());
+      _log.error("roleNameR="+ roleNameR);
+      _log.error("systemsPermSpecR=" + systemsPermSpecR);
+      _log.error("authenticatedUser.getJwt=" + authenticatedUser.getJwt());
+      _log.error("serviceJwt.getAccessJWT=" + serviceJWT.getAccessJWT());
+      skClient.addRolePermission(systemTenantName, system.getOwner(), roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
-      // Give owner and possibly effectiveUser access to the system
-      // TODO/TBD: Use user perm in default role OR just roleR, roleM OR are both useful?
+      // Give owner and possibly effectiveUser full access to the system
       skClient.grantUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL);
       skClient.grantUserRole(systemTenantName, system.getOwner(), roleNameR);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR)) {
         skClient.grantUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL);
         skClient.grantUserRole(systemTenantName, effectiveUserId, roleNameR);
       }
-      // TODO remove addition of files related permSpec
+      // TODO remove filesPermSpec related code
       // Give owner/effectiveUser files service related permission for root directory
       skClient.grantUserPermission(systemTenantName, system.getOwner(), filesPermSpec);
       if (!effectiveUserId.equals(APIUSERID_VAR) && !effectiveUserId.equals(OWNER_VAR))
@@ -233,24 +252,34 @@ public class SystemsServiceImpl implements SystemsService
 
       // Rollback
       // Remove system from DB
-      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); } catch (Exception e) {}
+      if (itemId != -1) try {dao.hardDeleteTSystem(systemTenantName, systemName); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "hardDelete", e.getMessage()));}
       // Remove perms
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), systemsPermSpecALL); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermOwner", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, systemsPermSpecALL); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermEffUsr", e.getMessage()));}
+      // TODO remove filesPermSpec related code
+      try { skClient.revokeUserPermission(systemTenantName, system.getOwner(), filesPermSpec);  }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF1", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, effectiveUserId, filesPermSpec);  }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF2", e.getMessage()));}
       // Remove role assignments and roles
       if (!StringUtils.isBlank(roleNameR)) {
-        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  } catch (Exception e) {}
-        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  } catch (Exception e) {}
-        try { skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);  } catch (Exception e) {}
+        try { skClient.revokeUserRole(systemTenantName, system.getOwner(), roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleOwner", e.getMessage()));}
+        try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleEffUsr", e.getMessage()));}
+        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "deleteRole", e.getMessage()));}
       }
       // Remove creds
       if (system.getAccessCredential() != null && !effectiveUserId.equals(APIUSERID_VAR)) {
         String accessUser = effectiveUserId;
         if (effectiveUserId.equals(OWNER_VAR)) accessUser = system.getOwner();
         // Use private internal method instead of public API to skip auth and other checks not needed here.
-        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); } catch (Exception e) {}
+        try { deleteCredential(skClient, tenantName, apiUserId, systemTenantName, systemName, accessUser); }
+        catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "deleteCred", e.getMessage()));}
       }
       throw e0;
     }
@@ -391,13 +420,18 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e0)
     {
       // Something went wrong. Attempt to undo all changes and then re-throw the exception
-      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {}
+      try { dao.updateSystemOwner(authenticatedUser, systemId, oldOwnerName); } catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "updateOwner", e.getMessage()));}
       String systemsPermSpec = getPermSpecStr(systemTenantName, systemName, Permission.ALL);
+      // TODO remove filesPermSpec related code
       String filesPermSpec = "files:" + systemName + ":*:" + systemName;
-      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); } catch (Exception e) {}
-      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); } catch (Exception e) {}
-      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); } catch (Exception e) {}
-      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); } catch (Exception e) {}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, systemsPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermNewOwner", e.getMessage()));}
+      try { skClient.revokeUserPermission(systemTenantName, newOwnerName, filesPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokePermF1", e.getMessage()));}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, systemsPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "grantPermOldOwner", e.getMessage()));}
+      try { skClient.grantUserPermission(systemTenantName, oldOwnerName, filesPermSpec); }
+      catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "grantPermF1", e.getMessage()));}
       throw e0;
     }
     return 1;
@@ -814,7 +848,7 @@ public class SystemsServiceImpl implements SystemsService
     // Assign perms and roles to user.
     try
     {
-      // Grant permission roles as appropriate, RoleR, RoleM
+      // Grant permission roles as appropriate, RoleR
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
       for (Permission perm : permissions)
       {
@@ -892,7 +926,7 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Use try/catch to rollback in case of failure.
 
     try {
-      // Revoke permission roles as appropriate, RoleR, RoleM
+      // Revoke permission roles as appropriate, RoleR
       String roleNameR = TSystem.ROLE_READ_PREFIX + systemId;
       for (Permission perm : permissions) {
         if (perm.equals(Permission.READ)) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
@@ -1191,24 +1225,24 @@ public class SystemsServiceImpl implements SystemsService
    */
   private SKClient getSKClient(AuthenticatedUser authenticatedUser) throws TapisException
   {
-    String tenantName = authenticatedUser.getTenantId();
     // Use TenantManager to get tenant info. Needed for tokens and SK base URLs.
-    Tenant tenant = TenantManager.getInstance().getTenant(tenantName);
+    Tenant userTenant = TenantManager.getInstance().getTenant(authenticatedUser.getTenantId());
 
     // Update SKClient on the fly. If this becomes a bottleneck we can add a cache.
     // Get Security Kernel URL from the env or the tenants service. Env value has precedence.
     //    String skURL = "https://dev.develop.tapis.io/v3";
     String skURL = RuntimeParameters.getInstance().getSkSvcURL();
-    if (StringUtils.isBlank(skURL)) skURL = tenant.getSecurityKernel();
+    if (StringUtils.isBlank(skURL)) skURL = userTenant.getSecurityKernel();
     if (StringUtils.isBlank(skURL)) throw new TapisException(LibUtils.getMsgAuth("SYSLIB_CREATE_SK_URL_ERROR", authenticatedUser));
     // TODO remove strip-off of everything after /v3 once tenant is updated or we do something different for base URL in auto-generated clients
     // Strip off everything after the /v3 so we have a valid SK base URL
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
-    skClient.setBasePath(skURL);
 
+    skClient.setBasePath(skURL);
     skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT());
-    // For service jwt pass along boTenant and oboUser in headers
-    // For user jwt use master tenant name and service name in headers
+
+    // For service jwt pass along oboTenant and oboUser in OBO headers
+    // For user jwt use authenticated user name and tenant in OBO headers
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
     {
       skClient.addDefaultHeader(HDR_TAPIS_TENANT, authenticatedUser.getOboTenantId());
@@ -1216,8 +1250,8 @@ public class SystemsServiceImpl implements SystemsService
     }
     else
     {
-      skClient.addDefaultHeader(HDR_TAPIS_TENANT, serviceJWT.getTenant());
-      skClient.addDefaultHeader(HDR_TAPIS_USER, serviceJWT.getServiceName());
+      skClient.addDefaultHeader(HDR_TAPIS_TENANT, authenticatedUser.getTenantId());
+      skClient.addDefaultHeader(HDR_TAPIS_USER, authenticatedUser.getName());
     }
     return skClient;
   }
@@ -1447,6 +1481,10 @@ public class SystemsServiceImpl implements SystemsService
         hasAdminRole(authenticatedUser)) return null;
     var systemIDs = new ArrayList<Integer>();
     // Get roles for user and extract system IDs
+    // TODO: Need a way to make sure roles that a user has created and assigned to themselves are not included
+    //       Maybe a special role name? Or a search that only returns roles owned by "systems"
+    // TODO: Is it possible for a user to already have roles in this format that are assigned to them but not owned by "systems"?
+    //       If yes then it is a problem.
     List<String> userRoles = getSKClient(authenticatedUser).getUserRoles(systemTenantName, authenticatedUser.getName());
     // Find roles of the form Systems_R_<id> and generate a list of IDs
     // TODO Create a function and turn this into a stream/lambda
@@ -1474,7 +1512,7 @@ public class SystemsServiceImpl implements SystemsService
     // TODO: Use sk isAdmin method ot require that user have the tenant admin role
 //    var skClient = getSKClient(authenticatedUser);
 //    return skClient.hasRole(authenticatedUser.getTenantId(), authenticatedUser.getName(), SYSTEMS_ADMIN_ROLE);
-    if (authenticatedUser.getName().contains("SystemsAdmin")) return true;
+    if (authenticatedUser.getName().contains("SystemsAdmin") || authenticatedUser.getName().contains("admin")) return true;
     else return false;
   }
 

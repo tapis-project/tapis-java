@@ -157,7 +157,7 @@ public class SystemsResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-    description = "Health check.",
+    description = "Health check. Lightweight non-authenticated basic liveness check. Returns full version.",
     tags = "general",
     responses = {
       @ApiResponse(responseCode = "200", description = "Message received.",
@@ -214,7 +214,7 @@ public class SystemsResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Ready check.",
+          description = "Ready check. Lightweight non-authenticated check that service is ready to accept requests.",
           tags = "general",
           responses =
                   {@ApiResponse(responseCode = "200", description = "Service ready.",

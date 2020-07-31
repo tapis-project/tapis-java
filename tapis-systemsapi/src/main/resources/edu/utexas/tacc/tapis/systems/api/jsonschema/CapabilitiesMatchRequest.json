@@ -1,7 +1,7 @@
 {
-  "$id": "http://tapis.tacc.utexas.edu/MatchCapabilitiesRequest",
+  "$id": "http://tapis.tacc.utexas.edu/CapabilitiesMatchRequest",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Schema for system capabilities matching conditions",
+  "description": "Schema for a request to find systems matching certain capabilities",
   "additionalProperties": false,
 
   "$ref":"#/definitions/MatchCondition",
