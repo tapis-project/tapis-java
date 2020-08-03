@@ -56,7 +56,7 @@ public class RuntimeParameters {
   // The slf4j/logback target directory and file.
   private String  logDirectory;
   private String  logFile;
-  private String  coreServer;
+  private String  coreServer = "http://restheart:8080/";
   
   
   // these need to move to shared library
@@ -80,7 +80,7 @@ public class RuntimeParameters {
   
     //----------------------   Input parameters   ----------------------
     // String parm = inputProperties.getProperty(TapisEnv.EnvVar.TAPIS_LOG_DIRECTORY.getEnvName());
-    String parm = inputProperties.getProperty("tapis.meta.core.server");
+    String parm = System.getenv("tapis.meta.core.server");
     if (!StringUtils.isBlank(parm)) setCoreServer(parm);
   
     parm = inputProperties.getProperty("tapis.meta.log.directory");

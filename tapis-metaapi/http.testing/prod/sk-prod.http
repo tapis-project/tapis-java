@@ -4,6 +4,17 @@
 #
 ######################################################
 
+### SK grant permission for a user mlm55 all operations for jplDB
+POST https://master.tapis.io/v3/security/user/grantUserPermission?tenant=tacc
+X-Tapis-Token: {{token}}
+X-Tapis-User: {{user}}
+X-Tapis-Tenant:{{tenant}}
+Content-Type: application/json
+
+{"user":"mlm55","tenant":"tacc","permSpec":"meta:tacc:GET,POST,PUT,PATCH,DELETE:jplDB:*:*"}
+
+###
+
 ### SK grant permission for a user meta all operations except delete
 POST https://master.tapis.io/v3/security/user/grantUserPermission?tenant=master
 X-Tapis-Token: {{token}}
@@ -11,7 +22,7 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"streams","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:StreamsProdDB:*:*"}
+{"user":"streams","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:StreamsTACCDB:*:*"}
 
 ###
 

@@ -1,8 +1,8 @@
 ###  sanity test to see if service is alive
-GET http://c002.rodeo.tacc.utexas.edu:32263/
-X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+GET http://c002.rodeo.tacc.utexas.edu:31404/
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: streamsTACCAdmin
+# X-Tapis-Tenant: dev
 Content-Type: application/json
 
 ###
@@ -15,7 +15,7 @@ Content-Type: application/json
 ##############################################################
 
 ###   db list collections
-GET http://c002.rodeo.tacc.utexas.edu:30401/StreamsTACCDB
+GET http://c002.rodeo.tacc.utexas.edu:31404/StreamsDevDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -33,7 +33,7 @@ Content-Type: application/json
 ###  403 Forbidden  nginx/1.16.1
 
 ###   no perms and db does not exist
-GET http://c002.rodeo.tacc.utexas.edu:30401/sltst
+GET http://c002.rodeo.tacc.utexas.edu:31404/
 X-Tapis-Token: {{token}}
 X-Tapis-User: streamsTACCAdmin
 X-Tapis-Tenant: dev
@@ -46,10 +46,10 @@ Content-Type: application/json
 # streamsTACCAdmin   
 #  put with no arguements to StreamsTACCDB /v3/meta/StreamsTACCDB/
 ###
-PUT http://c002.rodeo.tacc.utexas.edu:32263/StreamsStagingDB
+PUT http://c002.rodeo.tacc.utexas.edu:31404/MyTstDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: streamsTACCAdmin
-X-Tapis-Tenant: dev
+X-Tapis-User: meta
+X-Tapis-Tenant: master
 Content-Type: application/json
 
 ###  results  200

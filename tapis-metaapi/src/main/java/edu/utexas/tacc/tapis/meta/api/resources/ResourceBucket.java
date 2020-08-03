@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -47,6 +48,41 @@ public class ResourceBucket {
   private HttpServletRequest _request;
   
   /*************************************************
+   *    Information unauthenticated endpoints
+   *************************************************/
+  
+  //----------------  health check ----------------
+  @GET
+  @Path("/healthcheck")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
+  public javax.ws.rs.core.Response healthCheck() {
+    // Trace this request.
+    if (_log.isTraceEnabled()) {
+      String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(),
+          "healthcheck", _request.getRequestURL());
+      _log.trace(msg);
+      _log.trace("check for liveness or a healthy service.");
+    }
+    
+    // Proxy the GET request and handle any exceptions
+    // in this case we are just checking the data flow from
+    // the core server all the way to mongodb.
+    CoreRequest coreRequest = new CoreRequest("/v3/meta/");
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
+    // If our response status is a 200, all is well
+    // If not either the core or mongodb is down.
+    // In either case the service is not healthy.
+    String rslt = coreResponse.getBasicResponse();
+    
+    // TODO ---------------------------- Response -------------------------------
+    // just return whatever core server sends to us
+    return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(rslt).build();
+  }
+  
+  
+  /*************************************************
    *    Root endpoints
    *************************************************/
   // TODO ----------------  List DBs in server ----------------
@@ -64,7 +100,7 @@ public class ResourceBucket {
   
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -91,7 +127,7 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -113,7 +149,7 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
     
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -188,7 +224,7 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -215,7 +251,7 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
     
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -241,7 +277,7 @@ public class ResourceBucket {
     
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
     
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -366,7 +402,7 @@ public class ResourceBucket {
   
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(pathUrl.toString());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
@@ -452,7 +488,7 @@ public class ResourceBucket {
                                                @PathParam("documentId") String documentId) {
     // Proxy the GET request and handle any exceptions
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
-    CoreResponse coreResponse = coreRequest.proxyGetRequest();
+    CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
     // TODO ---------------------------- Response -------------------------------
     // just return whatever core server sends to us

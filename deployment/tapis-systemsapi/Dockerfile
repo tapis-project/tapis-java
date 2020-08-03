@@ -26,17 +26,17 @@ COPY /dependencies dependencies
 ENV TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
 
 # Options for JVM
-#ENV JAVA_TOOL_OPTIONS -agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n \
-#                      -Djava.rmi.server.hostname=0.0.0.0 -Dcom.sun.management.jmxremote \
-#                      -Dcom.sun.management.jmxremote.port=9090  -Dcom.sun.management.jmxremote.rmi.port=9090 \
-#                      -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false \
-#                      -Dcom.sun.management.jmxremote.ssl=false \
-#                      -Dp6spy.config.modulelist=
-ENV JAVA_TOOL_OPTIONS -Dp6spy.config.modulelist=
+ENV JAVA_TOOL_OPTIONS -agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n \
+                      -Djava.rmi.server.hostname=0.0.0.0 -Dcom.sun.management.jmxremote \
+                      -Dcom.sun.management.jmxremote.port=9090  -Dcom.sun.management.jmxremote.rmi.port=9090 \
+                      -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false \
+                      -Dcom.sun.management.jmxremote.ssl=false \
+                      -Dp6spy.config.modulelist=
+# ENV JAVA_TOOL_OPTIONS -Dp6spy.config.modulelist=
 
 # Server port, debug port and jmx port
-#EXPOSE 8080
-#EXPOSE 8000
-#EXPOSE 9090
+EXPOSE 8080
+EXPOSE 8000
+EXPOSE 9090
 
 CMD ["java", "-Xms4g", "-Xmx4g", "-cp", "v3#systems.jar:dependencies/*", "edu.utexas.tacc.tapis.systems.api.SystemsApplication"]
