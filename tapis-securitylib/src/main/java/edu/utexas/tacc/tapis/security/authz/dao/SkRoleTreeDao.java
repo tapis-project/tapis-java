@@ -118,7 +118,7 @@ public final class SkRoleTreeDao
   /* ---------------------------------------------------------------------- */
   /** Assign a named child role to a parent role. This method guarantees that
    * the parent and child come from the same tenant.  This method aborts if a 
-   * cycle in the role heirarchy would be created if the assignment is made.
+   * cycle in the role hierarchy would be created if the assignment is made.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0. 
