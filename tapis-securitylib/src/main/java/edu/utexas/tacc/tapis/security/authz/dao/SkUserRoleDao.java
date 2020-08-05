@@ -201,12 +201,10 @@ public final class SkUserRoleDao
   /* ---------------------------------------------------------------------- */
   /* assignUserRole:                                                        */
   /* ---------------------------------------------------------------------- */
-  /** Assign a named child role to the parent role with the specified id. It
-   * is expected that all information other than the childRoleName was extracted
-   * from the parent role populated from the database. Otherwise, it is possible
-   * to attempt assigning a child role from one tenant to a parent in another.
-   * The query will filter out such attempts and an exception will be thrown
-   * because no records will be inserted into the sk_role_tree table.
+  /** Assign a role with the specified id to a user. The query will filter out 
+   * attempts to assign a role from one tenant to a user in another tenant (an 
+   * exception will be thrown because no records are available to be inserted 
+   * into the sk_role_tree table.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0. 
