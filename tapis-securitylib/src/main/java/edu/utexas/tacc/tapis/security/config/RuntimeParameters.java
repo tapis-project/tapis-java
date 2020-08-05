@@ -635,6 +635,7 @@ public final class RuntimeParameters
         
         buf.append("\n------- Tenants -----------------------------------");
         buf.append("\ntapis.tenant.svc.baseurl: ");
+        buf.append(this.getTenantBaseUrl());
 	    
 	    buf.append("\n------- DB Configuration --------------------------");
 	    buf.append("\ntapis.db.jdbc.url: ");
