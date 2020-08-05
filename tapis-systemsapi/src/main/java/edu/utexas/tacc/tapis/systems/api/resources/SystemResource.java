@@ -77,6 +77,8 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
  * Contains annotations which generate the OpenAPI specification documents.
  * Annotations map HTTP verb + endpoint to method invocation.
  *
+ * NOTE: The "pretty" query parameter is available for all endpoints. It is processed in
+ *       QueryParametersRequestFilter.java.
  */
 @Path("/v3/systems")
 public class SystemResource
@@ -149,6 +151,7 @@ public class SystemResource
   /**
    * Create a system
    * @param payloadStream - request body
+   * @param securityContext - user identity
    * @return response containing reference to created object
    */
   @POST
@@ -163,9 +166,9 @@ public class SystemResource
         "and can be no more than 256 characters in length. " +
         "Description is optional with a maximum length of 2048 characters.",
     tags = "systems",
-    parameters = {
-      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-    },
+//    parameters = {
+//      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+//    },
     requestBody =
       @RequestBody(
         description = "A JSON object specifying information for the system to be created.",
@@ -308,6 +311,7 @@ public class SystemResource
    * Update a system
    * @param systemName - name of the system
    * @param payloadStream - request body
+   * @param securityContext - user identity
    * @return response containing reference to updated object
    */
   @PATCH
@@ -321,9 +325,6 @@ public class SystemResource
                   "description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, " +
                   "port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.",
           tags = "systems",
-          parameters = {
-            @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-          },
           requestBody =
           @RequestBody(
                   description = "A JSON object specifying changes to be applied.",
@@ -456,6 +457,7 @@ public class SystemResource
    * Change owner of a system
    * @param systemName - name of the system
    * @param userName - name of the new owner
+   * @param securityContext - user identity
    * @return response containing reference to updated object
    */
   @POST
@@ -467,9 +469,6 @@ public class SystemResource
           description =
                   "Change owner of a system.",
           tags = "systems",
-          parameters = {
-            @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-          },
           responses = {
                   @ApiResponse(responseCode = "200", description = "System owner updated.",
                           content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
@@ -559,6 +558,7 @@ public class SystemResource
    * @param systemName - name of the system
    * @param getCreds - should credentials of effectiveUser be included
    * @param accessMethodStr - access method to use instead of default
+   * @param securityContext - user identity
    * @return Response with system object as the result
    */
   @GET
@@ -574,7 +574,6 @@ public class SystemResource
           "Use query parameter accessMethod=<method> to override default access method.",
       tags = "systems",
       parameters = {
-        @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean")),
         @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
                    in = ParameterIn.QUERY, schema = @Schema(type = "string"))
       },
@@ -647,6 +646,8 @@ public class SystemResource
 
   /**
    * getSystems
+   * @param searchStr -  List of strings indicating search conditions to use when retrieving results
+   * @param securityContext - user identity
    * @return - list of systems accessible by requester.
    */
   @GET
@@ -656,16 +657,17 @@ public class SystemResource
     summary = "Retrieve list of systems",
     description = "Retrieve list of systems.",
     tags = "systems",
-    parameters = {
-      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY,
-                 schema = @Schema(type = "boolean")),
-      @Parameter(name = "select", description = "Resource attributes to include when returning results. " +
-                                                "For example select=result.name,result.host",
-                 in = ParameterIn.QUERY, schema = @Schema(type = "string")),
-      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
-                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
-                 in = ParameterIn.QUERY, schema = @Schema(type = "string"))
-    },
+// TODO/TBD: In order to have select and search as parameters in the client we need to use @QueryParam
+//           but having it also in "parameters=" causes problems with the generated openapi.
+//  TBD: it causes duplicate entries in openapi.json, the file is then invalid json.
+//    parameters = {
+//      @Parameter(name = "select", description = "Resource attributes to include when returning results. " +
+//                                                "For example select=result.name,result.host",
+//                 in = ParameterIn.QUERY, schema = @Schema(type = "string")),
+//      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
+//                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
+//                 in = ParameterIn.QUERY, schema = @Schema(type = "string"))
+//    },
     responses = {
       @ApiResponse(responseCode = "200", description = "Success.",
                    content = @Content(schema = @Schema(implementation = RespSystemArray.class))),
@@ -677,7 +679,8 @@ public class SystemResource
         content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
     }
   )
-  public Response getSystems(@Context SecurityContext securityContext)
+  public Response getSystems(@QueryParam("search") String searchStr,
+                             @Context SecurityContext securityContext)
   {
     String opName = "getSystems";
     // Trace this request.
@@ -687,13 +690,25 @@ public class SystemResource
     // Utility method returns null if all OK and appropriate error response if there was a problem.
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
     boolean prettyPrint = threadContext.getPrettyPrint();
-    List<String> searchList = threadContext.getSearchList();
-    if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
     Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
     if (resp != null) return resp;
 
     // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
     AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    List<String> searchList = null;
+    try
+    {
+      searchList = ApiUtils.validateAndExtractSearchList(searchStr);
+    }
+    catch (Exception e)
+    {
+      String msg = ApiUtils.getMsgAuth("SYSAPI_SEARCHLIST_ERROR", authenticatedUser, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
 
     // ------------------------- Retrieve all records -----------------------------
     List<TSystem> systems;
@@ -715,6 +730,7 @@ public class SystemResource
   /**
    * deleteSystemByName
    * @param systemName - name of the system to delete
+   * @param securityContext - user identity
    * @return - response with change count as the result
    */
   @DELETE
@@ -725,9 +741,9 @@ public class SystemResource
     summary = "Soft delete a system given the system name",
     description = "Soft delete a system given the system name. ",
     tags = "systems",
-    parameters = {
-      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-    },
+//    parameters = {
+//      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+//    },
     responses = {
       @ApiResponse(responseCode = "200", description = "System deleted.",
         content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
@@ -976,5 +992,4 @@ public class SystemResource
     resp.version = TapisUtils.getTapisVersion();
     return Response.ok(resp).build();
   }
-
 }

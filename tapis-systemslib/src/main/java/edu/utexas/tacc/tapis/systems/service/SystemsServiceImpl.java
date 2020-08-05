@@ -1635,7 +1635,7 @@ public class SystemsServiceImpl implements SystemsService
     catch (Exception e)
     {
       //TODO How to better check and return 0 if credential not there?
-      _log.error(e.getMessage());
+      _log.warn(e.getMessage());
       skMetaSecret = null;
     }
     if (skMetaSecret == null) return changeCount;
