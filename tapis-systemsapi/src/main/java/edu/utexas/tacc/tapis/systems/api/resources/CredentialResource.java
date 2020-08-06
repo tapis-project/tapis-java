@@ -53,7 +53,9 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
 
 /*
  * JAX-RS REST resource for Tapis System credentials
- * Contains annotations which generate the OpenAPI specification documents.
+ * NOTE: Annotations for generating OpenAPI specification not currently used.
+ *       Please see tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+ *       and note at top of SystemsResource.java
  * Annotations map HTTP verb + endpoint to method invocation.
  * Secrets are stored in the Security Kernel
  *
@@ -134,29 +136,29 @@ public class CredentialResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-    summary = "Create or update access credential in the Security Kernel for given system and user",
-    description =
-        "Create or update access credential in the Security Kernel for given system and user using a request body. " +
-        " Requester must be owner of the system.",
-    tags = "credentials",
-    requestBody =
-      @RequestBody(
-        description = "A JSON object specifying a credential.",
-        required = true,
-        content = @Content(schema = @Schema(implementation = ReqCreateCredential.class))
-      ),
-    responses = {
-      @ApiResponse(responseCode = "200", description = "Credential updated.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "401", description = "Not authorized.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class)))
-    }
-  )
+//  @Operation(
+//    summary = "Create or update access credential in the Security Kernel for given system and user",
+//    description =
+//        "Create or update access credential in the Security Kernel for given system and user using a request body. " +
+//        " Requester must be owner of the system.",
+//    tags = "credentials",
+//    requestBody =
+//      @RequestBody(
+//        description = "A JSON object specifying a credential.",
+//        required = true,
+//        content = @Content(schema = @Schema(implementation = ReqCreateCredential.class))
+//      ),
+//    responses = {
+//      @ApiResponse(responseCode = "200", description = "Credential updated.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "401", description = "Not authorized.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class)))
+//    }
+//  )
   public Response createUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
                                        InputStream payloadStream,
@@ -254,24 +256,24 @@ public class CredentialResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-      summary = "Retrieve credential for given system and user",
-      description = "Retrieve credential for given system and user. Requester must be owner of the system. " +
-                    "Use query parameter accessMethod=<method> to override default access method.",
-      tags = "credentials",
-      responses = {
-          @ApiResponse(responseCode = "200", description = "Success.",
-            content = @Content(schema = @Schema(implementation = RespCredential.class))),
-          @ApiResponse(responseCode = "400", description = "Input error.",
-            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-          @ApiResponse(responseCode = "404", description = "System not found.",
-            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-          @ApiResponse(responseCode = "401", description = "Not authorized.",
-            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-          @ApiResponse(responseCode = "500", description = "Server error.",
-            content = @Content(schema = @Schema(implementation = RespBasic.class)))
-      }
-  )
+//  @Operation(
+//      summary = "Retrieve credential for given system and user",
+//      description = "Retrieve credential for given system and user. Requester must be owner of the system. " +
+//                    "Use query parameter accessMethod=<method> to override default access method.",
+//      tags = "credentials",
+//      responses = {
+//          @ApiResponse(responseCode = "200", description = "Success.",
+//            content = @Content(schema = @Schema(implementation = RespCredential.class))),
+//          @ApiResponse(responseCode = "400", description = "Input error.",
+//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//          @ApiResponse(responseCode = "404", description = "System not found.",
+//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//          @ApiResponse(responseCode = "401", description = "Not authorized.",
+//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//          @ApiResponse(responseCode = "500", description = "Server error.",
+//            content = @Content(schema = @Schema(implementation = RespBasic.class)))
+//      }
+//  )
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
@@ -346,22 +348,22 @@ public class CredentialResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-    summary = "Remove credential in the Security Kernel for given system and user",
-    description =
-      "Remove credential from the Security Kernel for given system and user. Requester must be owner of the system.",
-    tags = "credentials",
-    responses = {
-      @ApiResponse(responseCode = "200", description = "Credential removed.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "401", description = "Not authorized.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.",
-        content = @Content(schema = @Schema(implementation = RespBasic.class)))
-    }
-  )
+//  @Operation(
+//    summary = "Remove credential in the Security Kernel for given system and user",
+//    description =
+//      "Remove credential from the Security Kernel for given system and user. Requester must be owner of the system.",
+//    tags = "credentials",
+//    responses = {
+//      @ApiResponse(responseCode = "200", description = "Credential removed.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "401", description = "Not authorized.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.",
+//        content = @Content(schema = @Schema(implementation = RespBasic.class)))
+//    }
+//  )
   public Response removeUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
                                        @Context SecurityContext securityContext)

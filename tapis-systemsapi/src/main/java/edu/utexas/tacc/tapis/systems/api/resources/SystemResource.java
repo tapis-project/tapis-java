@@ -33,6 +33,7 @@ import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqImportSGCIResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -74,8 +75,10 @@ import edu.utexas.tacc.tapis.systems.service.SystemsService;
 
 /*
  * JAX-RS REST resource for a Tapis System (edu.utexas.tacc.tapis.systems.model.TSystem)
- * Contains annotations which generate the OpenAPI specification documents.
- * Annotations map HTTP verb + endpoint to method invocation.
+ * jax-rs annotations map HTTP verb + endpoint to method invocation and map query parameters.
+ * NOTE: Annotations for generating OpenAPI specification not currently used.
+ *       Please see tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+ *       and note at top of SystemsResource.java
  *
  * NOTE: The "pretty" query parameter is available for all endpoints. It is processed in
  *       QueryParametersRequestFilter.java.
@@ -92,6 +95,7 @@ public class SystemResource
   // Json schema resource files.
   private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
+  private static final String FILE_SYSTEM_IMPORTSGCI_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemImportSGCIRequest.json";
 
   // Field names used in Json
   private static final String NAME_FIELD = "name";
@@ -157,37 +161,37 @@ public class SystemResource
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-    summary = "Create a system",
-    description =
-        "Create a system using a request body. " +
-        "System name must be unique within a tenant and can be composed of alphanumeric characters " +
-        "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
-        "and can be no more than 256 characters in length. " +
-        "Description is optional with a maximum length of 2048 characters.",
-    tags = "systems",
-//    parameters = {
-//      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-//    },
-    requestBody =
-      @RequestBody(
-        description = "A JSON object specifying information for the system to be created.",
-        required = true,
-        content = @Content(schema = @Schema(implementation = ReqCreateSystem.class))
-      ),
-    responses = {
-      @ApiResponse(responseCode = "201", description = "System created.",
-                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "401", description = "Not authorized.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "409", description = "System already exists.",
-                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-    }
-  )
+//  @Operation(
+//    summary = "Create a system",
+//    description =
+//        "Create a system using a request body. " +
+//        "System name must be unique within a tenant and can be composed of alphanumeric characters " +
+//        "and the following special characters: [-._~]. Name must begin with an alphabetic character " +
+//        "and can be no more than 256 characters in length. " +
+//        "Description is optional with a maximum length of 2048 characters.",
+//    tags = "systems",
+////    parameters = {
+////      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+////    },
+//    requestBody =
+//      @RequestBody(
+//        description = "A JSON object specifying information for the system to be created.",
+//        required = true,
+//        content = @Content(schema = @Schema(implementation = ReqCreateSystem.class))
+//      ),
+//    responses = {
+//      @ApiResponse(responseCode = "201", description = "System created.",
+//                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "401", description = "Not authorized.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "409", description = "System already exists.",
+//                   content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//    }
+//  )
   public Response createSystem(InputStream payloadStream,
                                @Context SecurityContext securityContext)
   {
@@ -318,32 +322,32 @@ public class SystemResource
   @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-          summary = "Update a system",
-          description =
-                  "Update attributes for a system. Only certain attributes may be updated: " +
-                  "description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, " +
-                  "port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.",
-          tags = "systems",
-          requestBody =
-          @RequestBody(
-                  description = "A JSON object specifying changes to be applied.",
-                  required = true,
-                  content = @Content(schema = @Schema(implementation = ReqUpdateSystem.class))
-          ),
-          responses = {
-                  @ApiResponse(responseCode = "200", description = "System updated.",
-                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "System not found.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-          }
-  )
+//  @Operation(
+//          summary = "Update a system",
+//          description =
+//                  "Update attributes for a system. Only certain attributes may be updated: " +
+//                  "description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, " +
+//                  "port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.",
+//          tags = "systems",
+//          requestBody =
+//          @RequestBody(
+//                  description = "A JSON object specifying changes to be applied.",
+//                  required = true,
+//                  content = @Content(schema = @Schema(implementation = ReqUpdateSystem.class))
+//          ),
+//          responses = {
+//                  @ApiResponse(responseCode = "200", description = "System updated.",
+//                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+//                  @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "404", description = "System not found.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "500", description = "Server error.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//          }
+//  )
   public Response updateSystem(@PathParam("systemName") String systemName,
                                InputStream payloadStream, @Context SecurityContext securityContext)
   {
@@ -454,6 +458,168 @@ public class SystemResource
   }
 
   /**
+   * Import a system - create a system based on an attributes from an external source
+   * @param payloadStream - request body
+   * @param securityContext - user identity
+   * @return response containing reference to created object
+   */
+  @POST
+  @Path("import/sgci")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+// See tapis-java/tapis-systemsapi/src/main/resources for latest OpenAPI specification
+//  @Operation(
+//          summary = "Import a system. Create a system based on attributes from the SGCI resource catalog",
+//          description = "See tapis-java/tapis-systemsapi/src/main/resources for latest OpenAPI specification",
+//          description =
+//                  "Import a system by creating a system based on attributes from the SGCI resource catalog. " +
+//                  "The SGCI resource ID must be specified in the request body. Optional attributes that may " +
+//                  "specified in the request body are: name, description, enabled, effectiveUserId, accessCredential," +
+//                  "jobRemoteArchiveSystem, jobRemoteArchiveDir, jobCapabilities, tags and notes.",
+//          tags = "systems",
+//          requestBody =
+//          @RequestBody(
+//                  description = "A JSON object specifying information for the system to be imported.",
+//                  required = true,
+//                  content = @Content(schema = @Schema(implementation = ReqImportSGCIResource.class))
+//          ),
+//          responses = {
+//                  @ApiResponse(responseCode = "201", description = "System created.",
+//                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+//                  @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "409", description = "System already exists.",
+//                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
+//                  @ApiResponse(responseCode = "500", description = "Server error.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//          }
+//  )
+  public Response importSGCIResource(InputStream payloadStream,
+                                     @Context SecurityContext securityContext)
+  {
+    String opName = "importSystem";
+    // Trace this request.
+    if (_log.isTraceEnabled()) logRequest(opName);
+
+    // ------------------------- Retrieve and validate thread context -------------------------
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    // ------------------------- Extract and validate payload -------------------------
+    // Read the payload into a string.
+    String rawJson, msg;
+    try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName , e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    // Create validator specification and validate the json against the schema
+    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_IMPORTSGCI_REQUEST);
+    try { JsonValidator.validate(spec); }
+    catch (TapisJSONException e)
+    {
+      msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    ReqImportSGCIResource req;
+    // ------------------------- Create a TSystem from the json and validate constraints -------------------------
+    try {
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqImportSGCIResource.class);
+    }
+    catch (JsonSyntaxException e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // TODO ???????????????????????????????????????????????????????????????
+    if (true)
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse("WIP: COMING SOON", prettyPrint)).build();
+
+    // Create a TSystem from the request
+    TSystem system = null; //createTSystemFromRequest(req);
+    // Fill in defaults and check constraints on TSystem attributes
+    resp = validateTSystem(system, authenticatedUser, prettyPrint);
+    if (resp != null) return resp;
+
+    // Extract Notes from the raw json.
+    Object notes = extractNotes(rawJson);
+    system.setNotes(notes);
+
+    // Mask any secret info that might be contained in rawJson
+    String scrubbedJson = rawJson;
+    if (system.getAccessCredential() != null) scrubbedJson = maskCredSecrets(rawJson);
+
+    // ---------------------------- Make service call to create the system -------------------------------
+    // Update tenant name and pull out system name for convenience
+    system.setTenant(authenticatedUser.getTenantId());
+    String systemName = system.getName();
+    try
+    {
+      systemsService.createSystem(authenticatedUser, system, scrubbedJson);
+    }
+    catch (IllegalStateException e)
+    {
+      if (e.getMessage().contains("SYSLIB_SYS_EXISTS"))
+      {
+        // IllegalStateException with msg containing SYS_EXISTS indicates object exists - return 409 - Conflict
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_EXISTS", authenticatedUser, systemName);
+        _log.warn(msg);
+        return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+      else if (e.getMessage().contains("SYSLIB_UNAUTH"))
+      {
+        // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_UNAUTH", authenticatedUser, systemName, opName);
+        _log.warn(msg);
+        return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+      else
+      {
+        // IllegalStateException indicates an Invalid TSystem was passed in
+        msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+    }
+    catch (IllegalArgumentException e)
+    {
+      // IllegalArgumentException indicates somehow a bad argument made it this far
+      msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_CREATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    // Success means the object was created.
+    ResultResourceUrl respUrl = new ResultResourceUrl();
+    respUrl.url = _request.getRequestURL().toString() + "/" + systemName;
+    RespResourceUrl resp1 = new RespResourceUrl(respUrl);
+    return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
+            ApiUtils.getMsgAuth("SYSAPI_CREATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
+  }
+
+  /**
    * Change owner of a system
    * @param systemName - name of the system
    * @param userName - name of the new owner
@@ -464,22 +630,22 @@ public class SystemResource
   @Path("{systemName}/changeOwner/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-          summary = "Change owner of a system",
-          description =
-                  "Change owner of a system.",
-          tags = "systems",
-          responses = {
-                  @ApiResponse(responseCode = "200", description = "System owner updated.",
-                          content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "System not found.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-          }
-  )
+//  @Operation(
+//          summary = "Change owner of a system",
+//          description =
+//                  "Change owner of a system.",
+//          tags = "systems",
+//          responses = {
+//                  @ApiResponse(responseCode = "200", description = "System owner updated.",
+//                          content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
+//                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "404", description = "System not found.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                  @ApiResponse(responseCode = "500", description = "Server error.",
+//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//          }
+//  )
   public Response changeSystemOwner(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
                                     @Context SecurityContext securityContext)
@@ -565,31 +731,31 @@ public class SystemResource
   @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-      summary = "Retrieve information for a system",
-      description =
-          "Retrieve information for a system given the system name. " +
-          "Use query parameter returnCredentials=true to have effectiveUserId access credentials " +
-          "included in the response. " +
-          "Use query parameter accessMethod=<method> to override default access method.",
-      tags = "systems",
-      parameters = {
-        @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
-                   in = ParameterIn.QUERY, schema = @Schema(type = "string"))
-      },
-      responses = {
-          @ApiResponse(responseCode = "200", description = "System found.",
-            content = @Content(schema = @Schema(implementation = RespSystem.class))),
-          @ApiResponse(responseCode = "400", description = "Input error.",
-            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-          @ApiResponse(responseCode = "404", description = "System not found.",
-            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-          @ApiResponse(responseCode = "401", description = "Not authorized.",
-            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-          @ApiResponse(responseCode = "500", description = "Server error.",
-            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-      }
-  )
+//  @Operation(
+//      summary = "Retrieve information for a system",
+//      description =
+//          "Retrieve information for a system given the system name. " +
+//          "Use query parameter returnCredentials=true to have effectiveUserId access credentials " +
+//          "included in the response. " +
+//          "Use query parameter accessMethod=<method> to override default access method.",
+//      tags = "systems",
+//      parameters = {
+//        @Parameter(name = "select", description = "Resource attributes to include when returning results. For example select=result.name,result.host",
+//                   in = ParameterIn.QUERY, schema = @Schema(type = "string"))
+//      },
+//      responses = {
+//          @ApiResponse(responseCode = "200", description = "System found.",
+//            content = @Content(schema = @Schema(implementation = RespSystem.class))),
+//          @ApiResponse(responseCode = "400", description = "Input error.",
+//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//          @ApiResponse(responseCode = "404", description = "System not found.",
+//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//          @ApiResponse(responseCode = "401", description = "Not authorized.",
+//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//          @ApiResponse(responseCode = "500", description = "Server error.",
+//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//      }
+//  )
   public Response getSystemByName(@PathParam("systemName") String systemName,
                                   @QueryParam("returnCredentials") @DefaultValue("false") boolean getCreds,
                                   @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
@@ -653,32 +819,32 @@ public class SystemResource
   @GET
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-    summary = "Retrieve list of systems",
-    description = "Retrieve list of systems.",
-    tags = "systems",
-// TODO/TBD: In order to have select and search as parameters in the client we need to use @QueryParam
-//           but having it also in "parameters=" causes problems with the generated openapi.
-//  TBD: it causes duplicate entries in openapi.json, the file is then invalid json.
-//    parameters = {
-//      @Parameter(name = "select", description = "Resource attributes to include when returning results. " +
-//                                                "For example select=result.name,result.host",
-//                 in = ParameterIn.QUERY, schema = @Schema(type = "string")),
-//      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
-//                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
-//                 in = ParameterIn.QUERY, schema = @Schema(type = "string"))
-//    },
-    responses = {
-      @ApiResponse(responseCode = "200", description = "Success.",
-                   content = @Content(schema = @Schema(implementation = RespSystemArray.class))),
-      @ApiResponse(responseCode = "400", description = "Input error.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "401", description = "Not authorized.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-    }
-  )
+//  @Operation(
+//    summary = "Retrieve list of systems",
+//    description = "Retrieve list of systems.",
+//    tags = "systems",
+//// TODO/TBD: In order to have select and search as parameters in the client we need to use @QueryParam
+////           but having it also in "parameters=" causes problems with the generated openapi.
+////  TBD: it causes duplicate entries in openapi.json, the file is then invalid json.
+////    parameters = {
+////      @Parameter(name = "select", description = "Resource attributes to include when returning results. " +
+////                                                "For example select=result.name,result.host",
+////                 in = ParameterIn.QUERY, schema = @Schema(type = "string")),
+////      @Parameter(name = "search", description = "Search conditions to use when retrieving results. " +
+////                                                "For example, search=name.eq.Lsystem1,enabled.eq.true",
+////                 in = ParameterIn.QUERY, schema = @Schema(type = "string"))
+////    },
+//    responses = {
+//      @ApiResponse(responseCode = "200", description = "Success.",
+//                   content = @Content(schema = @Schema(implementation = RespSystemArray.class))),
+//      @ApiResponse(responseCode = "400", description = "Input error.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "401", description = "Not authorized.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//    }
+//  )
   public Response getSystems(@QueryParam("search") String searchStr,
                              @Context SecurityContext securityContext)
   {
@@ -737,24 +903,24 @@ public class SystemResource
   @Path("{systemName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(
-    summary = "Soft delete a system given the system name",
-    description = "Soft delete a system given the system name. ",
-    tags = "systems",
-//    parameters = {
-//      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
-//    },
-    responses = {
-      @ApiResponse(responseCode = "200", description = "System deleted.",
-        content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
-      @ApiResponse(responseCode = "400", description = "Input error.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "401", description = "Not authorized.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-    }
-  )
+//  @Operation(
+//    summary = "Soft delete a system given the system name",
+//    description = "Soft delete a system given the system name. ",
+//    tags = "systems",
+////    parameters = {
+////      @Parameter(name = "pretty", description = "Pretty print the response", in = ParameterIn.QUERY, schema = @Schema(type = "boolean"))
+////    },
+//    responses = {
+//      @ApiResponse(responseCode = "200", description = "System deleted.",
+//        content = @Content(schema = @Schema(implementation = RespChangeCount.class))),
+//      @ApiResponse(responseCode = "400", description = "Input error.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "401", description = "Not authorized.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
+//    }
+//  )
   public Response deleteSystemByName(@PathParam("systemName") String systemName,
                                      @Context SecurityContext securityContext)
   {
