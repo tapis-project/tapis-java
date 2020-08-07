@@ -27,6 +27,7 @@ tags:
   - name: systems
     description: manage systems
 
+# ------------------------------------------------------------------------------
 # --- Paths -------------------------------------------------------------------
 paths:
 
@@ -66,8 +67,8 @@ paths:
     get:
       tags:
         - systems
-      summary: Retrieve list of systems
-      description: Retrieve list of systems.
+      summary: Retrieve systems
+      description: Retrieve details for systems. Use search and select to limit results.
       operationId: getSystems
       parameters:
         - name: pretty
@@ -148,8 +149,8 @@ paths:
     post:
       tags:
         - systems
-      summary: Import a system. Create a system based on attributes from a resource in the SGCI resource catalog
-      description: 'Import a system by creating a system based on attributes from a resource in the SGCI resource catalog. The SGCI resource ID must be specified in the request body.'
+      summary: Import an SGCI resource.
+      description: 'Create a system based on attributes from a resource in the SGCI resource catalog. The SGCI resource ID must be specified in the request body.'
       operationId: importSGCIResource
       requestBody:
         required: true
@@ -194,7 +195,7 @@ paths:
     get:
       tags:
         - systems
-      summary: Retrieve information for a system
+      summary: Retrieve system details
       description: Retrieve information for a system given the system name. Use query parameter returnCredentials=true to have effectiveUserId access credentials included in the response. Use query parameter accessMethod=<method> to override default access method.
       operationId: getSystemByName
       parameters:
@@ -247,8 +248,8 @@ paths:
     delete:
       tags:
         - systems
-      summary: Soft delete a system given the system name
-      description: 'Soft delete a system given the system name. '
+      summary: Soft delete a system
+      description: 'Soft delete a system given the system name.'
       operationId: deleteSystemByName
       parameters:
         - name: systemName
@@ -380,8 +381,8 @@ paths:
     get:
       tags:
         - credentials
-      summary: Retrieve credential for given system and user
-      description: Retrieve credential for given system and user. Requester must be owner of the system. Use query parameter accessMethod=<method> to override default access method.
+      summary: Retrieve system user credentials
+      description: Retrieve credentials for given system and user. Requester must be owner of the system. Use query parameter accessMethod=<method> to override default access method.
       operationId: getUserCredential
       parameters:
         - name: systemName
@@ -433,8 +434,8 @@ paths:
     post:
       tags:
         - credentials
-      summary: Create or update access credential in the Security Kernel for given system and user
-      description: Create or update access credential in the Security Kernel for given system and user using a request body.  Requester must be owner of the system.
+      summary: Create or update system user credentials
+      description: Create or update access credentials in the Security Kernel for given system and user using a request body. Requester must be owner of the system.
       operationId: createUserCredential
       parameters:
         - name: systemName
@@ -482,7 +483,7 @@ paths:
     delete:
       tags:
         - credentials
-      summary: Remove credential in the Security Kernel for given system and user
+      summary: Remove system user credentials
       description: Remove credential from the Security Kernel for given system and user. Requester must be owner of the system.
       operationId: removeUserCredential
       parameters:
@@ -527,7 +528,7 @@ paths:
     get:
       tags:
         - permissions
-      summary: Retrieve system related permissions for given system and user
+      summary: Retrieve system user permissions
       description: Retrieve all system related permissions for a given system and user.
       operationId: getUserPerms
       parameters:
@@ -575,7 +576,7 @@ paths:
     post:
       tags:
         - permissions
-      summary: Create permissions in the Security Kernel giving a user access to a system
+      summary: Create system user permissions
       description: 'Create permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
       operationId: grantUserPerms
       parameters:
@@ -626,7 +627,7 @@ paths:
     post:
       tags:
         - permissions
-      summary: Revoke system permissions in the Security Kernel using request body
+      summary: Revoke system user permissions
       description: 'Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
       operationId: revokeUserPerms
       parameters:
@@ -671,8 +672,8 @@ paths:
     delete:
       tags:
         - permissions
-      summary: Revoke specified permission in the Security Kernel
-      description: 'Revoke permission in the Security Kernel for a user. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
+      summary: Revoke system user permission
+      description: 'Revoke system user permission in the Security Kernel. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
       operationId: revokeUserPerm
       parameters:
         - name: systemName
@@ -716,6 +717,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RespBasic'
 
+# ------------------------------------------------------------------------------
 # --- Components ---------------------------------------------------------------
 components:
   securitySchemes:
