@@ -14,9 +14,11 @@ import javax.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +39,13 @@ public class ApiUtils
 
   // Location of message bundle files
   private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.systems.api.SysApiMessages";
+
+  // Regex for parsing (<attr1>.<op>.<val1>)~(<attr2>.<op>.<val2>) ... See validateAndExtractSearchList
+  private static final String SEARCH_REGEX = "(?:\\\\.|[^~\\\\]++)+";
+
+  // Supported operators for search
+  // TODO/TBD: Move to tapis-shared
+  private static final Set<String> SEARCH_OPS = new HashSet<>(Arrays.asList("eq","neq","gt","gte","lt","lte","in","nin","like","nlike","between"));
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -226,8 +235,7 @@ public class ApiUtils
 //                       "[^" + delimiter + escape + "]++" + // match any char except delim or escape, possessive match
 //                        ")" + // end a match group
 //                        "+"; // repeat any number of times, ignoring empty results. Use * instead of + to include empty results
-    String regexStr = "(?:\\\\.|[^~\\\\]++)+";
-    Pattern regexPattern = Pattern.compile(regexStr);
+    Pattern regexPattern = Pattern.compile(SEARCH_REGEX);
     Matcher regexMatcher = regexPattern.matcher(searchListStr);
     while (regexMatcher.find()) { searchList.add(regexMatcher.group()); }
     // If we found only one match the searchList string may be a single condition that may or may not
@@ -255,6 +263,8 @@ public class ApiUtils
   }
 
   /**
+   *  TODO: This code probably also needed in systemslib for checking on backend. Consider moving to tapis-shared
+   *        including list of supported operators as an enum, other stuff?
    * Validate and extract a search condition that must of the form (<attr>.<op>.<value>)
    * @param cond the condition to process
    * @return the validated condition without surrounding parentheses
@@ -311,9 +321,16 @@ public class ApiUtils
       String errMsg = ApiUtils.getMsg("SYSAPI_SEARCHCOND_INVALID_ATTR", cond);
       throw new IllegalArgumentException(errMsg);
     }
+    // TODO/TBD: we can check valid characters or supported <op>, but no need to do both
     // <op> must start with [a-zA-Z] and contain only [a-zA-Z]
-    m = (Pattern.compile("^[a-zA-Z][a-zA-Z]*$")).matcher(op);
-    if (!m.find())
+//    m = (Pattern.compile("^[a-zA-Z][a-zA-Z]*$")).matcher(op);
+//    if (!m.find())
+//    {
+//      String errMsg = ApiUtils.getMsg("SYSAPI_SEARCHCOND_INVALID_OP", cond);
+//      throw new IllegalArgumentException(errMsg);
+//    }
+    // Verify <op> is supported.
+    if (!SEARCH_OPS.contains(op.toLowerCase()))
     {
       String errMsg = ApiUtils.getMsg("SYSAPI_SEARCHCOND_INVALID_OP", cond);
       throw new IllegalArgumentException(errMsg);

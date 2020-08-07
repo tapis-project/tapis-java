@@ -336,7 +336,7 @@ paths:
     post:
       tags:
         - systems
-      summary: Change owner of a system
+      summary: Change system owner
       description: Change owner of a system.
       operationId: changeSystemOwner
       parameters:
@@ -964,6 +964,10 @@ components:
       required: [sgciResourceId]
       properties:
         sgciResourceId:
+          type: string
+        name:
+          type: string
+        description:
           type: string
         owner:
           type: string

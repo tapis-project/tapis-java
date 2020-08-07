@@ -921,6 +921,7 @@ public class SystemResource
 //        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
 //    }
 //  )
+// TODO Add query parameter "confirm" which must be set to true since this is an operation that cannot be undone by a user
   public Response deleteSystemByName(@PathParam("systemName") String systemName,
                                      @Context SecurityContext securityContext)
   {
