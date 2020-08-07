@@ -12,7 +12,6 @@ import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
-import io.jsonwebtoken.lang.Collections;
 
 /** This class makes sure each tenant has an administrator role defined and
  * at least one user assigned that role.  It gets its tenant information from

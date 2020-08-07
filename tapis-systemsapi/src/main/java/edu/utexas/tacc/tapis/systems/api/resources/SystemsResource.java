@@ -52,31 +52,37 @@ import org.jooq.tools.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@OpenAPIDefinition(
-    security = {@SecurityRequirement(name = "TapisJWT")},
-    info = @Info(
-        title = "Tapis Systems API",
-        version = "0.1",
-        description = "The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.",
-        license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
-        contact = @Contact(name = "CICSupport", email = "cicsupport@tacc.utexas.edu")),
-    tags = {
-        @Tag(name = "systems", description = "manage systems")
-    },
-    servers = {
-//      @Server(url = "v3/systems", description = "Base URL")
-      @Server(url = "http://localhost:8080/", description = "Local test environment"),
-      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
-    },
-    externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
-)
-@SecurityScheme(
-  name="TapisJWT",
-  description="Tapis signed JWT token authentication",
-  type= SecuritySchemeType.APIKEY,
-  in= SecuritySchemeIn.HEADER,
-  paramName="X-Tapis-Token"
-)
+/* Tapis Systems general resources including healthcheck and readycheck
+ *
+ * (NOT currently used) Contains annotations which generate the OpenAPI specification documents.
+ *  NOTE: Switching to hand-crafted openapi located at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+ *        Could not fully automate generation of spec and annotations have some limits. E.g., how to mark a parameter
+ *        in a request body as required?, how to better describe query parameters?
+ */
+//@OpenAPIDefinition(
+//    security = {@SecurityRequirement(name = "TapisJWT")},
+//    info = @Info(
+//        title = "Tapis Systems API",
+//        description = "The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.",
+//        license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
+//        contact = @Contact(name = "CICSupport", email = "cicsupport@tacc.utexas.edu")),
+//    tags = {
+//        @Tag(name = "systems", description = "manage systems")
+//    },
+//    servers = {
+////      @Server(url = "v3/systems", description = "Base URL")
+//      @Server(url = "http://localhost:8080/", description = "Local test environment"),
+//      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
+//    },
+//    externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
+//)
+//@SecurityScheme(
+//  name="TapisJWT",
+//  description="Tapis signed JWT token authentication",
+//  type= SecuritySchemeType.APIKEY,
+//  in= SecuritySchemeIn.HEADER,
+//  paramName="X-Tapis-Token"
+//)
 @Path("/v3/systems")
 public class SystemsResource
 {
@@ -156,15 +162,15 @@ public class SystemsResource
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-  @Operation(
-    description = "Health check. Lightweight non-authenticated basic liveness check. Returns full version.",
-    tags = "general",
-    responses = {
-      @ApiResponse(responseCode = "200", description = "Message received.",
-        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-      @ApiResponse(responseCode = "500", description = "Server error.")
-    }
-  )
+//  @Operation(
+//    description = "Health check. Lightweight non-authenticated basic liveness check. Returns full version.",
+//    tags = "general",
+//    responses = {
+//      @ApiResponse(responseCode = "200", description = "Message received.",
+//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//      @ApiResponse(responseCode = "500", description = "Server error.")
+//    }
+//  )
   public Response healthCheck()
   {
     // Get the current check count.
@@ -213,15 +219,15 @@ public class SystemsResource
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-  @Operation(
-          description = "Ready check. Lightweight non-authenticated check that service is ready to accept requests.",
-          tags = "general",
-          responses =
-                  {@ApiResponse(responseCode = "200", description = "Service ready.",
-                          content = @Content(schema = @Schema(
-                                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                          @ApiResponse(responseCode = "503", description = "Service unavailable.")}
-  )
+//  @Operation(
+//          description = "Ready check. Lightweight non-authenticated check that service is ready to accept requests.",
+//          tags = "general",
+//          responses =
+//                  {@ApiResponse(responseCode = "200", description = "Service ready.",
+//                          content = @Content(schema = @Schema(
+//                                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+//                          @ApiResponse(responseCode = "503", description = "Service unavailable.")}
+//  )
   public Response readyCheck()
   {
     // Get the current check count.

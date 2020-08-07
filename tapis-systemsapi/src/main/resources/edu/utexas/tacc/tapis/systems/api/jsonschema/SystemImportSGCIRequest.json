@@ -1,9 +1,9 @@
 {
-  "$id": "http://tapis.tacc.utexas.edu/SGCIResourceImportRequest",
+  "$id": "http://tapis.tacc.utexas.edu/SystemImportSGCIRequest",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Schema for a request to create a system based on an SGCI Resource",
+  "description": "Schema for a request to create a system based on attributes from an SGCI resource",
   "additionalProperties": false,
-"$comment": "TODO: remove comments",
+  "$comment": "TODO: remove comments",
   "$comment": "Add property sgciResourceId to system defn",
   "$comment": "Use tenant+sgciId by default or tenant+name if optional name is supplied",
   "$comment": "what if sgciId does not conform to Tapis3 name requirements?",
@@ -17,29 +17,13 @@
   "type": "object",
   "required": [ "sgciResourceId", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
   "properties": {
+    "sgciResourceId": { "type": "string" },
     "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
     "description": { "type": "string", "maxLength": 2048 },
-
-    "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
     "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
     "enabled": { "type": "boolean", "default": true },
     "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
     "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/credential" },
-    "bucketName": { "type": "string", "maxLength": 63 },
-    "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "transferMethods": {
-      "type": "array",
-      "items": { "type": "string", "enum": ["SFTP","S3"] }
-    },
-    "port": { "type": "integer" },
-    "useProxy": { "type": "boolean", "default": false },
-    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
-    "proxyPort": { "type": "integer" },
-    "jobCanExec": { "type": "boolean" },
-    "jobLocalWorkingDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "jobLocalArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "jobRemoteArchiveSystem": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
     "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
     "jobCapabilities": {

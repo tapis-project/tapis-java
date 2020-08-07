@@ -62,6 +62,9 @@ public class SystemsApplication extends ResourceConfig
     register(AcceptHeaderOpenApiResource.class);
 
     // Setup and register Jersey's dynamic filtering
+    // This allows for returning selected attributes in a return result
+    //   using the query parameter select, e.g.
+    //   /v3/systems?select=result.id,result.name,result.host,result.enabled
     property(SelectableEntityFilteringFeature.QUERY_PARAM_NAME, "select");
     register(SelectableEntityFilteringFeature.class);
     // Register either Jackson or Moxy for SelectableEntityFiltering

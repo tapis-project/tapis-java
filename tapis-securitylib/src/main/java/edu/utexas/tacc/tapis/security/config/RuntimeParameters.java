@@ -613,6 +613,16 @@ public final class RuntimeParameters
 	 */
 	public void getRuntimeInfo(StringBuilder buf)
 	{
+		buf.append("\n------- Build -------------------------------------");
+		buf.append("\ntapis version: ");
+		buf.append(TapisUtils.getTapisVersion());
+		buf.append("\ntapis build time: ");
+		buf.append(TapisUtils.getBuildTime());
+		buf.append("\ngit branch: ");
+		buf.append(TapisUtils.getGitBranch());
+		buf.append("\ngit commit: ");
+		buf.append(TapisUtils.getGitCommit());
+		
 	    buf.append("\n------- Logging -----------------------------------");
         buf.append("\ntapis.log.directory: ");
         buf.append(this.getLogDirectory());
@@ -625,6 +635,7 @@ public final class RuntimeParameters
         
         buf.append("\n------- Tenants -----------------------------------");
         buf.append("\ntapis.tenant.svc.baseurl: ");
+        buf.append(this.getTenantBaseUrl());
 	    
 	    buf.append("\n------- DB Configuration --------------------------");
 	    buf.append("\ntapis.db.jdbc.url: ");

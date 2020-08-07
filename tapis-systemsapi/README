@@ -10,10 +10,10 @@ It integrates the following facilities:
 
     1. JAX-RS to implement REST endpoints.
     2. JAX-RS and servlet filters.
-    3. Swagger to generate openapi json and yaml dynamically and at compile time.
+    3. (Obsolete) Swagger to generate openapi json and yaml dynamically and at compile time.
       http://localhost:8080/v3/systems/openapi.json
       http://localhost:8080/v3/systems/openapi.yaml
-    4. Swagger-ui integration for serving up generated openapi schema.
+    4. (Obsolete) Swagger-ui integration for serving up generated openapi schema.
       http://localhost:8080/systems/swagger-ui
     5. Logback for logging.
     6. Buildnumber maven plugin to capture git information at compile time.
@@ -25,6 +25,7 @@ It integrates the following facilities:
 
 The back end may be found in tapis-systemslib
 
+NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
 
 -----------------------------
 Initialize the Database
@@ -49,7 +50,7 @@ Here are the current enumerations and the locations where they are defined. Note
   SystemType          Definitions.json          model.TSystem     Yes
   SystemOperation     <N/A>                     model.TSystem     Yes
   Permission          PermsRequest.json         model.TSystem     No
-  AccessMethod        Definitions.json          model.TSystem    Yes
+  AccessMethod        Definitions.json          model.TSystem     Yes
   TransferMethod      SystemCreateRequest.json  model.TSystem     No
   Capability          Definitions.json          model.Capability  Yes
 
@@ -95,7 +96,9 @@ Client Usage
     
 
 ------------------------------------------------------------------------------
+NOTE: Obsolete
 Generating and viewing openapi spec
+NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
 ------------------------------------------------------------------------------
 *** From Browser, enter these urls to generate the openapi definition
 http://localhost:8080/v3/systems/openapi.json
@@ -124,7 +127,10 @@ Configure Run configuration in IntelliJ
       TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
 
 ------------------------------------------------------------------------------
+NOTE: Obsolete.
 Updating OpenAPI spec published to live-docs
+NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+      See note at top of SystemsResource.java
 ------------------------------------------------------------------------------
 1. cd tapis-java; mvn clean install
 2. Copy entire contents of file tapis-java/tapis-systemsapi/src/main/resources/openapi.json into clipboard.
