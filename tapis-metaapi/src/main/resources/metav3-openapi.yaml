@@ -1,4 +1,4 @@
-openapi: 3.0.1   # updated 05.06.2020-08:30
+openapi: 3.0.1   # updated 08.07.2020-11:16
 info:
   title: Tapis Meta V3 API
   description: >-
@@ -32,26 +32,42 @@ tags:
     description: The documents hosted in a collection.
   - name: index
     description: The indexes for a collection
-  - name: aggregations
+  - name: aggregation
     description: The aggregations available in the database.
+  - name: general
+    description: informational endpoints
 
 paths:
+  /meta/healthcheck:
+    get:
+      tags:
+        - general
+      description: Health check for liveness. No authorization required.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Message received.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+
   /meta/:
     get:
       tags:
         - root
       summary: listDBNames
-      description: List the names of all Dbs available.
+      description: List the names of all Dbs available. This operation is limited to Service admins.
       operationId: listDBNames
-      parameters:
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
-          description: List of DB names returned.
+          description: List of DB names returned as a json array.
           content:
             application/json:
               schema:
@@ -73,11 +89,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
           description: List of collection names returned.
@@ -100,11 +111,11 @@ paths:
               schema:
                 type: object
       deprecated: false
-    put:  # todo
+    put:  # todo in ResouceBucket
       tags:
         - db
       summary: createDB
-      description: Create the database.
+      description: Create the database named in the path. This operation is limited to Service admins.
       operationId: createDB
       parameters:
         - name: db
@@ -112,11 +123,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '201':
           description: List of collecton names returned.
@@ -133,11 +139,11 @@ paths:
               schema:
                 type: object
       deprecated: false
-    delete:  # todo
+    delete:  # todo in ResouceBucket
       tags:
         - db
       summary: deleteDB
-      description: Delete a database.
+      description: Delete a database. This operation is limited to Service admins.
       operationId: deleteDB
       parameters:
         - name: If-Match
@@ -150,11 +156,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '204':
           description: Deleted DB.
@@ -190,20 +191,13 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
-          description: List of collection names returned.
+          description: The metadata kept for this database in a json document.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                type: object
         '401':
           description: Not authorized.
           content:
@@ -235,11 +229,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '201':
           description: Collection created. An Etag header value is returned for collection identification.
@@ -260,7 +249,16 @@ paths:
       tags:
         - collection
       summary: listDocuments
-      description: List first set of documents in the collection.
+      description: |-
+        List of documents in the collection.
+
+        If no query parameters are submitted a default number of documents <pagesize> is returned in default sort order (sort)
+         as the first page <page> of a document result set. The default sort order is based on the "_id" of the document.
+
+        A (filter) query parameter value is represented by a valid MongoDb query document. This will allow retrieving
+        documents that meet a desired criteria. When coupled with the (keys) query parameter a projection will limit the
+        fields to return for all matching documents.
+
       operationId: listDocuments
       parameters:
         - name: db
@@ -273,11 +271,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
         - name: page
           in: query
           schema:
@@ -325,7 +318,20 @@ paths:
       tags:
         - document
       summary: createDocument
-      description: Create a new document in collection.More detail here about flavors of document creation. document request body wo _id gets an auto generated id document request body w _id writes a document with that id unless a duplicate. array of documents in request body with add all those documents to the collection in bulk.
+      description: |-
+
+        Create a new document in collection.
+
+        A document request body with out the field <_id> gets an auto generated id
+
+        A document request body with out the field <_id> writes a document with that id unless a duplicate is encountered.
+
+        A batch of document creations is possible by submitting an array of documents in the request body. All those documents
+         will be added to to the collection in bulk.
+
+        The addition of the (basic) query parameter set to true will return a response for a single document creation as a
+          Tapis basic response with the newly created <_id> for later reference.
+
       operationId: createDocument
       parameters:
         - name: db
@@ -373,7 +379,14 @@ paths:
       tags:
         - collection
       summary: deleteCollection
-      description: Delete a collection in the database.
+      description: |-
+
+        Delete a collection in the database.
+        This operation is limit by default to tenant administrators.
+
+        An (If-Match) header parameter with the value of the collections etag must be supplied in order for
+        this operations to succeed.
+
       operationId: deleteCollection
       parameters:
         - name: If-Match
@@ -391,11 +404,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '204':
           description: Delete named collection from the database.
@@ -417,7 +425,11 @@ paths:
       tags:
         - collection
       summary: getCollectionSize
-      description: Get the size of the collection.
+      description: |-
+        Get the size of the collection.
+
+        The response will contain the number of documents found in the collection.
+
       operationId: getCollectionSize
       parameters:
         - name: db
@@ -430,11 +442,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
           description: Number of documents in collection.
@@ -475,20 +482,195 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        '200':
+          description: Collection metadata returned.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+  /meta/{db}/{collection}/{docId}:
+    get:
+      tags:
+        - document
+      summary: getDocument
+      description: Get a document form the collection by its _id.
+      operationId: getDocument
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document returned.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+    put:
+      tags:
+        - document
+      summary: replaceDocument
+      description: |-
+        Replace a document in the collection with the _id.
+
+        Replaces the document with the json document submitted in the request body.
+
+      operationId: replaceDocument
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: "the json document being replaced in the collection"
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Document upserted.
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+    patch:
+      tags:
+        - document
+      summary: modifyDocument
+      description:
+
+        Modify a document in the collection with _id. The fields submitted in the json of the request body
+          will replace the same named fields in the current document.
+
+      operationId: modifyDocument
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
         - name: np
           in: query
           schema:
             type: boolean
             default: false
+      requestBody:
+        description: "the json document being added to the collection"
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
-        '200':
-          description: List of collection names returned.
+        '201':
+          description: Document modified.
+        '401':
+          description: Not authorized.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+    delete:
+      tags:
+        - document
+      summary: deleteDocument
+      description: Delete a document in the collection by id.
+      operationId: deleteDocument
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Document returned.
         '401':
           description: Not authorized.
           content:
@@ -547,7 +729,17 @@ paths:
       tags:
         - index
       summary: createIndex
-      description: Create an index on collection in the database.
+      description: |-
+        Create an index on collection in the database.
+
+        The request body should hold a json document that defines the index
+
+            { "keys":  <keys>, "ops": <options> }
+
+          Example - create an unique, sparse index on property ‘q
+
+            {"keys": {"qty": 1},"ops": {"unique": true, "sparse": true }}
+
       operationId: createIndex
       parameters:
         - name: db
@@ -573,7 +765,7 @@ paths:
               type: object
       responses:
         '201':
-          description: List of collection names returned.
+          description: Empty response.
         '401':
           description: Not authorized.
           content:
@@ -625,60 +817,13 @@ paths:
               schema:
                 type: object
       deprecated: false
-  /meta/{db}/{collection}/{docId}:
-    get:
-      tags:
-        - document
-      summary: getDocument
-      description: Get document in the collection with the id.
-      operationId: getDocument
-      parameters:
-        - name: db
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: collection
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: docId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
-      responses:
-        '200':
-          description: Document returned.
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Not authorized.
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Server error.
-          content:
-            application/json:
-              schema:
-                type: object
-      deprecated: false
+  /meta/{db}/{collection}/_aggr/{aggregation}:
     put:
       tags:
-        - document
-      summary: replaceDocument
-      description: Replace a document in the collection with the id.
-      operationId: replaceDocument
+        - aggregation
+      summary: addAggregation
+      description: Create an aggregation that can be executed by users.
+      operationId: addAggregation
       parameters:
         - name: db
           in: path
@@ -690,25 +835,20 @@ paths:
           required: true
           schema:
             type: string
-        - name: docId
+        - name: aggregation
           in: path
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       requestBody:
-        description: "the json document being replaced in the collection"
+        description: "the aggregation being defined for the collection"
         content:
           application/json:
             schema:
               type: object
       responses:
         '201':
-          description: Document upserted.
+          description: empty response body on created.
         '401':
           description: Not authorized.
           content:
@@ -722,12 +862,12 @@ paths:
               schema:
                 type: object
       deprecated: false
-    patch:
+    get:
       tags:
-        - document
-      summary: modifyDocument
-      description: Modify a document in the collection with the id.
-      operationId: modifyDocument
+        - aggregation
+      summary: useAggregation
+      description: Use an aggregation defined for a collection.
+      operationId: useAggregation
       parameters:
         - name: db
           in: path
@@ -739,25 +879,20 @@ paths:
           required: true
           schema:
             type: string
-        - name: docId
+        - name: aggregation
           in: path
           required: true
           schema:
             type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
       requestBody:
-        description: "the json document being added to the collection"
+        description: "the aggregation being defined for the collection"
         content:
           application/json:
             schema:
               type: object
       responses:
         '201':
-          description: Document modified.
+          description: empty response body on created.
         '401':
           description: Not authorized.
           content:
@@ -771,50 +906,6 @@ paths:
               schema:
                 type: object
       deprecated: false
-    delete:
-      tags:
-        - document
-      summary: deleteDocument
-      description: Delete a document in the collection with by id.
-      operationId: deleteDocument
-      parameters:
-        - name: db
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: collection
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: docId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: np
-          in: query
-          schema:
-            type: boolean
-            default: false
-      responses:
-        '204':
-          description: Document returned.
-        '401':
-          description: Not authorized.
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Server error.
-          content:
-            application/json:
-              schema:
-                type: object
-      deprecated: false
-
 components:
   securitySchemes:
     TapisJWT:
