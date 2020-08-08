@@ -127,6 +127,7 @@ public class ApiUtilsTest
       "enabled.true",
       "1enabled.eq.true",
       "en$abled.eq.true",
+      "(enabled.equal.true)",
       "(port.l@t.7)",
       "(host.eq.myhost)~(default_access_method.in.)",
       "(enabled.eq.true)~(proxy_port.lt.7)~(system_type.in)",

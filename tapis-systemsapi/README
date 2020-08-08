@@ -89,10 +89,11 @@ after setting the above environment variables to control the web application.
 ------------
 Client Usage
 ------------
-*** From Browser, enter these urls to execute application endpoints:
+*** From Browser, enter these urls to hit application endpoints:
 
-- Run GET on healthcheck method
+- Run GET on healthcheck and readycheck methods
     http://localhost:8080/v3/systems/healthcheck
+    http://localhost:8080/v3/systems/readycheck
     
 
 ------------------------------------------------------------------------------
@@ -127,11 +128,11 @@ Configure Run configuration in IntelliJ
       TAPIS_REQUEST_LOGGING_FILTER_PREFIXES /v3/systems
 
 ------------------------------------------------------------------------------
-NOTE: Obsolete.
 Updating OpenAPI spec published to live-docs
 NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
       See note at top of SystemsResource.java
 ------------------------------------------------------------------------------
+OBSOLETE
 1. cd tapis-java; mvn clean install
 2. Copy entire contents of file tapis-java/tapis-systemsapi/src/main/resources/openapi.json into clipboard.
 3. Visit https://editor.swagger.io
