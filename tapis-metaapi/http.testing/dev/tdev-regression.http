@@ -1,8 +1,15 @@
 ###  sanity test to see if service is alive
-GET http://dev.develop.tapis.io/v3/meta/
+GET http://dev.develop.tapis.io/v3/meta/healthcheck
+Content-Type: application/json
+
+###
+
+
+###  sanity test to see if service is alive
+GET http://dev.develop.tapis.io/v3/meta/MyTstDB/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: meta
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -13,23 +20,20 @@ Content-Type: application/json
 
 ###
 
-##################################### streamsTACCAdmin user #################################################
-# streams  these tests are hitting the dev deployment of RH-core
-
 
 ##############################################################
 #      setup for tests using creates for needed resources
-#       run with env  streams.master
-#       streams master token
-#  Assumes collection and other resouces do not exist
+#       run with env meta.master
+#       meta master token
+#  Assumes collection and other resources do not exist
 ##############################################################
 
 #  create a test collection tstTmp in db /v3/meta/db/collection
 ###
 PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -45,8 +49,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 { "name": "test document slt 4.28.2020-15:23", "jimmyList":["1","3"],"description": "PUT tstDoc for testing"}
@@ -69,8 +73,8 @@ Content-Type: application/json
 ###
 PUT https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc1?basic=true
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 { "name": "test document slt 4.28.2020-15:23", "jimmyList":["1","3"],"description": "PUT tstDoc1 for testing"}
@@ -93,8 +97,8 @@ Content-Type: application/json
 ###
 POST https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?basic=true
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 { "name": "test document slt 4.28.2020-15:43", "jimmyList":["1","3"],"description": "POST a new document with basic response"}
@@ -119,8 +123,8 @@ Content-Type: application/json
 ###   db list collections
 GET https://dev.develop.tapis.io/v3/meta/{{db}}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -134,8 +138,8 @@ Content-Type: application/json
 ###   db metadata
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -155,8 +159,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -173,8 +177,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/_meta
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -188,8 +192,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?filter={"_id": "tstDoc"}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -205,8 +209,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -219,8 +223,8 @@ Content-Type: application/json
 ###
 GET https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}?filter={"_id": "tstDoc"}
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
@@ -233,8 +237,8 @@ Content-Type: application/json
 ###
 DELETE https://dev.develop.tapis.io/v3/meta/{{db}}/{{collection}}/tstDoc
 X-Tapis-Token: {{token}}
-X-Tapis-User: streams
-X-Tapis-Tenant: master
+X-Tapis-User: {{user}}
+X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
