@@ -884,12 +884,6 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        description: "the aggregation being defined for the collection"
-        content:
-          application/json:
-            schema:
-              type: object
       responses:
         '201':
           description: empty response body on created.
@@ -928,12 +922,6 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        description: "the aggregation being deleted for the collection"
-        content:
-          application/json:
-            schema:
-              type: object
       responses:
         '204':
           description: empty response body on delete.

@@ -307,7 +307,7 @@ public class ResourceBucket {
     String result;
     result = coreResponse.getCoreResponsebody();
     
-    // TODO ---------------------------- Response -------------------------------
+    // ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     Response.ResponseBuilder responseBuilder = javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(
         result);
@@ -340,7 +340,7 @@ public class ResourceBucket {
     );
     CoreResponse coreResponse = coreRequest.proxyGetResponse();
     
-    // TODO ---------------------------- Response -------------------------------
+    // ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
@@ -368,7 +368,7 @@ public class ResourceBucket {
     );
     CoreResponse coreResponse = coreRequest.proxyGetResponse();
     
-    // TODO ---------------------------- Response -------------------------------
+    // ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
@@ -493,7 +493,7 @@ public class ResourceBucket {
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI() + "?" + _request.getQueryString());
     CoreResponse coreResponse = coreRequest.proxyGetResponse();
   
-    // TODO ---------------------------- Response -------------------------------
+    // ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
@@ -559,7 +559,7 @@ public class ResourceBucket {
     CoreRequest coreRequest = new CoreRequest(_request.getRequestURI());
     CoreResponse coreResponse = coreRequest.proxyDeleteRequest(_httpHeaders);
     
-    // TODO ---------------------------- Response -------------------------------
+    // ---------------------------- Response -------------------------------
     // just return whatever core server sends to us
     return javax.ws.rs.core.Response.status(coreResponse.getStatusCode()).entity(coreResponse.getCoreResponsebody()).build();
   }
