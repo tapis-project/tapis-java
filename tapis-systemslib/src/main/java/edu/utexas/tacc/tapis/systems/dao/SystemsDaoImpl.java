@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.jooq.Condition;
@@ -25,6 +26,9 @@ import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.SYSTEMS;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
+import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SEARCH_OP_SET;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
@@ -44,60 +48,6 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static final Logger _log = LoggerFactory.getLogger(SystemsDaoImpl.class);
 
   private static final String EMPTY_JSON = "{}";
-
-  // Operators supported for search
-  private enum SqlCompareOperator { EQ, NEQ, GT, GTE, LT, LTE, IN, NIN, LIKE, NLIKE, BETWEEN, NBETWEEN }
-
-  // Operators allowed for search when column is a string type
-  private static final List<SqlCompareOperator> stringOps =
-          List.of(SqlCompareOperator.EQ, SqlCompareOperator.NEQ,
-                  SqlCompareOperator.LT, SqlCompareOperator.LTE,
-                  SqlCompareOperator.GT, SqlCompareOperator.GTE,
-                  SqlCompareOperator.LIKE, SqlCompareOperator.NLIKE,
-                  SqlCompareOperator.BETWEEN, SqlCompareOperator.NBETWEEN);
-  // Operators allowed for search when column is a number type
-  private static final List<SqlCompareOperator> numberOps =
-          List.of(SqlCompareOperator.EQ, SqlCompareOperator.NEQ,
-                  SqlCompareOperator.LT, SqlCompareOperator.LTE,
-                  SqlCompareOperator.GT, SqlCompareOperator.GTE,
-                  SqlCompareOperator.BETWEEN, SqlCompareOperator.NBETWEEN);
-  // Operators allowed for search when column is a timestamp type
-  private static final List<SqlCompareOperator> timeStampOps =
-          List.of(SqlCompareOperator.EQ, SqlCompareOperator.NEQ,
-                  SqlCompareOperator.LT, SqlCompareOperator.LTE,
-                  SqlCompareOperator.GT, SqlCompareOperator.GTE,
-                  SqlCompareOperator.BETWEEN, SqlCompareOperator.NBETWEEN);
-  // Operators allowed for search when column is a boolean type
-  private static final List<SqlCompareOperator> boolOps =
-          List.of(SqlCompareOperator.EQ, SqlCompareOperator.NEQ);
-
-// TODO  private static final List<SqlCompareOperator> allOps = Arrays.asList(SqlCompareOperator.values());
-
-  // Map of jdbc sql type to list of allowed search operators
-  private static final Map<Integer, List<SqlCompareOperator>> allowedOpsByTypeMap =
-    Map.ofEntries(
-      Map.entry(Types.CHAR, stringOps),
-      Map.entry(Types.VARCHAR, stringOps),
-      Map.entry(Types.BIGINT, numberOps),
-      Map.entry(Types.DECIMAL, numberOps),
-      Map.entry(Types.DOUBLE, numberOps),
-      Map.entry(Types.FLOAT, numberOps),
-      Map.entry(Types.INTEGER, numberOps),
-      Map.entry(Types.NUMERIC, numberOps),
-      Map.entry(Types.REAL, numberOps),
-      Map.entry(Types.SMALLINT, numberOps),
-      Map.entry(Types.TINYINT, numberOps),
-      Map.entry(Types.DATE, timeStampOps),
-      Map.entry(Types.TIMESTAMP, timeStampOps),
-      Map.entry(Types.BOOLEAN, boolOps)
-    );
-
-  // TODO
-  private static final Map<SqlCompareOperator, List<Integer>> allowedTypesByOpMap =
-    Map.ofEntries(
-      Map.entry(SqlCompareOperator.EQ, List.of(Types.BOOLEAN)),
-      Map.entry(SqlCompareOperator.LT, List.of(Types.VARCHAR))
-    );
 
   /* ********************************************************************** */
   /*                             Public Methods                             */
@@ -570,7 +520,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Begin where condition for this query
       Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
 
-//      // TODO REMOVE
+//      // TODO/TBD remove?
 //      // Iterate over all columns and show the type
 //      Field<?>[] cols = SYSTEMS.fields();
 //      for (Field<?> col : cols)
@@ -580,7 +530,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 //        String sqlTypeName = dataType.getTypeName();
 //        _log.error("Column name: " + col.getName() + " type: " + sqlTypeName);
 //      }
-//      // TODO REMOVE
+//      // TODO
 
       // Add searchList to where condition
       whereCondition = addSearchListToWhere(whereCondition, searchList);
@@ -852,65 +802,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     }
   }
 
-//  /**
-//   * populateTSystem
-//   * Instantiate and populate an object using a result set. The cursor for the
-//   *   ResultSet must be advanced to the desired result.
-//   *
-//   * @param rs the result set containing one or more items, cursor at desired item
-//   * @return the new, fully populated job object or null if there is a problem
-//   * @throws TapisJDBCException - on error
-//   */
-//  private static TSystem populateTSystem(ResultSet rs, List<Capability> jobCaps) throws TapisJDBCException
-//  {
-//    // Quick check.
-//    if (rs == null) return null;
-//
-//    TSystem tSystem;
-//    try
-//    {
-//      String[] tagsStrArray = (String[]) (rs.getArray(23)).getArray();
-//      // Populate transfer methods
-//      List<TransferMethod> txfrMethodsList = LibUtils.getTransferMethodsFromStringArray((String[]) (rs.getArray(13)).getArray());
-//      // Create the TSystem
-//      tSystem = new TSystem(rs.getInt(1), // id
-//                            rs.getString(2), // tenant
-//                            rs.getString(3), // name
-//                            rs.getString(4), // description
-//                            SystemType.valueOf(rs.getString(5)), // system type
-//                            rs.getString(6), // owner
-//                            rs.getString(7), // host
-//                            rs.getBoolean(8), //enabled
-//                            rs.getString(9), // effectiveUserId
-//                            AccessMethod.valueOf(rs.getString(10)),
-//                            rs.getString(11), // bucketName
-//                            rs.getString(12), // rootDir
-//                            txfrMethodsList,
-//                            rs.getInt(14), // port
-//                            rs.getBoolean(15), // useProxy
-//                            rs.getString(16), //proxyHost
-//                            rs.getInt(17), // proxyPort
-//                            rs.getBoolean(18), // jobCanExec
-//                            rs.getString(19), // jobLocalWorkingDir
-//                            rs.getString(20), // jobLocalArchiveDir
-//                            rs.getString(21), // jobRemoteArchiveSystem
-//                            rs.getString(22), // jobRemoteArchiveSystemDir
-//                            tagsStrArray, // tags
-//                            TapisGsonUtils.getGson().fromJson(rs.getString(24), JsonObject.class), // notes
-//                            rs.getBoolean(25), // deleted
-//                            rs.getTimestamp(26).toInstant(), // created
-//                            rs.getTimestamp(27).toInstant()); // updated
-//    }
-//    catch (Exception e)
-//    {
-//      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-//      _log.error(msg, e);
-//      throw new TapisJDBCException(msg, e);
-//    }
-//    tSystem.setJobCapabilities(jobCaps);
-//    return tSystem;
-//  }
-//
+  /**
+   * Get capabilities for a system from an auxiliary table
+   * @param db - DB connection
+   * @param systemId - system
+   * @return list of capabilities
+   */
   private static List<Capability> retrieveJobCaps(DSLContext db, int systemId)
   {
     List<Capability> capRecords = db.selectFrom(CAPABILITIES).where(CAPABILITIES.SYSTEM_ID.eq(systemId)).fetchInto(Capability.class);
@@ -932,11 +829,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     Condition retCond = whereCondition;
     if (searchList == null || searchList.isEmpty()) return retCond;
     // Parse searchList and add conditions to the WHERE clause
-    for (String selectStr : searchList)
+    for (String condStr : searchList)
     {
       // Parse search value into column name, operator and value
       // Format must be column_name.op.value
-      String[] parsedStrArray = selectStr.split("\\.", 3);
+      String[] parsedStrArray = condStr.split("\\.", 3);
       // Validate column name
       String column = parsedStrArray[0];
       Field<?> col = SYSTEMS.field(DSL.name(column));
@@ -946,16 +843,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         String msg = LibUtils.getMsg("SYSLIB_DB_NO_COLUMN", SYSTEMS.getName(), DSL.name(column));
         throw new TapisException(msg);
       }
-      // Validate operator
+      // Validate and convert operator string
+      SearchOperator op;
       String opStr = parsedStrArray[1].toUpperCase();
-      SqlCompareOperator op;
-      try
+      try { op = SearchUtils.getSearchOperator(opStr); }
+      catch (Exception e)
       {
-        op = SqlCompareOperator.valueOf(parsedStrArray[1].toUpperCase());
-      }
-      catch (IllegalArgumentException e)
-      {
-        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", SYSTEMS.getName(), DSL.name(column), opStr);
+        String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", SYSTEMS.getName(), DSL.name(column), opStr);
         throw new TapisException(msg);
       }
 
@@ -977,7 +871,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @param valStr Column value as string
    * @throws TapisException on error
    */
-  private static void checkConditionValidity(Field<?> col, SqlCompareOperator op, String valStr) throws TapisException
+  private static void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) throws TapisException
   {
     var dataType = col.getDataType();
     int sqlType = dataType.getSQLType();
@@ -989,7 +883,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
     // TODO/TBD Use allowedTypesByOp or allowedOpsByType?
     // Check that operation is allowed for column data type
-    if (!allowedOpsByTypeMap.get(sqlType).contains(op))
+    if (!SearchUtils.allowedOpsByTypeMap.get(sqlType).contains(op))
     {
       String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_TYPE", SYSTEMS.getName(), col.getName(), op.name(), sqlTypeName);
       throw new TapisException(msg);
@@ -1002,15 +896,14 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         if (StringUtils.isNotBlank(valStr)) return;
         break;
       case Types.INTEGER:
-        // TODO
-        if (true) return;
-//        if (isInteger(valStr))  return;
+// TODO        if (SearchUtils.isInteger(valStr))  return;
         break;
       case Types.DATE:
+// TODO        if (SearchUtils.isTimestamp(valStr))  return;
         break;
       case Types.BOOLEAN:
         // Must be valid boolean
-        if (isBoolean(valStr)) return;
+        if (SearchUtils.isBoolean(valStr)) return;
         break;
     }
     // Invalid
@@ -1026,7 +919,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
    * @param val Column value
    * @return Resulting where clause
    */
-  private static Condition addCondition(Condition cond, Field col, SqlCompareOperator op, String val)
+  private static Condition addCondition(Condition cond, Field col, SearchOperator op, String val)
   {
     Condition retCond = cond;
     switch (op) {
@@ -1048,22 +941,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       case GTE:
         retCond =  cond.and(col.ge(val));
         break;
+      case LIKE:
+        retCond =  cond.and(col.like(val));
+        break;
+      case NLIKE:
+        retCond =  cond.and(col.notLike(val));
+        break;
     }
     return retCond;
-  }
-
-  /**
-   * Check that column value given as a string is a valid Tapis boolean
-   * Valid strings are True, true, False, false
-   * @param valStr Column value
-   * @return true if valid, else false
-   */
-  private static boolean isBoolean(String valStr)
-  {
-    if (StringUtils.isBlank(valStr)) return false;
-    if (valStr.equals("True") || valStr.equals("true") || valStr.equals("False") || valStr.equals("false"))
-      return true;
-    else
-      return false;
   }
 }

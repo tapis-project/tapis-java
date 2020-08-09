@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.systems.service;
 
+import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
@@ -712,7 +713,20 @@ public class SystemsServiceImpl implements SystemsService
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
       systemTenantName = authenticatedUser.getOboTenantId();
 
-    // TODO Validate searchList input
+    // Validate searchList input
+    if (searchList != null && !searchList.isEmpty())
+    {
+      try
+      {
+        for (String cond : searchList) { SearchUtils.validateAndExtractSearchCondition(cond); }
+      }
+      catch (Exception e)
+      {
+        String msg = LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", authenticatedUser, e.getMessage());
+        _log.error(msg, e);
+        throw new IllegalArgumentException(msg);
+      }
+    }
 
     // Get list of IDs of systems for which requester has READ permission.
     // This is either all systems (null) or a list of IDs based on roles.
