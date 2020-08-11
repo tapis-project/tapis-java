@@ -32,7 +32,7 @@ public class SystemsDaoTest
 
   // Test data
   int numSystems = 11;
-  TSystem[] systems = IntegrationUtils.makeSystems(numSystems, "D");
+  TSystem[] systems = IntegrationUtils.makeSystems(numSystems, "Dao");
 
   @BeforeSuite
   public void setup() throws Exception

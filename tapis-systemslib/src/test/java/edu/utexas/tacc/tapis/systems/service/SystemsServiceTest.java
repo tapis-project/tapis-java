@@ -56,7 +56,6 @@ public class SystemsServiceTest
 
 
   // Test data
-  // service
   // TODO: Currently admin user for a tenant is hard coded to be 'admin'
   private static final String adminUser = "admin";
   private static final String masterTenantName = "master";
@@ -77,7 +76,7 @@ public class SystemsServiceTest
   private static final List<Capability> cap2List = new ArrayList<>(List.of(capA2, capB2, capC2));
 
   int numSystems = 19;
-  TSystem[] systems = IntegrationUtils.makeSystems(numSystems, "S");
+  TSystem[] systems = IntegrationUtils.makeSystems(numSystems, "Svc");
 
   @BeforeSuite
   public void setUp() throws Exception

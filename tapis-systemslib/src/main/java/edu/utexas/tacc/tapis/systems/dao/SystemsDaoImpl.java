@@ -3,8 +3,8 @@ package edu.utexas.tacc.tapis.systems.dao;
 import java.sql.Connection;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -28,7 +28,6 @@ import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SEARCH_OP_SET;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
@@ -494,6 +493,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * getSystems
+   * Conditions in searchList must be processed by SearchUtils.validateAndExtractSearchCondition(cond)
+   *   prior to this call for proper validation and treatment of special characters.
    * @param tenant - tenant name
    * @param searchList - optional list of conditions used for searching
    * @param IDs - list of system IDs to consider. null indicates no restriction.
@@ -503,11 +504,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   @Override
   public List<TSystem> getTSystems(String tenant, List<String> searchList, List<Integer> IDs) throws TapisException
   {
-    // The result list is always non-null.
-    var list = new ArrayList<TSystem>();
+    // The result list should always be non-null.
+    var retList = new ArrayList<TSystem>();
 
     // If no IDs in list then we are done.
-    if (IDs != null && IDs.isEmpty()) return list;
+    if (IDs != null && IDs.isEmpty()) return retList;
 
     // ------------------------- Call SQL ----------------------------
     Connection conn = null;
@@ -540,14 +541,14 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
       // Execute the select
       Result<SystemsRecord> results = db.selectFrom(SYSTEMS).where(whereCondition).fetch();
-      if (results == null || results.isEmpty()) return list;
+      if (results == null || results.isEmpty()) return retList;
 
       // Fill in job capabilities list from aux table
       for (SystemsRecord r : results)
       {
         TSystem s = r.into(TSystem.class);
         s.setJobCapabilities(retrieveJobCaps(db, s.getId()));
-        list.add(s);
+        retList.add(s);
       }
 
       // Close out and commit
@@ -564,7 +565,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       LibUtils.finalCloseDB(conn);
     }
 
-    return list;
+    return retList;
   }
 
   /**
@@ -817,7 +818,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   /**
    * Add searchList to where condition
    * Validate column name, search comparison operator
-   *   and validity of column type, search operator and column value
+   *   and compatibility of column type + search operator + column value
    * @param whereCondition base where condition
    * @param searchList List of conditions to add to the base condition
    * @return resulting where condition
@@ -844,10 +845,9 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         throw new TapisException(msg);
       }
       // Validate and convert operator string
-      SearchOperator op;
       String opStr = parsedStrArray[1].toUpperCase();
-      try { op = SearchUtils.getSearchOperator(opStr); }
-      catch (Exception e)
+      SearchOperator op = SearchUtils.getSearchOperator(opStr);
+      if (op == null)
       {
         String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", SYSTEMS.getName(), DSL.name(column), opStr);
         throw new TapisException(msg);
@@ -863,7 +863,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     return retCond;
   }
 
-  /** TODO
+  /**
    * Validate condition expression based on column type, search operator and column string value.
    * Use java.sql.Types for validation.
    * @param col jOOQ column
@@ -881,7 +881,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 //    var t4 = dataType.getSQLType();
 //    var t5 = dataType.getType();
 
-    // TODO/TBD Use allowedTypesByOp or allowedOpsByType?
+    // Make sure we support the sqlType
+    if (SearchUtils.allowedOpsByTypeMap.get(sqlType) == null)
+    {
+      String msg = LibUtils.getMsg("SYSLIB_DB_UNSUPPORTED_SQLTYPE", SYSTEMS.getName(), col.getName(), op.name(), sqlTypeName);
+      throw new TapisException(msg);
+    }
     // Check that operation is allowed for column data type
     if (!SearchUtils.allowedOpsByTypeMap.get(sqlType).contains(op))
     {
@@ -896,13 +901,12 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         if (StringUtils.isNotBlank(valStr)) return;
         break;
       case Types.INTEGER:
-// TODO        if (SearchUtils.isInteger(valStr))  return;
+        if (SearchUtils.isNumeric(valStr))  return; // TODO
         break;
       case Types.DATE:
-// TODO        if (SearchUtils.isTimestamp(valStr))  return;
+        if (SearchUtils.isTimestamp(valStr))  return; // TODO
         break;
       case Types.BOOLEAN:
-        // Must be valid boolean
         if (SearchUtils.isBoolean(valStr)) return;
         break;
     }
@@ -922,6 +926,8 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static Condition addCondition(Condition cond, Field col, SearchOperator op, String val)
   {
     Condition retCond = cond;
+    List<String> valList = Collections.emptyList();
+    if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
     switch (op) {
       case EQ:
         retCond = cond.and(col.eq(val));
@@ -946,6 +952,18 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
         break;
       case NLIKE:
         retCond =  cond.and(col.notLike(val));
+        break;
+      case IN:
+        retCond =  cond.and(col.in(valList));
+        break;
+      case NIN:
+        retCond =  cond.and(col.notIn(valList));
+        break;
+      case BETWEEN:
+        retCond =  cond.and(col.between(valList.get(0), valList.get(1)));
+        break;
+      case NBETWEEN:
+        retCond =  cond.and(col.notBetween(valList.get(0), valList.get(1)));
         break;
     }
     return retCond;

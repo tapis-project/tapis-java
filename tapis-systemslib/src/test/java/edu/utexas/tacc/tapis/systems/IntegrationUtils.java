@@ -51,8 +51,9 @@ public final class IntegrationUtils
     TSystem[] systems = new TSystem[n];
     for (int i = 0; i < n; i++)
     {
-      String suffix = String.format("%03d", i);
-      String name = sysNamePrefix + "_" + key + "_" + suffix;
+      // Suffix which should be unique for each system within each integration test
+      String suffix = key + "_" + String.format("%03d", i);
+      String name = sysNamePrefix + "_" + suffix;
       // Constructor initializes all attributes except for JobCapabilities and Credential
       systems[i] = new TSystem(-1, tenantName, name, "description "+suffix, TSystem.SystemType.LINUX, ownerUser,
               "host"+suffix, true,"effUser"+suffix, prot1.getAccessMethod(), "bucket"+suffix, "/root"+suffix,

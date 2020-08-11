@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.service;
 
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
+import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.SYSTEMS;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
@@ -713,12 +715,20 @@ public class SystemsServiceImpl implements SystemsService
     if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
       systemTenantName = authenticatedUser.getOboTenantId();
 
-    // Validate searchList input
+    // Build verified list of search conditions
+    var verifiedSearchList = new ArrayList<String>();
     if (searchList != null && !searchList.isEmpty())
     {
       try
       {
-        for (String cond : searchList) { SearchUtils.validateAndExtractSearchCondition(cond); }
+        for (String cond : searchList)
+        {
+          // Use SearchUtils to validate condition
+          // Add parentheses if not present, check start and end
+          if (!cond.startsWith("(") && !cond.endsWith(")")) cond = "(" + cond + ")";
+          String verifiedCondStr = SearchUtils.validateAndExtractSearchCondition(cond);
+          verifiedSearchList.add(verifiedCondStr);
+        }
       }
       catch (Exception e)
       {
@@ -733,7 +743,7 @@ public class SystemsServiceImpl implements SystemsService
     List<Integer> allowedSystemIDs = getAllowedSystemIDs(authenticatedUser, systemTenantName);
 
     // Get all allowed systems matching the search conditions
-    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId(), searchList, allowedSystemIDs);
+    List<TSystem> systems = dao.getTSystems(authenticatedUser.getTenantId(), verifiedSearchList, allowedSystemIDs);
 
     for (TSystem system : systems)
     {
