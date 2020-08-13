@@ -112,6 +112,12 @@
     <orderEntry type="library" name="Maven: org.jooq:jooq-meta:3.13.1" level="project" />
     <orderEntry type="library" name="Maven: org.jooq:jooq-codegen:3.13.1" level="project" />
     <orderEntry type="library" name="Maven: org.flywaydb:flyway-core:6.0.8" level="project" />
+    <orderEntry type="module" module-name="tapis-shared-searchlib" />
+    <orderEntry type="library" name="Maven: net.java.dev.javacc:javacc:7.0.6" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.activemq:activemq-client:5.15.13" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.fusesource.hawtbuf:hawtbuf:1.11" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.geronimo.specs:geronimo-j2ee-management_1.1_spec:1.0.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.testng:testng:6.14.3" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: com.beust:jcommander:1.72" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache-extras.beanshell:bsh:2.0b6" level="project" />
