@@ -1,4 +1,4 @@
-openapi: 3.0.1   # updated 08.07.2020-11:16
+openapi: 3.0.1   # updated 08.13.2020-14:57
 info:
   title: Tapis Meta V3 API
   description: >-
@@ -38,7 +38,7 @@ tags:
     description: informational endpoints
 
 paths:
-  /meta/healthcheck:
+  /meta/healthCheck:
     get:
       tags:
         - general
@@ -284,7 +284,12 @@ paths:
         - name: filter
           in: query
           schema:
-            type: string
+            type: object
+            default: "{}"
+        - name: sort
+          in: query
+          schema:
+            type: object
             default: "{}"
         - name: keys
           in: query
@@ -420,6 +425,78 @@ paths:
               schema:
                 type: object
       deprecated: false
+
+  /meta/{db}/{collection}/_filter:
+    post:
+      tags:
+        - collection
+      summary: submitLargeQuery
+      description: |-
+
+        This is a POST version of filter on a collection with a filter value to large to submit in a query parameter.
+        If the filter parameter is to large, it may exceed the HTTP header character limit. The HTTP server will throw
+        a query header to large error.
+
+      operationId: submitLargeQuery
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pagesize
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: sort
+          in: query
+          schema:
+            type: object
+            default: "{}"
+        - name: keys
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      requestBody:
+        description: "the json document as a MongoDB query document"
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Document list.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+
   /meta/{db}/{collection}/_size:
     get:
       tags:
@@ -885,8 +962,8 @@ paths:
           schema:
             type: string
       responses:
-        '201':
-          description: empty response body on created.
+        '200':
+          description: an array of results.
         '401':
           description: Not authorized.
           content:
@@ -900,6 +977,76 @@ paths:
               schema:
                 type: object
       deprecated: false
+    post:
+      tags:
+        - aggregation
+      summary: submitLargeAggregation
+      description: |-
+
+        This is a POST version of useAggregation on a collection with a avars value to large to submit in a query parameter.
+        If the avars parameter is to large, it may exceed the HTTP header character limit. The HTTP server will throw
+        a query header to large error.
+
+      operationId: submitLargeAggregation
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: aggregation
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pagesize
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: keys
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      requestBody:
+        description: "the json document for avars query parameter substitution"
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Document list.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+
     delete:
       tags:
         - aggregation
