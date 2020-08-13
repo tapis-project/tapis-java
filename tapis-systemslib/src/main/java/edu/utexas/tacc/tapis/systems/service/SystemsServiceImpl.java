@@ -726,7 +726,7 @@ public class SystemsServiceImpl implements SystemsService
           // Use SearchUtils to validate condition
           // Add parentheses if not present, check start and end
           if (!cond.startsWith("(") && !cond.endsWith(")")) cond = "(" + cond + ")";
-          String verifiedCondStr = SearchUtils.validateAndExtractSearchCondition(cond);
+          String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
           verifiedSearchList.add(verifiedCondStr);
         }
       }

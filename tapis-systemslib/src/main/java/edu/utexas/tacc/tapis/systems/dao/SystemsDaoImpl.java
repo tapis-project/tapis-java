@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import java.sql.Connection;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -521,7 +520,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Begin where condition for this query
       Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
 
-//      // TODO/TBD remove?
+//      // DEBUG
 //      // Iterate over all columns and show the type
 //      Field<?>[] cols = SYSTEMS.fields();
 //      for (Field<?> col : cols)
@@ -531,7 +530,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 //        String sqlTypeName = dataType.getTypeName();
 //        _log.error("Column name: " + col.getName() + " type: " + sqlTypeName);
 //      }
-//      // TODO
+//      // DEBUG
 
       // Add searchList to where condition
       whereCondition = addSearchListToWhere(whereCondition, searchList);
@@ -849,7 +848,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       SearchOperator op = SearchUtils.getSearchOperator(opStr);
       if (op == null)
       {
-        String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", SYSTEMS.getName(), DSL.name(column), opStr);
+        String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", opStr, SYSTEMS.getName(), DSL.name(column));
         throw new TapisException(msg);
       }
 
@@ -882,37 +881,24 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 //    var t5 = dataType.getType();
 
     // Make sure we support the sqlType
-    if (SearchUtils.allowedOpsByTypeMap.get(sqlType) == null)
+    if (SearchUtils.ALLOWED_OPS_BY_TYPE.get(sqlType) == null)
     {
       String msg = LibUtils.getMsg("SYSLIB_DB_UNSUPPORTED_SQLTYPE", SYSTEMS.getName(), col.getName(), op.name(), sqlTypeName);
       throw new TapisException(msg);
     }
     // Check that operation is allowed for column data type
-    if (!SearchUtils.allowedOpsByTypeMap.get(sqlType).contains(op))
+    if (!SearchUtils.ALLOWED_OPS_BY_TYPE.get(sqlType).contains(op))
     {
       String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_TYPE", SYSTEMS.getName(), col.getName(), op.name(), sqlTypeName);
       throw new TapisException(msg);
     }
 
-    switch (sqlType)
+    // Check that value (or values for op that takes a list) are compatible with sqlType
+    if (!SearchUtils.validateTypeAndValueList(sqlType, op, valStr, sqlTypeName, SYSTEMS.getName(), col.getName()))
     {
-      case Types.CHAR:
-      case Types.VARCHAR:
-        if (StringUtils.isNotBlank(valStr)) return;
-        break;
-      case Types.INTEGER:
-        if (SearchUtils.isNumeric(valStr))  return; // TODO
-        break;
-      case Types.DATE:
-        if (SearchUtils.isTimestamp(valStr))  return; // TODO
-        break;
-      case Types.BOOLEAN:
-        if (SearchUtils.isBoolean(valStr)) return;
-        break;
+      String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_VALUE", op.name(), sqlTypeName, valStr, SYSTEMS.getName(), col.getName());
+      throw new TapisException(msg);
     }
-    // Invalid
-    String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_VALUE", SYSTEMS.getName(), col.getName(), op.name(), valStr);
-    throw new TapisException(msg);
   }
 
   /**
