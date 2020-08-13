@@ -123,16 +123,17 @@ public final class SkRoleTreeDao
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0. 
    * 
-   * @param tenant the tenant
-   * @param user the creating user
+   * @param tenant the tenant of the user
+   * @param user the requesting user
+   * @param roleTenant the tenant of both the parent and child roles
    * @param parentRoleName the role name to which the child role will be assigned
    * @param childRoleName the name of the role to be assigned to the parent
    * @return number of rows affected (0 or 1)
    * @throws TapisException if a single row is not inserted
    * @throws TapisNotFoundException unknown parent or child role name
    */
-  public int assignChildRole(String tenant, String user, String parentRoleName, 
-                             String childRoleName) 
+  public int assignChildRole(String tenant, String user, String roleTenant,
+		                     String parentRoleName, String childRoleName) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -144,6 +145,11 @@ public final class SkRoleTreeDao
       }
       if (StringUtils.isBlank(user)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "user");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignChildRole", "roleTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -159,7 +165,7 @@ public final class SkRoleTreeDao
       }
       
       // ------------------------- Call SQL ----------------------------
-      // There are 4 database calls inside the try block.  They all use  
+      // There are 4 database calls inside the try block.  They all use
       // the same connection and take place in a single transaction.
       Connection conn = null;
       int rows = 0;
@@ -168,9 +174,9 @@ public final class SkRoleTreeDao
           // Get a database connection.
           conn = getConnection();
           
-          // Get the ids for each of the roles.
-          int parentRoleId = getRoleId(conn, tenant, user, parentRoleName);
-          int childRoleId  = getRoleId(conn, tenant, user, childRoleName);
+          // Get the ids for each of the roles. Not found throws an exception.
+          int parentRoleId = getRoleId(conn, tenant, user, roleTenant, parentRoleName);
+          int childRoleId  = getRoleId(conn, tenant, user, roleTenant, childRoleName);
           
           // Make sure adding this parent/child relationship will not cause a cycle.
           detectCycle(conn, tenant, user, parentRoleName, parentRoleId, childRoleName);
@@ -180,11 +186,13 @@ public final class SkRoleTreeDao
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setInt(2, parentRoleId);
           pstmt.setInt(3, childRoleId);
           pstmt.setString(4, user);
-          pstmt.setString(5, user);
+          pstmt.setString(5, tenant);
+          pstmt.setString(6, user);
+          pstmt.setString(7, tenant);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -401,8 +409,10 @@ public final class SkRoleTreeDao
         obj.setChildRoleId(rs.getInt(4));
         obj.setCreated(rs.getTimestamp(5).toInstant());
         obj.setCreatedby(rs.getString(6));
-        obj.setUpdated(rs.getTimestamp(7).toInstant());
-        obj.setUpdatedby(rs.getString(8));
+        obj.setCreatedbyTenant(rs.getString(7));
+        obj.setUpdated(rs.getTimestamp(8).toInstant());
+        obj.setUpdatedby(rs.getString(9));
+        obj.setUpdatedbyTenant(rs.getString(10));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -491,13 +501,15 @@ public final class SkRoleTreeDao
    * connection commit/rollback/close. 
    *
    * @param conn an existing connection
-   * @param tenant the tenant in which the role is defined
-   * @param user the request users
+   * @param tenant the tenant user's tenant
+   * @param user the request user
+   * @param roleTenant the tenant in which the role is defined
    * @param roleName the role name whose id is sought
    * @return the id
    * @throws TapisException if the id is not acquired for any reason
    */
-  private int getRoleId(Connection conn, String tenant, String user, String roleName) 
+  private int getRoleId(Connection conn, String tenant, String user, 
+		                String roleTenant, String roleName) 
    throws TapisException
   {
       Integer roleId = null; // result
@@ -508,7 +520,7 @@ public final class SkRoleTreeDao
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setString(2, roleName);
                       
           // Issue the call for the 1 row result set.
@@ -528,7 +540,7 @@ public final class SkRoleTreeDao
       
       // Make sure we found the role id.
       if (roleId == null) {
-          String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", tenant, user, roleName);
+          String msg = MsgUtils.getMsg("SK_ROLE_GET_ERROR", tenant, user, roleTenant, roleName);
           _log.error(msg);
           throw new TapisException(msg);
       }

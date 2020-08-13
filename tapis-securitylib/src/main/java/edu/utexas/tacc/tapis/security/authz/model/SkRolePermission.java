@@ -12,8 +12,10 @@ public final class SkRolePermission
     private String  permission;
     private Instant created;
     private String  createdby;
+    private String  createdbyTenant;
     private Instant updated;
     private String  updatedby;
+    private String  updatedbyTenant;
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
@@ -69,6 +71,14 @@ public final class SkRolePermission
         this.createdby = createdby;
     }
 
+	public String getCreatedbyTenant() {
+		return createdbyTenant;
+	}
+
+	public void setCreatedbyTenant(String createdbyTenant) {
+		this.createdbyTenant = createdbyTenant;
+	}
+
     public Instant getUpdated() {
         return updated;
     }
@@ -84,4 +94,12 @@ public final class SkRolePermission
     public void setUpdatedby(String updatedby) {
         this.updatedby = updatedby;
     }
+
+	public String getUpdatedbyTenant() {
+		return updatedbyTenant;
+	}
+
+	public void setUpdatedbyTenant(String updatedbyTenant) {
+		this.updatedbyTenant = updatedbyTenant;
+	}
 }

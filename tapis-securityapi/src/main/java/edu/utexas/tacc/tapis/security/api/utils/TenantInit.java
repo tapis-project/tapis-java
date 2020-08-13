@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
@@ -102,15 +103,16 @@ public final class TenantInit
             if (admins != null && !admins.isEmpty()) continue;
             
             // ----------------------- Admin Role -----------------------
-            // TODO: get user from tenant record
-            String adminUser = "admin";  // ************* Temp code
+            // TODO: **** get user from tenant record and get site master from sites table
+            final String adminUser = "admin";         // ************* Temp code
+            final String siteMasterTenant = "master"; // ************* Temp code
             
             // Create and assign the admin role to the default tenant administrator.
             try {
                 // Assign role to the default administrator for this tenant, creating
                 // the role if necessary.  This calls the internal grant method 
                 // that does not check whether the requestor is an administrator. 
-                UserImpl.getInstance().grantAdminRoleInternal(tenant, SK_USER, adminUser);
+                UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
                 String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
                                              UserImpl.ADMIN_ROLE_NAME);
                 _log.info(msg);
@@ -123,10 +125,15 @@ public final class TenantInit
             }
             
             // ------------------- Authenticator Role -------------------
-            // TODO: get authenticator service from tenant record
+            // TODO: **** get authenticator service from tenant record
             final String[] tokgenServices = {"authenticator", "abaco"};  // ************* Temp code
-            final String tokgenRoleTenant = "master";
-            final String tokgenRoleOwner = "tokens";
+            
+            // TODO: **** get site-master from from sites table
+            // The role is always owned by tokens@<site-master>, always defined in the
+            // site-master tenant, and always assigned to services in the site-master tenant.
+            final String tokgenRoleTenant = "master";     // ************* Temp code
+            final String tokgenOwner = "tokens";
+            final String tokgenOwnerTenant = "master";    // ************* Temp code
             final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
             final String desc = "Tenant token generator role";
             
@@ -138,8 +145,9 @@ public final class TenantInit
                 //
                 // Assign each service.
                 for (String tokgenService : tokgenServices) { 
-                	UserImpl.getInstance().grantRoleInternal(tokgenRoleTenant, tokgenRoleOwner, 
-                                                         	 tokgenService, roleName, desc);
+                	UserImpl.getInstance().grantRoleInternal(roleName, tokgenRoleTenant, desc,
+                			                                 tokgenService, tokgenRoleTenant,
+                			                                 tokgenOwner, tokgenOwnerTenant);
                 	String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", tokgenRoleTenant,
                                              	 tokgenService, roleName);
                 	_log.info(msg);
@@ -161,22 +169,23 @@ public final class TenantInit
     private void initializeTenantServiceRole()
     {
         // Designate the tenants service identifiers.
-        final String tenant = "master";
-        final String tenantService = "tenants";
+        final String primaryTenant = TapisConstants.PRIMARY_SITE_TENANT;
+        final String tenantService = TapisConstants.SERVICE_NAME_TENANTS;
         final String roleName = UserImpl.TENANT_CREATOR_ROLE;
+        final String siteMasterTenant = "master"; // TODO: ************* Temp code
         
         // Get the list of all users with the tenant creator role.
         List<String> creators = null;
-        try {creators = UserImpl.getInstance().getUsersWithRole(tenant, roleName);}
+        try {creators = UserImpl.getInstance().getUsersWithRole(primaryTenant, roleName);}
         catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", tenant, 
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", primaryTenant, 
                                           roleName, e.getMessage());
             _log.warn(msg);
         }
         catch (Exception e) {
             // This should not happen even if the tenant and role don't exist.
             // We log the problem but proceed.
-            String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", tenant, 
+            String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", primaryTenant, 
                                         roleName, e.getMessage());
             _log.error(msg, e);
         } 
@@ -191,12 +200,14 @@ public final class TenantInit
             // the role if necessary.  This calls the internal grant method 
             // that does not check whether the requestor is an administrator.
             String desc = "Tenants service creator role";
-            UserImpl.getInstance().grantRoleInternal(tenant, SK_USER, tenantService, roleName, desc);
-            String msg = MsgUtils.getMsg("SK_TENANT_CREATOR_ASSIGNED", tenant, tenantService, roleName);
+            UserImpl.getInstance().grantRoleInternal(roleName, primaryTenant, desc, 
+            		                                 tenantService, primaryTenant,
+            		                                 SK_USER, siteMasterTenant);
+            String msg = MsgUtils.getMsg("SK_TENANT_CREATOR_ASSIGNED", primaryTenant, tenantService, roleName);
             _log.info(msg);
         } catch (Exception e) {
             // Log the error and continue on.
-            String msg = MsgUtils.getMsg("SK_TENANT_INIT_CREATOR_ERROR", tenant, 
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_CREATOR_ERROR", primaryTenant, 
                                          tenantService, e.getMessage());
             _log.error(msg, e);
         }

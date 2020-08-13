@@ -43,6 +43,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
+import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -401,14 +402,9 @@ public final class UserResource
              description = "Grant a user the specified role.  A valid tenant and user "
                      + "must be specified in the request body.\n\n"
                      + ""
-                     + "The user@tenant specified in "
-                     + "the request payload is authorized to grant the role "
-                     + "only if:\n\n"
-                     + ""
-                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "This request is authorized only if the requestor is the role "
+                     + "owner or an administrator.  The user and the role must be in "
+                     + "the same tenant."
                      + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -465,21 +461,22 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .setPreventAdminRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .setPreventAdminRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
          String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
          
          // Assign the role to the user.
          int rows = 0;
-         try {rows = getUserImpl().grantRole(tenant, requestor, user, roleName);}
+         try {rows = getUserImpl().grantRole(tenant, user, roleName, requestor, requestorTenant);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role", roleName);
              }
@@ -618,7 +615,7 @@ public final class UserResource
                      + "must be specified in the request body.  The user specified in the JWT must "
                      + "themselves be an administrator.\n\n"
                      + ""
-                     + "A valid tenant and user must be specified in the request body.",
+                     + "A tenant and user must be specified in the request body.",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -673,10 +670,10 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()     // TODO: Also check that the admin has same tenant as user.
+//                             .check(prettyPrint);   //       Then delete the check from grantAdmimRole
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
@@ -684,7 +681,7 @@ public final class UserResource
          
          // Assign the role to the user.
          int rows = 0;
-         try {rows = getUserImpl().grantAdminRole(tenant, requestor, user);}
+         try {rows = getUserImpl().grantAdminRole(user, tenant, requestor);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role", UserImpl.ADMIN_ROLE_NAME);
              }
@@ -959,7 +956,7 @@ public final class UserResource
          // Trace this request.
          if (_log.isTraceEnabled()) {
              String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                          "grantRoleWithPermission", _request.getRequestURL());
+                                          "grantUserPermission", _request.getRequestURL());
              _log.trace(msg);
          }
          
@@ -978,31 +975,32 @@ public final class UserResource
              }
              
          // Fill in the parameter fields.
-         String tenant   = payload.tenant;
-         String user     = payload.user;
-         String permSpec = payload.permSpec;
+         String grantee       = payload.user;
+         String granteeTenant = payload.tenant;
+         String permSpec      = payload.permSpec;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsService()
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsService()
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
-         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String grantor = SkConstants.SK_USER;
+         String grantorTenant = "master"; // TODO: *************** temp code, replace with site-master
 
          // Create the role and/or permission.
          int rows = 0;
          try {
-             rows = getUserImpl().grantUserPermission(tenant, requestor, user, permSpec);
+             rows = getUserImpl().grantUserPermission(grantee, granteeTenant, permSpec, grantor, grantorTenant);
          } 
              catch (Exception e) {
                  // We assume a bad request for all other errors.
                  String msg = MsgUtils.getMsg("SK_ADD_USER_PERMISSION_ERROR", 
-                                              tenant, requestor, permSpec, user);
+                                              grantor, grantorTenant, grantee, granteeTenant, permSpec);
                  return getExceptionResponse(e, msg, prettyPrint);
              }
 
@@ -1092,12 +1090,12 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsService()
-                             .setCheckMatchesJwtIdentity()
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsService()
+//                             .setCheckMatchesJwtIdentity()
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
          // Remove the permission from the role.
@@ -1108,8 +1106,10 @@ public final class UserResource
              // Default role not found is not considered an error.
          } catch (Exception e) {
              // A real error.
-             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          tenant, user, permSpec, roleName);
+             String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", requestor,
+            		                      requestorTenant, permSpec, roleName, tenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
     
@@ -1138,16 +1138,9 @@ public final class UserResource
                          + "to the user.  The change count returned can range from zero to two "
                          + "depending on how many insertions were actually required.\n\n"
                          + ""
-                         + "The user@tenant specified in "
-                         + "the request payload is authorized to grant the role "
-                         + "only if:\n\n"
-                         + ""
-                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
-                         + ""
-                         + "A valid tenant and user must be specified in the request body.",
+                         + "Only the role owner or an administrator is authorized to make this request.  "
+                         + "The user and the role must be in the same tenant."
+                         + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1197,35 +1190,37 @@ public final class UserResource
              }
              
          // Fill in the parameter fields.
-         String tenant   = payload.tenant;
-         String user     = payload.user;
-         String roleName = payload.roleName;
-         String permSpec = payload.permSpec;
+         String tenant     = payload.tenant;
+         String user       = payload.user;
+         String roleName   = payload.roleName;
+         String permSpec   = payload.permSpec;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .setPreventAdminRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .setPreventAdminRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
          // The requestor will always be non-null after the above check. 
          String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
          
          // Create the role and/or permission.
          int rows = 0;
          try {
-             rows = getUserImpl().grantRoleWithPermission(tenant, requestor, 
-                                                          user, roleName, permSpec);
+             rows = getUserImpl().grantRoleWithPermission(roleName, tenant, permSpec, 
+                                                          user, tenant, 
+                                                          requestor, requestorTenant);
          } 
              catch (Exception e) {
                  // We assume a bad request for all other errors.
-                 String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                              tenant, requestor, permSpec, roleName);
+                 String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", requestor,
+                                              requestorTenant, permSpec, roleName, tenant);
                  return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
              }
 

@@ -8,8 +8,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqUpdateRoleName 
  implements IReqBody
 {
-    public String tenant;
-    public String user;
+    public String roleTenant;
     public String newRoleName;
 
     /** Return a user-appropriate error message on failed validation
@@ -19,10 +18,8 @@ public final class ReqUpdateRoleName
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "roleTenant");
         if (StringUtils.isBlank(newRoleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "newRoleName");
         if (!SKApiUtils.isValidName(newRoleName)) 

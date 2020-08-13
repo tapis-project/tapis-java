@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkUserRole;
-import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -204,24 +203,32 @@ public final class SkUserRoleDao
   /** Assign a role with the specified id to a user. The query will filter out 
    * attempts to assign a role from one tenant to a user in another tenant (an 
    * exception will be thrown because no records are available to be inserted 
-   * into the sk_role_tree table.
+   * into the sk_role_tree table).
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0. 
    * 
-   * @param tenant the tenant
-   * @param assigner the creating user
+   * @param assignee the user being assigned the role
+   * @param assigneeTenant the tenant of the user
    * @param roleId the role to which the permission will be assigned
+   * @param assigner the assigning user
+   * @param assignerTenant the tenant of the assigner
    * @return number of rows affected (0 or 1)
-   * @throws TapisException if a single row is not inserted
+   * @throws TapisException if the role and assignee are in different tenants
    */
-  public int assignUserRole(String tenant, String assigner, String assignee, int roleId) 
+  public int assignUserRole(String assignee, String assigneeTenant, int roleId, 
+		                    String assigner, String assignerTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "tenant");
+      if (StringUtils.isBlank(assignee)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assignee");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(assigneeTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assigneeTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -230,8 +237,8 @@ public final class SkUserRoleDao
           _log.error(msg);
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(assignee)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assignee");
+      if (StringUtils.isBlank(assignerTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignRole", "assignerTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -249,7 +256,10 @@ public final class SkUserRoleDao
           // Get a database connection.
           conn = getConnection();
 
-          // Set the sql command.
+          // Set the sql command.  The assigneeTenant can the role's
+          // tenant must be the same.  Users, however, can only be 
+          // assigned roles in their tenant, though those roles may 
+          // be owned by services in another tenant.
           String sql = SqlStatements.USER_ADD_ROLE_BY_ID;
 
           // Prepare the statement and fill in the placeholders.
@@ -257,9 +267,11 @@ public final class SkUserRoleDao
           pstmt.setString(1, assignee);
           pstmt.setInt(2, roleId);
           pstmt.setString(3, assigner);
-          pstmt.setString(4, assigner);
-          pstmt.setString(5, tenant);
-          pstmt.setInt(6, roleId);
+          pstmt.setString(4, assignerTenant);
+          pstmt.setString(5, assigner);
+          pstmt.setString(6, assignerTenant);
+          pstmt.setString(7, assigneeTenant);
+          pstmt.setInt(8, roleId);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -840,43 +852,56 @@ public final class SkUserRoleDao
   /** Create a role and assign it to a user in one atomic operation.  The role is
    * not expected to exist and the method will fail if it does.
    * 
-   * @param tenant the user's tenant
-   * @param requestor the role grantor
-   * @param user the grantee
    * @param roleName the role name to be created.
+   * @param roleTenant the tenant of the new role
    * @param description the role's description
+   * @param grantee the user to be assigned the role
+   * @param granteeTenant the user's tenant
+   * @param grantor the requestor
+   * @param grantorTenant the requestor's tenant
    * @param strict true means fail if role already exists, false is idempotent
    * @return the number of changed db records
    * @throws TapisImplException on error
    */
-  public int createAndAssignRole(String tenant, String requestor, String user, 
-                                 String roleName, String description, boolean strict)
+  public int createAndAssignRole(String roleName, String roleTenant, String description,
+		                         String grantee, String granteeTenant,
+                                 String grantor, String grantorTenant, boolean strict)
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(requestor)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "requestor");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "user");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
       if (StringUtils.isBlank(roleName)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "roleTenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
       if (StringUtils.isBlank(description)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "description");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(grantee)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "grantee");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(granteeTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "granteeTenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(grantor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "grantor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(grantorTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createAndAssignRole", "grantorTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -895,18 +920,18 @@ public final class SkUserRoleDao
           if (strict) sql = SqlStatements.ROLE_INSERT_STRICT;
             else sql = SqlStatements.ROLE_INSERT;
           
-          // Assign the owner to be the reserved sk user when creating a user default role.
-          String owner = roleName.startsWith(SkConstants.USER_DEFAULT_ROLE_PREFIX) ? SkConstants.SK_USER : requestor;
-
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setString(2, roleName);
           pstmt.setString(3, description);
-          pstmt.setString(4, requestor);
-          pstmt.setString(5, requestor);
-          pstmt.setString(6, owner);
-
+          pstmt.setString(4, grantor);
+          pstmt.setString(5, grantorTenant);
+          pstmt.setString(6, grantor);
+          pstmt.setString(7, grantorTenant);
+          pstmt.setString(8, grantor);
+          pstmt.setString(9, grantorTenant);
+          
           // Issue the call which will fail if the role already exists
           // and strict is set.
           rows = pstmt.executeUpdate();
@@ -920,7 +945,7 @@ public final class SkUserRoleDao
           
           // Prepare the statement and fill in the placeholders.
           pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setString(2, roleName);
                       
           // Issue the call for the 1 row result set.
@@ -934,7 +959,7 @@ public final class SkUserRoleDao
           
           // Make sure we got an id.
           if (id == 0) {
-              String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+              String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", roleTenant, roleName);
               _log.error(msg);
               throw new TapisException(msg);
           }
@@ -946,11 +971,13 @@ public final class SkUserRoleDao
 
           // Prepare the statement and fill in the placeholders.
           pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
-          pstmt.setString(2, user);
+          pstmt.setString(1, granteeTenant);
+          pstmt.setString(2, grantee);
           pstmt.setInt(3, id);
-          pstmt.setString(4, requestor);
-          pstmt.setString(5, requestor);
+          pstmt.setString(4, grantor);
+          pstmt.setString(5, grantorTenant);
+          pstmt.setString(6, grantor);
+          pstmt.setString(7, grantorTenant);
 
           // Issue the call which will fail if the user already has the role
           // and strict is set.
@@ -968,8 +995,8 @@ public final class SkUserRoleDao
           try {if (conn != null) conn.rollback();}
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("SK_CREATE_ASSIGN_ROLE_ERROR", tenant, user, 
-                                       roleName, e.getMessage());
+          String msg = MsgUtils.getMsg("SK_CREATE_ASSIGN_ROLE_ERROR", granteeTenant,  
+                                       grantee, roleName, e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -1035,8 +1062,10 @@ public final class SkUserRoleDao
         obj.setRoleId(rs.getInt(4));
         obj.setCreated(rs.getTimestamp(5).toInstant());
         obj.setCreatedby(rs.getString(6));
-        obj.setUpdated(rs.getTimestamp(7).toInstant());
-        obj.setUpdatedby(rs.getString(8));
+        obj.setCreatedbyTenant(rs.getString(7));
+        obj.setUpdated(rs.getTimestamp(8).toInstant());
+        obj.setUpdatedby(rs.getString(9));
+        obj.setUpdatedbyTenant(rs.getString(10));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

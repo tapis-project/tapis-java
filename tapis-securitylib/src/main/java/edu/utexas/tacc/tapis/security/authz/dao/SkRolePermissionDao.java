@@ -127,58 +127,64 @@ public final class SkRolePermissionDao
    * @throws TapisException on error
    * @throws TapisNotFoundException unknown role name
    */
-  public int assignPermission(String tenant, String user, String roleName, 
-                              String permission) 
+  public int assignPermission(String roleTenant, String roleName, String permission, 
+                              String requestor, String requestorTenant) 
    throws TapisException, TapisNotFoundException
   {
       // Inputs are all checked in the called routines.
       SkRoleDao dao = new SkRoleDao();
       
       // The parent must exist in the tenant.
-      Integer roleId = dao.getRoleId(tenant, roleName);
+      Integer roleId = dao.getRoleId(roleTenant, roleName);
       if (roleId == null) {
-          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", tenant, roleName);
+          String msg = MsgUtils.getMsg("SK_ROLE_NOT_FOUND", roleTenant, roleName);
           _log.error(msg);
           throw new TapisNotFoundException(msg, roleName);
       }
       
       // Assign the permission.
-      return assignPermission(tenant, user, roleId, permission);
+      return assignPermission(roleTenant, roleId, permission, requestor, requestorTenant);
   }
   
   /* ---------------------------------------------------------------------- */
   /* assignPermission:                                                      */
   /* ---------------------------------------------------------------------- */
-  /** Assign a named child role to the parent role with the specified id.
+  /** Assign a permission to a role with the specified id.
    * 
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0.  
    * 
-   * @param tenant the tenant
-   * @param user the creating user
-   * @param roleName the role to which the permission will be assigned
+   * @param roleTenant the role's tenant
+   * @param roleId the id of the role to which the permission will be assigned
    * @param permission the permission specification to be assigned to the role
+   * @param requestor the creating user
+   * @param requestorTenant the creating user's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
    */
-  public int assignPermission(String tenant, String user, int roleId, 
-                              String permission) 
+  public int assignPermission(String roleTenant, int roleId, String permission, 
+		                      String requestor, String requestorTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "user");
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "roleTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(permission)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "permission");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "requestor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestorTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "requestorTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -201,12 +207,14 @@ public final class SkRolePermissionDao
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setString(2, permission);
-          pstmt.setString(3, user);
-          pstmt.setString(4, user);
-          pstmt.setString(5, tenant);
-          pstmt.setInt(6, roleId);
+          pstmt.setString(3, requestor);
+          pstmt.setString(4, requestorTenant);
+          pstmt.setString(5, requestor);
+          pstmt.setString(6, requestorTenant);
+          pstmt.setString(7, roleTenant);
+          pstmt.setInt(8, roleId);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -590,8 +598,10 @@ public final class SkRolePermissionDao
         obj.setPermission(rs.getString(4));
         obj.setCreated(rs.getTimestamp(5).toInstant());
         obj.setCreatedby(rs.getString(6));
-        obj.setUpdated(rs.getTimestamp(7).toInstant());
-        obj.setUpdatedby(rs.getString(8));
+        obj.setCreatedbyTenant(rs.getString(7));
+        obj.setUpdated(rs.getTimestamp(8).toInstant());
+        obj.setUpdatedby(rs.getString(9));
+        obj.setUpdatedbyTenant(rs.getString(10));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

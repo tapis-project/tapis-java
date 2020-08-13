@@ -9,6 +9,7 @@ public class ReqAddChildRole
 {
     public String tenant;
     public String user;
+    public String roleTenant;
     public String parentRoleName;
     public String childRoleName;
     
@@ -23,6 +24,8 @@ public class ReqAddChildRole
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "tenant");
         if (StringUtils.isBlank(user)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "roleTenant");
         if (StringUtils.isBlank(parentRoleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addChildRole", "parentRoleName");
         if (StringUtils.isBlank(childRoleName)) 

@@ -7,8 +7,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqUpdateRoleOwner 
  implements IReqBody
 {
-    public String tenant;
-    public String user;
+    public String roleTenant;
     public String newOwner;
 
     /** Return a user-appropriate error message on failed validation
@@ -18,10 +17,8 @@ public final class ReqUpdateRoleOwner
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "roleTenant");
         if (StringUtils.isBlank(newOwner)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "newOwner");
         

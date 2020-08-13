@@ -309,13 +309,8 @@ public final class RoleResource
                            + "2048 characters long.  If the role already exists, this "
                            + "request has no effect.\n\n"
                            + ""
-                           + "A valid tenant and user must be specified in the request body.  "
-                           + "The user@tenant in the request payload is authorized and becomes "
-                           + "the new role's owner only if:\n\n"
-                           + ""
-                           + "- the user@tenant in a user JWT is the same as the user@tenant in the request payload, or\n"
-                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                           + "- the user@tenant in a service JWT is allowed to act on behalf of the request tenant."
+                           + "For the request to be authorized, the requestor must be "
+                           + "either a service or an administrator."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -366,45 +361,46 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user = payload.user;
-         String roleName = payload.roleName;
+         String roleTenant  = payload.roleTenant;
+         String roleName    = payload.roleName;
          String description = payload.description;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsService()
-                             .setCheckMatchesJwtIdentity()
-                             .setCheckIsAdmin()
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(roleTenant, owner)
+//                             .setCheckIsService()
+//                             .setCheckMatchesJwtIdentity()
+//                             .setCheckIsAdmin()
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // The threadlocal object has been validated by now.
+         String owner = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String ownerTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+
          // Create the role.
          int rows = 0;
-         try {
-             String creator = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
-             rows = getRoleImpl().createRole(tenant, user, roleName, creator, description);
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", tenant, user, roleName);
+         try {rows = getRoleImpl().createRole(roleName, roleTenant, description, owner, ownerTenant);}
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("SK_ROLE_CREATE_ERROR", roleName, roleTenant, owner, ownerTenant);
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
          // NOTE: We need to assign a location header as well.
          //       See https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.5.
          ResultResourceUrl respUrl = new ResultResourceUrl();
-         respUrl.url = _request.getRequestURL().toString() + "/" + roleName;
+         respUrl.url = SKApiUtils.constructTenantURL(roleTenant, _request.getRequestURI(), roleName);
          RespResourceUrl r = new RespResourceUrl(respUrl);
          
          // ---------------------------- Success ------------------------------- 
-         // Success means the role exists. 
+         // No new rows means the role exists. 
          if (rows == 0)
              return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_EXISTED", "Role", roleName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_EXISTED", "Role", roleName+"@"+roleTenant), prettyPrint, r)).build();
          else 
              return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName), prettyPrint, r)).build();
+                 MsgUtils.getMsg("TAPIS_CREATED", "Role", roleName+"@"+roleTenant), prettyPrint, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
@@ -592,14 +588,8 @@ public final class RoleResource
                            + "that can contain underscores but must begin with an alphabetic "
                            + "character.  The limit on role name is 58 characters.\n\n"
                            + ""
-                           + "The user@tenant specified in "
-                           + "the request payload is authorized to update the role name "
-                           + "only if:\n\n"
-                           + ""
-                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "This request is authorized if the requestor is the role owner "
+                           + "or an administrator."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -660,29 +650,34 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user   = payload.user;
+         String roleTenant  = payload.roleTenant;
          String newRoleName = payload.newRoleName;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // The threadlocal object has been validated by now.
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+         
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleName(tenant, user, roleName, newRoleName);
+             rows = getRoleImpl().updateRoleName(roleTenant, roleName, newRoleName, 
+            		                             requestor, requestorTenant);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", roleTenant, roleName, 
+            		                      requestor, requestorTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
-         
+
          // ---------------------------- Success ------------------------------- 
          // Success means we found the role. 
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
@@ -699,14 +694,8 @@ public final class RoleResource
      @Operation(
              description = "Update an existing role's owner using a request body.\n\n"
                            + ""
-                           + "The user@tenant specified in "
-                           + "the request payload is authorized to update the role owner "
-                           + "only if:\n\n"
-                           + ""
-                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "This request is authorized if the requestor is the role owner "
+                           + "or an administrator."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -767,26 +756,31 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user   = payload.user;
-         String newOwner = payload.newOwner;
+         String roleTenant = payload.roleTenant;
+         String newOwner   = payload.newOwner;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
-         
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
+//         
          // ------------------------ Request Processing ------------------------
+         // The threadlocal object has been validated by now.
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+         
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleOwner(tenant, user, roleName, newOwner);
+             rows = getRoleImpl().updateRoleOwner(roleTenant, roleName, newOwner,
+            		                              requestor, requestorTenant);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", roleTenant, roleName, 
+                                          requestor, requestorTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
@@ -807,14 +801,8 @@ public final class RoleResource
              description = "Update an existing role's decription using a request body.  "
                            + "The size limit on a description is 2048 characters.\n\n"
                            + ""
-                           + "The user@tenant specified in "
-                           + "the request payload is authorized to update the role description "
-                           + "only if:\n\n"
-                           + ""
-                           + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                           + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                           + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                           + "This request is authorized if the requestor is the role owner "
+                           + "or an administrator."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -876,26 +864,31 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user = payload.user;
-         String description = payload.description;
+         String roleTenant     = payload.roleTenant;
+         String newDescription = payload.newDescription;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // The threadlocal object has been validated by now.
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+         
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleDescription(tenant, user, roleName, description);
+             rows = getRoleImpl().updateRoleDescription(roleTenant, roleName, newDescription,
+            		                                    requestor, requestorTenant);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", tenant, user, roleName);
+             String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", roleTenant, roleName, 
+                                          requestor, requestorTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
          
@@ -932,14 +925,8 @@ public final class RoleResource
                          + "It's the application's responsibility to escape those characters in "
                          + "a manner that is safe in the application's domain.\n\n"
                          + ""
-                         + "The user@tenant specified in "
-                         + "the request payload is authorized to add a permission to the role "
-                         + "only if:\n\n"
-                         + ""
-                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "This request is authorized only if the authenticated user is either the "
+                         + "role owner or an administrator."
                          + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -990,28 +977,32 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user = payload.user;
-         String roleName = payload.roleName;
-         String permSpec = payload.permSpec;
+         String roleTenant = payload.roleTenant;
+         String roleName   = payload.roleName;
+         String permSpec   = payload.permSpec;
          
          // ------------------------- Check Authz ------------------------------
-         // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         // Authorization passed if a null response is returned.
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // The threadlocal object has been validated by now.
+         String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+         
          // Add permission to role.
          int rows = 0;
          try {
-             rows = getRoleImpl().addRolePermission(tenant, user, roleName, permSpec);
+             rows = getRoleImpl().addRolePermission(roleTenant, roleName, permSpec, requestor, requestorTenant);
          } catch (Exception e) {
              // This only occurs when the role name is not found.
-             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", tenant, user, permSpec, roleName);
+             String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", requestor, requestorTenant, permSpec, 
+            		                      roleName, roleTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
 
@@ -1035,16 +1026,10 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Remove a permission from a role using a request body.  "
-                     + "A valid tenant and user must be specified in the request body.\n\n"
+                     + "A valid role, roleTenant and permission must be specified in "
+                     + "the request body.\n\n"
                      + ""
-                     + "The user@tenant specified in "
-                     + "the request payload is authorized to remove a permission from the role "
-                     + "only if:\n\n"
-                     + ""
-                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "Only the role owner or administrators are authorized to make this call."
                      + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1095,32 +1080,32 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant   = payload.tenant;
-         String user     = payload.user;
-         String roleName = payload.roleName;
-         String permSpec = payload.permSpec;
+         String roleTenant = payload.roleTenant;
+         String roleName   = payload.roleName;
+         String permSpec   = payload.permSpec;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(roleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(roleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Remove the permission from the role.
          int rows = 0;
-         try {
-             rows = getRoleImpl().removeRolePermission(tenant, roleName, permSpec);
-         } catch (Exception e) {
+         try {rows = getRoleImpl().removeRolePermission(roleTenant, roleName, permSpec);} 
+         catch (Exception e) {
              // Role not found is an error in this case.
-             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", 
-                                          tenant, user, permSpec, roleName);
+             String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_ERROR", requestor,
+            		                      requestorTenant, permSpec, roleName, roleTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role", roleName);
          }
-    
+
          // Report the number of rows changed.
          ResultChangeCount count = new ResultChangeCount();
          count.changes = rows;
@@ -1149,10 +1134,8 @@ public final class RoleResource
                          + "the request payload is authorized to a child role to the parent role "
                          + "only if:\n\n"
                          + ""
-                         + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                         + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of the owner of both roles, or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "- the user@tenant in the JWT represents the user that owns both roles, or\n"
+                         + "- the user@tenant in the JWT represents a tenant administrator."
                          + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1205,27 +1188,28 @@ public final class RoleResource
          // Fill in the parameter fields.
          String tenant = payload.tenant;
          String user   = payload.user;
+         String roleTenant     = payload.roleTenant; 
          String parentRoleName = payload.parentRoleName;
-         String childRoleName = payload.childRoleName;
+         String childRoleName  = payload.childRoleName;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
-                             .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
-                             .addOwnedRole(parentRoleName)
-                             .addOwnedRole(childRoleName)
-                             .check(prettyPrint);
-         if (resp != null) return resp;
+//         Response resp = SKCheckAuthz.configure(tenant, user)
+//                             .setCheckIsAdmin()
+//                             .setCheckIsOBOAdmin()
+//                             .addOwnedRole(parentRoleName)
+//                             .addOwnedRole(childRoleName)
+//                             .check(prettyPrint);
+//         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Add the child role to the parent.
          int rows = 0;
          try {
-             rows = getRoleImpl().addChildRole(tenant, user, parentRoleName, childRoleName);
+             rows = getRoleImpl().addChildRole(tenant, user, roleTenant, parentRoleName, childRoleName);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", 
-                                          tenant, user, childRoleName, parentRoleName);
+             String msg = MsgUtils.getMsg("SK_ADD_CHILD_ROLE_ERROR", tenant, user, 
+            		                      childRoleName, parentRoleName, roleTenant);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
          }
 

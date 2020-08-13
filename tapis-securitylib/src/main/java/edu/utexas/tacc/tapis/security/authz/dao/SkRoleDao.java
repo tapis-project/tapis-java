@@ -349,41 +349,42 @@ public final class SkRoleDao
    * If the record already exists in the database, this method becomes a no-op
    * and the number of rows returned is 0. 
    * 
-   * @param tenant the tenant
-   * @param user the owning user
-   * @param creator the creating user
-   * @param roleName role name
+   * @param roleName name of the new role
+   * @param roleTenant tenant of the new role
    * @param description role description
+   * @param owner role owner
+   * @param ownerTenant owner's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException if the role is not created for any reason
    */
-  public int createRole(String tenant, String user, String creator, String roleName, String description) 
+  public int createRole(String roleName, String roleTenant, String description,
+		                String owner, String ownerTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "user");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(creator)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "creator");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
       if (StringUtils.isBlank(roleName)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleTenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
       if (StringUtils.isBlank(description)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "description");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(owner)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "owner");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(ownerTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "ownerTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -401,12 +402,15 @@ public final class SkRoleDao
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenant);
+          pstmt.setString(1, roleTenant);
           pstmt.setString(2, roleName);
           pstmt.setString(3, description);
-          pstmt.setString(4, creator);
-          pstmt.setString(5, creator);
-          pstmt.setString(6, user);
+          pstmt.setString(4, owner);
+          pstmt.setString(5, ownerTenant);
+          pstmt.setString(6, owner);
+          pstmt.setString(7, ownerTenant);
+          pstmt.setString(8, owner);
+          pstmt.setString(9, ownerTenant);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -448,25 +452,22 @@ public final class SkRoleDao
   /** Update the name of an existing role.  Zero is returned if no row was
    * affect; 1 is returned when a row was updated.
    *
-   * @param tenant the tenant
-   * @param user the creating user
-   * @param newRoleName current role name
+   * @param roleTenant the role's tenant
+   * @param roleName current role name
    * @param newRoleName new role name
+   * @param requestor the requestor
+   * @param requestorTenant the requestor's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
    */
-  public int updateRoleName(String tenant, String user, String roleName, String newRoleName) 
+  public int updateRoleName(String roleTenant, String roleName, String newRoleName,
+		                    String requestor, String requestorTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "user");
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "roleTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -477,6 +478,16 @@ public final class SkRoleDao
       }
       if (StringUtils.isBlank(newRoleName)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "newRoleName");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "requestor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestorTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "requestorTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -496,9 +507,10 @@ public final class SkRoleDao
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, newRoleName);
           pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
-          pstmt.setString(3, user);
-          pstmt.setString(4, tenant);
-          pstmt.setString(5, roleName);
+          pstmt.setString(3, requestor);
+          pstmt.setString(4, requestorTenant);
+          pstmt.setString(5, roleTenant);
+          pstmt.setString(6, roleName);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -535,40 +547,47 @@ public final class SkRoleDao
   }
   
   /* ---------------------------------------------------------------------- */
-  /* updateRoleName:                                                        */
+  /* updateRoleOwner:                                                       */
   /* ---------------------------------------------------------------------- */
   /** Update the name of an existing role.  Zero is returned if no row was
    * affect; 1 is returned when a row was updated.
    *
-   * @param tenant the tenant
-   * @param user the creating user
-   * @param newRoleName current role name
-   * @param newRoleName new role name
+   * @param roleTenant the role's tenant
+   * @param roleName role name
+   * @param newOwner new owner of the role
+   * @param requestor the requestor
+   * @param requestorTenant the requestor's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
    */
-  public int updateRoleOwner(String tenant, String user, String roleName, String newOwner) 
+  public int updateRoleOwner(String roleTenant, String roleName, String newOwner,
+                             String requestor, String requestorTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "user");
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleOwner", "roleTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(roleName)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "roleName");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleOwner", "roleName");
           _log.error(msg);
           throw new TapisException(msg);
       }
       if (StringUtils.isBlank(newOwner)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleName", "newOwner");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleOwner", "newOwner");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleOwner", "requestor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestorTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleOwner", "requestorTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -588,9 +607,10 @@ public final class SkRoleDao
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, newOwner);
           pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
-          pstmt.setString(3, user);
-          pstmt.setString(4, tenant);
-          pstmt.setString(5, roleName);
+          pstmt.setString(3, requestor);
+          pstmt.setString(4, requestorTenant);
+          pstmt.setString(5, roleTenant);
+          pstmt.setString(6, roleName);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -632,25 +652,22 @@ public final class SkRoleDao
   /** Update the description of an existing role.  Zero is returned if no row was
    * affect; 1 is returned when a row was updated.
    *
-   * @param tenant the tenant
-   * @param user the creating user
+   * @param roleTenant the role's tenant
    * @param roleName role name
-   * @param description optional new role description
+   * @param newDescription new role description
+   * @param requestor the requestor
+   * @param requestorTenant the requestor's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
    */
-  public int updateRoleDescription(String tenant, String user, String roleName, String description) 
+  public int updateRoleDescription(String roleTenant, String roleName, String newDescription,
+                                   String requestor, String requestorTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
-      if (StringUtils.isBlank(tenant)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "tenant");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(user)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "user");
+      if (StringUtils.isBlank(roleTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "roleTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -659,8 +676,18 @@ public final class SkRoleDao
           _log.error(msg);
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(description)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "description");
+      if (StringUtils.isBlank(newDescription)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "newDescription");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestor)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "requestor");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(requestorTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateRoleDescription", "requestorTenant");
           _log.error(msg);
           throw new TapisException(msg);
       }
@@ -678,11 +705,12 @@ public final class SkRoleDao
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, description);
+          pstmt.setString(1, newDescription);
           pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
-          pstmt.setString(3, user);
-          pstmt.setString(4, tenant);
-          pstmt.setString(5, roleName);
+          pstmt.setString(3, requestor);
+          pstmt.setString(4, requestorTenant);
+          pstmt.setString(5, roleTenant);
+          pstmt.setString(6, roleName);
 
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
@@ -1208,11 +1236,14 @@ public final class SkRoleDao
         obj.setTenant(rs.getString(2));
         obj.setName(rs.getString(3));
         obj.setDescription(rs.getString(4));
-        obj.setCreated(rs.getTimestamp(5).toInstant());
-        obj.setCreatedby(rs.getString(6));
-        obj.setUpdated(rs.getTimestamp(7).toInstant());
-        obj.setUpdatedby(rs.getString(8));
-        obj.setOwner(rs.getString(9));
+        obj.setOwner(rs.getString(5));
+        obj.setOwnerTenant(rs.getString(6));
+        obj.setCreated(rs.getTimestamp(7).toInstant());
+        obj.setCreatedby(rs.getString(8));
+        obj.setCreatedbyTenant(rs.getString(9));
+        obj.setUpdated(rs.getTimestamp(10).toInstant());
+        obj.setUpdatedby(rs.getString(11));
+        obj.setUpdatedbyTenant(rs.getString(12));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

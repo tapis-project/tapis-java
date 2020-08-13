@@ -101,10 +101,10 @@ public class NestedRoleTest
     {
         SkRoleDao dao = new SkRoleDao();
         String creator = "NestedRoleTest";
-        int rows = dao.createRole(tenant, user, creator, "NestedTestRole1", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, creator, "NestedTestRole2", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, creator, "NestedTestRole3", "Role created by NestedRoleTest");
-        rows = dao.createRole(tenant, user, creator, "NestedTestRole4", "Role created by NestedRoleTest");
+        int rows = dao.createRole("NestedTestRole1", tenant, "Role created by NestedRoleTest", creator, tenant);
+        rows = dao.createRole("NestedTestRole2", tenant, "Role created by NestedRoleTest", creator, tenant);
+        rows = dao.createRole("NestedTestRole3", tenant, "Role created by NestedRoleTest", creator, tenant);
+        rows = dao.createRole("NestedTestRole4", tenant, "Role created by NestedRoleTest", creator, tenant);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -118,9 +118,9 @@ public class NestedRoleTest
         SkRole role2 = dao.getRole(tenant, "NestedTestRole2");
         
         // Create the role hierarchy with roles 3 and 4 as leaves.
-        int rows = role1.addChildRole(user, "NestedTestRole2");
-        rows = role2.addChildRole(user, "NestedTestRole3");
-        rows = role2.addChildRole(user, "NestedTestRole4");
+        int rows = role1.addChildRole(user, tenant, "NestedTestRole2");
+        rows = role2.addChildRole(user, tenant, "NestedTestRole3");
+        rows = role2.addChildRole(user, tenant, "NestedTestRole4");
     }
     
     /* ---------------------------------------------------------------------- */
@@ -202,13 +202,13 @@ public class NestedRoleTest
     {
         SkRoleDao dao = new SkRoleDao();
         SkRole role1 = dao.getRole(tenant, "NestedTestRole1");
-        int rows = role1.addPermission(user, "fake:*:read");
+        int rows = role1.addPermission(user, tenant, "fake:*:read");
         SkRole role2 = dao.getRole(tenant, "NestedTestRole2");
-        rows = role2.addPermission(user, "fake:a:read");
+        rows = role2.addPermission(user, tenant, "fake:a:read");
         SkRole role3 = dao.getRole(tenant, "NestedTestRole3");
-        rows = role3.addPermission(user, "fake:b:read");
+        rows = role3.addPermission(user, tenant, "fake:b:read");
         SkRole role4 = dao.getRole(tenant, "NestedTestRole4");
-        rows = role4.addPermission(user, "fake:c:read");
+        rows = role4.addPermission(user, tenant, "fake:c:read");
     }
     
     /* ---------------------------------------------------------------------- */
@@ -298,13 +298,13 @@ public class NestedRoleTest
     {
         SkRoleDao dao = new SkRoleDao();
         SkRole role1 = dao.getRole(tenant, "NestedTestRole1");
-        int rows = role1.addUser(user, user1);
+        int rows = role1.addUser(user, tenant, user1, tenant);
         SkRole role2 = dao.getRole(tenant, "NestedTestRole2");
-        rows = role2.addUser(user, user2);
+        rows = role2.addUser(user, tenant, user2, tenant);
         SkRole role3 = dao.getRole(tenant, "NestedTestRole3");
-        rows = role3.addUser(user, user3);
+        rows = role3.addUser(user, tenant, user3, tenant);
         SkRole role4 = dao.getRole(tenant, "NestedTestRole4");
-        rows = role4.addUser(user, user4);
+        rows = role4.addUser(user, tenant, user4, tenant);
     }
     
     /* ---------------------------------------------------------------------- */

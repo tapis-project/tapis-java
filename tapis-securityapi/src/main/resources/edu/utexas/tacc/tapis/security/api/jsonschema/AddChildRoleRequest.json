@@ -11,7 +11,10 @@
           "user": {
             "type": "string"
           },
-          "parentRoleName": {
+          "roleTenant": {
+            "type": "string"
+          },
+           "parentRoleName": {
             "type": "string"
           },
           "childRoleName": {
@@ -21,6 +24,7 @@
     "required": [
         "tenant",
         "user",
+        "roleTenant",
         "parentRoleName", 
         "childRoleName"
     ]

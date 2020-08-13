@@ -15,10 +15,8 @@ public final class ReqRemoveRolePermission
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRolePermission", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRolePermission", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRolePermission", "roleTenant");
         if (StringUtils.isBlank(roleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeRolePermission", "roleName");
         if (!SKApiUtils.isValidName(roleName))
