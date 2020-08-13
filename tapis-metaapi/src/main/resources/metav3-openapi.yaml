@@ -884,15 +884,47 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        description: "the aggregation being defined for the collection"
-        content:
-          application/json:
-            schema:
-              type: object
       responses:
         '201':
           description: empty response body on created.
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                type: object
+      deprecated: false
+    delete:
+      tags:
+        - aggregation
+      summary: deleteAggregation
+      description: Delete an aggregation defined for a collection.
+      operationId: deleteAggregation
+      parameters:
+        - name: db
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: aggregation
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: empty response body on delete.
         '401':
           description: Not authorized.
           content:

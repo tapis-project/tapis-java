@@ -30,6 +30,7 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
@@ -865,11 +866,11 @@ public class SystemResource
     List<String> searchList = null;
     try
     {
-      searchList = ApiUtils.validateAndExtractSearchList(searchStr);
+      searchList = SearchUtils.validateAndExtractSearchList(searchStr);
     }
     catch (Exception e)
     {
-      String msg = ApiUtils.getMsgAuth("SYSAPI_SEARCHLIST_ERROR", authenticatedUser, e.getMessage());
+      String msg = ApiUtils.getMsgAuth("SYSAPI_SEARCH_ERROR", authenticatedUser, e.getMessage());
       _log.error(msg, e);
       return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
