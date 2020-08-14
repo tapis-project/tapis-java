@@ -57,7 +57,6 @@ paths:
             application/json:
               schema:
                 type: object
-
   /meta/:
     get:
       tags:
@@ -425,7 +424,6 @@ paths:
               schema:
                 type: object
       deprecated: false
-
   /meta/{db}/{collection}/_filter:
     post:
       tags:
@@ -496,7 +494,6 @@ paths:
               schema:
                 type: object
       deprecated: false
-
   /meta/{db}/{collection}/_size:
     get:
       tags:
@@ -1014,7 +1011,7 @@ paths:
           schema:
             type: integer
             default: 10
-        - name: keys
+        - name: keys   # todo verify this field
           in: query
           schema:
             type: array
@@ -1046,7 +1043,6 @@ paths:
               schema:
                 type: object
       deprecated: false
-
     delete:
       tags:
         - aggregation
