@@ -153,7 +153,10 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get the names of all users in the tenant that "
-                           + "have been granted a role or permission.",
+                         + "have been granted a role or permission.\n\n"
+                  		 + "This request is authorized if the requestor is a user that has access "
+                		 + "to the specified tenant or if the requestor is a service."
+                         + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -222,7 +225,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get the roles assigned to a user in the specified tenant, "
-                     + "including those assigned transively.",
+                     + "including those assigned transively.\n\n"
+                     + ""
+            		 + "This request is authorized if the requestor is a user that has access "
+            		 + "to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -325,6 +332,9 @@ public final class UserResource
                      + ""
                      + "    stream:dev:read,write:project1\n"
                      + "    stream:dev:read,write,exec:project1\n\n"
+                     + ""
+            		 + "This request is authorized if the requestor is a user that has access "
+            		 + "to the specified tenant or if the requestor is a service."
                      + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -461,13 +471,12 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .setPreventAdminRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .setPreventAdminRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
@@ -504,14 +513,8 @@ public final class UserResource
                      + "is taken if the user is not currently assigned the role. "
                      + "This request is idempotent.\n\n"
                      + ""
-                     + "The user@tenant specified in "
-                     + "the request payload is authorized to revoke the role "
-                     + "only if:\n\n"
-                     + ""
-                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "This request is authorized only if the requestor is the role "
+                     + "owner or an administrator."
                      + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -567,7 +570,6 @@ public final class UserResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .setPreventAdminRole(roleName)
                              .check(prettyPrint);
@@ -613,9 +615,8 @@ public final class UserResource
      @Operation(
              description = "Grant a user the tenant administrator role.  A valid tenant and user "
                      + "must be specified in the request body.  The user specified in the JWT must "
-                     + "themselves be an administrator.\n\n"
-                     + ""
-                     + "A tenant and user must be specified in the request body.",
+                     + "be an administrator in the tenant specified in the request body."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -670,18 +671,18 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()     // TODO: Also check that the admin has same tenant as user.
-//                             .check(prettyPrint);   //       Then delete the check from grantAdmimRole
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
          String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
          
-         // Assign the role to the user.
+         // Assign the admin role to the user.
          int rows = 0;
-         try {rows = getUserImpl().grantAdminRole(user, tenant, requestor);}
+         try {rows = getUserImpl().grantAdminRoleInternal(user, tenant, requestor, tenant);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint, "Role", UserImpl.ADMIN_ROLE_NAME);
              }
@@ -811,7 +812,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user in a tenant has been assigned "
-                     + "the tenant administrator role, either directly or transitively.",
+                     + "the tenant administrator role, either directly or transitively.\n\n"
+                     + ""
+                     + "This request is authorized if the requestor is a user that has "
+                     + "access to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -874,7 +879,10 @@ public final class UserResource
      @Path("/admins/{tenant}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get all users assigned the tenant administrator role ($!tenant_admin).",
+             description = "Get all users assigned the tenant administrator role ($!tenant_admin).\n\n"
+            		 + "This request is authorized if the requestor is a user that has access "
+            		 + "to the specified tenant or if the requestor is a service."
+            		 + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -927,7 +935,8 @@ public final class UserResource
                      + "The change count returned can range from zero to three "
                      + "depending on how many insertions and updates were actually required\n\n"
                      + ""
-                     + "The caller must be an administrator or service."
+                     + "The caller must be an administrator or service allowed to perform "
+                     + "updates in the user's tenant."
                      + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -981,11 +990,12 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsService()
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(granteeTenant, grantee)
+                             .setCheckIsAdmin()
+                             .setCheckIsService()
+                             .setPreventForeignTenantUpdate()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
@@ -1090,12 +1100,13 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsService()
-//                             .setCheckMatchesJwtIdentity()
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .setCheckIsService()
+                             .setCheckMatchesJwtIdentity()
+                             .setPreventForeignTenantUpdate()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
          // Remove the permission from the role.
@@ -1197,13 +1208,12 @@ public final class UserResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .setPreventAdminRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(tenant, user)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .setPreventAdminRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------        
          // The requestor will always be non-null after the above check. 
@@ -1244,7 +1254,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user in a tenant has been assigned "
-                     + "the specified role, either directly or transitively.",
+                     + "the specified role, either directly or transitively.\n\n"
+                     + ""
+                     + "This request is authorized if the requestor is a user that has "
+                     + "access to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1310,7 +1324,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user in a tenant has been assigned "
-                     + "any of the roles specified in the request body.",
+                     + "any of the roles specified in the request body.\n\n"
+                     + ""
+                     + "This request is authorized if the requestor is a user that has "
+                     + "access to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1355,7 +1373,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user in a tenant has been assigned "
-                     + "all of the roles specified in the request body.",
+                     + "all of the roles specified in the request body.\n\n"
+                     + ""
+                     + "This request is authorized if the requestor is a user that has "
+                     + "access to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1400,7 +1422,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether specified permission matches a permission "
-                           + "assigned to the user, either directly or transitively.",
+                           + "assigned to the user, either directly or transitively.\n\n"
+                           + ""
+                           + "This request is authorized if the requestor is a user that has "
+                           + "access to the specified tenant or if the requestor is a service."
+                           + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1466,7 +1492,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user's permissions satisfy any of the "
-                           + "permission specifications contained in the request body.",
+                           + "permission specifications contained in the request body.\n\n"
+                           + ""
+                           + "This request is authorized if the requestor is a user that has "
+                           + "access to the specified tenant or if the requestor is a service."
+                           + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1511,7 +1541,11 @@ public final class UserResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Check whether a user's permissions satisfy all of the "
-                           + "permission specifications contained in the request body.",
+                           + "permission specifications contained in the request body.\n\n"
+                           + ""
+                           + "This request is authorized if the requestor is a user that has "
+                           + "access to the specified tenant or if the requestor is a service."
+                           + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1554,7 +1588,10 @@ public final class UserResource
      @Path("/withRole/{roleName}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get all users assigned a role.  The role must exist in the tenant.",
+             description = "Get all users assigned a role.  The role must exist in the tenant.\n\n"
+            		 + "This request is authorized if the requestor is a user that has access "
+            		 + "to the specified tenant or if the requestor is a service."
+             		+ "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -1645,8 +1682,11 @@ public final class UserResource
                "" +
                "    system:mytenant:%\n\n"
                + ""
-               + "The wildcard character cannot appear as the first character in the permSpec.",
-
+               + "The wildcard character cannot appear as the first character in the permSpec.\n\n"
+               + ""
+      		   + "This request is authorized if the requestor is a user that has access "
+      		   + "to the specified tenant or if the requestor is a service."
+               + "",
              tags = "user",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -1794,11 +1834,14 @@ public final class UserResource
       * on the op parameter.  Certain optimizations can be taken when the ANY operation
       * is used, so that's preferred choice when there's only one role to check. 
       * 
+      * This request is authorized if the jwt requestor is a user that has access to the 
+      * specified tenant or if the jwt requestor is a service.
+      * 
       * @param payloadStream the stream to fill in parameters if payload is null
       * @param prettyPrint format output
       * @param op ANY or ALL
       * @param payload parameters already filled in
-      * @return
+      * @return the user response
       */
      private Response hasRoleMulti(InputStream payloadStream, boolean prettyPrint, 
                                    AuthOperation op, ReqUserHasRoleMulti payload)
@@ -1877,6 +1920,19 @@ public final class UserResource
      /* ---------------------------------------------------------------------------- */
      /* isPermittedMulti:                                                            */
      /* ---------------------------------------------------------------------------- */
+     /** Check whether the user is assigned at least one or all of the permissions depending
+      * on the op parameter.  Certain optimizations can be taken when the ANY operation
+      * is used, so that's preferred choice when there's only one permission to check. 
+      * 
+      * This request is authorized if the jwt requestor is a user that has access to the 
+      * specified tenant or if the jwt requestor is a service.
+      * 
+      * @param payloadStream the stream to fill in parameters if payload is null
+      * @param prettyPrint format output
+      * @param op ANY or ALL
+      * @param payload parameters already filled in
+      * @return the user response
+      */
      private Response isPermittedMulti(InputStream payloadStream, boolean prettyPrint, 
                                        AuthOperation op, ReqUserIsPermittedMulti payload)
      {

@@ -151,7 +151,10 @@ public final class RoleResource
              description = "Get the names of all roles in the tenant in alphabetic order.  "
                      + "Future enhancements will include search filtering.\n\n"
                      + ""
-                     + "A valid tenant must be specified as a query parameter.",
+                     + "A valid tenant must be specified as a query parameter.  "
+                     + "This request is authorized if the requestor is a user that has "
+                     + "access to the specified tenant or if the requestor is a service."
+                     + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
@@ -222,7 +225,10 @@ public final class RoleResource
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
          description = "Get the named role's definition.  A valid tenant must be "
-                       + "specified as a query parameter.",
+                       + "specified as a query parameter.  This request is authorized "
+                       + "if the requestor is a user that has access to the specified "
+                       + "tenant or if the requestor is a service."
+                       + "",
          tags = "role",
          security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
@@ -310,7 +316,8 @@ public final class RoleResource
                            + "request has no effect.\n\n"
                            + ""
                            + "For the request to be authorized, the requestor must be "
-                           + "either a service or an administrator."
+                           + "either an administrator or a service allowed to perform "
+                           + "updates in the new role's tenant."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -367,12 +374,12 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(roleTenant, owner)
-//                             .setCheckIsService()
-//                             .setCheckMatchesJwtIdentity()
-//                             .setCheckIsAdmin()
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsService()
+                             .setCheckIsAdmin()
+                             .setPreventForeignTenantUpdate()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The threadlocal object has been validated by now.
@@ -413,15 +420,8 @@ public final class RoleResource
          description = "Delete the named role. A valid tenant and user must be "
                        + "specified as query parameters.\n\n"
                        + ""
-                       + "The user@tenant specified in "
-                       + "the request query parameters is authorized to delete the role "
-                       + "only if:\n\n"
-                       + ""
-                       + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                       + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                       + "- the user@tenant in a service JWT is acting on behalf of the role owner, or\n"
-                       + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
-                       + ""
+                       + "This request is authorized only if the authenticated user is either the "
+                       + "role owner or an administrator."
                        + "",
          tags = "role",
          security = {@SecurityRequirement(name = "TapisJWT")},
@@ -469,7 +469,6 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -506,7 +505,11 @@ public final class RoleResource
                  + "assigned to the role, whether directly and transitively through "
                  + "child roles, are returned.  Set the immediate query parameter to "
                  + "only retrieve permissions directly assigned to the role.  A valid "
-                 + "tenant must be specified.",
+                 + "tenant must be specified.\n\n"
+                 + ""
+                 + "This request is authorized if the requestor is a user that has "
+                 + "access to the specified tenant or if the requestor is a service."
+                 + "",
          tags = "role",
          security = {@SecurityRequirement(name = "TapisJWT")},
          responses = 
@@ -655,12 +658,11 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The threadlocal object has been validated by now.
@@ -761,13 +763,12 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
-//         
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
+         
          // ------------------------ Request Processing ------------------------
          // The threadlocal object has been validated by now.
          String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
@@ -869,12 +870,11 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The threadlocal object has been validated by now.
@@ -982,13 +982,12 @@ public final class RoleResource
          String permSpec   = payload.permSpec;
          
          // ------------------------- Check Authz ------------------------------
-//         // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // The threadlocal object has been validated by now.
@@ -1086,12 +1085,11 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(roleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(roleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
          // Remove the permission from the role.
@@ -1130,12 +1128,9 @@ public final class RoleResource
                          + "then the request has no effect and the change count returned is "
                          + "zero. Otherwise, the child is added and the change count is one.\n\n"
                          + ""
-                         + "The user@tenant specified in "
-                         + "the request payload is authorized to a child role to the parent role "
-                         + "only if:\n\n"
-                         + ""
-                         + "- the user@tenant in the JWT represents the user that owns both roles, or\n"
-                         + "- the user@tenant in the JWT represents a tenant administrator."
+                         + "The user@tenant identity specified in JWT is authorized to make "
+                         + "this request only if that user is an administrator or if the user "
+                         + "owns both the parent and child roles."
                          + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1186,23 +1181,24 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user   = payload.user;
          String roleTenant     = payload.roleTenant; 
          String parentRoleName = payload.parentRoleName;
          String childRoleName  = payload.childRoleName;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-//         Response resp = SKCheckAuthz.configure(tenant, user)
-//                             .setCheckIsAdmin()
-//                             .setCheckIsOBOAdmin()
-//                             .addOwnedRole(parentRoleName)
-//                             .addOwnedRole(childRoleName)
-//                             .check(prettyPrint);
-//         if (resp != null) return resp;
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
+                             .setCheckIsAdmin()
+                             .addOwnedRole(parentRoleName)
+                             .addOwnedRole(childRoleName)
+                             .check(prettyPrint);
+         if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
+         // The requestor will always be non-null after the above check. 
+         String user = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+         String tenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+         
          // Add the child role to the parent.
          int rows = 0;
          try {
@@ -1235,14 +1231,9 @@ public final class RoleResource
              description = "Remove a child role from a parent role using a request body.  "
                      + "A valid tenant and user must be specified in the request body.\n\n"
                      + ""
-                     + "The user@tenant specified in "
-                     + "the request payload is authorized to remove a permission from the role "
-                     + "only if:\n\n"
-                     + ""
-                     + "- the user@tenant in the JWT represents the user that owns the role, or\n"
-                     + "- the user@tenant in the JWT represents a tenant administrator,  or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of the parent role owner, or\n"
-                     + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                     + "The user@tenant identity specified in JWT is authorized to make "
+                     + "this request only if that user is an administrator or if they own "
+                     + "the parent role."
                      + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1293,16 +1284,14 @@ public final class RoleResource
          }
              
          // Fill in the parameter fields.
-         String tenant = payload.tenant;
-         String user = payload.user;
+         String roleTenant     = payload.roleTenant;
          String parentRoleName = payload.parentRoleName;
-         String childRoleName = payload.childRoleName;
+         String childRoleName  = payload.childRoleName;
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
+         Response resp = SKCheckAuthz.configure(roleTenant, null)
                              .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
                              .addOwnedRole(parentRoleName)
                              .check(prettyPrint);
          if (resp != null) return resp;
@@ -1311,8 +1300,10 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().removeChildRole(tenant, parentRoleName, childRoleName);
+             rows = getRoleImpl().removeChildRole(roleTenant, parentRoleName, childRoleName);
          } catch (Exception e) {
+             String user = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             String tenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
              String msg = MsgUtils.getMsg("SK_DELETE_CHILD_ROLE_ERROR", 
                                           tenant, user, childRoleName, parentRoleName);
              return getExceptionResponse(e, msg, prettyPrint, "Role");
@@ -1372,7 +1363,10 @@ public final class RoleResource
                          + "permission that matched the search criteria and the new permission if "
                          + "the specified transformations were applied.\n\n"
                          + ""
-                         + "A valid tenant and user must be specified in the request body.",
+                         + "A valid tenant and user must be specified in the request body.  "
+                         + "This request is authorized if the requestor is a user that has "
+                         + "access to the specified tenant or if the requestor is a service."
+                         + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
@@ -1526,10 +1520,9 @@ public final class RoleResource
                          + "The response indicates the number of changed permission "
                          + "specifications.\n\n"
                          + ""
-                         + "The path prefix replacement operation is authorized only if:\n\n"
-                         + ""
-                         + "- the user@tenant in the JWT represents a tenant administrator, or\n"
-                         + "- the user@tenant in a service JWT is acting on behalf of a tenant administrator."
+                         + "The path prefix replacement operation is authorized if "
+                         + "the user@tenant in the JWT represents a tenant administrator or "
+                         + "the Files service."
                          + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -1597,7 +1590,7 @@ public final class RoleResource
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(tenant, user)
                              .setCheckIsAdmin()
-                             .setCheckIsOBOAdmin()
+                             .setCheckIsFilesService()
                              .check(prettyPrint);
          if (resp != null) return resp;
          

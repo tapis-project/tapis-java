@@ -256,7 +256,7 @@ public final class SkUserRoleDao
           // Get a database connection.
           conn = getConnection();
 
-          // Set the sql command.  The assigneeTenant can the role's
+          // Set the sql command.  The assigneeTenant and the role's
           // tenant must be the same.  Users, however, can only be 
           // assigned roles in their tenant, though those roles may 
           // be owned by services in another tenant.

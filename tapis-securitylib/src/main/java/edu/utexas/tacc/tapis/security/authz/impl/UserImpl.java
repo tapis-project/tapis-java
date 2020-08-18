@@ -610,38 +610,6 @@ public final class UserImpl
     }
 
     /* ---------------------------------------------------------------------- */
-    /* grantAdminRole:                                                        */
-    /* ---------------------------------------------------------------------- */
-    /** Grant the administrator role only if the caller is an administrator in
-     * the tenant.
-     * 
-     * @param tenant the tenant id
-     * @param requestor the admin making the request
-     * @param user the user being grant the admin role
-     * @return the number of rows changed
-     * @throws TapisImplException on error
-     * @throws TapisNotFoundException if the role is not found
-     */
-    public int grantAdminRole(String grantee, String tenant, String grantor) 
-      throws TapisImplException, TapisNotFoundException
-    {
-        // The tenant admin role.
-        final String roleName = ADMIN_ROLE_NAME;
-        
-        // Make sure the requestor is an admin.  Null checks are performed here.
-        boolean requesterAdmin = hasRole(grantor, tenant, new String[] {roleName}, 
-                                         AuthOperation.ALL);
-        if (!requesterAdmin) {
-            String msg = MsgUtils.getMsg("SK_REQUESTOR_NOT_ADMIN", tenant, grantor);
-            _log.error(msg);
-            throw new TapisImplException(msg, Condition.BAD_REQUEST); 
-        }
-        
-        // Call the internal use only method to complete the grant.
-        return grantAdminRoleInternal(grantee, tenant, grantor, tenant);
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* grantAdminRoleInternal:                                                */
     /* ---------------------------------------------------------------------- */
     /** Grant the administrator role to the user without checking whether the
