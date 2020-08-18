@@ -1,6 +1,23 @@
+##############################################################
+#      Tests use meta.master.regression service token
+#       run with env meta.master.regression
+#
+#  Assumes: MyTstDB exists
+#           collection and other resources do not exist
+#  Initial tests are sanity checks to see if we can run other tests
+#
+##############################################################
+
+
 ###  sanity test to see if service is alive
 GET http://dev.develop.tapis.io/v3/meta/healthcheck
 Content-Type: application/json
+
+> {%
+    client.test("Healthcheck executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 ###
 
@@ -13,7 +30,7 @@ X-Tapis-Tenant: {{tenant}}
 Content-Type: application/json
 
 > {%
-    client.test("Request root executed successfully", function() {
+    client.test("Request meta data on MyTstDB executed successfully", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}

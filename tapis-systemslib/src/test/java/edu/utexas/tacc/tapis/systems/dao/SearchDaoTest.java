@@ -21,6 +21,11 @@ import static org.testng.Assert.assertEquals;
 
 /**
  * Test the SystemsDao class for various search use cases against a DB running locally
+ * NOTE: This test pre-processes the search list just as is done in SystemsServiceImpl before it calls the Dao,
+ *       including calling SearchUtils.validateAndProcessSearchCondition(cond)
+ *       For this reason there is currently no need to have a SearchSystemsTest suite.
+ *       If this changes then we will need to create another suite and move the test data into IntegrationUtils so that
+ *       if can be re-used.
  */
 @Test(groups={"integration"})
 public class SearchDaoTest
@@ -31,9 +36,24 @@ public class SearchDaoTest
   // Test data
   private static final String ownerUser2 = "owner2";
   private static final String testKey = "Srch";
-  private static final String specialChar7Str = ",()~*!\\";
-  private static final String specialChar7LikeSearchStr = "\\,\\(\\)\\~\\*\\!\\\\";
-  private static final String specialChar7EqSearchStr = ",()~*!\\";
+  private static final String prefixStr = sysNamePrefix + "_" + testKey + "_";
+  private static final String sysNameLikeAll = prefixStr + "*";
+
+  // Strings for searches involving special characters
+  private static final String specialChar7Str = ",()~*!\\"; // These 7 may need escaping
+  private static final String specialChar7LikeSearchStr = "\\,\\(\\)\\~\\*\\!\\\\"; // All need escaping for LIKE/NLIKE
+  private static final String specialChar7EqSearchStr = "\\,\\(\\)\\~*!\\"; // All but *! need escaping for other operators
+
+  // Timestamps for testing
+  private static final String longPast = "1800-01-01T00:00:00";
+  private static final String farFuture = "2200-04-29T20:15:52";
+
+  // String for search involving an escaped comma in a list of values
+  private static final String escapedCommanInListValue = "abc\\,def";
+
+  // Strings for char relational testings
+  private static final String hostName1 = "host" + testKey + "_001";
+  private static final String hostName7 = "host" + testKey + "_007";
 
   int numSystems = 20;
   TSystem[] systems = IntegrationUtils.makeSystems(numSystems, testKey);
@@ -55,7 +75,9 @@ public class SearchDaoTest
     for (int i = 0; i < numSystems/2; i++) { systems[i].setOwner(ownerUser2); }
 
     // For one system update description to have some special characters. 7 special chars in value: ,()~*!\
+    //   and update archiveLocalDir for testing an escaped comma in a list value
     systems[numSystems-1].setDescription(specialChar7Str);
+    systems[numSystems-1].setJobLocalArchiveDir(escapedCommanInListValue);
 
     // Create all the systems in the dB using the in-memory objects
     for (TSystem sys : systems)
@@ -74,12 +96,12 @@ public class SearchDaoTest
     TSystem sys0 = systems[0];
     String sys0Name = sys0.getName();
     String nameList = "noSuchName1,noSuchName2," + sys0Name + ",noSuchName3";
-    String sysNameLikeAll = sysNamePrefix + "_" + testKey + "_*";
     // Create all input and validation data for tests
     // NOTE: Some cases require "name.like." + sysNameLikeAll in the list of conditions since maven runs the tests in
     //       parallel and not all attribute names are unique across integration tests
     class CaseData {public final int count; public final List<String> searchList; CaseData(int c, List<String> r) { count = c; searchList = r; }}
     var validCaseInputs = new HashMap<Integer, CaseData>();
+    // Test basic types and operators
     validCaseInputs.put( 1,new CaseData(1, Arrays.asList("name.eq." + sys0Name))); // 1 has specific name
     validCaseInputs.put( 2,new CaseData(1, Arrays.asList("description.eq." + sys0.getDescription())));
     validCaseInputs.put( 3,new CaseData(1, Arrays.asList("host.eq." + sys0.getHost())));
@@ -101,26 +123,44 @@ public class SearchDaoTest
     validCaseInputs.put(19,new CaseData(numSystems-1, Arrays.asList("name.like." + sysNameLikeAll, "name.nlike." + sys0Name)));
     validCaseInputs.put(20,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "name.in." + nameList)));
     validCaseInputs.put(21,new CaseData(numSystems-1, Arrays.asList("name.like." + sysNameLikeAll, "name.nin." + nameList)));
-    validCaseInputs.put(22,new CaseData(numSystems/2, Arrays.asList("name.like." + sysNameLikeAll, "port.between.1," + numSystems/2)));
-    validCaseInputs.put(23,new CaseData(numSystems/2-1, Arrays.asList("name.like." + sysNameLikeAll, "port.between.2," + numSystems/2)));
-            // TODO Test timestamp type
-    validCaseInputs.put(24,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "system_type.eq.LINUX")));
-    validCaseInputs.put(25,new CaseData(numSystems/2, Arrays.asList("name.like." + sysNameLikeAll, "system_type.eq.LINUX","owner.neq." + ownerUser2)));
-    validCaseInputs.put(26,new CaseData(numSystems, Arrays.asList("enabled.eq.true","host.like.host" + testKey + "*")));
-    validCaseInputs.put(27,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "*")));
-    validCaseInputs.put(28,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
-    validCaseInputs.put(29,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
-    validCaseInputs.put(30,new CaseData(13, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","port.lte.13")));
-    validCaseInputs.put(31,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","port.gt.1","port.lt.7")));
-    // TODO Test char relational
-    // TODO Test timestamp relational
+    validCaseInputs.put(22,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "system_type.eq.LINUX")));
+    validCaseInputs.put(23,new CaseData(numSystems/2, Arrays.asList("name.like." + sysNameLikeAll, "system_type.eq.LINUX","owner.neq." + ownerUser2)));
+    // Test numeric relational
+    validCaseInputs.put(40,new CaseData(numSystems/2, Arrays.asList("name.like." + sysNameLikeAll, "port.between.1," + numSystems/2)));
+    validCaseInputs.put(41,new CaseData(numSystems/2-1, Arrays.asList("name.like." + sysNameLikeAll, "port.between.2," + numSystems/2)));
+    validCaseInputs.put(42,new CaseData(numSystems/2, Arrays.asList("name.like." + sysNameLikeAll, "port.nbetween.1," + numSystems/2)));
+    validCaseInputs.put(43,new CaseData(13, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","port.lte.13")));
+    validCaseInputs.put(44,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","port.gt.1","port.lt.7")));
+    // Test char relational
+    validCaseInputs.put(50,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1)));
+    validCaseInputs.put(51,new CaseData(numSystems-8, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","host.gt."+hostName7)));
+    validCaseInputs.put(52,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"host.gt."+hostName1,"host.lt."+hostName7)));
+    validCaseInputs.put(53,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1,"host.gt."+hostName7)));
+    validCaseInputs.put(54,new CaseData(7, Arrays.asList("name.like." + sysNameLikeAll,"host.between."+hostName1+","+hostName7)));
+    validCaseInputs.put(55,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7)));
+    // Test timestamp relational
+    validCaseInputs.put(60,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.gt." + longPast)));
+    validCaseInputs.put(61,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture)));
+    validCaseInputs.put(62,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.lte." + longPast)));
+    validCaseInputs.put(63,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.gte." + farFuture)));
+    validCaseInputs.put(64,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.between." + longPast + "," + farFuture)));
+    validCaseInputs.put(65,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.nbetween." + longPast + "," + farFuture)));
+    // TODO: Add more variations of timestamp format
+    // Test wildcards
+    validCaseInputs.put(80,new CaseData(numSystems, Arrays.asList("enabled.eq.true","host.like.host" + testKey + "*")));
+    validCaseInputs.put(81,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "*")));
+    validCaseInputs.put(82,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
+    validCaseInputs.put(83,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
     // Test that underscore and % get escaped as needed before being used as SQL
-    validCaseInputs.put(32,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00_")));
-    validCaseInputs.put(33,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00%")));
+    validCaseInputs.put(90,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00_")));
+    validCaseInputs.put(91,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00%")));
     // Check various special characters in description. 7 special chars in value: ,()~*!\
-    validCaseInputs.put(34,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "description.like." + specialChar7LikeSearchStr)));
-    // TODO: Currently require special chars to be escaped in value, but this is only working for LIKE operator.
-//    validCaseInputs.put(35,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "description.eq." + specialChar7EqSearchStr)));
+    validCaseInputs.put(101,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "description.like." + specialChar7LikeSearchStr)));
+    validCaseInputs.put(102,new CaseData(numSystems-1, Arrays.asList("name.like." + sysNameLikeAll, "description.nlike." + specialChar7LikeSearchStr)));
+    validCaseInputs.put(103,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "description.eq." + specialChar7EqSearchStr)));
+    validCaseInputs.put(104,new CaseData(numSystems-1, Arrays.asList("name.like." + sysNameLikeAll, "description.neq." + specialChar7EqSearchStr)));
+    // Escaped comma in a list of values
+    validCaseInputs.put(110,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll, "job_local_archive_dir.in." + "noSuchDir," + escapedCommanInListValue)));
 
     // Iterate over valid cases
     for (Map.Entry<Integer,CaseData> item : validCaseInputs.entrySet())
@@ -135,7 +175,7 @@ public class SearchDaoTest
         // Use SearchUtils to validate condition
         // Add parentheses if not present, check start and end
         if (!cond.startsWith("(") && !cond.endsWith(")")) cond = "(" + cond + ")";
-        String verifiedCondStr = SearchUtils.validateAndExtractSearchCondition(cond);
+        String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
         verifiedSearchList.add(verifiedCondStr);
       }
       System.out.println("  For case    # " + caseNum + " VerfiedInput: " + verifiedSearchList);

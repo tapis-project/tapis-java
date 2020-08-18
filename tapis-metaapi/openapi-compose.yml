@@ -5,9 +5,9 @@ services:
     image: swaggerapi/swagger-editor
     container_name: swagger-editor
     environment:
-      - 'SWAGGER_FILE=/tmp/src/main/resources/metav3-openapi.yaml'
+      - SWAGGER_FILE=/tmp/metav3-openapi.yaml
     ports:
       - "80:8080"
     volumes:
-      - ./:/tmp
+      - ./src/main/resources/metav3-openapi.yaml:/tmp/metav3-openapi.yaml
 
