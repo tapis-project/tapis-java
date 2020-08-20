@@ -1,16 +1,17 @@
 package edu.utexas.tacc.tapis.systems.service;
 
-import edu.utexas.tacc.tapis.search.SearchUtils;
-import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.jvnet.hk2.annotations.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PRIVATE_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PUBLIC_KEY;
+import static edu.utexas.tacc.tapis.systems.model.Credential.TOP_LEVEL_SECRET_NAME;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.DEFAULT_EFFECTIVEUSERID;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
+import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
-import javax.inject.Inject;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.NotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,7 +20,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Inject;
+import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jvnet.hk2.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkRole;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecret;
 import edu.utexas.tacc.tapis.security.client.gen.model.SkSecretVersionMetadata;
 import edu.utexas.tacc.tapis.security.client.model.KeyType;
@@ -28,7 +41,6 @@ import edu.utexas.tacc.tapis.security.client.model.SKSecretMetaParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretReadParms;
 import edu.utexas.tacc.tapis.security.client.model.SKSecretWriteParms;
 import edu.utexas.tacc.tapis.security.client.model.SecretType;
-import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -46,19 +58,6 @@ import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
 import edu.utexas.tacc.tapis.systems.model.TSystem.TransferMethod;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
-
-import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
-import static edu.utexas.tacc.tapis.systems.gen.jooq.Tables.SYSTEMS;
-import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_KEY;
-import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_ACCESS_SECRET;
-import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PASSWORD;
-import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PRIVATE_KEY;
-import static edu.utexas.tacc.tapis.systems.model.Credential.SK_KEY_PUBLIC_KEY;
-import static edu.utexas.tacc.tapis.systems.model.Credential.TOP_LEVEL_SECRET_NAME;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.APIUSERID_VAR;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.DEFAULT_EFFECTIVEUSERID;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.OWNER_VAR;
-import static edu.utexas.tacc.tapis.systems.model.TSystem.TENANT_VAR;
 
 /*
  * Service level methods for Systems.
@@ -207,7 +206,7 @@ public class SystemsServiceImpl implements SystemsService
 //      _log.error("DELETE roleNameR="+ roleNameR);
 //      skClient.deleteRoleByName(systemTenantName, "systems", roleNameR);
 //      skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);
-      skClient.createRole(systemTenantName, system.getOwner(), roleNameR, "Role allowing READ for system " + systemName);
+      skClient.createRole(systemTenantName, roleNameR, "Role allowing READ for system " + systemName);
       // TODO REMOVE DEBUG
       _log.error("authUser.user=" + authenticatedUser.getName());
       _log.error("authUser.tenant=" + authenticatedUser.getTenantId());
@@ -219,7 +218,7 @@ public class SystemsServiceImpl implements SystemsService
       _log.error("systemsPermSpecR=" + systemsPermSpecR);
       _log.error("authenticatedUser.getJwt=" + authenticatedUser.getJwt());
       _log.error("serviceJwt.getAccessJWT=" + serviceJWT.getAccessJWT());
-      skClient.addRolePermission(systemTenantName, system.getOwner(), roleNameR, systemsPermSpecR);
+      skClient.addRolePermission(systemTenantName, roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
       // Give owner and possibly effectiveUser full access to the system
@@ -273,7 +272,7 @@ public class SystemsServiceImpl implements SystemsService
         catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleOwner", e.getMessage()));}
         try { skClient.revokeUserRole(systemTenantName, effectiveUserId, roleNameR);  }
         catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "revokeRoleEffUsr", e.getMessage()));}
-        try { skClient.deleteRoleByName(systemTenantName, system.getOwner(), roleNameR);  }
+        try { skClient.deleteRoleByName(systemTenantName, roleNameR);  }
         catch (Exception e) {_log.warn(LibUtils.getMsgAuth("SYSLIB_ERROR_ROLLBACK", authenticatedUser, systemName, "deleteRole", e.getMessage()));}
       }
       // Remove creds
@@ -565,7 +564,7 @@ public class SystemsServiceImpl implements SystemsService
     userNames = skClient.getUsersWithRole(systemTenantName, roleNameR);
     for (String userName : userNames) skClient.revokeUserRole(systemTenantName, userName, roleNameR);
     // Remove the roles
-    skClient.deleteRoleByName(systemTenantName, SERVICE_NAME_SYSTEMS, roleNameR);
+    skClient.deleteRoleByName(systemTenantName, roleNameR);
 
     // Delete the system
     return dao.hardDeleteTSystem(systemTenantName, systemName);
@@ -600,7 +599,7 @@ public class SystemsServiceImpl implements SystemsService
     if (adminRole == null)
     {
       _log.info("Systems administrative role not found. Role name: " + SYSTEMS_ADMIN_ROLE);
-      skClient.createRole(svcMasterTenant, SERVICE_NAME_SYSTEMS, SYSTEMS_ADMIN_ROLE, SYSTEMS_ADMIN_DESCRIPTION);
+      skClient.createRole(svcMasterTenant, SYSTEMS_ADMIN_ROLE, SYSTEMS_ADMIN_DESCRIPTION);
       _log.info("Systems administrative created. Role name: " + SYSTEMS_ADMIN_ROLE);
     }
     else

@@ -21,14 +21,14 @@ public class SqlStatements
   // Get all rows.
   public static final String SELECT_SKROLE =
 	  "SELECT id, tenant, name, description, owner, owner_tenant, created, createdby, createdby_tenant, "
-	  + "updated, updatedby, updateby_tenant FROM sk_role ORDER BY id";
+	  + "updated, updatedby, updatedby_tenant FROM sk_role ORDER BY id";
   
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
       "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_NAME = 
       "SELECT id, tenant, name, description, owner, owner_tenant, created, createdby, createdby_tenant, "
-      + "updated, updatedby, updateby_tenant FROM sk_role where tenant = ? AND name = ?";
+      + "updated, updatedby, updatedby_tenant FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_NAMES = 
       "SELECT name FROM sk_role where tenant = ? ORDER BY name";
   public static final String ROLE_SELECT_ID_BY_NAME =

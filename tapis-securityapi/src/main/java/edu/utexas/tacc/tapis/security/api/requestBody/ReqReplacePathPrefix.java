@@ -8,7 +8,6 @@ public final class ReqReplacePathPrefix
  implements IReqBody
 {
     public String tenant;
-    public String user;
     public String schema;
     public String roleName;
     public String oldSystemId;
@@ -25,8 +24,6 @@ public final class ReqReplacePathPrefix
         // Final checks.
         if (StringUtils.isBlank(tenant)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "user");
         if (StringUtils.isBlank(schema)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "replacePathPrefix", "schema");
         if (StringUtils.isBlank(oldSystemId))

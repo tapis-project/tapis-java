@@ -45,9 +45,7 @@ public final class SKCheckAuthz
     
     // Identity checks.
     private boolean _checkMatchesJwtIdentity;
-    private boolean _checkMatchesOBOIdentity;
     private boolean _checkIsAdmin;
-    private boolean _checkIsOBOAdmin;
     private boolean _checkIsService;
     private boolean _checkIsFilesService;
     
@@ -95,9 +93,7 @@ public final class SKCheckAuthz
     /* **************************************************************************** */
     // Roles and user checks.
     public SKCheckAuthz setCheckMatchesJwtIdentity() {_checkMatchesJwtIdentity = true; return this;}
-    public SKCheckAuthz setCheckMatchesOBOIdentity() {_checkMatchesOBOIdentity = true; return this;}
     public SKCheckAuthz setCheckIsAdmin()    {_checkIsAdmin = true; return this;}
-    public SKCheckAuthz setCheckIsOBOAdmin() {_checkIsOBOAdmin = true; return this;}
     public SKCheckAuthz setCheckIsService()  {_checkIsService = true; return this;}
     public SKCheckAuthz setCheckIsFilesService() {_checkIsFilesService = true; return this;}
     
@@ -199,10 +195,8 @@ public final class SKCheckAuthz
         // with "short-circuiting" behavior.
         if (_checkIsService && checkIsService()) return null;
         if (_checkMatchesJwtIdentity && checkMatchesJwtIdentity()) return null;
-        if (_checkMatchesOBOIdentity && checkMatchesOBOIdentity()) return null;
         if (_checkIsAdmin && checkIsAdmin()) return null;
         if (_checkIsFilesService && checkIsFilesService()) return null;
-        if (_checkIsOBOAdmin && checkIsOBOAdmin()) return null;
         
         if (_ownedRoles != null && checkOwnedRoles()) return null;
         if (_requiredRoles != null && checkRequiredRoles()) return null;
@@ -317,46 +311,6 @@ public final class SKCheckAuthz
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* checkMatchesOBOIdentity:                                                     */
-    /* ---------------------------------------------------------------------------- */
-    /** Check that the identity provided on the OBO headers is one on behalf of whom
-     * this service is acting.  First, the service's tenant as expressed in the jwt 
-     * must be allowed to act on behalf of the request tenant. This has already 
-     * been checked in validateTenantContext().  Next, the request user and tenant 
-     * must match the OBO user and tenant as originally specified in the request
-     * headers.  This effectively authorizes the service to perform any action on 
-     * behalf of the OBO identity.
-     * 
-     * @return true if passes check, false otherwise.
-     */
-    private boolean checkMatchesOBOIdentity()
-    {
-        // Make sure the request user has been assigned for this check.
-        if (_reqUser == null) {
-            var msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "checkServiceOBO", "_reqUser");
-            _log.error(msg);
-            _failedChecks.add("MatchesOnBehalfOfIdentity");
-            return false;
-        }
-        
-        // Start pessimistically.
-        boolean allowedIdentity = false;
-        
-        // Only services need apply.
-        if (_threadContext.getAccountType() == AccountType.service) {
-            // Restrict the request identity to be the OBO identity.
-            if (_reqTenant.equals(_threadContext.getOboTenantId()) &&
-                _reqUser.equals(_threadContext.getOboUser())) 
-               allowedIdentity = true;
-        }
-        
-        // What happened?
-        if (allowedIdentity) return true;
-        _failedChecks.add("MatchesOnBehalfOfIdentity");
-        return false;
-    }
-
-    /* ---------------------------------------------------------------------------- */
     /* checkIsAdmin:                                                                */
     /* ---------------------------------------------------------------------------- */
     /** Check that the jwt identity is an administrator.
@@ -395,38 +349,6 @@ public final class SKCheckAuthz
         // What happened?
         if (authorized) return true;
         _failedChecks.add("IsAdmin");
-        return false;
-    }
-
-    /* ---------------------------------------------------------------------------- */
-    /* checkIsOBOAdmin:                                                             */
-    /* ---------------------------------------------------------------------------- */
-    /** Check that the on-behalf-of identity is an administrator.
-     * 
-     * @return true if passes check, false otherwise.
-     */
-    private boolean checkIsOBOAdmin()
-    {
-        // See if the obo user has admin privileges.
-        boolean authorized = false;
-        if (_threadContext.getAccountType() == AccountType.service)
-            try {
-                var userImpl = UserImpl.getInstance();
-                authorized = userImpl.hasRole(_threadContext.getOboTenantId(),
-                                              _threadContext.getOboUser(), 
-                                              new String[] {UserImpl.ADMIN_ROLE_NAME}, 
-                                              AuthOperation.ANY);
-            }
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
-                                             _threadContext.getOboTenantId(), 
-                                             _threadContext.getOboUser(), e.getMessage());
-                _log.error(msg, e);
-            }
-        
-        // What happened?
-        if (authorized) return true;
-        _failedChecks.add("IsOboAdmin");
         return false;
     }
 
@@ -490,8 +412,7 @@ public final class SKCheckAuthz
         // Start optimistically.
         boolean authorized = true;
         try {
-        	// This block checks the role owner identity, which add a 4th identity
-        	// to the usual 3: jwt, req, obo.
+        	// This block checks the role owner identity.
             var roleImpl = RoleImpl.getInstance();
             for (String roleName : _ownedRoles) {
                 // The request and role tenants are guaranteed to be the same

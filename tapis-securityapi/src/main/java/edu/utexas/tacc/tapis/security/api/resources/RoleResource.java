@@ -441,7 +441,6 @@ public final class RoleResource
      )
      public Response deleteRoleByName(@PathParam("roleName") String roleName,
                                       @QueryParam("tenant") String tenant,
-                                      @QueryParam("user") String user,
                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
          // Trace this request.
@@ -458,16 +457,10 @@ public final class RoleResource
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         if (StringUtils.isBlank(user)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "user");
-             _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
+         Response resp = SKCheckAuthz.configure(tenant, null)
                              .setCheckIsAdmin()
                              .addOwnedRole(roleName)
                              .check(prettyPrint);
@@ -476,10 +469,12 @@ public final class RoleResource
          // ------------------------ Request Processing ------------------------
          // Delete the role.
          int rows = 0;
-         try {
-             rows =  getRoleImpl().deleteRoleByName(tenant, roleName);
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", tenant, user, roleName);
+         try {rows =  getRoleImpl().deleteRoleByName(tenant, roleName);}
+         catch (Exception e) {
+        	 // The threadlocal value has been validated.
+             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", tenant, 
+            		                      TapisThreadLocal.tapisThreadContext.get().getJwtUser(), 
+            		                      roleName);
              return getExceptionResponse(e, msg, prettyPrint);
          }
          
@@ -515,7 +510,7 @@ public final class RoleResource
          responses = 
              {@ApiResponse(responseCode = "200", description = "Named role returned.",
                content = @Content(schema = @Schema(
-                   implementation = edu.utexas.tacc.tapis.security.api.responses.RespRole.class))),
+                   implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespNameArray.class))),
               @ApiResponse(responseCode = "400", description = "Input error.",
                content = @Content(schema = @Schema(
                   implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -1417,7 +1412,6 @@ public final class RoleResource
              
          // Fill in the parameter fields.
          String tenant = payload.tenant;
-         String user = payload.user;
          String schema = payload.schema;
          String roleName = payload.roleName;
          String oldSystemId = payload.oldSystemId;
@@ -1574,7 +1568,6 @@ public final class RoleResource
              
          // Fill in the parameter fields.
          String tenant = payload.tenant;
-         String user = payload.user;        
          String schema = payload.schema;
          String roleName = payload.roleName;
          String oldSystemId = payload.oldSystemId;
@@ -1588,7 +1581,7 @@ public final class RoleResource
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
-         Response resp = SKCheckAuthz.configure(tenant, user)
+         Response resp = SKCheckAuthz.configure(tenant, null)
                              .setCheckIsAdmin()
                              .setCheckIsFilesService()
                              .check(prettyPrint);

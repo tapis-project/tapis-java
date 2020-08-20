@@ -172,9 +172,8 @@ public final class RoleImpl
         
         // Create the role.
         int rows = 0;
-        try {
-            rows = dao.deleteRole(tenant, roleName);
-        } catch (Exception e) {
+        try {rows = dao.deleteRole(tenant, roleName);}
+        catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_ROLE_DELETE_ERROR", tenant, "<unknown>", 
                                          roleName);
             _log.error(msg, e);
