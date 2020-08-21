@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.systems.dao;
 
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.IntegrationUtils;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
@@ -10,6 +11,7 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,7 +27,8 @@ import static org.testng.Assert.assertEquals;
  *       including calling SearchUtils.validateAndProcessSearchCondition(cond)
  *       For this reason there is currently no need to have a SearchSystemsTest suite.
  *       If this changes then we will need to create another suite and move the test data into IntegrationUtils so that
- *       if can be re-used.
+ *       it can be re-used.
+ * TODO: Test that timestamps are handling timezone correctly.
  */
 @Test(groups={"integration"})
 public class SearchDaoTest
@@ -44,9 +47,23 @@ public class SearchDaoTest
   private static final String specialChar7LikeSearchStr = "\\,\\(\\)\\~\\*\\!\\\\"; // All need escaping for LIKE/NLIKE
   private static final String specialChar7EqSearchStr = "\\,\\(\\)\\~*!\\"; // All but *! need escaping for other operators
 
-  // Timestamps for testing
-  private static final String longPast = "1800-01-01T00:00:00";
-  private static final String farFuture = "2200-04-29T20:15:52";
+  // Timestamps in various formats
+  private static final String longPast1 =   "1800-01-01T00:00:00.123456Z";
+  private static final String farFuture1 =  "2200-04-29T14:15:52.123456-06:00";
+  private static final String farFuture2 =  "2200-04-29T14:15:52.123Z";
+  private static final String farFuture3 =  "2200-04-29T14:15:52.123";
+  private static final String farFuture4 =  "2200-04-29T14:15:52-06:00";
+  private static final String farFuture5 =  "2200-04-29T14:15:52";
+  private static final String farFuture6 =  "2200-04-29T14:15-06:00";
+  private static final String farFuture7 =  "2200-04-29T14:15";
+  private static final String farFuture8 =  "2200-04-29T14-06:00";
+  private static final String farFuture9 =  "2200-04-29T14";
+  private static final String farFuture10 = "2200-04-29-06:00";
+  private static final String farFuture11 = "2200-04-29";
+  private static final String farFuture12 = "2200-04Z";
+  private static final String farFuture13 = "2200-04";
+  private static final String farFuture14 = "2200Z";
+  private static final String farFuture15 = "2200";
 
   // String for search involving an escaped comma in a list of values
   private static final String escapedCommanInListValue = "abc\\,def";
@@ -57,6 +74,9 @@ public class SearchDaoTest
 
   int numSystems = 20;
   TSystem[] systems = IntegrationUtils.makeSystems(numSystems, testKey);
+
+  LocalDateTime createBegin;
+  LocalDateTime createEnd;
 
   @BeforeSuite
   public void setup() throws Exception
@@ -79,12 +99,16 @@ public class SearchDaoTest
     systems[numSystems-1].setDescription(specialChar7Str);
     systems[numSystems-1].setJobLocalArchiveDir(escapedCommanInListValue);
 
-    // Create all the systems in the dB using the in-memory objects
+    // Create all the systems in the dB using the in-memory objects, recording start and end times
+    createBegin = TapisUtils.getUTCTimeNow();
+    Thread.sleep(500);
     for (TSystem sys : systems)
     {
       int itemId = dao.createTSystem(authenticatedUser, sys, gson.toJson(sys), scrubbedJson);
       Assert.assertTrue(itemId > 0, "Invalid system id: " + itemId);
     }
+    Thread.sleep(500);
+    createEnd = TapisUtils.getUTCTimeNow();
   }
 
   /*
@@ -139,13 +163,27 @@ public class SearchDaoTest
     validCaseInputs.put(54,new CaseData(7, Arrays.asList("name.like." + sysNameLikeAll,"host.between."+hostName1+","+hostName7)));
     validCaseInputs.put(55,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7)));
     // Test timestamp relational
-    validCaseInputs.put(60,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.gt." + longPast)));
-    validCaseInputs.put(61,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture)));
-    validCaseInputs.put(62,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.lte." + longPast)));
-    validCaseInputs.put(63,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.gte." + farFuture)));
-    validCaseInputs.put(64,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.between." + longPast + "," + farFuture)));
-    validCaseInputs.put(65,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.nbetween." + longPast + "," + farFuture)));
-    // TODO: Add more variations of timestamp format
+    validCaseInputs.put(60,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.gt." + longPast1)));
+    validCaseInputs.put(61,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture1)));
+    validCaseInputs.put(62,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.lte." + longPast1)));
+    validCaseInputs.put(63,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.gte." + farFuture1)));
+    validCaseInputs.put(64,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.between." + longPast1 + "," + farFuture1)));
+    validCaseInputs.put(65,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "created.nbetween." + longPast1 + "," + farFuture1)));
+    // Variations of timestamp format
+    validCaseInputs.put(66,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture2)));
+    validCaseInputs.put(67,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture3)));
+    validCaseInputs.put(68,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture4)));
+    validCaseInputs.put(69,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture5)));
+    validCaseInputs.put(70,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture6)));
+    validCaseInputs.put(71,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture7)));
+    validCaseInputs.put(72,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture8)));
+    validCaseInputs.put(73,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture9)));
+    validCaseInputs.put(74,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture10)));
+    validCaseInputs.put(75,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture11)));
+    validCaseInputs.put(76,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture12)));
+    validCaseInputs.put(77,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture13)));
+    validCaseInputs.put(78,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture14)));
+    validCaseInputs.put(79,new CaseData(numSystems, Arrays.asList("name.like." + sysNameLikeAll, "created.lt." + farFuture15)));
     // Test wildcards
     validCaseInputs.put(80,new CaseData(numSystems, Arrays.asList("enabled.eq.true","host.like.host" + testKey + "*")));
     validCaseInputs.put(81,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "*")));

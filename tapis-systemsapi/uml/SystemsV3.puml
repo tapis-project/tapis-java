@@ -1,0 +1,115 @@
+@startuml
+!include theme/base-skin.iuml
+
+'interface MyIF {
+'}
+'note left: TBD
+'abstract class MyAbstractItem {
+'}
+'note left: TBD
+'note "TBD" as N1
+'N1 .. MyIF
+'N1 .. MyAbstractItem
+
+'enum MyEnumType {
+'   MYSTATE1
+'   MYSTATE2
+'}
+
+
+class System {
+  uuid : ID!
+  name : String!
+  description : String
+  hostname : String!
+  owner : String!
+  available : boolean
+  rootDir : String
+  homeDir : String
+  workDir : String
+  scratchDir : String
+'  credentials : [Credential]
+'  accessProtocol : AccessProtocol!
+'  transferProtocol : TransferProtocol!
+}
+
+class SystemProtocol {
+  port : Integer
+  useProxy : boolean
+  proxyHostname : String
+  proxyPort : Integer
+}
+
+class AccessProtocol {
+  accessMechanism : AccessMechanism
+}
+
+class TransferProtocol {
+  transferMechanism : TransferMechanism
+}
+
+together {
+class File {
+  uuid : ID!
+  name : String!
+}
+
+class Metadata {
+  uuid : ID!
+  name : String!
+}
+
+class Credential {
+    uuid : ID!
+}
+
+enum AccessMechanism {
+  PASSWORD
+  SSH
+}
+
+enum TransferMechanism {
+  FTP
+  HTTP
+  HTTPS
+  IRODS
+  IRODS4
+  LOCAL
+  RSYNC
+  SCP
+  SFTP
+}
+}
+
+SystemProtocol <|-- AccessProtocol
+SystemProtocol <|-- TransferProtocol
+
+'System o--> Credential
+
+'class MyDefinition {
+'    id : ID!
+'    name : String! @unique
+'    description : String
+'    filter : String!
+'    myType: MyEnumType!
+'    myFlow: MyFlow!
+'}
+
+'interface User {
+'    id : ID!
+'    login : String!
+'    supervisor: User
+'}
+
+'class MyFlow {
+'   id: ID!
+'   myFlowName: String
+'   myFlowDescription: String
+'   initialState: State
+'   transitions: [Transition]
+'}
+
+
+'MyDefinition *--> "1" MyFlow
+
+@enduml

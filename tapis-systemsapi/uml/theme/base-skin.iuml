@@ -1,0 +1,79 @@
+
+@startuml
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+
+skinparam Sequence {
+	Arrow {
+		Color     #0099FF
+		FontName  Source Code Pro
+		FontSize  14
+		FontColor #000000
+	}
+
+	Box {
+		BorderColor      #F3F3F3
+		BackgroundColor  #F3F3F3
+		FontSize         14
+	}
+
+	Group {
+		BorderColor     #D9D9D9
+		BackgroundColor #D9D9D9
+	}
+
+	LifeLineBorderColor #AAAAAA
+
+	Participant {
+		BackgroundColor #0099FF
+		BorderColor     #0099FF
+		FontName        Helvetica
+		FontColor       #FFFFFF
+		FontSize        14
+		FontStyle       bold
+	}
+
+	Actor {
+	BorderColor     #0099FF
+	BackgroundColor #0099FF
+	FontStyle       bold
+	}
+
+}
+
+skinparam database {
+    BorderColor     #FFFFFF
+	BackgroundColor #0099FF
+	FontName        Helvetica
+    FontSize        14
+    FontStyle       bold
+}
+
+skinparam class {
+    BorderColor     #0b3575
+	BackgroundColor #e5eefc
+	FontSize        14
+	FontStyle       bold
+    FontColor       #000000
+}
+
+skinparam interface {
+    BorderColor     #0b3575
+	BackgroundColor #e5eefc
+	FontSize        14
+	FontStyle       bold
+    FontColor       #000000
+}
+
+skinparam note {
+    BorderColor     #FFFFFF
+	BackgroundColor #d4e1f7
+	FontColor       #000000
+	FontName        Helvetica
+    FontSize        14
+}
+
+@enduml

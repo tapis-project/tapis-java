@@ -200,6 +200,9 @@
             </jdbc>
             <generator>
               <name>org.jooq.codegen.JavaGenerator</name>
+              <generate>
+                <javaTimeTypes>true</javaTimeTypes>
+              </generate>
               <target>
                 <!-- The destination package of your generated classes (within the destination directory) -->
                 <packageName>edu.utexas.tacc.tapis.systems.gen.jooq</packageName>
