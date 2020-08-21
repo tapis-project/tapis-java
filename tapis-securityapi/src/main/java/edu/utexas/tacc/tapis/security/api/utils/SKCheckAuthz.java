@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,9 +59,11 @@ public final class SKCheckAuthz
     private ArrayList<String> _ownedRoles;
     
     // Prevention switches.
+    private boolean _preventForeignTenantUpdate;
     private boolean _preventAdminRole;
     private String  _preventAdminRoleName;
-    private boolean _preventForeignTenantUpdate;
+    private boolean _preventInvalidOwnerAssignment;
+    private String  _preventInvalidOwner;
 
     /* **************************************************************************** */
     /*                                Constructors                                  */
@@ -121,6 +124,15 @@ public final class SKCheckAuthz
     {
     	_preventAdminRole = true; 
     	_preventAdminRoleName = roleName;
+    	return this;
+    }
+    
+    // Prevent the jwt tenant from working on behalf of a tenant
+    // for which it is unauthorized.
+    public SKCheckAuthz setPreventInvalidOwnerAssignment(String newTenant) 
+    {
+    	_preventInvalidOwnerAssignment = true;
+    	_preventInvalidOwner = newTenant;
     	return this;
     }
     
@@ -227,6 +239,12 @@ public final class SKCheckAuthz
     	// Limit updates to allowable tenants.
     	if (_preventForeignTenantUpdate) {
     		String errorMsg = preventForeignTenantUpdate();
+    		if (errorMsg != null) return errorMsg;
+    	}
+    	
+    	// Make sure role owner reassignments are valid.
+    	if (_preventInvalidOwnerAssignment) {
+    		String errorMsg = preventInvalidOwnerAssignment();
     		if (errorMsg != null) return errorMsg;
     	}
     	
@@ -686,6 +704,55 @@ public final class SKCheckAuthz
             return msg;
         }
 
+    	// Success.
+    	return null;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* preventInvalidOwnerAssignment:                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** Prevent a role's owning tenant from being changed to an unauthorized tenant.
+     * 
+     * @return null if ok, an error message if the check fails
+     */
+    private String preventInvalidOwnerAssignment()
+    {
+        // It's ok if no new tenant assignment is under consideration.
+        if (StringUtils.isBlank(_preventInvalidOwner)) return null; // success
+        
+        // The role's tenant can always stay the same, which is
+        // the only way it can work for user JWTs.
+        if (_jwtTenant.equals(_preventInvalidOwner)) return null;
+        if (_threadContext.getAccountType() == AccountType.user) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
+                                         _jwtUser, _jwtTenant, _preventInvalidOwner);
+            _log.error(msg);
+            _failedChecks.add("preventInvalidOwnerAssignment"); // triggers unauthorized code
+            return msg;
+        }
+    	
+        // Service accounts are allowed more latitude than user accounts.
+        // Specifically, they can specify tenants other than that in their jwt.
+        // Make sure the service's jwt covers the request tenant.
+        boolean allowedTenant;
+        try {allowedTenant = TapisRestUtils.isAllowedTenant(_jwtTenant, _preventInvalidOwner);}
+            catch (Exception e) {
+                String jwtUser = _threadContext.getJwtUser();
+                var msg = MsgUtils.getMsg("TAPIS_SECURITY_ALLOWABLE_TENANT_ERROR", 
+                                          jwtUser, _jwtTenant, _preventInvalidOwner);
+                _log.error(msg, e);
+                return msg;
+            }
+            
+        // Can the new tenant id be used by the jwt tenant?
+        if (!allowedTenant) {
+            String msg = MsgUtils.getMsg("TAPIS_SECURITY_TENANT_NOT_ALLOWED", 
+                                         _jwtUser, _jwtTenant, _preventInvalidOwner);
+            _log.error(msg);
+            _failedChecks.add("preventInvalidOwnerAssignment"); // triggers unauthorized code
+            return msg;
+        }
+    	
     	// Success.
     	return null;
     }

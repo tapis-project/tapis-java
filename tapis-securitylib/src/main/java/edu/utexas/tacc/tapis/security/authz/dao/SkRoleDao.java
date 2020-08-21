@@ -555,13 +555,14 @@ public final class SkRoleDao
    * @param roleTenant the role's tenant
    * @param roleName role name
    * @param newOwner new owner of the role
+   * @param newTenant optional new owner's tenant (can be null)
    * @param requestor the requestor
    * @param requestorTenant the requestor's tenant
    * @return number of rows affected (0 or 1)
    * @throws TapisException on error
    */
   public int updateRoleOwner(String roleTenant, String roleName, String newOwner,
-                             String requestor, String requestorTenant) 
+                             String newTenant, String requestor, String requestorTenant) 
    throws TapisException
   {
       // ------------------------- Check Input -------------------------
@@ -592,6 +593,9 @@ public final class SkRoleDao
           throw new TapisException(msg);
       }
       
+      // Determine if the role's tenant is also being reassigned.
+      final boolean assignTenant = StringUtils.isBlank(newTenant) ? false : true;
+      
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
       int rows = 0;
@@ -601,17 +605,29 @@ public final class SkRoleDao
           conn = getConnection();
 
           // Set the sql command.
-          String sql = SqlStatements.ROLE_UPDATE_OWNER;
+          String sql = assignTenant ? SqlStatements.ROLE_UPDATE_OWNER_AND_TENANT 
+        		                    : SqlStatements.ROLE_UPDATE_OWNER;
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, newOwner);
-          pstmt.setTimestamp(2, new Timestamp(Instant.now().toEpochMilli()));
-          pstmt.setString(3, requestor);
-          pstmt.setString(4, requestorTenant);
-          pstmt.setString(5, roleTenant);
-          pstmt.setString(6, roleName);
-
+          var ts = new Timestamp(Instant.now().toEpochMilli());
+          if (assignTenant) {
+              pstmt.setString(1, newOwner);
+              pstmt.setString(2, newTenant);
+              pstmt.setTimestamp(3, ts);
+              pstmt.setString(4, requestor);
+              pstmt.setString(5, requestorTenant);
+              pstmt.setString(6, roleTenant);
+              pstmt.setString(7, roleName);
+          } else {
+              pstmt.setString(1, newOwner);
+              pstmt.setTimestamp(2, ts);
+              pstmt.setString(3, requestor);
+              pstmt.setString(4, requestorTenant);
+              pstmt.setString(5, roleTenant);
+              pstmt.setString(6, roleName);
+          }
+          
           // Issue the call. 0 rows will be returned when a duplicate
           // key conflict occurs--this is not considered an error.
           rows = pstmt.executeUpdate();

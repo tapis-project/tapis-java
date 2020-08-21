@@ -9,6 +9,7 @@ public final class ReqUpdateRoleOwner
 {
     public String roleTenant;
     public String newOwner;
+    public String newTenant; // optional
 
     /** Return a user-appropriate error message on failed validation
      *  and return null if validation succeeds.

@@ -689,10 +689,17 @@ public final class RoleResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Update an existing role's owner using a request body.\n\n"
+             description = "Update an existing role's owner using a request body. "
+             			   + "Required parameters in the payload are the *roleTenant*, "
+             			   + "which is the tenant of named role, and *newOwner*, which "
+             			   + "is the user to which role ownership is being transferred. "
+             			   + "The *newTenant* payload parameter is optional and only "
+             			   + "needed when the new owner resides in a different tenant "
+             			   + "than that of the current owner.\n\n"
                            + ""
                            + "This request is authorized if the requestor is the role owner "
-                           + "or an administrator."
+                           + "or an administrator. If a new tenant is specified, then the "
+                           + "requestor must also be allowed to act in the new tenant."
                            + "",
              tags = "role",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -755,12 +762,14 @@ public final class RoleResource
          // Fill in the parameter fields.
          String roleTenant = payload.roleTenant;
          String newOwner   = payload.newOwner;
+         String newTenant  = payload.newTenant; // optional, can be null or empty
          
          // ------------------------- Check Authz ------------------------------
          // Authorization passed if a null response is returned.
          Response resp = SKCheckAuthz.configure(roleTenant, null)
                              .setCheckIsAdmin()
                              .addOwnedRole(roleName)
+                             .setPreventInvalidOwnerAssignment(newTenant)
                              .check(prettyPrint);
          if (resp != null) return resp;
          
@@ -772,7 +781,8 @@ public final class RoleResource
          // Create the role.
          int rows = 0;
          try {
-             rows = getRoleImpl().updateRoleOwner(roleTenant, roleName, newOwner,
+        	 // The new tenant can be null.
+             rows = getRoleImpl().updateRoleOwner(roleTenant, roleName, newOwner, newTenant,
             		                              requestor, requestorTenant);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", roleTenant, roleName, 

@@ -282,7 +282,7 @@ public final class RoleImpl
     /* updateRoleOwner:                                                       */
     /* ---------------------------------------------------------------------- */
     public int updateRoleOwner(String roleTenant, String roleName, String newOwner,
-    		                   String requestor, String requestorTenant) 
+    		                   String newTenant, String requestor, String requestorTenant) 
      throws TapisImplException, TapisNotFoundException
     {
         // Get the dao.
@@ -296,7 +296,8 @@ public final class RoleImpl
         
         // Create the role.
         int rows = 0;
-        try {rows = dao.updateRoleOwner(roleTenant, roleName, newOwner, requestor, requestorTenant);}
+        try {rows = dao.updateRoleOwner(roleTenant, roleName, newOwner, newTenant, 
+        		                        requestor, requestorTenant);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ROLE_UPDATE_ERROR", roleTenant, roleName, 
 	                                          requestor, requestorTenant);

@@ -44,6 +44,8 @@ public class SqlStatements
       "UPDATE sk_role SET name = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_OWNER = 
       "UPDATE sk_role SET owner = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
+  public static final String ROLE_UPDATE_OWNER_AND_TENANT = 
+	      "UPDATE sk_role SET owner = ?, owner_tenant = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_DESCRIPTION = 
       "UPDATE sk_role SET description = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   
