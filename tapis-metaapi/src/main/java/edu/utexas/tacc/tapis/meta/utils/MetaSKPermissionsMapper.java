@@ -50,12 +50,7 @@ public class MetaSKPermissionsMapper {
           collection = st.nextToken();
           return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
         }
-        case 3 : {
-          db = st.nextToken();
-          collection = st.nextToken();
-          document = st.nextToken();
-          return pems = meta+":"+tenant+":"+op+":"+db+":"+collection+":"+document;
-        }
+        case 3 :
         case 4 : {
           db = st.nextToken();
           collection = st.nextToken();
@@ -136,12 +131,4 @@ public class MetaSKPermissionsMapper {
     this.document = document;
   }
   
-  public static void main(String[] args) {
-    String uri1 = "/v3/meta/StreamsTACCDB/Proj1/5e29fa28a93eebf39fba927b";
-    // String uri1 = "/v3/meta/";
-    // String uri1 = "/v3/meta/StreamsTACCDB/Proj1";
-    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(uri1,"dev");
-    String permSpec = mapper.convert("GET");
-    System.out.println(permSpec);
-  }
 }

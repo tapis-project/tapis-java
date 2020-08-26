@@ -101,10 +101,6 @@ public class RuntimeParameters {
     parm = System.getenv("tapis.meta.service.tokenBaseUrl");
     if (!StringUtils.isBlank(parm)) setTokenBaseUrl(parm);
   
-    // private String tenantBaseUrl = "https://dev.develop.tapis.io/";
-    // private String skSvcURL      = "https://dev.develop.tapis.io/v3";
-    // private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
-    // https://master.staging.tapis.io/v3/meta
   }
   
   /** Initialize the singleton instance of this class.

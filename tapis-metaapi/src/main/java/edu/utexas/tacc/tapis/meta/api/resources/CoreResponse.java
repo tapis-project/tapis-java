@@ -173,6 +173,8 @@ public class CoreResponse {
     return TapisGsonUtils.getGson().toJson(resp);
   }
   
+  // the results from this call become the response body CoreResponse
+  // which in turn is sent back to user
   protected String getBasicResponse(){
     RespBasic resp = new RespBasic();
     resp.status = String.valueOf(this.getStatusCode());
@@ -250,4 +252,8 @@ public class CoreResponse {
   public String getDocumentId() { return documentId; }
   
   public void setDocumentId(String documentId) { this.documentId = documentId; }
+  
+  public String getCoreMsg() { return coreMsg; }
+  
+  public void setCoreMsg(String coreMsg) { this.coreMsg = coreMsg; }
 }

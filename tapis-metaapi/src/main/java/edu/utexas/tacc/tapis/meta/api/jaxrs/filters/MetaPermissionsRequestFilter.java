@@ -48,7 +48,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     if (_log.isTraceEnabled())
       _log.trace("Executing Permissions request filter: " + this.getClass().getSimpleName() + ".");
     
-    // let's turn off permissions cd for testing without SK client calls
+    // let's turn off permissions for testing without SK client calls
     if(!MetaAppConstants.TAPIS_ENVONLY_META_PERMISSIONS_CHECK){
       _log.trace("Permissions Check is turned OFF!!! " + this.getClass().getSimpleName() + ".");
       return;
@@ -99,6 +99,9 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     _log.debug(msg.toString());
   }
   
+  /*------------------------------------------------------------------------
+   * serviceJWT
+   * -----------------------------------------------------------------------*/
   /**
    * Check Permissions based on service JWT from request.
    * make an isPermitted request of the SK
@@ -113,7 +116,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     
     // 2. If a service receives a request that has the X-Tapis-Tenant and X-Tapis-User headers set,
     //    the service should forward those header values on  to any service to service call it may make.
-    // skClient was created with metav3 master service token.
+    //    skClient was created with metav3 master service token.
     
     boolean isPermitted = false;
     
@@ -134,13 +137,19 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
       _log.debug(msg.toString());
       isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
     } catch (TapisClientException e) {
-      // todo add log msg for exception
-      e.printStackTrace();
+      StringBuilder msg = new StringBuilder();
+      msg.append("SKClient threw and exception on call to SK ")
+         .append(e.getTapisMessage());
+  
+      _log.debug(msg.toString());
     }
     
     return isPermitted;
   }
   
+  /*------------------------------------------------------------------------
+   * userJWT
+   * -----------------------------------------------------------------------*/
   private boolean userJWT(TapisThreadContext threadContext, SKClient skClient, String permissionsSpec){
     // 3. Services should reject any request that contains a user JWT and has the X-Tapis-Tenant
     //    or X-Tapis-User headers set.
@@ -162,8 +171,11 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
       // checking obo tenant and user
       isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
     } catch (TapisClientException e) {
-      // todo add log msg for exception
-      e.printStackTrace();
+      StringBuilder msg = new StringBuilder();
+      msg.append("SKClient threw and exception on call to SK ")
+         .append(e.getTapisMessage());
+  
+      _log.debug(msg.toString());
     }
     
     return isPermitted;
@@ -173,16 +185,20 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
   /**
    * Turn the request uri into a SK permissions spec to check authorization
    * @param requestContext
-   * @return  the String representing a permissions spec for comparison
+   * @return  the String representing a permissions spec for comparison. "" empty String if unsuccessful.
    */
   private String mapRequestToPermissions(ContainerRequestContext requestContext, String tenantId) {
     String requestMethod = requestContext.getMethod();
     String requestUri = requestContext.getUriInfo().getPath();
     // getting the tenant info
-    // TODO pull tenant info for checking permissions
-    MetaSKPermissionsMapper mapper = new MetaSKPermissionsMapper(requestUri, tenantId);
-    String permSpec = mapper.convert(requestMethod);
-    
+    MetaSKPermissionsMapper mapper = null;
+    String permSpec = "";
+    if(!tenantId.isEmpty()){
+      mapper = new MetaSKPermissionsMapper(requestUri, tenantId);
+    }else{
+      return permSpec;
+    }
+    permSpec = mapper.convert(requestMethod);
     return permSpec;
   }
   
