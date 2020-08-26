@@ -284,12 +284,12 @@ paths:
           in: query
           schema:
             type: object
-            default: "{}"
+            default: {}
         - name: sort
           in: query
           schema:
             type: object
-            default: "{}"
+            default: {}
         - name: keys
           in: query
           schema:
@@ -450,18 +450,18 @@ paths:
         - name: page
           in: query
           schema:
-            type: integer
+            type: string
             default: 1
         - name: pagesize
           in: query
           schema:
-            type: integer
+            type: string
             default: 10
         - name: sort
           in: query
           schema:
             type: object
-            default: "{}"
+            default: {}
         - name: keys
           in: query
           schema:
@@ -674,7 +674,7 @@ paths:
       description:
 
         Modify a document in the collection with _id. The fields submitted in the json of the request body
-          will replace the same named fields in the current document.
+        will replace the same named fields in the current document.
 
       operationId: modifyDocument
       parameters:
