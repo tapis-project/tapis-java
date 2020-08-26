@@ -34,7 +34,7 @@ Content-Type: application/json
 
 #   db exists and lists Collections
 ###  api:3
-GET http://localhost:8080/v3/meta/StreamsTACCDB
+GET http://localhost:8080/v3/meta/StreamsDevDB
 X-Tapis-Token: {{token}}
 # X-JWT-Assertion-dev: {{token}}
 X-Tapis-User: streams

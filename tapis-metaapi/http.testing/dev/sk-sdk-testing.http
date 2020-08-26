@@ -67,6 +67,16 @@ Content-Type: application/json
 
 ###
 
+### SK grant permissions for streams to StreamsDevDB
+POST https://dev.develop.tapis.io/v3/security/user/grantUserPermission?tenant=master
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant:master
+Content-Type: application/json
+
+{"user":"streams","tenant":"master","permSpec":"meta:dev:GET,PUT,POST,PATCH,DELETE:StreamsDevDB:*:*"}
+
+###
 
 
 
@@ -77,7 +87,17 @@ Content-Type: application/json
 #
 ######################################################
 
-### SK get permissions for user meta using meta:master service token
+### SK get permissions for user testuser7 using meta:master service token
+# obo testuser7 in tenant dev
+GET https://dev.develop.tapis.io/v3/security/user/perms/streams?tenant=dev
+X-Tapis-Token: {{token}}
+X-Tapis-User: testuser7
+X-Tapis-Tenant:dev
+Content-Type: application/json
+
+###
+
+### SK get permissions for user streams using meta:master service token
 GET https://dev.develop.tapis.io/v3/security/user/perms/streams?tenant=master
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
@@ -90,11 +110,11 @@ Content-Type: application/json
 ### SK isPermitted for user
 POST https://dev.develop.tapis.io/v3/security/user/isPermitted?tenant=master
 X-Tapis-Token: {{token}}
-X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
+X-Tapis-User: {{user}}
 Content-Type: application/json
 
-{"user":"streams","tenant":"master","permSpec":"meta:dev:GET:StreamsTACCDB:*:*"}
+{"user":"streams","tenant":"master","permSpec":"meta:master:GET:StreamsDevDB:streams_channel_metadata:"}
 
 ###
 # true

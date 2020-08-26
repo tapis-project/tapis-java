@@ -4,14 +4,15 @@
 #
 ######################################################
 
-### SK grant permission for a user mlm55 all operations for jplDB
+# SK grant permission for a user mlm55 all operations for jplDB
+### SK grant permission for a user mpackard all operations for jplDB
 POST https://master.tapis.io/v3/security/user/grantUserPermission?tenant=tacc
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"mlm55","tenant":"tacc","permSpec":"meta:tacc:GET,POST,PUT,PATCH,DELETE:jplDB:*:*"}
+{"user":"mpackard","tenant":"tacc","permSpec":"meta:tacc:GET,POST,PUT,PATCH,DELETE:jplDB:*:*"}
 
 ###
 
