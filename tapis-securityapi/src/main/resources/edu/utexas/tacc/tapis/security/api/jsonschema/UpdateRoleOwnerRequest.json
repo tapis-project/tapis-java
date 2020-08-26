@@ -5,19 +5,18 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
-          "tenant": {
-            "type": "string"
-          },
-          "user": {
+          "roleTenant": {
             "type": "string"
           },
           "newOwner": {
             "type": "string"
+          },
+          "newTenant": {
+            "type": "string"
           }
         },
     "required": [
-        "tenant",
-        "user",
+        "roleTenant",
         "newOwner"
     ]
 }

@@ -31,15 +31,20 @@ public class UserPermsTest
         _roleImpl = RoleImpl.getInstance();
     }
     
+//    public int grantUserPermission(String tenant, String requestor, 
+//            String user, String permSpec)
+    
+//    public int grantUserPermission(String grantee, String granteeTenant, String permSpec, 
+//            String grantor, String grantorTenant)
     /* ---------------------------------------------------------------------- */
     /* permsTest:                                                             */
     /* ---------------------------------------------------------------------- */
     public void permsTest() throws TapisImplException, TapisNotFoundException
     {
         // Add a bunch of permissions to user bobby.
-        _userImpl.grantUserPermission("dev", "admin", "bobby", "stream:dev:read:project1");
-        _userImpl.grantUserPermission("dev", "admin", "bobby", "stream:dev:read,write:project1");
-        _userImpl.grantUserPermission("dev", "admin", "bobby", "stream:dev:read,write,exec:project1");
+        _userImpl.grantUserPermission("bobby", "dev", "admin", "dev", "stream:dev:read:project1");
+        _userImpl.grantUserPermission("bobby", "dev", "admin", "dev", "stream:dev:read,write:project1");
+        _userImpl.grantUserPermission("bobby", "dev", "admin", "dev", "stream:dev:read,write,exec:project1");
         
         // List all of bobby's permissions.
         List<String> perms = _userImpl.getUserPerms("dev", "bobby", null, null);

@@ -14,10 +14,8 @@ public final class ReqRemoveChildRole
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "roleTenant");
         if (StringUtils.isBlank(parentRoleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "removeChildRole", "parentRoleName");
         if (StringUtils.isBlank(childRoleName)) 

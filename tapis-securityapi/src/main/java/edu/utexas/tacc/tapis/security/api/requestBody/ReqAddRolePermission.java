@@ -8,8 +8,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public class ReqAddRolePermission 
  implements IReqBody
 {
-    public String tenant;
-    public String user;
+    public String roleTenant;
     public String roleName;
     public String permSpec;
 
@@ -20,10 +19,8 @@ public class ReqAddRolePermission
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleTenant");
         if (StringUtils.isBlank(roleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "addRolePermission", "roleName");
         if (!SKApiUtils.isValidName(roleName))

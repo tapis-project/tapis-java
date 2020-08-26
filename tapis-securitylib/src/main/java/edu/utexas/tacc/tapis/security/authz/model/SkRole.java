@@ -23,11 +23,14 @@ public final class SkRole
     private String  tenant;
     private String  name;
     private String  description;
+    private String  owner;
+    private String  ownerTenant;
     private Instant created;
     private String  createdby;
+    private String  createdbyTenant;
     private Instant updated;
     private String  updatedby;
-    private String  owner;
+    private String  updatedbyTenant;    
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
@@ -41,12 +44,15 @@ public final class SkRole
     /** Add a child role to this role.  Return 0 if the child role was already 
      * assigned to this role, 1 if this is a new child assignment to this role.
      * 
-     * @param user
-     * @param childRoleName
-     * @return
+     * @param user the requesting user
+     * @param userTenant the user's tenant
+     * @param childRoleName the role to be added to this role as a child
+     * @return the number of db changes
      * @throws TapisException
      */
-    public int addChildRole(String user, String childRoleName) throws TapisException
+    @Schema(hidden = true)
+    public int addChildRole(String user, String userTenant, String childRoleName) 
+     throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
@@ -55,7 +61,7 @@ public final class SkRole
         int rows;
         try {
             SkRoleTreeDao dao = new SkRoleTreeDao();
-            rows = dao.assignChildRole(tenant, user, name, childRoleName);
+            rows = dao.assignChildRole(userTenant, user, tenant, name, childRoleName);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
@@ -75,7 +81,9 @@ public final class SkRole
      * @return the number of rows affected (0 or 1)
      * @throws TapisException
      */
-    public int addPermission(String user, String permission) throws TapisException
+    @Schema(hidden = true)
+    public int addPermission(String user, String userTenant, String permission) 
+     throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
@@ -84,7 +92,7 @@ public final class SkRole
         int rows;
         try {
             SkRolePermissionDao dao = new SkRolePermissionDao();
-            rows = dao.assignPermission(tenant, user, id, permission);
+            rows = dao.assignPermission(tenant, id, permission, user, userTenant);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
@@ -104,7 +112,10 @@ public final class SkRole
      * @return the number of rows affected (0 or 1)
      * @throws TapisException
      */
-    public int addUser(String assigner, String assignee) throws TapisException
+    @Schema(hidden = true)
+    public int addUser(String assigner, String assignerTenant,
+    		           String assignee, String assigneeTenant) 
+     throws TapisException
     {
         // We expect roles to have been populated from a database record,
         // but nothing stops someone from constructing a homemade object and
@@ -113,7 +124,7 @@ public final class SkRole
         int rows;
         try {
             SkUserRoleDao dao = new SkUserRoleDao();
-            rows = dao.assignUserRole(tenant, assigner, assignee, id);
+            rows = dao.assignUserRole(assignee, assigneeTenant, id, assigner, assignerTenant);
         } catch (Exception e) {
             _log.error(e.getMessage()); // details already logged
             throw e;
@@ -121,7 +132,7 @@ public final class SkRole
         
         return rows;
     }
-    
+
     /* ---------------------------------------------------------------------- */
     /* getDescendantRoleNames:                                                */
     /* ---------------------------------------------------------------------- */
@@ -251,6 +262,22 @@ public final class SkRole
         this.description = description;
     }
 
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+	public String getOwnerTenant() {
+		return ownerTenant;
+	}
+
+	public void setOwnerTenant(String ownerTenant) {
+		this.ownerTenant = ownerTenant;
+	}
+
     @Schema(type = "string")
     public Instant getCreated() {
         return created;
@@ -267,6 +294,14 @@ public final class SkRole
     public void setCreatedby(String createdby) {
         this.createdby = createdby;
     }
+
+	public String getCreatedbyTenant() {
+		return createdbyTenant;
+	}
+
+	public void setCreatedbyTenant(String createdbyTenant) {
+		this.createdbyTenant = createdbyTenant;
+	}
 
     @Schema(type = "string")
     public Instant getUpdated() {
@@ -285,11 +320,11 @@ public final class SkRole
         this.updatedby = updatedby;
     }
 
-    public String getOwner() {
-        return owner;
-    }
+	public String getUpdatedbyTenant() {
+		return updatedbyTenant;
+	}
 
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
+	public void setUpdatedbyTenant(String updatedbyTenant) {
+		this.updatedbyTenant = updatedbyTenant;
+	}
 }

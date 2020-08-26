@@ -165,7 +165,8 @@ public final class UserImpl
     /* ---------------------------------------------------------------------- */
     /* grantRole:                                                             */
     /* ---------------------------------------------------------------------- */
-    public int grantRole(String tenant, String requestor, String user, String roleName) 
+    public int grantRole(String tenant, String user, String roleName, 
+    		             String requestor, String requestorTenant) 
       throws TapisImplException, TapisNotFoundException
     {
         // Get the role id.
@@ -188,13 +189,13 @@ public final class UserImpl
                 _log.error(msg, e);
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
             }
-
+        
         // Assign the role to the user.
         int rows = 0;
-        try {rows = dao.assignUserRole(tenant, requestor, user, roleId);}
+        try {rows = dao.assignUserRole(user, tenant, roleId, requestor, requestorTenant);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_ADD_USER_ROLE_ERROR", requestor, 
-                                             tenant, roleId, user);
+                                             requestorTenant, roleId, user, tenant);
                 _log.error(msg, e);
                 throw new TapisImplException(msg, e, Condition.BAD_REQUEST);            
             }
@@ -249,26 +250,28 @@ public final class UserImpl
      * role, creating and granting that role to the user if it doesn't already
      * exist.
      * 
-     * @param tenant the user's tenant
-     * @param requestor the grantor
-     * @param user the grantee
+     * @param grantee the user receiving the permission
+     * @param granteeTenant the grantee's tenant
      * @param permSpec the permission specification
+     * @param grantor the grantor
+     * @param grantorTenant the grantor's tenant
+     * 
      * @return the number of database updates
      * @throws TapisImplException on general errors
      */
-    public int grantUserPermission(String tenant, String requestor, 
-                                   String user, String permSpec)
+    public int grantUserPermission(String grantee, String granteeTenant, String permSpec, 
+    		                       String grantor, String grantorTenant)
         throws TapisImplException
     {
         // Check user name length before using it to construct the user's default role.
-        if (user.length() > MAX_USER_NAME_LEN) {
-            String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", tenant, user, MAX_USER_NAME_LEN);
+        if (grantee.length() > MAX_USER_NAME_LEN) {
+            String msg = MsgUtils.getMsg("SK_USER_NAME_LEN", granteeTenant, grantee, MAX_USER_NAME_LEN);
             _log.error(msg);
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
         // Construct the user's default role name.
-        String roleName = getUserDefaultRolename(user);
+        String roleName = getUserDefaultRolename(grantee);
         
         // Perform an optimistic assignment that works only if the user's 
         // default role exists and has already been assigned to the user.
@@ -278,8 +281,9 @@ public final class UserImpl
         for (int i = 0; i < 2; i++) {
             try {
                 // See if we can assign the permission to the role.
-                rows += grantRoleWithPermission(tenant, requestor, user,
-                                                roleName, permSpec);
+                rows += grantRoleWithPermission(roleName, granteeTenant, permSpec,  
+                		                        grantee, granteeTenant, 
+                		                        grantor, grantorTenant);
                 
                 // This try worked!
                 break;
@@ -288,7 +292,10 @@ public final class UserImpl
                 // The role does not exist, so let's create it and
                 // assign it to the user in one atomic operation.
                 // Any failure here aborts the whole operation.
-                rows = createAndAssignRole(tenant, requestor, user, roleName);
+            	String desc = "Default role for user " + grantee;
+                rows = createAndAssignRole(roleName, granteeTenant, desc, 
+                		                   grantee, granteeTenant,
+                		                   grantor, grantorTenant);
             }
         }
         
@@ -301,24 +308,27 @@ public final class UserImpl
     /** Grant an existing role to a user after inserting the permission into the
      * role.
      * 
-     * @param tenant the user's tenant
-     * @param requestor the grantor
-     * @param user the grantee
-     * @param roleName existing role name
+     * @param roleName the role to receive the permission
+     * @param roleTenant the role's tenant
      * @param permSpec the permission specification
+     * @param grantee the user receiving the permission
+     * @param granteeTenant the grantee's tenant
+     * @param grantor the grantor
+     * @param grantorTenant the grantor's tenant
      * @return the number of database updates
      * @throws TapisImplException on general errors
      * @throws TapisNotFoundException the role does not exist
      */
-    public int grantRoleWithPermission(String tenant, String requestor, 
-                                       String user, String roleName, String permSpec)
+    public int grantRoleWithPermission(String roleName, String roleTenant, String permSpec,
+    		                           String grantee, String granteeTenant,  
+                                       String grantor, String grantorTenant)
         throws TapisImplException, TapisNotFoundException
     {
         // ******************* Insert Permission into Role ********************
         // --------------------------------------------------------------------
         // Get the role id.
         int roleId = 0;
-        try {roleId = getRoleId(tenant, roleName);}
+        try {roleId = getRoleId(granteeTenant, roleName);}
             catch (TapisNotFoundException e) {
                 _log.error(e.getMessage());
                 throw e;
@@ -340,21 +350,21 @@ public final class UserImpl
         // Assign the permission.
         int rows = 0;
         try {
-            rows = rolePermDao.assignPermission(tenant, requestor, roleId, permSpec);
+            rows = rolePermDao.assignPermission(roleTenant, roleId, permSpec, grantor, grantorTenant);
         } catch (TapisNotFoundException e) {
             // This only occurs when the role name is not found.
-            String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                         tenant, requestor, permSpec, roleName);
+            String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", grantor, granteeTenant,
+            		                     permSpec, roleName, roleTenant);
             _log.error(msg, e);
             throw e;
         } catch (Exception e) {
             // We assume a bad request for all other errors.
-            String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", 
-                                         tenant, requestor, permSpec, roleName);
+            String msg = MsgUtils.getMsg("SK_ADD_PERMISSION_ERROR", grantor, granteeTenant,
+                                         permSpec, roleName, roleTenant);
             _log.error(msg, e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST);        
         }
-        
+       
         // ************************ Assign Role to User ***********************
         // --------------------------------------------------------------------
         // Get the dao.
@@ -366,10 +376,10 @@ public final class UserImpl
                 throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);            }
 
         // Assign the role to the user.
-        try {rows += userDao.assignUserRole(tenant, requestor, user, roleId);}
+        try {rows += userDao.assignUserRole(grantee, granteeTenant, roleId, grantor, granteeTenant);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_ADD_USER_ROLE_ERROR", requestor, 
-                                             tenant, roleId, user);
+                String msg = MsgUtils.getMsg("SK_ADD_USER_ROLE_ERROR", grantor, 
+                                             grantorTenant, roleId, grantee, granteeTenant);
                 _log.error(msg, e);
                 throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
             }
@@ -600,38 +610,6 @@ public final class UserImpl
     }
 
     /* ---------------------------------------------------------------------- */
-    /* grantAdminRole:                                                        */
-    /* ---------------------------------------------------------------------- */
-    /** Grant the administrator role only if the caller is an administrator in
-     * the tenant.
-     * 
-     * @param tenant the tenant id
-     * @param requestor the admin making the request
-     * @param user the user being grant the admin role
-     * @return the number of rows changed
-     * @throws TapisImplException on error
-     * @throws TapisNotFoundException if the role is not found
-     */
-    public int grantAdminRole(String tenant, String requestor, String user) 
-      throws TapisImplException, TapisNotFoundException
-    {
-        // The tenant admin role.
-        final String roleName = ADMIN_ROLE_NAME;
-        
-        // Make sure the requestor is an admin.  Null checks are performed here.
-        boolean requesterAdmin = hasRole(tenant, requestor, new String[] {roleName}, 
-                                         AuthOperation.ALL);
-        if (!requesterAdmin) {
-            String msg = MsgUtils.getMsg("SK_REQUESTOR_NOT_ADMIN", tenant, requestor);
-            _log.error(msg);
-            throw new TapisImplException(msg, Condition.BAD_REQUEST); 
-        }
-        
-        // Call the internal use only method to complete the grant.
-        return grantAdminRoleInternal(tenant, requestor, user);
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* grantAdminRoleInternal:                                                */
     /* ---------------------------------------------------------------------- */
     /** Grant the administrator role to the user without checking whether the
@@ -645,12 +623,14 @@ public final class UserImpl
      * @throws TapisImplException on error
      * @throws TapisNotFoundException if the role is not found
      */
-    public int grantAdminRoleInternal(String tenant, String requestor, String user) 
+    public int grantAdminRoleInternal(String grantee, String granteeTenant,
+                                      String grantor, String grantorTenant) 
       throws TapisImplException, TapisNotFoundException
     {
         // The tenant admin role.
-        String desc = "Administrator role for tenant " + tenant;
-        return grantRoleInternal(tenant, requestor, user, ADMIN_ROLE_NAME, desc);
+        String desc = "Administrator role for tenant " + granteeTenant;
+        return grantRoleInternal(ADMIN_ROLE_NAME, granteeTenant, desc,
+        		                 grantee, granteeTenant, grantor, grantorTenant);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -669,8 +649,9 @@ public final class UserImpl
      * @throws TapisImplException on error
      * @throws TapisNotFoundException if the role is not found
      */
-    public int grantRoleInternal(String tenant, String requestor, String user,
-                                 String roleName, String desc) 
+    public int grantRoleInternal(String roleName, String roleTenant, String description,
+    		                     String grantee, String granteeTenant,
+    		                     String grantor, String grantorTenant)
       throws TapisImplException, TapisNotFoundException
     {
         // Get the dao.
@@ -685,7 +666,9 @@ public final class UserImpl
         // Create and assign the role.
         boolean strict = false;
         int rows = 0;
-        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc, strict);}
+        try {rows = userDao.createAndAssignRole(roleName, roleTenant, description, 
+        		                                grantee, granteeTenant, 
+        		                                grantor, grantorTenant, strict);}
             catch (Exception e) {
                 // Interpret all errors as client request problems.
                 throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);
@@ -856,8 +839,9 @@ public final class UserImpl
     /* ---------------------------------------------------------------------------- */
     /* createAndAssignRole:                                                         */
     /* ---------------------------------------------------------------------------- */
-    private int createAndAssignRole(String tenant, String requestor, String user, 
-                                    String roleName) 
+    private int createAndAssignRole(String roleName, String roleTenant, String description,
+                                    String grantee, String granteeTenant,
+                                    String grantor, String grantorTenant) 
      throws TapisImplException
     {
         // Get the dao.
@@ -870,10 +854,11 @@ public final class UserImpl
             }
 
         // Create and assign the role.
-        String desc = "Default role for user " + user;
         boolean strict = true;
         int rows = 0;
-        try {rows = userDao.createAndAssignRole(tenant, requestor, user, roleName, desc, strict);}
+        try {rows = userDao.createAndAssignRole(roleName, roleTenant, description, 
+        		                                grantee, granteeTenant, 
+        		                                grantor, grantorTenant, strict);}
             catch (Exception e) {
                 // Interpret all errors as client request problems.
                 throw new TapisImplException(e.getMessage(), Condition.BAD_REQUEST);

@@ -20,52 +20,55 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLE =
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner"
-      + " FROM sk_role";
+	  "SELECT id, tenant, name, description, owner, owner_tenant, created, createdby, createdby_tenant, "
+	  + "updated, updatedby, updatedby_tenant FROM sk_role ORDER BY id";
   
   // Role statements.
   public static final String ROLE_SELECT_BY_NAME = 
       "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_EXTENDED_BY_NAME = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner FROM sk_role where tenant = ? AND name = ?";
-  public static final String ROLE_SELECT_BY_ID = 
-      "SELECT id, tenant, name, description FROM sk_role where tenant = ? AND id = ?";
-  public static final String ROLE_SELECT_EXTENDED_BY_ID = 
-      "SELECT id, tenant, name, description, created, createdby, updated, updatedby, owner FROM sk_role where tenant = ? AND id = ?";
+      "SELECT id, tenant, name, description, owner, owner_tenant, created, createdby, createdby_tenant, "
+      + "updated, updatedby, updatedby_tenant FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_SELECT_NAMES = 
       "SELECT name FROM sk_role where tenant = ? ORDER BY name";
   public static final String ROLE_SELECT_ID_BY_NAME =
       "SELECT id FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_INSERT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby, owner) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+      "INSERT INTO sk_role (tenant, name, description, owner, owner_tenant, createdby, createdby_tenant, updatedby, updatedby_tenant) "
+      + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
   public static final String ROLE_DELETE_BY_ID =
       "DELETE FROM sk_role where tenant = ? AND id = ?";
   public static final String ROLE_DELETE_BY_NAME =
       "DELETE FROM sk_role where tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_ROLENAME = 
-      "UPDATE sk_role SET name = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
+      "UPDATE sk_role SET name = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_OWNER = 
-          "UPDATE sk_role SET owner = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
+      "UPDATE sk_role SET owner = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
+  public static final String ROLE_UPDATE_OWNER_AND_TENANT = 
+	      "UPDATE sk_role SET owner = ?, owner_tenant = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   public static final String ROLE_UPDATE_DESCRIPTION = 
-      "UPDATE sk_role SET description = ?, updated = ?, updatedby = ? where tenant = ? AND name = ?";
+      "UPDATE sk_role SET description = ?, updated = ?, updatedby = ?, updatedby_tenant = ? WHERE tenant = ? AND name = ?";
   
   // Strict version of above commands that are not idempotent.
   public static final String ROLE_INSERT_STRICT = 
-      "INSERT INTO sk_role (tenant, name, description, createdby, updatedby, owner) VALUES (?, ?, ?, ?, ?, ?)";
+	  "INSERT INTO sk_role (tenant, name, description, owner, owner_tenant, createdby, createdby_tenant, updatedby, updatedby_tenant) "
+	  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
   
   /* ---------------------------------------------------------------------- */
   /* sk_role_permission:                                                    */
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_ALL_PERMISSIONS =
-      "SELECT id, tenant, role_id, permission, created, createdby, updated, updatedby"
-      + " FROM sk_role_permission";
+      "SELECT id, tenant, role_id, permission, created, createdby, createdby_tenant, " 
+      + "updated, updatedby, updatedby_tenant "
+      + "FROM sk_role_permission";
   
   // The following select statement grabs the role id from the sk_role table after 
   // guaranteeing that the role's tenant is the expected one.    
   public static final String ROLE_ADD_PERMISSION =
-      "INSERT INTO sk_role_permission (tenant, role_id, permission, createdby, updatedby) " +
-      "select ?, r.id, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
+      "INSERT INTO sk_role_permission (tenant, role_id, permission, " +
+                                      "createdby, createdby_tenant, updatedby, updatedby_tenant) " +
+      "select ?, r.id, ?, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";        
   
   public static final String ROLE_REMOVE_PERMISSION =
@@ -100,21 +103,24 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKROLETREE =
-      "SELECT id, tenant, parent_role_id, child_role_id, created, createdby, updated, updatedby"
-      + " FROM sk_role_tree";
+      "SELECT id, tenant, parent_role_id, child_role_id, created, createdby, createdby_tenant, "
+      + "updated, updatedby, updatedby_tenant "
+      + "FROM sk_role_tree";
   
   // The following select statement only grabs the tenant and child role id from the 
   // sk_role table, but uses the parent role id, createdby and updatedby constants 
   // passed in from the caller. The parent and child tenants are guaranteed to match
   // because the last clause matches the parent role's tenant.
   public static final String ROLE_ADD_CHILD_ROLE_BY_NAME =
-      "INSERT INTO sk_role_tree (tenant, parent_role_id, child_role_id, createdby, updatedby) " +
-      "select r.tenant, ?, r.id, ?, ? from sk_role r where r.tenant = ? and r.name = ? " +
+      "INSERT INTO sk_role_tree " +
+      "(tenant, parent_role_id, child_role_id, createdby, createdby_tenant, updatedby, updatedby_tenant) " +
+      "select r.tenant, ?, r.id, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.name = ? " +
       "and r.tenant = (select r2.tenant from sk_role r2 where r2.id = ?) " + // enforce tenant conformance
       "ON CONFLICT DO NOTHING";
   public static final String ROLE_ADD_CHILD_ROLE_BY_ID =
-          "INSERT INTO sk_role_tree (tenant, parent_role_id, child_role_id, createdby, updatedby) " +
-          "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"; // caller guarantees same tenant for roles
+      "INSERT INTO sk_role_tree " +
+      "(tenant, parent_role_id, child_role_id, createdby_tenant, updatedby, updatedby_tenant) " +
+      "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"; // caller guarantees same tenant for roles
   public static final String ROLE_REMOVE_CHILD_ROLE_BY_ID =
       "DELETE FROM sk_role_tree where tenant = ? and parent_role_id = ? and child_role_id = ?";
   
@@ -191,8 +197,9 @@ public class SqlStatements
   /* ---------------------------------------------------------------------- */
   // Get all rows.
   public static final String SELECT_SKUSERROLE =
-      "SELECT id, tenant, user_name, role_id, created, createdby, updated, updatedby"
-      + " FROM sk_user_role";
+      "SELECT id, tenant, user_name, role_id, created, createdby, createdby_tenant, "
+      + "updated, updatedby updatedby_tenant "
+      + "FROM sk_user_role ORDER BY id";
 
   // Get all users in tenant.
   public static final String SELECT_USER_NAMES =
@@ -200,20 +207,25 @@ public class SqlStatements
       + "WHERE tenant = ? ORDER BY user_name";
   
   // If the role's tenant does not match the passed in tenant, the insert will fail.
+  // This is because users can only be assigned roles in their tenant, though those 
+  // roles may be owned by services in another tenant.
   public static final String USER_ADD_ROLE_BY_ID =
-      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
-      "select r.tenant, ?, ?, ?, ? from sk_role r where r.tenant = ? and r.id = ? " +
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, createdby_tenant, " +
+                                "updatedby, updatedby_tenant) " +
+      "select r.tenant, ?, ?, ?, ?, ?, ? FROM sk_role r where r.tenant = ? and r.id = ? " +
       "ON CONFLICT DO NOTHING";
   
   // Strict versions of above commands that are not idempotent.
   public static final String USER_ADD_ROLE_BY_ID_STRICT =
-      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
-      "VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO sk_user_role (tenant, user_name, role_id, " +
+    		                    "createdby, createdby_tenant, updatedby, updatedby_tenant) " +
+      "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
   // Strict versions of above commands that are not idempotent.
   public static final String USER_ADD_ROLE_BY_ID_NOT_STRICT =
-      "INSERT INTO sk_user_role (tenant, user_name, role_id, createdby, updatedby) " +
-      "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+	  "INSERT INTO sk_user_role (tenant, user_name, role_id, " +
+	                            "createdby, createdby_tenant, updatedby, updatedby_tenant) " +
+	  "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
 
   // If the role's tenant does not match the passed in tenant, the insert will fail.
   public static final String USER_DELETE_ROLE_BY_ID =

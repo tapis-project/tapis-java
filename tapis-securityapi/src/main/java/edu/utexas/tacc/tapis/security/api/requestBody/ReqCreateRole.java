@@ -8,8 +8,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqCreateRole
  implements IReqBody
 {
-    public String tenant;
-    public String user;
+    public String roleTenant;
     public String roleName;
     public String description;
     
@@ -20,10 +19,8 @@ public final class ReqCreateRole
     public String validate() 
     {
         // Final checks.
-        if (StringUtils.isBlank(tenant)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "tenant");
-        if (StringUtils.isBlank(user)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "user");
+        if (StringUtils.isBlank(roleTenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleTenant");
         if (StringUtils.isBlank(roleName)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "roleName");
         if (StringUtils.isBlank(description))

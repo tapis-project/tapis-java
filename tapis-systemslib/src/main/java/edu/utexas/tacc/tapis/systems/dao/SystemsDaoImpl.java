@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import java.sql.Connection;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -855,6 +856,13 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Check that column value is compatible for column type and search operator
       String val = parsedStrArray[2];
       checkConditionValidity(col, op, val);
+
+      // If val is a timestamp then convert the string(s) to a form suitable for SQL
+      // Use a utility method since val may be a single item or a list of items, e.g. for the BETWEEN operator
+      if (col.getDataType().getSQLType() == Types.TIMESTAMP)
+      {
+        val = SearchUtils.convertValuesToTimestamps(op, val);
+      }
 
       // Add the condition to the WHERE clause
       retCond = addCondition(retCond, col, op, val);
