@@ -68,7 +68,7 @@ paths:
       tags:
         - systems
       summary: Retrieve systems
-      description: Retrieve details for systems. Use search and select to limit results.
+      description: Retrieve details for systems. Use search and select query parameters to limit results.
       operationId: getSystems
       parameters:
         - name: pretty
@@ -139,6 +139,91 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespResourceUrl'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/search/systems':
+    get:
+      tags:
+        - systems
+      summary: Retrieve systems matching search conditions specified as query parameters
+      description: Retrieve details for systems. Use query parameters to specify search conditions.
+      operationId: searchSystemsQueryParameters
+      parameters:
+        - name: pretty
+          in: query
+          description: Pretty print the response
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespSystemArray'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+    post:
+      tags:
+        - systems
+      summary: Retrieve systems matching search conditions
+      description: Retrieve details for systems. Use request body to specify SQL-like search conditions.
+      operationId: searchSystemsRequestBody
+      requestBody:
+        required: true
+        description: A JSON object specifying SQL-like search conditions as an array of strings. Strings are concatenated to form full search query.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqSearchSystemsJson'
+#          text/plain:
+#            schema:
+#              $ref: '#/components/schemas/ReqSearchSystemsText'
+      parameters:
+        - name: pretty
+          in: query
+          description: Pretty print the response
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespSystemArray'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
           content:
@@ -1013,6 +1098,10 @@ components:
           type: array
           items:
             type: string
+    ReqSearchSystemsJson:
+      type: array
+      items:
+        type: string
 
     # --- Response objects ----------------------------------------------------
     RespBasic:

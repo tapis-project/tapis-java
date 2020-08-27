@@ -19,6 +19,7 @@ public final class IntegrationUtils
   // Test data
   public static final String tenantName = "dev";
   public static final String ownerUser = "owner1";
+  public static final String ownerUser2 = "owner2";
   public static final String apiUser = "testApiUser";
   public static final String sysNamePrefix = "TestSys";
   public static final Gson gson =  TapisGsonUtils.getGson();

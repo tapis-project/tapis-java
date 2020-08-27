@@ -24,6 +24,10 @@ import javax.inject.Inject;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.NotFoundException;
 
+import edu.utexas.tacc.tapis.search.parser.SqlParser;
+import edu.utexas.tacc.tapis.search.parser.ASTNode;
+import edu.utexas.tacc.tapis.search.TapisSelectorParser;
+import org.apache.activemq.filter.BooleanExpression;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -755,6 +759,64 @@ public class SystemsServiceImpl implements SystemsService
 //        allowedSystems.add(system);
 //      }
 //      catch (NotAuthorizedException e) { }
+    return systems;
+  }
+
+  /**
+   * Get all systems for which user has READ permission.
+   * Use provided string containing a valid SQL where clause for the search.
+   * @param authenticatedUser - principal user containing tenant and user info
+   * @param sqlSearchStr - string containing a valid SQL where clause
+   * @return List of TSystem objects
+   * @throws TapisException - for Tapis related exceptions
+   */
+  @Override
+  public List<TSystem> getSystemsUsingSqlSearchStr(AuthenticatedUser authenticatedUser, String sqlSearchStr)
+          throws TapisException, TapisClientException
+  {
+    // If search string is empty delegate to getSystems()
+    if (StringUtils.isBlank(sqlSearchStr)) return getSystems(authenticatedUser, null);
+
+    SystemOperation op = SystemOperation.read;
+    if (authenticatedUser == null) throw new IllegalArgumentException(LibUtils.getMsg("SYSLIB_NULL_INPUT_AUTHUSR"));
+    // Determine tenant scope for user
+    String systemTenantName = authenticatedUser.getTenantId();
+    // For service request use oboTenant for tenant associated with the user
+    if (TapisThreadContext.AccountType.service.name().equals(authenticatedUser.getAccountType()))
+      systemTenantName = authenticatedUser.getOboTenantId();
+
+    // Validate and parse the sql string into an abstract syntax tree (AST)
+    // TODO/TBD: The activemq parser validates and parses the string into an AST but there does not appear to be a way
+    //          to use the resulting BooleanExpression to walk the tree. How to now create a usable AST?
+    //   I believe we don't want to simply try to run the where clause for various reasons:
+    //      - SQL injection
+    //      - we want to verify the validity of each <attr>.<op>.<value>
+    //        looks like activemq parser will ensure the leaf nodes all represent <attr>.<op>.<value> and in principle
+    //        we should be able to check each one and generate of list of errors for reporting.
+    //  Looks like jOOQ can parse an SQL string into a jooq Condition. Do this in the Dao? But still seems like no way
+    //    to walk the AST and check each condition so we can report on errors.
+//    BooleanExpression searchAST;
+    ASTNode searchAST;
+    try { searchAST = SqlParser.parse(sqlSearchStr); }
+    catch (Exception e)
+    {
+      String msg = LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", authenticatedUser, e.getMessage());
+      _log.error(msg, e);
+      throw new IllegalArgumentException(msg);
+    }
+
+    // Get list of IDs of systems for which requester has READ permission.
+    // This is either all systems (null) or a list of IDs based on roles.
+    List<Integer> allowedSystemIDs = getAllowedSystemIDs(authenticatedUser, systemTenantName);
+
+    // Get all allowed systems matching the search conditions
+    List<TSystem> systems = dao.getTSystemsUsingSearchAST(authenticatedUser.getTenantId(), searchAST, allowedSystemIDs);
+
+    for (TSystem system : systems)
+    {
+      system.setEffectiveUserId(resolveEffectiveUserId(system.getEffectiveUserId(), system.getOwner(),
+              authenticatedUser.getName()));
+    }
     return systems;
   }
 

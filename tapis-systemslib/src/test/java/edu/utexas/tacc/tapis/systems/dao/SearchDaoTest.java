@@ -22,7 +22,7 @@ import static edu.utexas.tacc.tapis.systems.IntegrationUtils.*;
 import static org.testng.Assert.assertEquals;
 
 /**
- * Test the SystemsDao class for various search use cases against a DB running locally
+ * Test the SystemsDao getTSystems() call for various search use cases against a DB running locally
  * NOTE: This test pre-processes the search list just as is done in SystemsServiceImpl before it calls the Dao,
  *       including calling SearchUtils.validateAndProcessSearchCondition(cond)
  *       For this reason there is currently no need to have a SearchSystemsTest suite.
@@ -37,8 +37,7 @@ public class SearchDaoTest
   private AuthenticatedUser authenticatedUser;
 
   // Test data
-  private static final String ownerUser2 = "owner2";
-  private static final String testKey = "Srch";
+  private static final String testKey = "SrchGet";
   private static final String prefixStr = sysNamePrefix + "_" + testKey + "_";
   private static final String sysNameLikeAll = prefixStr + "*";
 
