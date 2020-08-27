@@ -125,6 +125,7 @@ public class CoreResponse {
       location = newUrlString.toString();
       
     } catch (MalformedURLException e) {
+      // TODO
       e.printStackTrace();
     }
   
@@ -138,10 +139,9 @@ public class CoreResponse {
     return url;
   }
   
-  /*************************************************
-*     Print functions for core server Response
- ************************************************/
- 
+  /*------------------------------------------------------------------------
+   *                 Print functions for core server Response
+   * -----------------------------------------------------------------------*/
   private String logResponseHeaders() {
     StringBuilder sb = new StringBuilder();
     sb.append("Headers from core ...");
