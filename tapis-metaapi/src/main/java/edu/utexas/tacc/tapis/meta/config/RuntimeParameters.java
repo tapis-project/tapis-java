@@ -277,6 +277,7 @@ public class RuntimeParameters {
     try {
       serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
     } catch (TapisException | TapisClientException e) {
+      // TODO
       e.printStackTrace();
     }
   }
