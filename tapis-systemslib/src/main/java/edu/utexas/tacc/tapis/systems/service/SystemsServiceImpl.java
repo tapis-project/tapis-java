@@ -24,10 +24,8 @@ import javax.inject.Inject;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.NotFoundException;
 
-import edu.utexas.tacc.tapis.search.parser.SqlParser;
+import edu.utexas.tacc.tapis.search.parser.ASTParser;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
-import edu.utexas.tacc.tapis.search.TapisSelectorParser;
-import org.apache.activemq.filter.BooleanExpression;
 import org.apache.commons.lang3.StringUtils;
 import org.jvnet.hk2.annotations.Service;
 import org.slf4j.Logger;
@@ -797,7 +795,7 @@ public class SystemsServiceImpl implements SystemsService
     //    to walk the AST and check each condition so we can report on errors.
 //    BooleanExpression searchAST;
     ASTNode searchAST;
-    try { searchAST = SqlParser.parse(sqlSearchStr); }
+    try { searchAST = ASTParser.parse(sqlSearchStr); }
     catch (Exception e)
     {
       String msg = LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", authenticatedUser, e.getMessage());

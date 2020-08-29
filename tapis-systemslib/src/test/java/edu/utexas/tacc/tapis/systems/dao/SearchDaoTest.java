@@ -74,8 +74,8 @@ public class SearchDaoTest
   int numSystems = 20;
   TSystem[] systems = IntegrationUtils.makeSystems(numSystems, testKey);
 
-  LocalDateTime createBegin;
-  LocalDateTime createEnd;
+  private LocalDateTime createBegin;
+  private LocalDateTime createEnd;
 
   @BeforeSuite
   public void setup() throws Exception

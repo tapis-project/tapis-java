@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
-import edu.utexas.tacc.tapis.search.parser.SqlParser;
+import edu.utexas.tacc.tapis.search.parser.ASTParser;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
@@ -148,55 +148,55 @@ public class SearchASTDaoTest
 //    validCaseInputs.put(22,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "system_type = LINUX"));
 //    validCaseInputs.put(23,new CaseData(numSystems/2, "name LIKE " + sysNameLikeAll, "system_type = LINUX","owner <> " + sq(ownerUser2)));
 //    // Test numeric relational
-//    validCaseInputs.put(40,new CaseData(numSystems/2, "name LIKE " + sysNameLikeAll, "port.between.1," + numSystems/2));
-//    validCaseInputs.put(41,new CaseData(numSystems/2-1, "name LIKE " + sysNameLikeAll, "port.between.2," + numSystems/2));
-//    validCaseInputs.put(42,new CaseData(numSystems/2, "name LIKE " + sysNameLikeAll, "port.nbetween.1," + numSystems/2));
-//    validCaseInputs.put(43,new CaseData(13, "name LIKE " + sysNameLikeAll, "enabled = true","port.lte.13"));
-//    validCaseInputs.put(44,new CaseData(5, "name LIKE " + sysNameLikeAll,"enabled = true","port.gt.1","port.lt.7"));
+//    validCaseInputs.put(50,new CaseData(numSystems/2, "name LIKE " + sysNameLikeAll, "port.between.1," + numSystems/2));
+//    validCaseInputs.put(51,new CaseData(numSystems/2-1, "name LIKE " + sysNameLikeAll, "port.between.2," + numSystems/2));
+//    validCaseInputs.put(52,new CaseData(numSystems/2, "name LIKE " + sysNameLikeAll, "port.nbetween.1," + numSystems/2));
+//    validCaseInputs.put(53,new CaseData(13, "name LIKE " + sysNameLikeAll, "enabled = true","port.lte.13"));
+//    validCaseInputs.put(54,new CaseData(5, "name LIKE " + sysNameLikeAll,"enabled = true","port.gt.1","port.lt.7"));
 //    // Test char relational
-//    validCaseInputs.put(50,new CaseData(1, "name LIKE " + sysNameLikeAll,"host.lt."+hostName1));
-//    validCaseInputs.put(51,new CaseData(numSystems-8, "name LIKE " + sysNameLikeAll,"enabled = true","host.gt."+hostName7));
-//    validCaseInputs.put(52,new CaseData(5, "name LIKE " + sysNameLikeAll,"host.gt."+hostName1,"host.lt."+hostName7));
-//    validCaseInputs.put(53,new CaseData(0, "name LIKE " + sysNameLikeAll,"host.lt."+hostName1,"host.gt."+hostName7));
-//    validCaseInputs.put(54,new CaseData(7, "name LIKE " + sysNameLikeAll,"host.between."+hostName1+","+hostName7));
-//    validCaseInputs.put(55,new CaseData(numSystems-7, "name LIKE " + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7));
+//    validCaseInputs.put(70,new CaseData(1, "name LIKE " + sysNameLikeAll,"host.lt."+hostName1));
+//    validCaseInputs.put(71,new CaseData(numSystems-8, "name LIKE " + sysNameLikeAll,"enabled = true","host.gt."+hostName7));
+//    validCaseInputs.put(72,new CaseData(5, "name LIKE " + sysNameLikeAll,"host.gt."+hostName1,"host.lt."+hostName7));
+//    validCaseInputs.put(73,new CaseData(0, "name LIKE " + sysNameLikeAll,"host.lt."+hostName1,"host.gt."+hostName7));
+//    validCaseInputs.put(74,new CaseData(7, "name LIKE " + sysNameLikeAll,"host.between."+hostName1+","+hostName7));
+//    validCaseInputs.put(75,new CaseData(numSystems-7, "name LIKE " + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7));
 //    // Test timestamp relational
-//    validCaseInputs.put(60,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.gt." + longPast1));
-//    validCaseInputs.put(61,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture1));
-//    validCaseInputs.put(62,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.lte." + longPast1));
-//    validCaseInputs.put(63,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.gte." + farFuture1));
-//    validCaseInputs.put(64,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.between." + longPast1 + "," + farFuture1));
-//    validCaseInputs.put(65,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.nbetween." + longPast1 + "," + farFuture1));
+//    validCaseInputs.put(90,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.gt." + longPast1));
+//    validCaseInputs.put(91,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture1));
+//    validCaseInputs.put(92,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.lte." + longPast1));
+//    validCaseInputs.put(93,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.gte." + farFuture1));
+//    validCaseInputs.put(94,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.between." + longPast1 + "," + farFuture1));
+//    validCaseInputs.put(95,new CaseData(0, "name LIKE " + sysNameLikeAll, "created.nbetween." + longPast1 + "," + farFuture1));
 //    // Variations of timestamp format
-//    validCaseInputs.put(66,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture2));
-//    validCaseInputs.put(67,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture3));
-//    validCaseInputs.put(68,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture4));
-//    validCaseInputs.put(69,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture5));
-//    validCaseInputs.put(70,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture6));
-//    validCaseInputs.put(71,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture7));
-//    validCaseInputs.put(72,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture8));
-//    validCaseInputs.put(73,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture9));
-//    validCaseInputs.put(74,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture10));
-//    validCaseInputs.put(75,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture11));
-//    validCaseInputs.put(76,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture12));
-//    validCaseInputs.put(77,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture13));
-//    validCaseInputs.put(78,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture14));
-//    validCaseInputs.put(79,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture15));
+//    validCaseInputs.put(96,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture2));
+//    validCaseInputs.put(97,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture3));
+//    validCaseInputs.put(98,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture4));
+//    validCaseInputs.put(99,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture5));
+//    validCaseInputs.put(100,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture6));
+//    validCaseInputs.put(101,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture7));
+//    validCaseInputs.put(102,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture8));
+//    validCaseInputs.put(103,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture9));
+//    validCaseInputs.put(104,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture10));
+//    validCaseInputs.put(105,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture11));
+//    validCaseInputs.put(106,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture12));
+//    validCaseInputs.put(107,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture13));
+//    validCaseInputs.put(108,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture14));
+//    validCaseInputs.put(109,new CaseData(numSystems, "name LIKE " + sysNameLikeAll, "created.lt." + farFuture15));
 //    // Test wildcards
-//    validCaseInputs.put(80,new CaseData(numSystems, "enabled = true","host LIKE host" + testKey + "*"));
-//    validCaseInputs.put(81,new CaseData(0, "name LIKE " + sysNameLikeAll, "enabled = true","host NLIKE host" + testKey + "*"));
-//    validCaseInputs.put(82,new CaseData(10, "name LIKE " + sysNameLikeAll, "enabled = true","host LIKE host" + testKey + "_00!"));
-//    validCaseInputs.put(83,new CaseData(10, "name LIKE " + sysNameLikeAll, "enabled = true","host NLIKE host" + testKey + "_00!"));
+//    validCaseInputs.put(130,new CaseData(numSystems, "enabled = true","host LIKE host" + testKey + "*"));
+//    validCaseInputs.put(131,new CaseData(0, "name LIKE " + sysNameLikeAll, "enabled = true","host NLIKE host" + testKey + "*"));
+//    validCaseInputs.put(132,new CaseData(10, "name LIKE " + sysNameLikeAll, "enabled = true","host LIKE host" + testKey + "_00!"));
+//    validCaseInputs.put(133,new CaseData(10, "name LIKE " + sysNameLikeAll, "enabled = true","host NLIKE host" + testKey + "_00!"));
 //    // Test that underscore and % get escaped as needed before being used as SQL
-//    validCaseInputs.put(90,new CaseData(0, "name LIKE " + sysNameLikeAll, "host LIKE host" + testKey + "_00_"));
-//    validCaseInputs.put(91,new CaseData(0, "name LIKE " + sysNameLikeAll, "host LIKE host" + testKey + "_00%"));
+//    validCaseInputs.put(150,new CaseData(0, "name LIKE " + sysNameLikeAll, "host LIKE host" + testKey + "_00_"));
+//    validCaseInputs.put(151,new CaseData(0, "name LIKE " + sysNameLikeAll, "host LIKE host" + testKey + "_00%"));
 //    // Check various special characters in description. 7 special chars in value: ,()~*!\
-//    validCaseInputs.put(101,new CaseData(1, "name LIKE " + sysNameLikeAll, "description LIKE " + specialChar7LikeSearchStr));
-//    validCaseInputs.put(102,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "description NLIKE " + specialChar7LikeSearchStr));
-//    validCaseInputs.put(103,new CaseData(1, "name LIKE " + sysNameLikeAll, "description = " + specialChar7EqSearchStr));
-//    validCaseInputs.put(104,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "description <> " + specialChar7EqSearchStr));
+//    validCaseInputs.put(171,new CaseData(1, "name LIKE " + sysNameLikeAll, "description LIKE " + specialChar7LikeSearchStr));
+//    validCaseInputs.put(172,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "description NLIKE " + specialChar7LikeSearchStr));
+//    validCaseInputs.put(173,new CaseData(1, "name LIKE " + sysNameLikeAll, "description = " + specialChar7EqSearchStr));
+//    validCaseInputs.put(174,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "description <> " + specialChar7EqSearchStr));
 //    // Escaped comma in a list of values
-//    validCaseInputs.put(110,new CaseData(1, "name LIKE " + sysNameLikeAll, "job_local_archive_dir IN " + "noSuchDir," + escapedCommanInListValue));
+//    validCaseInputs.put(200,new CaseData(1, "name LIKE " + sysNameLikeAll, "job_local_archive_dir IN " + "noSuchDir," + escapedCommanInListValue));
 
     // Iterate over valid cases
     for (Map.Entry<Integer,CaseData> item : validCaseInputs.entrySet())
@@ -205,7 +205,7 @@ public class SearchASTDaoTest
       int caseNum = item.getKey();
       System.out.println("Checking case # " + caseNum + " Input:        " + cd.sqlSearchStr);
       // Build an AST from the sql-like search string
-      ASTNode searchAST = SqlParser.parse(cd.sqlSearchStr);
+      ASTNode searchAST = ASTParser.parse(cd.sqlSearchStr);
       System.out.println("  Created AST with leaf node count: " + searchAST.countLeaves());
       List<TSystem> searchResults = dao.getTSystemsUsingSearchAST(tenantName, searchAST, null);
       System.out.println("  Result size: " + searchResults.size());
