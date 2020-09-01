@@ -155,10 +155,10 @@ public class SearchDaoTest
     validCaseInputs.put(43,new CaseData(13, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","port.lte.13")));
     validCaseInputs.put(44,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","port.gt.1","port.lt.7")));
     // Test char relational
-    validCaseInputs.put(50,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1)));
-    validCaseInputs.put(51,new CaseData(numSystems-8, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","host.gt."+hostName7)));
+    validCaseInputs.put(50,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll,"host.lte."+hostName1)));
+    validCaseInputs.put(51,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","host.gt."+hostName7)));
     validCaseInputs.put(52,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"host.gt."+hostName1,"host.lt."+hostName7)));
-    validCaseInputs.put(53,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1,"host.gt."+hostName7)));
+    validCaseInputs.put(53,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll,"host.lte."+hostName1,"host.gt."+hostName7)));
     validCaseInputs.put(54,new CaseData(7, Arrays.asList("name.like." + sysNameLikeAll,"host.between."+hostName1+","+hostName7)));
     validCaseInputs.put(55,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7)));
     // Test timestamp relational
@@ -186,8 +186,8 @@ public class SearchDaoTest
     // Test wildcards
     validCaseInputs.put(80,new CaseData(numSystems, Arrays.asList("enabled.eq.true","host.like.host" + testKey + "*")));
     validCaseInputs.put(81,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "*")));
-    validCaseInputs.put(82,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
-    validCaseInputs.put(83,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
+    validCaseInputs.put(82,new CaseData(9, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
+    validCaseInputs.put(83,new CaseData(11, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
     // Test that underscore and % get escaped as needed before being used as SQL
     validCaseInputs.put(90,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00_")));
     validCaseInputs.put(91,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00%")));
@@ -210,8 +210,6 @@ public class SearchDaoTest
       for (String cond : cd.searchList)
       {
         // Use SearchUtils to validate condition
-        // Add parentheses if not present, check start and end
-        if (!cond.startsWith("(") && !cond.endsWith(")")) cond = "(" + cond + ")";
         String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
         verifiedSearchList.add(verifiedCondStr);
       }

@@ -863,7 +863,9 @@ public class SystemResource
     List<String> searchList = null;
     try
     {
-      searchList = SearchUtils.validateAndExtractSearchList(searchStr);
+      // Extract the search conditions and validate their form. Back end will handle translating LIKE wildcard
+      //   characters (* and !) and dealing with special characters in values.
+      searchList = SearchUtils.extractAndValidateSearchList(searchStr);
     }
     catch (Exception e)
     {
@@ -918,6 +920,8 @@ public class SystemResource
     AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
 
     // Create search list based on query parameters
+    // Note that some validation is done for each condition but the back end will handle translating LIKE wildcard
+    //   characters (* and !) and deal with escaped characters.
     List<String> searchList;
     try
     {
