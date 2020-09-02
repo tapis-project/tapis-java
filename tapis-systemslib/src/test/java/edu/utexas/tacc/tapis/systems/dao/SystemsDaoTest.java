@@ -45,6 +45,19 @@ public class SystemsDaoTest
     teardown();
   }
 
+  @AfterSuite
+  public void teardown() throws Exception {
+    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    //Remove all objects created by tests
+    for (int i = 0; i < numSystems; i++)
+    {
+      dao.hardDeleteTSystem(tenantName, systems[i].getName());
+    }
+
+    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
+    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
+  }
+
   // Test create for a single item
   @Test
   public void testCreate() throws Exception
@@ -279,18 +292,5 @@ public class SystemsDaoTest
     Assert.assertTrue(pass);
     Assert.assertNull(dao.getTSystemByName(tenantName, fakeSystemName));
     Assert.assertNull(dao.getTSystemOwner(tenantName, fakeSystemName));
-  }
-
-  @AfterSuite
-  public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown method" + SystemsDaoTest.class.getSimpleName());
-    //Remove all objects created by tests
-    for (int i = 0; i < numSystems; i++)
-    {
-      dao.hardDeleteTSystem(tenantName, systems[i].getName());
-    }
-
-    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
-    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 }

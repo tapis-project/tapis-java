@@ -37,8 +37,7 @@ public class SearchASTDaoTest
 
   // Test data
   private static final String testKey = "SrchAST";
-  private static final String prefixStr = sysNamePrefix + "_" + testKey + "_";
-  private static final String sysNameLikeAll = sq(prefixStr + "%"); // TODO will we convert between * and % ?
+  private static final String sysNameLikeAll = sq("%" + testKey + "%");
 
   // Strings for searches involving special characters
   private static final String specialChar7Str = ",()~*!\\"; // These 7 may need escaping
@@ -107,6 +106,19 @@ public class SearchASTDaoTest
     }
     Thread.sleep(500);
     createEnd = TapisUtils.getUTCTimeNow();
+  }
+
+  @AfterSuite
+  public void teardown() throws Exception {
+    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    //Remove all objects created by tests
+    for (TSystem sys : systems)
+    {
+      dao.hardDeleteTSystem(tenantName, sys.getName());
+    }
+
+    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
+    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 
   /*
@@ -209,21 +221,8 @@ public class SearchASTDaoTest
       System.out.println("  Created AST with leaf node count: " + searchAST.countLeaves());
       List<TSystem> searchResults = dao.getTSystemsUsingSearchAST(tenantName, searchAST, null);
       System.out.println("  Result size: " + searchResults.size());
-      assertEquals(searchResults.size(), cd.count);
+      assertEquals(searchResults.size(), cd.count, "SearchASTDaoTest.testValidCases: Incorrect result count for case number: " + caseNum);
     }
-  }
-
-  @AfterSuite
-  public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown method" + SystemsDaoTest.class.getSimpleName());
-    //Remove all objects created by tests
-    for (TSystem sys : systems)
-    {
-      dao.hardDeleteTSystem(tenantName, sys.getName());
-    }
-
-    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
-    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 
   private static String sq(String s) { return "'" + s + "'"; }
