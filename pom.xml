@@ -111,6 +111,8 @@
     <module>tapis-systemsapi</module>
     <module>tapis-systemslib</module>
     <module>tapis-metaapi</module>
+    <module>tapis-jobsapi</module>
+    <module>tapis-jobslib</module>
   </modules>
 
 </project>
