@@ -68,7 +68,7 @@ paths:
       tags:
         - systems
       summary: Retrieve systems
-      description: Retrieve details for systems. Use search and select to limit results.
+      description: Retrieve details for systems. Use search and select query parameters to limit results.
       operationId: getSystems
       parameters:
         - name: pretty
@@ -76,6 +76,11 @@ paths:
           description: Pretty print the response
           schema:
             type: boolean
+        - name: search
+          in: query
+          description: Search conditions as a single query paramter. For example search=(name.like.MySys*)~(enabled.eq.true)
+          schema:
+            type: string
       responses:
         '200':
           description: Success.
@@ -145,6 +150,91 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/search/systems':
+    get:
+      tags:
+        - systems
+      summary: Retrieve systems matching search conditions specified as query parameters
+      description: Retrieve details for systems. Use query parameters to specify search conditions.
+      operationId: searchSystemsQueryParameters
+      parameters:
+        - name: pretty
+          in: query
+          description: Pretty print the response
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespSystemArray'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+    post:
+      tags:
+        - systems
+      summary: Retrieve systems matching search conditions
+      description: Retrieve details for systems. Use request body to specify SQL-like search conditions.
+      operationId: searchSystemsRequestBody
+      requestBody:
+        required: true
+        description: A JSON object specifying SQL-like search conditions as an array of strings. Strings are concatenated to form full search query.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqSearchSystemsJson'
+#          text/plain:
+#            schema:
+#              $ref: '#/components/schemas/ReqSearchSystemsText'
+      parameters:
+        - name: pretty
+          in: query
+          description: Pretty print the response
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespSystemArray'
+        '400':
+          description: Input error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
   '/v3/systems/import/sgci':
     post:
       tags:
@@ -206,11 +296,13 @@ paths:
             type: string
         - name: returnCredentials
           in: query
+          description: Highly restricted. Only certain Tapis services are authorized to get credentials.
           schema:
             type: boolean
             default: false
         - name: accessMethod
           in: query
+          description: Desired access method to use when fetching credentials, default access method used if this is null.
           schema:
             type: string
             default: ''
@@ -382,7 +474,7 @@ paths:
       tags:
         - credentials
       summary: Retrieve system user credentials
-      description: Retrieve credentials for given system and user. Requester must be owner of the system. Use query parameter accessMethod=<method> to override default access method.
+      description: Highly restricted. Only certain Tapis services authorized. Retrieve credentials for given system and user. Use query parameter accessMethod=<method> to override default access method.
       operationId: getUserCredential
       parameters:
         - name: systemName
@@ -397,6 +489,7 @@ paths:
             type: string
         - name: accessMethod
           in: query
+          description: Desired access method to use when fetching credentials, default access method used if not provided.
           schema:
             type: string
             default: ''
@@ -1013,6 +1106,10 @@ components:
           type: array
           items:
             type: string
+    ReqSearchSystemsJson:
+      type: array
+      items:
+        type: string
 
     # --- Response objects ----------------------------------------------------
     RespBasic:

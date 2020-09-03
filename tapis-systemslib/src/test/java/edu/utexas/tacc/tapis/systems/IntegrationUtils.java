@@ -19,6 +19,7 @@ public final class IntegrationUtils
   // Test data
   public static final String tenantName = "dev";
   public static final String ownerUser = "owner1";
+  public static final String ownerUser2 = "owner2";
   public static final String apiUser = "testApiUser";
   public static final String sysNamePrefix = "TestSys";
   public static final Gson gson =  TapisGsonUtils.getGson();
@@ -52,7 +53,7 @@ public final class IntegrationUtils
     for (int i = 0; i < n; i++)
     {
       // Suffix which should be unique for each system within each integration test
-      String suffix = key + "_" + String.format("%03d", i);
+      String suffix = key + "_" + String.format("%03d", i+1);
       String name = sysNamePrefix + "_" + suffix;
       // Constructor initializes all attributes except for JobCapabilities and Credential
       systems[i] = new TSystem(-1, tenantName, name, "description "+suffix, TSystem.SystemType.LINUX, ownerUser,

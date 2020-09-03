@@ -53,8 +53,6 @@ public class SystemsServiceTest
   private SystemsServiceImpl svcImpl;
   private AuthenticatedUser authenticatedOwnerUsr, authenticatedTestUsr0, authenticatedTestUsr1, authenticatedTestUsr2,
           authenticatedTestUsr3, authenticatedAdminUsr, authenticatedFilesSvc;
-
-
   // Test data
   // TODO: Currently admin user for a tenant is hard coded to be 'admin'
   private static final String adminUser = "admin";
@@ -115,6 +113,29 @@ public class SystemsServiceTest
 
     // Cleanup anything leftover from previous failed run
     tearDown();
+  }
+
+  @AfterSuite
+  public void tearDown() throws Exception
+  {
+    System.out.println("Executing AfterSuite teardown for " + SystemsServiceTest.class.getSimpleName());
+    // Remove non-owner permissions granted during the tests
+    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[9].getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[9].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[12].getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[12].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
+// TODO why is following revoke causing an exception?
+    //    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
+    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[14].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
+
+    //Remove all objects created by tests
+    for (int i = 0; i < numSystems; i++)
+    {
+      svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, systems[i].getName());
+    }
+
+    TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, systems[0].getName(), false, null);
+    Assert.assertNull(tmpSys, "System not deleted. System name: " + systems[0].getName());
   }
 
   @Test
@@ -820,29 +841,6 @@ public class SystemsServiceTest
       pass = false;
     }
     Assert.assertTrue(pass);
-  }
-
-  @AfterSuite
-  public void tearDown() throws Exception
-  {
-    System.out.println("Executing AfterSuite teardown method" + SystemsServiceTest.class.getSimpleName());
-    // Remove non-owner permissions granted during the tests
-    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[9].getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[9].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[12].getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[12].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
-// TODO why is following revoke causing an exception?
-    //    svc.revokeUserPermissions(authenticatedOwnerUsr, sysF.getName(), testUser1, testPermsREADMODIFY, scrubbedJson);
-    svc.revokeUserPermissions(authenticatedOwnerUsr, systems[14].getName(), testUser2, testPermsREADMODIFY, scrubbedJson);
-
-    //Remove all objects created by tests
-    for (int i = 0; i < numSystems; i++)
-    {
-      svcImpl.hardDeleteSystemByName(authenticatedAdminUsr, systems[i].getName());
-    }
-
-    TSystem tmpSys = svc.getSystemByName(authenticatedAdminUsr, systems[0].getName(), false, null);
-    Assert.assertNull(tmpSys, "System not deleted. System name: " + systems[0].getName());
   }
 
   /**

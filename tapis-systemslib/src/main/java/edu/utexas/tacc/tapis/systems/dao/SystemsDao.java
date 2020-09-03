@@ -1,12 +1,12 @@
 package edu.utexas.tacc.tapis.systems.dao;
 
+import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation;
 
-import java.sql.Connection;
 import java.util.List;
 
 public interface SystemsDao
@@ -35,6 +35,8 @@ public interface SystemsDao
   TSystem getTSystemByName(String tenant, String name) throws TapisException;
 
   List<TSystem> getTSystems(String tenant, List<String> searchList, List<Integer> IDs) throws TapisException;
+
+  List<TSystem> getTSystemsUsingSearchAST(String tenant, ASTNode searchAST, List<Integer> IDs) throws TapisException;
 
   List<String> getTSystemNames(String tenant) throws TapisException;
 

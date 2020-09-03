@@ -22,7 +22,7 @@ import static edu.utexas.tacc.tapis.systems.IntegrationUtils.*;
 import static org.testng.Assert.assertEquals;
 
 /**
- * Test the SystemsDao class for various search use cases against a DB running locally
+ * Test the SystemsDao getTSystems() call for various search use cases against a DB running locally
  * NOTE: This test pre-processes the search list just as is done in SystemsServiceImpl before it calls the Dao,
  *       including calling SearchUtils.validateAndProcessSearchCondition(cond)
  *       For this reason there is currently no need to have a SearchSystemsTest suite.
@@ -37,10 +37,8 @@ public class SearchDaoTest
   private AuthenticatedUser authenticatedUser;
 
   // Test data
-  private static final String ownerUser2 = "owner2";
-  private static final String testKey = "Srch";
-  private static final String prefixStr = sysNamePrefix + "_" + testKey + "_";
-  private static final String sysNameLikeAll = prefixStr + "*";
+  private static final String testKey = "SrchGet";
+  private static final String sysNameLikeAll = "*" + testKey + "*";
 
   // Strings for searches involving special characters
   private static final String specialChar7Str = ",()~*!\\"; // These 7 may need escaping
@@ -75,8 +73,8 @@ public class SearchDaoTest
   int numSystems = 20;
   TSystem[] systems = IntegrationUtils.makeSystems(numSystems, testKey);
 
-  LocalDateTime createBegin;
-  LocalDateTime createEnd;
+  private LocalDateTime createBegin;
+  private LocalDateTime createEnd;
 
   @BeforeSuite
   public void setup() throws Exception
@@ -109,6 +107,19 @@ public class SearchDaoTest
     }
     Thread.sleep(500);
     createEnd = TapisUtils.getUTCTimeNow();
+  }
+
+  @AfterSuite
+  public void teardown() throws Exception {
+    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    //Remove all objects created by tests
+    for (TSystem sys : systems)
+    {
+      dao.hardDeleteTSystem(tenantName, sys.getName());
+    }
+
+    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
+    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 
   /*
@@ -156,10 +167,10 @@ public class SearchDaoTest
     validCaseInputs.put(43,new CaseData(13, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","port.lte.13")));
     validCaseInputs.put(44,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","port.gt.1","port.lt.7")));
     // Test char relational
-    validCaseInputs.put(50,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1)));
-    validCaseInputs.put(51,new CaseData(numSystems-8, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","host.gt."+hostName7)));
+    validCaseInputs.put(50,new CaseData(1, Arrays.asList("name.like." + sysNameLikeAll,"host.lte."+hostName1)));
+    validCaseInputs.put(51,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"enabled.eq.true","host.gt."+hostName7)));
     validCaseInputs.put(52,new CaseData(5, Arrays.asList("name.like." + sysNameLikeAll,"host.gt."+hostName1,"host.lt."+hostName7)));
-    validCaseInputs.put(53,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll,"host.lt."+hostName1,"host.gt."+hostName7)));
+    validCaseInputs.put(53,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll,"host.lte."+hostName1,"host.gt."+hostName7)));
     validCaseInputs.put(54,new CaseData(7, Arrays.asList("name.like." + sysNameLikeAll,"host.between."+hostName1+","+hostName7)));
     validCaseInputs.put(55,new CaseData(numSystems-7, Arrays.asList("name.like." + sysNameLikeAll,"host.nbetween."+hostName1+","+hostName7)));
     // Test timestamp relational
@@ -187,8 +198,8 @@ public class SearchDaoTest
     // Test wildcards
     validCaseInputs.put(80,new CaseData(numSystems, Arrays.asList("enabled.eq.true","host.like.host" + testKey + "*")));
     validCaseInputs.put(81,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "*")));
-    validCaseInputs.put(82,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
-    validCaseInputs.put(83,new CaseData(10, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
+    validCaseInputs.put(82,new CaseData(9, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.like.host" + testKey + "_00!")));
+    validCaseInputs.put(83,new CaseData(11, Arrays.asList("name.like." + sysNameLikeAll, "enabled.eq.true","host.nlike.host" + testKey + "_00!")));
     // Test that underscore and % get escaped as needed before being used as SQL
     validCaseInputs.put(90,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00_")));
     validCaseInputs.put(91,new CaseData(0, Arrays.asList("name.like." + sysNameLikeAll, "host.like.host" + testKey + "_00%")));
@@ -211,28 +222,13 @@ public class SearchDaoTest
       for (String cond : cd.searchList)
       {
         // Use SearchUtils to validate condition
-        // Add parentheses if not present, check start and end
-        if (!cond.startsWith("(") && !cond.endsWith(")")) cond = "(" + cond + ")";
         String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
         verifiedSearchList.add(verifiedCondStr);
       }
       System.out.println("  For case    # " + caseNum + " VerfiedInput: " + verifiedSearchList);
       List<TSystem> searchResults = dao.getTSystems(tenantName, verifiedSearchList, null);
       System.out.println("  Result size: " + searchResults.size());
-      assertEquals(searchResults.size(), cd.count);
+      assertEquals(searchResults.size(), cd.count,  "SearchDaoTest.testValidCases: Incorrect result count for case number: " + caseNum);
     }
-  }
-
-  @AfterSuite
-  public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown method" + SystemsDaoTest.class.getSimpleName());
-    //Remove all objects created by tests
-    for (TSystem sys : systems)
-    {
-      dao.hardDeleteTSystem(tenantName, sys.getName());
-    }
-
-    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
-    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 }

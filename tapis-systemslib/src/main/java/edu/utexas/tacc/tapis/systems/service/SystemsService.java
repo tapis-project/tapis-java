@@ -43,6 +43,9 @@ public interface SystemsService
   List<TSystem> getSystems(AuthenticatedUser authenticatedUser, List<String> searchList)
           throws TapisException, TapisClientException;
 
+  List<TSystem> getSystemsUsingSqlSearchStr(AuthenticatedUser authenticatedUser, String searchStr)
+          throws TapisException, TapisClientException;
+
   List<String> getSystemNames(AuthenticatedUser authenticatedUser)
           throws TapisException;
 

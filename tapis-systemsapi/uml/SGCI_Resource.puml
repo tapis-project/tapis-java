@@ -23,6 +23,7 @@ end note
 
 
 class SGCIResource {
+  schemaVersion! : string
   id! : ID
   name! : string
   description : string

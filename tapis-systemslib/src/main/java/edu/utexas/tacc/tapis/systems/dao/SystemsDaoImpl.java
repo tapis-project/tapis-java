@@ -8,7 +8,12 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
+import edu.utexas.tacc.tapis.search.parser.ASTLeaf;
+import edu.utexas.tacc.tapis.search.parser.ASTNode;
+import edu.utexas.tacc.tapis.search.parser.ASTUnaryExpression;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import org.apache.activemq.filter.UnaryExpression;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
 import org.jooq.Condition;
@@ -564,7 +569,73 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
       // Always return the connection back to the connection pool.
       LibUtils.finalCloseDB(conn);
     }
+    return retList;
+  }
 
+  /**
+   * getSystemsUsingSearchAST
+   * TODO This method and getSystems almost identical. Might be a way to combine. Construct AST from searchStr?
+   * Search for systems using an abstract syntax tree (AST).
+   * @param tenant - tenant name
+   * @param searchAST - AST containing search conditions
+   * @param IDs - list of system IDs to consider. null indicates no restriction.
+   * @return - list of TSystem objects
+   * @throws TapisException - on error
+   */
+  @Override
+  public List<TSystem> getTSystemsUsingSearchAST(String tenant, ASTNode searchAST, List<Integer> IDs) throws TapisException
+  {
+    // If searchAST null or empty delegate to getTSystems
+    if (searchAST == null) return getTSystems(tenant, null, IDs);
+    // The result list should always be non-null.
+    var retList = new ArrayList<TSystem>();
+
+    // If no IDs in list then we are done.
+    if (IDs != null && IDs.isEmpty()) return retList;
+
+    // ------------------------- Call SQL ----------------------------
+    Connection conn = null;
+    try
+    {
+      // Get a database connection.
+      conn = getConnection();
+      DSLContext db = DSL.using(conn);
+
+      // Begin where condition for this query
+      Condition whereCondition = (SYSTEMS.TENANT.eq(tenant)).and(SYSTEMS.DELETED.eq(false));
+
+      // Add searchAST to where condition
+      Condition astCondition = createConditionFromAst(searchAST);
+      if (astCondition != null) whereCondition = whereCondition.and(astCondition);
+
+      // Add IN condition for list of IDs
+      if (IDs != null && !IDs.isEmpty()) whereCondition = whereCondition.and(SYSTEMS.ID.in(IDs));
+
+      // Execute the select
+      Result<SystemsRecord> results = db.selectFrom(SYSTEMS).where(whereCondition).fetch();
+      if (results == null || results.isEmpty()) return retList;
+
+      // Fill in job capabilities list from aux table
+      for (SystemsRecord r : results)
+      {
+        TSystem s = r.into(TSystem.class);
+        s.setJobCapabilities(retrieveJobCaps(db, s.getId()));
+        retList.add(s);
+      }
+
+      // Close out and commit
+      LibUtils.closeAndCommitDB(conn, null, null);
+    }
+    catch (Exception e)
+    {
+      // Rollback transaction and throw an exception
+      LibUtils.rollbackDB(conn, e,"DB_QUERY_ERROR", "systems", e.getMessage());
+    }
+    finally
+    {
+      // Always return the connection back to the connection pool.
+      LibUtils.finalCloseDB(conn);
+    }
     return retList;
   }
 
@@ -816,7 +887,7 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   }
 
   /**
-   * Add searchList to where condition
+   * Add searchList to where condition. All conditions are joined using AND
    * Validate column name, search comparison operator
    *   and compatibility of column type + search operator + column value
    * @param whereCondition base where condition
@@ -827,47 +898,191 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
   private static Condition addSearchListToWhere(Condition whereCondition, List<String> searchList)
           throws TapisException
   {
-    Condition retCond = whereCondition;
-    if (searchList == null || searchList.isEmpty()) return retCond;
+    if (searchList == null || searchList.isEmpty()) return whereCondition;
     // Parse searchList and add conditions to the WHERE clause
     for (String condStr : searchList)
     {
-      // Parse search value into column name, operator and value
-      // Format must be column_name.op.value
-      String[] parsedStrArray = condStr.split("\\.", 3);
-      // Validate column name
-      String column = parsedStrArray[0];
-      Field<?> col = SYSTEMS.field(DSL.name(column));
-      // If column not found then it is an error
-      if (col == null)
-      {
-        String msg = LibUtils.getMsg("SYSLIB_DB_NO_COLUMN", SYSTEMS.getName(), DSL.name(column));
-        throw new TapisException(msg);
-      }
-      // Validate and convert operator string
-      String opStr = parsedStrArray[1].toUpperCase();
-      SearchOperator op = SearchUtils.getSearchOperator(opStr);
-      if (op == null)
-      {
-        String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", opStr, SYSTEMS.getName(), DSL.name(column));
-        throw new TapisException(msg);
-      }
-
-      // Check that column value is compatible for column type and search operator
-      String val = parsedStrArray[2];
-      checkConditionValidity(col, op, val);
-
-      // If val is a timestamp then convert the string(s) to a form suitable for SQL
-      // Use a utility method since val may be a single item or a list of items, e.g. for the BETWEEN operator
-      if (col.getDataType().getSQLType() == Types.TIMESTAMP)
-      {
-        val = SearchUtils.convertValuesToTimestamps(op, val);
-      }
-
-      // Add the condition to the WHERE clause
-      retCond = addCondition(retCond, col, op, val);
+      whereCondition = addSearchCondStrToWhere(whereCondition, condStr, "AND");
     }
-    return retCond;
+    return whereCondition;
+  }
+
+  /**
+   * Create a condition for abstract syntax tree nodes by recursively walking the tree
+   * @param astNode Abstract syntax tree node to add to the base condition
+   * @return resulting condition
+   * @throws TapisException on error
+   */
+  private static Condition createConditionFromAst(ASTNode astNode) throws TapisException
+  {
+    if (astNode == null || astNode instanceof ASTLeaf)
+    {
+      // A leaf node is a column name or value. Nothing to process since we only process a complete condition
+      //   having the form column_name.op.value. We should never make it to here
+      String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST1", (astNode == null ? "null" : astNode.toString()));
+      throw new TapisException(msg);
+    }
+    else if (astNode instanceof ASTUnaryExpression)
+    {
+      // A unary node should have no operator and contain a binary node with two leaf nodes.
+      // NOTE: Currently unary operators not supported. If support is provided for unary operators (such as NOT) then
+      //   changes will be needed here.
+      ASTUnaryExpression unaryNode = (ASTUnaryExpression) astNode;
+      if (!StringUtils.isBlank(unaryNode.getOp()))
+      {
+        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_UNARY_OP", unaryNode.getOp(), unaryNode.toString());
+        throw new TapisException(msg);
+      }
+      // Recursive call
+      return createConditionFromAst(unaryNode.getNode());
+    }
+    else if (astNode instanceof ASTBinaryExpression)
+    {
+      // It is a binary node
+      ASTBinaryExpression binaryNode = (ASTBinaryExpression) astNode;
+      // Recursive call
+      return createConditionFromBinaryExpression(binaryNode);
+    }
+    return null;
+  }
+
+  /**
+   * Create a condition from an abstract syntax tree binary node
+   * @param binaryNode Abstract syntax tree binary node to add to the base condition
+   * @return resulting condition
+   * @throws TapisException on error
+   */
+  private static Condition createConditionFromBinaryExpression(ASTBinaryExpression binaryNode) throws TapisException
+  {
+    // If we are given a null then something went very wrong.
+    if (binaryNode == null)
+    {
+      String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST2");
+      throw new TapisException(msg);
+    }
+    // If operator is AND or OR then make recursive call for each side and join together
+    // For other operators build the condition left.op.right and add it
+    String op = binaryNode.getOp();
+    ASTNode leftNode = binaryNode.getLeft();
+    ASTNode rightNode = binaryNode.getRight();
+    if (StringUtils.isBlank(op))
+    {
+      String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST3", binaryNode.toString());
+      throw new TapisException(msg);
+    }
+    else if (op.equalsIgnoreCase("AND"))
+    {
+      // Recursive calls
+      Condition cond1 = createConditionFromAst(leftNode);
+      Condition cond2 = createConditionFromAst(rightNode);
+      if (cond1 == null || cond2 == null)
+      {
+        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST4", binaryNode.toString());
+        throw new TapisException(msg);
+      }
+      return cond1.and(cond2);
+
+    }
+    else if (op.equalsIgnoreCase("OR"))
+    {
+      // Recursive calls
+      Condition cond1 = createConditionFromAst(leftNode);
+      Condition cond2 = createConditionFromAst(rightNode);
+      if (cond1 == null || cond2 == null)
+      {
+        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST4", binaryNode.toString());
+        throw new TapisException(msg);
+      }
+      return cond1.or(cond2);
+
+    }
+    else
+    {
+      // End of recursion. Create a single condition.
+      // Since operator is not an AND or an OR we should have 2 unary nodes or a unary and leaf node
+      String lValue;
+      String rValue;
+      if (leftNode instanceof ASTLeaf) lValue = ((ASTLeaf) leftNode).getValue();
+      else if (leftNode instanceof ASTUnaryExpression) lValue =  ((ASTLeaf) ((ASTUnaryExpression) leftNode).getNode()).getValue();
+      else
+      {
+        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST5", binaryNode.toString());
+        throw new TapisException(msg);
+      }
+      if (rightNode instanceof ASTLeaf) rValue = ((ASTLeaf) rightNode).getValue();
+      else if (rightNode instanceof ASTUnaryExpression) rValue =  ((ASTLeaf) ((ASTUnaryExpression) rightNode).getNode()).getValue();
+      else
+      {
+        String msg = LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST6", binaryNode.toString());
+        throw new TapisException(msg);
+      }
+      // Build the string for the search condition, left.op.right
+      String condStr = lValue + "." + binaryNode.getOp() + "." + rValue;
+      // Validate and create a condition from the string
+      return addSearchCondStrToWhere(null, condStr, null);
+    }
+  }
+
+  /**
+   * Take a string containing a single condition and create a new condition or join it to an existing condition.
+   * Validate column name, search comparison operator and compatibility of column type + search operator + column value
+   * @param whereCondition existing condition. If null a new condition is returned.
+   * @param searchStr Single search condition in the form column_name.op.value
+   * @param joinOp If whereCondition is not null use AND or OR to join the condition with the whereCondition
+   * @return resulting where condition
+   * @throws TapisException on error
+   */
+  private static Condition addSearchCondStrToWhere(Condition whereCondition, String searchStr, String joinOp)
+          throws TapisException
+  {
+    // If we have no search string then return what we were given
+    if (StringUtils.isBlank(searchStr)) return whereCondition;
+    // If we are given a condition but no indication of how to join new condition to it then return what we were given
+    if (whereCondition != null && StringUtils.isBlank(joinOp)) return whereCondition;
+    if (whereCondition != null && joinOp != null && !joinOp.equalsIgnoreCase("AND") && !joinOp.equalsIgnoreCase("OR"))
+    {
+      return whereCondition;
+    }
+
+    // Parse search value into column name, operator and value
+    // Format must be column_name.op.value
+    String[] parsedStrArray = searchStr.split("\\.", 3);
+    // Validate column name
+    String column = parsedStrArray[0];
+    Field<?> col = SYSTEMS.field(DSL.name(column));
+    // If column not found then it is an error
+    if (col == null)
+    {
+      String msg = LibUtils.getMsg("SYSLIB_DB_NO_COLUMN", SYSTEMS.getName(), DSL.name(column));
+      throw new TapisException(msg);
+    }
+    // Validate and convert operator string
+    String opStr = parsedStrArray[1].toUpperCase();
+    SearchOperator op = SearchUtils.getSearchOperator(opStr);
+    if (op == null)
+    {
+      String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_OP", opStr, SYSTEMS.getName(), DSL.name(column));
+      throw new TapisException(msg);
+    }
+
+    // Check that column value is compatible for column type and search operator
+    String val = parsedStrArray[2];
+    checkConditionValidity(col, op, val);
+
+     // If val is a timestamp then convert the string(s) to a form suitable for SQL
+    // Use a utility method since val may be a single item or a list of items, e.g. for the BETWEEN operator
+    if (col.getDataType().getSQLType() == Types.TIMESTAMP)
+    {
+      val = SearchUtils.convertValuesToTimestamps(op, val);
+    }
+
+    // Create the condition
+    Condition newCondition = createCondition(col, op, val);
+    // If specified add the condition to the WHERE clause
+    if (StringUtils.isBlank(joinOp)) return newCondition;
+    else if (joinOp.equalsIgnoreCase("AND")) return whereCondition.and(newCondition);
+    else if (joinOp.equalsIgnoreCase("OR")) return whereCondition.or(newCondition);
+    return newCondition;
   }
 
   /**
@@ -911,55 +1126,41 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
 
   /**
    * Add condition to SQL where clause given column, operator, value info
-   * @param cond Where clause to build upon
    * @param col jOOQ column
    * @param op Operator
    * @param val Column value
    * @return Resulting where clause
    */
-  private static Condition addCondition(Condition cond, Field col, SearchOperator op, String val)
+  private static Condition createCondition(Field col, SearchOperator op, String val)
   {
-    Condition retCond = cond;
     List<String> valList = Collections.emptyList();
     if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
     switch (op) {
       case EQ:
-        retCond = cond.and(col.eq(val));
-        break;
+        return col.eq(val);
       case NEQ:
-        retCond = cond.and(col.ne(val));
-        break;
+        return col.ne(val);
       case LT:
-        retCond =  cond.and(col.lt(val));
-        break;
+        return col.lt(val);
       case LTE:
-        retCond =  cond.and(col.le(val));
-        break;
+        return col.le(val);
       case GT:
-        retCond =  cond.and(col.gt(val));
-        break;
+        return col.gt(val);
       case GTE:
-        retCond =  cond.and(col.ge(val));
-        break;
+        return col.ge(val);
       case LIKE:
-        retCond =  cond.and(col.like(val));
-        break;
+        return col.like(val);
       case NLIKE:
-        retCond =  cond.and(col.notLike(val));
-        break;
+        return col.notLike(val);
       case IN:
-        retCond =  cond.and(col.in(valList));
-        break;
+        return col.in(valList);
       case NIN:
-        retCond =  cond.and(col.notIn(valList));
-        break;
+        return col.notIn(valList);
       case BETWEEN:
-        retCond =  cond.and(col.between(valList.get(0), valList.get(1)));
-        break;
+        return col.between(valList.get(0), valList.get(1));
       case NBETWEEN:
-        retCond =  cond.and(col.notBetween(valList.get(0), valList.get(1)));
-        break;
+        return col.notBetween(valList.get(0), valList.get(1));
     }
-    return retCond;
+    return null;
   }
 }

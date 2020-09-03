@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
@@ -35,13 +36,6 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqImportSGCIResource;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.grizzly.http.server.Request;
@@ -96,6 +90,7 @@ public class SystemResource
   // Json schema resource files.
   private static final String FILE_SYSTEM_CREATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemCreateRequest.json";
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
+  private static final String FILE_SYSTEM_SEARCH_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemSearchRequest.json";
   private static final String FILE_SYSTEM_IMPORTSGCI_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemImportSGCIRequest.json";
 
   // Field names used in Json
@@ -813,9 +808,11 @@ public class SystemResource
 
   /**
    * getSystems
+   * Retrieve all systems accessible by requester and matching any search conditions provided as a single
+   * search query parameter.
    * @param searchStr -  List of strings indicating search conditions to use when retrieving results
    * @param securityContext - user identity
-   * @return - list of systems accessible by requester.
+   * @return - list of systems accessible by requester and matching search conditions.
    */
   @GET
   @Consumes(MediaType.APPLICATION_JSON)
@@ -866,7 +863,9 @@ public class SystemResource
     List<String> searchList = null;
     try
     {
-      searchList = SearchUtils.validateAndExtractSearchList(searchStr);
+      // Extract the search conditions and validate their form. Back end will handle translating LIKE wildcard
+      //   characters (* and !) and dealing with special characters in values.
+      searchList = SearchUtils.extractAndValidateSearchList(searchStr);
     }
     catch (Exception e)
     {
@@ -883,6 +882,152 @@ public class SystemResource
     catch (Exception e)
     {
       String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    if (systems == null) systems = Collections.emptyList();
+    int cnt = systems.size();
+    RespSystemArray resp1 = new RespSystemArray(systems);
+    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), resp1);
+  }
+
+  /**
+   * searchSystemsQueryParameters
+   * Dedicated search endpoint for System resource. Search conditions provided as query parameters.
+   * @param securityContext - user identity
+   * @return - list of systems accessible by requester and matching search conditions.
+   */
+  @GET
+  @Path("search/systems")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response searchSystemsQueryParameters(@Context SecurityContext securityContext)
+  {
+    String opName = "searchSystemsGet";
+    // Trace this request.
+    if (_log.isTraceEnabled()) logRequest(opName);
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    // Create search list based on query parameters
+    // Note that some validation is done for each condition but the back end will handle translating LIKE wildcard
+    //   characters (* and !) and deal with escaped characters.
+    List<String> searchList;
+    try
+    {
+      searchList = SearchUtils.buildListFromQueryParms(_uriInfo.getQueryParameters());
+    }
+    catch (Exception e)
+    {
+      String msg = ApiUtils.getMsgAuth("SYSAPI_SEARCH_ERROR", authenticatedUser, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
+
+    // ------------------------- Retrieve all records -----------------------------
+    List<TSystem> systems;
+    try { systems = systemsService.getSystems(authenticatedUser, searchList); }
+    catch (Exception e)
+    {
+      String msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    if (systems == null) systems = Collections.emptyList();
+    int cnt = systems.size();
+    RespSystemArray resp1 = new RespSystemArray(systems);
+    return createSuccessResponse(MsgUtils.getMsg("TAPIS_FOUND", "Systems", cnt + " items"), resp1);
+  }
+
+  /**
+   * searchSystemsRequestBody
+   * Dedicated search endpoint for System resource. Search conditions provided in a request body.
+   * Request body contains an array of strings that are concatenated to form the full SQL-like search string.
+   * @param payloadStream - request body
+   * @param securityContext - user identity
+   * @return - list of systems accessible by requester and matching search conditions.
+   */
+  @POST
+  @Path("search/systems")
+//  @Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response searchSystemsRequestBody(InputStream payloadStream,
+                                           @Context SecurityContext securityContext)
+  {
+    String opName = "searchSystemsPost";
+    // Trace this request.
+    if (_log.isTraceEnabled()) logRequest(opName);
+
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    // ------------------------- Extract and validate payload -------------------------
+    // Read the payload into a string.
+    String rawJson, msg;
+    try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName , e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    // Create validator specification and validate the json against the schema
+    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_SEARCH_REQUEST);
+    try { JsonValidator.validate(spec); }
+    catch (TapisJSONException e)
+    {
+      msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    List<String> searchStrings;
+    try {
+      searchStrings = TapisGsonUtils.getGson().fromJson(rawJson, List.class);
+    }
+    catch (JsonSyntaxException e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    // Concatenate all strings into a single SQL-like search string
+    // When put together full string must be a valid SQL-like where clause. This will be validated in the service call.
+    // Not all SQL syntax is supported. See SqlParser.jj in tapis-shared-searchlib.
+    if (searchStrings == null) searchStrings = Collections.emptyList();
+    StringJoiner sj = new StringJoiner(" ");
+    String searchStr = sj.toString();
+    for (String s : searchStrings) { sj.add(s); }
+    _log.debug("Using search string: " + searchStr);
+
+    // ------------------------- Retrieve all records -----------------------------
+    List<TSystem> systems;
+    try { systems = systemsService.getSystemsUsingSqlSearchStr(authenticatedUser, searchStr); }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_SELECT_ERROR", authenticatedUser, e.getMessage());
       _log.error(msg, e);
       return Response.status(RestUtils.getStatus(e)).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
