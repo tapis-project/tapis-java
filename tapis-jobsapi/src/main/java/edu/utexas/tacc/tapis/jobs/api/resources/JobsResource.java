@@ -300,18 +300,18 @@ public final class JobsResource
 //          long elapsed = Instant.now().toEpochMilli() - startTime;
 //          if (elapsed > timeoutMillis) {
 //              if (_lastQueryDBSucceeded.toggleOff()) {
-//                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+//                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
 //                                               "Excessive query time (" + elapsed + " milliseconds)");
 //                  _log.error(msg);
 //              }
 //              success = false;
 //          } else if (_lastQueryDBSucceeded.toggleOn())
-//              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "database"));
+//              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Jobs Service", "database"));
 //      }
 //      catch (Exception e) {
 //          // Any exception causes us to report failure on first recent occurrence.
 //          if (_lastQueryDBSucceeded.toggleOff()) {
-//              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", e.getMessage());
+//              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", e.getMessage());
 //              _log.error(msg, e);
 //          }
 //          success = false;
@@ -337,16 +337,16 @@ public final class JobsResource
           var tenantMap = TenantManager.getInstance().getTenants();
           if (tenantMap == null) {
               if (_lastQueryTenantsSucceeded.toggleOff()) {
-                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
                                                "Null tenants map.");
                   _log.error(msg);
               }
               success = false;
           } else if (_lastQueryTenantsSucceeded.toggleOn())
-              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Security Kernel", "tenants"));
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Jobs Service", "tenants"));
       } catch (Exception e) {
           if (_lastQueryTenantsSucceeded.toggleOff()) {
-              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Security Kernel", 
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
                                            e.getMessage());
               _log.error(msg, e);
           }
