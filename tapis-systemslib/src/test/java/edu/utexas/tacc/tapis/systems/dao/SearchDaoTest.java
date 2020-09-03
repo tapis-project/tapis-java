@@ -38,8 +38,7 @@ public class SearchDaoTest
 
   // Test data
   private static final String testKey = "SrchGet";
-  private static final String prefixStr = sysNamePrefix + "_" + testKey + "_";
-  private static final String sysNameLikeAll = prefixStr + "*";
+  private static final String sysNameLikeAll = "*" + testKey + "*";
 
   // Strings for searches involving special characters
   private static final String specialChar7Str = ",()~*!\\"; // These 7 may need escaping
@@ -108,6 +107,19 @@ public class SearchDaoTest
     }
     Thread.sleep(500);
     createEnd = TapisUtils.getUTCTimeNow();
+  }
+
+  @AfterSuite
+  public void teardown() throws Exception {
+    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    //Remove all objects created by tests
+    for (TSystem sys : systems)
+    {
+      dao.hardDeleteTSystem(tenantName, sys.getName());
+    }
+
+    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
+    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 
   /*
@@ -216,20 +228,7 @@ public class SearchDaoTest
       System.out.println("  For case    # " + caseNum + " VerfiedInput: " + verifiedSearchList);
       List<TSystem> searchResults = dao.getTSystems(tenantName, verifiedSearchList, null);
       System.out.println("  Result size: " + searchResults.size());
-      assertEquals(searchResults.size(), cd.count);
+      assertEquals(searchResults.size(), cd.count,  "SearchDaoTest.testValidCases: Incorrect result count for case number: " + caseNum);
     }
-  }
-
-  @AfterSuite
-  public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown method" + SystemsDaoTest.class.getSimpleName());
-    //Remove all objects created by tests
-    for (TSystem sys : systems)
-    {
-      dao.hardDeleteTSystem(tenantName, sys.getName());
-    }
-
-    TSystem tmpSystem = dao.getTSystemByName(tenantName, systems[0].getName());
-    Assert.assertNull(tmpSystem, "System not deleted. System name: " + systems[0].getName());
   }
 }
