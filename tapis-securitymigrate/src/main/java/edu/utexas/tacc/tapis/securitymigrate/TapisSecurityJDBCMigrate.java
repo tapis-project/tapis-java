@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;
 import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrate;
 import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrateParms;
 
@@ -29,6 +28,11 @@ public final class TapisSecurityJDBCMigrate
  extends TapisJDBCMigrate
 {
   /* **************************************************************************** */
+  /*                                  Constants                                   */
+  /* **************************************************************************** */
+  private static final String  TAPIS_SEC_DB_NAME = "tapissecdb";	
+	
+  /* **************************************************************************** */
   /*                                    Fields                                    */
   /* **************************************************************************** */
   // Local logger.
@@ -42,7 +46,7 @@ public final class TapisSecurityJDBCMigrate
   /* ---------------------------------------------------------------------------- */
   protected TapisSecurityJDBCMigrate() throws TapisJDBCException
   {
-      super(HikariDSGenerator.TAPIS_SEC_DB_NAME);
+      super(TAPIS_SEC_DB_NAME);
   }
   
   /* **************************************************************************** */
