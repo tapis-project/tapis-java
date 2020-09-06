@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.security.PermitAll;
@@ -34,21 +35,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/")
-public final class JobsResource
+public final class GeneralResource
  extends AbstractResource
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(JobsResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(GeneralResource.class);
     
     // Database check timeouts.
     private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
     
     // The table we query during readiness checks.
-    private static final String QUERY_TABLE = "sk_role";
+    private static final String QUERY_TABLE = "jb_jobs";
     
     // Keep track of the last db monitoring outcome.
     private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
@@ -182,20 +183,20 @@ public final class JobsResource
   public Response checkHealth()
   {
       // Assign the current check count to the probe result object.
-      var skProbe = new SkProbe();
-      skProbe.checkNum = _healthChecks.incrementAndGet();
+      var jobsProbe = new JobsProbe();
+      jobsProbe.checkNum = _healthChecks.incrementAndGet();
       
       // Check the database.
-      if (queryDB(DB_HEALTH_TIMEOUT_MS)) skProbe.databaseAccess = true; 
+      if (queryDB(DB_HEALTH_TIMEOUT_MS)) jobsProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (queryTenants()) skProbe.tenantsAccess = true;
+      if (queryTenants()) jobsProbe.tenantsAccess = true;
       
       // Create the response object.
-      RespProbe r = new RespProbe(skProbe);
+      RespProbe r = new RespProbe(jobsProbe);
       
       // Failure case.
-      if (skProbe.failed()) {
+      if (jobsProbe.failed()) {
         String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Jobs Service");
         return Response.status(Status.SERVICE_UNAVAILABLE).
             entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
@@ -248,20 +249,20 @@ public final class JobsResource
   public Response ready()
   {
       // Assign the current check count to the probe result object.
-      var skProbe = new SkProbe();
-      skProbe.checkNum = _readyChecks.incrementAndGet();
+      var jobsProbe = new JobsProbe();
+      jobsProbe.checkNum = _readyChecks.incrementAndGet();
       
       // Check the database.
-      if (queryDB(DB_READY_TIMEOUT_MS)) skProbe.databaseAccess = true; 
+      if (queryDB(DB_READY_TIMEOUT_MS)) jobsProbe.databaseAccess = true; 
       
       // Check the tenant manager.
-      if (queryTenants()) skProbe.tenantsAccess = true;
+      if (queryTenants()) jobsProbe.tenantsAccess = true;
       
       // Create the response object.
-      RespProbe r = new RespProbe(skProbe);
+      RespProbe r = new RespProbe(jobsProbe);
       
       // Failure case.
-      if (skProbe.failed()) {
+      if (jobsProbe.failed()) {
         String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Jobs Service");
         return Response.status(Status.SERVICE_UNAVAILABLE).
             entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
@@ -288,34 +289,33 @@ public final class JobsResource
   {
       // Start optimistically.
       boolean success = true;
-// TODO: ************ implement
       
       // Any db error or a time expiration fails the connectivity check.
-//      try {
-//          // Try to run a simple query.
-//          long startTime = Instant.now().toEpochMilli();
-//          int result = getRoleImpl().queryDB(QUERY_TABLE);
-//          
-//          // Did the query take too long?
-//          long elapsed = Instant.now().toEpochMilli() - startTime;
-//          if (elapsed > timeoutMillis) {
-//              if (_lastQueryDBSucceeded.toggleOff()) {
-//                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
-//                                               "Excessive query time (" + elapsed + " milliseconds)");
-//                  _log.error(msg);
-//              }
-//              success = false;
-//          } else if (_lastQueryDBSucceeded.toggleOn())
-//              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Jobs Service", "database"));
-//      }
-//      catch (Exception e) {
-//          // Any exception causes us to report failure on first recent occurrence.
-//          if (_lastQueryDBSucceeded.toggleOff()) {
-//              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", e.getMessage());
-//              _log.error(msg, e);
-//          }
-//          success = false;
-//      }
+      try {
+          // Try to run a simple query.
+          long startTime = Instant.now().toEpochMilli();
+          int result = getJobsImpl().queryDB(QUERY_TABLE);
+          
+          // Did the query take too long?
+          long elapsed = Instant.now().toEpochMilli() - startTime;
+          if (elapsed > timeoutMillis) {
+              if (_lastQueryDBSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
+                                               "Excessive query time (" + elapsed + " milliseconds)");
+                  _log.error(msg);
+              }
+              success = false;
+          } else if (_lastQueryDBSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Jobs Service", "database"));
+      }
+      catch (Exception e) {
+          // Any exception causes us to report failure on first recent occurrence.
+          if (_lastQueryDBSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", e.getMessage());
+              _log.error(msg, e);
+          }
+          success = false;
+      }
       
       return success;
   }
@@ -360,7 +360,7 @@ public final class JobsResource
   /*                                    Fields                                    */
   /* **************************************************************************** */
   // Simple class to collect probe results.
-  public final static class SkProbe
+  public final static class JobsProbe
   {
       public long    checkNum;
       public boolean databaseAccess;

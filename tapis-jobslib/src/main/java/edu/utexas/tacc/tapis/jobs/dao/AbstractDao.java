@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.security.authz.dao;
+package edu.utexas.tacc.tapis.jobs.dao;
 
 import java.sql.Connection;
 
@@ -7,19 +7,19 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
 
-public abstract class SkAbstractDao 
+public abstract class AbstractDao 
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SkAbstractDao.class);
+    private static final Logger _log = LoggerFactory.getLogger(AbstractDao.class);
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -38,7 +38,7 @@ public abstract class SkAbstractDao
      * @param dataSource the non-null datasource 
      * @throws TapisException 
      */
-    public SkAbstractDao() throws TapisException
+    public AbstractDao() throws TapisException
     {
       _ds = getDataSource();
     }

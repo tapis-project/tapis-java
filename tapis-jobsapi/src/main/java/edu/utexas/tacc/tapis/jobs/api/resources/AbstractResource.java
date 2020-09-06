@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.requestBody.IReqBody;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
@@ -37,6 +38,11 @@ class AbstractResource
     /* **************************************************************************** */
     /*                             Protected Methods                                */
     /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getJobsImpl:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    protected JobsImpl getJobsImpl() {return JobsImpl.getInstance();}
+    
     /* ---------------------------------------------------------------------------- */
     /* getPayload:                                                                  */
     /* ---------------------------------------------------------------------------- */
