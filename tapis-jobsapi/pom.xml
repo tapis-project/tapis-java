@@ -109,7 +109,7 @@
             </plugin>
         </plugins>
 
-        <finalName>jobsapi</finalName>
+        <finalName>v3</finalName>
     </build>
 
 </project>
