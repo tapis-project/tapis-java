@@ -609,7 +609,7 @@ public final class RuntimeParameters
 	 * print their configuration parameters, including those from this class, 
 	 * when they start up.  
 	 * 
-	 * @param buf
+	 * @param buf output buffer initialized by caller
 	 */
 	public void getRuntimeInfo(StringBuilder buf)
 	{

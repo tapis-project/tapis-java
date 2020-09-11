@@ -882,7 +882,7 @@ public final class VaultImpl
        try {secret = secretRead(tenant, serviceName, pathParms, 0);}
            catch (Exception e) {
                String msg = MsgUtils.getMsg("SK_INVALID_SERVICE_PASSWORD", 
-                                            tenant, serviceName);
+                                            tenant, serviceName, secretName);
                _log.error(msg, e);
                throw e;
            }
