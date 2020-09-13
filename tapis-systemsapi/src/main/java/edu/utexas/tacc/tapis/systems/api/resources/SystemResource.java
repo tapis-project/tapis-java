@@ -29,8 +29,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.search.SearchUtils;
@@ -46,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -55,13 +52,15 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqSearchSystems;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SECRETS_MASK;
@@ -1006,12 +1005,10 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    // Turn the request string into a json object and extract the array of search strings
-    JsonArray searchListJson;
-    try
-    {
-      JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
-      searchListJson = topObj.getAsJsonArray(SEARCH_FIELD);
+    // Create array of search strings form the json object
+    ReqSearchSystems req;
+    try {
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqSearchSystems.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -1023,10 +1020,7 @@ public class SystemResource
     // When put together full string must be a valid SQL-like where clause. This will be validated in the service call.
     // Not all SQL syntax is supported. See SqlParser.jj in tapis-shared-searchlib.
     StringJoiner sj = new StringJoiner(" ");
-    if (searchListJson != null)
-    {
-      for (JsonElement j : searchListJson) { sj.add(j.getAsString()); }
-    }
+    for (String s : req.search) { sj.add(s); }
     String searchStr = sj.toString();
     _log.debug("Using search string: " + searchStr);
 
