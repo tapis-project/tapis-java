@@ -1050,6 +1050,11 @@ public class SystemsDaoImpl extends AbstractDao implements SystemsDao
     // Validate column name
     String column = parsedStrArray[0];
     Field<?> col = SYSTEMS.field(DSL.name(column));
+    // Check for column name passed in as camelcase
+    if (col == null)
+    {
+      col = SYSTEMS.field(DSL.name(SearchUtils.camelCaseToSnakeCase(column)));
+    }
     // If column not found then it is an error
     if (col == null)
     {

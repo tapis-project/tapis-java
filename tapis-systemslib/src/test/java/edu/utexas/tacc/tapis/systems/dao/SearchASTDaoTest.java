@@ -78,7 +78,7 @@ public class SearchASTDaoTest
   @BeforeSuite
   public void setup() throws Exception
   {
-    System.out.println("Executing BeforeSuite setup method: " + SystemsDaoTest.class.getSimpleName());
+    System.out.println("Executing BeforeSuite setup method: " + SearchASTDaoTest.class.getSimpleName());
     dao = new SystemsDaoImpl();
     // Initialize authenticated user
     authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, apiUser, tenantName, null, null);
@@ -110,7 +110,7 @@ public class SearchASTDaoTest
 
   @AfterSuite
   public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    System.out.println("Executing AfterSuite teardown for " + SearchASTDaoTest.class.getSimpleName());
     //Remove all objects created by tests
     for (TSystem sys : systems)
     {

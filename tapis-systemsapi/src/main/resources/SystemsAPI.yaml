@@ -155,7 +155,7 @@ paths:
       tags:
         - systems
       summary: Retrieve systems matching search conditions specified as query parameters
-      description: Retrieve details for systems. Use query parameters to specify search conditions.
+      description: Retrieve details for systems. Use query parameters to specify search conditions. For example ?owner.eq=jdoe&port.gt=1024
       operationId: searchSystemsQueryParameters
       parameters:
         - name: pretty

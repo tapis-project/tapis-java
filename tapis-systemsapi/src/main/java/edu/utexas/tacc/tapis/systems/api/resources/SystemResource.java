@@ -29,6 +29,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import edu.utexas.tacc.tapis.search.SearchUtils;
@@ -100,6 +102,7 @@ public class SystemResource
   private static final String HOST_FIELD = "host";
   private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
   private static final String ACCESS_CREDENTIAL_FIELD = "accessCredential";
+  private static final String SEARCH_FIELD = "search";
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -1003,9 +1006,12 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    List<String> searchStrings;
-    try {
-      searchStrings = TapisGsonUtils.getGson().fromJson(rawJson, List.class);
+    // Turn the request string into a json object and extract the array of search strings
+    JsonArray searchListJson;
+    try
+    {
+      JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+      searchListJson = topObj.getAsJsonArray(SEARCH_FIELD);
     }
     catch (JsonSyntaxException e)
     {
@@ -1016,10 +1022,12 @@ public class SystemResource
     // Concatenate all strings into a single SQL-like search string
     // When put together full string must be a valid SQL-like where clause. This will be validated in the service call.
     // Not all SQL syntax is supported. See SqlParser.jj in tapis-shared-searchlib.
-    if (searchStrings == null) searchStrings = Collections.emptyList();
     StringJoiner sj = new StringJoiner(" ");
+    if (searchListJson != null)
+    {
+      for (JsonElement j : searchListJson) { sj.add(j.getAsString()); }
+    }
     String searchStr = sj.toString();
-    for (String s : searchStrings) { sj.add(s); }
     _log.debug("Using search string: " + searchStr);
 
     // ------------------------- Retrieve all records -----------------------------
