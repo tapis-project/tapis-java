@@ -74,6 +74,7 @@ CREATE TABLE systems
   job_remote_archive_dir VARCHAR(1024),
   tags       TEXT[] NOT NULL,
   notes      JSONB NOT NULL,
+  import_ref_id VARCHAR(256),
   deleted    BOOLEAN NOT NULL DEFAULT false,
   created    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   updated    TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
@@ -105,6 +106,7 @@ COMMENT ON COLUMN systems.job_remote_archive_system IS 'Remote system on which j
 COMMENT ON COLUMN systems.job_remote_archive_dir IS 'Parent directory used for archiving job output files on a remote system';
 COMMENT ON COLUMN systems.tags IS 'Tags for user supplied key:value pairs';
 COMMENT ON COLUMN systems.notes IS 'Notes for general information stored as JSON';
+COMMENT ON COLUMN systems.import_ref_id IS 'Optional reference ID for systems created via import';
 COMMENT ON COLUMN systems.deleted IS 'Indicates if system has been soft deleted';
 COMMENT ON COLUMN systems.created IS 'UTC time for when record was created';
 COMMENT ON COLUMN systems.updated IS 'UTC time for when record was last updated';

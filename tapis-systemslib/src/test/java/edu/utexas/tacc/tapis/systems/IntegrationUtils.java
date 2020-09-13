@@ -60,7 +60,7 @@ public final class IntegrationUtils
               "host"+suffix, true,"effUser"+suffix, prot1.getAccessMethod(), "bucket"+suffix, "/root"+suffix,
               prot1.getTransferMethods(), prot1.getPort(), prot1.isUseProxy(), prot1.getProxyHost(), prot1.getProxyPort(),
               false, "jobLocalWorkDir"+suffix, "jobLocalArchDir"+suffix, "jobRemoteArchSystem"+suffix,"jobRemoteArchDir1"+suffix,
-              tags, notes, false, null, null);
+              tags, notes, null, false, null, null);
       systems[i].setJobCapabilities(capList);
     }
     return systems;

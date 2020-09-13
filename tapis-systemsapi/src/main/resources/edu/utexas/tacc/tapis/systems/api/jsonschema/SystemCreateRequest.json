@@ -39,6 +39,7 @@
       "type": "array",
       "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
     },
-    "notes": { "type": "object" }
+    "notes": { "type": "object" },
+    "importRefId": { "type": "string", "maxLength": 256 }
   }
 }

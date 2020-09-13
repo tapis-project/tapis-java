@@ -154,6 +154,7 @@ public class SearchASTDaoTest
     validCaseInputs.put(16,new CaseData(1, "name LIKE " + sq(sys0Name)));
     validCaseInputs.put(17,new CaseData(0, "name LIKE 'NOSUCHSYSTEMxFM2c29bc8RpKWeE2sht7aZrJzQf3s'"));
     validCaseInputs.put(18,new CaseData(numSystems, "name LIKE " + sysNameLikeAll));
+// TODO - continue
 //    validCaseInputs.put(19,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll + " AND name NLIKE " + sys0Name)); // TODO support NLIKE
 //    validCaseInputs.put(20,new CaseData(1, "name LIKE " + sysNameLikeAll + " AND name IN " + nameList)); // TODO
 //    validCaseInputs.put(21,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "name.nin." + nameList));
