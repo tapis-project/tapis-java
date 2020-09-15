@@ -96,6 +96,7 @@ public final class TSystem
   private List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   private String[] tags;       // List of arbitrary tags as strings
   private Object notes;      // Simple metadata as json
+  private String importRefId; // Optional reference ID for systems created via import
   private boolean deleted;
 
   private Instant created; // UTC time for when record was created
@@ -134,7 +135,7 @@ public final class TSystem
                  List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
                  boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
                  String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1,
-                 String[] tags1, Object notes1, boolean deleted1, Instant created1, Instant updated1)
+                 String[] tags1, Object notes1, String importRefId1, boolean deleted1, Instant created1, Instant updated1)
   {
     id = id1;
     tenant = tenant1;
@@ -178,6 +179,7 @@ public final class TSystem
     jobRemoteArchiveDir = jobRemoteArchiveDir1;
     tags = (tags1 == null) ? null : tags1.clone();
     notes = notes1;
+    importRefId = importRefId1;
     deleted = deleted1;
     created = created1;
     updated = updated1;
@@ -218,6 +220,7 @@ public final class TSystem
     jobCapabilities = (t.getJobCapabilities() == null) ? null :  new ArrayList<>(t.getJobCapabilities());
     tags = (t.getTags() == null) ? null : t.getTags().clone();
     notes = t.getNotes();
+    importRefId = t.getImportRefId();
     deleted = t.isDeleted();
   }
 
@@ -341,6 +344,10 @@ public final class TSystem
 
   public Object getNotes() { return notes; }
   public TSystem setNotes(Object n) { notes = n; return this; }
+
+  public String getImportRefId() { return importRefId; }
+  public TSystem setImportRefId(String s) { importRefId = s; return this; }
+
 
   public boolean isDeleted() { return deleted; }
   void setDeleted(boolean b) { deleted = b; }

@@ -78,7 +78,7 @@ public class SearchASTDaoTest
   @BeforeSuite
   public void setup() throws Exception
   {
-    System.out.println("Executing BeforeSuite setup method: " + SystemsDaoTest.class.getSimpleName());
+    System.out.println("Executing BeforeSuite setup method: " + SearchASTDaoTest.class.getSimpleName());
     dao = new SystemsDaoImpl();
     // Initialize authenticated user
     authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, apiUser, tenantName, null, null);
@@ -110,7 +110,7 @@ public class SearchASTDaoTest
 
   @AfterSuite
   public void teardown() throws Exception {
-    System.out.println("Executing AfterSuite teardown for " + SystemsDaoTest.class.getSimpleName());
+    System.out.println("Executing AfterSuite teardown for " + SearchASTDaoTest.class.getSimpleName());
     //Remove all objects created by tests
     for (TSystem sys : systems)
     {
@@ -154,6 +154,7 @@ public class SearchASTDaoTest
     validCaseInputs.put(16,new CaseData(1, "name LIKE " + sq(sys0Name)));
     validCaseInputs.put(17,new CaseData(0, "name LIKE 'NOSUCHSYSTEMxFM2c29bc8RpKWeE2sht7aZrJzQf3s'"));
     validCaseInputs.put(18,new CaseData(numSystems, "name LIKE " + sysNameLikeAll));
+// TODO - continue
 //    validCaseInputs.put(19,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll + " AND name NLIKE " + sys0Name)); // TODO support NLIKE
 //    validCaseInputs.put(20,new CaseData(1, "name LIKE " + sysNameLikeAll + " AND name IN " + nameList)); // TODO
 //    validCaseInputs.put(21,new CaseData(numSystems-1, "name LIKE " + sysNameLikeAll, "name.nin." + nameList));

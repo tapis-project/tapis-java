@@ -37,4 +37,5 @@ public final class ReqCreateSystem
   public List<Capability> jobCapabilities; // List of job related capabilities supported by the system
   public String[] tags;       // List of arbitrary tags as strings
   public Object notes;      // Simple metadata as json
+  public String refImportId; // Optional reference ID for systems created via import
 }

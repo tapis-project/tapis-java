@@ -22,7 +22,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = 1514990404;
+    private static final long serialVersionUID = 188386692;
 
     /**
      * Setter for <code>tapis_sys.systems.id</code>. System id
@@ -361,45 +361,59 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
+     * Setter for <code>tapis_sys.systems.import_ref_id</code>. Optional reference ID for systems created via import
+     */
+    public void setImportRefId(String value) {
+        set(24, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.import_ref_id</code>. Optional reference ID for systems created via import
+     */
+    public String getImportRefId() {
+        return (String) get(24);
+    }
+
+    /**
      * Setter for <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
      */
     public void setDeleted(Boolean value) {
-        set(24, value);
+        set(25, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
      */
     public Boolean getDeleted() {
-        return (Boolean) get(24);
+        return (Boolean) get(25);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.created</code>. UTC time for when record was created
      */
     public void setCreated(LocalDateTime value) {
-        set(25, value);
+        set(26, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.created</code>. UTC time for when record was created
      */
     public LocalDateTime getCreated() {
-        return (LocalDateTime) get(25);
+        return (LocalDateTime) get(26);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.updated</code>. UTC time for when record was last updated
      */
     public void setUpdated(LocalDateTime value) {
-        set(26, value);
+        set(27, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.updated</code>. UTC time for when record was last updated
      */
     public LocalDateTime getUpdated() {
-        return (LocalDateTime) get(26);
+        return (LocalDateTime) get(27);
     }
 
     // -------------------------------------------------------------------------
@@ -425,7 +439,7 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     /**
      * Create a detached, initialised SystemsRecord
      */
-    public SystemsRecord(Integer id, String tenant, String name, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AccessMethod defaultAccessMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, Boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir, String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String[] tags, JsonElement notes, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
+    public SystemsRecord(Integer id, String tenant, String name, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AccessMethod defaultAccessMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, Boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir, String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String[] tags, JsonElement notes, String importRefId, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
         super(Systems.SYSTEMS);
 
         set(0, id);
@@ -452,8 +466,9 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
         set(21, jobRemoteArchiveDir);
         set(22, tags);
         set(23, notes);
-        set(24, deleted);
-        set(25, created);
-        set(26, updated);
+        set(24, importRefId);
+        set(25, deleted);
+        set(26, created);
+        set(27, updated);
     }
 }

@@ -45,7 +45,7 @@ echo "    moving $SRVC.jar to Dockerfile context deployment/tapis-${SRVC} "
 cp $SRVC_DIR/${SRVC}.jar $BUILD_DIR
 
 echo "    building the docker image from deployment/tapis-${SRVC}/Dockerfile"
-echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=$SRVC.war --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
+echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=$SRVC.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
 docker image build -f $BUILD_FILE --build-arg SRVC_JAR=${SRVC}.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
 
 echo "    removing $BUILD_DIR/${SRVC}.jar"

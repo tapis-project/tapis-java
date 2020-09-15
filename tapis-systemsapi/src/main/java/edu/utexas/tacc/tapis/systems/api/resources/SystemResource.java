@@ -36,6 +36,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqImportSGCIResource;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSGCISystem;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.grizzly.http.server.Request;
@@ -44,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystemArray;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.model.PatchSystem;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -53,13 +53,15 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateSystem;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqSearchSystems;
+import edu.utexas.tacc.tapis.systems.api.requests.ReqUpdateSystem;
 import edu.utexas.tacc.tapis.systems.api.responses.RespSystem;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import static edu.utexas.tacc.tapis.systems.model.Credential.SECRETS_MASK;
@@ -92,6 +94,7 @@ public class SystemResource
   private static final String FILE_SYSTEM_UPDATE_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateRequest.json";
   private static final String FILE_SYSTEM_SEARCH_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemSearchRequest.json";
   private static final String FILE_SYSTEM_IMPORTSGCI_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemImportSGCIRequest.json";
+  private static final String FILE_SYSTEM_UPDATESGCI_REQUEST = "/edu/utexas/tacc/tapis/systems/api/jsonschema/SystemUpdateSGCIRequest.json";
 
   // Field names used in Json
   private static final String NAME_FIELD = "name";
@@ -100,6 +103,7 @@ public class SystemResource
   private static final String HOST_FIELD = "host";
   private static final String DEFAULT_ACCESS_METHOD_FIELD = "defaultAccessMethod";
   private static final String ACCESS_CREDENTIAL_FIELD = "accessCredential";
+  private static final String SEARCH_FIELD = "search";
 
   // ************************************************************************
   // *********************** Fields *****************************************
@@ -345,7 +349,8 @@ public class SystemResource
 //          }
 //  )
   public Response updateSystem(@PathParam("systemName") String systemName,
-                               InputStream payloadStream, @Context SecurityContext securityContext)
+                               InputStream payloadStream,
+                               @Context SecurityContext securityContext)
   {
     String opName = "updateSystem";
     // Trace this request.
@@ -463,39 +468,10 @@ public class SystemResource
   @Path("import/sgci")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-// See tapis-java/tapis-systemsapi/src/main/resources for latest OpenAPI specification
-//  @Operation(
-//          summary = "Import a system. Create a system based on attributes from the SGCI resource catalog",
-//          description = "See tapis-java/tapis-systemsapi/src/main/resources for latest OpenAPI specification",
-//          description =
-//                  "Import a system by creating a system based on attributes from the SGCI resource catalog. " +
-//                  "The SGCI resource ID must be specified in the request body. Optional attributes that may " +
-//                  "specified in the request body are: name, description, enabled, effectiveUserId, accessCredential," +
-//                  "jobRemoteArchiveSystem, jobRemoteArchiveDir, jobCapabilities, tags and notes.",
-//          tags = "systems",
-//          requestBody =
-//          @RequestBody(
-//                  description = "A JSON object specifying information for the system to be imported.",
-//                  required = true,
-//                  content = @Content(schema = @Schema(implementation = ReqImportSGCIResource.class))
-//          ),
-//          responses = {
-//                  @ApiResponse(responseCode = "201", description = "System created.",
-//                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-//                  @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//                  @ApiResponse(responseCode = "409", description = "System already exists.",
-//                          content = @Content(schema = @Schema(implementation = RespResourceUrl.class))),
-//                  @ApiResponse(responseCode = "500", description = "Server error.",
-//                          content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-//          }
-//  )
   public Response importSGCIResource(InputStream payloadStream,
                                      @Context SecurityContext securityContext)
   {
-    String opName = "importSystem";
+    String opName = "importSGCIResource";
     // Trace this request.
     if (_log.isTraceEnabled()) logRequest(opName);
 
@@ -546,8 +522,19 @@ public class SystemResource
     if (true)
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse("WIP: COMING SOON", prettyPrint)).build();
 
-    // Create a TSystem from the request
-    TSystem system = null; //createTSystemFromRequest(req);
+    // Construct the name or get it from the request
+    String systemName;
+    if (StringUtils.isBlank(req.name))
+    {
+      systemName = "sgci-" + req.sgciResourceId;
+    }
+    else
+    {
+      systemName = req.name;
+    }
+    // TODO Create a TSystem from the request
+    TSystem system = null; //createTSystemFromSGCIImportRequest(req, systemName);
+    system.setImportRefId(req.sgciResourceId);
     // Fill in defaults and check constraints on TSystem attributes
     resp = validateTSystem(system, authenticatedUser, prettyPrint);
     if (resp != null) return resp;
@@ -563,7 +550,6 @@ public class SystemResource
     // ---------------------------- Make service call to create the system -------------------------------
     // Update tenant name and pull out system name for convenience
     system.setTenant(authenticatedUser.getTenantId());
-    String systemName = system.getName();
     try
     {
       systemsService.createSystem(authenticatedUser, system, scrubbedJson);
@@ -613,6 +599,132 @@ public class SystemResource
     RespResourceUrl resp1 = new RespResourceUrl(respUrl);
     return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
             ApiUtils.getMsgAuth("SYSAPI_CREATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
+  }
+
+  /**
+   * Update a system that was created based on an SGCI resource
+   * @param payloadStream - request body
+   * @param securityContext - user identity
+   * @return response containing reference to updated object
+   */
+  @PATCH
+  @Path("import/sgci/{systemName}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response updateSGCISystem(@PathParam("systemName") String systemName,
+                                   InputStream payloadStream,
+                                   @Context SecurityContext securityContext)
+  {
+    String opName = "updateSGCISystem";
+    // Trace this request.
+    if (_log.isTraceEnabled()) logRequest(opName);
+
+    // ------------------------- Retrieve and validate thread context -------------------------
+    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get(); // Local thread context
+    boolean prettyPrint = threadContext.getPrettyPrint();
+    // Check that we have all we need from the context, the tenant name and apiUserId
+    // Utility method returns null if all OK and appropriate error response if there was a problem.
+    Response resp = ApiUtils.checkContext(threadContext, prettyPrint);
+    if (resp != null) return resp;
+
+    // Get AuthenticatedUser which contains jwtTenant, jwtUser, oboTenant, oboUser, etc.
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) securityContext.getUserPrincipal();
+
+    // ------------------------- Extract and validate payload -------------------------
+    // Read the payload into a string.
+    String rawJson, msg;
+    try { rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8); }
+    catch (Exception e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName , e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    // Create validator specification and validate the json against the schema
+    JsonValidatorSpec spec = new JsonValidatorSpec(rawJson, FILE_SYSTEM_UPDATESGCI_REQUEST);
+    try { JsonValidator.validate(spec); }
+    catch (TapisJSONException e)
+    {
+      msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ------------------------- Create a PatchSystem from the json and validate constraints -------------------------
+    ReqUpdateSGCISystem req;
+    try {
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqUpdateSGCISystem.class);
+    }
+    catch (JsonSyntaxException e)
+    {
+      msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", opName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // TODO ???????????????????????????????????????????????????????????????
+    if (true)
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse("WIP: COMING SOON", prettyPrint)).build();
+
+    // TODO
+    PatchSystem patchSystem = null;// createPatchSystemFromSGCIRequest(req, authenticatedUser.getTenantId(), systemName);
+
+    // Extract Notes from the raw json.
+    Object notes = extractNotes(rawJson);
+    patchSystem.setNotes(notes);
+
+    // No attributes are required. Constraints validated and defaults filled in on server side.
+    // No secrets in PatchSystem so no need to scrub
+
+    // ---------------------------- Make service call to update the system -------------------------------
+    try
+    {
+      systemsService.updateSystem(authenticatedUser, patchSystem, rawJson);
+    }
+    catch (NotFoundException e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_NOT_FOUND", authenticatedUser, systemName);
+      _log.warn(msg);
+      return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    catch (IllegalStateException e)
+    {
+      if (e.getMessage().contains("SYSLIB_UNAUTH"))
+      {
+        // IllegalStateException with msg containing SYS_UNAUTH indicates operation not authorized for apiUser - return 401
+        msg = ApiUtils.getMsgAuth("SYSAPI_SYS_UNAUTH", authenticatedUser, systemName, opName);
+        _log.warn(msg);
+        return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+      else
+      {
+        // IllegalStateException indicates an Invalid PatchSystem was passed in
+        msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+        _log.error(msg);
+        return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+      }
+    }
+    catch (IllegalArgumentException e)
+    {
+      // IllegalArgumentException indicates somehow a bad argument made it this far
+      msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg);
+      return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+    catch (Exception e)
+    {
+      msg = ApiUtils.getMsgAuth("SYSAPI_UPDATE_ERROR", authenticatedUser, systemName, e.getMessage());
+      _log.error(msg, e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+    }
+
+    // ---------------------------- Success -------------------------------
+    // Success means updates were applied
+    ResultResourceUrl respUrl = new ResultResourceUrl();
+    respUrl.url = _request.getRequestURL().toString();
+    RespResourceUrl resp1 = new RespResourceUrl(respUrl);
+    return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            ApiUtils.getMsgAuth("SYSAPI_UPDATED", authenticatedUser, systemName), prettyPrint, resp1)).build();
   }
 
   /**
@@ -1003,9 +1115,10 @@ public class SystemResource
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
 
-    List<String> searchStrings;
+    // Create array of search strings form the json object
+    ReqSearchSystems req;
     try {
-      searchStrings = TapisGsonUtils.getGson().fromJson(rawJson, List.class);
+      req = TapisGsonUtils.getGson().fromJson(rawJson, ReqSearchSystems.class);
     }
     catch (JsonSyntaxException e)
     {
@@ -1016,10 +1129,9 @@ public class SystemResource
     // Concatenate all strings into a single SQL-like search string
     // When put together full string must be a valid SQL-like where clause. This will be validated in the service call.
     // Not all SQL syntax is supported. See SqlParser.jj in tapis-shared-searchlib.
-    if (searchStrings == null) searchStrings = Collections.emptyList();
     StringJoiner sj = new StringJoiner(" ");
+    for (String s : req.search) { sj.add(s); }
     String searchStr = sj.toString();
-    for (String s : searchStrings) { sj.add(s); }
     _log.debug("Using search string: " + searchStr);
 
     // ------------------------- Retrieve all records -----------------------------
@@ -1116,21 +1228,12 @@ public class SystemResource
    */
   private static TSystem createTSystemFromRequest(ReqCreateSystem req)
   {
-/*
-  public TSystem(int id1, String tenant1, String name1, String description1, SystemType systemType1,
-                 String owner1, String host1, boolean enabled1, String effectiveUserId1, AccessMethod defaultAccessMethod1,
-                 String bucketName1, String rootDir1,
-                 List<TransferMethod> transferMethods1, int port1, boolean useProxy1, String proxyHost1, int proxyPort1,
-                 boolean jobCanExec1, String jobLocalWorkingDir1, String jobLocalArchiveDir1,
-                 String jobRemoteArchiveSystem1, String jobRemoteArchiveDir1,
-                 String[] tags1, Object notes1, boolean deleted1, Instant created1, Instant updated1)
- */
     var system = new TSystem(-1, null, req.name, req.description, req.systemType, req.owner, req.host,
                        req.enabled, req.effectiveUserId, req.defaultAccessMethod,
                        req.bucketName, req.rootDir, req.transferMethods, req.port, req.useProxy,
                        req.proxyHost, req.proxyPort, req.jobCanExec, req.jobLocalWorkingDir,
                        req.jobLocalArchiveDir, req.jobRemoteArchiveSystem, req.jobRemoteArchiveDir,
-                       req.tags, req.notes, false, null, null);
+                       req.tags, req.notes, req.refImportId, false, null, null);
     system.setAccessCredential(req.accessCredential);
     system.setJobCapabilities(req.jobCapabilities);
     return system;

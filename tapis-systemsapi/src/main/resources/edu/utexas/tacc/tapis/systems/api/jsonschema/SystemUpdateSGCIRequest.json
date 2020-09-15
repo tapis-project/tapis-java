@@ -1,0 +1,24 @@
+{
+  "$id": "http://tapis.tacc.utexas.edu/SystemUpdateSGCIRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Schema for a request to update a system that was created based on an SGCI resource",
+  "additionalProperties": false,
+
+  "type": "object",
+  "required": [ "sgciResourceId" ],
+  "properties": {
+    "sgciResourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "enabled": { "type": "boolean", "default": true },
+    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+    "jobCapabilities": {
+      "type": "array",
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
+    },
+    "notes": { "type": "object" }
+  }
+}

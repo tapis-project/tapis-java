@@ -4,7 +4,6 @@
   "description": "Schema for a request to create a system based on attributes from an SGCI resource",
   "additionalProperties": false,
   "$comment": "TODO: remove comments",
-  "$comment": "Add property sgciResourceId to system defn",
   "$comment": "Use tenant+sgciId by default or tenant+name if optional name is supplied",
   "$comment": "what if sgciId does not conform to Tapis3 name requirements?",
   "$comment": "allow user to override some fields (such as description) at create time?",
@@ -17,7 +16,7 @@
   "type": "object",
   "required": [ "sgciResourceId", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
   "properties": {
-    "sgciResourceId": { "type": "string" },
+    "sgciResourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
     "description": { "type": "string", "maxLength": 2048 },
     "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },

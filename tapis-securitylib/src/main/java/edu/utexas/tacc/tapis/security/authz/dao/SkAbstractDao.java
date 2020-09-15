@@ -40,7 +40,6 @@ public abstract class SkAbstractDao
      */
     public SkAbstractDao() throws TapisException
     {
-      //_ds = SkDaoUtils.getDataSource();
       _ds = getDataSource();
     }
     

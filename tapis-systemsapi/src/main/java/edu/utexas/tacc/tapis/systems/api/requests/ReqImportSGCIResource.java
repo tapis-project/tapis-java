@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.systems.api.requests;
 
 import edu.utexas.tacc.tapis.systems.model.Capability;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import io.swagger.v3.oas.annotations.Parameters;
 
 import java.util.List;
 
@@ -13,7 +12,7 @@ import java.util.List;
  */
 public final class ReqImportSGCIResource
 {
-  public String sgciResourceId; // ID of SGCI resource
+  public String sgciResourceId; // ID of SGCI resource - required
   public String name;       // Name of the system
   public String description; // Description of the system
   public String owner;      // User who owns the system and has full privileges

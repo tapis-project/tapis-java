@@ -6,25 +6,28 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="tapis-securityapi" />
-        <module name="tapis-shared-queue" />
-        <module name="tapis-systemsapi" />
-        <module name="tenants-client" />
-        <module name="meta" />
-        <module name="tapis-shared-lib" />
-        <module name="systems-client" />
-        <module name="security-client" />
-        <module name="tapis-securitylib" />
-        <module name="tapis-systemslib" />
         <module name="shared" />
         <module name="files-client" />
-        <module name="auth-client" />
         <module name="tapis-shared-db" />
-        <module name="tapis-shared-searchlib" />
-        <module name="meta-client" />
-        <module name="tokens-client" />
-        <module name="tapis-securitymigrate" />
+        <module name="tapis-systemslib" />
         <module name="tapis-shared-api" />
+        <module name="tapis-jobslib" />
+        <module name="meta-client" />
+        <module name="tapis-shared-lib" />
+        <module name="tapis-securitylib" />
+        <module name="tapis-jobsapi" />
+        <module name="tokens-client" />
+        <module name="auth-client" />
+        <module name="tapis-securityapi" />
+        <module name="tapis-shared-searchlib" />
+        <module name="tapis-securitymigrate" />
+        <module name="meta" />
+        <module name="tapis-systemsapi" />
+        <module name="tapis-jobsmigrate" />
+        <module name="security-client" />
+        <module name="systems-client" />
+        <module name="tapis-shared-queue" />
+        <module name="tenants-client" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -37,6 +40,9 @@
       <module name="systems-client" target="1.13" />
       <module name="tapis-client-java" target="1.5" />
       <module name="tapis-java" target="1.5" />
+      <module name="tapis-jobsapi" target="1.13" />
+      <module name="tapis-jobslib" target="1.13" />
+      <module name="tapis-jobsmigrate" target="1.13" />
       <module name="tapis-securityapi" target="1.13" />
       <module name="tapis-securitylib" target="1.13" />
       <module name="tapis-securitymigrate" target="1.13" />

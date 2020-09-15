@@ -2,11 +2,8 @@ package edu.utexas.tacc.tapis.sql2java.utils;
 
 import java.util.HashMap;
 
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.utexas.tacc.tapis.shared.utils.ComparableRecursiveToStringStyle;
 
 public final class Sql2JavaUtils 
 {

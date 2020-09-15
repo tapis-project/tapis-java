@@ -277,7 +277,7 @@ public class SystemsDaoTest
             "effUser", prot2.getAccessMethod(), "bucket", "/root", prot2.getTransferMethods(),
             prot2.getPort(), prot2.isUseProxy(), prot2.getProxyHost(), prot2.getProxyPort(), false,
             "jobLocalWorkDir", "jobLocalArchDir", "jobRemoteArchSystem","jobRemoteArchDir",
-            tags, notes, false, null, null);
+            tags, notes, null, false, null, null);
     // Make sure system does not exist
     Assert.assertFalse(dao.checkForTSystemByName(tenantName, fakeSystemName, true));
     Assert.assertFalse(dao.checkForTSystemByName(tenantName, fakeSystemName, false));
