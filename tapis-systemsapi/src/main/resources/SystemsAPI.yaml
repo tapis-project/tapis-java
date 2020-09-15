@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Tapis Systems API
-  description: 'The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.'
+  description: The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.
   version: '0.0.1'
   termsOfService: "https://tapis-project.org"
   contact:
@@ -110,7 +110,7 @@ paths:
       tags:
         - systems
       summary: Create a system
-      description: 'Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters: [-._~]. Name must begin with an alphabetic character and can be no more than 256 characters in length. Description is optional with a maximum length of 2048 characters.'
+      description: Create a system using a request body. System name must be unique within a tenant and can be composed of alphanumeric characters and the following special characters [-._~]. Name must begin with an alphabetic character and can be no more than 256 characters in length. Description is optional with a maximum length of 2048 characters.'
       operationId: createSystem
       requestBody:
         required: true
@@ -155,7 +155,7 @@ paths:
       tags:
         - systems
       summary: Retrieve systems matching search conditions specified as query parameters
-      description: Retrieve details for systems. Use query parameters to specify search conditions.
+      description: Retrieve details for systems. Use query parameters to specify search conditions. For example ?owner.eq=jdoe&port.gt=1024
       operationId: searchSystemsQueryParameters
       parameters:
         - name: pretty
@@ -200,7 +200,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReqSearchSystemsJson'
+              $ref: '#/components/schemas/ReqSearchSystems'
 #          text/plain:
 #            schema:
 #              $ref: '#/components/schemas/ReqSearchSystemsText'
@@ -240,7 +240,7 @@ paths:
       tags:
         - systems
       summary: Import an SGCI resource.
-      description: 'Create a system based on attributes from a resource in the SGCI resource catalog. The SGCI resource ID must be specified in the request body.'
+      description: Create a system based on attributes from resource in SGCI catalog. SGCI resource ID required. Optional attributes are name, description, owner, enabled, effectiveUserId, accessCredential, jobRemoteArchiveSystem, jobRemoteArchiveDir, jobCapabilities, tags, notes.
       operationId: importSGCIResource
       requestBody:
         required: true
@@ -274,6 +274,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespResourceUrl'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+  '/v3/systems/import/sgci/{systemName}':
+    patch:
+      tags:
+        - systems
+      summary: Update a system that was imported from an SGCI resource
+      description: Update attributes for a system based on an SGCI resource. SGCI resource ID required. Optional attributes are description, enabled, effectiveUserId, jobCapabilities, tags, notes.
+      operationId: updateSGCIResource
+      parameters:
+        - name: systemName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: A JSON object specifying SGCI resource ID and changes to be applied.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReqUpdateSGCISystem'
+      responses:
+        '200':
+          description: System updated through import.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespResourceUrl'
+        '400':
+          description: Input error. Invalid JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
+        '404':
+          description: System not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespBasic'
         '500':
           description: Server error.
           content:
@@ -341,7 +392,7 @@ paths:
       tags:
         - systems
       summary: Soft delete a system
-      description: 'Soft delete a system given the system name.'
+      description: Soft delete a system given the system name.
       operationId: deleteSystemByName
       parameters:
         - name: systemName
@@ -378,7 +429,7 @@ paths:
       tags:
         - systems
       summary: Update a system
-      description: 'Update attributes for a system. Only certain attributes may be updated: description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.'
+      description: Update attributes for a system. Attributes that may be updated are description, host, enabled, effectiveUserId, defaultAccessMethod, transferMethods, port, useProxy, proxyHost, proxyPort, jobCapabilities, tags, notes.
       operationId: updateSystem
       parameters:
         - name: systemName
@@ -670,7 +721,7 @@ paths:
       tags:
         - permissions
       summary: Create system user permissions
-      description: 'Create permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
+      description: Create permissions in the Security Kernel for a user. Requester must be owner of the system. Permissions are READ, MODIFY or ALL.
       operationId: grantUserPerms
       parameters:
         - name: systemName
@@ -721,7 +772,7 @@ paths:
       tags:
         - permissions
       summary: Revoke system user permissions
-      description: 'Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
+      description: Revoke permissions in the Security Kernel for a user. Requester must be owner of the system. Permissions are READ, MODIFY or ALL.
       operationId: revokeUserPerms
       parameters:
         - name: systemName
@@ -766,7 +817,7 @@ paths:
       tags:
         - permissions
       summary: Revoke system user permission
-      description: 'Revoke system user permission in the Security Kernel. Requester must be owner of the system. Permissions: READ, MODIFY or ALL.'
+      description: Revoke system user permission in the Security Kernel. Requester must be owner of the system. Permissions are READ, MODIFY or ALL.
       operationId: revokeUserPerm
       parameters:
         - name: systemName
@@ -896,6 +947,8 @@ components:
             type: string
         notes:
           type: object
+        importRefId:
+          type: string
         deleted:
           type: boolean
         created:
@@ -1084,6 +1137,28 @@ components:
             type: string
         notes:
           type: object
+    ReqUpdateSGCISystem:
+      type: object
+      required: [sgciResourceId]
+      properties:
+        sgciResourceId:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        effectiveUserId:
+          type: string
+        jobCapabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: object
     ReqCreateCredential:
       type: object
       properties:
@@ -1106,10 +1181,13 @@ components:
           type: array
           items:
             type: string
-    ReqSearchSystemsJson:
-      type: array
-      items:
-        type: string
+    ReqSearchSystems:
+      type: object
+      properties:
+        search:
+          type: array
+          items:
+            type: string
 
     # --- Response objects ----------------------------------------------------
     RespBasic:
