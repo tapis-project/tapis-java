@@ -38,6 +38,15 @@ Content-Type: application/json
 
 ###
 
+### SK get permissions for user using meta:master service token
+GET https://master.tapis.io/v3/security/user/perms/mpackard?tenant=tacc
+X-Tapis-Token: {{token}}
+X-Tapis-User: {{user}}
+X-Tapis-Tenant:{{tenant}}
+Content-Type: application/json
+
+###
+
 
 
 
@@ -48,16 +57,7 @@ Content-Type: application/json
 #
 ######################################################
 
-### SK get permissions for user using meta:master service token
-GET https://master.staging.tapis.io/v3/security/user/perms/streams?tenant=dev
-X-Tapis-Token: {{token}}
-X-Tapis-User: {{user}}
-X-Tapis-Tenant:{{tenant}}
-Content-Type: application/json
-
-###
-
-
+x
 ### SK isPermitted for user
 POST https://dev.develop.tapis.io/v3/security/user/isPermitted?tenant=master
 X-Tapis-Token: {{token}}
