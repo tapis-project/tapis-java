@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 /* Tapis Systems general resources including healthcheck and readycheck
  *
  * (NOT currently used) Contains annotations which generate the OpenAPI specification documents.
- *  NOTE: Switching to hand-crafted openapi located at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+ *  NOTE: Switching to hand-crafted openapi located in repo tapis-client-java at systems-client/SystemsAPI.yaml
  *        Could not fully automate generation of spec and annotations have some limits. E.g., how to mark a parameter
  *        in a request body as required?, how to better describe query parameters?
  */
