@@ -89,6 +89,9 @@ public final class RuntimeParameters
     // Distinguished user-chosen name of this runtime instance.
     private String  instanceName;
     
+    // The site in which this service is running.
+    private String  siteId;
+    
     // Tenant service location.
     private String  tenantBaseUrl;
   
@@ -203,6 +206,18 @@ public final class RuntimeParameters
       }
     }
 	
+	// The site must always be provided.
+	parm = inputProperties.getProperty(EnvVar.TAPIS_SITE_ID.getEnvName());
+    if (StringUtils.isBlank(parm)) {
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                TapisConstants.SERVICE_NAME_SECURITY,
+                "siteId",
+                "No siteId specified.");
+        _log.error(msg);
+        throw new TapisRuntimeException(msg);
+    }
+	setSiteId(parm);
+	  
     // Logging level of the Maverick libary code
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_DIRECTORY.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogDirectory(parm);
@@ -831,6 +846,13 @@ public final class RuntimeParameters
 		return _instance;
 	}
 
+	public String getSiteId() {
+		return siteId;
+	}
+
+	public void setSiteId(String siteId) {
+		this.siteId = siteId;
+	}
 	
 	public String getDbConnectionPoolName() {
 		return dbConnectionPoolName;
