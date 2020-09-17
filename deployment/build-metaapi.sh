@@ -88,9 +88,9 @@ echo "***      docker image build --build-arg VER=$VER --build-arg GIT_COMMIT=$G
 echo "";echo ""
 
 echo "***    push the image to docker hub "
-echo "***      IMAGE_NAME should look like tapis/metaapi:dev"
+echo "***      IMAGE_NAME should look like tapis/metaapi:$TAPIS_ENV"
 echo "***      IMAGE_NAME  $IMAGE_NAME"
-echo "***      VERBOSE_IMAGE_NAME should look like tapis/metaapi:dev-0.0.1-898273"
+echo "***      VERBOSE_IMAGE_NAME should look like tapis/metaapi:$TAPIS_ENV-0.0.1-898273"
 echo "***      VERBOSE_IMAGE_NAME $VERBOSE_IMAGE_NAME"
 echo ""
 echo "***      Push to docker hub : docker push $IMAGE_NAME"
