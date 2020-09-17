@@ -46,7 +46,7 @@ Content-Type: application/json
 # jpl?
 #  put with no arguements to jplDB /v3/meta/jplDB/
 ###
-PUT http://c002.rodeo.tacc.utexas.edu:31650/jplDB
+PUT http://c002.rodeo.tacc.utexas.edu:31650/StreamsTACCDB
 # X-Tapis-Token: {{token}}
 # X-Tapis-User: streamsTACCAdmin
 # X-Tapis-Tenant: dev
