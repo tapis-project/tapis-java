@@ -30,6 +30,12 @@
     </dependency>
     <dependency>
       <groupId>edu.utexas.tacc.tapis</groupId>
+      <artifactId>tapis-shared-searchlib</artifactId>
+      <version>${tapis-shared-java.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>edu.utexas.tacc.tapis</groupId>
       <artifactId>tapis-shared-api</artifactId>
       <version>${tapis-shared-java.version}</version>
     </dependency>
@@ -100,12 +106,6 @@
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
     </dependency>
-      <dependency>
-          <groupId>edu.utexas.tacc.tapis</groupId>
-          <artifactId>tapis-shared-searchlib</artifactId>
-          <version>1.10</version>
-          <scope>compile</scope>
-      </dependency>
   </dependencies>
 
   <build>

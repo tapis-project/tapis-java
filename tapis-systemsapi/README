@@ -26,6 +26,8 @@ It integrates the following facilities:
 The back end may be found in tapis-systemslib
 
 NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+NOTE: As of 16 Sep 2020 the OpenAPI spec has been moved to tapis-client-java repo at systems-client/SystemsAPI.yaml
+      This was done to help prevent tapis-client-java builds from breaking. May not be final solution.
 
 -----------------------------
 Initialize the Database
@@ -100,6 +102,8 @@ Client Usage
 NOTE: Obsolete
 Generating and viewing openapi spec
 NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
+NOTE: As of 16 Sep 2020 the OpenAPI spec has been moved to tapis-client-java repo at systems-client/SystemsAPI.yaml
+      This was done to help prevent tapis-client-java builds from breaking. May not be final solution.
 ------------------------------------------------------------------------------
 *** From Browser, enter these urls to generate the openapi definition
 http://localhost:8080/v3/systems/openapi.json
@@ -131,6 +135,8 @@ Configure Run configuration in IntelliJ
 Updating OpenAPI spec published to live-docs
 NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
       See note at top of SystemsResource.java
+NOTE: As of 16 Sep 2020 the OpenAPI spec has been moved to tapis-client-java repo at systems-client/SystemsAPI.yaml
+      This was done to help prevent tapis-client-java builds from breaking. May not be final solution.
 ------------------------------------------------------------------------------
 OBSOLETE
 1. cd tapis-java; mvn clean install
