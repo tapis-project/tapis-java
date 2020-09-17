@@ -1,19 +1,29 @@
 ##################################### taccMetaAdmin user #################################################
 # taccMetaAdmin   these tests are hitting the dev deployment of RH-core
 
+###  sanity test to see if service is alive
+GET https://master.staging.tapis.io/v3/meta/healthcheck
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: taccMetaAdmin
+# X-Tapis-Tenant: master
+# Content-Type: application/json
+
+###
+
+
 ##############################################################
 #      Root endpoints
 ##############################################################
 
 #   root lists DBs
 ###  api:1
-GET https://master.prod.tapis.io/v3/meta/tapistst
+GET https://master.staging.tapis.io/v3/meta/tapistst
 X-Tapis-Token: {{token}}
 X-Tapis-User: meta
 X-Tapis-Tenant: master
 Content-Type: application/json
 
-###   api:1
+###
 
 
 
