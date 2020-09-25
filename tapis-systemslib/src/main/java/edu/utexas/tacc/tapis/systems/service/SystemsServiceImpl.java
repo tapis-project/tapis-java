@@ -586,9 +586,10 @@ public class SystemsServiceImpl implements SystemsService
     String svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
     if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
     // Create user for SK client
+ // TODO: FIX-FOR-ASSOCIATE-SITES
     AuthenticatedUser svcUser =
         new AuthenticatedUser(SERVICE_NAME_SYSTEMS, svcMasterTenant, TapisThreadContext.AccountType.service.name(),
-                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null);
+                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null, null);
     // Use SK client to check for admin role and create it if necessary
     var skClient = getSKClient(svcUser);
     // Check for admin role
