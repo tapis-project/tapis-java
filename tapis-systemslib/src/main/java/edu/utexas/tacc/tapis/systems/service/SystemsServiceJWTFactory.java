@@ -12,6 +12,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.Factory;
 
 import static edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl.SYSTEMS_DEFAULT_MASTER_TENANT;
+
+import java.util.Arrays;
+
 import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
 
 /**
@@ -33,6 +36,8 @@ public class SystemsServiceJWTFactory implements Factory<ServiceJWT>
       if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
       var svcJWTParms = new ServiceJWTParms();
       svcJWTParms.setTenant(svcMasterTenant);
+      // TODO: FIX-FOR-ASSOCIATE-SITES
+      svcJWTParms.setTargetSites(Arrays.asList("tacc"));
       // Use TenantManager to get tenant info. Needed for tokens base URLs. E.g. https://dev.develop.tapis.io
       Tenant tenant = TenantManager.getInstance().getTenant(svcMasterTenant);
       svcJWTParms.setServiceName(SERVICE_NAME_SYSTEMS);
