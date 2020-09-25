@@ -78,116 +78,36 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     private void initialize()
     {
+        // Get the site-master tenant id.
+        final String site = RuntimeParameters.getInstance().getSiteId();
+        final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
+        
         // One time initialization for tenants service.
-        initializeTenantServiceRole();
+        initializeTenantServiceRole(siteMasterTenant);
         
         // Inspect each tenant.
-        for (var entry : _tenantMap.entrySet()) 
+        for (String tenant : _tenantMap.keySet()) 
         {
-            // Current tenant.
-            String tenant = entry.getKey();
-            
-            // Get the list of admins in the tenant.
-            List<String> admins = null;
-            try {
-                admins = UserImpl.getInstance().getUsersWithRole(tenant, 
-                                                    UserImpl.ADMIN_ROLE_NAME);
-            }
-            catch (TapisNotFoundException e) {
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", tenant, 
-                                              UserImpl.ADMIN_ROLE_NAME, e.getMessage());
-                _log.warn(msg);
-            }
-            catch (Exception e) {
-                // This should not happen even if the tenant and role don't exist.
-                // We log the problem but proceed.
-                String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", tenant, 
-                                             UserImpl.ADMIN_ROLE_NAME, e.getMessage());
-                _log.error(msg, e);
-            } 
-            
-            // Did we get at least one admin?
-            if (admins != null && !admins.isEmpty()) continue;
-            
-            // ----------------------- Admin Role -----------------------
-            // Get the site-master tenant id.
-            final String site = RuntimeParameters.getInstance().getSiteId();
-            final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
-            
-            // TODO: **** get user from tenant record and get site master from sites table
-            final String[] adminUsers = new String[] {"admin"};         // ************* Temp code
-            
-            // Create and assign the admin role to the default tenant administrator.
-            String curAdminUser = null;
-            try {
-                // Assign role to the default administrator for this tenant, creating
-                // the role if necessary.  This calls the internal grant method 
-                // that does not check whether the requestor is an administrator. 
-            	for (String adminUser : adminUsers) {
-            		curAdminUser = adminUser;
-            		UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
-            		String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
-                                           		 UserImpl.ADMIN_ROLE_NAME);
-                    _log.info(msg);
-            	}
-            } 
-            catch (Exception e) {
-                // Log the error and continue on.
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_ERROR", tenant, 
-                                             curAdminUser, e.getMessage());
-                _log.error(msg, e);
-            }
-            
-            // ------------------- Authenticator Role -------------------
-            // TODO: **** get authenticator service from tenant record
-            final String[] tokgenServices = {"authenticator", "abaco"};  // ************* Temp code
-            
-            // TODO: **** get site-master from from sites table
-            // The role is always owned by tokens@<site-master>, always defined in the
-            // site-master tenant, and always assigned to services in the site-master tenant.
-            final String tokgenRoleTenant = siteMasterTenant;
-            final String tokgenOwner = "tokens";
-            final String tokgenOwnerTenant = siteMasterTenant;
-            final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
-            final String desc = "Tenant token generator role";
-            
-            // Create and assign the authenticator role to the tenant's auth service.
-            try {
-                // Assign role to the default authenticator for this tenant, creating
-                // the role if necessary.  This calls the internal grant method 
-                // that does not check whether the requestor is an administrator.
-                //
-                // Assign each service.
-                for (String tokgenService : tokgenServices) { 
-                	UserImpl.getInstance().grantRoleInternal(roleName, tokgenRoleTenant, desc,
-                			                                 tokgenService, tokgenRoleTenant,
-                			                                 tokgenOwner, tokgenOwnerTenant);
-                	String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", tokgenRoleTenant,
-                                             	 tokgenService, roleName);
-                	_log.info(msg);
-                }
-            } catch (Exception e) {
-                // Log the error and continue on.
-            	var list = Arrays.asList(tokgenServices);
-            	String s = list.stream().collect(Collectors.joining(", "));
-                String msg = MsgUtils.getMsg("SK_TENANT_INIT_TOKGEN_ERROR", tokgenRoleTenant, 
-                                             s, roleName, e.getMessage());
-                _log.error(msg, e);
-            }
+        	// Guarantee that there's at least one administrator id in each tenant.
+        	// Administrators are users assigned the $!tenant_admin role. 
+        	initializeTenantAdmin(tenant, siteMasterTenant);
+        	
+        	// Assign authenticator roles to services, which allows those services
+        	// to request user tokens from the Tokens service.  The roles conform
+        	// to the format <tenant>_token_generator.
+        	initializeAuthenticators(tenant, siteMasterTenant);
         }
     }
     
     /* ---------------------------------------------------------------------- */
     /* initializeTenantServiceRole:                                           */
     /* ---------------------------------------------------------------------- */
-    private void initializeTenantServiceRole()
+    private void initializeTenantServiceRole(String siteMasterTenant)
     {
         // Designate the tenants service identifiers.
         final String primaryTenant = TapisConstants.PRIMARY_SITE_TENANT;
         final String tenantService = TapisConstants.SERVICE_NAME_TENANTS;
         final String roleName = UserImpl.TENANT_CREATOR_ROLE;
-        final String site = RuntimeParameters.getInstance().getSiteId();
-        final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
         
         // Get the list of all users with the tenant creator role.
         List<String> creators = null;
@@ -224,6 +144,101 @@ public final class TenantInit
             // Log the error and continue on.
             String msg = MsgUtils.getMsg("SK_TENANT_INIT_CREATOR_ERROR", primaryTenant, 
                                          tenantService, e.getMessage());
+            _log.error(msg, e);
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* initializeTenantAdmin:                                                 */
+    /* ---------------------------------------------------------------------- */
+    private void initializeTenantAdmin(String tenant, String siteMasterTenant)
+    {
+        // Get the list of admins in the tenant.
+        List<String> admins = null;
+        try {
+            admins = UserImpl.getInstance().getUsersWithRole(tenant, 
+                                                UserImpl.ADMIN_ROLE_NAME);
+        }
+        catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_WARN", tenant, 
+                                          UserImpl.ADMIN_ROLE_NAME, e.getMessage());
+            _log.warn(msg);
+        }
+        catch (Exception e) {
+            // This should not happen even if the tenant and role don't exist.
+            // We log the problem but proceed.
+            String msg = MsgUtils.getMsg("SK_GET_USERS_WITH_ROLE_ERROR", tenant, 
+                                         UserImpl.ADMIN_ROLE_NAME, e.getMessage());
+            _log.error(msg, e);
+        } 
+        
+        // Did we get at least one admin?
+        if (admins != null && !admins.isEmpty()) return;
+        
+        // ----------------------- Admin Role -----------------------
+        // TODO: **** get user from tenant record and get site master from sites table
+        final String[] adminUsers = new String[] {"admin"};         // ************* Temp code
+        
+        // Create and assign the admin role to the default tenant administrator.
+        String curAdminUser = null;
+        try {
+            // Assign role to the default administrator for this tenant, creating
+            // the role if necessary.  This calls the internal grant method 
+            // that does not check whether the requestor is an administrator. 
+        	for (String adminUser : adminUsers) {
+        		curAdminUser = adminUser;
+        		UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
+        		String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
+                                       		 UserImpl.ADMIN_ROLE_NAME);
+                _log.info(msg);
+        	}
+        } 
+        catch (Exception e) {
+            // Log the error and continue on.
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_ERROR", tenant, 
+                                         curAdminUser, e.getMessage());
+            _log.error(msg, e);
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* initializeAuthenticators:                                              */
+    /* ---------------------------------------------------------------------- */
+    private void initializeAuthenticators(String tenant, String siteMasterTenant)
+    {
+        // TODO: **** get authenticator service from tenant record
+        final String[] tokgenServices = {"authenticator", "abaco"};  // ************* Temp code
+        
+        // TODO: **** get site-master from from sites table
+        // The role is always owned by tokens@<site-master>, always defined in the
+        // site-master tenant, and always assigned to services in the site-master tenant.
+        final String tokgenRoleTenant = siteMasterTenant;
+        final String tokgenOwner = "tokens";
+        final String tokgenOwnerTenant = siteMasterTenant;
+        final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
+        final String desc = "Tenant token generator role";
+        
+        // Create and assign the authenticator role to the tenant's auth service.
+        try {
+            // Assign role to the default authenticator for this tenant, creating
+            // the role if necessary.  This calls the internal grant method 
+            // that does not check whether the requestor is an administrator.
+            //
+            // Assign each service.
+            for (String tokgenService : tokgenServices) { 
+            	UserImpl.getInstance().grantRoleInternal(roleName, tokgenRoleTenant, desc,
+            			                                 tokgenService, tokgenRoleTenant,
+            			                                 tokgenOwner, tokgenOwnerTenant);
+            	String msg = MsgUtils.getMsg("SK_TENANT_TOKEN_GEN_ASSIGNED", tokgenRoleTenant,
+                                         	 tokgenService, roleName);
+            	_log.info(msg);
+            }
+        } catch (Exception e) {
+            // Log the error and continue on.
+        	var list = Arrays.asList(tokgenServices);
+        	String s = list.stream().collect(Collectors.joining(", "));
+            String msg = MsgUtils.getMsg("SK_TENANT_INIT_TOKGEN_ERROR", tokgenRoleTenant, 
+                                         s, roleName, e.getMessage());
             _log.error(msg, e);
         }
     }
