@@ -7,6 +7,8 @@ import javax.ws.rs.ApplicationPath;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -79,6 +81,11 @@ extends ResourceConfig
                throw e;
            }
        System.out.println("**** SUCCESS:  RuntimeParameters read ****");
+       
+       // ---------------- Initialize Security Filter --------------
+       // Required to process any requests.
+       JWTValidateRequestFilter.setService(TapisConstants.SERVICE_NAME_JOBS);
+       JWTValidateRequestFilter.setSiteId(parms.getSiteId());
        
        // ------------------- Recoverable Errors -------------------
        // Force runtime initialization of the tenant manager.  This creates the
