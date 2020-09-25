@@ -9,9 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
+import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 /** This class makes sure each tenant has an administrator role defined and
@@ -34,7 +36,7 @@ public final class TenantInit
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
-    // Non-null tenant map.
+    // Non-null tenant map of tenant ids to tenant objects.
     private final Map<String,Tenant> _tenantMap;
     
     /* ********************************************************************** */
@@ -45,6 +47,7 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     private TenantInit(Map<String,Tenant> tenantMap)
     {
+    	// Map of tenant ids to tenant objects.
         _tenantMap = tenantMap;
     }
     
@@ -54,6 +57,10 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     /* initializeTenants:                                                     */
     /* ---------------------------------------------------------------------- */
+    /** Initialize the roles for all known tenants.
+     * 
+     * @param tenantMap map of tenant ids to tenant objects
+     */
     public static void initializeTenants(Map<String,Tenant> tenantMap)
     {
         // Maybe there's nothing to do.
@@ -103,24 +110,31 @@ public final class TenantInit
             if (admins != null && !admins.isEmpty()) continue;
             
             // ----------------------- Admin Role -----------------------
+            // Get the site-master tenant id.
+            final String site = RuntimeParameters.getInstance().getSiteId();
+            final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
+            
             // TODO: **** get user from tenant record and get site master from sites table
-            final String adminUser = "admin";         // ************* Temp code
-            final String siteMasterTenant = "master"; // ************* Temp code
+            final String[] adminUsers = new String[] {"admin"};         // ************* Temp code
             
             // Create and assign the admin role to the default tenant administrator.
+            String curAdminUser = null;
             try {
                 // Assign role to the default administrator for this tenant, creating
                 // the role if necessary.  This calls the internal grant method 
                 // that does not check whether the requestor is an administrator. 
-                UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
-                String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
-                                             UserImpl.ADMIN_ROLE_NAME);
-                _log.info(msg);
+            	for (String adminUser : adminUsers) {
+            		curAdminUser = adminUser;
+            		UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
+            		String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
+                                           		 UserImpl.ADMIN_ROLE_NAME);
+                    _log.info(msg);
+            	}
             } 
             catch (Exception e) {
                 // Log the error and continue on.
                 String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_ERROR", tenant, 
-                                             adminUser, e.getMessage());
+                                             curAdminUser, e.getMessage());
                 _log.error(msg, e);
             }
             
@@ -131,9 +145,9 @@ public final class TenantInit
             // TODO: **** get site-master from from sites table
             // The role is always owned by tokens@<site-master>, always defined in the
             // site-master tenant, and always assigned to services in the site-master tenant.
-            final String tokgenRoleTenant = "master";     // ************* Temp code
+            final String tokgenRoleTenant = siteMasterTenant;
             final String tokgenOwner = "tokens";
-            final String tokgenOwnerTenant = "master";    // ************* Temp code
+            final String tokgenOwnerTenant = siteMasterTenant;
             final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
             final String desc = "Tenant token generator role";
             
@@ -172,7 +186,8 @@ public final class TenantInit
         final String primaryTenant = TapisConstants.PRIMARY_SITE_TENANT;
         final String tenantService = TapisConstants.SERVICE_NAME_TENANTS;
         final String roleName = UserImpl.TENANT_CREATOR_ROLE;
-        final String siteMasterTenant = "master"; // TODO: ************* Temp code
+        final String site = RuntimeParameters.getInstance().getSiteId();
+        final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
         
         // Get the list of all users with the tenant creator role.
         List<String> creators = null;
