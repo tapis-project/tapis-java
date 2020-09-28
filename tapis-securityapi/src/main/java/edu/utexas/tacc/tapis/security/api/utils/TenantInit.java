@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.security.api.utils;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,16 +85,20 @@ public final class TenantInit
         initializeTenantServiceRole(siteMasterTenant);
         
         // Inspect each tenant.
-        for (String tenant : _tenantMap.keySet()) 
+        for (var entry : _tenantMap.entrySet()) 
         {
+        	// The tenant id is the key.
+        	String tenantId = entry.getKey();
+        	Tenant tenant   = entry.getValue();
+        	
         	// Guarantee that there's at least one administrator id in each tenant.
         	// Administrators are users assigned the $!tenant_admin role. 
-        	initializeTenantAdmin(tenant, siteMasterTenant);
+        	initializeTenantAdmin(tenantId, siteMasterTenant, tenant.getAdminUser());
         	
         	// Assign authenticator roles to services, which allows those services
         	// to request user tokens from the Tokens service.  The roles conform
         	// to the format <tenant>_token_generator.
-        	initializeAuthenticators(tenant, siteMasterTenant);
+        	initializeAuthenticators(tenantId, siteMasterTenant, tenant.getTokenGenServices());
         }
     }
     
@@ -151,7 +154,8 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     /* initializeTenantAdmin:                                                 */
     /* ---------------------------------------------------------------------- */
-    private void initializeTenantAdmin(String tenant, String siteMasterTenant)
+    private void initializeTenantAdmin(String tenant, String siteMasterTenant, 
+    		                           String adminUser)
     {
         // Get the list of admins in the tenant.
         List<String> admins = null;
@@ -176,27 +180,20 @@ public final class TenantInit
         if (admins != null && !admins.isEmpty()) return;
         
         // ----------------------- Admin Role -----------------------
-        // TODO: **** get user from tenant record and get site master from sites table
-        final String[] adminUsers = new String[] {"admin"};         // ************* Temp code
-        
         // Create and assign the admin role to the default tenant administrator.
-        String curAdminUser = null;
         try {
             // Assign role to the default administrator for this tenant, creating
             // the role if necessary.  This calls the internal grant method 
             // that does not check whether the requestor is an administrator. 
-        	for (String adminUser : adminUsers) {
-        		curAdminUser = adminUser;
-        		UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
-        		String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
-                                       		 UserImpl.ADMIN_ROLE_NAME);
-                _log.info(msg);
-        	}
+        	UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
+        	String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
+                                  		 UserImpl.ADMIN_ROLE_NAME);
+            _log.info(msg);
         } 
         catch (Exception e) {
             // Log the error and continue on.
             String msg = MsgUtils.getMsg("SK_TENANT_INIT_ADMIN_ERROR", tenant, 
-                                         curAdminUser, e.getMessage());
+                                         adminUser, e.getMessage());
             _log.error(msg, e);
         }
     }
@@ -204,12 +201,9 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     /* initializeAuthenticators:                                              */
     /* ---------------------------------------------------------------------- */
-    private void initializeAuthenticators(String tenant, String siteMasterTenant)
+    private void initializeAuthenticators(String tenant, String siteMasterTenant,
+    		                              List<String> tokgenServices)
     {
-        // TODO: **** get authenticator service from tenant record
-        final String[] tokgenServices = {"authenticator", "abaco"};  // ************* Temp code
-        
-        // TODO: **** get site-master from from sites table
         // The role is always owned by tokens@<site-master>, always defined in the
         // site-master tenant, and always assigned to services in the site-master tenant.
         final String tokgenRoleTenant = siteMasterTenant;
@@ -235,8 +229,7 @@ public final class TenantInit
             }
         } catch (Exception e) {
             // Log the error and continue on.
-        	var list = Arrays.asList(tokgenServices);
-        	String s = list.stream().collect(Collectors.joining(", "));
+        	String s = tokgenServices.stream().collect(Collectors.joining(", "));
             String msg = MsgUtils.getMsg("SK_TENANT_INIT_TOKGEN_ERROR", tokgenRoleTenant, 
                                          s, roleName, e.getMessage());
             _log.error(msg, e);
