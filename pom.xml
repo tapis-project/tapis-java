@@ -7,7 +7,7 @@
     <parent>
       <groupId>edu.utexas.tacc.tapis</groupId>
       <artifactId>tapis-bom</artifactId>
-      <version>1.10</version>
+      <version>[1.11,2.0)</version>
       <!-- Set empty relative path to avoid maven warning and-->
       <!--   ensure parent is found in local repository if that-->
       <!--   is the only place it exists.-->
@@ -15,7 +15,7 @@
     </parent>
 
     <artifactId>tapis</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>TACC Tapis Java Parent POM</name>
@@ -108,8 +108,8 @@
     <module>tapis-securityapi</module>
     <module>tapis-securitylib</module>
     <module>tapis-securitymigrate</module>
-    <module>tapis-systemsapi</module>
-    <module>tapis-systemslib</module>
+      <module>tapis-systemsapi</module>
+      <module>tapis-systemslib</module>
     <module>tapis-metaapi</module>
     <module>tapis-jobsapi</module>
     <module>tapis-jobslib</module>
