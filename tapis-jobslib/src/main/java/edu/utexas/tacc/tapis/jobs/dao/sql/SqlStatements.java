@@ -36,6 +36,21 @@ public class SqlStatements
             + "createdby, createdby_tenant"
         + " FROM jobs"
         + " WHERE uuid = ?";
+    
+    // All of the job fields except:
+    // 
+    //	- id, ended, blocked_count, 12 remote_*, visible
+    //
+    public static final String CREATE_JOB = 
+    		"INSERT INTO aloe_jobs ("
+    		+ "name, owner, owner_tenant, description, status, type, exec_class, "
+        	+ "last_message, created, last_updated, uuid, app_id, app_version, "
+        	+ "archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, "
+            + "exec_system_input_path, archive_system_id, archive_system_path, nodes, "
+            + "processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
+            + "exec_system_constraints, tapis_queue, createdby, createdby_tenant) "
+    		+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+    		+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; 
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */

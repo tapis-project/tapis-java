@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
-import edu.utexas.tacc.tapis.jobs.model.Jobs;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
+import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -48,11 +54,11 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobs:                                                               */
 	/* ---------------------------------------------------------------------- */
-	public List<Jobs> getJobs() 
+	public List<Job> getJobs() 
 	  throws TapisException
 	{
 	    // Initialize result.
-	    ArrayList<Jobs> list = new ArrayList<>();
+	    ArrayList<Job> list = new ArrayList<>();
      
 	    // ------------------------- Call SQL ----------------------------
 	    Connection conn = null;
@@ -69,7 +75,7 @@ public final class JobsDao
 	                      
 	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
-	          Jobs obj = populateJobs(rs);
+	          Job obj = populateJobs(rs);
 	          while (obj != null) {
 	            list.add(obj);
 	            obj = populateJobs(rs);
@@ -110,7 +116,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */  
 	/* getJobsByUUID:                                                         */
 	/* ---------------------------------------------------------------------- */
-	public Jobs getJobsByUUID(String uuid) 
+	public Job getJobsByUUID(String uuid) 
 	  throws TapisException
 	{
 	    // ------------------------- Check Input -------------------------
@@ -121,7 +127,7 @@ public final class JobsDao
 	    }
 	      
 	    // Initialize result.
-	    Jobs result = null;
+	    Job result = null;
 
 	    // ------------------------- Call SQL ----------------------------
 	    Connection conn = null;
@@ -173,6 +179,118 @@ public final class JobsDao
 	    return result;
 	}
 
+	/* ---------------------------------------------------------------------- */
+	/* createJob:                                                             */
+	/* ---------------------------------------------------------------------- */
+	public void createJob(Job job)
+      throws TapisException
+	{
+        // ------------------------- Check Input -------------------------
+        // Exceptions can be throw from here.
+        validateJob(job);
+	
+        // ------------------------- Complete Input ----------------------
+        // Fill in Job fields that we control.
+        Instant now = Instant.now();
+        job.setCreated(now);
+        job.setLastUpdated(now);
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Insert into the aloe-jobs table first.
+          // Create the command using table definition field order.
+          String sql = SqlStatements.CREATE_JOB;
+          
+
+//              name, owner, tenant, description, status, type, exec_class, 
+//          	  last_message, created, last_updated, uuid, app_id, app_version, 
+//          	  archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, 
+//              exec_system_input_path, archive_system_id, archive_system_path, nodes, 
+//              processors_per_node, memory_mb, max_minutes, inputs, parameters, events, 
+//              exec_system_constraints, tapis_queue, createdby, createdby_tenant 
+
+              
+          // Prepare the statement and fill in the placeholders.
+          // The fields that the DB defaults are not set.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, job.getName().trim());
+          pstmt.setString(2, job.getOwner().trim());
+          pstmt.setString(3, job.getTenant().trim());
+          pstmt.setString(4, job.getDescription().trim());
+              
+          pstmt.setString(5, job.getStatus().name());
+          pstmt.setString(6, job.getType().name());
+          pstmt.setString(7, job.getExecClass().name());
+              
+          pstmt.setString(8, job.getLastMessage());
+          pstmt.setTimestamp(9, Timestamp.from(job.getCreated()));
+          pstmt.setTimestamp(10, Timestamp.from(job.getLastUpdated()));
+              
+          pstmt.setString(11, job.getUuid());
+            
+          pstmt.setString(12, job.getAppId().trim());
+          pstmt.setString(13, job.getAppVersion().trim());
+          pstmt.setBoolean(14, job.isArchiveOnAppError());
+              
+          pstmt.setString(15, job.getInputSystemId());           // could be null
+          pstmt.setString(16, job.getExecSystemId());           // could be null
+          pstmt.setString(17, job.getExecSystemExecPath());           // could be null
+          pstmt.setString(18, job.getExecSystemInputPath());           // could be null
+          pstmt.setString(19, job.getArchiveSystemId());           // could be null
+          pstmt.setString(20, job.getArchiveSystemPath());           // could be null
+              
+          pstmt.setInt(21, job.getNodes());
+          pstmt.setInt(22, job.getProcessorsPerNode());
+          pstmt.setInt(23, job.getMemoryMb());
+          pstmt.setInt(24, job.getMaxMinutes());
+              
+          pstmt.setString(25, job.getInputs());
+          pstmt.setString(26, job.getParameters());
+          pstmt.setString(27, job.getEvents());
+          pstmt.setString(28, job.getExecSystemConstraints());
+
+          pstmt.setString(29, job.getTapisQueue());
+          pstmt.setString(30, job.getCreatedby());
+          pstmt.setString(31, job.getCreatedbyTenant());
+              
+          // Issue the call and clean up statement.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
+          pstmt.close();
+    
+          // Commit the transaction that may include changes to both tables.
+          conn.commit();
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_CREATE_ERROR", job.getName(), 
+                                         job.getTenant(), job.getOwner(), e.getMessage());
+            _log.error(msg, e);
+            throw new JobQueueException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+	}
+	
 	/* ---------------------------------------------------------------------- */
 	/* queryDB:                                                               */
 	/* ---------------------------------------------------------------------- */
@@ -248,6 +366,14 @@ public final class JobsDao
 	/*                             Private Methods                            */
 	/* ********************************************************************** */
 	/* ---------------------------------------------------------------------- */
+	/* validateJob:                                                           */
+	/* ---------------------------------------------------------------------- */
+	private void validateJob(Job job)
+	{
+		
+	}
+	
+	/* ---------------------------------------------------------------------- */
 	/* populateJobs:                                                          */
 	/* ---------------------------------------------------------------------- */
 	/** Populate a new Jobs object with a record retrieved from the 
@@ -263,7 +389,7 @@ public final class JobsDao
 	 * @return a new model object or null if the result set is null or empty
 	 * @throws AloeJDBCException on SQL access or conversion errors
 	 */
-	private Jobs populateJobs(ResultSet rs)
+	private Job populateJobs(ResultSet rs)
 	 throws TapisJDBCException
 	{
 	    // Quick check.
@@ -282,16 +408,16 @@ public final class JobsDao
 	    
 	    // Populate the Jobs object using table definition field order,
 	    // which is the order specified in all calling methods.
-	    Jobs obj = new Jobs();
+	    Job obj = new Job();
 	    try {
 	        obj.setId(rs.getInt(1));
 	        obj.setName(rs.getString(2));
 	        obj.setOwner(rs.getString(3));
-	        obj.setOwnerTenant(rs.getString(4));
+	        obj.setTenant(rs.getString(4));
 	        obj.setDescription(rs.getString(5));
-	        obj.setStatus(rs.getString(6));
-	        obj.setType(rs.getString(7));
-	        obj.setExecClass(rs.getString(8));
+	        obj.setStatus(JobStatusType.valueOf(rs.getString(10)));
+	        obj.setType(JobType.valueOf(rs.getString(7)));
+	        obj.setExecClass(JobExecClass.valueOf(rs.getString(8)));
 	        obj.setLastMessage(rs.getString(9));
 	        obj.setCreated(rs.getTimestamp(10).toInstant());
 
@@ -302,7 +428,7 @@ public final class JobsDao
 	        obj.setUuid(rs.getString(13));
 	        obj.setAppId(rs.getString(14));
 	        obj.setAppVersion(rs.getString(15));
-	        obj.setArchiveOnAppError(rs.getString(16));
+	        obj.setArchiveOnAppError(rs.getBoolean(16));
 	        obj.setInputSystemId(rs.getString(17));
 	        obj.setExecSystemId(rs.getString(18));
 	        obj.setExecSystemExecPath(rs.getString(19));
@@ -320,7 +446,7 @@ public final class JobsDao
 	        obj.setBlockedCount(rs.getInt(31));
 	        obj.setRemoteJobId(rs.getString(32));
 	        obj.setRemoteJobId2(rs.getString(33));
-	        obj.setRemoteOutcome(rs.getString(34));
+	        obj.setRemoteOutcome(JobRemoteOutcome.valueOf(rs.getString(34)));
 	        obj.setRemoteResultInfo(rs.getString(35));
 	        obj.setRemoteQueue(rs.getString(36));
 
@@ -341,7 +467,7 @@ public final class JobsDao
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
 	        obj.setTapisQueue(rs.getString(44));
-	        obj.setVisible(rs.getString(45));
+	        obj.setVisible(rs.getBoolean(45));
 	        obj.setCreatedby(rs.getString(46));
 	        obj.setCreatedbyTenant(rs.getString(47));
 	    } 

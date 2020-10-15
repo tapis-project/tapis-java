@@ -1,57 +1,62 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
+
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
-public final class Jobs
+public final class Job
 {
-    private int     id;
-    private String  name;
-    private String  owner;
-    private String  ownerTenant;
-    private String  description;
-    private String  status;
-    private String  type;
-    private String  execClass;
-    private String  lastMessage;
-    private Instant created;
-    private Instant ended;
-    private Instant lastUpdated;
-    private String  uuid;
-    private String  appId;
-    private String  appVersion;
-    private String  archiveOnAppError;
-    private String  inputSystemId;
-    private String  execSystemId;
-    private String  execSystemExecPath;
-    private String  execSystemInputPath;
-    private String  archiveSystemId;
-    private String  archiveSystemPath;
-    private int     nodes;
-    private int     processorsPerNode;
-    private int     memoryMb;
-    private int     maxMinutes;
-    private String  inputs;
-    private String  parameters;
-    private String  events;
-    private String  execSystemConstraints;
-    private int     blockedCount;
-    private String  remoteJobId;
-    private String  remoteJobId2;
-    private String  remoteOutcome;
-    private String  remoteResultInfo;
-    private String  remoteQueue;
-    private Instant remoteSubmitted;
-    private Instant remoteStarted;
-    private Instant remoteEnded;
-    private int     remoteSubmitRetries;
-    private int     remoteChecksSuccess;
-    private int     remoteChecksFailed;
-    private Instant remoteLastStatusCheck;
-    private String  tapisQueue;
-    private String  visible;
-    private String  createdby;
-    private String  createdbyTenant;
+    private int      id;
+    private String   name;
+    private String   owner;
+    private String   tenant;
+    private String   description;
+    private JobStatusType   status;
+    private JobType   type;
+    private JobExecClass   execClass;
+    private String   lastMessage;
+    private Instant  created;
+    private Instant  ended;
+    private Instant  lastUpdated;
+    private String   uuid;
+    private String   appId;
+    private String   appVersion;
+    private boolean  archiveOnAppError;
+    private String   inputSystemId;
+    private String   execSystemId;
+    private String   execSystemExecPath;
+    private String   execSystemInputPath;
+    private String   archiveSystemId;
+    private String   archiveSystemPath;
+    private int      nodes;
+    private int      processorsPerNode;
+    private int      memoryMb;
+    private int      maxMinutes;
+    private String   inputs;
+    private String   parameters;
+    private String   events;
+    private String   execSystemConstraints;
+    private int      blockedCount;
+    private String   remoteJobId;
+    private String   remoteJobId2;
+    private JobRemoteOutcome   remoteOutcome;
+    private String   remoteResultInfo;
+    private String   remoteQueue;
+    private Instant  remoteSubmitted;
+    private Instant  remoteStarted;
+    private Instant  remoteEnded;
+    private int      remoteSubmitRetries;
+    private int      remoteChecksSuccess;
+    private int      remoteChecksFailed;
+    private Instant  remoteLastStatusCheck;
+    private String   tapisQueue;
+    private boolean  visible;
+    private String   createdby;
+    private String   createdbyTenant;
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
@@ -80,12 +85,12 @@ public final class Jobs
 		this.owner = owner;
 	}
 
-	public String getOwnerTenant() {
-		return ownerTenant;
+	public String getTenant() {
+		return tenant;
 	}
 
-	public void setOwnerTenant(String ownerTenant) {
-		this.ownerTenant = ownerTenant;
+	public void setTenant(String tenant) {
+		this.tenant = tenant;
 	}
 
 	public String getDescription() {
@@ -96,27 +101,27 @@ public final class Jobs
 		this.description = description;
 	}
 
-	public String getStatus() {
+	public JobStatusType getStatus() {
 		return status;
 	}
 
-	public void setStatus(String status) {
+	public void setStatus(JobStatusType status) {
 		this.status = status;
 	}
 
-	public String getType() {
+	public JobType getType() {
 		return type;
 	}
 
-	public void setType(String type) {
+	public void setType(JobType type) {
 		this.type = type;
 	}
 
-	public String getExecClass() {
+	public JobExecClass getExecClass() {
 		return execClass;
 	}
 
-	public void setExecClass(String execClass) {
+	public void setExecClass(JobExecClass execClass) {
 		this.execClass = execClass;
 	}
 
@@ -176,11 +181,11 @@ public final class Jobs
 		this.appVersion = appVersion;
 	}
 
-	public String getArchiveOnAppError() {
+	public boolean isArchiveOnAppError() {
 		return archiveOnAppError;
 	}
 
-	public void setArchiveOnAppError(String archiveOnAppError) {
+	public void setArchiveOnAppError(boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
@@ -320,11 +325,11 @@ public final class Jobs
 		this.remoteJobId2 = remoteJobId2;
 	}
 
-	public String getRemoteOutcome() {
+	public JobRemoteOutcome getRemoteOutcome() {
 		return remoteOutcome;
 	}
 
-	public void setRemoteOutcome(String remoteOutcome) {
+	public void setRemoteOutcome(JobRemoteOutcome remoteOutcome) {
 		this.remoteOutcome = remoteOutcome;
 	}
 
@@ -408,11 +413,11 @@ public final class Jobs
 		this.tapisQueue = tapisQueue;
 	}
 
-	public String getVisible() {
+	public boolean isVisible() {
 		return visible;
 	}
 
-	public void setVisible(String visible) {
+	public void setVisible(boolean visible) {
 		this.visible = visible;
 	}
 
