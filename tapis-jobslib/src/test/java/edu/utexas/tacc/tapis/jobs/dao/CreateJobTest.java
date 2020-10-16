@@ -37,6 +37,7 @@ public class CreateJobTest
 	{
 		var job = new Job();
 		
+		// Required fields
 		job.setName("test1job");
 		job.setOwner("bud");
 		job.setTenant("fakeTenant");
@@ -51,6 +52,10 @@ public class CreateJobTest
 	    job.setCreatedby("mary");
 	    job.setCreatedbyTenant("maryTenant");
 		
+	    // Optional fields.
+	    String json = "{\"key1\": \"value1\", \"key2\": 5}";
+	    job.setExecSystemConstraints(json);
+	    
 		return job;
 	}
 }
