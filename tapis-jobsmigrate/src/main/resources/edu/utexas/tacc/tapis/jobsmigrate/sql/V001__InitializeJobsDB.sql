@@ -49,6 +49,7 @@ CREATE TABLE jobs
   exec_system_id              character varying(80) NOT NULL,
   exec_system_exec_path       character varying(4096), 
   exec_system_input_path      character varying(4096), 
+  exec_system_output_path     character varying(4096), 
   archive_system_id           character varying(80),
   archive_system_path         character varying(4096),
   
@@ -57,10 +58,10 @@ CREATE TABLE jobs
   memory_mb                   integer NOT NULL,
   max_minutes                 integer NOT NULL,
   
-  inputs                      character varying(65536),
-  parameters                  character varying(65536),
-  events                      character varying(2048),
-  exec_system_constraints     jsonb,
+  inputs                      character varying(65536) NOT NULL,
+  parameters                  character varying(65536) NOT NULL,
+  events                      character varying(2048)  NOT NULL,
+  exec_system_constraints     jsonb NOT NULL,
   
   blocked_count               integer NOT NULL DEFAULT 0,
   

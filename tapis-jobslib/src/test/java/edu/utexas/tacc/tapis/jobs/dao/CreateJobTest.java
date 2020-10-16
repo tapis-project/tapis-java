@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.dao;
 
 import org.testng.annotations.Test;
 
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 @Test(groups={"integration"})
@@ -18,6 +19,8 @@ public class CreateJobTest
 		System.out.println("Number of existing jobs records: " + jobList.size());		
 				
 		// Insert job record.
+		Job job = initJob();
+		dao.createJob(job);
 		
 		// Get all job records.
 		jobList = dao.getJobs();
@@ -25,5 +28,29 @@ public class CreateJobTest
 
 		// Retrieve the newly created job record.
 
+	}
+	
+	/* ********************************************************************** */
+	/*                            Private Methods                             */
+	/* ********************************************************************** */
+	private Job initJob()
+	{
+		var job = new Job();
+		
+		job.setName("test1job");
+		job.setOwner("bud");
+		job.setTenant("fakeTenant");
+		job.setDescription("This is a fake job that will never run");
+
+	    job.setAppId("fakeAppId");
+	    job.setAppVersion("1.0");
+	    
+	    job.setExecSystemId("fakeExecSystemId");
+	    
+	    job.setTapisQueue("fakeTapisQueue");
+	    job.setCreatedby("mary");
+	    job.setCreatedbyTenant("maryTenant");
+		
+		return job;
 	}
 }

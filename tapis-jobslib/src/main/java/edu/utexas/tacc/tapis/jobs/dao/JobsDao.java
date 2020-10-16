@@ -35,6 +35,9 @@ public final class JobsDao
 	  
     // Keep track of the last monitoring outcome.
 	private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
+	
+	// Message when creating job.
+	private static final String JOB_CREATE_MSG = "Job created";
 	  
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -185,16 +188,17 @@ public final class JobsDao
 	public void createJob(Job job)
       throws TapisException
 	{
-        // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
-        validateJob(job);
-	
         // ------------------------- Complete Input ----------------------
         // Fill in Job fields that we control.
+		if (StringUtils.isBlank(job.getLastMessage())) job.setLastMessage(JOB_CREATE_MSG);
         Instant now = Instant.now();
         job.setCreated(now);
         job.setLastUpdated(now);
         
+        // ------------------------- Check Input -------------------------
+        // Exceptions can be throw from here.
+        validateNewJob(job);
+	
         // ------------------------- Call SQL ----------------------------
         Connection conn = null;
         try
@@ -206,15 +210,6 @@ public final class JobsDao
           // Create the command using table definition field order.
           String sql = SqlStatements.CREATE_JOB;
           
-
-//              name, owner, tenant, description, status, type, exec_class, 
-//          	  last_message, created, last_updated, uuid, app_id, app_version, 
-//          	  archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, 
-//              exec_system_input_path, archive_system_id, archive_system_path, nodes, 
-//              processors_per_node, memory_mb, max_minutes, inputs, parameters, events, 
-//              exec_system_constraints, tapis_queue, createdby, createdby_tenant 
-
-              
           // Prepare the statement and fill in the placeholders.
           // The fields that the DB defaults are not set.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -237,26 +232,27 @@ public final class JobsDao
           pstmt.setString(13, job.getAppVersion().trim());
           pstmt.setBoolean(14, job.isArchiveOnAppError());
               
-          pstmt.setString(15, job.getInputSystemId());           // could be null
-          pstmt.setString(16, job.getExecSystemId());           // could be null
-          pstmt.setString(17, job.getExecSystemExecPath());           // could be null
-          pstmt.setString(18, job.getExecSystemInputPath());           // could be null
-          pstmt.setString(19, job.getArchiveSystemId());           // could be null
-          pstmt.setString(20, job.getArchiveSystemPath());           // could be null
+          pstmt.setString(15, job.getInputSystemId());          // could be null
+          pstmt.setString(16, job.getExecSystemId());           
+          pstmt.setString(17, job.getExecSystemExecPath());     // could be null
+          pstmt.setString(18, job.getExecSystemInputPath());    // could be null
+          pstmt.setString(19, job.getExecSystemOutputPath());   // could be null
+          pstmt.setString(20, job.getArchiveSystemId());        // could be null
+          pstmt.setString(21, job.getArchiveSystemPath());      // could be null
               
-          pstmt.setInt(21, job.getNodes());
-          pstmt.setInt(22, job.getProcessorsPerNode());
-          pstmt.setInt(23, job.getMemoryMb());
-          pstmt.setInt(24, job.getMaxMinutes());
+          pstmt.setInt(22, job.getNodes());
+          pstmt.setInt(23, job.getProcessorsPerNode());
+          pstmt.setInt(24, job.getMemoryMb());
+          pstmt.setInt(25, job.getMaxMinutes());
               
-          pstmt.setString(25, job.getInputs());
-          pstmt.setString(26, job.getParameters());
-          pstmt.setString(27, job.getEvents());
-          pstmt.setString(28, job.getExecSystemConstraints());
+          pstmt.setString(26, job.getInputs());                 
+          pstmt.setString(27, job.getParameters());             
+          pstmt.setString(28, job.getEvents());                 
+          pstmt.setString(29, job.getExecSystemConstraints());  
 
-          pstmt.setString(29, job.getTapisQueue());
-          pstmt.setString(30, job.getCreatedby());
-          pstmt.setString(31, job.getCreatedbyTenant());
+          pstmt.setString(30, job.getTapisQueue());
+          pstmt.setString(31, job.getCreatedby());
+          pstmt.setString(32, job.getCreatedbyTenant());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -366,11 +362,95 @@ public final class JobsDao
 	/*                             Private Methods                            */
 	/* ********************************************************************** */
 	/* ---------------------------------------------------------------------- */
-	/* validateJob:                                                           */
+	/* validateNewJob:                                                        */
 	/* ---------------------------------------------------------------------- */
-	private void validateJob(Job job)
+	private void validateNewJob(Job job) throws TapisException
 	{
+		// Check each field used to create a new job.
+		if (StringUtils.isBlank(job.getName())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "name");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getOwner())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "owner");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getTenant())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "tenant");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getDescription())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "description");
+	          throw new TapisException(msg);
+		}
 		
+		if (job.getStatus() == null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "status");
+	          throw new TapisException(msg);
+		}
+		if (job.getType() == null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "type");
+	          throw new TapisException(msg);
+		}
+		if (job.getExecClass() == null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execClass");
+	          throw new TapisException(msg);
+		}
+		
+		if (StringUtils.isBlank(job.getUuid())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "uuid");
+	          throw new TapisException(msg);
+		}
+		
+		if (StringUtils.isBlank(job.getAppId())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "appId");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getAppVersion())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "appVersion");
+	          throw new TapisException(msg);
+		}
+		
+		if (StringUtils.isBlank(job.getExecSystemId())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemId");
+	          throw new TapisException(msg);
+		}
+		
+		// For flexibility, we allow the hpc scheduler to deal with validating resource reservation values.
+		if (job.getMaxMinutes() < 1) {
+	          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateNewJob", "maxMinutes", job.getMaxMinutes());
+	          throw new TapisException(msg);
+		}
+
+		if (StringUtils.isBlank(job.getInputs())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "inputs");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getParameters())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameters");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getEvents())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "events");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getExecSystemConstraints())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
+	          throw new TapisException(msg);
+		}
+		
+		if (StringUtils.isBlank(job.getTapisQueue())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "tapisQueue");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getCreatedby())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "createdBy");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getCreatedbyTenant())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "createdByTenant");
+	          throw new TapisException(msg);
+		}
 	}
 	
 	/* ---------------------------------------------------------------------- */
@@ -415,7 +495,7 @@ public final class JobsDao
 	        obj.setOwner(rs.getString(3));
 	        obj.setTenant(rs.getString(4));
 	        obj.setDescription(rs.getString(5));
-	        obj.setStatus(JobStatusType.valueOf(rs.getString(10)));
+	        obj.setStatus(JobStatusType.valueOf(rs.getString(6)));
 	        obj.setType(JobType.valueOf(rs.getString(7)));
 	        obj.setExecClass(JobExecClass.valueOf(rs.getString(8)));
 	        obj.setLastMessage(rs.getString(9));
@@ -433,43 +513,47 @@ public final class JobsDao
 	        obj.setExecSystemId(rs.getString(18));
 	        obj.setExecSystemExecPath(rs.getString(19));
 	        obj.setExecSystemInputPath(rs.getString(20));
-	        obj.setArchiveSystemId(rs.getString(21));
-	        obj.setArchiveSystemPath(rs.getString(22));
-	        obj.setNodes(rs.getInt(23));
-	        obj.setProcessorsPerNode(rs.getInt(24));
-	        obj.setMemoryMb(rs.getInt(25));
-	        obj.setMaxMinutes(rs.getInt(26));
-	        obj.setInputs(rs.getString(27));
-	        obj.setParameters(rs.getString(28));
-	        obj.setEvents(rs.getString(29));
-	        obj.setExecSystemConstraints(rs.getString(30));
-	        obj.setBlockedCount(rs.getInt(31));
-	        obj.setRemoteJobId(rs.getString(32));
-	        obj.setRemoteJobId2(rs.getString(33));
-	        obj.setRemoteOutcome(JobRemoteOutcome.valueOf(rs.getString(34)));
-	        obj.setRemoteResultInfo(rs.getString(35));
-	        obj.setRemoteQueue(rs.getString(36));
-
-	        ts = rs.getTimestamp(37);
-	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
+	        obj.setExecSystemOutputPath(rs.getString(21));
+	        obj.setArchiveSystemId(rs.getString(22));
+	        obj.setArchiveSystemPath(rs.getString(23));
+	        obj.setNodes(rs.getInt(24));
+	        obj.setProcessorsPerNode(rs.getInt(25));
+	        obj.setMemoryMb(rs.getInt(26));
+	        obj.setMaxMinutes(rs.getInt(27));
+	        obj.setInputs(rs.getString(28));
+	        obj.setParameters(rs.getString(29));
+	        obj.setEvents(rs.getString(30));
+	        obj.setExecSystemConstraints(rs.getString(31));
+	        obj.setBlockedCount(rs.getInt(32));
+	        
+	        obj.setRemoteJobId(rs.getString(33));
+	        obj.setRemoteJobId2(rs.getString(34));
+	        
+	        String s = rs.getString(35);
+	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
+	        obj.setRemoteResultInfo(rs.getString(36));
+	        obj.setRemoteQueue(rs.getString(37));
 
 	        ts = rs.getTimestamp(38);
-	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
 
 	        ts = rs.getTimestamp(39);
+	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+
+	        ts = rs.getTimestamp(40);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(40));
-	        obj.setRemoteChecksSuccess(rs.getInt(41));
-	        obj.setRemoteChecksFailed(rs.getInt(42));
+	        obj.setRemoteSubmitRetries(rs.getInt(41));
+	        obj.setRemoteChecksSuccess(rs.getInt(42));
+	        obj.setRemoteChecksFailed(rs.getInt(43));
 
-	        ts = rs.getTimestamp(43);
+	        ts = rs.getTimestamp(44);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(44));
-	        obj.setVisible(rs.getBoolean(45));
-	        obj.setCreatedby(rs.getString(46));
-	        obj.setCreatedbyTenant(rs.getString(47));
+	        obj.setTapisQueue(rs.getString(45));
+	        obj.setVisible(rs.getBoolean(46));
+	        obj.setCreatedby(rs.getString(47));
+	        obj.setCreatedbyTenant(rs.getString(48));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
