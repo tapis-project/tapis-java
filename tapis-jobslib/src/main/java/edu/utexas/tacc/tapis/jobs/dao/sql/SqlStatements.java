@@ -11,11 +11,11 @@ public class SqlStatements
 	/* jobs table:                                                            */
 	/* ---------------------------------------------------------------------- */
     public static final String SELECT_JOBS =
-        "SELECT id, name, owner, owner_tenant, description, status, type, exec_class, "
+        "SELECT id, name, owner, tenant, description, status, type, exec_class, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
         	+ "archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, "
-        	+ "exec_system_input_path, archive_system_id, archive_system_path, nodes, "
-        	+ "processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
+        	+ "exec_system_input_path, exec_system_output_path, archive_system_id, archive_system_path, "
+        	+ "nodes, processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
         	+ "exec_system_constraints, blocked_count, remote_job_id, remote_job_id2, "
         	+ "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
         	+ "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
@@ -24,11 +24,11 @@ public class SqlStatements
         + " FROM jobs ORDER BY id";
 
     public static final String SELECT_JOBS_BY_UUID =
-        "SELECT id, name, owner, owner_tenant, description, status, type, exec_class, "
+        "SELECT id, name, owner, tenant, description, status, type, exec_class, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
         	+ "archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, "
-            + "exec_system_input_path, archive_system_id, archive_system_path, nodes, "
-            + "processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
+            + "exec_system_input_path, exec_system_output_path, archive_system_id, archive_system_path, "
+            + "nodes, processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
             + "exec_system_constraints, blocked_count, remote_job_id, remote_job_id2, "
             + "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
             + "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
@@ -36,6 +36,22 @@ public class SqlStatements
             + "createdby, createdby_tenant"
         + " FROM jobs"
         + " WHERE uuid = ?";
+    
+    // All of the job fields except:
+    // 
+    //	- id, ended, blocked_count, 12 remote_*, visible
+    //
+    public static final String CREATE_JOB = 
+    		"INSERT INTO jobs ("
+    		+ "name, owner, tenant, description, status, type, exec_class, "
+        	+ "last_message, created, last_updated, uuid, app_id, app_version, "
+        	+ "archive_on_app_error, input_system_id, exec_system_id, exec_system_exec_path, "
+            + "exec_system_input_path, exec_system_output_path, archive_system_id, archive_system_path, "
+            + "nodes, processors_per_node, memory_mb, max_minutes, inputs, parameters, events, "
+            + "exec_system_constraints, tapis_queue, createdby, createdby_tenant) "
+    		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, ?::job_type_enum, ?::job_exec_class_enum, "
+    		+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+    		+ "?, ?, ?, ?, ?, ?, ?, ?, ?::json, ?, ?, ?)"; 
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
