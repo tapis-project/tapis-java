@@ -425,6 +425,8 @@ public final class RuntimeParameters
         buf.append("\n------- Tenants -----------------------------------");
         buf.append("\ntapis.site.id: ");
         buf.append(this.getSiteId());
+        buf.append("\nservice: ");
+        buf.append(TapisConstants.SERVICE_NAME_JOBS);
         buf.append("\ntapis.tenant.svc.baseurl: ");
         buf.append(this.getTenantBaseUrl());
 	    
