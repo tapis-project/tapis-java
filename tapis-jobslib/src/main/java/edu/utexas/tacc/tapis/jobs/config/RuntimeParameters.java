@@ -423,6 +423,8 @@ public final class RuntimeParameters
         buf.append(getNetworkAddresses());
         
         buf.append("\n------- Tenants -----------------------------------");
+        buf.append("\ntapis.site.id: ");
+        buf.append(this.getSiteId());
         buf.append("\ntapis.tenant.svc.baseurl: ");
         buf.append(this.getTenantBaseUrl());
 	    
