@@ -43,6 +43,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqUserIsPermittedMulti;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl;
 import edu.utexas.tacc.tapis.security.authz.impl.UserImpl.AuthOperation;
+import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.security.config.SkConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -55,6 +56,7 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultAuthorized;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
+import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -1000,7 +1002,8 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // The requestor will always be non-null after the above check. 
          String grantor = SkConstants.SK_USER;
-         String grantorTenant = "master"; // TODO: *************** temp code, replace with site-master
+         String site = RuntimeParameters.getInstance().getSiteId();
+         String grantorTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
 
          // Create the role and/or permission.
          int rows = 0;

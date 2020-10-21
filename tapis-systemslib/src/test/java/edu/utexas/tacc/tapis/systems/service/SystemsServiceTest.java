@@ -103,13 +103,14 @@ public class SystemsServiceTest
     svcImpl = locator.getService(SystemsServiceImpl.class);
 
     // Initialize authenticated user and service
-    authenticatedOwnerUsr = new AuthenticatedUser(ownerUser, tenantName, TapisThreadContext.AccountType.user.name(), null, ownerUser, tenantName, null, null);
-    authenticatedAdminUsr = new AuthenticatedUser(adminUser, tenantName, TapisThreadContext.AccountType.user.name(), null, adminUser, tenantName, null, null);
-    authenticatedTestUsr0 = new AuthenticatedUser(testUser0, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser0, tenantName, null, null);
-    authenticatedTestUsr1 = new AuthenticatedUser(testUser1, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser1, tenantName, null, null);
-    authenticatedTestUsr2 = new AuthenticatedUser(testUser2, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser2, tenantName, null, null);
-    authenticatedTestUsr3 = new AuthenticatedUser(testUser3, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser3, tenantName, null, null);
-    authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null);
+ // TODO: FIX-FOR-ASSOCIATE-SITES
+    authenticatedOwnerUsr = new AuthenticatedUser(ownerUser, tenantName, TapisThreadContext.AccountType.user.name(), null, ownerUser, tenantName, null, null, null);
+    authenticatedAdminUsr = new AuthenticatedUser(adminUser, tenantName, TapisThreadContext.AccountType.user.name(), null, adminUser, tenantName, null, null, null);
+    authenticatedTestUsr0 = new AuthenticatedUser(testUser0, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser0, tenantName, null, null, null);
+    authenticatedTestUsr1 = new AuthenticatedUser(testUser1, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser1, tenantName, null, null, null);
+    authenticatedTestUsr2 = new AuthenticatedUser(testUser2, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser2, tenantName, null, null, null);
+    authenticatedTestUsr3 = new AuthenticatedUser(testUser3, tenantName, TapisThreadContext.AccountType.user.name(), null, testUser3, tenantName, null, null, null);
+    authenticatedFilesSvc = new AuthenticatedUser(filesSvcName, masterTenantName, TapisThreadContext.AccountType.service.name(), null, ownerUser, tenantName, null, null, null);
 
     // Cleanup anything leftover from previous failed run
     tearDown();

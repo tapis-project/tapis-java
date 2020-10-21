@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.NumberFormat;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class RuntimeParameters {
@@ -47,9 +48,12 @@ public class RuntimeParameters {
   }
   
   // service locations.
+  // TODO: **************** Remove hardcoded paths and site ****************
+  // TODO: FIX-FOR-ASSOCIATE-SITES 
   private String tenantBaseUrl = "https://dev.develop.tapis.io/";
   private String skSvcURL      = "https://dev.develop.tapis.io/v3";
-  private String tokenBaseUrl  =  "https://dev.develop.tapis.io/";
+  private String tokenBaseUrl  = "https://dev.develop.tapis.io/";
+  private String site          = "tacc";
   private String metaToken;
   private ServiceJWT serviceJWT;
   
@@ -273,6 +277,7 @@ public class RuntimeParameters {
     serviceJWTParms.setServiceName(RuntimeParameters.SERVICE_USER_NAME);
     serviceJWTParms.setTenant(RuntimeParameters.SERVICE_TENANT_NAME);
     serviceJWTParms.setTokensBaseUrl(this.getTenantBaseUrl());
+    serviceJWTParms.setTargetSites(Arrays.asList(site));
     serviceJWT = null;
     try {
       serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
@@ -283,9 +288,9 @@ public class RuntimeParameters {
   }
 
   public String getSeviceToken(){
-    if(serviceJWT == null || serviceJWT.hasExpiredAccessJWT()){
+    if(serviceJWT == null || serviceJWT.hasExpiredAccessJWT(site)){
       setServiceJWT();
     }
-    return serviceJWT.getAccessJWT();
+    return serviceJWT.getAccessJWT(site);
   }
 }

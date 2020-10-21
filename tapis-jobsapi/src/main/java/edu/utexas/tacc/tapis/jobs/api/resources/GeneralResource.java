@@ -49,7 +49,7 @@ public final class GeneralResource
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
     
     // The table we query during readiness checks.
-    private static final String QUERY_TABLE = "jb_jobs";
+    private static final String QUERY_TABLE = "jobs";
     
     // Keep track of the last db monitoring outcome.
     private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();

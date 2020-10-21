@@ -82,7 +82,8 @@ public class SearchDaoTest
     System.out.println("Executing BeforeSuite setup method: " + SearchDaoTest.class.getSimpleName());
     dao = new SystemsDaoImpl();
     // Initialize authenticated user
-    authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, apiUser, tenantName, null, null);
+ // TODO: FIX-FOR-ASSOCIATE-SITES
+    authenticatedUser = new AuthenticatedUser(apiUser, tenantName, TapisThreadContext.AccountType.user.name(), null, apiUser, tenantName, null, null, null);
 
     // Cleanup anything leftover from previous failed run
     teardown();

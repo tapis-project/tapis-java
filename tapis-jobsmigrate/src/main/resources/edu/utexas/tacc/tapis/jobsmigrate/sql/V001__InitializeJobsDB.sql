@@ -14,21 +14,25 @@
 -- values read from the database can be assumed to be UTC.
 
 -- Types
-CREATE TYPE job_status AS ENUM ('PENDING', 'PROCESSING_INPUTS', 'STAGING_INPUTS', 'STAGING_JOB', 'SUBMITTING_JOB', 'QUEUED', 'RUNNING', 'ARCHIVING', 'FINISHED','CANCELLED', 'FAILED', 'PAUSED', 'BLOCKED');
-CREATE TYPE remote_outcome_enum AS ENUM ('FINISHED', 'FAILED', 'FAILED_SKIP_ARCHIVE');
+CREATE TYPE job_status_enum AS ENUM ('PENDING', 'PROCESSING_INPUTS', 'STAGING_INPUTS', 'STAGING_JOB', 'SUBMITTING_JOB', 'QUEUED', 'RUNNING', 'ARCHIVING', 'FINISHED','CANCELLED', 'FAILED', 'PAUSED', 'BLOCKED');
+CREATE TYPE job_remote_outcome_enum AS ENUM ('FINISHED', 'FAILED', 'FAILED_SKIP_ARCHIVE');
+CREATE TYPE job_type_enum as ENUM ('BATCH', 'INTERACTIVE', 'STREAM');
+CREATE TYPE job_exec_class_enum as ENUM ('NORMAL', 'PROTECTED');
 
 -- ----------------------------------------------------------------------------------------
---                                          ROLE
+--                                          Jobs
 -- ----------------------------------------------------------------------------------------
--- Role table
-CREATE TABLE jb_jobs
+-- Jobs table
+CREATE TABLE jobs
 (
   id                          serial4 PRIMARY KEY,
   name                        character varying(64) NOT NULL, 
   owner                       character varying(64) NOT NULL,
-  owner_tenant                character varying(24) NOT NULL,
+  tenant                      character varying(24) NOT NULL,
   description                 character varying(2048) NOT NULL, 
-  status                      job_status NOT NULL,
+  status                      job_status_enum NOT NULL,
+  type                        job_type_enum NOT NULL,
+  exec_class                  job_exec_class_enum NOT NULL,
   last_message                character varying(4096) NOT NULL, 
   
   created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
@@ -45,6 +49,7 @@ CREATE TABLE jb_jobs
   exec_system_id              character varying(80) NOT NULL,
   exec_system_exec_path       character varying(4096), 
   exec_system_input_path      character varying(4096), 
+  exec_system_output_path     character varying(4096), 
   archive_system_id           character varying(80),
   archive_system_path         character varying(4096),
   
@@ -53,39 +58,140 @@ CREATE TABLE jb_jobs
   memory_mb                   integer NOT NULL,
   max_minutes                 integer NOT NULL,
   
-  inputs                      character varying(65536),
-  parameters                  character varying(65536),
+  inputs                      character varying(65536) NOT NULL,
+  parameters                  character varying(65536) NOT NULL,
+  events                      character varying(2048)  NOT NULL,
+  exec_system_constraints     jsonb NOT NULL,
+  
+  blocked_count               integer NOT NULL DEFAULT 0,
   
   remote_job_id               character varying(126),
   remote_job_id2              character varying(126),
-  remote_outcome              remote_outcome_enum,
+  remote_outcome              job_remote_outcome_enum,
   remote_result_info          character varying(4096),
   remote_queue                character varying(126),
   remote_submitted            timestamp without time zone,
   remote_started              timestamp without time zone,
   remote_ended                timestamp without time zone,
   remote_submit_retries       integer NOT NULL DEFAULT 0,
-  remote_status_checks        integer NOT NULL DEFAULT 0,
-  remote_failed_checks        integer NOT NULL DEFAULT 0,
-  remote_status_checks_total  integer NOT NULL DEFAULT 0,
-  remote_failed_checks_total  integer NOT NULL DEFAULT 0,
+  remote_checks_success       integer NOT NULL DEFAULT 0,
+  remote_checks_failed        integer NOT NULL DEFAULT 0,
   remote_last_status_check    timestamp without time zone,
-  blocked_count               integer NOT NULL DEFAULT 0,
  
   tapis_queue                 character varying(64) NOT NULL,
   visible                     boolean NOT NULL DEFAULT TRUE,
   createdby                   character varying(60) NOT NULL,  
   createdby_tenant            character varying(24) NOT NULL
 );
-ALTER TABLE jb_jobs OWNER TO tapis;
-ALTER SEQUENCE jb_jobs_id_seq RESTART WITH 1;
-CREATE UNIQUE INDEX jb_jobs_uuid_idx ON jb_jobs (uuid);
-CREATE INDEX jb_jobs_tenant_owner_idx ON jb_jobs (owner_tenant, owner);
-CREATE INDEX jb_jobs_created_idx ON jb_jobs (created);
-CREATE INDEX jb_jobs_createdby_idx ON jb_jobs (createdby);
-CREATE INDEX jb_jobs_status_idx ON jb_jobs (status);
-CREATE INDEX jb_jobs_app_id_idx ON jb_jobs (app_id);
-CREATE INDEX jb_jobs_input_system_idx ON jb_jobs (input_system_id);
-CREATE INDEX jb_jobs_exec_system_idx ON jb_jobs (exec_system_id);
-CREATE INDEX jb_jobs_archive_system_idx ON jb_jobs (archive_system_id);
-   
+ALTER TABLE jobs OWNER TO tapis;
+ALTER SEQUENCE jobs_id_seq RESTART WITH 1;
+CREATE UNIQUE INDEX jobs_uuid_idx ON jobs (uuid);
+CREATE INDEX jobs_tenant_owner_idx ON jobs (tenant, owner);
+CREATE INDEX jobs_created_idx ON jobs (created);
+CREATE INDEX jobs_tenant_createdby_idx ON jobs (createdby_tenant, createdby);
+CREATE INDEX jobs_status_idx ON jobs (status);
+CREATE INDEX jobs_app_id_idx ON jobs (app_id);
+CREATE INDEX jobs_input_system_idx ON jobs (input_system_id);
+CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
+CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Resubmit
+-- ----------------------------------------------------------------------------------------
+-- Job Resubmit table
+CREATE TABLE job_resubmit
+(
+  id                          serial4 PRIMARY KEY,
+  job_uuid                    character varying(64) NOT NULL,
+  job_definition              text NOT NULL,
+  FOREIGN KEY (job_uuid) REFERENCES jobs (uuid) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ALTER TABLE job_resubmit OWNER TO tapis;
+ALTER SEQUENCE job_resubmit_id_seq RESTART WITH 1;
+CREATE UNIQUE INDEX job_resubmit_job_uuid_idx ON job_resubmit (job_uuid);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Events
+-- ----------------------------------------------------------------------------------------
+-- Job Events table
+CREATE TABLE job_events
+(
+  id                          serial4 PRIMARY KEY,
+  created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),
+  job_uuid                    character varying(64) NOT NULL,
+  oth_uuid                    character varying(64),
+  event                       character varying(32) NOT NULL,
+  description                 character varying(2048) NOT NULL,
+  FOREIGN KEY (job_uuid) REFERENCES jobs (uuid) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ALTER TABLE job_events OWNER TO tapis;
+ALTER SEQUENCE job_events_id_seq RESTART WITH 1;
+CREATE INDEX job_events_created_idx ON job_events (created);
+CREATE INDEX job_events_job_uuid_idx ON job_events (job_uuid);
+CREATE INDEX job_events_oth_uuid_idx ON job_events (oth_uuid);
+CREATE INDEX job_events_event_idx ON job_events (event);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Queues
+-- ----------------------------------------------------------------------------------------
+-- Job Queues table
+CREATE TABLE job_queues
+(
+  id                          serial4 PRIMARY KEY,
+  name                        character varying(150) NOT NULL,
+  priority                    integer NOT NULL,
+  filter                      character varying(2048) NOT NULL,
+  uuid                        character varying(64) NOT NULL,
+  created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
+  last_updated                timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc')
+);
+ALTER TABLE job_queues OWNER TO tapis;
+ALTER SEQUENCE job_queues_id_seq RESTART WITH 1;
+CREATE UNIQUE INDEX job_queues_name_idx ON job_queues (name);
+CREATE UNIQUE INDEX job_queues_priority_idx ON job_queues (priority);
+CREATE UNIQUE INDEX job_queues_uuid_idx ON job_queues (uuid);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Recovery
+-- ----------------------------------------------------------------------------------------
+-- Job Recovery table
+CREATE TABLE job_recovery
+(
+  id                          serial4 PRIMARY KEY,
+  tenant_id                   character varying(24) NOT NULL,
+  condition_code              character varying(64) NOT NULL,
+  tester_type                 character varying(64) NOT NULL,
+  tester_parms                character varying(2048) NOT NULL,
+  policy_type                 character varying(64) NOT NULL,
+  policy_parms                character varying(2048) NOT NULL,
+  num_attempts                integer NOT NULL,
+  next_attempt                timestamp without time zone NOT NULL,
+  created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
+  last_updated                timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),
+  tester_hash                 character varying(64) NOT NULL
+);  
+ALTER TABLE job_recovery OWNER TO tapis;
+ALTER SEQUENCE job_recovery_id_seq RESTART WITH 1;
+CREATE UNIQUE INDEX job_recovery_tenant_hash_idx ON job_recovery (tenant_id, tester_hash);
+CREATE INDEX job_recovery_next_attempt_idx ON job_recovery (next_attempt DESC);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Recovery
+-- ----------------------------------------------------------------------------------------
+-- Job Recovery table
+CREATE TABLE job_blocked
+(
+  id                          serial4 PRIMARY KEY,
+  recovery_id                 integer NOT NULL,
+  created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),
+  success_status              job_status_enum NOT NULL,
+  job_uuid                    character varying(64) NOT NULL,
+  status_message              character varying(2048) NOT NULL,
+  FOREIGN KEY (job_uuid) REFERENCES jobs (uuid) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (recovery_id) REFERENCES job_recovery (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ALTER TABLE job_blocked OWNER TO tapis;
+ALTER SEQUENCE job_blocked_id_seq RESTART WITH 1;
+CREATE UNIQUE INDEX job_blocked_job_uuid_idx ON job_blocked (job_uuid);
+CREATE INDEX job_blocked_recovery_id_idx ON job_blocked (recovery_id);
+

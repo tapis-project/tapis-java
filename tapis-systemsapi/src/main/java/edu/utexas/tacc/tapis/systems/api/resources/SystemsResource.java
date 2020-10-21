@@ -315,7 +315,10 @@ public class SystemsResource
   {
     Exception result = null;
     try {
-      String jwt = serviceJWT.getAccessJWT();
+      // TODO: FIX-FOR-ASSOCIATE-SITES	
+      // Replace hardcoded site value.
+      String site = "tacc";
+      String jwt = serviceJWT.getAccessJWT(site);
       if (StringUtils.isBlank(jwt)) result = new TapisClientException(LibUtils.getMsg("SYSLIB_CHECKJWT_EMPTY"));
     }
     catch (Exception e) { result = e; }

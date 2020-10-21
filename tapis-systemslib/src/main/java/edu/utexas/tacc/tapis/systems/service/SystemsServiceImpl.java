@@ -75,6 +75,10 @@ public class SystemsServiceImpl implements SystemsService
   public static final String SYSTEMS_ADMIN_ROLE = "SystemsAdmin";
   public static final String SYSTEMS_ADMIN_DESCRIPTION = "Administrative role for Systems service";
   public static final String SYSTEMS_DEFAULT_MASTER_TENANT = "master";
+  
+  // TODO: temporary code to just for compilation in associate site environment.
+  // TODO: FIX-FOR-ASSOCIATE-SITES
+  public static final String DEFAULT_SITE = "tacc";
 
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SystemsServiceImpl.class);
@@ -219,7 +223,7 @@ public class SystemsServiceImpl implements SystemsService
       _log.error("roleNameR="+ roleNameR);
       _log.error("systemsPermSpecR=" + systemsPermSpecR);
       _log.error("authenticatedUser.getJwt=" + authenticatedUser.getJwt());
-      _log.error("serviceJwt.getAccessJWT=" + serviceJWT.getAccessJWT());
+      _log.error("serviceJwt.getAccessJWT=" + serviceJWT.getAccessJWT(DEFAULT_SITE));
       skClient.addRolePermission(systemTenantName, roleNameR, systemsPermSpecR);
 
       // ------------------- Add permissions and role assignments -----------------------------
@@ -582,9 +586,10 @@ public class SystemsServiceImpl implements SystemsService
     String svcMasterTenant = RuntimeParameters.getInstance().getServiceMasterTenant();
     if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
     // Create user for SK client
+ // TODO: FIX-FOR-ASSOCIATE-SITES
     AuthenticatedUser svcUser =
         new AuthenticatedUser(SERVICE_NAME_SYSTEMS, svcMasterTenant, TapisThreadContext.AccountType.service.name(),
-                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null);
+                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, null, null);
     // Use SK client to check for admin role and create it if necessary
     var skClient = getSKClient(svcUser);
     // Check for admin role
@@ -1320,7 +1325,7 @@ public class SystemsServiceImpl implements SystemsService
     skURL = skURL.substring(0, skURL.indexOf("/v3") + 3);
 
     skClient.setBasePath(skURL);
-    skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT());
+    skClient.addDefaultHeader(HDR_TAPIS_TOKEN, serviceJWT.getAccessJWT(DEFAULT_SITE));
 
     // For service jwt pass along oboTenant and oboUser in OBO headers
     // For user jwt use authenticated user name and tenant in OBO headers
