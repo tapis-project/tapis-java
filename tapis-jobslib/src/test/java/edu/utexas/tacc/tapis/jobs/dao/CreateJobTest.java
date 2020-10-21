@@ -27,7 +27,11 @@ public class CreateJobTest
 		System.out.println("Number of existing jobs records: " + jobList.size());	
 
 		// Retrieve the newly created job record.
-
+		if (!jobList.isEmpty()) {
+			var retrievedJob = jobList.get(jobList.size()-1);
+			System.out.println("Parameters for job " + retrievedJob.getId() + ": " 
+			                   + retrievedJob.getParameters());
+		}
 	}
 	
 	/* ********************************************************************** */
@@ -54,7 +58,7 @@ public class CreateJobTest
 		
 	    // Optional fields.
 	    String json = "{\"key1\": \"value1\", \"key2\": 5}";
-	    job.setExecSystemConstraints(json);
+	    job.setParameters(json);
 	    
 		return job;
 	}

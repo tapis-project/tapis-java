@@ -36,7 +36,6 @@ public final class Job
     private String   			appId;
     private String   			appVersion;
     private boolean  			archiveOnAppError;
-    private String   			inputSystemId;
     private String   			execSystemId;
     private String   			execSystemExecPath;
     private String   			execSystemInputPath;
@@ -49,8 +48,6 @@ public final class Job
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     private String   			inputs = EMPTY_JSON;
     private String   			parameters = EMPTY_JSON;
-    private String   			events = EMPTY_JSON;
-    private String   			execSystemConstraints = EMPTY_JSON;
     private int      			blockedCount;
     private String   			remoteJobId;
     private String   			remoteJobId2;
@@ -207,14 +204,6 @@ public final class Job
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
-	public String getInputSystemId() {
-		return inputSystemId;
-	}
-
-	public void setInputSystemId(String inputSystemId) {
-		this.inputSystemId = inputSystemId;
-	}
-
 	public String getExecSystemId() {
 		return execSystemId;
 	}
@@ -309,22 +298,6 @@ public final class Job
 
 	public void setParameters(String parameters) {
 		this.parameters = parameters;
-	}
-
-	public String getEvents() {
-		return events;
-	}
-
-	public void setEvents(String events) {
-		this.events = events;
-	}
-
-	public String getExecSystemConstraints() {
-		return execSystemConstraints;
-	}
-
-	public void setExecSystemConstraints(String execSystemConstraints) {
-		this.execSystemConstraints = execSystemConstraints;
 	}
 
 	public int getBlockedCount() {

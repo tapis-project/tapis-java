@@ -232,27 +232,24 @@ public final class JobsDao
           pstmt.setString(13, job.getAppVersion().trim());
           pstmt.setBoolean(14, job.isArchiveOnAppError());
               
-          pstmt.setString(15, job.getInputSystemId());          // could be null
-          pstmt.setString(16, job.getExecSystemId());           
-          pstmt.setString(17, job.getExecSystemExecPath());     // could be null
-          pstmt.setString(18, job.getExecSystemInputPath());    // could be null
-          pstmt.setString(19, job.getExecSystemOutputPath());   // could be null
-          pstmt.setString(20, job.getArchiveSystemId());        // could be null
-          pstmt.setString(21, job.getArchiveSystemPath());      // could be null
+          pstmt.setString(15, job.getExecSystemId());           
+          pstmt.setString(16, job.getExecSystemExecPath());     // could be null
+          pstmt.setString(17, job.getExecSystemInputPath());    // could be null
+          pstmt.setString(18, job.getExecSystemOutputPath());   // could be null
+          pstmt.setString(19, job.getArchiveSystemId());        // could be null
+          pstmt.setString(20, job.getArchiveSystemPath());      // could be null
               
-          pstmt.setInt(22, job.getNodes());
-          pstmt.setInt(23, job.getProcessorsPerNode());
-          pstmt.setInt(24, job.getMemoryMb());
-          pstmt.setInt(25, job.getMaxMinutes());
+          pstmt.setInt(21, job.getNodes());
+          pstmt.setInt(22, job.getProcessorsPerNode());
+          pstmt.setInt(23, job.getMemoryMb());
+          pstmt.setInt(24, job.getMaxMinutes());
               
-          pstmt.setString(26, job.getInputs());                 
-          pstmt.setString(27, job.getParameters());             
-          pstmt.setString(28, job.getEvents());                 
-          pstmt.setString(29, job.getExecSystemConstraints());  
+          pstmt.setString(25, job.getInputs());                 
+          pstmt.setString(26, job.getParameters());             
 
-          pstmt.setString(30, job.getTapisQueue());
-          pstmt.setString(31, job.getCreatedby());
-          pstmt.setString(32, job.getCreatedbyTenant());
+          pstmt.setString(27, job.getTapisQueue());
+          pstmt.setString(28, job.getCreatedby());
+          pstmt.setString(29, job.getCreatedbyTenant());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -430,14 +427,6 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameters");
 	          throw new TapisException(msg);
 		}
-		if (StringUtils.isBlank(job.getEvents())) {
-	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "events");
-	          throw new TapisException(msg);
-		}
-		if (StringUtils.isBlank(job.getExecSystemConstraints())) {
-	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
-	          throw new TapisException(msg);
-		}
 		
 		if (StringUtils.isBlank(job.getTapisQueue())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "tapisQueue");
@@ -509,51 +498,48 @@ public final class JobsDao
 	        obj.setAppId(rs.getString(14));
 	        obj.setAppVersion(rs.getString(15));
 	        obj.setArchiveOnAppError(rs.getBoolean(16));
-	        obj.setInputSystemId(rs.getString(17));
-	        obj.setExecSystemId(rs.getString(18));
-	        obj.setExecSystemExecPath(rs.getString(19));
-	        obj.setExecSystemInputPath(rs.getString(20));
-	        obj.setExecSystemOutputPath(rs.getString(21));
-	        obj.setArchiveSystemId(rs.getString(22));
-	        obj.setArchiveSystemPath(rs.getString(23));
-	        obj.setNodes(rs.getInt(24));
-	        obj.setProcessorsPerNode(rs.getInt(25));
-	        obj.setMemoryMb(rs.getInt(26));
-	        obj.setMaxMinutes(rs.getInt(27));
-	        obj.setInputs(rs.getString(28));
-	        obj.setParameters(rs.getString(29));
-	        obj.setEvents(rs.getString(30));
-	        obj.setExecSystemConstraints(rs.getString(31));
-	        obj.setBlockedCount(rs.getInt(32));
+	        obj.setExecSystemId(rs.getString(17));
+	        obj.setExecSystemExecPath(rs.getString(18));
+	        obj.setExecSystemInputPath(rs.getString(19));
+	        obj.setExecSystemOutputPath(rs.getString(20));
+	        obj.setArchiveSystemId(rs.getString(21));
+	        obj.setArchiveSystemPath(rs.getString(22));
+	        obj.setNodes(rs.getInt(23));
+	        obj.setProcessorsPerNode(rs.getInt(24));
+	        obj.setMemoryMb(rs.getInt(25));
+	        obj.setMaxMinutes(rs.getInt(26));
+	        obj.setInputs(rs.getString(27));
+	        obj.setParameters(rs.getString(28));
+	        obj.setBlockedCount(rs.getInt(29));
 	        
-	        obj.setRemoteJobId(rs.getString(33));
-	        obj.setRemoteJobId2(rs.getString(34));
+	        obj.setRemoteJobId(rs.getString(30));
+	        obj.setRemoteJobId2(rs.getString(31));
 	        
-	        String s = rs.getString(35);
+	        String s = rs.getString(32);
 	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
-	        obj.setRemoteResultInfo(rs.getString(36));
-	        obj.setRemoteQueue(rs.getString(37));
+	        obj.setRemoteResultInfo(rs.getString(33));
+	        obj.setRemoteQueue(rs.getString(34));
 
-	        ts = rs.getTimestamp(38);
+	        ts = rs.getTimestamp(35);
 	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
 
-	        ts = rs.getTimestamp(39);
+	        ts = rs.getTimestamp(36);
 	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
 
-	        ts = rs.getTimestamp(40);
+	        ts = rs.getTimestamp(37);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(41));
-	        obj.setRemoteChecksSuccess(rs.getInt(42));
-	        obj.setRemoteChecksFailed(rs.getInt(43));
+	        obj.setRemoteSubmitRetries(rs.getInt(38));
+	        obj.setRemoteChecksSuccess(rs.getInt(39));
+	        obj.setRemoteChecksFailed(rs.getInt(40));
 
-	        ts = rs.getTimestamp(44);
+	        ts = rs.getTimestamp(41);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(45));
-	        obj.setVisible(rs.getBoolean(46));
-	        obj.setCreatedby(rs.getString(47));
-	        obj.setCreatedbyTenant(rs.getString(48));
+	        obj.setTapisQueue(rs.getString(42));
+	        obj.setVisible(rs.getBoolean(43));
+	        obj.setCreatedby(rs.getString(44));
+	        obj.setCreatedbyTenant(rs.getString(45));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
