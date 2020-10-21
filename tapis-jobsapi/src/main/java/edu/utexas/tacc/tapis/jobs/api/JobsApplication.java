@@ -104,8 +104,12 @@ extends ResourceConfig
            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager ****");
            e.printStackTrace();
        }
-       if (tenantMap != null)
+       if (tenantMap != null) {
            System.out.println("**** SUCCESS:  " + tenantMap.size() + " tenants retrieved ****");
+           String s = "Tenants:\n";
+           for (String tenant : tenantMap.keySet()) s += "  " + tenant + "\n";
+           System.out.println(s);
+       }
        
        // We're done.
        System.out.println("**** tapis-jobsapi Initialized ****");
