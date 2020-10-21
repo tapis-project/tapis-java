@@ -119,8 +119,12 @@ public class SecurityApplication
             System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager ****");
             e.printStackTrace();
         }
-        if (tenantMap != null)
+        if (tenantMap != null) {
             System.out.println("**** SUCCESS:  " + tenantMap.size() + " tenants retrieved ****");
+            String s = "Tenants:\n";
+            for (String tenant : tenantMap.keySet()) s += "  " + tenant + "\n";
+            System.out.println(s);
+        }
         
         // Initialize tenant roles and administrators.
         success = false;
