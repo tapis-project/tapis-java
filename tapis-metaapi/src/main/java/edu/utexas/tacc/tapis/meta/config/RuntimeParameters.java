@@ -300,7 +300,7 @@ public class RuntimeParameters {
     serviceJWTParms.setTargetSites(Arrays.asList(site));
     serviceJWT = null;
     try {
-      serviceJWT = new ServiceJWT(serviceJWTParms, SERVICE_NAME_META);
+      serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
     } catch (TapisException | TapisClientException e) {
       // TODO
       e.printStackTrace();
