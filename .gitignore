@@ -82,3 +82,4 @@ Icon
 /tapis-metaapi/http.testing/archive-env.json
 /tapis-metaapi/http.testing/rest-client.private.env.json
 /tapis-metaapi/http.testing/packards_sanityCheck.sh
+/tapis-metaapi/environment/tapisdev.env
