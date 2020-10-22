@@ -2,9 +2,7 @@ package edu.utexas.tacc.tapis.meta.api;
 
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -30,6 +28,7 @@ public class MetaApplication extends ResourceConfig {
     packages("edu.utexas.tacc.tapis");
     setApplicationName("meta");
   
+    
     // Force runtime initialization of the tenant manager.  This creates the
     // singleton instance of the TenantManager that can then be accessed by
     // all subsequent application code--including filters--without reference
@@ -41,7 +40,12 @@ public class MetaApplication extends ResourceConfig {
       RuntimeParameters runTime = RuntimeParameters.getInstance();
       String url = runTime.getTenantBaseUrl();
       TenantManager.getInstance(url).getTenants();
-      
+  
+      // ---------------- Initialize Security Filter --------------
+      // Required to process any requests.
+      JWTValidateRequestFilter.setService(runTime.SERVICE_NAME_META);
+      JWTValidateRequestFilter.setSiteId(runTime.getSiteId());
+
       // Do we also fail if we can't get a service token?
       runTime.setServiceJWT();
     } catch (Exception e) {

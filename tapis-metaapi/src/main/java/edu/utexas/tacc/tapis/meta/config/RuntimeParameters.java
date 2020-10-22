@@ -26,6 +26,9 @@ public class RuntimeParameters {
   // Distinguished user-chosen name of this runtime instance.
   private String  instanceName;
   
+  // The site in which this service is running.
+  private String  siteId;
+  
   // Globally unique id that identifies this JVM instance.
   private static final TapisUUID id = new TapisUUID(UUIDType.METADATA);
   
@@ -82,9 +85,21 @@ public class RuntimeParameters {
       throw new TapisRuntimeException(msg, e);
     }
   
+    // The site must always be provided.
+    String parm = inputProperties.getProperty(TapisEnv.EnvVar.TAPIS_SITE_ID.getEnvName());
+    if (StringUtils.isBlank(parm)) {
+      String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+          RuntimeParameters.SERVICE_NAME_META,
+          "siteId",
+          "No siteId specified.");
+      _log.error(msg);
+      throw new TapisRuntimeException(msg);
+    }
+    setSiteId(parm);
+  
     //----------------------   Input parameters   ----------------------
     // String parm = inputProperties.getProperty(TapisEnv.EnvVar.TAPIS_LOG_DIRECTORY.getEnvName());
-    String parm = System.getenv("tapis.meta.core.server");
+    parm = System.getenv("tapis.meta.core.server");
     if (!StringUtils.isBlank(parm)) setCoreServer(parm);
   
     parm = inputProperties.getProperty("tapis.meta.log.directory");
@@ -221,6 +236,10 @@ public class RuntimeParameters {
     buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
   }
   
+  public String getSiteId() { return siteId; }
+  
+  public void setSiteId(String siteId) { this.siteId = siteId; }
+  
   public String getTenantBaseUrl() { return this.tenantBaseUrl; }
   
   public void setTenantBaseUrl(String tenantBaseUrl) {
@@ -277,10 +296,11 @@ public class RuntimeParameters {
     serviceJWTParms.setServiceName(RuntimeParameters.SERVICE_USER_NAME);
     serviceJWTParms.setTenant(RuntimeParameters.SERVICE_TENANT_NAME);
     serviceJWTParms.setTokensBaseUrl(this.getTenantBaseUrl());
+    // TODO see what this changed to
     serviceJWTParms.setTargetSites(Arrays.asList(site));
     serviceJWT = null;
     try {
-      serviceJWT = new ServiceJWT(serviceJWTParms, TapisEnv.get(TapisEnv.EnvVar.TAPIS_SERVICE_PASSWORD));
+      serviceJWT = new ServiceJWT(serviceJWTParms, SERVICE_NAME_META);
     } catch (TapisException | TapisClientException e) {
       // TODO
       e.printStackTrace();
@@ -288,9 +308,9 @@ public class RuntimeParameters {
   }
 
   public String getSeviceToken(){
-    if(serviceJWT == null || serviceJWT.hasExpiredAccessJWT(site)){
+    if((serviceJWT == null) || serviceJWT.hasExpiredAccessJWT(siteId)){
       setServiceJWT();
     }
-    return serviceJWT.getAccessJWT(site);
+    return serviceJWT.getAccessJWT(siteId);
   }
 }
