@@ -45,7 +45,6 @@ CREATE TABLE jobs
   app_version                 character varying(64) NOT NULL,
   archive_on_app_error        boolean NOT NULL DEFAULT FALSE,
   
-  input_system_id             character varying(80),
   exec_system_id              character varying(80) NOT NULL,
   exec_system_exec_path       character varying(4096), 
   exec_system_input_path      character varying(4096), 
@@ -58,10 +57,8 @@ CREATE TABLE jobs
   memory_mb                   integer NOT NULL,
   max_minutes                 integer NOT NULL,
   
-  inputs                      character varying(65536) NOT NULL,
-  parameters                  character varying(65536) NOT NULL,
-  events                      character varying(2048)  NOT NULL,
-  exec_system_constraints     jsonb NOT NULL,
+  inputs                      jsonb NOT NULL,
+  parameters                  jsonb NOT NULL,
   
   blocked_count               integer NOT NULL DEFAULT 0,
   
@@ -91,7 +88,6 @@ CREATE INDEX jobs_created_idx ON jobs (created);
 CREATE INDEX jobs_tenant_createdby_idx ON jobs (createdby_tenant, createdby);
 CREATE INDEX jobs_status_idx ON jobs (status);
 CREATE INDEX jobs_app_id_idx ON jobs (app_id);
-CREATE INDEX jobs_input_system_idx ON jobs (input_system_id);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
 
