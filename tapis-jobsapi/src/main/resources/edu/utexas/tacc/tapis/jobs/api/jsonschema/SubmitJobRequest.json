@@ -1,0 +1,158 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/SubmitJobRequest",
+    "description": "Top-level schema for job submission request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "tenant": {
+            "type": "string",
+            "maxLength": 24
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "appId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "appVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "archiveOnAppError": {
+            "type": "boolean"
+          },
+          "execSystemId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "execSystemExecPath": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "execSystemInputPath": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "execSystemOutputPath": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "archiveSystemId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "archiveSystemPath": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "node": {
+            "type": "integer"
+          },
+          "processorsPerNode": {
+            "type": "integer"
+          },
+          "memoryMb": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxMinutes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "inputs": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/InputSpec"},
+            "uniqueItems": true
+          },
+          "parameters": {
+            "type": "object",
+            "$ref": "#/$defs/Parameters"
+          }
+        },
+    "required": [
+        "name",
+        "appId",
+        "appVersion",
+        "description"
+    ],
+    "$defs": {
+        "Parameters": {
+            "type": "object",
+                "properties": {
+                    "appParameters": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "uniqueItems": true
+                    },
+                    "containerParameters": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "uniqueItems": true
+                    },
+                    "schedulerOptions": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "uniqueItems": true
+                    },
+                    "execSystemConstraints": {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/Constraint"},
+                        "uniqueItems": true
+                    },
+                    "envVariables": {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/KeyValueString"},
+                        "uniqueItems": true
+                    }
+                }
+        },
+        "InputSpec": {
+            "type": "object",
+                "properties": {
+                    "sourceUrl":  {"type": "string", "minLength": 1, "format": "uri"},
+                    "targetPath": {"type": "string", "minLength": 0}
+             },
+             "required": ["sourceUrl"]
+        },
+        "KeyValueString": {
+            "type": "object",
+                "properties": {
+                    "key":   {"type": "string", "minLength": 1},
+                    "value": {"type": "string", "minLength": 0}
+             },
+             "required": ["key", "value"]
+        },
+        "Constraint": {
+            "type": "object",
+                "properties": {
+                    "key":   {"type": "string"},
+                    "value": {
+                        "anyOf": [
+                            {"type": "string", "minLength": 0},
+                            {"type": "integer"},
+                            {"type": "number"},
+                            {"type": "boolean" },
+                            {"type": "null" }
+                        ]
+                    }
+             },
+             "required": ["key", "value"]
+        }
+    }
+    
+}

@@ -65,7 +65,6 @@ class AbstractResource
         try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
           catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_IO_ERROR", e.getMessage());
-            _log.error(msg, e);
             throw new TapisException(msg, e);
           }
         
@@ -76,7 +75,6 @@ class AbstractResource
         try {JsonValidator.validate(spec);}
           catch (TapisJSONException e) {
             String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());
-            _log.error(msg, e);
             throw new TapisException(msg, e);
           }
 
@@ -85,14 +83,12 @@ class AbstractResource
         try {payload = TapisGsonUtils.getGson().fromJson(json, classOfT);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_JSON_VALIDATION_ERROR", e.getMessage());            
-                _log.error(msg, e);
                 throw new TapisException(msg, e);
             }
         
         // Validate the payload parameters.
         String msg = payload.validate();
         if (msg != null) {
-            _log.error(msg);
             throw new TapisException(msg);
         }
         
