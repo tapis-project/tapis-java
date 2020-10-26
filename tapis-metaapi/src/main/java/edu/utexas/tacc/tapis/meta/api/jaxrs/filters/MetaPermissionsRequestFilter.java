@@ -44,9 +44,10 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
     
     // Tracing.
-    if (_log.isTraceEnabled())
+    if (_log.isTraceEnabled()){
       _log.trace("Executing Permissions request filter: " + this.getClass().getSimpleName() + ".");
       debugRequestDump(threadContext,requestContext);
+    }
     
     // let's turn off permissions for testing without SK client calls
     if(!MetaAppConstants.TAPIS_ENVONLY_META_PERMISSIONS_CHECK){
