@@ -1,0 +1,89 @@
+# curl -u "streams:Z69AOj7nj9AAsXIAWqUF9Aivg" -H "Content-type: application/json" -d '{"token_tenant_id": "master", "account_type": "service", "token_username": "streams", "access_token_ttl": 9999999,  "target_site_id": "tacc" }' https://dev.develop.tapis.io/v3/tokens
+POST https://dev.develop.tapis.io/v3/tokens
+Authorization: Basic streams Z69AOj7nj9AAsXIAWqUF9Aivg
+Content-Type: application/json
+
+{"token_tenant_id": "master", "account_type": "service", "token_username": "streams", "access_token_ttl": 9999999,  "target_site_id": "tacc" }
+
+###
+# created 26.10.2020 8:42  streams master token for testing tapis dev
+# {
+#   "message": "Token generation successful.",
+#   "result": {
+#     "access_token": {
+#       "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiJjZWU0OTZjNC0zMzlkLTQyZWYtYjkyYS01YmM5ZDM2MjExNTUiLCJpc3MiOiJodHRwczovL21hc3Rlci5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InN0cmVhbXNAbWFzdGVyIiwidGFwaXMvdGVuYW50X2lkIjoibWFzdGVyIiwidGFwaXMvdG9rZW5fdHlwZSI6ImFjY2VzcyIsInRhcGlzL2RlbGVnYXRpb24iOmZhbHNlLCJ0YXBpcy9kZWxlZ2F0aW9uX3N1YiI6bnVsbCwidGFwaXMvdXNlcm5hbWUiOiJzdHJlYW1zIiwidGFwaXMvYWNjb3VudF90eXBlIjoic2VydmljZSIsImV4cCI6MTYxMzcxOTc3OCwidGFwaXMvdGFyZ2V0X3NpdGUiOiJ0YWNjIn0.GRh_bw509RT_uzCPsyPuZ3ioGHYpi5hj7EKQUUMmSPIBCr1TXKv56EGySwVSvRBwSc_qoo_phj4_i1pmehgmedaqkKQHy7y-w1YSOv9Tx4fM6RB7cXKDBHSuPzn6JT1mWjXWM1kifX_3wCJrxDe-rOZJK_zHstT_VzsOu6yILmCARt9sRTSTeeC9HI9K7FASqDnkmrglcF0Zd7xmEponVZkzOMPprJYpzNqNJtSHjharO62TdNM41buaKc4zxXmeH5Bq-gO5ranygbns0SzaU2yX8F1A6ZWIC7qKwXiIjPaYByXObtFmDk7hwwRbO1t0ZbpJkG55pSoHbL0NWcYUmA",
+#       "expires_at": "2021-02-19T07:29:38.141619+00:00",
+#       "expires_in": 9999999,
+#       "jti": "cee496c4-339d-42ef-b92a-5bc9d3621155"
+#     }
+#   },
+#   "status": "success",
+#   "version": "dev"
+# }
+#
+
+###  sanity test to see if service is alive
+GET https://dev.develop.tapis.io/v3/meta/healthcheck
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: taccMetaAdmin
+# X-Tapis-Tenant: master
+# Content-Type: application/json
+
+###
+
+
+##################################### meta user #################################################
+# meta  these tests are hitting the dev deployment of RH-core
+# run with meta.master service token settings
+#
+##############################################################
+#      DB endpoints
+##############################################################
+
+#  HAPPY Path
+###   db list collections with streams user
+GET https://dev.develop.tapis.io/v3/meta/StreamsDevDB
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+#  HAPPY Path
+###   db list collection documents
+GET https://dev.develop.tapis.io/v3/meta/StreamsDevDB/streams_project_metadata
+X-Tapis-Token: {{token}}
+X-Tapis-User: streams
+X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+
+#  HAPPY Path
+###   db list collection documents
+GET https://dev.develop.tapis.io/v3/meta/StreamsDevDB/streams_project_metadata
+X-Tapis-Token: {{token}}
+# X-Tapis-User: streams
+# X-Tapis-Tenant: master
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###

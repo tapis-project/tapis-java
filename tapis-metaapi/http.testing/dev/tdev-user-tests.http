@@ -1,6 +1,6 @@
 
 ###   db list collections
-GET https://dev.develop.tapis.io/v3/meta/MyTstDB
+GET https://dev.develop.tapis.io/v3/meta/StreamsDevDB
 X-Tapis-Token: {{token}}
 Content-Type: application/json
 Accept: application/json

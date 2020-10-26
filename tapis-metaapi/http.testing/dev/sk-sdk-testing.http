@@ -89,9 +89,19 @@ Content-Type: application/json
 
 ### SK get permissions for user testuser7 using meta:master service token
 # obo testuser7 in tenant dev
-GET https://dev.develop.tapis.io/v3/security/user/perms/streams?tenant=dev
+GET https://dev.develop.tapis.io/v3/security/user/perms/testuser7?tenant=dev
 X-Tapis-Token: {{token}}
 X-Tapis-User: testuser7
+X-Tapis-Tenant:dev
+Content-Type: application/json
+
+###
+
+### SK get permissions for user testuser2 using meta:master service token
+# obo testuser2 in tenant dev
+GET https://dev.develop.tapis.io/v3/security/user/perms/testuser2?tenant=dev
+X-Tapis-Token: {{token}}
+X-Tapis-User: testuser2
 X-Tapis-Tenant:dev
 Content-Type: application/json
 
@@ -118,7 +128,7 @@ Content-Type: application/json
 
 ###
 # true
-# {"user":"streamsTACCAdmin","tenant":"dev","permSpec":"meta:dev:GET:StreamsTACCDB:*:*"}
+# {"user":"streams","tenant":"master","permSpec":"meta:master:GET:StreamsDevDB:*:*"}
 
 #
 # {"user":"meta","tenant":"dev","permSpec":"meta:dev:GET:::"}
