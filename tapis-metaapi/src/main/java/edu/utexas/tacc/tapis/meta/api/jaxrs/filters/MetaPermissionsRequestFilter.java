@@ -1,14 +1,12 @@
 package edu.utexas.tacc.tapis.meta.api.jaxrs.filters;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.meta.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.meta.utils.MetaAppConstants;
 import edu.utexas.tacc.tapis.meta.utils.MetaSKPermissionsMapper;
 import edu.utexas.tacc.tapis.security.client.SKClient;
-import edu.utexas.tacc.tapis.shared.TapisConstants;
-import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.sharedapi.security.TapisSecurityContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +16,13 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
-
-import static edu.utexas.tacc.tapis.shared.TapisConstants.SERVICE_NAME_SYSTEMS;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 @Provider
 @Priority(MetaAppConstants.META_FILTER_PRIORITY_PERMISSIONS)
@@ -47,6 +46,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // Tracing.
     if (_log.isTraceEnabled())
       _log.trace("Executing Permissions request filter: " + this.getClass().getSimpleName() + ".");
+      debugRequestDump(threadContext,requestContext);
     
     // let's turn off permissions for testing without SK client calls
     if(!MetaAppConstants.TAPIS_ENVONLY_META_PERMISSIONS_CHECK){
@@ -201,5 +201,21 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     permSpec = mapper.convert(requestMethod);
     return permSpec;
   }
+  
+  private void debugRequestDump(TapisThreadContext threadContext,ContainerRequestContext requestContext){
+    _log.trace("Thread context ");
+    _log.trace("  account : "+threadContext.getAccountType().toString());
+    _log.trace("  tenant  : "+threadContext.getJwtTenantId());
+    _log.trace("  user    : "+threadContext.getJwtUser());
+    _log.trace("Request context ");
+    _log.trace("Headers  ");
+    MultivaluedMap<String,String> headers = requestContext.getHeaders();
+    headers.forEach((k, v)->{ _log.trace("      Key: " + k + " Value: " + v); });
+    //_log.trace(requestContext.getEntityStream());
+    //_log.trace();
+    //_log.trace();
+
+  }
+  
   
 }
