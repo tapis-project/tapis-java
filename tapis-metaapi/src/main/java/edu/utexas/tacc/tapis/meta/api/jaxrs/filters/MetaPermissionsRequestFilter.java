@@ -114,29 +114,32 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // 1. If a service receives a request that contains a service JWT,
     //    the request is rejected if it does not have the X-Tapis-Tenant and X-Tapis-User headers set.
     // **** this check happens in the JWT filter
-    
+  
     // 2. If a service receives a request that has the X-Tapis-Tenant and X-Tapis-User headers set,
     //    the service should forward those header values on  to any service to service call it may make.
     //    skClient was created with metav3 master service token.
-    
+  
     boolean isPermitted = false;
-    
-    skClient.addDefaultHeader(MetaAppConstants.TAPIS_USER_HEADER_NAME, threadContext.getOboUser());
-    skClient.addDefaultHeader(MetaAppConstants.TAPIS_TENANT_HEADER_NAME, threadContext.getOboTenantId());
-    
+  
+    // these we being used as of 10.26/2020
+    // skClient.addDefaultHeader(MetaAppConstants.TAPIS_USER_HEADER_NAME, threadContext.getOboUser());
+    // skClient.addDefaultHeader(MetaAppConstants.TAPIS_TENANT_HEADER_NAME, threadContext.getOboTenantId());
+    skClient.addDefaultHeader(MetaAppConstants.TAPIS_USER_HEADER_NAME, threadContext.getJwtUser());
+    skClient.addDefaultHeader(MetaAppConstants.TAPIS_TENANT_HEADER_NAME, threadContext.getJwtTenantId());
+  
     // check skClient.isPermitted against the requested uri path
     try {
       // checking obo tenant and user
       StringBuilder msg = new StringBuilder();
       msg.append("Permissions check for Tenant ")
-         .append(threadContext.getOboTenantId())
+         .append(threadContext.getJwtTenantId())
          .append(", User ")
-         .append(threadContext.getOboUser())
+         .append(threadContext.getJwtUser())
          .append(" with permissions ")
          .append(permissionsSpec+".");
-      
+    
       _log.debug(msg.toString());
-      isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
+      isPermitted = skClient.isPermitted(threadContext.getJwtTenantId(), threadContext.getJwtUser(), permissionsSpec);
     } catch (TapisClientException e) {
       StringBuilder msg = new StringBuilder();
       msg.append("SKClient threw and exception on call to SK ")
@@ -170,7 +173,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // check skClient.isPermitted against the requested uri path
     try {
       // checking obo tenant and user
-      isPermitted = skClient.isPermitted(threadContext.getOboTenantId(),threadContext.getOboUser(), permissionsSpec);
+      isPermitted = skClient.isPermitted(threadContext.getJwtTenantId(), threadContext.getJwtUser(), permissionsSpec);
     } catch (TapisClientException e) {
       StringBuilder msg = new StringBuilder();
       msg.append("SKClient threw and exception on call to SK ")
@@ -212,9 +215,6 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     _log.trace("Headers  ");
     MultivaluedMap<String,String> headers = requestContext.getHeaders();
     headers.forEach((k, v)->{ _log.trace("      Key: " + k + " Value: " + v); });
-    //_log.trace(requestContext.getEntityStream());
-    //_log.trace();
-    //_log.trace();
 
   }
   
