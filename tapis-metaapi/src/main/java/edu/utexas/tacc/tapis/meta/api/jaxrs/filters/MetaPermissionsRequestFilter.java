@@ -46,7 +46,7 @@ public class MetaPermissionsRequestFilter implements ContainerRequestFilter {
     // Tracing.
     if (_log.isTraceEnabled()){
       _log.trace("Executing Permissions request filter: " + this.getClass().getSimpleName() + ".");
-      debugRequestDump(threadContext,requestContext);
+      // debugRequestDump(threadContext,requestContext);
     }
     
     // let's turn off permissions for testing without SK client calls
