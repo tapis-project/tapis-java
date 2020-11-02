@@ -119,7 +119,8 @@
                         "items": {"$ref": "#/$defs/KeyValueString"},
                         "uniqueItems": true
                     }
-                }
+                },
+                "additionalProperties": false
         },
         "InputSpec": {
             "type": "object",
@@ -127,7 +128,8 @@
                     "sourceUrl":  {"type": "string", "minLength": 1, "format": "uri"},
                     "targetPath": {"type": "string", "minLength": 0}
              },
-             "required": ["sourceUrl"]
+             "required": ["sourceUrl"],
+             "additionalProperties": false
         },
         "KeyValueString": {
             "type": "object",
@@ -135,12 +137,17 @@
                     "key":   {"type": "string", "minLength": 1},
                     "value": {"type": "string", "minLength": 0}
              },
-             "required": ["key", "value"]
+             "required": ["key", "value"],
+             "additionalProperties": false
         },
         "Constraint": {
             "type": "object",
                 "properties": {
                     "key":   {"type": "string"},
+                    "op": {
+                        "type": "string",
+                        "enum": ["eq", "=", "neq", "!=", "gt", ">", "gte", ">=", "lt", "<", "lte", "<=", "in", "nin", "like", "nlike", "between"]
+                    },
                     "value": {
                         "anyOf": [
                             {"type": "string", "minLength": 0},
@@ -151,7 +158,8 @@
                         ]
                     }
              },
-             "required": ["key", "value"]
+             "required": ["key", "op", "value"],
+             "additionalProperties": false
         }
     }
     

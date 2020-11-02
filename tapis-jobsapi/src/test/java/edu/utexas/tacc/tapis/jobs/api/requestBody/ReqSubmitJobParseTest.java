@@ -124,11 +124,11 @@ public class ReqSubmitJobParseTest
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
 				   + "\"parameters\": {\"execSystemConstraints\": ["
-				   + "{\"key\": \"key1\", \"value\": \"stringVal\"}, "
-				   + "{\"key\": \"key2\", \"value\": 3.8}, "
-				   + "{\"key\": \"key3\", \"value\": 7}, "
-				   + "{\"key\": \"key4\", \"value\": true}, "
-				   + "{\"key\": \"key5\", \"value\": null}]"
+				   + "{\"key\": \"key1\", \"op\": \"eq\", \"value\": \"stringVal\"}, "
+				   + "{\"key\": \"key2\", \"op\": \">=\", \"value\": 3.8}, "
+				   + "{\"key\": \"key3\", \"op\": \"gte\", \"value\": 7}, "
+				   + "{\"key\": \"key4\", \"op\": \"!=\", \"value\": true}, "
+				   + "{\"key\": \"key5\", \"op\": \"=\", \"value\": null}]"
 				   + "}}"; 
 		return s;
 	}
