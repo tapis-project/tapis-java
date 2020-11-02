@@ -24,6 +24,45 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
+/** A note about querying our JSON data types.  The jobs database schema currently
+ * defines these fields as jsonb:  inputs, parameters.  See the flyway scripts in
+ * tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json 
+ * schema in tapis-jobsapi defines the json schema that restricts input into
+ * the json fields.  
+ * 
+ * The jsonb database type allows for indexed searches of json data.  Currently, 
+ * only one json index is defined.  All searches of json data that do not select
+ * this index will cause a full table scan if no other index is employed.
+ * 
+ * Here is the json GIN EXPRESSION index defined on the jobs parameter field: 
+ * 
+ * 		CREATE INDEX jobs_exec_sys_constraints_idx ON jobs USING GIN ((parameters -> 'execSystemConstraints'));
+ * 
+ * An example of the type of query to which the index will be applied is:
+ * 
+ * 		Select * from jobs where parameters -> 'execSystemConstraints' @> '[{"key": "key1"}]'::jsonb;
+ *
+ * Note that execSystemConstraints is an array of json objects.  The specification of the 
+ * @> operator in the query triggers the use of the above index.  Note the very particular 
+ * syntax that must be used activate the index:  Any of "key", "op" and/or "value" can be 
+ * included in the search filter as they are all valid components of constraint
+ * objects.
+ * 
+ * The use of the GIN EXPRESSION index rather than a simple index on the whole 
+ * parameters column has several side effects.  On positive side, expression 
+ * indexes are smaller and faster.  In the negative side, searches are limited to
+ * the execSystemConstraints document subtree and only certain operators can be used, 
+ * namely the @>, @@ and @? operators.  In particular, the following query will not use
+ * the above index and result in a full table scan.
+ * 
+ * DON'T USE unless other indexes apply:
+ * 		Select * from jobs where parameters @@ '$.execSystemConstraints[*].key == "key1"'::jsonpath;
+ *
+ * The postgres support for json is extensive but somewhat complicated to get right.
+ * See https://www.postgresql.org/docs/12/datatype-json.html
+ * 
+ * @author rcardone
+ */
 public final class JobsDao 
  extends AbstractDao
 {

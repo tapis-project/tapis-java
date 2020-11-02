@@ -90,6 +90,7 @@ CREATE INDEX jobs_status_idx ON jobs (status);
 CREATE INDEX jobs_app_id_idx ON jobs (app_id);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
+CREATE INDEX jobs_exec_sys_constraints_idx ON jobs USING GIN  ((parameters -> 'execSystemConstraints'));
 
 -- ----------------------------------------------------------------------------------------
 --                                       Job Resubmit
