@@ -44,7 +44,7 @@
     </root>
 
     <!-- Set additivity attribute to false to not inherit ancestor appenders. -->
-    <logger name="edu.utexas.tacc.tapis" level="TRACE"/>
+    <logger name="edu.utexas.tacc.tapis" level="ERROR"/>
     
     <!-- Control library logging. -->
     <logger name="com.zaxxer.hikari" level="ERROR"/>
