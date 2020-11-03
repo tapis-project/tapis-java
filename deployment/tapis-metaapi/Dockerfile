@@ -19,6 +19,9 @@ ARG GIT_COMMIT
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
+# add nano for logback edits
+RUN yum -y install nano
+
 # add
 COPY meta /usr/local/tomcat/webapps/v3/
 
