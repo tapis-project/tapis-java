@@ -60,7 +60,7 @@
             "type": "string",
             "maxLength": 4096
           },
-          "node": {
+          "nodes": {
             "type": "integer"
           },
           "processorsPerNode": {
