@@ -11,12 +11,25 @@ public enum JobTemplateVariables
 	tapisJobId,
 	tapisTenant,
 	topisJobOwner,
+	tapisEffeciveUserId,
 	tapisAppId,
 	tapisAppVersion,
 	tapisExecSystemId,
 	tapisArchiveSystemId,
+	tapisExecSystemExecPath,
+	tapisExecSystemInputPath,
+	tapisExecSystemOutputPath,
+	tapisExecSystemLogicalQueue,
+	tapisExecSystemHPCQueue,
+	tapisArchiveOnAppError,
+	
 	tapisNodes,
 	tapisCoresPerNode,
 	tapisMemoryMB,
-	tapisMaxMinutes
+	tapisMaxMinutes,
+
+	tapisSysJobLocalWorkingDir,
+	tapisSysBucketName,
+	tapisSysRootDir,
+	tapisSysHost
 }
