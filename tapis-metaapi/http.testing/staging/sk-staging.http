@@ -7,11 +7,15 @@
 ### SK grant permission for user streams all operations on
 POST https://master.staging.tapis.io/v3/security/user/grantUserPermission?tenant=master
 X-Tapis-Token: {{token}}
-X-Tapis-User: {{user}}
-X-Tapis-Tenant:{{tenant}}
+X-Tapis-User: streams
+X-Tapis-Tenant:master
 Content-Type: application/json
 
-{"user":"streams","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:StreamsStagingDB:*:*"}
+{
+  "user": "streams",
+  "tenant": "master",
+  "permSpec": "meta:master:GET,POST,PUT,PATCH,DELETE:StreamsStagingDB:*:*"
+}
 
 ###
 
@@ -48,10 +52,10 @@ Content-Type: application/json
 ######################################################
 
 ### SK get permissions for user using meta:master service token
-GET https://master.staging.tapis.io/v3/security/user/perms/streams?tenant=master
+GET https://master.staging.tapis.io/v3/security/user/perms/streams?tenant=dev
 X-Tapis-Token: {{token}}
-X-Tapis-User: {{user}}
-X-Tapis-Tenant:{{tenant}}
+X-Tapis-User: streams
+X-Tapis-Tenant: dev
 Content-Type: application/json
 
 ###

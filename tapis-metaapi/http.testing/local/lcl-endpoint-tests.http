@@ -7,8 +7,8 @@
 ###   db exits
 GET http://localhost:8080/v3/meta/StreamsDevDB
 X-Tapis-Token: {{token}}
-X-Tapis-User: {{user}}
-X-Tapis-Tenant: {{tenant}}
+X-Tapis-User: testuser2
+X-Tapis-Tenant: dev
 Content-Type: application/json
 
 ###
