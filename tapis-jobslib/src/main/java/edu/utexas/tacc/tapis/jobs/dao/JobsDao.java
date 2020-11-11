@@ -24,40 +24,58 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
-/** A note about querying our JSON data types.  The jobs database schema currently
- * defines these fields as jsonb:  inputs, parameters.  See the flyway scripts in
- * tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json 
- * schema in tapis-jobsapi defines the json schema that restricts input into
- * the json fields.  
+/** A note about querying our JSON data types.  The jobs database schema currently defines these 
+ * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
+ * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
+ * tapis-jobsapi defines the json dchema that validates the input going into the json fields.  
  * 
- * The jsonb database type allows for indexed searches of json data.  Currently, 
- * only one json index is defined.  All searches of json data that do not select
- * this index will cause a full table scan if no other index is employed.
+ * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
+ * index was defined.  All searches of json data that do not select this index will cause a full 
+ * table scan if no other index is employed.
  * 
- * Here is the json GIN EXPRESSION index defined on the jobs parameter field: 
+ * Here is the json GIN index defined on the jobs exec_system_constraints field:
  * 
- * 		CREATE INDEX jobs_exec_sys_constraints_idx ON jobs USING GIN ((parameters -> 'execSystemConstraints'));
+ *  I1: CREATE INDEX jobs_exec_sys_constraints_idx ON jobs USING GIN ((exec_system_constraints));
  * 
  * An example of the type of query to which the index will be applied is:
  * 
- * 		Select * from jobs where parameters -> 'execSystemConstraints' @> '[{"key": "key1"}]'::jsonb;
- *
- * Note that execSystemConstraints is an array of json objects.  The specification of the 
- * @> operator in the query triggers the use of the above index.  Note the very particular 
- * syntax that must be used activate the index:  Any of "key", "op" and/or "value" can be 
- * included in the search filter as they are all valid components of constraint
- * objects.
+ * USE:
+ *  Q1: Select * from jobs where exec_system_constraints @@ '$.execSystemConstraints[*].key == "key1"'
  * 
- * The use of the GIN EXPRESSION index rather than a simple index on the whole 
- * parameters column has several side effects.  On positive side, expression 
- * indexes are smaller and faster.  In the negative side, searches are limited to
- * the execSystemConstraints document subtree and only certain operators can be used, 
- * namely the @>, @@ and @? operators.  In particular, the following query will not use
- * the above index and result in a full table scan.
+ * This query uses the jsonpath predicate operator, @@, which evaluates an expression that includes
+ * a jsonpath.  The above query could have had the ::jsonpath type appended to the end.  
  * 
- * DON'T USE unless other indexes apply:
- * 		Select * from jobs where parameters @@ '$.execSystemConstraints[*].key == "key1"'::jsonpath;
+ * Note that execSystemConstraints is an array of json objects.  The specification of the @@ operator 
+ * in the query triggers the use of index I1.  Also note the very particular syntax that must be
+ * used to activate the index:  Any of "key", "op" and/or "value" can be included in the path filter 
+ * as they are all valid components of constraint objects.
+ * 
+ * Other json operators such as the containment operator, @>, will not trigger the use of index I1
+ * and will result in a full table scan unless there's another where clause that uses an index.
+ * 
+ * DON'T USE:
+ *  Q2: Select * from jobs where where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
+ * 
+ * Alternate Approach (not implemented)
+ * ------------------------------------
+ * An alternative approach would embed execSystemConstraints in the existing parameters column.  
+ * In this case, we would use a json GIN EXPRESSION index defined on the parameters field: 
+ * 
+ * 	I2:	CREATE INDEX jobs_exec_sys_constraints_idx ON jobs USING GIN ((parameters -> 'execSystemConstraints'));
+ * 
+ * An example of the type of query to which the index will be applied is:
+ * 
+ * 	Q3:	Select * from jobs where parameters -> 'execSystemConstraints' @> '[{"key": "key1"}]'::jsonb;
  *
+ * The use of the GIN EXPRESSION index rather than a simple index on a whole column has several side 
+ * effects.  On the positive side, expression indexes are often smaller and faster.  In the negative side, 
+ * indexed searches are limited to the execSystemConstraints document subtree and only certain operators 
+ * will trigger indexed searches.  In particular, query Q1 uses index I1 but not I2; Q3 uses I2 but not 
+ * use a whole column index like I1. 
+ *
+ * Expression indexing was not chosen because the queries it requires seem less intuitive than the 
+ * jsonpath queries that use full column indexing.
+ * 
  * The postgres support for json is extensive but somewhat complicated to get right.
  * See https://www.postgresql.org/docs/12/datatype-json.html
  * 
@@ -278,17 +296,19 @@ public final class JobsDao
           pstmt.setString(19, job.getArchiveSystemId());        // could be null
           pstmt.setString(20, job.getArchiveSystemPath());      // could be null
               
-          pstmt.setInt(21, job.getNodes());
+          pstmt.setInt(21, job.getNodeCount());
           pstmt.setInt(22, job.getProcessorsPerNode());
           pstmt.setInt(23, job.getMemoryMb());
           pstmt.setInt(24, job.getMaxMinutes());
               
           pstmt.setString(25, job.getInputs());                 
           pstmt.setString(26, job.getParameters());             
+          pstmt.setString(27, job.getExecSystemConstraints());                 
+          pstmt.setString(28, job.getNotifications());             
 
-          pstmt.setString(27, job.getTapisQueue());
-          pstmt.setString(28, job.getCreatedby());
-          pstmt.setString(29, job.getCreatedbyTenant());
+          pstmt.setString(29, job.getTapisQueue());
+          pstmt.setString(30, job.getCreatedby());
+          pstmt.setString(31, job.getCreatedbyTenant());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -466,6 +486,14 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameters");
 	          throw new TapisException(msg);
 		}
+		if (StringUtils.isBlank(job.getExecSystemConstraints())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
+	          throw new TapisException(msg);
+		}
+		if (StringUtils.isBlank(job.getNotifications())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "notifications");
+	          throw new TapisException(msg);
+		}
 		
 		if (StringUtils.isBlank(job.getTapisQueue())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "tapisQueue");
@@ -543,42 +571,45 @@ public final class JobsDao
 	        obj.setExecSystemOutputPath(rs.getString(20));
 	        obj.setArchiveSystemId(rs.getString(21));
 	        obj.setArchiveSystemPath(rs.getString(22));
-	        obj.setNodes(rs.getInt(23));
+	        obj.setNodeCount(rs.getInt(23));
 	        obj.setProcessorsPerNode(rs.getInt(24));
 	        obj.setMemoryMb(rs.getInt(25));
 	        obj.setMaxMinutes(rs.getInt(26));
+	        
 	        obj.setInputs(rs.getString(27));
 	        obj.setParameters(rs.getString(28));
-	        obj.setBlockedCount(rs.getInt(29));
+	        obj.setExecSystemConstraints(rs.getString(29));
+	        obj.setNotifications(rs.getString(30));	        
 	        
-	        obj.setRemoteJobId(rs.getString(30));
-	        obj.setRemoteJobId2(rs.getString(31));
+	        obj.setBlockedCount(rs.getInt(31));
+	        obj.setRemoteJobId(rs.getString(32));
+	        obj.setRemoteJobId2(rs.getString(33));
 	        
-	        String s = rs.getString(32);
+	        String s = rs.getString(34);
 	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
-	        obj.setRemoteResultInfo(rs.getString(33));
-	        obj.setRemoteQueue(rs.getString(34));
-
-	        ts = rs.getTimestamp(35);
-	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
-
-	        ts = rs.getTimestamp(36);
-	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+	        obj.setRemoteResultInfo(rs.getString(35));
+	        obj.setRemoteQueue(rs.getString(36));
 
 	        ts = rs.getTimestamp(37);
+	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
+
+	        ts = rs.getTimestamp(38);
+	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+
+	        ts = rs.getTimestamp(39);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(38));
-	        obj.setRemoteChecksSuccess(rs.getInt(39));
-	        obj.setRemoteChecksFailed(rs.getInt(40));
+	        obj.setRemoteSubmitRetries(rs.getInt(40));
+	        obj.setRemoteChecksSuccess(rs.getInt(41));
+	        obj.setRemoteChecksFailed(rs.getInt(42));
 
-	        ts = rs.getTimestamp(41);
+	        ts = rs.getTimestamp(43);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(42));
-	        obj.setVisible(rs.getBoolean(43));
-	        obj.setCreatedby(rs.getString(44));
-	        obj.setCreatedbyTenant(rs.getString(45));
+	        obj.setTapisQueue(rs.getString(44));
+	        obj.setVisible(rs.getBoolean(45));
+	        obj.setCreatedby(rs.getString(46));
+	        obj.setCreatedbyTenant(rs.getString(47));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

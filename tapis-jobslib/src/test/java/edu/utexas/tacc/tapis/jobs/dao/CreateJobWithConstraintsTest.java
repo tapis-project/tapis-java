@@ -69,14 +69,16 @@ public class CreateJobWithConstraintsTest
 	    String key5 = "key" + (iteration * 5 + 5);
 		
 	    // Optional fields.
-	    String constraints = "\"execSystemConstraints\": ["
+	    String constraints = "{\"execSystemConstraints\": ["
 				   + "{\"key\": \"" +key1+ "\", \"op\": \"eq\", \"value\": \"stringVal\"}, "
 				   + "{\"key\": \"" +key2+ "\", \"op\": \">=\", \"value\": 3.8}, "
 				   + "{\"key\": \"" +key3+ "\", \"op\": \"gte\", \"value\": 7}, "
 				   + "{\"key\": \"" +key4+ "\", \"op\": \"!=\", \"value\": true}, "
-				   + "{\"key\": \"" +key5+ "\", \"op\": \"=\", \"value\": null}]";
-	    String json = "{\"key1\": \"value1\", \"key2\": 5, " + constraints + "}";
-	    job.setParameters(json);
+				   + "{\"key\": \"" +key5+ "\", \"op\": \"=\", \"value\": null}]}";
+	    job.setExecSystemConstraints(constraints);
+	    
+	    String parms = "{\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}";
+	    job.setParameters(parms);
 	    
 		return job;
 	}

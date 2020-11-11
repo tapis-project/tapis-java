@@ -60,7 +60,7 @@
             "type": "string",
             "maxLength": 4096
           },
-          "nodes": {
+          "nodeCount": {
             "type": "integer"
           },
           "processorsPerNode": {
@@ -82,36 +82,38 @@
           "parameters": {
             "type": "object",
             "$ref": "#/$defs/Parameters"
+          },
+          "execSystemConstraints": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/Constraint"},
+            "uniqueItems": true
+          },
+          "notifications": {
+            "type": "object"
           }
         },
     "required": [
         "name",
         "appId",
-        "appVersion",
-        "description"
+        "appVersion"
     ],
     "$defs": {
         "Parameters": {
             "type": "object",
                 "properties": {
-                    "appParameters": {
+                    "appArgs": {
                         "type": "array",
-                        "items": {"type": "string"},
+                        "items": {"$ref": "#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
-                    "containerParameters": {
+                    "containerArgs": {
                         "type": "array",
-                        "items": {"type": "string"},
+                        "items": {"$ref": "#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "schedulerOptions": {
                         "type": "array",
-                        "items": {"type": "string"},
-                        "uniqueItems": true
-                    },
-                    "execSystemConstraints": {
-                        "type": "array",
-                        "items": {"$ref": "#/$defs/Constraint"},
+                        "items": {"$ref": "#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "envVariables": {
@@ -126,9 +128,31 @@
             "type": "object",
                 "properties": {
                     "sourceUrl":  {"type": "string", "minLength": 1, "format": "uri"},
-                    "targetPath": {"type": "string", "minLength": 0}
+                    "targetPath": {"type": "string", "minLength": 0},
+                    "meta":       {"type": "object", "$ref": "#/$defs/ArgMetaSpec"}             
              },
              "required": ["sourceUrl"],
+             "additionalProperties": false
+        },
+        "ArgSpec": {
+            "type": "object",
+                "properties": {
+                    "arg":  {"type": "string", "minLength": 1},
+                    "meta": {"type": "object", "$ref": "#/$defs/ArgMetaSpec"}
+             },
+             "required": ["arg"],
+             "additionalProperties": false
+        },
+        "ArgMetaSpec": {
+            "type": "object",
+                "properties": {
+                    "name":     {"type": "string", "minLength": 1},
+                    "required": {"type": "boolean"},
+                    "kv":       {"type": "array",
+                                 "items": {"$ref": "#/$defs/KeyValueString"},
+                                 "uniqueItems": true}
+             },
+             "required": ["name", "required"],
              "additionalProperties": false
         },
         "KeyValueString": {
@@ -162,5 +186,4 @@
              "additionalProperties": false
         }
     }
-    
 }

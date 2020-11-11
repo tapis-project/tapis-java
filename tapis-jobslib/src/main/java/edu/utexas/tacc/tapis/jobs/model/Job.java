@@ -13,7 +13,7 @@ import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 public final class Job
 {
 	// Constants.
-	public static final int DEFAULT_NODES = 1;
+	public static final int DEFAULT_NODE_COUNT = 1;
 	public static final int DEFAULT_PROCS_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
@@ -42,12 +42,14 @@ public final class Job
     private String   			execSystemOutputPath;
     private String   			archiveSystemId;
     private String   			archiveSystemPath;
-    private int      			nodes = DEFAULT_NODES;
+    private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			processorsPerNode = DEFAULT_PROCS_PER_NODE;
     private int      			memoryMb = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     private String   			inputs = EMPTY_JSON;
     private String   			parameters = EMPTY_JSON;
+    private String              execSystemConstraints = EMPTY_JSON;
+    private String              notifications = EMPTY_JSON;
     private int      			blockedCount;
     private String   			remoteJobId;
     private String   			remoteJobId2;
@@ -252,12 +254,12 @@ public final class Job
 		this.archiveSystemPath = archiveSystemPath;
 	}
 
-	public int getNodes() {
-		return nodes;
+	public int getNodeCount() {
+		return nodeCount;
 	}
 
-	public void setNodes(int nodes) {
-		this.nodes = nodes;
+	public void setNodeCount(int nodeCount) {
+		this.nodeCount = nodeCount;
 	}
 
 	public int getProcessorsPerNode() {
@@ -298,6 +300,22 @@ public final class Job
 
 	public void setParameters(String parameters) {
 		this.parameters = parameters;
+	}
+
+	public String getExecSystemConstraints() {
+		return execSystemConstraints;
+	}
+
+	public void setExecSystemConstraints(String execSystemConstraints) {
+		this.execSystemConstraints = execSystemConstraints;
+	}
+
+	public String getNotifications() {
+		return notifications;
+	}
+
+	public void setNotifications(String notifications) {
+		this.notifications = notifications;
 	}
 
 	public int getBlockedCount() {

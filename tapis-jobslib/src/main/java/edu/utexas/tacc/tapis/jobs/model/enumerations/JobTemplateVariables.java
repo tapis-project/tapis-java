@@ -31,5 +31,9 @@ public enum JobTemplateVariables
 	tapisSysJobLocalWorkingDir,
 	tapisSysBucketName,
 	tapisSysRootDir,
-	tapisSysHost
+	tapisSysHost,
+	
+	tapisTime,
+	tapisDate,
+	tapisTimestamp
 }
