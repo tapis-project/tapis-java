@@ -304,7 +304,7 @@ public final class JobsDao
           pstmt.setString(25, job.getInputs());                 
           pstmt.setString(26, job.getParameters());             
           pstmt.setString(27, job.getExecSystemConstraints());                 
-          pstmt.setString(28, job.getNotifications());             
+          pstmt.setString(28, job.getSubscriptions());             
 
           pstmt.setString(29, job.getTapisQueue());
           pstmt.setString(30, job.getCreatedby());
@@ -490,7 +490,7 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
 	          throw new TapisException(msg);
 		}
-		if (StringUtils.isBlank(job.getNotifications())) {
+		if (StringUtils.isBlank(job.getSubscriptions())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "notifications");
 	          throw new TapisException(msg);
 		}
@@ -579,7 +579,7 @@ public final class JobsDao
 	        obj.setInputs(rs.getString(27));
 	        obj.setParameters(rs.getString(28));
 	        obj.setExecSystemConstraints(rs.getString(29));
-	        obj.setNotifications(rs.getString(30));	        
+	        obj.setSubscriptions(rs.getString(30));	        
 	        
 	        obj.setBlockedCount(rs.getInt(31));
 	        obj.setRemoteJobId(rs.getString(32));

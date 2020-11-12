@@ -49,7 +49,7 @@ public final class Job
     private String   			inputs = EMPTY_JSON;
     private String   			parameters = EMPTY_JSON;
     private String              execSystemConstraints = EMPTY_JSON;
-    private String              notifications = EMPTY_JSON;
+    private String              subscriptions = EMPTY_JSON;
     private int      			blockedCount;
     private String   			remoteJobId;
     private String   			remoteJobId2;
@@ -310,12 +310,12 @@ public final class Job
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public String getNotifications() {
-		return notifications;
+	public String getSubscriptions() {
+		return subscriptions;
 	}
 
-	public void setNotifications(String notifications) {
-		this.notifications = notifications;
+	public void setSubscriptions(String subscriptions) {
+		this.subscriptions = subscriptions;
 	}
 
 	public int getBlockedCount() {
