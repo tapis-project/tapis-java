@@ -60,7 +60,7 @@ CREATE TABLE jobs
   inputs                      jsonb NOT NULL,
   parameters                  jsonb NOT NULL,
   exec_system_constraints     jsonb NOT NULL,
-  notifications               jsonb NOT NULL,
+  subscriptions               jsonb NOT NULL,
   
   blocked_count               integer NOT NULL DEFAULT 0,
   

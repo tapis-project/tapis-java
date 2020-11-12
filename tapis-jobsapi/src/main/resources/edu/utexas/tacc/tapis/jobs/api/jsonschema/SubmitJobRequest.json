@@ -109,7 +109,7 @@
             "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"},
             "uniqueItems": true
           },
-          "notifications": {
+          "subscriptions": {
             "type": "object"
           }
         },
