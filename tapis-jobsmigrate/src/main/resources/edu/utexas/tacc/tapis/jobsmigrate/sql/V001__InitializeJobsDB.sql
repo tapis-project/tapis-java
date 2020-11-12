@@ -46,14 +46,14 @@ CREATE TABLE jobs
   archive_on_app_error        boolean NOT NULL DEFAULT FALSE,
   
   exec_system_id              character varying(80) NOT NULL,
-  exec_system_exec_path       character varying(4096), 
-  exec_system_input_path      character varying(4096), 
-  exec_system_output_path     character varying(4096), 
+  exec_system_exec_dir        character varying(4096), 
+  exec_system_input_dir       character varying(4096), 
+  exec_system_output_dir      character varying(4096), 
   archive_system_id           character varying(80),
-  archive_system_path         character varying(4096),
+  archive_system_dir          character varying(4096),
   
   node_count                  integer NOT NULL,
-  processors_per_node         integer NOT NULL,
+  cores_per_node              integer NOT NULL,
   memory_mb                   integer NOT NULL,
   max_minutes                 integer NOT NULL,
   

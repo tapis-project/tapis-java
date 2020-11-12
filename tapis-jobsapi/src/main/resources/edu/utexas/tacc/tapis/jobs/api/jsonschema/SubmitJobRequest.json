@@ -6,86 +6,107 @@
     "type": "object",
         "properties": {
           "name": {
+            "$comment": "Required human readable job name",
             "type": "string",
             "minLength": 1,
             "maxLength": 64
           },
           "owner": {
+            "$comment": "User ID under which the job runs",
             "type": "string",
             "maxLength": 64
           },
           "tenant": {
+            "$comment": "Tenant of job owner",
             "type": "string",
             "maxLength": 24
           },
           "description": {
+            "$comment": "Human readable job description",
             "type": "string",
             "minLength": 1,
             "maxLength": 2048
           },
           "appId": {
+            "$comment": "Unique name of application to be executed",
             "type": "string",
             "minLength": 1,
             "maxLength": 80
           },
           "appVersion": {
+            "$comment": "Application version to be executed",
             "type": "string",
             "minLength": 1,
             "maxLength": 64
           },
           "archiveOnAppError": {
+            "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"
           },
           "execSystemId": {
+            "$comment": "Execution system ID",
             "type": "string",
             "maxLength": 80
           },
-          "execSystemExecPath": {
+          "execSystemExecDir": {
+            "$comment": "Directory into which application assets are staged, default=${jobWorkingDir}/jobs/${jobID} where ${jobWorkingDir} = execution system working directory and ${jobID} = uuid of job assigned by Jobs service",
+            
             "type": "string",
             "maxLength": 4096
           },
-          "execSystemInputPath": {
+          "execSystemInputDir": {
+            "$comment": "Directory into which input files are staged, default=${jobWorkingDir}/jobs/${jobID} where ${jobWorkingDir} = execution system working directory and ${jobID} = uuid of job assigned by Jobs service",
             "type": "string",
             "maxLength": 4096
           },
-          "execSystemOutputPath": {
+          "execSystemOutputDir": {
+            "$comment": "Directory into which application writes its output, default=${jobWorkingDir}/jobs/${jobID}/output where ${jobWorkingDir} = execution system working directory and ${jobID} = uuid of job assigned by Jobs service",
             "type": "string",
             "maxLength": 4096
           },
           "archiveSystemId": {
+            "$comment": "Archive system ID",
             "type": "string",
             "maxLength": 80
           },
-          "archiveSystemPath": {
+          "archiveSystemDir": {
+            "$comment": "Directory into which output files are archived after application execution",
             "type": "string",
             "maxLength": 4096
           },
           "nodeCount": {
+            "$comment": "Number of nodes required for application execution, default=1",
             "type": "integer"
           },
-          "processorsPerNode": {
+          "coresPerNode": {
+            "$comment": "Number of cores to use on each node, default=1",
             "type": "integer"
           },
           "memoryMb": {
+            "$comment": "Megabytes of memory to use on each node, default=100",
             "type": "integer",
             "minimum": 1
           },
           "maxMinutes": {
+            "$comment": "Maximum number of minutes allowed for job execution, default=10",
             "type": "integer",
             "minimum": 1
           },
           "inputs": {
+            "$comment": "Input files staged for the application",
             "type": "array",
-            "items": {"$ref": "#/$defs/InputSpec"},
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/InputSpec"},
             "uniqueItems": true
           },
           "parameters": {
+            "$comment": "Runtime parameters organized by category",
             "type": "object",
             "$ref": "#/$defs/Parameters"
           },
           "execSystemConstraints": {
+            "$comment": "Constraints applied against execution system capabilities to validate application/system compatibility",
             "type": "array",
-            "items": {"$ref": "#/$defs/Constraint"},
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"},
             "uniqueItems": true
           },
           "notifications": {
@@ -102,88 +123,39 @@
             "type": "object",
                 "properties": {
                     "appArgs": {
+                        "$comment": "Command line arguments passed to the user application",
                         "type": "array",
-                        "items": {"$ref": "#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "containerArgs": {
+                        "$comment": "Command line arguments passed to the container runtime when running a container",
                         "type": "array",
-                        "items": {"$ref": "#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "schedulerOptions": {
+                        "$comment": "Arguments passed to the HPC batch scheduler",
                         "type": "array",
-                        "items": {"$ref": "#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "envVariables": {
+                        "$comment": "Environment variables passed into the application container on start up",
                         "type": "array",
-                        "items": {"$ref": "#/$defs/KeyValueString"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/KeyValueString"},
                         "uniqueItems": true
+                    },
+                    "archiveFilter": {
+                        "$comment": "Whitelist and blacklist of output files to archive, wildcard and regex support, default=all files in execSystemOutputDir",
+                        "type": "object",
+                        "properties": {
+                            "whitelist": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+                            "blacklist": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+                        }
                     }
                 },
                 "additionalProperties": false
-        },
-        "InputSpec": {
-            "type": "object",
-                "properties": {
-                    "sourceUrl":  {"type": "string", "minLength": 1, "format": "uri"},
-                    "targetPath": {"type": "string", "minLength": 0},
-                    "meta":       {"type": "object", "$ref": "#/$defs/ArgMetaSpec"}             
-             },
-             "required": ["sourceUrl"],
-             "additionalProperties": false
-        },
-        "ArgSpec": {
-            "type": "object",
-                "properties": {
-                    "arg":  {"type": "string", "minLength": 1},
-                    "meta": {"type": "object", "$ref": "#/$defs/ArgMetaSpec"}
-             },
-             "required": ["arg"],
-             "additionalProperties": false
-        },
-        "ArgMetaSpec": {
-            "type": "object",
-                "properties": {
-                    "name":     {"type": "string", "minLength": 1},
-                    "required": {"type": "boolean"},
-                    "kv":       {"type": "array",
-                                 "items": {"$ref": "#/$defs/KeyValueString"},
-                                 "uniqueItems": true}
-             },
-             "required": ["name", "required"],
-             "additionalProperties": false
-        },
-        "KeyValueString": {
-            "type": "object",
-                "properties": {
-                    "key":   {"type": "string", "minLength": 1},
-                    "value": {"type": "string", "minLength": 0}
-             },
-             "required": ["key", "value"],
-             "additionalProperties": false
-        },
-        "Constraint": {
-            "type": "object",
-                "properties": {
-                    "key":   {"type": "string"},
-                    "op": {
-                        "type": "string",
-                        "enum": ["eq", "=", "neq", "!=", "gt", ">", "gte", ">=", "lt", "<", "lte", "<=", "in", "nin", "like", "nlike", "between"]
-                    },
-                    "value": {
-                        "anyOf": [
-                            {"type": "string", "minLength": 0},
-                            {"type": "integer"},
-                            {"type": "number"},
-                            {"type": "boolean" },
-                            {"type": "null" }
-                        ]
-                    }
-             },
-             "required": ["key", "op", "value"],
-             "additionalProperties": false
         }
     }
 }

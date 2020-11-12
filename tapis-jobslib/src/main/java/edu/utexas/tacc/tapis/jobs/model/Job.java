@@ -14,7 +14,7 @@ public final class Job
 {
 	// Constants.
 	public static final int DEFAULT_NODE_COUNT = 1;
-	public static final int DEFAULT_PROCS_PER_NODE = 1;
+	public static final int DEFAULT_CORES_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
 	public static final String EMPTY_JSON = "{}";
@@ -37,13 +37,13 @@ public final class Job
     private String   			appVersion;
     private boolean  			archiveOnAppError;
     private String   			execSystemId;
-    private String   			execSystemExecPath;
-    private String   			execSystemInputPath;
-    private String   			execSystemOutputPath;
+    private String   			execSystemExecDir;
+    private String   			execSystemInputDir;
+    private String   			execSystemOutputDir;
     private String   			archiveSystemId;
-    private String   			archiveSystemPath;
+    private String   			archiveSystemDir;
     private int      			nodeCount = DEFAULT_NODE_COUNT;
-    private int      			processorsPerNode = DEFAULT_PROCS_PER_NODE;
+    private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
     private int      			memoryMb = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     private String   			inputs = EMPTY_JSON;
@@ -214,28 +214,28 @@ public final class Job
 		this.execSystemId = execSystemId;
 	}
 
-	public String getExecSystemExecPath() {
-		return execSystemExecPath;
+	public String getExecSystemExecDir() {
+		return execSystemExecDir;
 	}
 
-	public void setExecSystemExecPath(String execSystemExecPath) {
-		this.execSystemExecPath = execSystemExecPath;
+	public void setExecSystemExecDir(String execSystemExecDir) {
+		this.execSystemExecDir = execSystemExecDir;
 	}
 
-	public String getExecSystemInputPath() {
-		return execSystemInputPath;
+	public String getExecSystemInputDir() {
+		return execSystemInputDir;
 	}
 
-	public void setExecSystemInputPath(String execSystemInputPath) {
-		this.execSystemInputPath = execSystemInputPath;
+	public void setExecSystemInputDir(String execSystemInputDir) {
+		this.execSystemInputDir = execSystemInputDir;
 	}
 
-	public String getExecSystemOutputPath() {
-		return execSystemOutputPath;
+	public String getExecSystemOutputDir() {
+		return execSystemOutputDir;
 	}
 
-	public void setExecSystemOutputPath(String execSystemOutputPath) {
-		this.execSystemOutputPath = execSystemOutputPath;
+	public void setExecSystemOutputDir(String execSystemOutputDir) {
+		this.execSystemOutputDir = execSystemOutputDir;
 	}
 
 	public String getArchiveSystemId() {
@@ -246,12 +246,12 @@ public final class Job
 		this.archiveSystemId = archiveSystemId;
 	}
 
-	public String getArchiveSystemPath() {
-		return archiveSystemPath;
+	public String getArchiveSystemDir() {
+		return archiveSystemDir;
 	}
 
-	public void setArchiveSystemPath(String archiveSystemPath) {
-		this.archiveSystemPath = archiveSystemPath;
+	public void setArchiveSystemDir(String archiveSystemDir) {
+		this.archiveSystemDir = archiveSystemDir;
 	}
 
 	public int getNodeCount() {
@@ -262,12 +262,12 @@ public final class Job
 		this.nodeCount = nodeCount;
 	}
 
-	public int getProcessorsPerNode() {
-		return processorsPerNode;
+	public int getCoresPerNode() {
+		return coresPerNode;
 	}
 
-	public void setProcessorsPerNode(int processorsPerNode) {
-		this.processorsPerNode = processorsPerNode;
+	public void setCoresPerNode(int coresPerNode) {
+		this.coresPerNode = coresPerNode;
 	}
 
 	public int getMemoryMb() {

@@ -184,9 +184,13 @@ public class ReqSubmitJobParseTest
 				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
 				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
 				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
-				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}],"
+				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}], "
 				   + "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
-				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}]"
+				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}], "
+				   + "                \"archiveFilter\": {"
+				   + "                   \"whitelist\": [\"*.txt\", \"out.csv\"], "
+				   + "                   \"blacklist\": [\"*.tmp\", \"regex(abc.*)\"]"
+				   + "                }"
 				   + "}}"; 
 		return s;
 	}

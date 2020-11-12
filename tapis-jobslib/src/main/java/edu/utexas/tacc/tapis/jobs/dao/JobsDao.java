@@ -290,14 +290,14 @@ public final class JobsDao
           pstmt.setBoolean(14, job.isArchiveOnAppError());
               
           pstmt.setString(15, job.getExecSystemId());           
-          pstmt.setString(16, job.getExecSystemExecPath());     // could be null
-          pstmt.setString(17, job.getExecSystemInputPath());    // could be null
-          pstmt.setString(18, job.getExecSystemOutputPath());   // could be null
+          pstmt.setString(16, job.getExecSystemExecDir());     // could be null
+          pstmt.setString(17, job.getExecSystemInputDir());    // could be null
+          pstmt.setString(18, job.getExecSystemOutputDir());   // could be null
           pstmt.setString(19, job.getArchiveSystemId());        // could be null
-          pstmt.setString(20, job.getArchiveSystemPath());      // could be null
+          pstmt.setString(20, job.getArchiveSystemDir());      // could be null
               
           pstmt.setInt(21, job.getNodeCount());
-          pstmt.setInt(22, job.getProcessorsPerNode());
+          pstmt.setInt(22, job.getCoresPerNode());
           pstmt.setInt(23, job.getMemoryMb());
           pstmt.setInt(24, job.getMaxMinutes());
               
@@ -566,13 +566,13 @@ public final class JobsDao
 	        obj.setAppVersion(rs.getString(15));
 	        obj.setArchiveOnAppError(rs.getBoolean(16));
 	        obj.setExecSystemId(rs.getString(17));
-	        obj.setExecSystemExecPath(rs.getString(18));
-	        obj.setExecSystemInputPath(rs.getString(19));
-	        obj.setExecSystemOutputPath(rs.getString(20));
+	        obj.setExecSystemExecDir(rs.getString(18));
+	        obj.setExecSystemInputDir(rs.getString(19));
+	        obj.setExecSystemOutputDir(rs.getString(20));
 	        obj.setArchiveSystemId(rs.getString(21));
-	        obj.setArchiveSystemPath(rs.getString(22));
+	        obj.setArchiveSystemDir(rs.getString(22));
 	        obj.setNodeCount(rs.getInt(23));
-	        obj.setProcessorsPerNode(rs.getInt(24));
+	        obj.setCoresPerNode(rs.getInt(24));
 	        obj.setMemoryMb(rs.getInt(25));
 	        obj.setMaxMinutes(rs.getInt(26));
 	        
