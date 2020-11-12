@@ -77,6 +77,14 @@ public class ReqSubmitJobParseTest
 		parse(json);
 	}
 	
+	@Test
+	public void parseTest8() throws TapisException
+	{
+		// Test some parameters.
+		String json = getInputTest8();
+		parse(json);
+	}
+	
 	/* ********************************************************************** */
 	/*                            Private Methods                             */
 	/* ********************************************************************** */
@@ -168,4 +176,18 @@ public class ReqSubmitJobParseTest
 		return s;
 	}
 
+	private String getInputTest8()
+	{
+		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
+				   + "\"description\": \"myJob\", "
+				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
+				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
+				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
+				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}],"
+				   + "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
+				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}]"
+				   + "}}"; 
+		return s;
+	}
 }

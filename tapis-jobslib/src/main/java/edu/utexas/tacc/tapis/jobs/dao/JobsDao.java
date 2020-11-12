@@ -27,11 +27,11 @@ import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
  * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
- * tapis-jobsapi defines the json dchema that validates the input going into the json fields.  
+ * tapis-jobsapi defines the json dchema that validates job submission requests.  
  * 
  * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
- * index was defined.  All searches of json data that do not select this index will cause a full 
- * table scan if no other index is employed.
+ * index is defined on the exec_system_constraints field.  All searches of json data that do not 
+ * select this index will cause a full table scan if no other index is employed.
  * 
  * Here is the json GIN index defined on the jobs exec_system_constraints field:
  * 
@@ -71,7 +71,7 @@ import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
  * effects.  On the positive side, expression indexes are often smaller and faster.  In the negative side, 
  * indexed searches are limited to the execSystemConstraints document subtree and only certain operators 
  * will trigger indexed searches.  In particular, query Q1 uses index I1 but not I2; Q3 uses I2 but not 
- * use a whole column index like I1. 
+ * whole column indexes like I1. 
  *
  * Expression indexing was not chosen because the queries it requires seem less intuitive than the 
  * jsonpath queries that use full column indexing.

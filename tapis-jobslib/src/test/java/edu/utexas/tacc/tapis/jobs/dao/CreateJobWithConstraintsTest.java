@@ -77,7 +77,7 @@ public class CreateJobWithConstraintsTest
 				   + "{\"key\": \"" +key5+ "\", \"op\": \"=\", \"value\": null}]}";
 	    job.setExecSystemConstraints(constraints);
 	    
-	    String parms = "{\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}";
+	    String parms = "{\"parameters\": {\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}}";
 	    job.setParameters(parms);
 	    
 		return job;
