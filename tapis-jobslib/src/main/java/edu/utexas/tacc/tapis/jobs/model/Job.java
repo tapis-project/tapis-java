@@ -17,6 +17,7 @@ public final class Job
 	public static final int DEFAULT_CORES_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
+	public static final boolean DEFAULT_ARCHIVE_ON_APP_ERROR = true;
 	public static final String EMPTY_JSON = "{}";
 	
 	// Fields
@@ -35,7 +36,7 @@ public final class Job
     private String   			uuid;
     private String   			appId;
     private String   			appVersion;
-    private boolean  			archiveOnAppError;
+    private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
@@ -44,7 +45,7 @@ public final class Job
     private String   			archiveSystemDir;
     private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
-    private int      			memoryMb = DEFAULT_MEM_MB;
+    private int      			memoryMB = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     private String   			inputs = EMPTY_JSON;
     private String   			parameters = EMPTY_JSON;
@@ -270,12 +271,12 @@ public final class Job
 		this.coresPerNode = coresPerNode;
 	}
 
-	public int getMemoryMb() {
-		return memoryMb;
+	public int getMemoryMB() {
+		return memoryMB;
 	}
 
-	public void setMemoryMb(int memoryMb) {
-		this.memoryMb = memoryMb;
+	public void setMemoryMB(int memoryMB) {
+		this.memoryMB = memoryMB;
 	}
 
 	public int getMaxMinutes() {

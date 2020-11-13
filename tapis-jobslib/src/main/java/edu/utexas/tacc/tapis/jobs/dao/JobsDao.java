@@ -298,7 +298,7 @@ public final class JobsDao
               
           pstmt.setInt(21, job.getNodeCount());
           pstmt.setInt(22, job.getCoresPerNode());
-          pstmt.setInt(23, job.getMemoryMb());
+          pstmt.setInt(23, job.getMemoryMB());
           pstmt.setInt(24, job.getMaxMinutes());
               
           pstmt.setString(25, job.getInputs());                 
@@ -573,7 +573,7 @@ public final class JobsDao
 	        obj.setArchiveSystemDir(rs.getString(22));
 	        obj.setNodeCount(rs.getInt(23));
 	        obj.setCoresPerNode(rs.getInt(24));
-	        obj.setMemoryMb(rs.getInt(25));
+	        obj.setMemoryMB(rs.getInt(25));
 	        obj.setMaxMinutes(rs.getInt(26));
 	        
 	        obj.setInputs(rs.getString(27));

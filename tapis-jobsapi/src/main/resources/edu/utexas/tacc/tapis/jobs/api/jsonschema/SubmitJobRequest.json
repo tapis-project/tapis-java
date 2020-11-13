@@ -82,7 +82,7 @@
             "$comment": "Number of cores to use on each node, default=1",
             "type": "integer"
           },
-          "memoryMb": {
+          "memoryMB": {
             "$comment": "Megabytes of memory to use on each node, default=100",
             "type": "integer",
             "minimum": 1
@@ -105,9 +105,8 @@
           },
           "execSystemConstraints": {
             "$comment": "Constraints applied against execution system capabilities to validate application/system compatibility",
-            "type": "array",
-            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"},
-            "uniqueItems": true
+            "type": "object",
+            "$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"
           },
           "subscriptions": {
             "type": "object"

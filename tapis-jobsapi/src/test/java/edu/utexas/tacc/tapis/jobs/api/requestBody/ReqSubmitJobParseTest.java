@@ -142,11 +142,9 @@ public class ReqSubmitJobParseTest
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
 				   + "\"execSystemConstraints\": ["
-				   + "{\"key\": \"key1\", \"op\": \"eq\", \"value\": \"stringVal\"}, "
-				   + "{\"key\": \"key2\", \"op\": \">=\", \"value\": 3.8}, "
-				   + "{\"key\": \"key3\", \"op\": \"gte\", \"value\": 7}, "
-				   + "{\"key\": \"key4\", \"op\": \"!=\", \"value\": true}, "
-				   + "{\"key\": \"key5\", \"op\": \"=\", \"value\": null}]"
+				   + "\"nodeCount > 10 && maxMemoryMB > 100\", "
+				   + "\"MPI = 4.01\""
+				   + "]"
 				   + "}"; 
 		return s;
 	}
