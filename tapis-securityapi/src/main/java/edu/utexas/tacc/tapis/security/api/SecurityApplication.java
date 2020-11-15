@@ -124,7 +124,8 @@ public class SecurityApplication
             String s = "Tenants:\n";
             for (String tenant : tenantMap.keySet()) s += "  " + tenant + "\n";
             System.out.println(s);
-        }
+        } else
+        	System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager - No Tenants ****");
         
         // Initialize tenant roles and administrators.
         success = false;

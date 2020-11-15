@@ -108,7 +108,6 @@ public class JobSubmitResource
             		       + "  - launch application\n"
             		       + "  - monitor application\n"
             		       + "  - archive application output\n"
-            		       + ""
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -118,10 +117,8 @@ public class JobSubmitResource
                      content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
              responses = 
-                 {@ApiResponse(responseCode = "200", description = "Role existed.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
-                  @ApiResponse(responseCode = "201", description = "Role created.",
+                 {
+                  @ApiResponse(responseCode = "201", description = "Job created.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
@@ -158,6 +155,13 @@ public class JobSubmitResource
              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
 
+       // ------------------------- Finalize Parameters ----------------------
+       // Get the application object.
+       
+       
+       
+       
+       
        
        return null;
      }

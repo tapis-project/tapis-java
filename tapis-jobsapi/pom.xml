@@ -61,6 +61,16 @@
             <artifactId>tapis-jobslib</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>security-client</artifactId>
+            <version>${tapis-client-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>apps-client</artifactId>
+            <version>${tapis-client-java.version}</version>
+        </dependency>
     </dependencies>
     
     <build>
