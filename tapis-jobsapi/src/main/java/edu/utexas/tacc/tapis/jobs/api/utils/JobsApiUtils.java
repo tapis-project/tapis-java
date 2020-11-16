@@ -5,7 +5,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 public class JobsApiUtils 

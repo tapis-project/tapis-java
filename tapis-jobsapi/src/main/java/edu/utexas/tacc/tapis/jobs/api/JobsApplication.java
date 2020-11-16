@@ -14,10 +14,11 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWTParms;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -124,15 +125,15 @@ extends ResourceConfig
     	   System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager - No Tenants ****");
        
        // ----- Service JWT Initialization
-       ServiceJWT serviceJWT = null;
-       try {serviceJWT = initServiceJWT(parms);}
+       ServiceContext serviceCxt = ServiceContext.getInstance();
+       try {serviceCxt.initServiceJWT(parms.getSiteId(), parms.getServicePassword());}
        	catch (Exception e) {
        		errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceJWT ****");
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceContext ****");
             e.printStackTrace();
        	}
-       if (serviceJWT != null) {
-    	   var targetSites = serviceJWT.getTargetSites();
+       if (serviceCxt.getServiceJWT() != null) {
+    	   var targetSites = serviceCxt.getServiceJWT().getTargetSites();
     	   int targetSiteCnt = targetSites != null ? targetSites.size() : 0;
     	   System.out.println("**** SUCCESS:  " + targetSiteCnt + " target sites retrieved ****");
     	   if (targetSites != null) {
@@ -144,40 +145,5 @@ extends ResourceConfig
        
        // We're done.
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
-   }
-       
-   /* ---------------------------------------------------------------------------- */
-   /* initServiceJWT:                                                              */
-   /* ---------------------------------------------------------------------------- */
-   private ServiceJWT initServiceJWT(RuntimeParameters parms) 
-    throws TapisRuntimeException, TapisException, TapisClientException
-   {
-	   // Get the master tenant id of the site at which we are running. 
-	   var tenantId = TenantManager.getInstance().getSiteMasterTenantId(parms.getSiteId());
-	   if (StringUtils.isBlank(tenantId)) {
-	        String msg = MsgUtils.getMsg("TAPIS_SITE_NO_MASTER_TENANT",
-	        		                      parms.getSiteId(), tenantId);
-		   throw new TapisException(msg);
-	   }
-	   
-	   // Get the site master tenant object.
-	   var tenant =  TenantManager.getInstance().getTenant(tenantId);
-	   if (tenant == null) {
-	        String msg = MsgUtils.getMsg("TAPIS_TENANT_NOT_FOUND", tenantId);
-	        throw new TapisException(msg);
-	   }
-	   
-	   // Get the list of all sites.
-	   var sites = new ArrayList<String>(TenantManager.getInstance().getSites().keySet());
-	   
-	   // Assemble the parameters for the service JWT manager.
-	   var jwtParms = new ServiceJWTParms();
-	   jwtParms.setTenant(tenantId);
-	   jwtParms.setTargetSites(sites);
-	   jwtParms.setTokensBaseUrl(tenant.getBaseUrl());
-	   jwtParms.setServiceName(TapisConstants.SERVICE_NAME_JOBS);
-	   
-	   // Create the manager.
-	   return new ServiceJWT(jwtParms, parms.getServicePassword());
    }
 }
