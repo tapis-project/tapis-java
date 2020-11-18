@@ -1,22 +1,15 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 import javax.ws.rs.ApplicationPath;
 
-import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.server.ResourceConfig;
 
-import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
-import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
-import edu.utexas.tacc.tapis.shared.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
@@ -60,6 +53,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class JobsApplication 
 extends ResourceConfig
 {
+   // The table we query to test database connectivity.
+   private static final String QUERY_TABLE = "jobs";
+   
    public JobsApplication()
    {
        // ------------------ Unrecoverable Errors ------------------
@@ -142,6 +138,14 @@ extends ResourceConfig
     		   System.out.println(s);
     	   }
        }
+       
+       // ----- Database Initialization
+       try {JobsImpl.getInstance().queryDB(QUERY_TABLE);}
+	    catch (Exception e) {
+       		errors++;
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****");
+	    	e.printStackTrace();
+	    }
        
        // We're done.
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
