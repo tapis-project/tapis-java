@@ -122,7 +122,10 @@ extends ResourceConfig
        
        // ----- Service JWT Initialization
        ServiceContext serviceCxt = ServiceContext.getInstance();
-       try {serviceCxt.initServiceJWT(parms.getSiteId(), parms.getServicePassword());}
+       try {
+                serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
+    	    	                          parms.getServicePassword());
+    	}
        	catch (Exception e) {
        		errors++;
             System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceContext ****");

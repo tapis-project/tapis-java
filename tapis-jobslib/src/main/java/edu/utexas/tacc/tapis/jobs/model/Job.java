@@ -37,6 +37,7 @@ public final class Job
     private String   			appId;
     private String   			appVersion;
     private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private boolean             dynamicExecSystem;
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
@@ -205,6 +206,14 @@ public final class Job
 
 	public void setArchiveOnAppError(boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
+	}
+
+	public boolean isDynamicExecSystem() {
+		return dynamicExecSystem;
+	}
+
+	public void setDynamicExecSystem(boolean dynamicExecSystem) {
+		this.dynamicExecSystem = dynamicExecSystem;
 	}
 
 	public String getExecSystemId() {

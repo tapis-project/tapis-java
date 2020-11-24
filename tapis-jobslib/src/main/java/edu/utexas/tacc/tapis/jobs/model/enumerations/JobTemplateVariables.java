@@ -10,7 +10,7 @@ public enum JobTemplateVariables
 	tapisJobName,
 	tapisJobId,
 	tapisTenant,
-	topisJobOwner,
+	tapisJobOwner,
 	tapisEffeciveUserId,
 	tapisAppId,
 	tapisAppVersion,

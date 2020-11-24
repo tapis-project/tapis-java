@@ -22,7 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -155,8 +159,17 @@ public class JobSubmitResource
              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
 
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       var jwtUser   = threadContext.getJwtUser();
+       var jwtTenant = threadContext.getJwtTenantId();
+       var oboUser   = threadContext.getOboUser();
+       var oboTenant = threadContext.getOboTenantId();
+        
        // ------------------------- Finalize Parameters ----------------------
-       // Get the application object.
+       // Get the application object for this tenant.
+       String appsJwt = null;
+       try {appsJwt = ServiceContext.getInstance().getAccessJWT(oboTenant, TapisConstants.SERVICE_NAME_APPS);}
+       	catch (Exception e) {}
        
        
        

@@ -43,6 +43,10 @@
             "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"
           },
+          "dynamicExecSystem": {
+            "$comment": "Whether the best fit execution system should be chosen using execSystemConstraints, default=false",
+            "type": "boolean"
+          },
           "execSystemId": {
             "$comment": "Execution system ID",
             "type": "string",

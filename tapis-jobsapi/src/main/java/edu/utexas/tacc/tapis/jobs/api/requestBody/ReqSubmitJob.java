@@ -15,6 +15,7 @@ public class ReqSubmitJob
     private String   			appId;
     private String   			appVersion;
     private boolean  			archiveOnAppError = Job.DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private boolean             dynamicExecSystem;
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
@@ -93,6 +94,14 @@ public class ReqSubmitJob
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
+	public boolean isDynamicExecSystem() {
+		return dynamicExecSystem;
+	}
+
+	public void setDynamicExecSystem(boolean dynamicExecSystem) {
+		this.dynamicExecSystem = dynamicExecSystem;
+	}
+	
 	public String getExecSystemId() {
 		return execSystemId;
 	}
@@ -204,5 +213,4 @@ public class ReqSubmitJob
 	public void setSubscriptions(String subscriptions) {
 		this.subscriptions = subscriptions;
 	}
-
 }

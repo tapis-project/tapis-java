@@ -43,7 +43,8 @@ CREATE TABLE jobs
   
   app_id                      character varying(80) NOT NULL,
   app_version                 character varying(64) NOT NULL,
-  archive_on_app_error        boolean NOT NULL DEFAULT FALSE,
+  archive_on_app_error        boolean NOT NULL DEFAULT TRUE,
+  dynamic_exec_system         boolean NOT NULL DEFAULT FALSE,
   
   exec_system_id              character varying(80) NOT NULL,
   exec_system_exec_dir        character varying(4096), 
@@ -89,7 +90,7 @@ CREATE INDEX jobs_tenant_owner_idx ON jobs (tenant, owner);
 CREATE INDEX jobs_created_idx ON jobs (created);
 CREATE INDEX jobs_tenant_createdby_idx ON jobs (createdby_tenant, createdby);
 CREATE INDEX jobs_status_idx ON jobs (status);
-CREATE INDEX jobs_app_id_idx ON jobs (app_id);
+CREATE INDEX jobs_app_id_idx ON jobs (app_id, tenant);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
 

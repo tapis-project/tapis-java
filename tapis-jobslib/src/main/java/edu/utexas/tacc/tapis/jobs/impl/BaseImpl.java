@@ -42,6 +42,4 @@ abstract class BaseImpl
             
         return _jobsDao;
     }
-
-
 }

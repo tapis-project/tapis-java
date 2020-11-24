@@ -288,27 +288,28 @@ public final class JobsDao
           pstmt.setString(12, job.getAppId().trim());
           pstmt.setString(13, job.getAppVersion().trim());
           pstmt.setBoolean(14, job.isArchiveOnAppError());
+          pstmt.setBoolean(15, job.isDynamicExecSystem());
               
-          pstmt.setString(15, job.getExecSystemId());           
-          pstmt.setString(16, job.getExecSystemExecDir());     // could be null
-          pstmt.setString(17, job.getExecSystemInputDir());    // could be null
-          pstmt.setString(18, job.getExecSystemOutputDir());   // could be null
-          pstmt.setString(19, job.getArchiveSystemId());        // could be null
-          pstmt.setString(20, job.getArchiveSystemDir());      // could be null
+          pstmt.setString(16, job.getExecSystemId());           
+          pstmt.setString(17, job.getExecSystemExecDir());     // could be null
+          pstmt.setString(18, job.getExecSystemInputDir());    // could be null
+          pstmt.setString(19, job.getExecSystemOutputDir());   // could be null
+          pstmt.setString(20, job.getArchiveSystemId());       // could be null
+          pstmt.setString(21, job.getArchiveSystemDir());      // could be null
               
-          pstmt.setInt(21, job.getNodeCount());
-          pstmt.setInt(22, job.getCoresPerNode());
-          pstmt.setInt(23, job.getMemoryMB());
-          pstmt.setInt(24, job.getMaxMinutes());
+          pstmt.setInt(22, job.getNodeCount());
+          pstmt.setInt(23, job.getCoresPerNode());
+          pstmt.setInt(24, job.getMemoryMB());
+          pstmt.setInt(25, job.getMaxMinutes());
               
-          pstmt.setString(25, job.getInputs());                 
-          pstmt.setString(26, job.getParameters());             
-          pstmt.setString(27, job.getExecSystemConstraints());                 
-          pstmt.setString(28, job.getSubscriptions());             
+          pstmt.setString(26, job.getInputs());                 
+          pstmt.setString(27, job.getParameters());             
+          pstmt.setString(28, job.getExecSystemConstraints());                 
+          pstmt.setString(29, job.getSubscriptions());             
 
-          pstmt.setString(29, job.getTapisQueue());
-          pstmt.setString(30, job.getCreatedby());
-          pstmt.setString(31, job.getCreatedbyTenant());
+          pstmt.setString(30, job.getTapisQueue());
+          pstmt.setString(31, job.getCreatedby());
+          pstmt.setString(32, job.getCreatedbyTenant());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -565,51 +566,53 @@ public final class JobsDao
 	        obj.setAppId(rs.getString(14));
 	        obj.setAppVersion(rs.getString(15));
 	        obj.setArchiveOnAppError(rs.getBoolean(16));
-	        obj.setExecSystemId(rs.getString(17));
-	        obj.setExecSystemExecDir(rs.getString(18));
-	        obj.setExecSystemInputDir(rs.getString(19));
-	        obj.setExecSystemOutputDir(rs.getString(20));
-	        obj.setArchiveSystemId(rs.getString(21));
-	        obj.setArchiveSystemDir(rs.getString(22));
-	        obj.setNodeCount(rs.getInt(23));
-	        obj.setCoresPerNode(rs.getInt(24));
-	        obj.setMemoryMB(rs.getInt(25));
-	        obj.setMaxMinutes(rs.getInt(26));
+	        obj.setDynamicExecSystem(rs.getBoolean(17));
 	        
-	        obj.setInputs(rs.getString(27));
-	        obj.setParameters(rs.getString(28));
-	        obj.setExecSystemConstraints(rs.getString(29));
-	        obj.setSubscriptions(rs.getString(30));	        
+	        obj.setExecSystemId(rs.getString(18));
+	        obj.setExecSystemExecDir(rs.getString(19));
+	        obj.setExecSystemInputDir(rs.getString(20));
+	        obj.setExecSystemOutputDir(rs.getString(21));
+	        obj.setArchiveSystemId(rs.getString(22));
+	        obj.setArchiveSystemDir(rs.getString(23));
+	        obj.setNodeCount(rs.getInt(24));
+	        obj.setCoresPerNode(rs.getInt(25));
+	        obj.setMemoryMB(rs.getInt(26));
+	        obj.setMaxMinutes(rs.getInt(27));
 	        
-	        obj.setBlockedCount(rs.getInt(31));
-	        obj.setRemoteJobId(rs.getString(32));
-	        obj.setRemoteJobId2(rs.getString(33));
+	        obj.setInputs(rs.getString(28));
+	        obj.setParameters(rs.getString(29));
+	        obj.setExecSystemConstraints(rs.getString(30));
+	        obj.setSubscriptions(rs.getString(31));	        
 	        
-	        String s = rs.getString(34);
+	        obj.setBlockedCount(rs.getInt(32));
+	        obj.setRemoteJobId(rs.getString(33));
+	        obj.setRemoteJobId2(rs.getString(34));
+	        
+	        String s = rs.getString(35);
 	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
-	        obj.setRemoteResultInfo(rs.getString(35));
-	        obj.setRemoteQueue(rs.getString(36));
-
-	        ts = rs.getTimestamp(37);
-	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
+	        obj.setRemoteResultInfo(rs.getString(36));
+	        obj.setRemoteQueue(rs.getString(37));
 
 	        ts = rs.getTimestamp(38);
-	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
 
 	        ts = rs.getTimestamp(39);
+	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+
+	        ts = rs.getTimestamp(40);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(40));
-	        obj.setRemoteChecksSuccess(rs.getInt(41));
-	        obj.setRemoteChecksFailed(rs.getInt(42));
+	        obj.setRemoteSubmitRetries(rs.getInt(41));
+	        obj.setRemoteChecksSuccess(rs.getInt(42));
+	        obj.setRemoteChecksFailed(rs.getInt(43));
 
-	        ts = rs.getTimestamp(43);
+	        ts = rs.getTimestamp(44);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(44));
-	        obj.setVisible(rs.getBoolean(45));
-	        obj.setCreatedby(rs.getString(46));
-	        obj.setCreatedbyTenant(rs.getString(47));
+	        obj.setTapisQueue(rs.getString(45));
+	        obj.setVisible(rs.getBoolean(46));
+	        obj.setCreatedby(rs.getString(47));
+	        obj.setCreatedbyTenant(rs.getString(48));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
