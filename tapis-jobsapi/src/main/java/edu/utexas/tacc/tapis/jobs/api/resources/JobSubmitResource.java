@@ -21,10 +21,12 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.AppsClient;
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
-import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -148,9 +150,7 @@ public class JobSubmitResource
        // ------------------------- Input Processing -------------------------
        // Parse and validate the json in the request payload, which must exist.
        ReqSubmitJob payload = null;
-       try {payload = getPayload(payloadStream, FILE_JOB_SUBMIT_REQUEST, 
-    		                     ReqSubmitJob.class);
-       } 
+       try {payload = getPayload(payloadStream, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
        catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
                                         "sbumitJob", e.getMessage());
@@ -166,10 +166,30 @@ public class JobSubmitResource
        var oboTenant = threadContext.getOboTenantId();
         
        // ------------------------- Finalize Parameters ----------------------
-       // Get the application object for this tenant.
-       String appsJwt = null;
-       try {appsJwt = ServiceContext.getInstance().getAccessJWT(oboTenant, TapisConstants.SERVICE_NAME_APPS);}
-       	catch (Exception e) {}
+       // Get the application client for this user@tenant.
+       AppsClient appsClient = null;
+       try {
+           appsClient = ServiceClients.getInstance().getClient(oboTenant, oboUser, AppsClient.class);
+       }
+       catch (Exception e) {
+       			
+       }
+       
+       // Get the application.
+       // TODO: use endpoint with version and required perms
+       //       Need perm enum
+       App app = null;
+       try {app = appsClient.getApp(payload.getAppId());}
+	   catch (TapisClientException e) {
+		   // TODO Auto-generated catch block
+		   e.printStackTrace();
+	   }
+       
+       // Resolve the execution system.
+       
+       // Retrieve the execution system
+       
+       // Calculate effective parameters
        
        
        
