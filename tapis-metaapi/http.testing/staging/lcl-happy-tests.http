@@ -1,5 +1,4 @@
-##################################### taccMetaAdmin user #################################################
-# taccMetaAdmin   these tests are hitting the dev deployment of RH-core
+
 
 ##############################################################
 #      Root endpoints
@@ -7,7 +6,7 @@
 
 #   root lists DBs
 ###  api:1
-GET https://master.prod.tapis.io/v3/meta/tapistst
+GET https://master.prod.tapis.io/v3/meta/tapi
 X-Tapis-Token: {{token}}
 X-Tapis-User: meta
 X-Tapis-Tenant: master

@@ -43,6 +43,19 @@ Content-Type: application/json
 #   empty response
 
 
+# designsafedb
+#  put with no arguements to designsafedb /v3/meta/designsafedb/
+###
+PUT http://c002.rodeo.tacc.utexas.edu:31650/designsafedb
+# X-Tapis-Token: {{token}}
+# X-Tapis-User: streamsTACCAdmin
+# X-Tapis-Tenant: dev
+Content-Type: application/json
+
+###  results  200
+#  ETag header is returned in headers
+#  ETag:
+
 # jpl?
 #  put with no arguements to jplDB /v3/meta/jplDB/
 ###

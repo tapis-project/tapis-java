@@ -23,7 +23,11 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"streams","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:StreamsTACCDB:*:*"}
+{
+  "user": "streams",
+  "tenant": "master",
+  "permSpec": "meta:master:GET,POST,PUT,PATCH,DELETE:StreamsProdDB:*:*"
+}
 
 ###
 
@@ -34,12 +38,40 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"meta","tenant":"master","permSpec":"meta:master:GET,POST,PUT,PATCH,DELETE:*:*:*"}
+{
+  "user": "meta",
+  "tenant": "master",
+  "permSpec": "meta:master:GET,POST,PUT,PATCH,DELETE:*:*:*"
+}
 
 ###
 
 ### SK get permissions for user using meta:master service token
-GET https://master.tapis.io/v3/security/user/perms/mpackard?tenant=tacc
+GET https://master.tapis.io/v3/security/user/perms/streams?tenant=master
+X-Tapis-Token: {{token}}
+X-Tapis-User: {{user}}
+X-Tapis-Tenant:{{tenant}}
+Content-Type: application/json
+
+###
+
+### SK grant permission for a user ds_admin all operations on designsafedb
+POST https://masterd.tapis.io/v3/security/user/grantUserPermission?tenant=tacc
+X-Tapis-Token: {{token}}
+X-Tapis-User: {{user}}
+X-Tapis-Tenant:{{tenant}}
+Content-Type: application/json
+
+{
+  "user": "ds_admin",
+  "tenant": "tacc",
+  "permSpec": "meta:tacc:GET,POST,PUT,PATCH,DELETE:designsafedb:*:*"
+}
+
+###
+
+### SK get permissions for user using meta:master service token
+GET https://master.tapis.io/v3/security/user/perms/ds_admin?tenant=tacc
 X-Tapis-Token: {{token}}
 X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}

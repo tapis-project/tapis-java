@@ -8,7 +8,7 @@
 
 #   root lists DBs
 ###  api:1
-GET https://master.tapis.io/v3/meta/StreamsProdDB
+GET https://master.tapis.io/v3/meta/StreamsTACCDB
 X-Tapis-Token: {{token}}
 X-Tapis-User: meta
 X-Tapis-Tenant: master

@@ -165,7 +165,11 @@ X-Tapis-User: {{user}}
 X-Tapis-Tenant:{{tenant}}
 Content-Type: application/json
 
-{"user":"meta","tenant":"master","permSpec":"meta:master:GET:StreamsTACCDB::"}
+{
+  "user": "meta",
+  "tenant": "master",
+  "permSpec": "meta:master:GET:StreamsDevDB::"
+}
 
 ###
 
