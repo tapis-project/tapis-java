@@ -169,7 +169,7 @@ public class JobSubmitResource
        // Get the application client for this user@tenant.
        AppsClient appsClient = null;
        try {
-           appsClient = ServiceClients.getInstance().getClient(oboTenant, oboUser, AppsClient.class);
+           appsClient = ServiceClients.getInstance().getClient(oboUser, oboTenant, AppsClient.class);
        }
        catch (Exception e) {
        			
