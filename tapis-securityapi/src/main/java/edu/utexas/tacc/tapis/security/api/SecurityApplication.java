@@ -10,8 +10,8 @@ import edu.utexas.tacc.tapis.security.api.utils.TenantInit;
 import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -86,6 +86,7 @@ public class SecurityApplication
                 throw e;
             }
         System.out.println("**** SUCCESS:  RuntimeParameters read ****");
+        int errors = 0; // cumulative error count
         
         // ---------------- Initialize Security Filter --------------
         // Required to process any requests.
@@ -98,6 +99,7 @@ public class SecurityApplication
         try {VaultManager.getInstance(parms); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
+            	errors++;
                 System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi VaultManager ****");
                 e.printStackTrace();
             }
@@ -116,6 +118,7 @@ public class SecurityApplication
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
             // We don't depend on the logging subsystem.
+        	errors++;
             System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager ****");
             e.printStackTrace();
         }
@@ -124,19 +127,21 @@ public class SecurityApplication
             String s = "Tenants:\n";
             for (String tenant : tenantMap.keySet()) s += "  " + tenant + "\n";
             System.out.println(s);
-        }
+        } else
+        	System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager - No Tenants ****");
         
         // Initialize tenant roles and administrators.
         success = false;
         try {TenantInit.initializeTenants(tenantMap); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
+            	errors++;
                 System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantInit ****");
                 e.printStackTrace();
             }
         if (success) System.out.println("**** SUCCESS:  Tenant admins initialized ****");
         
         // We're done.
-        System.out.println("**** tapis-securityapi Initialized ****");
+        System.out.println("**** tapis-securityapi Initialized [errors=" + errors + "] ****");
     }
 }

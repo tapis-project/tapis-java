@@ -25,9 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -21,9 +21,21 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.AppsClient;
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 public class JobSubmitResource 
  extends AbstractResource
@@ -91,6 +103,40 @@ public class JobSubmitResource
      @POST
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Submit a job for execution.  "
+                           + "The main phases of job execution are:\n\n"
+            		       + ""
+            		       + "  - validate input\n"
+            		       + "  - check resource availability\n"
+            		       + "  - stage input files\n"
+            		       + "  - stage application code\n"
+            		       + "  - launch application\n"
+            		       + "  - monitor application\n"
+            		       + "  - archive application output\n"
+                           + "",
+             tags = "jobs",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
+             responses = 
+                 {
+                  @ApiResponse(responseCode = "201", description = "Job created.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
      public Response submitJob(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
      {
@@ -104,9 +150,7 @@ public class JobSubmitResource
        // ------------------------- Input Processing -------------------------
        // Parse and validate the json in the request payload, which must exist.
        ReqSubmitJob payload = null;
-       try {payload = getPayload(payloadStream, FILE_JOB_SUBMIT_REQUEST, 
-    		                     ReqSubmitJob.class);
-       } 
+       try {payload = getPayload(payloadStream, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
        catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
                                         "sbumitJob", e.getMessage());
@@ -115,6 +159,42 @@ public class JobSubmitResource
              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
 
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       var jwtUser   = threadContext.getJwtUser();
+       var jwtTenant = threadContext.getJwtTenantId();
+       var oboUser   = threadContext.getOboUser();
+       var oboTenant = threadContext.getOboTenantId();
+        
+       // ------------------------- Finalize Parameters ----------------------
+       // Get the application client for this user@tenant.
+       AppsClient appsClient = null;
+       try {
+           appsClient = ServiceClients.getInstance().getClient(oboUser, oboTenant, AppsClient.class);
+       }
+       catch (Exception e) {
+       			
+       }
+       
+       // Get the application.
+       // TODO: use endpoint with version and required perms
+       //       Need perm enum
+       App app = null;
+       try {app = appsClient.getApp(payload.getAppId());}
+	   catch (TapisClientException e) {
+		   // TODO Auto-generated catch block
+		   e.printStackTrace();
+	   }
+       
+       // Resolve the execution system.
+       
+       // Retrieve the execution system
+       
+       // Calculate effective parameters
+       
+       
+       
+       
+       
        
        return null;
      }

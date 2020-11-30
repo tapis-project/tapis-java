@@ -77,6 +77,9 @@ public final class RuntimeParameters
     // Distinguished user-chosen name of this runtime instance.
     private String  instanceName;
     
+    // Credentials to get a token from the tokens service.
+    private String  servicePassword;
+    
     // The site in which this service is running.
     private String  siteId;
     
@@ -214,6 +217,18 @@ public final class RuntimeParameters
             throw new TapisRuntimeException(msg, e);
           }
       }
+    
+    // Required parameter that allows us to aquire our JWTs.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_SERVICE_PASSWORD.getEnvName());
+    if (StringUtils.isBlank(parm)) {
+        // Stop on bad input.
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING",
+                                     TapisConstants.SERVICE_NAME_JOBS,
+                                     "servicePassword");
+        _log.error(msg);
+        throw new TapisRuntimeException(msg);
+      }
+    setServicePassword(parm);
     
     // --------------------- Tenant Parameters ------------------------
     // We need to know where the tenant service is locaated.
@@ -777,4 +792,12 @@ public final class RuntimeParameters
     public void setTenantBaseUrl(String tenantBaseUrl) {
         this.tenantBaseUrl = tenantBaseUrl;
     }
+
+	public String getServicePassword() {
+		return servicePassword;
+	}
+
+	public void setServicePassword(String servicePassword) {
+		this.servicePassword = servicePassword;
+	}
 }

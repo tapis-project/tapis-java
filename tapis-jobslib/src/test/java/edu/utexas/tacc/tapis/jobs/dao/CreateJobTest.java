@@ -57,7 +57,15 @@ public class CreateJobTest
 	    job.setCreatedbyTenant("maryTenant");
 		
 	    // Optional fields.
-	    String json = "{\"key1\": \"value1\", \"key2\": 5}";
+	    String json = 
+	    		"{\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				+ "                \"containerArgs\": [{\"arg\": \"-v 3\", "
+				+ "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
+				+ "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
+				+ "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}],"
+				+ "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
+				+ "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}]"
+				+ "}}";
 	    job.setParameters(json);
 	    
 		return job;

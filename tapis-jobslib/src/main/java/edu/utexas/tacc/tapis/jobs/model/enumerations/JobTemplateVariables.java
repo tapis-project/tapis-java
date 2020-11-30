@@ -1,7 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.model.enumerations;
 
 /** These template variables can be referenced using a ${varName} specification
- * when submitting a job.  These values will also be 
+ * when submitting a job.  These values will also be passed as environment variables
+ * into the application.
  * 
  * @author rcardone
  */
@@ -10,15 +11,15 @@ public enum JobTemplateVariables
 	tapisJobName,
 	tapisJobId,
 	tapisTenant,
-	topisJobOwner,
+	tapisJobOwner,
 	tapisEffeciveUserId,
 	tapisAppId,
 	tapisAppVersion,
 	tapisExecSystemId,
 	tapisArchiveSystemId,
-	tapisExecSystemExecPath,
-	tapisExecSystemInputPath,
-	tapisExecSystemOutputPath,
+	tapisExecSystemExecDir,
+	tapisExecSystemInputDir,
+	tapisExecSystemOutputDir,
 	tapisExecSystemLogicalQueue,
 	tapisExecSystemHPCQueue,
 	tapisArchiveOnAppError,
@@ -28,8 +29,13 @@ public enum JobTemplateVariables
 	tapisMemoryMB,
 	tapisMaxMinutes,
 
-	tapisSysJobLocalWorkingDir,
+	tapisSysWorkingDir,
 	tapisSysBucketName,
 	tapisSysRootDir,
-	tapisSysHost
+	tapisSysHost,
+	tapisSysDTNSystemId,
+	
+	tapisTime,
+	tapisDate,
+	tapisTimestamp
 }

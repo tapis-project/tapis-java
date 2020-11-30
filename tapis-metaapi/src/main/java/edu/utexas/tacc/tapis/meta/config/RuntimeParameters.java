@@ -6,10 +6,11 @@ import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.parameters.TapisEnv;
 import edu.utexas.tacc.tapis.shared.parameters.TapisInput;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWTParms;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWTParms;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

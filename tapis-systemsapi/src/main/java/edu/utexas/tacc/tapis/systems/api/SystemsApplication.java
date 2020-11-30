@@ -3,11 +3,11 @@ package edu.utexas.tacc.tapis.systems.api;
 import javax.ws.rs.ApplicationPath;
 
 import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.providers.TapisExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.systems.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDao;
 import edu.utexas.tacc.tapis.systems.dao.SystemsDaoImpl;

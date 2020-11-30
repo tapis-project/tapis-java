@@ -7,9 +7,11 @@ import javax.ws.rs.ApplicationPath;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
@@ -51,6 +53,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class JobsApplication 
 extends ResourceConfig
 {
+   // The table we query to test database connectivity.
+   private static final String QUERY_TABLE = "jobs";
+   
    public JobsApplication()
    {
        // ------------------ Unrecoverable Errors ------------------
@@ -69,7 +74,7 @@ extends ResourceConfig
        // tapis-sharedapi will be discovered whenever that project is
        // included as a maven dependency.
        packages("edu.utexas.tacc.tapis");
-       setApplicationName("jobs"); 
+       setApplicationName(TapisConstants.SERVICE_NAME_JOBS); 
        
        // Initialize our parameters.  A failure here is unrecoverable.
        RuntimeParameters parms = null;
@@ -81,6 +86,7 @@ extends ResourceConfig
                throw e;
            }
        System.out.println("**** SUCCESS:  RuntimeParameters read ****");
+       int errors = 0; // cumulative error count
        
        // ---------------- Initialize Security Filter --------------
        // Required to process any requests.
@@ -88,6 +94,7 @@ extends ResourceConfig
        JWTValidateRequestFilter.setSiteId(parms.getSiteId());
        
        // ------------------- Recoverable Errors -------------------
+       // ----- Tenant Map Initialization
        // Force runtime initialization of the tenant manager.  This creates the
        // singleton instance of the TenantManager that can then be accessed by
        // all subsequent application code--including filters--without reference
@@ -101,6 +108,7 @@ extends ResourceConfig
            tenantMap = TenantManager.getInstance(url).getTenants();
        } catch (Exception e) {
            // We don't depend on the logging subsystem.
+    	   errors++;
            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager ****");
            e.printStackTrace();
        }
@@ -109,9 +117,40 @@ extends ResourceConfig
            String s = "Tenants:\n";
            for (String tenant : tenantMap.keySet()) s += "  " + tenant + "\n";
            System.out.println(s);
+       } else 
+    	   System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager - No Tenants ****");
+       
+       // ----- Service JWT Initialization
+       ServiceContext serviceCxt = ServiceContext.getInstance();
+       try {
+                serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
+    	    	                          parms.getServicePassword());
+    	}
+       	catch (Exception e) {
+       		errors++;
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceContext ****");
+            e.printStackTrace();
+       	}
+       if (serviceCxt.getServiceJWT() != null) {
+    	   var targetSites = serviceCxt.getServiceJWT().getTargetSites();
+    	   int targetSiteCnt = targetSites != null ? targetSites.size() : 0;
+    	   System.out.println("**** SUCCESS:  " + targetSiteCnt + " target sites retrieved ****");
+    	   if (targetSites != null) {
+    		   String s = "Target sites:\n";
+    		   for (String site : targetSites) s += "  " + site + "\n";
+    		   System.out.println(s);
+    	   }
        }
        
+       // ----- Database Initialization
+       try {JobsImpl.getInstance().queryDB(QUERY_TABLE);}
+	    catch (Exception e) {
+       		errors++;
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****");
+	    	e.printStackTrace();
+	    }
+       
        // We're done.
-       System.out.println("**** tapis-jobsapi Initialized ****");
+       System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
    }
 }

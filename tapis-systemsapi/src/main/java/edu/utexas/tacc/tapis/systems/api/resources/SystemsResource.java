@@ -23,7 +23,6 @@ import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
-import edu.utexas.tacc.tapis.sharedapi.security.ServiceJWT;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
@@ -44,8 +43,9 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
-import edu.utexas.tacc.tapis.sharedapi.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import org.jooq.tools.StringUtils;

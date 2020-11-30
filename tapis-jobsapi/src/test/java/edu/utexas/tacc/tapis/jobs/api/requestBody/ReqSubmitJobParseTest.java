@@ -69,6 +69,22 @@ public class ReqSubmitJobParseTest
 		parse(json);
 	}
 	
+	@Test
+	public void parseTest7() throws TapisException
+	{
+		// Test some parameters.
+		String json = getInputTest7();
+		parse(json);
+	}
+	
+	@Test
+	public void parseTest8() throws TapisException
+	{
+		// Test some parameters.
+		String json = getInputTest8();
+		parse(json);
+	}
+	
 	/* ********************************************************************** */
 	/*                            Private Methods                             */
 	/* ********************************************************************** */
@@ -105,7 +121,8 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"appParameters\": [\"x\", \"y\"], \"containerParameters\": []}"
+				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "                \"containerArgs\": []}"
 				   + "}"; 
 		return s;
 	}
@@ -114,7 +131,8 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"execSystemConstraints\": [], \"envVariables\": []}"
+				   + "\"execSystemConstraints\": [], " 
+				   + "\"parameters\": {\"envVariables\": []}"
 				   + "}"; 
 		return s;
 	}
@@ -123,13 +141,11 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"execSystemConstraints\": ["
-				   + "{\"key\": \"key1\", \"op\": \"eq\", \"value\": \"stringVal\"}, "
-				   + "{\"key\": \"key2\", \"op\": \">=\", \"value\": 3.8}, "
-				   + "{\"key\": \"key3\", \"op\": \"gte\", \"value\": 7}, "
-				   + "{\"key\": \"key4\", \"op\": \"!=\", \"value\": true}, "
-				   + "{\"key\": \"key5\", \"op\": \"=\", \"value\": null}]"
-				   + "}}"; 
+				   + "\"execSystemConstraints\": ["
+				   + "\"nodeCount > 10 && maxMemoryMB > 100\", "
+				   + "\"MPI = 4.01\""
+				   + "]"
+				   + "}"; 
 		return s;
 	}
 
@@ -142,6 +158,38 @@ public class ReqSubmitJobParseTest
 				   + "{\"sourceUrl\": \"sftp://host.com/path\", \"targetPath\": \"\"}, "
 				   + "{\"sourceUrl\": \"https://host.com/path\"} "
 				   + "]}"; 
+		return s;
+	}
+
+	private String getInputTest7()
+	{
+		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
+				   + "\"description\": \"myJob\", "
+				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
+				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
+				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
+				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}]"
+				   + "}}"; 
+		return s;
+	}
+
+	private String getInputTest8()
+	{
+		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
+				   + "\"description\": \"myJob\", "
+				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
+				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
+				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
+				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}], "
+				   + "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
+				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}], "
+				   + "                \"archiveFilter\": {"
+				   + "                   \"whitelist\": [\"*.txt\", \"out.csv\"], "
+				   + "                   \"blacklist\": [\"*.tmp\", \"regex(abc.*)\"]"
+				   + "                }"
+				   + "}}"; 
 		return s;
 	}
 }

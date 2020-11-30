@@ -13,10 +13,11 @@ import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 public final class Job
 {
 	// Constants.
-	public static final int DEFAULT_NODES = 1;
-	public static final int DEFAULT_PROCS_PER_NODE = 1;
+	public static final int DEFAULT_NODE_COUNT = 1;
+	public static final int DEFAULT_CORES_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
+	public static final boolean DEFAULT_ARCHIVE_ON_APP_ERROR = true;
 	public static final String EMPTY_JSON = "{}";
 	
 	// Fields
@@ -35,19 +36,22 @@ public final class Job
     private String   			uuid;
     private String   			appId;
     private String   			appVersion;
-    private boolean  			archiveOnAppError;
+    private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private boolean             dynamicExecSystem;
     private String   			execSystemId;
-    private String   			execSystemExecPath;
-    private String   			execSystemInputPath;
-    private String   			execSystemOutputPath;
+    private String   			execSystemExecDir;
+    private String   			execSystemInputDir;
+    private String   			execSystemOutputDir;
     private String   			archiveSystemId;
-    private String   			archiveSystemPath;
-    private int      			nodes = DEFAULT_NODES;
-    private int      			processorsPerNode = DEFAULT_PROCS_PER_NODE;
-    private int      			memoryMb = DEFAULT_MEM_MB;
+    private String   			archiveSystemDir;
+    private int      			nodeCount = DEFAULT_NODE_COUNT;
+    private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
+    private int      			memoryMB = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     private String   			inputs = EMPTY_JSON;
     private String   			parameters = EMPTY_JSON;
+    private String              execSystemConstraints = EMPTY_JSON;
+    private String              subscriptions = EMPTY_JSON;
     private int      			blockedCount;
     private String   			remoteJobId;
     private String   			remoteJobId2;
@@ -204,6 +208,14 @@ public final class Job
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
+	public boolean isDynamicExecSystem() {
+		return dynamicExecSystem;
+	}
+
+	public void setDynamicExecSystem(boolean dynamicExecSystem) {
+		this.dynamicExecSystem = dynamicExecSystem;
+	}
+
 	public String getExecSystemId() {
 		return execSystemId;
 	}
@@ -212,28 +224,28 @@ public final class Job
 		this.execSystemId = execSystemId;
 	}
 
-	public String getExecSystemExecPath() {
-		return execSystemExecPath;
+	public String getExecSystemExecDir() {
+		return execSystemExecDir;
 	}
 
-	public void setExecSystemExecPath(String execSystemExecPath) {
-		this.execSystemExecPath = execSystemExecPath;
+	public void setExecSystemExecDir(String execSystemExecDir) {
+		this.execSystemExecDir = execSystemExecDir;
 	}
 
-	public String getExecSystemInputPath() {
-		return execSystemInputPath;
+	public String getExecSystemInputDir() {
+		return execSystemInputDir;
 	}
 
-	public void setExecSystemInputPath(String execSystemInputPath) {
-		this.execSystemInputPath = execSystemInputPath;
+	public void setExecSystemInputDir(String execSystemInputDir) {
+		this.execSystemInputDir = execSystemInputDir;
 	}
 
-	public String getExecSystemOutputPath() {
-		return execSystemOutputPath;
+	public String getExecSystemOutputDir() {
+		return execSystemOutputDir;
 	}
 
-	public void setExecSystemOutputPath(String execSystemOutputPath) {
-		this.execSystemOutputPath = execSystemOutputPath;
+	public void setExecSystemOutputDir(String execSystemOutputDir) {
+		this.execSystemOutputDir = execSystemOutputDir;
 	}
 
 	public String getArchiveSystemId() {
@@ -244,36 +256,36 @@ public final class Job
 		this.archiveSystemId = archiveSystemId;
 	}
 
-	public String getArchiveSystemPath() {
-		return archiveSystemPath;
+	public String getArchiveSystemDir() {
+		return archiveSystemDir;
 	}
 
-	public void setArchiveSystemPath(String archiveSystemPath) {
-		this.archiveSystemPath = archiveSystemPath;
+	public void setArchiveSystemDir(String archiveSystemDir) {
+		this.archiveSystemDir = archiveSystemDir;
 	}
 
-	public int getNodes() {
-		return nodes;
+	public int getNodeCount() {
+		return nodeCount;
 	}
 
-	public void setNodes(int nodes) {
-		this.nodes = nodes;
+	public void setNodeCount(int nodeCount) {
+		this.nodeCount = nodeCount;
 	}
 
-	public int getProcessorsPerNode() {
-		return processorsPerNode;
+	public int getCoresPerNode() {
+		return coresPerNode;
 	}
 
-	public void setProcessorsPerNode(int processorsPerNode) {
-		this.processorsPerNode = processorsPerNode;
+	public void setCoresPerNode(int coresPerNode) {
+		this.coresPerNode = coresPerNode;
 	}
 
-	public int getMemoryMb() {
-		return memoryMb;
+	public int getMemoryMB() {
+		return memoryMB;
 	}
 
-	public void setMemoryMb(int memoryMb) {
-		this.memoryMb = memoryMb;
+	public void setMemoryMB(int memoryMB) {
+		this.memoryMB = memoryMB;
 	}
 
 	public int getMaxMinutes() {
@@ -298,6 +310,22 @@ public final class Job
 
 	public void setParameters(String parameters) {
 		this.parameters = parameters;
+	}
+
+	public String getExecSystemConstraints() {
+		return execSystemConstraints;
+	}
+
+	public void setExecSystemConstraints(String execSystemConstraints) {
+		this.execSystemConstraints = execSystemConstraints;
+	}
+
+	public String getSubscriptions() {
+		return subscriptions;
+	}
+
+	public void setSubscriptions(String subscriptions) {
+		this.subscriptions = subscriptions;
 	}
 
 	public int getBlockedCount() {
