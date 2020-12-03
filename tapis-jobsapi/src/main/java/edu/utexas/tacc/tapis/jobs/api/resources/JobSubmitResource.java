@@ -21,12 +21,12 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
-import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -159,37 +159,55 @@ public class JobSubmitResource
              entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
 
+       // ------------------------- Create Context ---------------------------
+       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       var jwtUser   = threadContext.getJwtUser();
-       var jwtTenant = threadContext.getJwtTenantId();
-       var oboUser   = threadContext.getOboUser();
-       var oboTenant = threadContext.getOboTenantId();
-        
+       if (!threadContext.validate()) {
+           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+           _log.error(msg);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // Create the request context object.
+       var reqCtx = new SubmitContext(payload);
+       
        // ------------------------- Finalize Parameters ----------------------
-       // Get the application client for this user@tenant.
-       AppsClient appsClient = null;
-       try {
-           appsClient = ServiceClients.getInstance().getClient(oboUser, oboTenant, AppsClient.class);
+       // Get the application client for this obo user@tenant.
+       try {reqCtx.assignApp();}
+       catch (TapisImplException e) {
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        catch (Exception e) {
-       			
+           // This should never happen, but we defend against it. 
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        
-       // Get the application.
-       // TODO: use endpoint with version and required perms
-       //       Need perm enum
-       App app = null;
-       try {app = appsClient.getApp(payload.getAppId());}
-	   catch (TapisClientException e) {
-		   // TODO Auto-generated catch block
-		   e.printStackTrace();
-	   }
+       // Resolve and retrieve all systems.
+       try {reqCtx.assignSystems();}
+       catch (TapisImplException e) {
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       }
+       catch (Exception e) {
+           // This should never happen, but we defend against it. 
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       }
        
-       // Resolve the execution system.
+       // ------------------------- Create the Job ---------------------------
+       // Create job with calculated effective parameters.
+       Job job = null;
+       try {job = reqCtx.createNewJob();}
+       catch (Exception e) {
+           
+       }
        
-       // Retrieve the execution system
        
-       // Calculate effective parameters
+       // ------------------------- Validate Parameters ----------------------
+
        
        
        

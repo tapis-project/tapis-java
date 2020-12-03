@@ -15,6 +15,7 @@ public class ReqSubmitJob
     private String   			appId;
     private String   			appVersion;
     private boolean  			archiveOnAppError = Job.DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private boolean             useDTNIfAvailable = Job.DEFAULT_USE_DTN;
     private boolean             dynamicExecSystem;
     private String   			execSystemId;
     private String   			execSystemExecDir;
@@ -93,6 +94,14 @@ public class ReqSubmitJob
 	public void setArchiveOnAppError(boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
+
+    public boolean isUseDTNIfAvailable() {
+        return useDTNIfAvailable;
+    }
+
+    public void setUseDTNIfAvailable(boolean useDTNIfAvailable) {
+        this.useDTNIfAvailable = useDTNIfAvailable;
+    }
 
 	public boolean isDynamicExecSystem() {
 		return dynamicExecSystem;

@@ -112,7 +112,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"harry\", \"appId\": \"app1\", \"appVersion\": \"v4.3\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {}"
+				   + "\"parameterSet\": {}"
 				   + "}"; 
 		return s;
 	}
@@ -121,7 +121,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
 				   + "                \"containerArgs\": []}"
 				   + "}"; 
 		return s;
@@ -132,7 +132,7 @@ public class ReqSubmitJobParseTest
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
 				   + "\"execSystemConstraints\": [], " 
-				   + "\"parameters\": {\"envVariables\": []}"
+				   + "\"parameterSet\": {\"envVariables\": []}"
 				   + "}"; 
 		return s;
 	}
@@ -153,7 +153,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v7\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"inputs\": ["
+				   + "\"fileInputs\": ["
 				   + "{\"sourceUrl\": \"tapis://host.com/path\", \"targetPath\": \"newFileName\"}, "
 				   + "{\"sourceUrl\": \"sftp://host.com/path\", \"targetPath\": \"\"}, "
 				   + "{\"sourceUrl\": \"https://host.com/path\"} "
@@ -165,7 +165,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
 				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
 				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
 				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
@@ -178,7 +178,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-				   + "\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
 				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
 				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
 				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
@@ -186,8 +186,8 @@ public class ReqSubmitJobParseTest
 				   + "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
 				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}], "
 				   + "                \"archiveFilter\": {"
-				   + "                   \"whitelist\": [\"*.txt\", \"out.csv\"], "
-				   + "                   \"blacklist\": [\"*.tmp\", \"regex(abc.*)\"]"
+				   + "                   \"includes\": [\"*.txt\", \"out.csv\"], "
+				   + "                   \"excludes\": [\"*.tmp\", \"regex(abc.*)\"]"
 				   + "                }"
 				   + "}}"; 
 		return s;

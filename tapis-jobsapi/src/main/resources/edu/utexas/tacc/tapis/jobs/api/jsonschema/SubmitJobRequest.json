@@ -43,6 +43,10 @@
             "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"
           },
+          "useDtnIfDefined": {
+            "$comment": "Whether to use a DTN for transfers if one is defined in the execution system, default=true",
+            "type": "boolean"
+          },
           "dynamicExecSystem": {
             "$comment": "Whether the best fit execution system should be chosen using execSystemConstraints, default=false",
             "type": "boolean"
@@ -96,13 +100,13 @@
             "type": "integer",
             "minimum": 1
           },
-          "inputs": {
+          "fileInputs": {
             "$comment": "Input files staged for the application",
             "type": "array",
             "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/InputSpec"},
             "uniqueItems": true
           },
-          "parameters": {
+          "parameterSet": {
             "$comment": "Runtime parameters organized by category",
             "type": "object",
             "$ref": "#/$defs/Parameters"
@@ -113,6 +117,7 @@
             "$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"
           },
           "subscriptions": {
+            "$comment": "******* TBD *******",
             "type": "object"
           }
         },
@@ -150,12 +155,13 @@
                         "uniqueItems": true
                     },
                     "archiveFilter": {
-                        "$comment": "Whitelist and blacklist of output files to archive, wildcard and regex support, default=all files in execSystemOutputDir",
+                        "$comment": "Output files to include and exclude from archiving, wildcard and regex support, default=all files in execSystemOutputDir",
                         "type": "object",
                         "properties": {
-                            "whitelist": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
-                            "blacklist": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
-                        }
+                            "includes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+                            "excludes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+                        },
+                        "additionalProperties": false
                     }
                 },
                 "additionalProperties": false

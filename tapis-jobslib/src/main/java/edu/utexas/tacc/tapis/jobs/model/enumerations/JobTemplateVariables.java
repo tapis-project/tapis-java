@@ -24,6 +24,10 @@ public enum JobTemplateVariables
 	tapisExecSystemHPCQueue,
 	tapisArchiveOnAppError,
 	
+	tapisDtnSystemId,
+	tapisDtnMountPoint,
+	tapisDtnSubDir,
+	
 	tapisNodes,
 	tapisCoresPerNode,
 	tapisMemoryMB,

@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
+import java.util.TreeSet;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
@@ -18,6 +19,7 @@ public final class Job
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
 	public static final boolean DEFAULT_ARCHIVE_ON_APP_ERROR = true;
+	public static final boolean DEFAULT_USE_DTN = true;
 	public static final String EMPTY_JSON = "{}";
 	
 	// Fields
@@ -42,6 +44,9 @@ public final class Job
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
     private String   			execSystemOutputDir;
+    private String              dtnSystemId;
+    private String              dtnMountPoint;
+    private String              dtnSubDir;
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
     private int      			nodeCount = DEFAULT_NODE_COUNT;
@@ -66,6 +71,7 @@ public final class Job
     private int      			remoteChecksFailed;
     private Instant  			remoteLastStatusCheck;
     private String   			tapisQueue;
+    private TreeSet<String>     tags;
     private boolean  			visible;
     private String   			createdby;
     private String   			createdbyTenant;
@@ -264,6 +270,30 @@ public final class Job
 		this.archiveSystemDir = archiveSystemDir;
 	}
 
+    public String getDtnSystemId() {
+        return dtnSystemId;
+    }
+
+    public void setDtnSystemId(String dtnSystemId) {
+        this.dtnSystemId = dtnSystemId;
+    }
+
+    public String getDtnMountPoint() {
+        return dtnMountPoint;
+    }
+
+    public void setDtnMountPoint(String dtnMountPoint) {
+        this.dtnMountPoint = dtnMountPoint;
+    }
+
+    public String getDtnSubDir() {
+        return dtnSubDir;
+    }
+
+    public void setDtnSubDir(String dtnSubDir) {
+        this.dtnSubDir = dtnSubDir;
+    }
+
 	public int getNodeCount() {
 		return nodeCount;
 	}
@@ -440,6 +470,14 @@ public final class Job
 		this.tapisQueue = tapisQueue;
 	}
 
+    public TreeSet<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(TreeSet<String> tags) {
+        this.tags = tags;
+    }
+    
 	public boolean isVisible() {
 		return visible;
 	}
