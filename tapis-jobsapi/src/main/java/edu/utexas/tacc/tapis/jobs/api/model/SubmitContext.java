@@ -142,9 +142,9 @@ public final class SubmitContext
         Job job = new Job();
         
         // Set the systems.
-        job.setExecSystemId(_execSystem.getName());
-        if (_archiveSystem != null) job.setArchiveSystemId(_archiveSystem.getName());
-        if (_dtnSystem != null) job.setDtnSystemId(_dtnSystem.getName());
+        job.setExecSystemId(_execSystem.getId());
+        if (_archiveSystem != null) job.setArchiveSystemId(_archiveSystem.getId());
+        if (_dtnSystem != null) job.setDtnSystemId(_dtnSystem.getId());
         
         return job;
     }
