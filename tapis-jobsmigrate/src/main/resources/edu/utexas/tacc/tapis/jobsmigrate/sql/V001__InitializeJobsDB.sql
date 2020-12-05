@@ -53,13 +53,17 @@ CREATE TABLE jobs
   archive_system_id           character varying(80),
   archive_system_dir          character varying(4096),
   
+  dtn_system_id               character varying(80),
+  dtn_mount_point             character varying(1024),
+  dtn_sub_dir                 character varying(1024),
+  
   node_count                  integer NOT NULL,
   cores_per_node              integer NOT NULL,
   memory_mb                   integer NOT NULL,
   max_minutes                 integer NOT NULL,
   
-  inputs                      jsonb NOT NULL,
-  parameters                  jsonb NOT NULL,
+  file_inputs                 jsonb NOT NULL,
+  parameter_set               jsonb NOT NULL,
   exec_system_constraints     jsonb NOT NULL,
   subscriptions               jsonb NOT NULL,
   
@@ -93,6 +97,20 @@ CREATE INDEX jobs_status_idx ON jobs (status);
 CREATE INDEX jobs_app_id_idx ON jobs (app_id, tenant);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
+
+-- ----------------------------------------------------------------------------------------
+--                                       Job Tags
+-- ----------------------------------------------------------------------------------------
+-- Job Tags table
+CREATE TABLE job_tags
+(
+  job_id                      serial4 NOT NULL,
+  tag                         character varying(126) NOT NULL,
+  PRIMARY KEY (job_id, tag),
+  FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ALTER TABLE job_tags OWNER TO tapis;
+CREATE INDEX job_tag_idx ON job_tags (tag);
 
 -- ----------------------------------------------------------------------------------------
 --                                       Job Resubmit
@@ -175,7 +193,7 @@ CREATE UNIQUE INDEX job_recovery_tenant_hash_idx ON job_recovery (tenant_id, tes
 CREATE INDEX job_recovery_next_attempt_idx ON job_recovery (next_attempt DESC);
 
 -- ----------------------------------------------------------------------------------------
---                                       Job Recovery
+--                                       Job Blocked
 -- ----------------------------------------------------------------------------------------
 -- Job Recovery table
 CREATE TABLE job_blocked

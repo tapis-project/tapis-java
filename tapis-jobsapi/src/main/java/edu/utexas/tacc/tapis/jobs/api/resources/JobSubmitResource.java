@@ -172,39 +172,19 @@ public class JobSubmitResource
        // Create the request context object.
        var reqCtx = new SubmitContext(payload);
        
-       // ------------------------- Finalize Parameters ----------------------
-       // Get the application client for this obo user@tenant.
-       try {reqCtx.assignApp();}
-       catch (TapisImplException e) {
-           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
-           // This should never happen, but we defend against it. 
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       
-       // Resolve and retrieve all systems.
-       try {reqCtx.assignSystems();}
-       catch (TapisImplException e) {
-           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
-           // This should never happen, but we defend against it. 
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       
-       // ------------------------- Create the Job ---------------------------
-       // Create job with calculated effective parameters.
+       // ------------------------- Initialize the Job -----------------------
+       // Initialize job with calculated effective parameters.
        Job job = null;
-       try {job = reqCtx.createNewJob();}
-       catch (Exception e) {
-           
+       try {job = reqCtx.initNewJob();}
+       catch (TapisImplException e) {
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
-       
+       catch (Exception e) {
+           // This should never happen, but we defend against it. 
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       }
        
        // ------------------------- Validate Parameters ----------------------
 

@@ -35,7 +35,7 @@ public class CreateJobWithConstraintsTest
 		if (!jobList.isEmpty()) {
 			var retrievedJob = jobList.get(jobList.size()-1);
 			System.out.println("Parameters for job " + retrievedJob.getId() + ": " 
-			                   + retrievedJob.getParameters());
+			                   + retrievedJob.getParameterSet());
 		}
 	}
 	
@@ -78,8 +78,8 @@ public class CreateJobWithConstraintsTest
 				   				+ "\"]}";
 	    job.setExecSystemConstraints(constraints);
 	    
-	    String parms = "{\"parameters\": {\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}}";
-	    job.setParameters(parms);
+	    String parms = "{\"parameterSet\": {\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}}";
+	    job.setParameterSet(parms);
 	    
 		return job;
 	}

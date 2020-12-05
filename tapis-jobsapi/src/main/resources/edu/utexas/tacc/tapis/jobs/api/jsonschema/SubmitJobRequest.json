@@ -119,6 +119,12 @@
           "subscriptions": {
             "$comment": "******* TBD *******",
             "type": "object"
+          },
+          "tags": {
+            "$comment": "An array of user-chosen strings that can be associated with a job",
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": 126},
+            "uniqueItems": true
           }
         },
     "required": [

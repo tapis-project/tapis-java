@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
+import java.util.List;
+
 import edu.utexas.tacc.tapis.jobs.model.Job;
 
 public class ReqSubmitJob 
@@ -14,9 +16,9 @@ public class ReqSubmitJob
     private String   			description;
     private String   			appId;
     private String   			appVersion;
-    private boolean  			archiveOnAppError = Job.DEFAULT_ARCHIVE_ON_APP_ERROR;
-    private boolean             useDTNIfAvailable = Job.DEFAULT_USE_DTN;
-    private boolean             dynamicExecSystem;
+    private Boolean  			archiveOnAppError;  // not assigned by default
+    private Boolean             useDtnIfDefined;    // not assigned by default
+    private Boolean             dynamicExecSystem;  // not assigned by default
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
@@ -27,10 +29,11 @@ public class ReqSubmitJob
     private int      			coresPerNode = Job.DEFAULT_CORES_PER_NODE;
     private int      			memoryMB = Job.DEFAULT_MEM_MB;
     private int      			maxMinutes = Job.DEFAULT_MAX_MINUTES;
-    private String   			inputs = Job.EMPTY_JSON;
-    private String   			parameters = Job.EMPTY_JSON;
+    private String   			fileInputs = Job.EMPTY_JSON;
+    private String   			parameterSet = Job.EMPTY_JSON;
     private String              execSystemConstraints = Job.EMPTY_JSON;
     private String              subscriptions = Job.EMPTY_JSON;
+    private List<String>        tags;
 
 	@Override
 	public String validate() 
@@ -87,27 +90,27 @@ public class ReqSubmitJob
 		this.appVersion = appVersion;
 	}
 
-	public boolean isArchiveOnAppError() {
+	public Boolean isArchiveOnAppError() {
 		return archiveOnAppError;
 	}
 
-	public void setArchiveOnAppError(boolean archiveOnAppError) {
+	public void setArchiveOnAppError(Boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
-    public boolean isUseDTNIfAvailable() {
-        return useDTNIfAvailable;
+    public Boolean isUseDtnIfDefined() {
+        return useDtnIfDefined;
     }
 
-    public void setUseDTNIfAvailable(boolean useDTNIfAvailable) {
-        this.useDTNIfAvailable = useDTNIfAvailable;
+    public void setUseDtnIfDefined(Boolean useDtnIfDefined) {
+        this.useDtnIfDefined = useDtnIfDefined;
     }
 
-	public boolean isDynamicExecSystem() {
+	public Boolean isDynamicExecSystem() {
 		return dynamicExecSystem;
 	}
 
-	public void setDynamicExecSystem(boolean dynamicExecSystem) {
+	public void setDynamicExecSystem(Boolean dynamicExecSystem) {
 		this.dynamicExecSystem = dynamicExecSystem;
 	}
 	
@@ -191,20 +194,20 @@ public class ReqSubmitJob
 		this.maxMinutes = maxMinutes;
 	}
 
-	public String getInputs() {
-		return inputs;
+	public String getFileInputs() {
+		return fileInputs;
 	}
 
-	public void setInputs(String inputs) {
-		this.inputs = inputs;
+	public void setFileInputs(String inputs) {
+		this.fileInputs = inputs;
 	}
 
 	public String getParameters() {
-		return parameters;
+		return parameterSet;
 	}
 
-	public void setParameters(String parameters) {
-		this.parameters = parameters;
+	public void setParameterSet(String parameters) {
+		this.parameterSet = parameters;
 	}
 
 	public String getExecSystemConstraints() {
@@ -222,4 +225,12 @@ public class ReqSubmitJob
 	public void setSubscriptions(String subscriptions) {
 		this.subscriptions = subscriptions;
 	}
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
 }

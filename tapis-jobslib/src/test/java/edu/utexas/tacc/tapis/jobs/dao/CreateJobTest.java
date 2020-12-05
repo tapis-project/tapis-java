@@ -30,7 +30,7 @@ public class CreateJobTest
 		if (!jobList.isEmpty()) {
 			var retrievedJob = jobList.get(jobList.size()-1);
 			System.out.println("Parameters for job " + retrievedJob.getId() + ": " 
-			                   + retrievedJob.getParameters());
+			                   + retrievedJob.getParameterSet());
 		}
 	}
 	
@@ -58,7 +58,7 @@ public class CreateJobTest
 		
 	    // Optional fields.
 	    String json = 
-	    		"{\"parameters\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
+	    		"{\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
 				+ "                \"containerArgs\": [{\"arg\": \"-v 3\", "
 				+ "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
 				+ "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
@@ -66,7 +66,7 @@ public class CreateJobTest
 				+ "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
 				+ "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}]"
 				+ "}}";
-	    job.setParameters(json);
+	    job.setParameterSet(json);
 	    
 		return job;
 	}

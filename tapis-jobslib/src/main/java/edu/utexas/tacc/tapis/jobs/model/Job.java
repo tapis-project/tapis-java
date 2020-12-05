@@ -18,8 +18,9 @@ public final class Job
 	public static final int DEFAULT_CORES_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
-	public static final boolean DEFAULT_ARCHIVE_ON_APP_ERROR = true;
-	public static final boolean DEFAULT_USE_DTN = true;
+	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
+	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
+	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	
 	// Fields
@@ -39,22 +40,22 @@ public final class Job
     private String   			appId;
     private String   			appVersion;
     private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
-    private boolean             dynamicExecSystem;
+    private boolean             dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
     private String   			execSystemOutputDir;
+    private String   			archiveSystemId;
+    private String   			archiveSystemDir;
     private String              dtnSystemId;
     private String              dtnMountPoint;
     private String              dtnSubDir;
-    private String   			archiveSystemId;
-    private String   			archiveSystemDir;
     private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
     private int      			memoryMB = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
-    private String   			inputs = EMPTY_JSON;
-    private String   			parameters = EMPTY_JSON;
+    private String   			fileInputs = EMPTY_JSON;
+    private String   			parameterSet = EMPTY_JSON;
     private String              execSystemConstraints = EMPTY_JSON;
     private String              subscriptions = EMPTY_JSON;
     private int      			blockedCount;
@@ -326,20 +327,20 @@ public final class Job
 		this.maxMinutes = maxMinutes;
 	}
 
-	public String getInputs() {
-		return inputs;
+	public String getFileInputs() {
+		return fileInputs;
 	}
 
-	public void setInputs(String inputs) {
-		this.inputs = inputs;
+	public void setFileInputs(String inputs) {
+		this.fileInputs = inputs;
 	}
 
-	public String getParameters() {
-		return parameters;
+	public String getParameterSet() {
+		return parameterSet;
 	}
 
-	public void setParameters(String parameters) {
-		this.parameters = parameters;
+	public void setParameterSet(String parameters) {
+		this.parameterSet = parameters;
 	}
 
 	public String getExecSystemConstraints() {

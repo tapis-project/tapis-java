@@ -13,9 +13,10 @@ public class SqlStatements
     public static final String SELECT_JOBS =
         "SELECT id, name, owner, tenant, description, status, type, exec_class, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
-        	+ "archive_on_app_error, exec_system_id, exec_system_exec_dir, "
+        	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
         	+ "exec_system_input_dir, exec_system_output_dir, archive_system_id, archive_system_dir, "
-        	+ "node_count, cores_per_node, memory_mb, max_minutes, inputs, parameters, "
+        	+ "dtn_system_id, dtn_mount_point, dtn_sub_dir, "
+        	+ "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
         	+ "exec_system_constraints, subscriptions, "
         	+ "blocked_count, remote_job_id, remote_job_id2, "
         	+ "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
@@ -27,9 +28,10 @@ public class SqlStatements
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, type, exec_class, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
-        	+ "archive_on_app_error, exec_system_id, exec_system_exec_dir, "
+        	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, archive_system_id, archive_system_dir, "
-            + "node_count, cores_per_node, memory_mb, max_minutes, inputs, parameters, "
+            + "dtn_system_id, dtn_mount_point, dtn_sub_dir, "
+            + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
             + "blocked_count, remote_job_id, remote_job_id2, "
             + "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
@@ -47,14 +49,25 @@ public class SqlStatements
     		"INSERT INTO jobs ("
     		+ "name, owner, tenant, description, status, type, exec_class, "
         	+ "last_message, created, last_updated, uuid, app_id, app_version, "
-        	+ "archive_on_app_error, exec_system_id, exec_system_exec_dir, "
+        	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, archive_system_id, archive_system_dir, "
-            + "node_count, cores_per_node, memory_mb, max_minutes, inputs, parameters, "
+            + "dtn_system_id, dtn_mount_point, dtn_sub_dir, "
+            + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
             + "tapis_queue, createdby, createdby_tenant) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, ?::job_type_enum, ?::job_exec_class_enum, "
-    		+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-    		+ "?, ?, ?, ?, ?, ?::json, ?::json, ?::json, ?::json, ?, ?, ?)"; 
+    		+ "?, ?, ?, ?, ?, ?, "
+    		+ "?, ?, ?, ?, "
+    		+ "?, ?, ?, ?, "
+    		+ "?, ?, ?, "
+    		+ "?, ?, ?, ?, ?::json, ?::json, ?::json, ?::json, ?, ?, ?)"; 
+
+    /* ---------------------------------------------------------------------- */
+    /* job_tags table:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public static final String SELECT_JOBTAGS =
+        "SELECT job_id, tag"
+        + " FROM job_tags ORDER BY job_id, tag";
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */

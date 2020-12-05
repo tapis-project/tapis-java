@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
 
 public final class SubmitContext 
@@ -33,6 +34,9 @@ public final class SubmitContext
     // Constructor input.
     private final ReqSubmitJob       _submitReq;
     private final TapisThreadContext _threadContext;
+    private final Job                _job;
+    private final String             _oboUser;
+    private final String             _oboTenant;
     
     // The raw sources of job information.
     private App     _app;
@@ -50,61 +54,89 @@ public final class SubmitContext
     {
         _submitReq = submitReq;
         _threadContext = TapisThreadLocal.tapisThreadContext.get();
+        
+        // Get the user requestor on behalf of whom we are executing.
+        _oboUser   = _threadContext.getOboUser();
+        _oboTenant = _threadContext.getOboTenantId();
+        
+        // Create the new job.
+        _job = new Job();
     }
     
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
+    /* initNewJob:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    public Job initNewJob() throws TapisImplException
+    {
+        // Get the app.
+        assignApp();
+        
+        // Assign all systems needed by job.
+        assignSystems();
+        
+        // Calculate all job arguments.
+        resolveArgs();
+
+        return _job;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* assignApp:                                                                   */
     /* ---------------------------------------------------------------------------- */
     public void assignApp() throws TapisImplException
     {
-        // Get the user requestor on behalf of whom we are executing.
-        var oboUser   = _threadContext.getOboUser();
-        var oboTenant = _threadContext.getOboTenantId();
-         
         // Get the application client for this user@tenant.
         AppsClient appsClient = null;
         try {
-            appsClient = ServiceClients.getInstance().getClient(oboUser, oboTenant, AppsClient.class);
+            appsClient = ServiceClients.getInstance().getClient(_oboUser, _oboTenant, AppsClient.class);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Apps", oboTenant, oboUser);
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Apps", _oboTenant, _oboUser);
             throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
         }
         
         // Get the application.
-        try {_app = appsClient.getApp(_submitReq.getAppId(), _submitReq.getAppVersion(), "READ,EXECUTE");}
+        String authz = "READ,EXECUTE";
+        try {_app = appsClient.getApp(_submitReq.getAppId(), _submitReq.getAppVersion(), authz);}
         catch (TapisClientException e) {
             // Determine why we failed.
             String msg;
             switch (e.getCode()) {
                 case 400:
                     msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INPUT_ERROR", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
+                            _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
                 break;
                 
                 case 401:
                     msg = MsgUtils.getMsg("TAPIS_APPCLIENT_AUTHZ_ERROR", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
+                            _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
                 break;
                 
                 case 404:
                     msg = MsgUtils.getMsg("TAPIS_APPCLIENT_NOT_FOUND", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
+                            _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
                 break;
                 
                 default:
                     msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
+                            _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
             }
             throw new TapisImplException(msg, e, e.getCode());
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", _submitReq.getAppId(), 
-                                         _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
+                                         _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
             throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+        
+        // Double-check!  This shouldn't happen, but it's absolutely critical that we have an app.
+        if (_app == null) {
+            String msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", _submitReq.getAppId(), 
+                                         _submitReq.getAppVersion(), authz, _oboUser, _oboTenant);
+            throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
         }
     }
 
@@ -113,53 +145,30 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     public void assignSystems() throws TapisImplException
     {
-        // Get the user requestor on behalf of whom we are executing.
-        var oboUser   = _threadContext.getOboUser();
-        var oboTenant = _threadContext.getOboTenantId();
-         
         // Get the application client for this user@tenant.
         SystemsClient systemsClient = null;
         try {
-            systemsClient = ServiceClients.getInstance().getClient(oboUser, oboTenant, SystemsClient.class);
+            systemsClient = ServiceClients.getInstance().getClient(_oboUser, _oboTenant, SystemsClient.class);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Systems", oboTenant, oboUser);
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Systems", _oboTenant, _oboUser);
             throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
         }
         
         // Load all system definitions.
         assignExecSystem(systemsClient);
         assignArchiveSystem(systemsClient);
-        assignDTNSystem(systemsClient);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* createNewJob:                                                                */
-    /* ---------------------------------------------------------------------------- */
-    public Job createNewJob()
-    {
-        // UUID is assigned.
-        Job job = new Job();
-        
-        // Set the systems.
-        job.setExecSystemId(_execSystem.getId());
-        if (_archiveSystem != null) job.setArchiveSystemId(_archiveSystem.getId());
-        if (_dtnSystem != null) job.setDtnSystemId(_dtnSystem.getId());
-        
-        return job;
+        assignDtnSystem(systemsClient);
     }
     
     /* **************************************************************************** */
     /*                                  Accessors                                   */
     /* **************************************************************************** */
+    public Job getJob() {return _job;}
     public App getApp() {return _app;}
-    public void setApp(App app) {this._app = app;}
     public TSystem getExecSystem() {return _execSystem;}
-    public void setExecSystem(TSystem execSystem) {this._execSystem = execSystem;}
     public TSystem getDtnSystem() {return _dtnSystem;}
-    public void setDtnSystem(TSystem dtnSystem) {this._dtnSystem = dtnSystem;}
     public TSystem getArchiveSystem() {return _archiveSystem;}
-    public void setArchiveSystem(TSystem archiveSystem) {this._archiveSystem = archiveSystem;}
     public ReqSubmitJob getSubmitReq() {return _submitReq;}
 
     /* **************************************************************************** */
@@ -172,46 +181,27 @@ public final class SubmitContext
     {
         // Use the system specified in the job submission request if it exists.
         String execSystemId = _submitReq.getExecSystemId();
-        if (StringUtils.isBlank(execSystemId)) execSystemId = ""; // _app.getExecSystemId(); *** TODO
-        
+        if (StringUtils.isBlank(execSystemId)) 
+            execSystemId = _app.getJobAttributes().getExecSystemId();
+                
         // Abort if we can't determine the exec system id.
         if (StringUtils.isBlank(execSystemId)) {
             String msg = MsgUtils.getMsg("TAPIS_JOBS_MISSING_SYSTEM", "execution");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
-        // Get the user requestor on behalf of whom we are executing.
-        var oboUser   = _threadContext.getOboUser();
-        var oboTenant = _threadContext.getOboTenantId();
-         
         // Load the system definition.
-        try {_execSystem = systemsClient.getSystem(execSystemId);} // **** FIX WHEN CLIENT IS PUSHED
-        catch (TapisClientException e) {
-            // Determine why we failed.
-            String msg;
-            switch (e.getCode()) {
-                case 400:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", oboUser, oboTenant);
-                break;
-                
-                case 401:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", execSystemId, oboUser, oboTenant);
-                break;
-                
-                case 404:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", execSystemId, oboUser, oboTenant);
-                break;
-                
-                default:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", execSystemId, oboUser, oboTenant);
-            }
-            throw new TapisImplException(msg, e, e.getCode());
+        boolean requireExecPerm = true;
+        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm);
+        
+        // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
+        if (_execSystem == null) {
+            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", execSystemId, _oboUser, _oboTenant);
+            throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
         }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", execSystemId, oboUser, oboTenant);
-            throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        }
+        
+        // Assign the job's execution system.
+        _job.setExecSystemId(_execSystem.getId());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -221,22 +211,94 @@ public final class SubmitContext
     {
         // Use the system specified in the job submission request if it exists.
         String archiveSystemId = _submitReq.getExecSystemId();
-        if (StringUtils.isBlank(archiveSystemId)) archiveSystemId = ""; // _app.getArchiveSystemId(); *** TODO
+        if (StringUtils.isBlank(archiveSystemId)) 
+            archiveSystemId = _app.getJobAttributes().getArchiveSystemId();
         
         // It's ok if no archive system is specified.
         if (StringUtils.isBlank(archiveSystemId)) return;
-            
         
+        // Load the system definition.
+        boolean requireExecPerm = false;
+        _archiveSystem = loadSystemDefinition(systemsClient, archiveSystemId, requireExecPerm);
+        
+        // Assign job's archive system.
+        _job.setArchiveSystemId(_archiveSystem.getId());
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* assignDTNSystem:                                                             */
+    /* assignDtnSystem:                                                             */
     /* ---------------------------------------------------------------------------- */
-    private void assignDTNSystem(SystemsClient systemsClient) throws TapisImplException
+    private void assignDtnSystem(SystemsClient systemsClient) throws TapisImplException
     {
         // See if the execution system specifies a DTN.
+        if (StringUtils.isBlank(_execSystem.getDtnSystemId())) return;
         
-        // See the use DTN flag is set.
+        // Check the use DTN flag.
+        Boolean appFlag = _app.getJobAttributes().getUseDtnIfDefined();
+        Boolean reqFlag = _submitReq.isUseDtnIfDefined();
+        boolean dtnFlag;
+        if (appFlag == null && reqFlag == null) dtnFlag = Job.DEFAULT_USE_DTN;
+        else if (reqFlag != null) dtnFlag = reqFlag;
+        else dtnFlag = appFlag;
+        if (!dtnFlag) return;
+        
+        // Load the system definition.
+        boolean requireExecPerm = false;
+        _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
+                                          requireExecPerm);
+        
+        // Assign job's DTN system.
+        _job.setDtnSystemId(_dtnSystem.getId());
     }
-      
+
+    /* ---------------------------------------------------------------------------- */
+    /* loadSystemDefinition:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    private TSystem loadSystemDefinition(SystemsClient systemsClient,
+                                         String systemId, 
+                                         boolean requireExecPerm) 
+      throws TapisImplException
+    {
+        // Load the system definition.
+        TSystem system = null;
+        boolean returnCreds = false;
+        AuthnMethod authnMethod = null;
+        try {_execSystem = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
+        catch (TapisClientException e) {
+            // Determine why we failed.
+            String msg;
+            switch (e.getCode()) {
+                case 400:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", _submitReq.getAppId(), 
+                            _submitReq.getAppVersion(), "READ,EXECUTE", _oboUser, _oboTenant);
+                break;
+                
+                case 401:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, _oboUser, _oboTenant);
+                break;
+                
+                case 404:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _oboUser, _oboTenant);
+                break;
+                
+                default:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _oboUser, _oboTenant);
+            }
+            throw new TapisImplException(msg, e, e.getCode());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _oboUser, _oboTenant);
+            throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+        
+        return system;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveArgs:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    private void resolveArgs()
+    {
+        
+    }
 }
