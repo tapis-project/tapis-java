@@ -1,5 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
+import java.util.HashMap;
+import java.util.List;
+
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.StringUtils;
@@ -8,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -79,6 +83,9 @@ public final class SubmitContext
         
         // Calculate all job arguments.
         resolveArgs();
+        
+        // Validate the job after all arguments are finalized.
+        validateArgs();
 
         return _job;
     }
@@ -297,8 +304,52 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* resolveArgs:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    private void resolveArgs()
+    private void resolveArgs() throws TapisImplException
     {
+        // Combine environment variables from system, app and request.
+        resolveEnvVariables();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveEnvVariables:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Assign the environment variables that will be passed to the application when 
+     * launched.  The environment variables are collected from the system, app and
+     * request in order with increasing priority.
+     */
+    private void resolveEnvVariables() throws TapisImplException
+    {
+        // Initialize the job's environment variables map.
+        var map = new HashMap<String,String>();
+        _job.setParmEnvVariables(map);
+        
+        // Populate the map in order of increasing priority starting with systems.
+        List<KeyValueString> sysEnv = null; //_execSystem.getJobEnvVariables();
+        if (sysEnv != null) for (var kv : sysEnv) map.put(kv.getKey(), kv.getValue());
+        
+        // Get the app-specified environment variables.
+        List<KeyValueString> appEnv = _app.getJobAttributes().getParameterSet().getEnvVariables();
+        if (appEnv != null) for (var kv : appEnv) map.put(kv.getKey(), kv.getValue());
+        
+        // Get the request-specified environment variables.
+        
         
     }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateArgs:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    private void validateArgs() throws TapisImplException
+    {
+        // Check the execute flag on the exec system.
+        if (!_execSystem.getCanExec()) {
+            String msg = ""; // ******** TODO
+            throw new TapisImplException(msg, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+        
+        // Check the working directory syntax.
+        
+        
+    }
+
 }

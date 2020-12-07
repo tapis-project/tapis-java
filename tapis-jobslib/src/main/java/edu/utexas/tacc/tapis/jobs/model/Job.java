@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeSet;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
@@ -76,6 +78,10 @@ public final class Job
     private boolean  			visible;
     private String   			createdby;
     private String   			createdbyTenant;
+    
+    // Transient fields used during processing.
+    private transient Map<String,String> _parmEnvVariables;
+    
 
     // Constructor
     public Job()
@@ -87,6 +93,9 @@ public final class Job
     @Override
     public String toString() {return TapisUtils.toString(this);}
 
+    /* **************************************************************************** */
+    /*                                  Accessors                                   */
+    /* **************************************************************************** */
 	public int getId() {
 		return id;
 	}
@@ -502,4 +511,15 @@ public final class Job
 	public void setCreatedbyTenant(String createdbyTenant) {
 		this.createdbyTenant = createdbyTenant;
 	}
+
+    /* **************************************************************************** */
+    /*                         Transient Field Accessors                            */
+    /* **************************************************************************** */
+    public Map<String, String> getParmEnvVariables() {
+        return _parmEnvVariables;
+    }
+
+    public void setParmEnvVariables(Map<String, String> parmEnvVariables) {
+        this._parmEnvVariables = parmEnvVariables;
+    }
 }
