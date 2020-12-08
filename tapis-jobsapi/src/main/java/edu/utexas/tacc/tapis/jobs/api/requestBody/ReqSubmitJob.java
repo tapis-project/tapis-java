@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 
 public class ReqSubmitJob 
  implements IReqBody
@@ -30,7 +31,7 @@ public class ReqSubmitJob
     private int      			memoryMB = Job.DEFAULT_MEM_MB;
     private int      			maxMinutes = Job.DEFAULT_MAX_MINUTES;
     private String   			fileInputs = Job.EMPTY_JSON;
-    private String   			parameterSet = Job.EMPTY_JSON;
+    private JobParameterSet 	parameterSet;
     private String              execSystemConstraints = Job.EMPTY_JSON;
     private String              subscriptions = Job.EMPTY_JSON;
     private List<String>        tags;
@@ -202,11 +203,11 @@ public class ReqSubmitJob
 		this.fileInputs = inputs;
 	}
 
-	public String getParameters() {
+	public JobParameterSet getParameterSet() {
 		return parameterSet;
 	}
 
-	public void setParameterSet(String parameters) {
+	public void setParameterSet(JobParameterSet parameters) {
 		this.parameterSet = parameters;
 	}
 

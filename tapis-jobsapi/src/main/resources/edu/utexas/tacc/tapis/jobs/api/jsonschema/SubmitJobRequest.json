@@ -103,7 +103,7 @@
           "fileInputs": {
             "$comment": "Input files staged for the application",
             "type": "array",
-            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/InputSpec"},
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/InputSpec"},
             "uniqueItems": true
           },
           "parameterSet": {
@@ -114,7 +114,7 @@
           "execSystemConstraints": {
             "$comment": "Constraints applied against execution system capabilities to validate application/system compatibility",
             "type": "object",
-            "$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"
+            "$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"
           },
           "subscriptions": {
             "$comment": "******* TBD *******",
@@ -139,25 +139,25 @@
                     "appArgs": {
                         "$comment": "Command line arguments passed to the user application",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "containerArgs": {
                         "$comment": "Command line arguments passed to the container runtime when running a container",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "schedulerOptions": {
                         "$comment": "Arguments passed to the HPC batch scheduler",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
                         "uniqueItems": true
                     },
                     "envVariables": {
                         "$comment": "Environment variables passed into the application container on start up",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/sharedapi/jsonschema/defs/TapisDefinitions.json#/$defs/KeyValueString"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/KeyValueString"},
                         "uniqueItems": true
                     },
                     "archiveFilter": {

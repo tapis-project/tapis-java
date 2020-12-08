@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -9,6 +8,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -81,6 +81,7 @@ public final class Job
     
     // Transient fields used during processing.
     private transient Map<String,String> _parmEnvVariables;
+    private transient JobParameterSet    _parmSet;
     
 
     // Constructor

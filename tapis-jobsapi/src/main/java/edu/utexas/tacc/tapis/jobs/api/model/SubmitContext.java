@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
 import java.util.HashMap;
-import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -11,12 +10,12 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
-import edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -306,8 +305,21 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void resolveArgs() throws TapisImplException
     {
-        // Combine environment variables from system, app and request.
+        // Combine environment variables from system, app and the request.
         resolveEnvVariables();
+        
+        // Combine the DTN flag values from apps and the request.
+        resovleDtnFlag();
+        
+        
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveEnvVariables:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    private void resolveParameterSet()
+    {
+        
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -321,19 +333,51 @@ public final class SubmitContext
     {
         // Initialize the job's environment variables map.
         var map = new HashMap<String,String>();
-        _job.setParmEnvVariables(map);
         
         // Populate the map in order of increasing priority starting with systems.
-        List<KeyValueString> sysEnv = null; //_execSystem.getJobEnvVariables();
+        var sysEnv = _execSystem.getJobEnvVariables();
         if (sysEnv != null) for (var kv : sysEnv) map.put(kv.getKey(), kv.getValue());
         
         // Get the app-specified environment variables.
-        List<KeyValueString> appEnv = _app.getJobAttributes().getParameterSet().getEnvVariables();
+        var appEnv = _app.getJobAttributes().getParameterSet().getEnvVariables();
         if (appEnv != null) for (var kv : appEnv) map.put(kv.getKey(), kv.getValue());
         
         // Get the request-specified environment variables.
+        JobParameterSet reqParms = _submitReq.getParameterSet();
+        if (reqParms.envVariables != null) 
+            for (var kv : reqParms.envVariables) map.put(kv.key, kv.value);
         
+        // Only insert non-empty maps into the job object.
+        if (!map.isEmpty()) _job.setParmEnvVariables(map);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resovleDtnFlag:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    private void resovleDtnFlag() throws TapisImplException
+    {
+        // Determine if we should even look at the DTN definitions in the exec system.
+        // The default is true so unless the app and/or request explicitly prevent
+        // the use of DTN information, we use it.
+        Boolean flag = _app.getJobAttributes().getUseDtnIfDefined();
+        if (_submitReq.isUseDtnIfDefined() != null) flag = _submitReq.isUseDtnIfDefined();
+        if (flag != null && !flag) return; // ignore dtn configuration
         
+        // Determine if there's any DTN configuration to use.
+        String dtnSystemId = _execSystem.getDtnSystemId();
+        if (StringUtils.isBlank(dtnSystemId)) return;
+        
+        // A mount point must also be specified.
+        String dtnMountPoint = _execSystem.getDtnMountPoint();
+        if (StringUtils.isBlank(dtnMountPoint)) {
+            String msg = MsgUtils.getMsg("SYSTEMS_DTN_NO_MOUNTPOINT", _execSystem, dtnSystemId);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // We're good.
+        _job.setDtnSystemId(dtnSystemId);
+        _job.setDtnMountPoint(dtnMountPoint);
+        _job.setDtnSubDir(_execSystem.getDtnSubDir());
     }
     
     /* ---------------------------------------------------------------------------- */
