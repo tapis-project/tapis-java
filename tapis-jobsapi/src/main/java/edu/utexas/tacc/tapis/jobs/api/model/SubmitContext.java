@@ -305,8 +305,9 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void resolveArgs() throws TapisImplException
     {
-        // Combine environment variables from system, app and the request.
-        resolveEnvVariables();
+        // Combine various components that make up the job's parameterSet from
+        // from the system, app and request definitions.
+        resolveParameterSet();
         
         // Combine the DTN flag values from apps and the request.
         resovleDtnFlag();
@@ -315,11 +316,11 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* resolveEnvVariables:                                                         */
+    /* resolveParameterSet:                                                         */
     /* ---------------------------------------------------------------------------- */
     private void resolveParameterSet()
     {
-        
+       
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -344,8 +345,8 @@ public final class SubmitContext
         
         // Get the request-specified environment variables.
         JobParameterSet reqParms = _submitReq.getParameterSet();
-        if (reqParms.envVariables != null) 
-            for (var kv : reqParms.envVariables) map.put(kv.key, kv.value);
+        if (reqParms.getEnvVariables() != null) 
+            for (var kv : reqParms.getEnvVariables()) map.put(kv.getKey(), kv.getValue());
         
         // Only insert non-empty maps into the job object.
         if (!map.isEmpty()) _job.setParmEnvVariables(map);
