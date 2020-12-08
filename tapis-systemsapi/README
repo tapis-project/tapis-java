@@ -4,7 +4,7 @@ TapisV3 Systems Web Application Notes
 ------------
 Introduction
 ------------
-This is the TapisV3 Systems web application front end. It was adapted from the skeleton web service found at tapis-sampleapi.
+This is the TapisV3 Systems web application front end. It was adapted from the skeleton web service found at tapis-java/tapis-sampleapi.
 
 It integrates the following facilities:
 
@@ -23,7 +23,7 @@ It integrates the following facilities:
    10. Aloe support for parameter parsing, email clients, threadlocal management,
        UUIDs, etc.
 
-The back end may be found in tapis-systemslib
+The back end may be found in the lib directory
 
 NOTE: As of 6 Aug 2020 the OpenAPI spec is being manually maintained at tapis-systemsapi/src/main/resources/SystemsAPI.yaml
 NOTE: As of 16 Sep 2020 the OpenAPI spec has been moved to tapis-client-java repo at systems-client/SystemsAPI.yaml
@@ -52,7 +52,7 @@ Here are the current enumerations and the locations where they are defined. Note
   SystemType          Definitions.json          model.TSystem     Yes
   SystemOperation     <N/A>                     model.TSystem     Yes
   Permission          PermsRequest.json         model.TSystem     No
-  AccessMethod        Definitions.json          model.TSystem     Yes
+  AuthnMethod        Definitions.json          model.TSystem     Yes
   TransferMethod      SystemCreateRequest.json  model.TSystem     No
   Capability          Definitions.json          model.Capability  Yes
 

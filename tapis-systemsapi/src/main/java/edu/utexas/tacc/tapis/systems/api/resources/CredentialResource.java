@@ -1,10 +1,5 @@
 package edu.utexas.tacc.tapis.systems.api.resources;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.grizzly.http.server.Request;
@@ -48,7 +43,7 @@ import edu.utexas.tacc.tapis.systems.api.requests.ReqCreateCredential;
 import edu.utexas.tacc.tapis.systems.api.responses.RespCredential;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.Credential;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
 
 /*
@@ -83,29 +78,6 @@ public class CredentialResource
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
-  /* Jax-RS context dependency injection allows implementations of these abstract
-   * types to be injected (ch 9, jax-rs 2.0):
-   *
-   *      javax.ws.rs.container.ResourceContext
-   *      javax.ws.rs.core.Application
-   *      javax.ws.rs.core.HttpHeaders
-   *      javax.ws.rs.core.Request
-   *      javax.ws.rs.core.SecurityContext
-   *      javax.ws.rs.core.UriInfo
-   *      javax.ws.rs.core.Configuration
-   *      javax.ws.rs.ext.Providers
-   *
-   * In a servlet environment, Jersey context dependency injection can also
-   * initialize these concrete types (ch 3.6, jersey spec):
-   *
-   *      javax.servlet.HttpServletRequest
-   *      javax.servlet.HttpServletResponse
-   *      javax.servlet.ServletConfig
-   *      javax.servlet.ServletContext
-   *
-   * Inject takes place after constructor invocation, so fields initialized in this
-   * way can not be accessed in constructors.
-   */
   @Context
   private HttpHeaders _httpHeaders;
   @Context
@@ -136,29 +108,6 @@ public class CredentialResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//    summary = "Create or update access credential in the Security Kernel for given system and user",
-//    description =
-//        "Create or update access credential in the Security Kernel for given system and user using a request body. " +
-//        " Requester must be owner of the system.",
-//    tags = "credentials",
-//    requestBody =
-//      @RequestBody(
-//        description = "A JSON object specifying a credential.",
-//        required = true,
-//        content = @Content(schema = @Schema(implementation = ReqCreateCredential.class))
-//      ),
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Credential updated.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "401", description = "Not authorized.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class)))
-//    }
-//  )
   public Response createUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
                                        InputStream payloadStream,
@@ -214,11 +163,11 @@ public class CredentialResource
     Credential credential = new Credential(req.password, req.privateKey, req.publicKey, req.accessKey, req.accessSecret, req.certificate);
 
     // If one of PKI keys is missing then reject
-    resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AccessMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
+    resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AuthnMethod.PKI_KEYS.name(), PRIVATE_KEY_FIELD, PUBLIC_KEY_FIELD,
                                  credential.getPrivateKey(), credential.getPublicKey());
     if (resp != null) return resp;
     // If one of Access key or Access secret is missing then reject
-    resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AccessMethod.ACCESS_KEY.name(), ACCESS_KEY_FIELD, ACCESS_SECRET_FIELD,
+    resp = ApiUtils.checkSecrets(authenticatedUser, systemName, userName, prettyPrint, AuthnMethod.ACCESS_KEY.name(), ACCESS_KEY_FIELD, ACCESS_SECRET_FIELD,
                                  credential.getAccessKey(), credential.getAccessSecret());
     if (resp != null) return resp;
 
@@ -249,34 +198,16 @@ public class CredentialResource
 
   /**
    * getUserCredential
-   * @param accessMethodStr - access method to use instead of default
+   * @param authnMethodStr - authn method to use instead of default
    * @return Response
    */
   @GET
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//      summary = "Retrieve credential for given system and user",
-//      description = "Retrieve credential for given system and user. Requester must be owner of the system. " +
-//                    "Use query parameter accessMethod=<method> to override default access method.",
-//      tags = "credentials",
-//      responses = {
-//          @ApiResponse(responseCode = "200", description = "Success.",
-//            content = @Content(schema = @Schema(implementation = RespCredential.class))),
-//          @ApiResponse(responseCode = "400", description = "Input error.",
-//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//          @ApiResponse(responseCode = "404", description = "System not found.",
-//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//          @ApiResponse(responseCode = "401", description = "Not authorized.",
-//            content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//          @ApiResponse(responseCode = "500", description = "Server error.",
-//            content = @Content(schema = @Schema(implementation = RespBasic.class)))
-//      }
-//  )
   public Response getUserCredential(@PathParam("systemName") String systemName,
                                     @PathParam("userName") String userName,
-                                    @QueryParam("accessMethod") @DefaultValue("") String accessMethodStr,
+                                    @QueryParam("authnMethod") @DefaultValue("") String authnMethodStr,
                                     @Context SecurityContext securityContext)
   {
     String msg;
@@ -304,12 +235,12 @@ public class CredentialResource
     resp = ApiUtils.checkSystemExists(systemsService, authenticatedUser, systemName, prettyPrint, "getUserCredential");
     if (resp != null) return resp;
 
-    // Check that accessMethodStr is valid if it is passed in
-    AccessMethod accessMethod = null;
-    try { if (!StringUtils.isBlank(accessMethodStr)) accessMethod =  AccessMethod.valueOf(accessMethodStr); }
+    // Check that authnMethodStr is valid if it is passed in
+    AuthnMethod authnMethod = null;
+    try { if (!StringUtils.isBlank(authnMethodStr)) authnMethod =  AuthnMethod.valueOf(authnMethodStr); }
     catch (IllegalArgumentException e)
     {
-      msg = ApiUtils.getMsgAuth("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser, systemName, accessMethodStr, e.getMessage());
+      msg = ApiUtils.getMsgAuth("SYSAPI_ACCMETHOD_ENUM_ERROR", authenticatedUser, systemName, authnMethodStr, e.getMessage());
       _log.error(msg, e);
       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
     }
@@ -317,7 +248,7 @@ public class CredentialResource
     // ------------------------- Perform the operation -------------------------
     // Make the service call to get the credentials
     Credential credential;
-    try { credential = systemsService.getUserCredential(authenticatedUser, systemName, userName, accessMethod); }
+    try { credential = systemsService.getUserCredential(authenticatedUser, systemName, userName, authnMethod); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsgAuth("SYSAPI_CRED_ERROR", authenticatedUser, systemName, userName, e.getMessage());
@@ -348,22 +279,6 @@ public class CredentialResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//    summary = "Remove credential in the Security Kernel for given system and user",
-//    description =
-//      "Remove credential from the Security Kernel for given system and user. Requester must be owner of the system.",
-//    tags = "credentials",
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Credential removed.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "401", description = "Not authorized.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.",
-//        content = @Content(schema = @Schema(implementation = RespBasic.class)))
-//    }
-//  )
   public Response removeUserCredential(@PathParam("systemName") String systemName,
                                        @PathParam("userName") String userName,
                                        @Context SecurityContext securityContext)

@@ -37,7 +37,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
 
-    private static final long serialVersionUID = 861314102;
+    private static final long serialVersionUID = -779101078;
 
     /**
      * The reference instance of <code>tapis_sys.system_updates</code>
@@ -53,14 +53,14 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
     }
 
     /**
-     * The column <code>tapis_sys.system_updates.id</code>. System update request id
+     * The column <code>tapis_sys.system_updates.seq_id</code>. System update request sequence id
      */
-    public final TableField<SystemUpdatesRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('system_updates_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "System update request id");
+    public final TableField<SystemUpdatesRecord, Integer> SEQ_ID = createField(DSL.name("seq_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('system_updates_seq_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "System update request sequence id");
 
     /**
-     * The column <code>tapis_sys.system_updates.system_id</code>. Id of system being updated
+     * The column <code>tapis_sys.system_updates.system_seq_id</code>. Sequence id of system being updated
      */
-    public final TableField<SystemUpdatesRecord, Integer> SYSTEM_ID = createField(DSL.name("system_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('system_updates_system_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "Id of system being updated");
+    public final TableField<SystemUpdatesRecord, Integer> SYSTEM_SEQ_ID = createField(DSL.name("system_seq_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('system_updates_system_seq_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "Sequence id of system being updated");
 
     /**
      * The column <code>tapis_sys.system_updates.user_name</code>. Name of user who requested the update
@@ -147,11 +147,11 @@ public class SystemUpdates extends TableImpl<SystemUpdatesRecord> {
 
     @Override
     public List<ForeignKey<SystemUpdatesRecord, ?>> getReferences() {
-        return Arrays.<ForeignKey<SystemUpdatesRecord, ?>>asList(Keys.SYSTEM_UPDATES__SYSTEM_UPDATES_SYSTEM_ID_FKEY);
+        return Arrays.<ForeignKey<SystemUpdatesRecord, ?>>asList(Keys.SYSTEM_UPDATES__SYSTEM_UPDATES_SYSTEM_SEQ_ID_FKEY);
     }
 
     public Systems systems() {
-        return new Systems(this, Keys.SYSTEM_UPDATES__SYSTEM_UPDATES_SYSTEM_ID_FKEY);
+        return new Systems(this, Keys.SYSTEM_UPDATES__SYSTEM_UPDATES_SYSTEM_SEQ_ID_FKEY);
     }
 
     @Override

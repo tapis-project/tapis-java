@@ -6,6 +6,7 @@ package edu.utexas.tacc.tapis.systems.gen.jooq;
 
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Capabilities;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.FlywaySchemaHistory;
+import edu.utexas.tacc.tapis.systems.gen.jooq.tables.LogicalQueues;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.SystemUpdates;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Systems;
 
@@ -25,6 +26,11 @@ public class Tables {
      * The table <code>tapis_sys.flyway_schema_history</code>.
      */
     public static final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
+
+    /**
+     * The table <code>tapis_sys.logical_queues</code>.
+     */
+    public static final LogicalQueues LOGICAL_QUEUES = LogicalQueues.LOGICAL_QUEUES;
 
     /**
      * The table <code>tapis_sys.system_updates</code>.

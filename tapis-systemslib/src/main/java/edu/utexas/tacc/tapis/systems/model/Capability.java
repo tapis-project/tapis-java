@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.systems.model;
 
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
@@ -17,7 +15,7 @@ import java.time.Instant;
  * This class is intended to represent an immutable object.
  * Please keep it immutable.
  *
- * Tenant + system + category + name must be unique.
+ * Tenant + system + category + subcategory + name must be unique.
  *
  * NOTE: In the database a capability also includes tenant, system_id, created and updated.
  *       Currently tenant and system_id should be known in the context in which this class is used
@@ -26,60 +24,78 @@ import java.time.Instant;
 public final class Capability
 {
   public enum Category {SCHEDULER, OS, HARDWARE, SOFTWARE, JOB, CONTAINER, MISC, CUSTOM}
+  public enum Datatype{STRING, INTEGER, BOOLEAN, NUMBER, TIMESTAMP}
 
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
+  public static final String DEFAULT_VALUE = "";
+  public static final String DEFAULT_SUBCATEGORY = "";
+  public static final int DEFAULT_PRECEDENCE = 100;
 
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
-  // Logging
-  private static final Logger _log = LoggerFactory.getLogger(Capability.class);
+  private final int seqId;           // Unique database sequence number
+  private final int systemId;
 
-  // NOTE: In order to use jersey's SelectableEntityFilteringFeature fields cannot be final.
-  private int id;           // Unique database sequence number
-  private int systemid;
+  private final Category category; // Type or category of capability
+  private final String subcategory;   // Name of the capability
+  private final String name;   // Name of the capability
+  private final Datatype datatype; // Datatype associated with the value
+  private final int precedence;  // Precedence. Higher number has higher precedence.
+  private final String value;  // Value or range of values
 
-  private Category category; // Type or category of capability
-  private String name;   // Name of the capability
-  private String value;  // Value or range of values
-  private Instant created; // UTC time for when record was created
-  private Instant updated; // UTC time for when record was last updated
+  private final Instant created; // UTC time for when record was created
+  private final Instant updated; // UTC time for when record was last updated
 
   /* ********************************************************************** */
   /*                           Constructors                                 */
   /* ********************************************************************** */
-  // Zero arg constructor needed to use jersey's SelectableEntityFilteringFeature
-  public Capability() { }
-  public Capability(int id1, int systemid1, Category category1, String name1, String value1, Instant created1, Instant updated1)
+  // Constructor initializing all fields.
+  public Capability(int id1, int systemid1, Category category1, String subcategory1, String name1,
+                    Datatype datatype1, int precedence1, String value1, Instant created1, Instant updated1)
   {
-    id = id1;
-    systemid = systemid1;
+    seqId = id1;
+    systemId = systemid1;
     created = created1;
     updated = updated1;
     category = category1;
+    subcategory = subcategory1;
     name = name1;
+    datatype = datatype1;
+    precedence = precedence1;
     value = value1;
   }
 
-  public Capability(Category category1, String name1, String value1)
+  // Constructor initializing minimal number of fields, useful for testing. Should not be persisted.
+  public Capability(Category category1, String subcategory1, String name1, Datatype datatype1, int precedence1, String value1)
   {
+    seqId = -1;
+    systemId = -1;
+    created = null;
+    updated = null;
     category = category1;
+    subcategory = subcategory1;
     name = name1;
+    datatype = datatype1;
+    precedence = precedence1;
     value = value1;
   }
 
   /* ********************************************************************** */
   /*                               Accessors                                */
   /* ********************************************************************** */
-  // NOTE: Setters that are not public are in place in order to use jersey's SelectableEntityFilteringFeature.
+  public int getSeqId() { return seqId; }
+  public int getSystemId() { return systemId; }
+  public Instant getCreated() { return created; }
+  public Instant getUpdated() { return updated; }
   public Category getCategory() { return category; }
-  void setCategory(Category c) { category = c; }
+  public String getSubCategory() { return subcategory; }
   public String getName() { return name; }
-  void setName(String s) { name = s; }
+  public Datatype getDatatype() { return datatype; }
+  public int getPrecedence() { return precedence; }
   public String getValue() { return value; }
-  void setValue(String s) { value = s; }
 
   @Override
   public String toString() {return TapisUtils.toString(this);}

@@ -15,27 +15,37 @@ import org.jooq.impl.Internal;
 public class Sequences {
 
     /**
-     * The sequence <code>tapis_sys.capabilities_id_seq</code>
+     * The sequence <code>tapis_sys.capabilities_seq_id_seq</code>
      */
-    public static final Sequence<Integer> CAPABILITIES_ID_SEQ = Internal.createSequence("capabilities_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> CAPABILITIES_SEQ_ID_SEQ = Internal.createSequence("capabilities_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
-     * The sequence <code>tapis_sys.capabilities_system_id_seq</code>
+     * The sequence <code>tapis_sys.capabilities_system_seq_id_seq</code>
      */
-    public static final Sequence<Integer> CAPABILITIES_SYSTEM_ID_SEQ = Internal.createSequence("capabilities_system_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> CAPABILITIES_SYSTEM_SEQ_ID_SEQ = Internal.createSequence("capabilities_system_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
-     * The sequence <code>tapis_sys.system_updates_id_seq</code>
+     * The sequence <code>tapis_sys.logical_queues_seq_id_seq</code>
      */
-    public static final Sequence<Integer> SYSTEM_UPDATES_ID_SEQ = Internal.createSequence("system_updates_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> LOGICAL_QUEUES_SEQ_ID_SEQ = Internal.createSequence("logical_queues_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
-     * The sequence <code>tapis_sys.system_updates_system_id_seq</code>
+     * The sequence <code>tapis_sys.logical_queues_system_seq_id_seq</code>
      */
-    public static final Sequence<Integer> SYSTEM_UPDATES_SYSTEM_ID_SEQ = Internal.createSequence("system_updates_system_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> LOGICAL_QUEUES_SYSTEM_SEQ_ID_SEQ = Internal.createSequence("logical_queues_system_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
-     * The sequence <code>tapis_sys.systems_id_seq</code>
+     * The sequence <code>tapis_sys.system_updates_seq_id_seq</code>
      */
-    public static final Sequence<Integer> SYSTEMS_ID_SEQ = Internal.createSequence("systems_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> SYSTEM_UPDATES_SEQ_ID_SEQ = Internal.createSequence("system_updates_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+
+    /**
+     * The sequence <code>tapis_sys.system_updates_system_seq_id_seq</code>
+     */
+    public static final Sequence<Integer> SYSTEM_UPDATES_SYSTEM_SEQ_ID_SEQ = Internal.createSequence("system_updates_system_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+
+    /**
+     * The sequence <code>tapis_sys.systems_seq_id_seq</code>
+     */
+    public static final Sequence<Integer> SYSTEMS_SEQ_ID_SEQ = Internal.createSequence("systems_seq_id_seq", TapisSys.TAPIS_SYS, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 }

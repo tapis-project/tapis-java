@@ -34,11 +34,11 @@
   },
 
   "definitions": {
-    "resourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "resourceName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "resourceId": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "resourceName": { "type": "string", "minLength": 1, "maxLength": 80 },
     "resourceTypeDefinition": { "type": "string", "enum": ["STORAGE","COMPUTE"] },
     "hostNameDefinition": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "dirPath": { "type": "string", "minLength": 1, "maxLength": 4096 },
     "memorySizeSpec": { "type": "string" },
     "hostDefinition": {
       "type": "object",

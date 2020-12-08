@@ -24,33 +24,33 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord> implements Record8<Integer, Integer, String, String, SystemOperation, JsonElement, String, LocalDateTime> {
 
-    private static final long serialVersionUID = -1049979387;
+    private static final long serialVersionUID = 1470332053;
 
     /**
-     * Setter for <code>tapis_sys.system_updates.id</code>. System update request id
+     * Setter for <code>tapis_sys.system_updates.seq_id</code>. System update request sequence id
      */
-    public void setId(Integer value) {
+    public void setSeqId(Integer value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.system_updates.id</code>. System update request id
+     * Getter for <code>tapis_sys.system_updates.seq_id</code>. System update request sequence id
      */
-    public Integer getId() {
+    public Integer getSeqId() {
         return (Integer) get(0);
     }
 
     /**
-     * Setter for <code>tapis_sys.system_updates.system_id</code>. Id of system being updated
+     * Setter for <code>tapis_sys.system_updates.system_seq_id</code>. Sequence id of system being updated
      */
-    public void setSystemId(Integer value) {
+    public void setSystemSeqId(Integer value) {
         set(1, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.system_updates.system_id</code>. Id of system being updated
+     * Getter for <code>tapis_sys.system_updates.system_seq_id</code>. Sequence id of system being updated
      */
-    public Integer getSystemId() {
+    public Integer getSystemSeqId() {
         return (Integer) get(1);
     }
 
@@ -163,12 +163,12 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public Field<Integer> field1() {
-        return SystemUpdates.SYSTEM_UPDATES.ID;
+        return SystemUpdates.SYSTEM_UPDATES.SEQ_ID;
     }
 
     @Override
     public Field<Integer> field2() {
-        return SystemUpdates.SYSTEM_UPDATES.SYSTEM_ID;
+        return SystemUpdates.SYSTEM_UPDATES.SYSTEM_SEQ_ID;
     }
 
     @Override
@@ -203,12 +203,12 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public Integer component1() {
-        return getId();
+        return getSeqId();
     }
 
     @Override
     public Integer component2() {
-        return getSystemId();
+        return getSystemSeqId();
     }
 
     @Override
@@ -243,12 +243,12 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public Integer value1() {
-        return getId();
+        return getSeqId();
     }
 
     @Override
     public Integer value2() {
-        return getSystemId();
+        return getSystemSeqId();
     }
 
     @Override
@@ -283,13 +283,13 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
 
     @Override
     public SystemUpdatesRecord value1(Integer value) {
-        setId(value);
+        setSeqId(value);
         return this;
     }
 
     @Override
     public SystemUpdatesRecord value2(Integer value) {
-        setSystemId(value);
+        setSystemSeqId(value);
         return this;
     }
 
@@ -356,11 +356,11 @@ public class SystemUpdatesRecord extends UpdatableRecordImpl<SystemUpdatesRecord
     /**
      * Create a detached, initialised SystemUpdatesRecord
      */
-    public SystemUpdatesRecord(Integer id, Integer systemId, String userName, String userTenant, SystemOperation operation, JsonElement updJson, String updText, LocalDateTime created) {
+    public SystemUpdatesRecord(Integer seqId, Integer systemSeqId, String userName, String userTenant, SystemOperation operation, JsonElement updJson, String updText, LocalDateTime created) {
         super(SystemUpdates.SYSTEM_UPDATES);
 
-        set(0, id);
-        set(1, systemId);
+        set(0, seqId);
+        set(1, systemSeqId);
         set(2, userName);
         set(3, userTenant);
         set(4, operation);

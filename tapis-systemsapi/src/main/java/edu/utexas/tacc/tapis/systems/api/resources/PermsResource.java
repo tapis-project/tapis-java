@@ -2,11 +2,6 @@ package edu.utexas.tacc.tapis.systems.api.resources;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -39,7 +34,6 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultNameArray;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import edu.utexas.tacc.tapis.systems.api.requests.ReqPerms;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.model.TSystem.Permission;
 import edu.utexas.tacc.tapis.systems.service.SystemsService;
@@ -71,29 +65,6 @@ public class PermsResource
   // ************************************************************************
   // *********************** Fields *****************************************
   // ************************************************************************
-  /* Jax-RS context dependency injection allows implementations of these abstract
-   * types to be injected (ch 9, jax-rs 2.0):
-   *
-   *      javax.ws.rs.container.ResourceContext
-   *      javax.ws.rs.core.Application
-   *      javax.ws.rs.core.HttpHeaders
-   *      javax.ws.rs.core.Request
-   *      javax.ws.rs.core.SecurityContext
-   *      javax.ws.rs.core.UriInfo
-   *      javax.ws.rs.core.Configuration
-   *      javax.ws.rs.ext.Providers
-   *
-   * In a servlet environment, Jersey context dependency injection can also
-   * initialize these concrete types (ch 3.6, jersey spec):
-   *
-   *      javax.servlet.HttpServletRequest
-   *      javax.servlet.HttpServletResponse
-   *      javax.servlet.ServletConfig
-   *      javax.servlet.ServletContext
-   *
-   * Inject takes place after constructor invocation, so fields initialized in this
-   * way can not be accessed in constructors.
-   */
   @Context
   private HttpHeaders _httpHeaders;
   @Context
@@ -124,29 +95,6 @@ public class PermsResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//    summary = "Create permissions in the Security Kernel giving a user access to a system",
-//    description =
-//        "Create permissions in the Security Kernel for a user using a request body. Requester must be owner of " +
-//        "the system. Permissions: READ, MODIFY or ALL.",
-//    tags = "permissions",
-//    requestBody =
-//      @RequestBody(
-//        description = "A JSON object specifying a list of permissions.",
-//        required = true,
-//        content = @Content(schema = @Schema(implementation = ReqPerms.class))
-//      ),
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Permissions granted.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "401", description = "Not authorized.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-//    }
-//  )
   public Response grantUserPerms(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  InputStream payloadStream,
@@ -223,24 +171,6 @@ public class PermsResource
   @Path("/{systemName}/user/{userName}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//      summary = "Retrieve system related permissions for given system and user",
-//      description =
-//          "Retrieve all system related permissions for a given system and user.",
-//      tags = "permissions",
-//      responses = {
-//          @ApiResponse(responseCode = "200", description = "Success.",
-//            content = @Content(schema = @Schema(implementation = RespNameArray.class))),
-//          @ApiResponse(responseCode = "400", description = "Input error.",
-//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//          @ApiResponse(responseCode = "404", description = "System not found.",
-//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//          @ApiResponse(responseCode = "401", description = "Not authorized.",
-//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//          @ApiResponse(responseCode = "500", description = "Server error.",
-//            content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-//      }
-//  )
   public Response getUserPerms(@PathParam("systemName") String systemName,
                                @PathParam("userName") String userName,
                                @Context SecurityContext securityContext)
@@ -300,23 +230,6 @@ public class PermsResource
   @Path("/{systemName}/user/{userName}/{permission}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//    summary = "Revoke specified permission in the Security Kernel",
-//    description =
-//      "Revoke permission in the Security Kernel for a user. Requester must be owner of " +
-//        "the system. Permissions: READ, MODIFY or ALL.",
-//    tags = "permissions",
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Permission revoked.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "400", description = "Input error. Invalid JSON.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "401", description = "Not authorized.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-//    }
-//  )
   public Response revokeUserPerm(@PathParam("systemName") String systemName,
                                  @PathParam("userName") String userName,
                                  @PathParam("permission") String permissionStr,
@@ -387,27 +300,6 @@ public class PermsResource
   @Path("/{systemName}/user/{userName}/revoke")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-//  @Operation(
-//    summary = "Revoke system permissions in the Security Kernel using request body",
-//    description =
-//      "Revoke permissions in the Security Kernel for a user using a request body. Requester must be owner of " +
-//        "the system. Permissions: READ, MODIFY or ALL.",
-//    tags = "permissions",
-//    requestBody =
-//    @RequestBody(
-//      description = "A JSON object specifying a list of permissions.",
-//      required = true,
-//      content = @Content(schema = @Schema(implementation = ReqPerms.class))
-//    ),
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Permission revoked.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "401", description = "Not authorized.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))
-//    }
-//  )
   public Response revokeUserPerms(@PathParam("systemName") String systemName,
                                   @PathParam("userName") String userName,
                                   InputStream payloadStream,

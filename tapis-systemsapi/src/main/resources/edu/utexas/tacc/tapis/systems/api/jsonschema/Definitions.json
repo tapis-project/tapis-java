@@ -4,23 +4,41 @@
   "description": "Common definitions for requests",
   "additionalProperties": false,
 
-  "systemName": { "type": "string", "minLength": 1, "maxLength": 256 },
-  "hostName": { "type": "string", "minLength": 1, "maxLength": 256 },
-  "userName": { "type": "string", "minLength": 1, "maxLength": 60 },
-  "dirPath": { "type": "string", "minLength": 1, "maxLength": 1024 },
-  "systemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
-  "accessMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","ACCESS_KEY","CERT"] },
-  "capabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
-  "capability": {
+  "SystemId": { "type": "string", "minLength": 1, "maxLength": 80 },
+  "HostName": { "type": "string", "minLength": 1, "maxLength": 256 },
+  "UserName": { "type": "string", "minLength": 1, "maxLength": 60 },
+  "DirPath": { "type": "string", "minLength": 1, "maxLength": 4096 },
+  "SystemTypeEnum": { "type": "string", "enum": ["LINUX","OBJECT_STORE"] },
+  "TransferMethodEnum": { "type": "string", "enum": ["SFTP","S3"] },
+  "AuthnMethodEnum": { "type": "string", "enum": ["PASSWORD","PKI_KEYS","ACCESS_KEY","CERT"] },
+  "LogicalQueue": {
     "type": "object",
-    "required": [ "category", "name" ],
+    "required": [ "name" ],
     "properties": {
-      "category": { "$ref": "#/capabilityCategoryEnum" },
-      "name": { "type": "string", "minLength": 1, "maxLength": 256 },
-      "value": { "type": "string", "maxLength": 256 }
+      "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "maxJobs": { "type": "integer" },
+      "maxJobsPerUser": { "type": "integer" },
+      "maxNodeCount": { "type": "integer" },
+      "maxCoresPerNode": { "type": "integer" },
+      "maxMemoryMB": { "type": "integer" },
+      "maxMinutes": { "type": "integer" }
     }
   },
-  "credential": {
+  "CapabilityCategoryEnum": { "type": "string", "enum": ["SCHEDULER", "OS", "HARDWARE", "SOFTWARE", "JOB", "CONTAINER", "MISC", "CUSTOM"] },
+  "CapabilityDatatypeEnum": { "type": "string", "enum": ["STRING", "INTEGER", "BOOLEAN", "NUMBER", "TIMESTAMP"] },
+  "Capability": {
+    "type": "object",
+    "required": [ "category", "name", "datatype" ],
+    "properties": {
+      "category": { "$ref": "#/CapabilityCategoryEnum" },
+      "subcategory": { "type": "string", "maxLength": 128 },
+      "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "datatype": { "$ref": "#/CapabilityDatatypeEnum" },
+      "precedence": { "type": "integer" },
+      "value": { "type": "string", "maxLength": 128 }
+    }
+  },
+  "Credential": {
     "type": "object",
     "properties": {
       "password": { "type":  "string" },

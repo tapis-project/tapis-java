@@ -7,7 +7,7 @@ package edu.utexas.tacc.tapis.systems.gen.jooq.tables.records;
 import com.google.gson.JsonElement;
 
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.Systems;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 
 import java.time.LocalDateTime;
@@ -22,19 +22,19 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = 188386692;
+    private static final long serialVersionUID = -1933606187;
 
     /**
-     * Setter for <code>tapis_sys.systems.id</code>. System id
+     * Setter for <code>tapis_sys.systems.seq_id</code>. System sequence id
      */
-    public void setId(Integer value) {
+    public void setSeqId(Integer value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.id</code>. System id
+     * Getter for <code>tapis_sys.systems.seq_id</code>. System sequence id
      */
-    public Integer getId() {
+    public Integer getSeqId() {
         return (Integer) get(0);
     }
 
@@ -53,16 +53,16 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.name</code>. Unique name for the system
+     * Setter for <code>tapis_sys.systems.id</code>. Unique name for the system
      */
-    public void setName(String value) {
+    public void setId(String value) {
         set(2, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.name</code>. Unique name for the system
+     * Getter for <code>tapis_sys.systems.id</code>. Unique name for the system
      */
-    public String getName() {
+    public String getId() {
         return (String) get(2);
     }
 
@@ -151,17 +151,17 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.default_access_method</code>. Enum for how authorization is handled by default
+     * Setter for <code>tapis_sys.systems.default_authn_method</code>. Enum for how authorization is handled by default
      */
-    public void setDefaultAccessMethod(AccessMethod value) {
+    public void setDefaultAuthnMethod(AuthnMethod value) {
         set(9, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.default_access_method</code>. Enum for how authorization is handled by default
+     * Getter for <code>tapis_sys.systems.default_authn_method</code>. Enum for how authorization is handled by default
      */
-    public AccessMethod getDefaultAccessMethod() {
-        return (AccessMethod) get(9);
+    public AuthnMethod getDefaultAuthnMethod() {
+        return (AuthnMethod) get(9);
     }
 
     /**
@@ -179,14 +179,14 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.root_dir</code>. Name of root directory for a Unix system
+     * Setter for <code>tapis_sys.systems.root_dir</code>. Effective root directory path for a Unix system
      */
     public void setRootDir(String value) {
         set(11, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.root_dir</code>. Name of root directory for a Unix system
+     * Getter for <code>tapis_sys.systems.root_dir</code>. Effective root directory path for a Unix system
      */
     public String getRootDir() {
         return (String) get(11);
@@ -263,157 +263,241 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.job_can_exec</code>. Indicates if system will be used to execute jobs
+     * Setter for <code>tapis_sys.systems.dtn_system_id</code>. Alternate system to use as a Data Transfer Node (DTN)
      */
-    public void setJobCanExec(Boolean value) {
+    public void setDtnSystemId(String value) {
         set(17, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.job_can_exec</code>. Indicates if system will be used to execute jobs
+     * Getter for <code>tapis_sys.systems.dtn_system_id</code>. Alternate system to use as a Data Transfer Node (DTN)
      */
-    public Boolean getJobCanExec() {
-        return (Boolean) get(17);
+    public String getDtnSystemId() {
+        return (String) get(17);
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.job_local_working_dir</code>. Parent directory from which a job is run and where inputs and application assets are staged
+     * Setter for <code>tapis_sys.systems.dtn_mount_point</code>. Mount point on local system for the DTN
      */
-    public void setJobLocalWorkingDir(String value) {
+    public void setDtnMountPoint(String value) {
         set(18, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.job_local_working_dir</code>. Parent directory from which a job is run and where inputs and application assets are staged
+     * Getter for <code>tapis_sys.systems.dtn_mount_point</code>. Mount point on local system for the DTN
      */
-    public String getJobLocalWorkingDir() {
+    public String getDtnMountPoint() {
         return (String) get(18);
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.job_local_archive_dir</code>. Parent directory used for archiving job output files
+     * Setter for <code>tapis_sys.systems.dtn_sub_dir</code>. Optional subdirectory relative to dtnMountPoint
      */
-    public void setJobLocalArchiveDir(String value) {
+    public void setDtnSubDir(String value) {
         set(19, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.job_local_archive_dir</code>. Parent directory used for archiving job output files
+     * Getter for <code>tapis_sys.systems.dtn_sub_dir</code>. Optional subdirectory relative to dtnMountPoint
      */
-    public String getJobLocalArchiveDir() {
+    public String getDtnSubDir() {
         return (String) get(19);
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.job_remote_archive_system</code>. Remote system on which job output files will be archived
+     * Setter for <code>tapis_sys.systems.can_exec</code>. Indicates if system can be used to execute jobs
      */
-    public void setJobRemoteArchiveSystem(String value) {
+    public void setCanExec(Boolean value) {
         set(20, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.job_remote_archive_system</code>. Remote system on which job output files will be archived
+     * Getter for <code>tapis_sys.systems.can_exec</code>. Indicates if system can be used to execute jobs
      */
-    public String getJobRemoteArchiveSystem() {
-        return (String) get(20);
+    public Boolean getCanExec() {
+        return (Boolean) get(20);
     }
 
     /**
-     * Setter for <code>tapis_sys.systems.job_remote_archive_dir</code>. Parent directory used for archiving job output files on a remote system
+     * Setter for <code>tapis_sys.systems.job_working_dir</code>. Parent directory from which a job is run. Relative to effective root directory.
      */
-    public void setJobRemoteArchiveDir(String value) {
+    public void setJobWorkingDir(String value) {
         set(21, value);
     }
 
     /**
-     * Getter for <code>tapis_sys.systems.job_remote_archive_dir</code>. Parent directory used for archiving job output files on a remote system
+     * Getter for <code>tapis_sys.systems.job_working_dir</code>. Parent directory from which a job is run. Relative to effective root directory.
      */
-    public String getJobRemoteArchiveDir() {
+    public String getJobWorkingDir() {
         return (String) get(21);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.job_env_variables</code>. Environment variables added to shell environment
+     */
+    public void setJobEnvVariables(String[] value) {
+        set(22, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.job_env_variables</code>. Environment variables added to shell environment
+     */
+    public String[] getJobEnvVariables() {
+        return (String[]) get(22);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.job_max_jobs</code>. Maximum total number of jobs that can be queued or running on the system at a given time.
+     */
+    public void setJobMaxJobs(Integer value) {
+        set(23, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.job_max_jobs</code>. Maximum total number of jobs that can be queued or running on the system at a given time.
+     */
+    public Integer getJobMaxJobs() {
+        return (Integer) get(23);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.job_max_jobs_per_user</code>. Maximum total number of jobs associated with a specific user that can be queued or running on the system at a given time.
+     */
+    public void setJobMaxJobsPerUser(Integer value) {
+        set(24, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.job_max_jobs_per_user</code>. Maximum total number of jobs associated with a specific user that can be queued or running on the system at a given time.
+     */
+    public Integer getJobMaxJobsPerUser() {
+        return (Integer) get(24);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.job_is_batch</code>. Flag indicating if system uses a batch scheduler to run jobs.
+     */
+    public void setJobIsBatch(Boolean value) {
+        set(25, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.job_is_batch</code>. Flag indicating if system uses a batch scheduler to run jobs.
+     */
+    public Boolean getJobIsBatch() {
+        return (Boolean) get(25);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.batch_scheduler</code>. Type of scheduler used when running batch jobs
+     */
+    public void setBatchScheduler(String value) {
+        set(26, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.batch_scheduler</code>. Type of scheduler used when running batch jobs
+     */
+    public String getBatchScheduler() {
+        return (String) get(26);
+    }
+
+    /**
+     * Setter for <code>tapis_sys.systems.batch_default_logical_queue</code>. Default logical batch queue for the system
+     */
+    public void setBatchDefaultLogicalQueue(String value) {
+        set(27, value);
+    }
+
+    /**
+     * Getter for <code>tapis_sys.systems.batch_default_logical_queue</code>. Default logical batch queue for the system
+     */
+    public String getBatchDefaultLogicalQueue() {
+        return (String) get(27);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.tags</code>. Tags for user supplied key:value pairs
      */
     public void setTags(String[] value) {
-        set(22, value);
+        set(28, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.tags</code>. Tags for user supplied key:value pairs
      */
     public String[] getTags() {
-        return (String[]) get(22);
+        return (String[]) get(28);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
     public void setNotes(JsonElement value) {
-        set(23, value);
+        set(29, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.notes</code>. Notes for general information stored as JSON
      */
     public JsonElement getNotes() {
-        return (JsonElement) get(23);
+        return (JsonElement) get(29);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.import_ref_id</code>. Optional reference ID for systems created via import
      */
     public void setImportRefId(String value) {
-        set(24, value);
+        set(30, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.import_ref_id</code>. Optional reference ID for systems created via import
      */
     public String getImportRefId() {
-        return (String) get(24);
+        return (String) get(30);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
      */
     public void setDeleted(Boolean value) {
-        set(25, value);
+        set(31, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
      */
     public Boolean getDeleted() {
-        return (Boolean) get(25);
+        return (Boolean) get(31);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.created</code>. UTC time for when record was created
      */
     public void setCreated(LocalDateTime value) {
-        set(26, value);
+        set(32, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.created</code>. UTC time for when record was created
      */
     public LocalDateTime getCreated() {
-        return (LocalDateTime) get(26);
+        return (LocalDateTime) get(32);
     }
 
     /**
      * Setter for <code>tapis_sys.systems.updated</code>. UTC time for when record was last updated
      */
     public void setUpdated(LocalDateTime value) {
-        set(27, value);
+        set(33, value);
     }
 
     /**
      * Getter for <code>tapis_sys.systems.updated</code>. UTC time for when record was last updated
      */
     public LocalDateTime getUpdated() {
-        return (LocalDateTime) get(27);
+        return (LocalDateTime) get(33);
     }
 
     // -------------------------------------------------------------------------
@@ -439,19 +523,19 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
     /**
      * Create a detached, initialised SystemsRecord
      */
-    public SystemsRecord(Integer id, String tenant, String name, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AccessMethod defaultAccessMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, Boolean jobCanExec, String jobLocalWorkingDir, String jobLocalArchiveDir, String jobRemoteArchiveSystem, String jobRemoteArchiveDir, String[] tags, JsonElement notes, String importRefId, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
+    public SystemsRecord(Integer seqId, String tenant, String id, String description, SystemType systemType, String owner, String host, Boolean enabled, String effectiveUserId, AuthnMethod defaultAuthnMethod, String bucketName, String rootDir, String[] transferMethods, Integer port, Boolean useProxy, String proxyHost, Integer proxyPort, String dtnSystemId, String dtnMountPoint, String dtnSubDir, Boolean canExec, String jobWorkingDir, String[] jobEnvVariables, Integer jobMaxJobs, Integer jobMaxJobsPerUser, Boolean jobIsBatch, String batchScheduler, String batchDefaultLogicalQueue, String[] tags, JsonElement notes, String importRefId, Boolean deleted, LocalDateTime created, LocalDateTime updated) {
         super(Systems.SYSTEMS);
 
-        set(0, id);
+        set(0, seqId);
         set(1, tenant);
-        set(2, name);
+        set(2, id);
         set(3, description);
         set(4, systemType);
         set(5, owner);
         set(6, host);
         set(7, enabled);
         set(8, effectiveUserId);
-        set(9, defaultAccessMethod);
+        set(9, defaultAuthnMethod);
         set(10, bucketName);
         set(11, rootDir);
         set(12, transferMethods);
@@ -459,16 +543,22 @@ public class SystemsRecord extends UpdatableRecordImpl<SystemsRecord> {
         set(14, useProxy);
         set(15, proxyHost);
         set(16, proxyPort);
-        set(17, jobCanExec);
-        set(18, jobLocalWorkingDir);
-        set(19, jobLocalArchiveDir);
-        set(20, jobRemoteArchiveSystem);
-        set(21, jobRemoteArchiveDir);
-        set(22, tags);
-        set(23, notes);
-        set(24, importRefId);
-        set(25, deleted);
-        set(26, created);
-        set(27, updated);
+        set(17, dtnSystemId);
+        set(18, dtnMountPoint);
+        set(19, dtnSubDir);
+        set(20, canExec);
+        set(21, jobWorkingDir);
+        set(22, jobEnvVariables);
+        set(23, jobMaxJobs);
+        set(24, jobMaxJobsPerUser);
+        set(25, jobIsBatch);
+        set(26, batchScheduler);
+        set(27, batchDefaultLogicalQueue);
+        set(28, tags);
+        set(29, notes);
+        set(30, importRefId);
+        set(31, deleted);
+        set(32, created);
+        set(33, updated);
     }
 }

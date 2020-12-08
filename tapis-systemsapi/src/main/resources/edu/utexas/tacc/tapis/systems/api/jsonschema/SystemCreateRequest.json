@@ -5,41 +5,54 @@
   "additionalProperties": false,
 
   "type": "object",
-  "required": [ "name", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
+  "required": [ "id", "systemType", "host", "defaultAuthnMethod", "canExec" ],
   "properties": {
-    "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+    "id": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/SystemId" },
     "description": { "type": "string", "maxLength": 2048 },
-    "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemTypeEnum" },
-    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "systemType": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/SystemTypeEnum" },
+    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/UserName" },
+    "host": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/HostName" },
     "enabled": { "type": "boolean", "default": true },
-    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "defaultAccessMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/accessMethodEnum" },
-    "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/credential" },
+    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/UserName" },
+    "defaultAuthnMethod": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/AuthnMethodEnum" },
+    "authnCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/Credential" },
     "bucketName": { "type": "string", "maxLength": 63 },
-    "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "rootDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/DirPath" },
     "transferMethods": {
       "type": "array",
-      "items": { "type": "string", "enum": ["SFTP","S3"] }
+      "items": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/TransferMethodEnum" }
     },
     "port": { "type": "integer" },
     "useProxy": { "type": "boolean", "default": false },
-    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/hostName" },
+    "proxyHost": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/HostName" },
     "proxyPort": { "type": "integer" },
-    "jobCanExec": { "type": "boolean" },
-    "jobLocalWorkingDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "jobLocalArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
-    "jobRemoteArchiveSystem": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
-    "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "dtnSystemId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/SystemId" },
+    "dtnMountPoint": { "type": "string" },
+    "dtnSubDir": { "type": "string" },
+    "canExec": { "type": "boolean" },
+    "jobWorkingDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/DirPath" },
+    "jobEnvVariables": {
+      "type": "array",
+      "items": { "type":  "string", "minLength": 3 }
+    },
+    "jobMaxJobs": { "type": "integer" },
+    "jobMaxJobsPerUser": { "type": "integer" },
+    "jobIsBatch": { "type": "boolean" },
+    "batchScheduler": { "type": "string", "maxLength": 64 },
+    "batchLogicalQueues": {
+      "type": "array",
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/LogicalQueue" }
+    },
+    "batchDefaultLogicalQueue": { "type": "string", "maxLength": 128 },
     "jobCapabilities": {
       "type": "array",
-      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/Capability" }
     },
     "tags": {
       "type": "array",
-      "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
+      "items": { "type":  "string", "minLength": 1, "maxLength": 128 }
     },
     "notes": { "type": "object" },
-    "importRefId": { "type": "string", "maxLength": 256 }
+    "importRefId": { "type": "string", "maxLength": 80 }
   }
 }

@@ -89,6 +89,9 @@ public final class RuntimeParameters
 	private String servicePassword;
 	private String serviceMasterTenant;
 
+	// Site on which we are running
+    private String siteId;
+
 	// Service base URLs - tenants, Security Kernel
 	private String tenantsSvcURL;
 	private String skSvcURL;
@@ -207,7 +210,17 @@ public final class RuntimeParameters
 		parm = inputProperties.getProperty(EnvVar2.TAPIS_SVC_MASTER_TENANT.getEnvName());
 		if (!StringUtils.isBlank(parm)) setServiceMasterTenant(parm);
 
-		// --------------------- Base URLs for other services that this service requires ----------------------------
+      // --------------------- Site on which we are running ----------------------------
+      // Site is required. Throw runtime exception if not found.
+      parm = inputProperties.getProperty(EnvVar.TAPIS_SITE_ID.getEnvName());
+      if (StringUtils.isBlank(parm)) {
+        String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING", TapisConstants.SERVICE_NAME_SYSTEMS, "siteId");
+        _log.error(msg);
+        throw new TapisRuntimeException(msg);
+      }
+      setSiteId(parm);
+
+      // --------------------- Base URLs for other services that this service requires ----------------------------
 		// Tenants service base URL is required. Throw runtime exception if not found.
 		// Security Kernel base URL is optional. Normally it is retrieved from the Tenants service.
 		parm = inputProperties.getProperty(EnvVar.TAPIS_TENANT_SVC_BASEURL.getEnvName());
@@ -424,6 +437,10 @@ public final class RuntimeParameters
 		buf.append("\ntapis.db.meter.minutes: ");
 		buf.append(this.getDbMeterMinutes());
 
+        buf.append("\n------- Site Id --------------------------");
+        buf.append("\ntapis.site.id: ");
+        buf.append(siteId);
+
 		buf.append("\n------- Base Service URLs --------------------------");
 		buf.append("\ntapis.svc.tenants.url: ");
 		buf.append(tenantsSvcURL);
@@ -635,7 +652,10 @@ public final class RuntimeParameters
 	public String getServicePassword() { return servicePassword; }
 	private void setServicePassword(String p) {servicePassword = p; }
 
-	public String getTenantsSvcURL() { return tenantsSvcURL; }
+    public String getSiteId() { return siteId; }
+    private void setSiteId(String s) {siteId = s; }
+
+    public String getTenantsSvcURL() { return tenantsSvcURL; }
 	private void setTenantsSvcURL(String url) {tenantsSvcURL = url; }
 
 	public String getSkSvcURL() { return skSvcURL; }

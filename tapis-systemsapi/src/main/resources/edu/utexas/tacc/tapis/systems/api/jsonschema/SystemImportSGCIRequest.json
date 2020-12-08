@@ -14,24 +14,22 @@
   "$comment": "TODO: remove comments",
 
   "type": "object",
-  "required": [ "sgciResourceId", "systemType", "host", "defaultAccessMethod", "jobCanExec" ],
+  "required": [ "sgciResourceId", "systemType", "host", "defaultAuthnMethod", "canExec" ],
   "properties": {
-    "sgciResourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "name": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
+    "sgciResourceId": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "id": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/SystemId" },
     "description": { "type": "string", "maxLength": 2048 },
-    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
+    "owner": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/UserName" },
     "enabled": { "type": "boolean", "default": true },
-    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/userName" },
-    "accessCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/credential" },
-    "jobRemoteArchiveSystem": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/systemName" },
-    "jobRemoteArchiveDir": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/dirPath" },
+    "effectiveUserId": { "$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/UserName" },
+    "authnCredential": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/Credential" },
     "jobCapabilities": {
       "type": "array",
-      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/capability" }
+      "items": {"$ref": "resource:///edu/utexas/tacc/tapis/systems/api/jsonschema/Definitions.json#/Capability" }
     },
     "tags": {
       "type": "array",
-      "items": { "type":  "string", "minLength": 1, "maxLength": 256 }
+      "items": { "type":  "string", "minLength": 1, "maxLength": 128 }
     },
     "notes": { "type": "object" }
   }

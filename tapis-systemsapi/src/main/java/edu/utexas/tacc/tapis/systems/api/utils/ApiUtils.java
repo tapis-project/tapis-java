@@ -146,7 +146,7 @@ public class ApiUtils
   {
     String msg;
     boolean systemExists;
-    try { systemExists = systemsService.checkForSystemByName(authenticatedUser, systemName); }
+    try { systemExists = systemsService.checkForSystem(authenticatedUser, systemName); }
     catch (Exception e)
     {
       msg = ApiUtils.getMsgAuth("SYSAPI_CHECK_ERROR", authenticatedUser, systemName, opName, e.getMessage());

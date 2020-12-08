@@ -19,70 +19,31 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.dto.ResponseWrapper;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.api.SystemsApplication;
 import edu.utexas.tacc.tapis.systems.api.utils.ApiUtils;
 import edu.utexas.tacc.tapis.systems.service.SystemsServiceImpl;
 import edu.utexas.tacc.tapis.systems.utils.LibUtils;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.info.License;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.glassfish.grizzly.http.server.Request;
 
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.security.ServiceJWT;
-import edu.utexas.tacc.tapis.shared.security.TenantManager;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
-import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import org.jooq.tools.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /* Tapis Systems general resources including healthcheck and readycheck
  *
- * (NOT currently used) Contains annotations which generate the OpenAPI specification documents.
  *  NOTE: Switching to hand-crafted openapi located in repo tapis-client-java at systems-client/SystemsAPI.yaml
  *        Could not fully automate generation of spec and annotations have some limits. E.g., how to mark a parameter
  *        in a request body as required?, how to better describe query parameters?
  */
-//@OpenAPIDefinition(
-//    security = {@SecurityRequirement(name = "TapisJWT")},
-//    info = @Info(
-//        title = "Tapis Systems API",
-//        description = "The Tapis Systems API provides for management of Tapis Systems including access and transfer methods, permissions and credentials.",
-//        license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
-//        contact = @Contact(name = "CICSupport", email = "cicsupport@tacc.utexas.edu")),
-//    tags = {
-//        @Tag(name = "systems", description = "manage systems")
-//    },
-//    servers = {
-////      @Server(url = "v3/systems", description = "Base URL")
-//      @Server(url = "http://localhost:8080/", description = "Local test environment"),
-//      @Server(url = "https://dev.develop.tapis.io/", description = "Development environment")
-//    },
-//    externalDocs = @ExternalDocumentation(description = "Tapis Home", url = "https://tacc-cloud.readthedocs.io/projects/agave")
-//)
-//@SecurityScheme(
-//  name="TapisJWT",
-//  description="Tapis signed JWT token authentication",
-//  type= SecuritySchemeType.APIKEY,
-//  in= SecuritySchemeIn.HEADER,
-//  paramName="X-Tapis-Token"
-//)
 @Path("/v3/systems")
 public class SystemsResource
 {
@@ -146,7 +107,7 @@ public class SystemsResource
   @Inject
   private SystemsServiceImpl svcImpl;
   @Inject
-  private ServiceJWT serviceJWT;
+  private ServiceContext serviceContext;
 
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -162,15 +123,6 @@ public class SystemsResource
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-//  @Operation(
-//    description = "Health check. Lightweight non-authenticated basic liveness check. Returns full version.",
-//    tags = "general",
-//    responses = {
-//      @ApiResponse(responseCode = "200", description = "Message received.",
-//        content = @Content(schema = @Schema(implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//      @ApiResponse(responseCode = "500", description = "Server error.")
-//    }
-//  )
   public Response healthCheck()
   {
     // Get the current check count.
@@ -195,7 +147,7 @@ public class SystemsResource
    *    - get a service JWT
    *    - connect to the DB and verify and that main service table exists
    *
-   * It's intended as the endpoint that monitoring applications can use to check
+   * It is intended as the endpoint that monitoring applications can use to check
    * whether the application is ready to accept traffic.  In particular, kubernetes
    * can use this endpoint as part of its pod readiness check.
    *
@@ -219,15 +171,6 @@ public class SystemsResource
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-//  @Operation(
-//          description = "Ready check. Lightweight non-authenticated check that service is ready to accept requests.",
-//          tags = "general",
-//          responses =
-//                  {@ApiResponse(responseCode = "200", description = "Service ready.",
-//                          content = @Content(schema = @Schema(
-//                                  implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-//                          @ApiResponse(responseCode = "503", description = "Service unavailable.")}
-//  )
   public Response readyCheck()
   {
     // Get the current check count.
@@ -315,10 +258,7 @@ public class SystemsResource
   {
     Exception result = null;
     try {
-      // TODO: FIX-FOR-ASSOCIATE-SITES	
-      // Replace hardcoded site value.
-      String site = "tacc";
-      String jwt = serviceJWT.getAccessJWT(site);
+      String jwt = serviceContext.getServiceJWT().getAccessJWT(SystemsApplication.getSiteId());
       if (StringUtils.isBlank(jwt)) result = new TapisClientException(LibUtils.getMsg("SYSLIB_CHECKJWT_EMPTY"));
     }
     catch (Exception e) { result = e; }
@@ -331,7 +271,7 @@ public class SystemsResource
    */
   private Exception checkDB()
   {
-    Exception result = null;
+    Exception result;
     try { result = svcImpl.checkDB(); }
     catch (Exception e) { result = e; }
     return result;

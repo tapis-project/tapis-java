@@ -9,64 +9,25 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   
-  <artifactId>tapis-systemsapi</artifactId>
+  <artifactId>api</artifactId>
   <packaging>jar</packaging>
   
   <name>Tapis Systems API</name>
   <description>Front end for Tapis Systems Service web application</description>
 
+  <properties>
+    <!-- If necessary set a specific version of the shared code. Parent pom file from tapis-bom has a range. -->
+    <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
+  </properties>
+
   <dependencies>
+    <!-- Local project modules -->
     <dependency>
-      <groupId>javax.ws.rs</groupId>
-      <artifactId>javax.ws.rs-api</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>tapis-systemslib</artifactId>
+      <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>jakarta.servlet</groupId>
-      <artifactId>jakarta.servlet-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.containers</groupId>
-      <artifactId>jersey-container-servlet</artifactId>
-    </dependency>
-    <!-- Include jersey-media-moxy to allow for parsing of json if found on classpath -->
-    <dependency>
-      <groupId>org.glassfish.jersey.media</groupId>
-      <artifactId>jersey-media-moxy</artifactId>
-    </dependency>
-    <!-- Include jersey-entity-filtering and jersey-media-json-jackson for SelectableEntityFilteringFeature -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.ext</groupId>
-      <artifactId>jersey-entity-filtering</artifactId>
-      <version>${jersey-container-servlet.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.media</groupId>
-      <artifactId>jersey-media-json-jackson</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.glassfish.jersey.inject</groupId>
-        <artifactId>jersey-hk2</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-jaxrs2</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.containers</groupId>
-      <artifactId>jersey-container-grizzly2-http</artifactId>
-    </dependency>
+    <!-- Tapis shared modules -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared-api</artifactId>
@@ -77,11 +38,33 @@
       <artifactId>tapis-shared-searchlib</artifactId>
       <version>${tapis-shared-java.version}</version>
     </dependency>
+    <!-- Jersey Test Framework -->
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>tapis-systemslib</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.glassfish.jersey.test-framework</groupId>
+      <artifactId>jersey-test-framework-core</artifactId>
+      <version>2.32</version>
     </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.test-framework.providers</groupId>
+      <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
+      <version>2.32</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Jersey/Jackson jax-rs modules -->
+    <dependency>
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-grizzly2-http</artifactId>
+    </dependency>
+    <!-- Needed for JavaTimeModule in ObjectMapper -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -94,7 +77,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
-            
+
       <plugin>
         <!-- The version is set in the parent pom -->
         <groupId>org.apache.maven.plugins</groupId>
@@ -123,24 +106,24 @@
 <!-- Looks like removing shaded jar and copying dependencies instead
      may solve SelectableEntityFilteringFeature problem. Needs more testing.
      Previously found needed to use JacksonFeature instead of moxy to avoid error when running under docker
-     but needed to run moxy instead of JacksonFeature to avoid problem with not returning these attributes: notes, created, upddated.
+     but needed to run moxy instead of JacksonFeature to avoid problem with not returning these attributes: notes, created, updated.
 -->
-        <plugin>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <version>3.1.1</version>
-            <executions>
-                <execution>
-                    <phase>prepare-package</phase>
-                    <goals>
-                        <goal>copy-dependencies</goal>
-                    </goals>
-                    <configuration>
-                        <includeScope>runtime</includeScope>
-                        <outputDirectory>target/dependencies</outputDirectory>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeScope>runtime</includeScope>
+              <outputDirectory>target/dependencies</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- *** Create shaded fat jar for standalone execution *** -->
 <!--      <plugin>-->
 <!--        <groupId>org.apache.maven.plugins</groupId>-->
@@ -158,94 +141,6 @@
 <!--          </execution>-->
 <!--        </executions>-->
 <!--      </plugin>-->
-
-      <!-- Generate the openapi documentation from the code -->
-      <plugin>
-        <groupId>io.swagger.core.v3</groupId>
-        <artifactId>swagger-maven-plugin</artifactId>
-        <configuration>
-          <outputFileName>openapi</outputFileName>
-          <outputPath>${project.basedir}/src/main/resources</outputPath>
-          <outputFormat>JSONANDYAML</outputFormat>
-          <resourcePackages>
-            <package>edu.utexas.tacc.tapis.systems.api.resources</package>
-          </resourcePackages>
-          <prettyPrint>true</prettyPrint>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>compile</phase>
-            <goals>
-              <goal>resolve</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- ********************* Begin swagger-ui integration ************************** -->
-      <!-- Live-docs can be found at http://localhost:8080/swagger-ui/index.html -->
-      <!-- Download Swagger UI webjar. -->
-<!--      <plugin>-->
-<!--        <artifactId>maven-dependency-plugin</artifactId>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <phase>prepare-package</phase>-->
-<!--            <goals>-->
-<!--              <goal>unpack</goal>-->
-<!--            </goals>-->
-<!--            <configuration>-->
-<!--              <artifactItems>-->
-<!--                <artifactItem>-->
-<!--                  <groupId>org.webjars</groupId>-->
-<!--                  <artifactId>swagger-ui</artifactId>-->
-<!--                  <version>${swagger-ui.version}</version>-->
-<!--                </artifactItem>-->
-<!--              </artifactItems>-->
-<!--              <outputDirectory>${project.build.directory}/swagger-ui</outputDirectory>-->
-<!--            </configuration>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
-<!--      &lt;!&ndash; Add Swagger UI resources to the war file. &ndash;&gt;-->
-<!--      <plugin>-->
-<!--        <groupId>org.apache.maven.plugins</groupId>-->
-<!--        <artifactId>maven-war-plugin</artifactId>-->
-<!--        <configuration>-->
-<!--          <webResources combine.children="append">-->
-<!--            <resource>-->
-<!--              <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>-->
-<!--              <includes>-->
-<!--                <include>**/*.*</include>-->
-<!--              </includes>-->
-<!--              <targetPath>swagger-ui</targetPath>-->
-<!--            </resource>-->
-<!--          </webResources>-->
-<!--        </configuration>-->
-<!--      </plugin>-->
-<!--      &lt;!&ndash; Replace the OpenAPI specification example URL with the local one. &ndash;&gt;-->
-<!--      <plugin>-->
-<!--        <groupId>com.google.code.maven-replacer-plugin</groupId>-->
-<!--        <artifactId>replacer</artifactId>-->
-<!--         <version>${google-maven-replacer-plugin.version}</version>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <phase>prepare-package</phase>-->
-<!--            <goals>-->
-<!--              <goal>replace</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--        <configuration>-->
-<!--          <file>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}/index.html</file>-->
-<!--          <replacements>-->
-<!--            <replacement>-->
-<!--              <token>https://petstore.swagger.io/v2/swagger.json</token>-->
-<!--              <value>/v3/systems/openapi.json</value>-->
-<!--            </replacement>-->
-<!--          </replacements>-->
-<!--        </configuration>-->
-<!--      </plugin>-->
-<!--      &lt;!&ndash; ********************* End swagger-ui integration ************************** &ndash;&gt;-->
     </plugins>
 
     <finalName>v3#systems</finalName>

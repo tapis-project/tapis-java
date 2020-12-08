@@ -23,6 +23,8 @@ public class Indexes {
     // -------------------------------------------------------------------------
 
     public static final Index FLYWAY_SCHEMA_HISTORY_S_IDX = Indexes0.FLYWAY_SCHEMA_HISTORY_S_IDX;
+    public static final Index SYS_HOST_IDX = Indexes0.SYS_HOST_IDX;
+    public static final Index SYS_OWNER_IDX = Indexes0.SYS_OWNER_IDX;
     public static final Index SYS_TENANT_NAME_IDX = Indexes0.SYS_TENANT_NAME_IDX;
 
     // -------------------------------------------------------------------------
@@ -31,6 +33,8 @@ public class Indexes {
 
     private static class Indexes0 {
         public static Index FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex("flyway_schema_history_s_idx", FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
-        public static Index SYS_TENANT_NAME_IDX = Internal.createIndex("sys_tenant_name_idx", Systems.SYSTEMS, new OrderField[] { Systems.SYSTEMS.TENANT, Systems.SYSTEMS.NAME }, false);
+        public static Index SYS_HOST_IDX = Internal.createIndex("sys_host_idx", Systems.SYSTEMS, new OrderField[] { Systems.SYSTEMS.HOST }, false);
+        public static Index SYS_OWNER_IDX = Internal.createIndex("sys_owner_idx", Systems.SYSTEMS, new OrderField[] { Systems.SYSTEMS.OWNER }, false);
+        public static Index SYS_TENANT_NAME_IDX = Internal.createIndex("sys_tenant_name_idx", Systems.SYSTEMS, new OrderField[] { Systems.SYSTEMS.TENANT, Systems.SYSTEMS.ID }, false);
     }
 }

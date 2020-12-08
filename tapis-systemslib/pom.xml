@@ -17,12 +17,15 @@
   <!-- DB connect properties for jOOQ and Flyway -->
   <properties>
     <db.url>jdbc:postgresql://localhost:5432/tapissysdb</db.url>
-    <db.username>tapis</db.username>
+    <db.username>tapis_sys</db.username>
     <db.password>password</db.password>
     <db.schema>tapis_sys</db.schema>
+    <!-- If necessary set a specific version of the shared code. Parent pom file from tapis-bom has a range. -->
+    <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
   </properties>
-
+ 
   <dependencies>
+    <!-- Tapis shared modules -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>tapis-shared-lib</artifactId>
@@ -59,10 +62,7 @@
       <artifactId>tenants-client</artifactId>
       <version>${tapis-client-java.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-annotations</artifactId>
-    </dependency>
+    <!-- HTTP for client calls -->
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
@@ -78,15 +78,13 @@
       <artifactId>threetenbp</artifactId>
       <version>${threetenbp.version}</version>
     </dependency>
+    <!-- Gson -->
     <dependency>
       <groupId>io.gsonfire</groupId>
       <artifactId>gson-fire</artifactId>
       <version>${gson-fire.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.test-framework</groupId>
-      <artifactId>jersey-test-framework-core</artifactId>
-    </dependency>
+    <!-- jOOQ and flyway -->
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq</artifactId>
@@ -154,7 +152,7 @@
   <!--     db.url has the correct schema. May need to drop the current       -->
   <!--     the schema if flyway is still on V001__init.sql                   -->
   <!-- Finally run:                                                          -->
-  <!--   cd tapis-systemslib                                                 -->
+  <!--   cd lib                                                              -->
   <!--   mvn clean install -Pdb-update                                       -->
   <profile>
     <id>db-update</id>
@@ -200,6 +198,8 @@
             </jdbc>
             <generator>
               <name>org.jooq.codegen.JavaGenerator</name>
+               <!-- Turn on gen of equals, hashcode for POJOs so we can put them in HashMaps -->
+<!--              <pojosEqualsAndHashCode>true</pojosEqualsAndHashCode>-->
               <generate>
                 <javaTimeTypes>true</javaTimeTypes>
               </generate>
@@ -251,6 +251,12 @@
                     <includeTypes>.*</includeTypes>
                   </forcedType>
                   <forcedType>
+                    <userType>edu.utexas.tacc.tapis.systems.model.Capability.Datatype</userType>
+                    <enumConverter>true</enumConverter>
+                    <includeExpression>capabilities\.datatype</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <forcedType>
                     <userType>edu.utexas.tacc.tapis.systems.model.TSystem.SystemOperation</userType>
                     <enumConverter>true</enumConverter>
                     <includeExpression>system_updates\.operation</includeExpression>
@@ -263,9 +269,9 @@
                     <includeTypes>.*</includeTypes>
                   </forcedType>
                   <forcedType>
-                    <userType>edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod</userType>
+                    <userType>edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod</userType>
                     <enumConverter>true</enumConverter>
-                    <includeExpression>systems\.default_access_method</includeExpression>
+                    <includeExpression>systems\.default_authn_method</includeExpression>
                     <includeTypes>.*</includeTypes>
                   </forcedType>
 <!--                  <forcedType>-->

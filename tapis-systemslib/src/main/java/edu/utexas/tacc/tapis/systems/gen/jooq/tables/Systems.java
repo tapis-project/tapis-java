@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.systems.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.systems.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.systems.gen.jooq.TapisSys;
 import edu.utexas.tacc.tapis.systems.gen.jooq.tables.records.SystemsRecord;
-import edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod;
+import edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.model.TSystem.SystemType;
 
 import java.time.LocalDateTime;
@@ -39,7 +39,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Systems extends TableImpl<SystemsRecord> {
 
-    private static final long serialVersionUID = -809239004;
+    private static final long serialVersionUID = 298547547;
 
     /**
      * The reference instance of <code>tapis_sys.systems</code>
@@ -55,9 +55,9 @@ public class Systems extends TableImpl<SystemsRecord> {
     }
 
     /**
-     * The column <code>tapis_sys.systems.id</code>. System id
+     * The column <code>tapis_sys.systems.seq_id</code>. System sequence id
      */
-    public final TableField<SystemsRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('systems_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "System id");
+    public final TableField<SystemsRecord, Integer> SEQ_ID = createField(DSL.name("seq_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('systems_seq_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "System sequence id");
 
     /**
      * The column <code>tapis_sys.systems.tenant</code>. Tenant name associated with system
@@ -65,9 +65,9 @@ public class Systems extends TableImpl<SystemsRecord> {
     public final TableField<SystemsRecord, String> TENANT = createField(DSL.name("tenant"), org.jooq.impl.SQLDataType.VARCHAR(24).nullable(false), this, "Tenant name associated with system");
 
     /**
-     * The column <code>tapis_sys.systems.name</code>. Unique name for the system
+     * The column <code>tapis_sys.systems.id</code>. Unique name for the system
      */
-    public final TableField<SystemsRecord, String> NAME = createField(DSL.name("name"), org.jooq.impl.SQLDataType.VARCHAR(256).nullable(false), this, "Unique name for the system");
+    public final TableField<SystemsRecord, String> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.VARCHAR(80).nullable(false), this, "Unique name for the system");
 
     /**
      * The column <code>tapis_sys.systems.description</code>. System description
@@ -100,9 +100,9 @@ public class Systems extends TableImpl<SystemsRecord> {
     public final TableField<SystemsRecord, String> EFFECTIVE_USER_ID = createField(DSL.name("effective_user_id"), org.jooq.impl.SQLDataType.VARCHAR(60).nullable(false), this, "User name to use when accessing the system");
 
     /**
-     * The column <code>tapis_sys.systems.default_access_method</code>. Enum for how authorization is handled by default
+     * The column <code>tapis_sys.systems.default_authn_method</code>. Enum for how authorization is handled by default
      */
-    public final TableField<SystemsRecord, AccessMethod> DEFAULT_ACCESS_METHOD = createField(DSL.name("default_access_method"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.systems.gen.jooq.enums.AccessMethType.class), this, "Enum for how authorization is handled by default", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.systems.gen.jooq.enums.AccessMethType, edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod>(edu.utexas.tacc.tapis.systems.gen.jooq.enums.AccessMethType.class, edu.utexas.tacc.tapis.systems.model.TSystem.AccessMethod.class));
+    public final TableField<SystemsRecord, AuthnMethod> DEFAULT_AUTHN_METHOD = createField(DSL.name("default_authn_method"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.systems.gen.jooq.enums.AuthnMethType.class), this, "Enum for how authorization is handled by default", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.systems.gen.jooq.enums.AuthnMethType, edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod>(edu.utexas.tacc.tapis.systems.gen.jooq.enums.AuthnMethType.class, edu.utexas.tacc.tapis.systems.model.TSystem.AuthnMethod.class));
 
     /**
      * The column <code>tapis_sys.systems.bucket_name</code>. Name of the bucket for an S3 system
@@ -110,9 +110,9 @@ public class Systems extends TableImpl<SystemsRecord> {
     public final TableField<SystemsRecord, String> BUCKET_NAME = createField(DSL.name("bucket_name"), org.jooq.impl.SQLDataType.VARCHAR(63), this, "Name of the bucket for an S3 system");
 
     /**
-     * The column <code>tapis_sys.systems.root_dir</code>. Name of root directory for a Unix system
+     * The column <code>tapis_sys.systems.root_dir</code>. Effective root directory path for a Unix system
      */
-    public final TableField<SystemsRecord, String> ROOT_DIR = createField(DSL.name("root_dir"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "Name of root directory for a Unix system");
+    public final TableField<SystemsRecord, String> ROOT_DIR = createField(DSL.name("root_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "Effective root directory path for a Unix system");
 
     /**
      * The column <code>tapis_sys.systems.transfer_methods</code>. List of supported transfer methods
@@ -140,29 +140,59 @@ public class Systems extends TableImpl<SystemsRecord> {
     public final TableField<SystemsRecord, Integer> PROXY_PORT = createField(DSL.name("proxy_port"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("'-1'::integer", org.jooq.impl.SQLDataType.INTEGER)), this, "Proxy port number");
 
     /**
-     * The column <code>tapis_sys.systems.job_can_exec</code>. Indicates if system will be used to execute jobs
+     * The column <code>tapis_sys.systems.dtn_system_id</code>. Alternate system to use as a Data Transfer Node (DTN)
      */
-    public final TableField<SystemsRecord, Boolean> JOB_CAN_EXEC = createField(DSL.name("job_can_exec"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("false", org.jooq.impl.SQLDataType.BOOLEAN)), this, "Indicates if system will be used to execute jobs");
+    public final TableField<SystemsRecord, String> DTN_SYSTEM_ID = createField(DSL.name("dtn_system_id"), org.jooq.impl.SQLDataType.VARCHAR(80), this, "Alternate system to use as a Data Transfer Node (DTN)");
 
     /**
-     * The column <code>tapis_sys.systems.job_local_working_dir</code>. Parent directory from which a job is run and where inputs and application assets are staged
+     * The column <code>tapis_sys.systems.dtn_mount_point</code>. Mount point on local system for the DTN
      */
-    public final TableField<SystemsRecord, String> JOB_LOCAL_WORKING_DIR = createField(DSL.name("job_local_working_dir"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "Parent directory from which a job is run and where inputs and application assets are staged");
+    public final TableField<SystemsRecord, String> DTN_MOUNT_POINT = createField(DSL.name("dtn_mount_point"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "Mount point on local system for the DTN");
 
     /**
-     * The column <code>tapis_sys.systems.job_local_archive_dir</code>. Parent directory used for archiving job output files
+     * The column <code>tapis_sys.systems.dtn_sub_dir</code>. Optional subdirectory relative to dtnMountPoint
      */
-    public final TableField<SystemsRecord, String> JOB_LOCAL_ARCHIVE_DIR = createField(DSL.name("job_local_archive_dir"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "Parent directory used for archiving job output files");
+    public final TableField<SystemsRecord, String> DTN_SUB_DIR = createField(DSL.name("dtn_sub_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "Optional subdirectory relative to dtnMountPoint");
 
     /**
-     * The column <code>tapis_sys.systems.job_remote_archive_system</code>. Remote system on which job output files will be archived
+     * The column <code>tapis_sys.systems.can_exec</code>. Indicates if system can be used to execute jobs
      */
-    public final TableField<SystemsRecord, String> JOB_REMOTE_ARCHIVE_SYSTEM = createField(DSL.name("job_remote_archive_system"), org.jooq.impl.SQLDataType.VARCHAR(256), this, "Remote system on which job output files will be archived");
+    public final TableField<SystemsRecord, Boolean> CAN_EXEC = createField(DSL.name("can_exec"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("false", org.jooq.impl.SQLDataType.BOOLEAN)), this, "Indicates if system can be used to execute jobs");
 
     /**
-     * The column <code>tapis_sys.systems.job_remote_archive_dir</code>. Parent directory used for archiving job output files on a remote system
+     * The column <code>tapis_sys.systems.job_working_dir</code>. Parent directory from which a job is run. Relative to effective root directory.
      */
-    public final TableField<SystemsRecord, String> JOB_REMOTE_ARCHIVE_DIR = createField(DSL.name("job_remote_archive_dir"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "Parent directory used for archiving job output files on a remote system");
+    public final TableField<SystemsRecord, String> JOB_WORKING_DIR = createField(DSL.name("job_working_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "Parent directory from which a job is run. Relative to effective root directory.");
+
+    /**
+     * The column <code>tapis_sys.systems.job_env_variables</code>. Environment variables added to shell environment
+     */
+    public final TableField<SystemsRecord, String[]> JOB_ENV_VARIABLES = createField(DSL.name("job_env_variables"), org.jooq.impl.SQLDataType.CLOB.getArrayDataType(), this, "Environment variables added to shell environment");
+
+    /**
+     * The column <code>tapis_sys.systems.job_max_jobs</code>. Maximum total number of jobs that can be queued or running on the system at a given time.
+     */
+    public final TableField<SystemsRecord, Integer> JOB_MAX_JOBS = createField(DSL.name("job_max_jobs"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("'-1'::integer", org.jooq.impl.SQLDataType.INTEGER)), this, "Maximum total number of jobs that can be queued or running on the system at a given time.");
+
+    /**
+     * The column <code>tapis_sys.systems.job_max_jobs_per_user</code>. Maximum total number of jobs associated with a specific user that can be queued or running on the system at a given time.
+     */
+    public final TableField<SystemsRecord, Integer> JOB_MAX_JOBS_PER_USER = createField(DSL.name("job_max_jobs_per_user"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("'-1'::integer", org.jooq.impl.SQLDataType.INTEGER)), this, "Maximum total number of jobs associated with a specific user that can be queued or running on the system at a given time.");
+
+    /**
+     * The column <code>tapis_sys.systems.job_is_batch</code>. Flag indicating if system uses a batch scheduler to run jobs.
+     */
+    public final TableField<SystemsRecord, Boolean> JOB_IS_BATCH = createField(DSL.name("job_is_batch"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("false", org.jooq.impl.SQLDataType.BOOLEAN)), this, "Flag indicating if system uses a batch scheduler to run jobs.");
+
+    /**
+     * The column <code>tapis_sys.systems.batch_scheduler</code>. Type of scheduler used when running batch jobs
+     */
+    public final TableField<SystemsRecord, String> BATCH_SCHEDULER = createField(DSL.name("batch_scheduler"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "Type of scheduler used when running batch jobs");
+
+    /**
+     * The column <code>tapis_sys.systems.batch_default_logical_queue</code>. Default logical batch queue for the system
+     */
+    public final TableField<SystemsRecord, String> BATCH_DEFAULT_LOGICAL_QUEUE = createField(DSL.name("batch_default_logical_queue"), org.jooq.impl.SQLDataType.VARCHAR(128), this, "Default logical batch queue for the system");
 
     /**
      * The column <code>tapis_sys.systems.tags</code>. Tags for user supplied key:value pairs
@@ -177,7 +207,7 @@ public class Systems extends TableImpl<SystemsRecord> {
     /**
      * The column <code>tapis_sys.systems.import_ref_id</code>. Optional reference ID for systems created via import
      */
-    public final TableField<SystemsRecord, String> IMPORT_REF_ID = createField(DSL.name("import_ref_id"), org.jooq.impl.SQLDataType.VARCHAR(256), this, "Optional reference ID for systems created via import");
+    public final TableField<SystemsRecord, String> IMPORT_REF_ID = createField(DSL.name("import_ref_id"), org.jooq.impl.SQLDataType.VARCHAR(80), this, "Optional reference ID for systems created via import");
 
     /**
      * The column <code>tapis_sys.systems.deleted</code>. Indicates if system has been soft deleted
@@ -234,7 +264,7 @@ public class Systems extends TableImpl<SystemsRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.SYS_TENANT_NAME_IDX);
+        return Arrays.<Index>asList(Indexes.SYS_HOST_IDX, Indexes.SYS_OWNER_IDX, Indexes.SYS_TENANT_NAME_IDX);
     }
 
     @Override
@@ -249,7 +279,7 @@ public class Systems extends TableImpl<SystemsRecord> {
 
     @Override
     public List<UniqueKey<SystemsRecord>> getKeys() {
-        return Arrays.<UniqueKey<SystemsRecord>>asList(Keys.SYSTEMS_PKEY, Keys.SYSTEMS_TENANT_NAME_KEY);
+        return Arrays.<UniqueKey<SystemsRecord>>asList(Keys.SYSTEMS_PKEY, Keys.SYSTEMS_TENANT_ID_KEY);
     }
 
     @Override

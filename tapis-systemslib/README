@@ -1,0 +1,25 @@
+TapisV3 Systems Lib Notes
+=======================================
+
+------------
+Introduction
+------------
+This is the TapisV3 Systems back end library code.
+
+-------------------------------------
+Schema updates pre-flyway
+-------------------------------------
+Procedure for modifying the DB schema before moving to use of incremental migrations using flyway.
+1. Make changes in lib/src/main/resources/db/migration/V001__init.sql
+2. Make changes in Dao implementation. Be sure to update for tables and columns that have been renamed or removed.
+     Or proceed with steps 3,4,5 and see what compile failures happen, then make updates.
+3. Make sure local DB is up and lib/pom.xml has correct jdbc url, username and password
+4. Use sql in lib/src/main/resources/sql/reset_db.sql to reset the schema
+5. Run the maven profile to re-create the schema and generate/update the jooq source code:
+   a. cd lib
+   b. mvn clean install -Pdb-update
+6. If necessary fix any compile errors (such as in the Dao) and then you should be able to run a top level
+   mvn clean install.
+7. Using "git status" you should be able to see the updates to the jooq source code.
+8. Make other updates as needed for Dao and service layers. For example, if columns added this is the time
+   to start adding the new model attributes to the code.
