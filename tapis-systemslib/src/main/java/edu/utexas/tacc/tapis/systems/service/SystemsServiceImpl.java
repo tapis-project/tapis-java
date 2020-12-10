@@ -614,7 +614,7 @@ public class SystemsServiceImpl implements SystemsService
 //                              null, SERVICE_NAME_SYSTEMS, svcMasterTenant, null, siteId, svcJwt);
     // TODO: Revisit how to manage skClient instances.
     // Get service master tenant
-    String svcMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(siteId);
+    String svcMasterTenant = TenantManager.getInstance().getSiteAdminTenantId(siteId);
     if (StringUtils.isBlank(svcMasterTenant)) svcMasterTenant = SYSTEMS_DEFAULT_MASTER_TENANT;
     // Create user for SK client
     // NOTE: getSKClient() does not require the jwt to be set in AuthenticatedUser but we keep it here as a reminder

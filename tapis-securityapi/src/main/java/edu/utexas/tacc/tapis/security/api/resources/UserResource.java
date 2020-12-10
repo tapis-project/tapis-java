@@ -1003,7 +1003,7 @@ public final class UserResource
          // The requestor will always be non-null after the above check. 
          String grantor = SkConstants.SK_USER;
          String site = RuntimeParameters.getInstance().getSiteId();
-         String grantorTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
+         String grantorTenant = TenantManager.getInstance().getSiteAdminTenantId(site);
 
          // Create the role and/or permission.
          int rows = 0;

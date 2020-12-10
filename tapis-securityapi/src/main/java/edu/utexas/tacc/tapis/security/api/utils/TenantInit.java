@@ -77,12 +77,12 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     private void initialize()
     {
-        // Get the site-master tenant id.
+        // Get the site-admin tenant id.
         final String site = RuntimeParameters.getInstance().getSiteId();
-        final String siteMasterTenant = TenantManager.getInstance().getSiteMasterTenantId(site);
+        final String siteAdminTenant = TenantManager.getInstance().getSiteAdminTenantId(site);
         
         // One time initialization for tenants service.
-        initializeTenantServiceRole(siteMasterTenant);
+        initializeTenantServiceRole(siteAdminTenant);
         
         // Inspect each tenant.
         for (var entry : _tenantMap.entrySet()) 
@@ -93,19 +93,19 @@ public final class TenantInit
         	
         	// Guarantee that there's at least one administrator id in each tenant.
         	// Administrators are users assigned the $!tenant_admin role. 
-        	initializeTenantAdmin(tenantId, siteMasterTenant, tenant.getAdminUser());
+        	initializeTenantAdmin(tenantId, siteAdminTenant, tenant.getAdminUser());
         	
         	// Assign authenticator roles to services, which allows those services
         	// to request user tokens from the Tokens service.  The roles conform
         	// to the format <tenant>_token_generator.
-        	initializeAuthenticators(tenantId, siteMasterTenant, tenant.getTokenGenServices());
+        	initializeAuthenticators(tenantId, siteAdminTenant, tenant.getTokenGenServices());
         }
     }
     
     /* ---------------------------------------------------------------------- */
     /* initializeTenantServiceRole:                                           */
     /* ---------------------------------------------------------------------- */
-    private void initializeTenantServiceRole(String siteMasterTenant)
+    private void initializeTenantServiceRole(String siteAdminTenant)
     {
         // Designate the tenants service identifiers.
         final String primaryTenant = TapisConstants.PRIMARY_SITE_TENANT;
@@ -140,7 +140,7 @@ public final class TenantInit
             String desc = "Tenants service creator role";
             UserImpl.getInstance().grantRoleInternal(roleName, primaryTenant, desc, 
             		                                 tenantService, primaryTenant,
-            		                                 SK_USER, siteMasterTenant);
+            		                                 SK_USER, siteAdminTenant);
             String msg = MsgUtils.getMsg("SK_TENANT_CREATOR_ASSIGNED", primaryTenant, tenantService, roleName);
             _log.info(msg);
         } catch (Exception e) {
@@ -154,7 +154,7 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     /* initializeTenantAdmin:                                                 */
     /* ---------------------------------------------------------------------- */
-    private void initializeTenantAdmin(String tenant, String siteMasterTenant, 
+    private void initializeTenantAdmin(String tenant, String siteAdminTenant, 
     		                           String adminUser)
     {
         // Get the list of admins in the tenant.
@@ -185,7 +185,7 @@ public final class TenantInit
             // Assign role to the default administrator for this tenant, creating
             // the role if necessary.  This calls the internal grant method 
             // that does not check whether the requestor is an administrator. 
-        	UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteMasterTenant);
+        	UserImpl.getInstance().grantAdminRoleInternal(adminUser, tenant, SK_USER, siteAdminTenant);
         	String msg = MsgUtils.getMsg("SK_TENANT_ADMIN_ASSIGNED", tenant, adminUser,
                                   		 UserImpl.ADMIN_ROLE_NAME);
             _log.info(msg);
@@ -201,14 +201,14 @@ public final class TenantInit
     /* ---------------------------------------------------------------------- */
     /* initializeAuthenticators:                                              */
     /* ---------------------------------------------------------------------- */
-    private void initializeAuthenticators(String tenant, String siteMasterTenant,
+    private void initializeAuthenticators(String tenant, String siteAdminTenant,
     		                              List<String> tokgenServices)
     {
-        // The role is always owned by tokens@<site-master>, always defined in the
-        // site-master tenant, and always assigned to services in the site-master tenant.
-        final String tokgenRoleTenant = siteMasterTenant;
+        // The role is always owned by tokens@<site-admin>, always defined in the
+        // site-admin tenant, and always assigned to services in the site-admin tenant.
+        final String tokgenRoleTenant = siteAdminTenant;
         final String tokgenOwner = "tokens";
-        final String tokgenOwnerTenant = siteMasterTenant;
+        final String tokgenOwnerTenant = siteAdminTenant;
         final String roleName = UserImpl.getInstance().makeTenantTokenGeneratorRolename(tenant);
         final String desc = "Tenant token generator role";
         
