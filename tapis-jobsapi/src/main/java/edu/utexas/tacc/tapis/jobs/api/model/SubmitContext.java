@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -18,10 +16,7 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
-import edu.utexas.tacc.tapis.shared.model.ArgSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
-import edu.utexas.tacc.tapis.shared.model.KeyValueString;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -327,10 +322,16 @@ public final class SubmitContext
     private void resolveParameterSet()
     {
         // Copy the application's parameterSet into a shared library parameterSet.
+        // Also included are any environment variables set in the system definition.
         // The returned parmSet is never null.
         var appParmSet = _app.getJobAttributes().getParameterSet();
-        JobParameterSet parmSet = new JobParmSetMarshaller().marshalAppParmSet(appParmSet);
+        var sysEnv = _execSystem.getJobEnvVariables();
+        var marshaller = new JobParmSetMarshaller();
+        JobParameterSet marshalledParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
         
+        // Parameters set in the job submission request have the highest precedence.
+        JobParameterSet mergedParmSet = 
+           marshaller.mergeParmSets(_submitReq.getParameterSet(), marshalledParmSet);
     }
     
     /* ---------------------------------------------------------------------------- */

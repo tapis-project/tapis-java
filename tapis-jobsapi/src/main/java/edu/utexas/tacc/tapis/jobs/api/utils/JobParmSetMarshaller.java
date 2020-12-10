@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.utils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
@@ -18,14 +19,20 @@ public final class JobParmSetMarshaller
     /* marshalAppParmSet:                                                           */
     /* ---------------------------------------------------------------------------- */
     /** Populate the standard sharedlib version of ParameterSet with the generated
-     * version passed by the app service.  Note that we trust the app version to
-     * conform to the schema defined in TapisDefinitions.json.
+     * data passed by the apps and systems services.  These inputs have a different
+     * package type but are otherwise the same as the corresponding types in the 
+     * shared library.  
+     * 
+     * Note that we trust the app and systems inputs to conform to the schema 
+     * defined in TapisDefinitions.json.
      * 
      * @param appParmSet the parameterSet retrieved from the app definition.
+     * @param sysEnv the environment variable list from systems
      * @return the populate sharedlib parameterSet object, never null
      */
     public JobParameterSet marshalAppParmSet(
-        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet)
+        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysEnv)
     {
         // Always create a new parameter set.
         var parmSet = new JobParameterSet();
@@ -45,13 +52,22 @@ public final class JobParmSetMarshaller
         
         // Null can be returned from the marshal method.
         var appEnvVariables = appParmSet.getEnvVariables();
-        parmSet.setEnvVariables(marshalAppKvList(appEnvVariables));
+        parmSet.setEnvVariables(marshalAppKvList(appEnvVariables, sysEnv));
         
         // Null can be returned from the marshal method.
         var appArchiveFilter = appParmSet.getArchiveFilter();
         parmSet.setArchiveFilter(marshalAppAchiveFilter(appArchiveFilter));
         
         return parmSet;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeParmSets:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    public JobParameterSet mergeParmSets(JobParameterSet reqParmSet,
+                                         JobParameterSet appParmSet)
+    {
+        return reqParmSet;
     }
 
     /* **************************************************************************** */
@@ -104,27 +120,61 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* marshalAppKvList:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** Populate the standard sharedlib version of KeyValueString with the generated
-     * version passed by the app service.  Note that we trust the app version to
-     * conform to the schema defined in TapisDefinitions.json.
+    /** Convenience method when there's no secondary list from systems.
      * 
-     * @param appKvList app generated kv list or null
+     * @param appKvList apps generated kv list or null
      * @return the populated standard list or null
      */
     private List<KeyValueString> marshalAppKvList(
-        java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList)
+            java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList)
+    {return marshalAppKvList(appKvList, null);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* marshalAppKvList:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Populate the standard sharedlib version of KeyValueString with the generated
+     * version passed by the apps and systems service.  
+     * 
+     * Note that we trust the apps and systems inputs to conform to the schema 
+     * defined in TapisDefinitions.json.
+     * 
+     * @param appKvList apps generated kv list or null
+     * @param sysKvList systems generated kv list or null
+     * @return the populated standard list or null
+     */
+    private List<KeyValueString> marshalAppKvList(
+        java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList,
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysKvList)
     {
         // The kv list is optional.
-        if (appKvList == null) return null;
+        if (appKvList == null && sysKvList == null) return null;
         var kvList = new ArrayList<KeyValueString>();
         
-        // Copy item by item.
-        for (var appKv : appKvList) {
-            var kv = new KeyValueString();
-            kv.setKey(appKv.getKey());
-            kv.setValue(appKv.getValue());
-            kvList.add(kv);
-        }
+        // Since an app's environment variable values take precedence over
+        // those set in the execution system, we use this set to track the
+        // app-defined environment variable names.
+        HashSet<String> appKeys = null;
+        if (sysKvList != null) appKeys = new HashSet<String>();
+        
+        // Copy item by item from apps list.
+        if (appKvList != null)
+            for (var appKv : appKvList) {
+                var kv = new KeyValueString();
+                if (appKeys != null) appKeys.add(appKv.getKey());
+                kv.setKey(appKv.getKey());
+                kv.setValue(appKv.getValue());
+                kvList.add(kv);
+            }
+        
+        // Copy non-conflict items from systems list.
+        if (sysKvList != null)
+            for (var sysKv : sysKvList) {
+                if (appKeys.contains(sysKv.getKey())) continue;
+                var kv = new KeyValueString();
+                kv.setKey(sysKv.getKey());
+                kv.setValue(sysKv.getValue());
+                kvList.add(kv);
+            }
         
         return kvList;
     }
