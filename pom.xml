@@ -108,7 +108,6 @@
     <module>tapis-securityapi</module>
     <module>tapis-securitylib</module>
     <module>tapis-securitymigrate</module>
-    <module>tapis-metaapi</module>
     <module>tapis-jobsapi</module>
     <module>tapis-jobslib</module>
     <module>tapis-jobsmigrate</module>
