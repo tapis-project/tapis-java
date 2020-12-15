@@ -97,6 +97,7 @@ CREATE INDEX jobs_status_idx ON jobs (status);
 CREATE INDEX jobs_app_id_idx ON jobs (app_id, tenant);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
+CREATE INDEX jobs_dtn_system_idx ON jobs (dtn_system_id);
 
 -- ----------------------------------------------------------------------------------------
 --                                       Job Tags
