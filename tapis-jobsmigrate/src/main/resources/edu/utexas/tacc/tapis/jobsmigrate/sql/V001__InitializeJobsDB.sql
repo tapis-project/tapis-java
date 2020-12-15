@@ -54,8 +54,8 @@ CREATE TABLE jobs
   archive_system_dir          character varying(4096),
   
   dtn_system_id               character varying(80),
+  dtn_mount_source_path       character varying(1024),
   dtn_mount_point             character varying(1024),
-  dtn_sub_dir                 character varying(1024),
   
   node_count                  integer NOT NULL,
   cores_per_node              integer NOT NULL,

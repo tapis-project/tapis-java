@@ -50,8 +50,8 @@ public final class Job
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
     private String              dtnSystemId;
+    private String              dtnMountSourcePath;
     private String              dtnMountPoint;
-    private String              dtnSubDir;
     private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
     private int      			memoryMB = DEFAULT_MEM_MB;
@@ -289,20 +289,20 @@ public final class Job
         this.dtnSystemId = dtnSystemId;
     }
 
+    public String getDtnMountSourcePath() {
+        return dtnMountSourcePath;
+    }
+
+    public void setDtnMountSourcePath(String dtnMountSourcePath) {
+        this.dtnMountSourcePath = dtnMountSourcePath;
+    }
+
     public String getDtnMountPoint() {
         return dtnMountPoint;
     }
 
     public void setDtnMountPoint(String dtnMountPoint) {
         this.dtnMountPoint = dtnMountPoint;
-    }
-
-    public String getDtnSubDir() {
-        return dtnSubDir;
-    }
-
-    public void setDtnSubDir(String dtnSubDir) {
-        this.dtnSubDir = dtnSubDir;
     }
 
 	public int getNodeCount() {

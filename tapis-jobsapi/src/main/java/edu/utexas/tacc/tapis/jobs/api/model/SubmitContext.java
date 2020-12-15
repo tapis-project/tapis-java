@@ -20,6 +20,8 @@ import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisUrlUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
@@ -240,15 +242,6 @@ public final class SubmitContext
         // See if the execution system specifies a DTN.
         if (StringUtils.isBlank(_execSystem.getDtnSystemId())) return;
         
-        // Check the use DTN flag.
-        Boolean appFlag = _app.getJobAttributes().getUseDtnIfDefined();
-        Boolean reqFlag = _submitReq.isUseDtnIfDefined();
-        boolean dtnFlag;
-        if (appFlag == null && reqFlag == null) dtnFlag = Job.DEFAULT_USE_DTN;
-        else if (reqFlag != null) dtnFlag = reqFlag;
-        else dtnFlag = appFlag;
-        if (!dtnFlag) return;
-        
         // Load the system definition.
         boolean requireExecPerm = false;
         _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
@@ -310,9 +303,12 @@ public final class SubmitContext
         // from the system, app and request definitions.
         resolveParameterSet();
         
-        // Combine the DTN flag values from apps and the request.
-        resovleDtnFlag();
-        
+//      // A mount point must also be specified.
+//      String dtnMountPoint = _execSystem.getDtnMountPoint();
+//      if (StringUtils.isBlank(dtnMountPoint)) {
+//          String msg = MsgUtils.getMsg("SYSTEMS_DTN_NO_MOUNTPOINT", _execSystem, dtnSystemId);
+//          throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//      }
         
     }
     
@@ -364,35 +360,6 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* resovleDtnFlag:                                                              */
-    /* ---------------------------------------------------------------------------- */
-    private void resovleDtnFlag() throws TapisImplException
-    {
-        // Determine if we should even look at the DTN definitions in the exec system.
-        // The default is true so unless the app and/or request explicitly prevent
-        // the use of DTN information, we use it.
-        Boolean flag = _app.getJobAttributes().getUseDtnIfDefined();
-        if (_submitReq.isUseDtnIfDefined() != null) flag = _submitReq.isUseDtnIfDefined();
-        if (flag != null && !flag) return; // ignore dtn configuration
-        
-        // Determine if there's any DTN configuration to use.
-        String dtnSystemId = _execSystem.getDtnSystemId();
-        if (StringUtils.isBlank(dtnSystemId)) return;
-        
-        // A mount point must also be specified.
-        String dtnMountPoint = _execSystem.getDtnMountPoint();
-        if (StringUtils.isBlank(dtnMountPoint)) {
-            String msg = MsgUtils.getMsg("SYSTEMS_DTN_NO_MOUNTPOINT", _execSystem, dtnSystemId);
-            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        
-        // We're good.
-        _job.setDtnSystemId(dtnSystemId);
-        _job.setDtnMountPoint(dtnMountPoint);
-        _job.setDtnSubDir(_execSystem.getDtnSubDir());
-    }
-    
-    /* ---------------------------------------------------------------------------- */
     /* validateArgs:                                                                */
     /* ---------------------------------------------------------------------------- */
     private void validateArgs() throws TapisImplException
@@ -405,6 +372,7 @@ public final class SubmitContext
         
         // Check the working directory syntax.
         
+        // Check that the dtn system is defined as a dtn.
         
     }
 
