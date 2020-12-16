@@ -18,7 +18,6 @@ public class ReqSubmitJob
     private String   			appId;
     private String   			appVersion;
     private Boolean  			archiveOnAppError;  // not assigned by default
-    private Boolean             useDtnIfDefined;    // not assigned by default
     private Boolean             dynamicExecSystem;  // not assigned by default
     private String   			execSystemId;
     private String   			execSystemExecDir;
@@ -26,12 +25,12 @@ public class ReqSubmitJob
     private String   			execSystemOutputDir;
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
-    private int      			nodeCount = Job.DEFAULT_NODE_COUNT;
-    private int      			coresPerNode = Job.DEFAULT_CORES_PER_NODE;
-    private int      			memoryMB = Job.DEFAULT_MEM_MB;
-    private int      			maxMinutes = Job.DEFAULT_MAX_MINUTES;
-    private String   			fileInputs = Job.EMPTY_JSON;
-    private JobParameterSet 	parameterSet;
+    private Integer   			nodeCount;
+    private Integer      		coresPerNode;
+    private Integer      		memoryMB;
+    private Integer      		maxMinutes;
+    private String   			fileInputs;
+    private JobParameterSet 	parameterSet;      // assigned on first use
     private String              execSystemConstraints = Job.EMPTY_JSON;
     private String              subscriptions = Job.EMPTY_JSON;
     private List<String>        tags;
@@ -99,14 +98,6 @@ public class ReqSubmitJob
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
-    public Boolean isUseDtnIfDefined() {
-        return useDtnIfDefined;
-    }
-
-    public void setUseDtnIfDefined(Boolean useDtnIfDefined) {
-        this.useDtnIfDefined = useDtnIfDefined;
-    }
-
 	public Boolean isDynamicExecSystem() {
 		return dynamicExecSystem;
 	}
@@ -163,35 +154,35 @@ public class ReqSubmitJob
 		this.archiveSystemDir = archiveSystemDir;
 	}
 
-	public int getNodeCount() {
+	public Integer getNodeCount() {
 		return nodeCount;
 	}
 
-	public void setNodeCount(int nodeCount) {
+	public void setNodeCount(Integer nodeCount) {
 		this.nodeCount = nodeCount;
 	}
 
-	public int getCoresPerNode() {
+	public Integer getCoresPerNode() {
 		return coresPerNode;
 	}
 
-	public void setCoresPerNode(int coresPerNode) {
+	public void setCoresPerNode(Integer coresPerNode) {
 		this.coresPerNode = coresPerNode;
 	}
 
-	public int getMemoryMB() {
+	public Integer getMemoryMB() {
 		return memoryMB;
 	}
 
-	public void setMemoryMB(int memoryMB) {
+	public void setMemoryMB(Integer memoryMB) {
 		this.memoryMB = memoryMB;
 	}
 
-	public int getMaxMinutes() {
+	public Integer getMaxMinutes() {
 		return maxMinutes;
 	}
 
-	public void setMaxMinutes(int maxMinutes) {
+	public void setMaxMinutes(Integer maxMinutes) {
 		this.maxMinutes = maxMinutes;
 	}
 
@@ -204,6 +195,8 @@ public class ReqSubmitJob
 	}
 
 	public JobParameterSet getParameterSet() {
+	    // Create parameter set on demand if needed.
+	    if (parameterSet == null) parameterSet = new JobParameterSet();
 		return parameterSet;
 	}
 

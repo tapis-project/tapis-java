@@ -81,7 +81,7 @@ public final class SubmitContext
         assignApp();
         
         // Assign all systems needed by job.
-        assignSystems();
+//        assignSystems();
         
         // Calculate all job arguments.
         resolveArgs();
@@ -243,7 +243,7 @@ public final class SubmitContext
         if (StringUtils.isBlank(_execSystem.getDtnSystemId())) return;
         
         // Load the system definition.
-        boolean requireExecPerm = false;
+        final boolean requireExecPerm = false;
         _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
                                           requireExecPerm);
         
@@ -303,19 +303,70 @@ public final class SubmitContext
         // from the system, app and request definitions.
         resolveParameterSet();
         
-//      // A mount point must also be specified.
-//      String dtnMountPoint = _execSystem.getDtnMountPoint();
-//      if (StringUtils.isBlank(dtnMountPoint)) {
-//          String msg = MsgUtils.getMsg("SYSTEMS_DTN_NO_MOUNTPOINT", _execSystem, dtnSystemId);
-//          throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-//      }
+        // Merge job description.
+        if (StringUtils.isBlank(_submitReq.getDescription()))
+            _submitReq.setDescription(_app.getJobAttributes().getDescription());
         
+        // Merge archive flag.
+        if (_submitReq.isArchiveOnAppError() == null)
+            _submitReq.setArchiveOnAppError(_app.getJobAttributes().getArchiveOnAppError());
+        if (_submitReq.isArchiveOnAppError() == null)
+            _submitReq.setArchiveOnAppError(Job.DEFAULT_ARCHIVE_ON_APP_ERROR);
+        
+        // Merge dynamic execution flag.
+        if (_submitReq.isDynamicExecSystem() == null)
+            _submitReq.setDynamicExecSystem(_app.getJobAttributes().getDynamicExecSystem());
+        if (_submitReq.isDynamicExecSystem() == null)
+            _submitReq.setDynamicExecSystem(Job.DEFAULT_DYNAMIC_EXEC_SYSTEM);
+        
+        // Merge node count.
+        if (_submitReq.getNodeCount() == null)
+            _submitReq.setNodeCount(_app.getJobAttributes().getNodeCount());
+        if (_submitReq.getNodeCount() == null)
+            _submitReq.setNodeCount(Job.DEFAULT_NODE_COUNT);
+        
+        // Merge cores per node.
+        if (_submitReq.getCoresPerNode() == null)
+            _submitReq.setCoresPerNode(_app.getJobAttributes().getCoresPerNode());
+        if (_submitReq.getCoresPerNode() == null)
+            _submitReq.setCoresPerNode(Job.DEFAULT_CORES_PER_NODE);
+        
+        // Merge memory MB.
+        if (_submitReq.getMemoryMB() == null)
+            _submitReq.setMemoryMB(_app.getJobAttributes().getMemoryMB());
+        if (_submitReq.getMemoryMB() == null)
+            _submitReq.setMemoryMB(Job.DEFAULT_MEM_MB);
+        
+        // Merge max minutes.
+        if (_submitReq.getMaxMinutes() == null)
+            _submitReq.setMaxMinutes(_app.getJobAttributes().getMaxMinutes());
+        if (_submitReq.getMaxMinutes() == null)
+            _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
+        
+        // Subscriptions.
+        
+        // Merge and validate input files.
+        
+        
+        
+        
+        // Calculate exec system id.
+        if (_submitReq.isDynamicExecSystem()) _submitReq.setExecSystemId(null);
+        else {
+            if (StringUtils.isBlank(_submitReq.getExecSystemId()))
+                _submitReq.setExecSystemId(_app.getJobAttributes().getExecSystemId());
+            if (StringUtils.isBlank(_submitReq.getExecSystemId())) {
+                String msg = MsgUtils.getMsg("JOBS_NO_EXEC_SYSTEM_SPECIFIED");
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
     /* resolveParameterSet:                                                         */
     /* ---------------------------------------------------------------------------- */
-    private void resolveParameterSet()
+    private void resolveParameterSet() 
+     throws TapisImplException
     {
         // Copy the application's parameterSet into a shared library parameterSet.
         // Also included are any environment variables set in the system definition.
@@ -326,37 +377,7 @@ public final class SubmitContext
         JobParameterSet marshalledParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
         
         // Parameters set in the job submission request have the highest precedence.
-        JobParameterSet mergedParmSet = 
-           marshaller.mergeParmSets(_submitReq.getParameterSet(), marshalledParmSet);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* resolveEnvVariables:                                                         */
-    /* ---------------------------------------------------------------------------- */
-    /** Assign the environment variables that will be passed to the application when 
-     * launched.  The environment variables are collected from the system, app and
-     * request in order with increasing priority.
-     */
-    private void resolveEnvVariables() throws TapisImplException
-    {
-        // Initialize the job's environment variables map.
-        var map = new HashMap<String,String>();
-        
-        // Populate the map in order of increasing priority starting with systems.
-        var sysEnv = _execSystem.getJobEnvVariables();
-        if (sysEnv != null) for (var kv : sysEnv) map.put(kv.getKey(), kv.getValue());
-        
-        // Get the app-specified environment variables.
-        var appEnv = _app.getJobAttributes().getParameterSet().getEnvVariables();
-        if (appEnv != null) for (var kv : appEnv) map.put(kv.getKey(), kv.getValue());
-        
-        // Get the request-specified environment variables.
-        JobParameterSet reqParms = _submitReq.getParameterSet();
-        if (reqParms.getEnvVariables() != null) 
-            for (var kv : reqParms.getEnvVariables()) map.put(kv.getKey(), kv.getValue());
-        
-        // Only insert non-empty maps into the job object.
-        if (!map.isEmpty()) _job.setParmEnvVariables(map);
+        marshaller.mergeParmSets(_submitReq.getParameterSet(), marshalledParmSet);
     }
     
     /* ---------------------------------------------------------------------------- */

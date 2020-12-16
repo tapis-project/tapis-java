@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.ws.rs.core.Response.Status;
+
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
 import edu.utexas.tacc.tapis.shared.model.ArgSpec;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
@@ -29,10 +33,12 @@ public final class JobParmSetMarshaller
      * @param appParmSet the parameterSet retrieved from the app definition.
      * @param sysEnv the environment variable list from systems
      * @return the populate sharedlib parameterSet object, never null
+     * @throws TapisImplException 
      */
     public JobParameterSet marshalAppParmSet(
         edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysEnv)
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysEnv) 
+     throws TapisImplException
     {
         // Always create a new parameter set.
         var parmSet = new JobParameterSet();
@@ -64,10 +70,51 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* mergeParmSets:                                                               */
     /* ---------------------------------------------------------------------------- */
-    public JobParameterSet mergeParmSets(JobParameterSet reqParmSet,
-                                         JobParameterSet appParmSet)
+    /** Merge each of the individual components of the application/system parameter set
+     * into the request parameter set. 
+     * 
+     * @param reqParmSet non-null parameters from job request, used for input and output
+     * @param appParmSet non-null parameters from application and system, input only
+     * @throws TapisImplException
+     */
+    public void mergeParmSets(JobParameterSet reqParmSet, JobParameterSet appParmSet) 
+     throws TapisImplException
     {
-        return reqParmSet;
+        // Initialize all fields in the request parameter set. This guarantees
+        // that all fields are non-null at all depth levels.
+        reqParmSet.initAll();
+        
+        // Simple string arguments are just added to the request list.
+        if (appParmSet.getAppArgs() != null) reqParmSet.getAppArgs().addAll(appParmSet.getAppArgs());
+        if (appParmSet.getContainerArgs() != null) reqParmSet.getContainerArgs().addAll(appParmSet.getContainerArgs());
+        if (appParmSet.getSchedulerOptions() != null) reqParmSet.getSchedulerOptions().addAll(appParmSet.getSchedulerOptions());
+        
+        // Validate that the request environment variables contains no duplicate keys.
+        var reqEnvVars = reqParmSet.getEnvVariables();
+        HashSet<String> origReqEnvKeys = new HashSet<String>(1 + reqEnvVars.size() * 2);
+        for (var kv : reqEnvVars) 
+            if (!origReqEnvKeys.add(kv.getKey())) {
+                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", kv.getKey());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        
+        // Add the environment variables from the app only if they do not already
+        // exist in the request set.  The app list has already been checked for
+        // duplicates in the marshalling code.
+        var appEnvVars = appParmSet.getEnvVariables();
+        if (appEnvVars != null && !appEnvVars.isEmpty())
+            for (var kv : appEnvVars) 
+                if (!origReqEnvKeys.contains(kv.getKey())) reqParmSet.getEnvVariables().add(kv);    
+        
+        // Merge the archive files.
+        if (appParmSet.getArchiveFilter() != null) {
+            var appIncludes = appParmSet.getArchiveFilter().getIncludes();
+            var appExcludes = appParmSet.getArchiveFilter().getExcludes();
+            if (appIncludes != null && !appIncludes.isEmpty()) 
+                reqParmSet.getArchiveFilter().getIncludes().addAll(appIncludes);
+            if (appExcludes != null && !appExcludes.isEmpty()) 
+                reqParmSet.getArchiveFilter().getExcludes().addAll(appExcludes);
+        }
     }
 
     /* **************************************************************************** */
@@ -77,7 +124,8 @@ public final class JobParmSetMarshaller
     /* marshalAppArgSpecList:                                                       */
     /* ---------------------------------------------------------------------------- */
     private List<ArgSpec> marshalAppArgSpecList(
-        List<edu.utexas.tacc.tapis.apps.client.gen.model.ArgSpec> appArgSpecList)
+        List<edu.utexas.tacc.tapis.apps.client.gen.model.ArgSpec> appArgSpecList) 
+     throws TapisImplException
     {
         // Is there anything to do?
         if (appArgSpecList == null) return null;
@@ -124,9 +172,11 @@ public final class JobParmSetMarshaller
      * 
      * @param appKvList apps generated kv list or null
      * @return the populated standard list or null
+     * @throws TapisImplException 
      */
     private List<KeyValueString> marshalAppKvList(
-            java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList)
+            java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList) 
+      throws TapisImplException
     {return marshalAppKvList(appKvList, null);}
     
     /* ---------------------------------------------------------------------------- */
@@ -141,10 +191,12 @@ public final class JobParmSetMarshaller
      * @param appKvList apps generated kv list or null
      * @param sysKvList systems generated kv list or null
      * @return the populated standard list or null
+     * @throws TapisImplException 
      */
     private List<KeyValueString> marshalAppKvList(
         java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysKvList)
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysKvList) 
+     throws TapisImplException
     {
         // The kv list is optional.
         if (appKvList == null && sysKvList == null) return null;
@@ -157,26 +209,37 @@ public final class JobParmSetMarshaller
         if (sysKvList != null) appKeys = new HashSet<String>();
         
         // Copy item by item from apps list.
-        if (appKvList != null)
+        if (appKvList != null) {
+            HashSet<String> dups = new HashSet<String>(1 + appKvList.size() * 2);
             for (var appKv : appKvList) {
+                if (!dups.add(appKv.getKey())) {
+                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
                 var kv = new KeyValueString();
                 if (appKeys != null) appKeys.add(appKv.getKey());
                 kv.setKey(appKv.getKey());
                 kv.setValue(appKv.getValue());
                 kvList.add(kv);
             }
+        }
         
         // Copy non-conflict items from systems list.
-        if (sysKvList != null)
+        if (sysKvList != null) {
+            HashSet<String> dups = new HashSet<String>(1 + sysKvList.size() * 2);
             for (var sysKv : sysKvList) {
+                if (!dups.add(sysKv.getKey())) {
+                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "system definition", sysKv.getKey());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
                 if (appKeys.contains(sysKv.getKey())) continue;
                 var kv = new KeyValueString();
                 kv.setKey(sysKv.getKey());
                 kv.setValue(sysKv.getValue());
                 kvList.add(kv);
             }
+        }
         
         return kvList;
     }
-    
 }

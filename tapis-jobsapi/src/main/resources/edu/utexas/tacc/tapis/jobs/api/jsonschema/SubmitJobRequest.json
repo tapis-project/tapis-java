@@ -43,10 +43,6 @@
             "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"
           },
-          "useDtnIfDefined": {
-            "$comment": "Whether to use a DTN for transfers if one is defined in the execution system, default=true",
-            "type": "boolean"
-          },
           "dynamicExecSystem": {
             "$comment": "Whether the best fit execution system should be chosen using execSystemConstraints, default=false",
             "type": "boolean"
@@ -117,8 +113,10 @@
             "$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/Constraint"
           },
           "subscriptions": {
-            "$comment": "******* TBD *******",
-            "type": "object"
+            "$comment": "Subscribe to the job's events",
+            "type": "array",
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/NotificationSubscription"},
+            "uniqueItems": true
           },
           "tags": {
             "$comment": "An array of user-chosen strings that can be associated with a job",
