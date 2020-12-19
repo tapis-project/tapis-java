@@ -1,9 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 
 public class ReqSubmitJob 
  implements IReqBody
@@ -30,16 +31,23 @@ public class ReqSubmitJob
     private Integer      		memoryMB;
     private Integer      		maxMinutes;
     private String   			fileInputs;
-    private JobParameterSet 	parameterSet;      // assigned on first use
-    private String              execSystemConstraints = Job.EMPTY_JSON;
-    private String              subscriptions = Job.EMPTY_JSON;
-    private List<String>        tags;
+    private JobParameterSet 	parameterSet;             // assigned on first get
+    private List<String>        execSystemConstraints;    // assigned on first get
+    private List<String>        tags;                     // assigned on first get
+    private List<NotificationSubscription> subscriptions; // assigned on first get
+    
 
 	@Override
 	public String validate() 
 	{
 		// Success.
 		return null; // json schema validation is sufficient
+	}
+	
+	public String getExecSystemConstraintsAsString()
+	{
+	    if (execSystemConstraints == null || execSystemConstraints.isEmpty()) return "";
+	    return String.join("", execSystemConstraints);
 	}
 
 	public String getName() {
@@ -204,23 +212,26 @@ public class ReqSubmitJob
 		this.parameterSet = parameters;
 	}
 
-	public String getExecSystemConstraints() {
+	public List<String> getExecSystemConstraints() {
+	    if (execSystemConstraints == null) execSystemConstraints = new ArrayList<String>();
 		return execSystemConstraints;
 	}
 
-	public void setExecSystemConstraints(String execSystemConstraints) {
+	public void setExecSystemConstraints(List<String> execSystemConstraints) {
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public String getSubscriptions() {
+	public List<NotificationSubscription> getSubscriptions() {
+	    if (subscriptions == null) subscriptions = new ArrayList<NotificationSubscription>();
 		return subscriptions;
 	}
 
-	public void setSubscriptions(String subscriptions) {
+	public void setSubscriptions(List<NotificationSubscription> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 
     public List<String> getTags() {
+        if (tags == null) tags = new ArrayList<String>();
         return tags;
     }
 

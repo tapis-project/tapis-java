@@ -38,15 +38,16 @@
   <repositories>
     <!-- Include snapshot repo so we can pickup snapshot version of parent bom -->
     <repository>
-      <id>oss.sonatype.org-snapshot</id>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
+        <id>tapis-local-snapshots</id>
+        <name>Local repo for snapshots</name>
+        <url>http://c002.rodeo.tacc.utexas.edu:30044/repository/maven-snapshots</url>
+        <releases>  <enabled>false</enabled> </releases>
+        <snapshots> <enabled>true</enabled>  </snapshots>
+    </repository>
+    <repository>
+        <id>tapis-local-releases</id>
+        <name>Local repo for releases</name>
+        <url>http://c002.rodeo.tacc.utexas.edu:30044/repository/maven-releases</url>
     </repository>
   </repositories>
 
