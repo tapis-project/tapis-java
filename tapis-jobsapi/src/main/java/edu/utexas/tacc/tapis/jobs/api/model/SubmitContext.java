@@ -79,11 +79,11 @@ public final class SubmitContext
         // Get the app.
         assignApp();
         
-        // Assign all systems needed by job.
-//        assignSystems();
-        
         // Calculate all job arguments.
         resolveArgs();
+        
+        // Substitute macro values.
+        
         
         // Validate the job after all arguments are finalized.
         validateArgs();
@@ -216,44 +216,6 @@ public final class SubmitContext
     /*                               Private Methods                                */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
-    /* assignArchiveSystem:                                                         */
-    /* ---------------------------------------------------------------------------- */
-    private void assignArchiveSystem(SystemsClient systemsClient) throws TapisImplException
-    {
-        // Use the system specified in the job submission request if it exists.
-        String archiveSystemId = _submitReq.getExecSystemId();
-        if (StringUtils.isBlank(archiveSystemId)) 
-            archiveSystemId = _app.getJobAttributes().getArchiveSystemId();
-        
-        // It's ok if no archive system is specified.
-        if (StringUtils.isBlank(archiveSystemId)) return;
-        
-        // Load the system definition.
-        boolean requireExecPerm = false;
-        _archiveSystem = loadSystemDefinition(systemsClient, archiveSystemId, requireExecPerm);
-        
-        // Assign job's archive system.
-        _job.setArchiveSystemId(_archiveSystem.getId());
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* assignDtnSystem:                                                             */
-    /* ---------------------------------------------------------------------------- */
-    private void assignDtnSystem(SystemsClient systemsClient) throws TapisImplException
-    {
-        // See if the execution system specifies a DTN.
-        if (StringUtils.isBlank(_execSystem.getDtnSystemId())) return;
-        
-        // Load the system definition.
-        final boolean requireExecPerm = false;
-        _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                          requireExecPerm);
-        
-        // Assign job's DTN system.
-        _job.setDtnSystemId(_dtnSystem.getId());
-    }
-
-    /* ---------------------------------------------------------------------------- */
     /* resolveArgs:                                                                 */
     /* ---------------------------------------------------------------------------- */
     private void resolveArgs() throws TapisImplException
@@ -261,6 +223,9 @@ public final class SubmitContext
         // Combine various components that make up the job's parameterSet from
         // from the system, app and request definitions.
         resolveParameterSet();
+        
+        // Resolve constraints before resolving systems.
+        resolveConstraints();
         
         // Resolve all systems.
         resolveSystems();
@@ -270,9 +235,9 @@ public final class SubmitContext
             _submitReq.setDescription(_app.getJobAttributes().getDescription());
         
         // Merge archive flag.
-        if (_submitReq.isArchiveOnAppError() == null)
+        if (_submitReq.getArchiveOnAppError() == null)
             _submitReq.setArchiveOnAppError(_app.getJobAttributes().getArchiveOnAppError());
-        if (_submitReq.isArchiveOnAppError() == null)
+        if (_submitReq.getArchiveOnAppError() == null)
             _submitReq.setArchiveOnAppError(Job.DEFAULT_ARCHIVE_ON_APP_ERROR);
         
         // Merge node count.
@@ -330,6 +295,23 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* resolveConstraints:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Resolve information relating to the execution system constraints as specified
+     * in the app and/or the request.  The result is to calculate the request's
+     * consolidatedConstraints field with a non-null string value, possibly empty,
+     * for use hereafter. 
+     *  
+     * Request fields guaranteed to be assigned:
+     *  - consolidatedConstraints
+     */  
+    private void resolveConstraints()
+    {
+        var appConstraintList = _app.getJobAttributes().getExecSystemConstraints();
+        _submitReq.consolidateConstraints(appConstraintList);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* resolveSystems:                                                              */
     /* ---------------------------------------------------------------------------- */
     /** Resolve information relating to the execution, archive and dtn systems.
@@ -360,19 +342,34 @@ public final class SubmitContext
         
         // --------------------- Exec System ---------------------
         // Merge dynamic execution flag.
-        if (_submitReq.isDynamicExecSystem() == null)
+        if (_submitReq.getDynamicExecSystem() == null)
             _submitReq.setDynamicExecSystem(_app.getJobAttributes().getDynamicExecSystem());
-        if (_submitReq.isDynamicExecSystem() == null)
+        if (_submitReq.getDynamicExecSystem() == null)
             _submitReq.setDynamicExecSystem(Job.DEFAULT_DYNAMIC_EXEC_SYSTEM);
         
         // Dynamic execution system selection must be explicitly specified.
-        boolean isDynamicExecSystem = _submitReq.isDynamicExecSystem();
+        boolean isDynamicExecSystem = _submitReq.getDynamicExecSystem();
         if (isDynamicExecSystem) resolveDynamicExecSystem(systemsClient);
           else resolveStaticExecSystem(systemsClient);
         
-        // Load the execution system.
+        // --------------------- DTN System ----------------------
+        // Load the dtn system if one is specified.
+        if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
+            boolean requireExecPerm = false;
+           _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
+                                             requireExecPerm, "DTN"); 
+        }
         
-        
+        // --------------------- Archive System ------------------
+        // Load the archive system if one is specified.
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
+            _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
+        if (!StringUtils.isBlank(_submitReq.getArchiveSystemId()))
+          {
+            boolean requireExecPerm = false;
+           _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
+                                                 requireExecPerm, "archive"); 
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -407,12 +404,12 @@ public final class SubmitContext
         // Load the system.
         // Load the system definition.
         boolean requireExecPerm = true;
-        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm);
+        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, "execution");
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
             String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", execSystemId, 
-                                         _submitReq.getOwner(), _submitReq.getTenant());
+                                         _submitReq.getOwner(), _submitReq.getTenant(), "execution");
             throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
         }
     }
@@ -437,7 +434,7 @@ public final class SubmitContext
         // Get the candidates.
         List<TSystem> execSystems;
         ReqMatchConstraints constraints = new ReqMatchConstraints();
-        constraints.addMatchItem(_submitReq.getExecSystemConstraintsAsString());
+        constraints.addMatchItem(_submitReq.getConsolidatedConstraints());
         try {execSystems = systemsClient.matchConstraints(constraints);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Systems", "matchConstraints",
@@ -449,7 +446,7 @@ public final class SubmitContext
         if (execSystems.isEmpty()) {
             String msg = MsgUtils.getMsg("TAPIS_JOBS_NO_MATCHING_SYSTEM", 
                                          _submitReq.getTenant(), _submitReq.getOwner(), 
-                                         _submitReq.getExecSystemConstraintsAsString());
+                                         _submitReq.getConsolidatedConstraints());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
@@ -459,36 +456,6 @@ public final class SubmitContext
         _submitReq.setExecSystemId(_execSystem.getId());
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* assignExecSystemFields:                                                      */
-    /* ---------------------------------------------------------------------------- */
-    private void assignExecSystemFields(SystemsClient systemsClient) throws TapisImplException
-    {
-        // Use the system specified in the job submission request if it exists.
-        String execSystemId = _submitReq.getExecSystemId();
-        if (StringUtils.isBlank(execSystemId)) 
-            execSystemId = _app.getJobAttributes().getExecSystemId();
-                
-        // Abort if we can't determine the exec system id.
-        if (StringUtils.isBlank(execSystemId)) {
-            String msg = MsgUtils.getMsg("TAPIS_JOBS_MISSING_SYSTEM", "execution");
-            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        
-        // Load the system definition.
-        boolean requireExecPerm = true;
-        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm);
-        
-        // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
-        if (_execSystem == null) {
-            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", execSystemId, 
-                                         _submitReq.getOwner(), _submitReq.getTenant());
-            throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
-        }
-        
-        // Assign the  execution system.
-        _submitReq.setExecSystemId(_execSystem.getId());
-    }
     /* ---------------------------------------------------------------------------- */
     /* validateArgs:                                                                */
     /* ---------------------------------------------------------------------------- */
@@ -537,38 +504,43 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private TSystem loadSystemDefinition(SystemsClient systemsClient,
                                          String systemId, 
-                                         boolean requireExecPerm) 
+                                         boolean requireExecPerm,
+                                         String  systemDesc) 
       throws TapisImplException
     {
         // Load the system definition.
         TSystem system = null;
-        boolean returnCreds = false;
+        boolean returnCreds = true;
         AuthnMethod authnMethod = null;
-        try {_execSystem = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
+        try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
         catch (TapisClientException e) {
             // Determine why we failed.
             String msg;
             switch (e.getCode()) {
                 case 400:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", _submitReq.getAppId(), 
-                            _submitReq.getAppVersion(), "READ,EXECUTE", _submitReq.getOwner(), _submitReq.getTenant());
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", systemId, _submitReq.getOwner(), 
+                                          _submitReq.getTenant(), systemDesc);
                 break;
                 
                 case 401:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, _submitReq.getOwner(), _submitReq.getTenant());
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, "READ,EXECUTE", 
+                                          _submitReq.getOwner(), _submitReq.getTenant(), systemDesc);
                 break;
                 
                 case 404:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _submitReq.getOwner(), _submitReq.getTenant());
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _submitReq.getOwner(), 
+                                          _submitReq.getTenant(), systemDesc);
                 break;
                 
                 default:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), _submitReq.getTenant());
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), 
+                                          _submitReq.getTenant(), systemDesc);
             }
             throw new TapisImplException(msg, e, e.getCode());
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), _submitReq.getTenant());
+            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), 
+                                         _submitReq.getTenant(), systemDesc);
             throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
         }
         

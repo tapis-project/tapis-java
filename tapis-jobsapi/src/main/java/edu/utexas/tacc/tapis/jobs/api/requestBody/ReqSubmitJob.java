@@ -36,6 +36,9 @@ public class ReqSubmitJob
     private List<String>        tags;                     // assigned on first get
     private List<NotificationSubscription> subscriptions; // assigned on first get
     
+    // Constraints flattened and aggregated fromp app and job request.
+    private transient String    consolidatedConstraints;          
+    
 
 	@Override
 	public String validate() 
@@ -44,12 +47,33 @@ public class ReqSubmitJob
 		return null; // json schema validation is sufficient
 	}
 	
-	public String getExecSystemConstraintsAsString()
+	/** Combine the sql where clause fragments from the request and application
+	 * constraints into one sql clause.  If neither are set, the combined clause
+	 * is the empty string.  The result is always placed in the synthetic
+	 * consolidatedConstraints field.
+	 * 
+	 * @param appConstraintList the application constraints, can be null
+	 */
+	public void consolidateConstraints(List<String> appConstraintList)
 	{
-	    if (execSystemConstraints == null || execSystemConstraints.isEmpty()) return "";
-	    return String.join("", execSystemConstraints);
+	    // Flatten each list.
+	    String reqConstraints;
+	    if (execSystemConstraints == null || execSystemConstraints.isEmpty())
+	        reqConstraints = "";
+	      else reqConstraints = String.join("", execSystemConstraints);
+	    String appConstraints;
+	    if (appConstraintList == null || appConstraintList.isEmpty())
+	        appConstraints = "";
+	      else appConstraints = String.join("", appConstraintList);
+	    
+	    // Combine the sql content in a conjunction if necessary.
+	    if (!reqConstraints.isEmpty() && !appConstraints.isEmpty())
+	        consolidatedConstraints = "(" + reqConstraints + ") AND (" + appConstraints + ")";
+	    else if (!reqConstraints.isEmpty()) consolidatedConstraints = reqConstraints;
+	    else if (!appConstraints.isEmpty()) consolidatedConstraints = appConstraints;
+	    else consolidatedConstraints = "";
 	}
-
+	
 	public String getName() {
 		return name;
 	}
@@ -98,7 +122,7 @@ public class ReqSubmitJob
 		this.appVersion = appVersion;
 	}
 
-	public Boolean isArchiveOnAppError() {
+	public Boolean getArchiveOnAppError() {
 		return archiveOnAppError;
 	}
 
@@ -106,7 +130,7 @@ public class ReqSubmitJob
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
-	public Boolean isDynamicExecSystem() {
+	public Boolean getDynamicExecSystem() {
 		return dynamicExecSystem;
 	}
 
@@ -237,5 +261,9 @@ public class ReqSubmitJob
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public String getConsolidatedConstraints() {
+        return consolidatedConstraints;
     }
 }
