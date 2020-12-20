@@ -320,8 +320,10 @@ public final class SubmitContext
      *  - dynamicExecSystem
      *  - execSystemId
      *  
-     * Context fields guaranteed to be assigned:
-     *  - _execSystem 
+     * Context fields guaranteed to be assigned if required:
+     *  - _execSystem
+     *  - _dtnSystem
+     *  - _archiveSsytem 
      * 
      * @throws TapisImplException
      */
@@ -457,23 +459,6 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* validateArgs:                                                                */
-    /* ---------------------------------------------------------------------------- */
-    private void validateArgs() throws TapisImplException
-    {
-        // Check the execute flag on the exec system.
-        if (!_execSystem.getCanExec()) {
-            String msg = ""; // ******** TODO
-            throw new TapisImplException(msg, Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        }
-        
-        // Check the working directory syntax.
-        
-        // Check that the dtn system is defined as a dtn.
-        
-    }
-
-    /* ---------------------------------------------------------------------------- */
     /* getSystemsClient:                                                            */
     /* ---------------------------------------------------------------------------- */
     /** Get a new or cached Systems service client.  This can only be called after
@@ -547,4 +532,21 @@ public final class SubmitContext
         return system;
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* validateArgs:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    private void validateArgs() throws TapisImplException
+    {
+        // Check the execute flag on the exec system.
+        if (!_execSystem.getCanExec()) {
+            String msg = ""; // ******** TODO
+            throw new TapisImplException(msg, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+        
+        // Check the working directory syntax.
+        
+        // Check that the dtn system is defined as a dtn.
+        
+    }
+
 }
