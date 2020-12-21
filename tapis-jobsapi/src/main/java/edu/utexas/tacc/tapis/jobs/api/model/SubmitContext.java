@@ -18,6 +18,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -218,6 +219,11 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* resolveArgs:                                                                 */
     /* ---------------------------------------------------------------------------- */
+    /** Resolve all request arguments by folding in argument inherited from systems
+     * and applications.  Validation and macro substitution are handled in later calls.
+     * 
+     * @throws TapisImplException
+     */
     private void resolveArgs() throws TapisImplException
     {
         // Combine various components that make up the job's parameterSet from
@@ -229,6 +235,9 @@ public final class SubmitContext
         
         // Resolve all systems.
         resolveSystems();
+        
+        // Resolve directory assignments.
+        resolveDirectoryPathNames();
         
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
@@ -264,13 +273,12 @@ public final class SubmitContext
         if (_submitReq.getMaxMinutes() == null)
             _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
         
-        // Merge subscriptions.
-        var subscriptions = _submitReq.getSubscriptions(); // force list creation
-     //if (_app.getSubscriptions() != null) subscriptions.addAll(_app.getSubscriptions());
-        
         // Merge tags.
         var tags = _submitReq.getTags(); // force list creation
-     //if (_app.getTags() != null) tags.addAll(_app.getTags());
+        if (_app.getTags() != null) tags.addAll(_app.getTags());
+        
+        // Merge app subscriptions into request subscription list.
+        mergeSubscriptions();
         
         // Merge and validate input files.
         
@@ -319,10 +327,11 @@ public final class SubmitContext
      * Request fields guaranteed to be assigned:
      *  - dynamicExecSystem
      *  - execSystemId
+     *  - archiveSystemId
      *  
      * Context fields guaranteed to be assigned if required:
      *  - _execSystem
-     *  - _dtnSystem
+     *  - _dtnSystem (can be null)
      *  - _archiveSsytem 
      * 
      * @throws TapisImplException
@@ -366,8 +375,16 @@ public final class SubmitContext
         // Load the archive system if one is specified.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
             _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
-        if (!StringUtils.isBlank(_submitReq.getArchiveSystemId()))
-          {
+        
+        // Only the last case has an archive system different from the exec system.
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) {
+            _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
+            _archiveSystem = _execSystem;
+        }
+        else if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId())) {
+            _archiveSystem = _execSystem;
+        }
+        else {
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
                                                  requireExecPerm, "archive"); 
@@ -456,6 +473,87 @@ public final class SubmitContext
         // hardcoded random policy.  This will change in future releases.
         _execSystem = execSystems.get(new Random().nextInt(execSystems.size()));
         _submitReq.setExecSystemId(_execSystem.getId());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveDirectoryPathNames:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Assign the directories of each of the systems participating in this job 
+     * executions.  Note that all paths are relative to the rootDir of the system
+     * on which they are defined.
+     * 
+     * Request fields guaranteed to be assigned:
+     *  - execSystemInputDir
+     *  - execSystemExecDir
+     *  - execSystemOutputDir
+     *  - archiveSystemDir
+     * 
+     */
+    private void resolveDirectoryPathNames()
+    {
+        // --------------------- Exec System ---------------------
+        // The input directory is used as the basis for other exec system path names
+        // if those path names are not explicitly assigned, so it must be assigned first.
+        //
+        // If a dtn is used, then the input directory must be relative to the dtn
+        // mount point rather than the execution system's working directory.
+        if (StringUtils.isBlank(_submitReq.getExecSystemInputDir()))
+            _submitReq.setExecSystemInputDir(_app.getJobAttributes().getExecSystemInputDir());
+        if (StringUtils.isBlank(_submitReq.getExecSystemInputDir())) 
+            if (_dtnSystem == null)
+                _submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
+            else
+                _submitReq.setExecSystemInputDir(Job.DEFAULT_DTN_SYSTEM_INPUT_DIR);
+        
+        // Exec path.
+        if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
+            _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
+        if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
+            _submitReq.setExecSystemExecDir(
+                Job.constructDefaultExecSystemExecDir(_submitReq.getExecSystemInputDir()));
+        
+        // Output path.
+        if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
+            _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
+        if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
+            _submitReq.setExecSystemOutputDir(
+                Job.constructDefaultExecSystemOutputDir(_submitReq.getExecSystemInputDir()));
+      
+        // --------------------- Archive System ------------------
+        // Set the archive system directory.
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
+            _submitReq.setArchiveSystemDir(_app.getJobAttributes().getArchiveSystemDir());
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
+            if (_archiveSystem == _execSystem) 
+                // Leave the output in place when the exec system is also the archive system.
+                _submitReq.setArchiveSystemDir(_submitReq.getExecSystemInputDir());
+            else if (_dtnSystem == null)
+                // When the archive system is different from the exec system,
+                // we archive to the default archive directory.
+                _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
+            else
+                // When the archive system is the DTN, then we archive to the 
+                // DTN's default archive directory.
+                _submitReq.setArchiveSystemDir(Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeSubscriptions:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Add any subscriptions defined in the application to the request's
+     * subscription list, converting from the app type to the request type as we go.
+     * 
+     * Request fields guaranteed to be assigned:
+     *  - subscriptions
+     */
+    private void mergeSubscriptions()
+    {
+        var subscriptions = _submitReq.getSubscriptions(); // force list creation
+        if (_app.getJobAttributes().getSubscriptions() != null) 
+            for (var appSub : _app.getJobAttributes().getSubscriptions()) {
+                NotificationSubscription reqSub = new NotificationSubscription(appSub);
+                subscriptions.add(reqSub);
+            }
     }
     
     /* ---------------------------------------------------------------------------- */

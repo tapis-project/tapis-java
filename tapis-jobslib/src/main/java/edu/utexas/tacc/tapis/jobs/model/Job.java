@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.StringUtils;
+
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -24,6 +26,16 @@ public final class Job
 	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
+	
+	// Default directory assignments.  All paths are relative to their system's 
+	// rootDir unless otherwise noted.  Leading slashes are optional on relative
+	// paths and required on absolute paths.  When the full path names of relative 
+	// paths are constructed, double slashes at the point of concatenation are prevented.
+	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${jobWorkingDir}/jobs/${jobID}";
+	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${dtnMountPoint}/jobs/${jobID}";
+    public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${jobID}/archive";
+    public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
+	
 	
 	// Fields
     private int      			id;
@@ -91,9 +103,49 @@ public final class Job
     	setUuid(new TapisUUID(UUIDType.JOB).toString());
     }
     
+    /* **************************************************************************** */
+    /*                                Public Methods                                */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* toString:                                                                    */
+    /* ---------------------------------------------------------------------------- */
     @Override
     public String toString() {return TapisUtils.toString(this);}
 
+    /* ---------------------------------------------------------------------------- */
+    /* constructDefaultExecSystemExecDir:                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Construct the default path name for the exec system exec directory given the
+     * specified input directory.  If the input directory is null, then the exec
+     * directory path name is constructed relative to the default input directory.
+     * 
+     * @param inputDir the path name relative to which the exec directory path name 
+     *                 is constructed or null 
+     * @return the constructed exec directory path name
+     */
+    public static String constructDefaultExecSystemExecDir(String inputDir)
+    {
+        if (StringUtils.isBlank(inputDir)) return DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+          else return inputDir;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* constructDefaultExecSystemOutputDir:                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Construct the default path name for the exec system output directory given the
+     * specified input directory.  If the input directory is null, then the exec
+     * directory path name is constructed relative to the default input directory.
+     * 
+     * @param inputDir the path name relative to which the output directory path name 
+     *                 is constructed or null 
+     * @return the constructed output directory path name
+     */
+    public static String constructDefaultExecSystemOutputDir(String inputDir)
+    {
+        if (StringUtils.isBlank(inputDir)) inputDir = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+        return inputDir + "/output";
+    }
+    
     /* **************************************************************************** */
     /*                                  Accessors                                   */
     /* **************************************************************************** */
