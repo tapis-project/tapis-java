@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.api.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
@@ -20,8 +21,10 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.model.KeyValueString;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -467,7 +470,7 @@ public final class SubmitContext
         
         // Make sure at least one system met the constraints.
         if (execSystems.isEmpty()) {
-            String msg = MsgUtils.getMsg("TAPIS_JOBS_NO_MATCHING_SYSTEM", 
+            String msg = MsgUtils.getMsg("JOBS_NO_MATCHING_SYSTEM", 
                                          _submitReq.getTenant(), _submitReq.getOwner(), 
                                          _submitReq.getConsolidatedConstraints());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
@@ -568,17 +571,21 @@ public final class SubmitContext
      *
      * Request fields guaranteed to be assigned:
      *  - fileInputs
+     * @throws TapisImplException 
      * 
      */
-    private void resolveFileInputs()
+    private void resolveFileInputs() throws TapisImplException
     {
         // Get the application's input file definitions.
         List<FileInputDefinition> appInputs = _app.getJobAttributes().getFileInputDefinitions();
         if (appInputs == null) appInputs = Collections.emptyList();
-        var processedAppInputNames = new ArrayList<String>(appInputs.size());
+        var processedAppInputNames = new HashSet<String>(1 + appInputs.size() * 2);
         
-        // TODO: ************* TEMP CODE
-        boolean appStrictFileInputs = false;
+        // Get the app's input strictness setting.
+        boolean strictInputs;
+        if (_app.getJobAttributes().getStrictFileInputs() == null)
+            strictInputs = Job.DEFAULT_STRICT_FILE_INPUTS;  // TODO: ********** TEMP, wait for apps constant
+          else strictInputs = _app.getJobAttributes().getStrictFileInputs();
         
         // Process each request file input.
         var reqInputs = _submitReq.getFileInputs();  // forces list creation
@@ -586,25 +593,141 @@ public final class SubmitContext
         for (var reqInput : reqInputs) {
             var meta = reqInput.getMeta();
             if (meta == null || StringUtils.isBlank(meta.getName())) {
+                // ---------------- Unnamed Input ----------------
                 // Are unnamed input file allowed by the application?
-                if (appStrictFileInputs) {
-                    
+                if (strictInputs) {
+                    String msg = MsgUtils.getMsg("JOBS_UNNAMED_FILE_INPUT", _app.getId(), reqInput.getSourceUrl());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
                 
                 // Set the target path if it's not set.
-//                if (StringUtils.isBlank(reqInput.getTargetPath()))
-//                    reqInput.setTargetPath(reqInput.generateTargetPath());
-//                if (StringUtils.isBlank(reqInput.getTargetPath())) {
-//                }
+                if (StringUtils.isBlank(reqInput.getTargetPath()))
+                    reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+                if (StringUtils.isBlank(reqInput.getTargetPath())) {
+                    String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), reqInput.getSourceUrl());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
             }
             else {
-                // Named input file.
+                // ----------------- Named Input -----------------
+                // Get the app definition for this named file input.  Iterate through
+                // the list of definitions looking for a name match.
+                String inputName = meta.getName();
+                FileInputDefinition appInputDef = null;
+                for (var def : appInputs) {
+                    String defName = null;
+                    if (def.getMeta() != null) defName = def.getMeta().getName();
+                    if (inputName.equals(defName)) {
+                        appInputDef = def;
+                        break;
+                    }
+                }
+                
+                // Make sure we found a matching definition.
+                if (appInputDef == null) {
+                    String msg = MsgUtils.getMsg("JOBS_NO_FILE_INPUT_DEFINITION", _app.getId(), inputName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Make sure this isn't a duplicate use of the same name.
+                boolean added = processedAppInputNames.add(inputName);
+                if (!added) {
+                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_FILE_INPUT", _app.getId(), inputName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Merge the application definition values into the request input. 
+                mergeFileInput(reqInput, appInputDef);
             }
             
             // Add the current input to the result list.
             processedInputs.add(reqInput);
         }
         
+        // Add in any inputs that are designated in the application 
+        // with a sourceUrl and not already accounted for.
+        for (var def : appInputs) {
+            if (def.getMeta() == null) continue;  // should never happen
+            String defName = def.getMeta().getName();
+            if (processedAppInputNames.contains(defName)) continue;
+            if (StringUtils.isBlank(def.getSourceUrl())) continue;
+            
+            // Only add in if required.
+            Boolean required = def.getMeta().getRequired();
+            if (required == null || !required) continue;  // TODO:  ****** assumes default is falso
+            
+            // Create and save the new request input object.
+            var inputSpec = new InputSpec();
+            mergeFileInput(inputSpec, def);
+            processedInputs.add(inputSpec);
+        }
+        
+        // Make sure all required inputs were provided.
+        for (var def : appInputs) {
+            if (def.getMeta() == null) continue;  // should never happen
+            Boolean required = def.getMeta().getRequired();
+            if (required == null || !required) continue;  // TODO:  ****** assumes default is falso
+            
+            // Make sure we've processed this named input.
+            String defName = def.getMeta().getName();
+            if (!processedAppInputNames.contains(defName)) {
+                String msg = MsgUtils.getMsg("JOBS_MISSING_FILE_INPUT", _app.getId(), defName);
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeFileInput:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    private void mergeFileInput(InputSpec reqInput, FileInputDefinition appDef)
+     throws TapisImplException
+    {
+        // Assign the source if necessary.
+        if (StringUtils.isBlank(reqInput.getSourceUrl()))
+            reqInput.setSourceUrl(appDef.getSourceUrl());
+        if (StringUtils.isBlank(reqInput.getSourceUrl())) {
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Calculate the target if necessary.
+        if (StringUtils.isBlank(reqInput.getTargetPath()))
+            reqInput.setTargetPath(appDef.getTargetPath());
+        if (StringUtils.isBlank(reqInput.getTargetPath()))
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if (StringUtils.isBlank(reqInput.getTargetPath())) {
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), reqInput.getSourceUrl());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Fill in the rest of the top-level fields.
+        reqInput.setInPlace(appDef.getInPlace());
+        if (reqInput.getInPlace() == null) reqInput.setInPlace(Boolean.FALSE); // TODO:  ****** assumes default is falso
+        
+        // Set up the meta objects.
+        var appMeta = appDef.getMeta();
+        if (appMeta == null) return;
+        ArgMetaSpec reqMeta = new ArgMetaSpec();
+        reqInput.setMeta(reqMeta);
+        
+        // Populate the request meta object.
+        reqMeta.setName(appMeta.getName());
+        reqMeta.setDescription(appMeta.getDescription());
+        reqMeta.setRequired(appMeta.getRequired());  // TODO:  ****** assumes default is falso
+        if (reqMeta.getRequired() == null) reqMeta.setRequired(Boolean.FALSE);
+        
+        // Populate the key/value list.
+        var appKvPairs = appMeta.getKeyValuePairs();
+        if (appKvPairs == null) return;
+        var reqKv = new ArrayList<KeyValueString>();
+        reqMeta.setKv(reqKv);
+        for (var pair : appKvPairs) {
+            var kv = new KeyValueString();
+            kv.setKey(pair.getKey());
+            kv.setValue(pair.getValue());
+            reqKv.add(kv);
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
