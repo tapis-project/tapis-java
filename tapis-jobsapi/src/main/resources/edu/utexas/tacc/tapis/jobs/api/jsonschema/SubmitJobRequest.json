@@ -155,7 +155,7 @@
                     "envVariables": {
                         "$comment": "Environment variables passed into the application container on start up",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/KeyValueString"},
+                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/KeyValuePair"},
                         "uniqueItems": true
                     },
                     "archiveFilter": {

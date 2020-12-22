@@ -12,7 +12,7 @@ import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
 import edu.utexas.tacc.tapis.shared.model.ArgSpec;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
-import edu.utexas.tacc.tapis.shared.model.KeyValueString;
+import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 
 public final class JobParmSetMarshaller 
 {
@@ -174,7 +174,7 @@ public final class JobParmSetMarshaller
      * @return the populated standard list or null
      * @throws TapisImplException 
      */
-    private List<KeyValueString> marshalAppKvList(
+    private List<KeyValuePair> marshalAppKvList(
             java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList) 
       throws TapisImplException
     {return marshalAppKvList(appKvList, null);}
@@ -182,7 +182,7 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* marshalAppKvList:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** Populate the standard sharedlib version of KeyValueString with the generated
+    /** Populate the standard sharedlib version of KeyValuePair with the generated
      * version passed by the apps and systems service.  
      * 
      * Note that we trust the apps and systems inputs to conform to the schema 
@@ -193,14 +193,14 @@ public final class JobParmSetMarshaller
      * @return the populated standard list or null
      * @throws TapisImplException 
      */
-    private List<KeyValueString> marshalAppKvList(
+    private List<KeyValuePair> marshalAppKvList(
         java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
         List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
      throws TapisImplException
     {
         // The kv list is optional.
         if (appKvList == null && sysKvList == null) return null;
-        var kvList = new ArrayList<KeyValueString>();
+        var kvList = new ArrayList<KeyValuePair>();
         
         // Since an app's environment variable values take precedence over
         // those set in the execution system, we use this set to track the
@@ -216,7 +216,7 @@ public final class JobParmSetMarshaller
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
-                var kv = new KeyValueString();
+                var kv = new KeyValuePair();
                 if (appKeys != null) appKeys.add(appKv.getKey());
                 kv.setKey(appKv.getKey());
                 kv.setValue(appKv.getValue());
@@ -233,7 +233,7 @@ public final class JobParmSetMarshaller
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
                 if (appKeys.contains(sysKv.getKey())) continue;
-                var kv = new KeyValueString();
+                var kv = new KeyValuePair();
                 kv.setKey(sysKv.getKey());
                 kv.setValue(sysKv.getValue());
                 kvList.add(kv);

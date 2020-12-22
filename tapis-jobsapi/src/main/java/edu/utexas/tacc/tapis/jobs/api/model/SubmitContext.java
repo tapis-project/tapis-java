@@ -24,7 +24,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
-import edu.utexas.tacc.tapis.shared.model.KeyValueString;
+import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -720,10 +720,10 @@ public final class SubmitContext
         // Populate the key/value list.
         var appKvPairs = appMeta.getKeyValuePairs();
         if (appKvPairs == null) return;
-        var reqKv = new ArrayList<KeyValueString>();
+        var reqKv = new ArrayList<KeyValuePair>();
         reqMeta.setKv(reqKv);
         for (var pair : appKvPairs) {
-            var kv = new KeyValueString();
+            var kv = new KeyValuePair();
             kv.setKey(pair.getKey());
             kv.setValue(pair.getValue());
             reqKv.add(kv);
