@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 
@@ -30,7 +31,7 @@ public class ReqSubmitJob
     private Integer      		coresPerNode;
     private Integer      		memoryMB;
     private Integer      		maxMinutes;
-    private String   			fileInputs;
+    private List<InputSpec>  	fileInputs;
     private JobParameterSet 	parameterSet;             // assigned on first get
     private List<String>        execSystemConstraints;    // assigned on first get
     private List<String>        tags;                     // assigned on first get
@@ -218,11 +219,12 @@ public class ReqSubmitJob
 		this.maxMinutes = maxMinutes;
 	}
 
-	public String getFileInputs() {
+	public List<InputSpec> getFileInputs() {
+	    if (fileInputs == null) fileInputs = new ArrayList<InputSpec>();
 		return fileInputs;
 	}
 
-	public void setFileInputs(String inputs) {
+	public void setFileInputs(List<InputSpec> inputs) {
 		this.fileInputs = inputs;
 	}
 

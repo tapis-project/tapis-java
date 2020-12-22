@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -11,12 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputDefinition;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
@@ -281,7 +285,7 @@ public final class SubmitContext
         mergeSubscriptions();
         
         // Merge and validate input files.
-        
+        resolveFileInputs();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -554,6 +558,53 @@ public final class SubmitContext
                 NotificationSubscription reqSub = new NotificationSubscription(appSub);
                 subscriptions.add(reqSub);
             }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveFileInputs:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Merge and validate the file input specifications from the request and from
+     * the application definition.    
+     *
+     * Request fields guaranteed to be assigned:
+     *  - fileInputs
+     * 
+     */
+    private void resolveFileInputs()
+    {
+        // Get the application's input file definitions.
+        List<FileInputDefinition> appInputs = _app.getJobAttributes().getFileInputDefinitions();
+        if (appInputs == null) appInputs = Collections.emptyList();
+        var processedAppInputNames = new ArrayList<String>(appInputs.size());
+        
+        // TODO: ************* TEMP CODE
+        boolean appStrictFileInputs = false;
+        
+        // Process each request file input.
+        var reqInputs = _submitReq.getFileInputs();  // forces list creation
+        var processedInputs = new ArrayList<InputSpec>(reqInputs.size());
+        for (var reqInput : reqInputs) {
+            var meta = reqInput.getMeta();
+            if (meta == null || StringUtils.isBlank(meta.getName())) {
+                // Are unnamed input file allowed by the application?
+                if (appStrictFileInputs) {
+                    
+                }
+                
+                // Set the target path if it's not set.
+//                if (StringUtils.isBlank(reqInput.getTargetPath()))
+//                    reqInput.setTargetPath(reqInput.generateTargetPath());
+//                if (StringUtils.isBlank(reqInput.getTargetPath())) {
+//                }
+            }
+            else {
+                // Named input file.
+            }
+            
+            // Add the current input to the result list.
+            processedInputs.add(reqInput);
+        }
+        
     }
     
     /* ---------------------------------------------------------------------------- */

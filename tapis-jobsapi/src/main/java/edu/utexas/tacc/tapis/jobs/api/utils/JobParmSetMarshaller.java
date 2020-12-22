@@ -37,7 +37,7 @@ public final class JobParmSetMarshaller
      */
     public JobParameterSet marshalAppParmSet(
         edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysEnv) 
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysEnv) 
      throws TapisImplException
     {
         // Always create a new parameter set.
@@ -139,7 +139,7 @@ public final class JobParmSetMarshaller
                 var argMetaSpec = new ArgMetaSpec();
                 argMetaSpec.setName(appArgSpec.getMeta().getName());
                 argMetaSpec.setRequired(appArgSpec.getMeta().getRequired());
-                argMetaSpec.setKv(marshalAppKvList(appArgSpec.getMeta().getKv()));
+                argMetaSpec.setKv(marshalAppKvList(appArgSpec.getMeta().getKeyValuePairs()));
             }
             appArgs.add(argSpec);
         }
@@ -175,7 +175,7 @@ public final class JobParmSetMarshaller
      * @throws TapisImplException 
      */
     private List<KeyValueString> marshalAppKvList(
-            java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList) 
+            java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList) 
       throws TapisImplException
     {return marshalAppKvList(appKvList, null);}
     
@@ -194,8 +194,8 @@ public final class JobParmSetMarshaller
      * @throws TapisImplException 
      */
     private List<KeyValueString> marshalAppKvList(
-        java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueString> appKvList,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueString> sysKvList) 
+        java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
+        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
      throws TapisImplException
     {
         // The kv list is optional.
