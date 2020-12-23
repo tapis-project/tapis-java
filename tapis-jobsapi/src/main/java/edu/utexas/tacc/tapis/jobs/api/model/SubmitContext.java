@@ -583,9 +583,9 @@ public final class SubmitContext
         
         // Get the app's input strictness setting.
         boolean strictInputs;
-        if (_app.getJobAttributes().getStrictFileInputs() == null)
+        if (_app.getStrictFileInputs() == null)
             strictInputs = Job.DEFAULT_STRICT_FILE_INPUTS;  // TODO: ********** TEMP, wait for apps constant
-          else strictInputs = _app.getJobAttributes().getStrictFileInputs();
+          else strictInputs = _app.getStrictFileInputs();
         
         // Process each request file input.
         var reqInputs = _submitReq.getFileInputs();  // forces list creation
