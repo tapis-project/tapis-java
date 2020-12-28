@@ -639,9 +639,11 @@ public final class JobsDao
 	        Array tagsArray = rs.getArray(52);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
-	            var tagsSet = new TreeSet<String>();
-	            for (String s1 : stringArray) tagsSet.add(s1);
-	            obj.setTags(tagsSet);
+	            if (stringArray != null && stringArray.length > 0) { 
+	                var tagsSet = new TreeSet<String>();
+	                for (String s1 : stringArray) tagsSet.add(s1);
+	                obj.setTags(tagsSet);
+	            }
 	        } 
 	    } 
 	    catch (Exception e) {
