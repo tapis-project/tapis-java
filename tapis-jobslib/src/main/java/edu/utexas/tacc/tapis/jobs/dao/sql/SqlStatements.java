@@ -22,7 +22,7 @@ public class SqlStatements
         	+ "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
         	+ "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
         	+ "remote_checks_failed, remote_last_status_check, tapis_queue, visible, "
-        	+ "createdby, createdby_tenant"
+        	+ "createdby, createdby_tenant, tags"
         + " FROM jobs ORDER BY id";
 
     public static final String SELECT_JOBS_BY_UUID =
@@ -37,7 +37,7 @@ public class SqlStatements
             + "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
             + "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
             + "remote_checks_failed, remote_last_status_check, tapis_queue, visible, "
-            + "createdby, createdby_tenant"
+            + "createdby, createdby_tenant, tags"
         + " FROM jobs"
         + " WHERE uuid = ?";
     
@@ -54,20 +54,13 @@ public class SqlStatements
             + "dtn_system_id, dtn_mount_source_path, dtn_mount_point, "
             + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
-            + "tapis_queue, createdby, createdby_tenant) "
+            + "tapis_queue, createdby, createdby_tenant, tags) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, ?::job_type_enum, ?::job_exec_class_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
     		+ "?, ?, ?, "
-    		+ "?, ?, ?, ?, ?::json, ?::json, ?::json, ?::json, ?, ?, ?)"; 
-
-    /* ---------------------------------------------------------------------- */
-    /* job_tags table:                                                        */
-    /* ---------------------------------------------------------------------- */
-    public static final String SELECT_JOBTAGS =
-        "SELECT job_id, tag"
-        + " FROM job_tags ORDER BY job_id, tag";
+    		+ "?, ?, ?, ?, ?::json, ?::json, ?::json, ?::json, ?, ?, ?, ?)"; 
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */

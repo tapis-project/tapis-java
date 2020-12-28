@@ -85,7 +85,8 @@ CREATE TABLE jobs
   tapis_queue                 character varying(64) NOT NULL,
   visible                     boolean NOT NULL DEFAULT TRUE,
   createdby                   character varying(60) NOT NULL,  
-  createdby_tenant            character varying(24) NOT NULL
+  createdby_tenant            character varying(24) NOT NULL,
+  tags                        text[]
 );
 ALTER TABLE jobs OWNER TO tapis;
 ALTER SEQUENCE jobs_id_seq RESTART WITH 1;
@@ -98,20 +99,7 @@ CREATE INDEX jobs_app_id_idx ON jobs (app_id, tenant);
 CREATE INDEX jobs_exec_system_idx ON jobs (exec_system_id);
 CREATE INDEX jobs_archive_system_idx ON jobs (archive_system_id);
 CREATE INDEX jobs_dtn_system_idx ON jobs (dtn_system_id);
-
--- ----------------------------------------------------------------------------------------
---                                       Job Tags
--- ----------------------------------------------------------------------------------------
--- Job Tags table
-CREATE TABLE job_tags
-(
-  job_id                      serial4 NOT NULL,
-  tag                         character varying(126) NOT NULL,
-  PRIMARY KEY (job_id, tag),
-  FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE CASCADE ON UPDATE CASCADE
-);
-ALTER TABLE job_tags OWNER TO tapis;
-CREATE INDEX job_tag_idx ON job_tags (tag);
+CREATE INDEX jobs_tags_idx ON jobs USING gin (tags);
 
 -- ----------------------------------------------------------------------------------------
 --                                       Job Resubmit

@@ -280,7 +280,7 @@ public final class SubmitContext
         if (_submitReq.getMaxMinutes() == null)
             _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
         
-        // Merge tags.
+        // Merge tags, duplicates may be present at this point.
         var tags = _submitReq.getTags(); // force list creation
         if (_app.getTags() != null) tags.addAll(_app.getTags());
         

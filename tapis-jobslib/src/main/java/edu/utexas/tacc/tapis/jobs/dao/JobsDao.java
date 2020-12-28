@@ -1,12 +1,15 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -314,6 +317,16 @@ public final class JobsDao
           pstmt.setString(33, job.getTapisQueue());
           pstmt.setString(34, job.getCreatedby());
           pstmt.setString(35, job.getCreatedbyTenant());
+          
+          var tags = job.getTags();
+          Array tagsArray;
+          if (tags == null || tags.isEmpty()) 
+              tagsArray = conn.createArrayOf("text", new String[0]);
+            else {
+                String[] sarray = tags.toArray(new String[tags.size()]);
+                tagsArray = conn.createArrayOf("text", sarray);
+            }
+          pstmt.setArray(36, tagsArray);
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -622,6 +635,14 @@ public final class JobsDao
 	        obj.setVisible(rs.getBoolean(49));
 	        obj.setCreatedby(rs.getString(50));
 	        obj.setCreatedbyTenant(rs.getString(51));
+	        
+	        Array tagsArray = rs.getArray(52);
+	        if (tagsArray != null) {
+	            var stringArray = (String[])tagsArray.getArray();
+	            var tagsSet = new TreeSet<String>();
+	            for (String s1 : stringArray) tagsSet.add(s1);
+	            obj.setTags(tagsSet);
+	        } 
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
