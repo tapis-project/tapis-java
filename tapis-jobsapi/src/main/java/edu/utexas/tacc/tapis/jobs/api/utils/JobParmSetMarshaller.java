@@ -212,6 +212,7 @@ public final class JobParmSetMarshaller
         if (appKvList != null) {
             HashSet<String> dups = new HashSet<String>(1 + appKvList.size() * 2);
             for (var appKv : appKvList) {
+                // Duplicates are not allowed.
                 if (!dups.add(appKv.getKey())) {
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
@@ -228,10 +229,12 @@ public final class JobParmSetMarshaller
         if (sysKvList != null) {
             HashSet<String> dups = new HashSet<String>(1 + sysKvList.size() * 2);
             for (var sysKv : sysKvList) {
+                // Duplicates are not allowed.
                 if (!dups.add(sysKv.getKey())) {
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "system definition", sysKv.getKey());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
+                // Values from the app have priority over those from the system.
                 if (appKeys.contains(sysKv.getKey())) continue;
                 var kv = new KeyValuePair();
                 kv.setKey(sysKv.getKey());

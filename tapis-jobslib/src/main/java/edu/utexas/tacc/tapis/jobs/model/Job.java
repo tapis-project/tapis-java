@@ -34,6 +34,7 @@ public final class Job
 	// paths are constructed, double slashes at the point of concatenation are prevented.
 	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${jobWorkingDir}/jobs/${jobID}";
 	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${dtnMountPoint}/jobs/${jobID}";
+	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${jobID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
 	
@@ -143,8 +144,8 @@ public final class Job
      */
     public static String constructDefaultExecSystemOutputDir(String inputDir)
     {
-        if (StringUtils.isBlank(inputDir)) inputDir = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
-        return inputDir + "/output";
+        if (StringUtils.isBlank(inputDir)) inputDir = DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
+        return StringUtils.removeEnd(inputDir, "/") + "/output";
     }
     
     /* **************************************************************************** */

@@ -138,7 +138,7 @@ public final class SubmitContext
         boolean isAdmin;
         try {isAdmin = TapisUtils.isAdmin(oboUser, oboTenant);}
             catch (Exception e) {
-                throw new TapisImplException(e.getMessage(), Status.INTERNAL_SERVER_ERROR.getStatusCode());
+                throw new TapisImplException(e.getMessage(), e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
             }
         
         // The oboUser better be an admin.
@@ -151,8 +151,12 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* assignApp:                                                                   */
     /* ---------------------------------------------------------------------------- */
-    /** Load the application.  This method sets the _app field.
+    /** Load the application.  This method sets the _app field and can only be called
+     * after the request owner and tenant fields have been set and validated.
      * 
+     * Context fields guaranteed to be assigned:
+     *  - _app 
+     *  
      * @throws TapisImplException
      */
     public void assignApp() throws TapisImplException
@@ -294,6 +298,14 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* resolveParameterSet:                                                         */
     /* ---------------------------------------------------------------------------- */
+    /** Resolve the contents of each object in the request parameter set by consulting
+     * with values set in the application and system.
+     * 
+     * Request fields guaranteed to be assigned:
+     *  - parameterSet
+     * 
+     * @throws TapisImplException
+     */
     private void resolveParameterSet() 
      throws TapisImplException
     {
@@ -303,10 +315,10 @@ public final class SubmitContext
         var appParmSet = _app.getJobAttributes().getParameterSet();
         var sysEnv = _execSystem.getJobEnvVariables();
         var marshaller = new JobParmSetMarshaller();
-        JobParameterSet marshalledParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
+        JobParameterSet appSysParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
         
         // Parameters set in the job submission request have the highest precedence.
-        marshaller.mergeParmSets(_submitReq.getParameterSet(), marshalledParmSet);
+        marshaller.mergeParmSets(_submitReq.getParameterSet(), appSysParmSet);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -329,7 +341,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* resolveSystems:                                                              */
     /* ---------------------------------------------------------------------------- */
-    /** Resolve information relating to the execution, archive and dtn systems.
+    /** Resolve information relating to the execution, archive and dtn systems.  The
+     * request owner and tenant must be valid.
      * 
      * Request fields guaranteed to be assigned:
      *  - dynamicExecSystem
@@ -428,7 +441,6 @@ public final class SubmitContext
         }
         
         // Load the system.
-        // Load the system definition.
         boolean requireExecPerm = true;
         _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, "execution");
         
@@ -533,7 +545,7 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
             if (_archiveSystem == _execSystem) 
                 // Leave the output in place when the exec system is also the archive system.
-                _submitReq.setArchiveSystemDir(_submitReq.getExecSystemInputDir());
+                _submitReq.setArchiveSystemDir(_submitReq.getExecSystemOutputDir());
             else if (_dtnSystem == null)
                 // When the archive system is different from the exec system,
                 // we archive to the default archive directory.
@@ -571,6 +583,7 @@ public final class SubmitContext
      *
      * Request fields guaranteed to be assigned:
      *  - fileInputs
+     *  
      * @throws TapisImplException 
      * 
      */
@@ -660,6 +673,9 @@ public final class SubmitContext
             var inputSpec = new InputSpec();
             mergeFileInput(inputSpec, def);
             processedInputs.add(inputSpec);
+            
+            // Bookkeeping.
+            processedAppInputNames.add(defName);
         }
         
         // Make sure all required inputs were provided.
@@ -675,6 +691,9 @@ public final class SubmitContext
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
+        
+        // Save the processed list in the request.
+        _submitReq.setFileInputs(processedInputs);
     }
     
     /* ---------------------------------------------------------------------------- */
