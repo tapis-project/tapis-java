@@ -602,7 +602,6 @@ public final class SubmitContext
         
         // Process each request file input.
         var reqInputs = _submitReq.getFileInputs();  // forces list creation
-        var processedInputs = new ArrayList<InputSpec>(reqInputs.size());
         for (var reqInput : reqInputs) {
             var meta = reqInput.getMeta();
             if (meta == null || StringUtils.isBlank(meta.getName())) {
@@ -652,9 +651,6 @@ public final class SubmitContext
                 // Merge the application definition values into the request input. 
                 mergeFileInput(reqInput, appInputDef);
             }
-            
-            // Add the current input to the result list.
-            processedInputs.add(reqInput);
         }
         
         // Add in any inputs that are designated in the application 
@@ -672,7 +668,7 @@ public final class SubmitContext
             // Create and save the new request input object.
             var inputSpec = new InputSpec();
             mergeFileInput(inputSpec, def);
-            processedInputs.add(inputSpec);
+            reqInputs.add(inputSpec);
             
             // Bookkeeping.
             processedAppInputNames.add(defName);
@@ -691,9 +687,6 @@ public final class SubmitContext
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
-        
-        // Save the processed list in the request.
-        _submitReq.setFileInputs(processedInputs);
     }
     
     /* ---------------------------------------------------------------------------- */
