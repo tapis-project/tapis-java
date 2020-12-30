@@ -33,8 +33,9 @@ public final class Job
 	// paths and required on absolute paths.  When the full path names of relative 
 	// paths are constructed, double slashes at the point of concatenation are prevented.
 	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${jobWorkingDir}/jobs/${jobID}";
-	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${dtnMountPoint}/jobs/${jobID}";
 	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
+	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${dtnMountPoint}/jobs/${jobID}";
+	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${jobID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
 	
@@ -125,10 +126,12 @@ public final class Job
      *                 is constructed or null 
      * @return the constructed exec directory path name
      */
-    public static String constructDefaultExecSystemExecDir(String inputDir)
+    public static String constructDefaultExecSystemExecDir(String inputDir, boolean useDTN)
     {
-        if (StringUtils.isBlank(inputDir)) return DEFAULT_EXEC_SYSTEM_INPUT_DIR;
-          else return inputDir;
+        if (StringUtils.isBlank(inputDir)) 
+            if (useDTN) return DEFAULT_DTN_SYSTEM_INPUT_DIR;
+              else return DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+        return inputDir;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -142,9 +145,11 @@ public final class Job
      *                 is constructed or null 
      * @return the constructed output directory path name
      */
-    public static String constructDefaultExecSystemOutputDir(String inputDir)
+    public static String constructDefaultExecSystemOutputDir(String inputDir, boolean useDTN)
     {
-        if (StringUtils.isBlank(inputDir)) inputDir = DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
+        if (StringUtils.isBlank(inputDir)) 
+            if (useDTN) return DEFAULT_DTN_SYSTEM_OUTPUT_DIR;
+              else return DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         return StringUtils.removeEnd(inputDir, "/") + "/output";
     }
     

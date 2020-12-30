@@ -510,6 +510,9 @@ public final class SubmitContext
      */
     private void resolveDirectoryPathNames()
     {
+        // Are we using a DTN?
+        final boolean useDTN = _dtnSystem != null;
+        
         // --------------------- Exec System ---------------------
         // The input directory is used as the basis for other exec system path names
         // if those path names are not explicitly assigned, so it must be assigned first.
@@ -519,24 +522,24 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir()))
             _submitReq.setExecSystemInputDir(_app.getJobAttributes().getExecSystemInputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir())) 
-            if (_dtnSystem == null)
-                _submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
-            else
+            if (useDTN)
                 _submitReq.setExecSystemInputDir(Job.DEFAULT_DTN_SYSTEM_INPUT_DIR);
+            else
+                _submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
         
         // Exec path.
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(
-                Job.constructDefaultExecSystemExecDir(_submitReq.getExecSystemInputDir()));
+                Job.constructDefaultExecSystemExecDir(_submitReq.getExecSystemInputDir(), useDTN));
         
         // Output path.
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(
-                Job.constructDefaultExecSystemOutputDir(_submitReq.getExecSystemInputDir()));
+                Job.constructDefaultExecSystemOutputDir(_submitReq.getExecSystemInputDir(), useDTN));
       
         // --------------------- Archive System ------------------
         // Set the archive system directory.
@@ -546,14 +549,14 @@ public final class SubmitContext
             if (_archiveSystem == _execSystem) 
                 // Leave the output in place when the exec system is also the archive system.
                 _submitReq.setArchiveSystemDir(_submitReq.getExecSystemOutputDir());
-            else if (_dtnSystem == null)
-                // When the archive system is different from the exec system,
-                // we archive to the default archive directory.
-                _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
-            else
+            else if (useDTN)
                 // When the archive system is the DTN, then we archive to the 
                 // DTN's default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR);
+            else
+                // When the archive system is different from the exec system,
+                // we archive to the default archive directory.
+                _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
     }
     
     /* ---------------------------------------------------------------------------- */
