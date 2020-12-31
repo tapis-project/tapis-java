@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
@@ -39,6 +40,8 @@ public final class Job
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${jobID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
 	
+    // Prefix for reserved template variables (macros).
+    public static final String RESERVED_MACRO_PREFIX = "_tapis";
 	
 	// Fields
     private int      			id;
@@ -46,35 +49,45 @@ public final class Job
     private String   			owner;
     private String   			tenant;
     private String   			description;
+    
     private JobStatusType   	status = JobStatusType.PENDING;
     private JobType   			type = JobType.BATCH;
     private JobExecClass   		execClass = JobExecClass.NORMAL;
+    
     private String   			lastMessage;
     private Instant  			created;
     private Instant  			ended;
     private Instant  			lastUpdated;
+    
     private String   			uuid;
     private String   			appId;
     private String   			appVersion;
+    
     private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
     private boolean             dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
+    
     private String   			execSystemId;
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
     private String   			execSystemOutputDir;
+    
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
+    
     private String              dtnSystemId;
     private String              dtnMountSourcePath;
     private String              dtnMountPoint;
+    
     private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
     private int      			memoryMB = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
+    
     private String   			fileInputs = EMPTY_JSON;
     private String   			parameterSet = EMPTY_JSON;
     private String              execSystemConstraints = EMPTY_JSON;
     private String              subscriptions = EMPTY_JSON;
+    
     private int      			blockedCount;
     private String   			remoteJobId;
     private String   			remoteJobId2;
@@ -88,6 +101,7 @@ public final class Job
     private int      			remoteChecksSuccess;
     private int      			remoteChecksFailed;
     private Instant  			remoteLastStatusCheck;
+    
     private String   			tapisQueue;
     private boolean  			visible;
     private String   			createdby;
@@ -98,12 +112,24 @@ public final class Job
     private transient Map<String,String> _parmEnvVariables;
     private transient JobParameterSet    _parmSet;
     
-
-    // Constructor
+    /* **************************************************************************** */
+    /*                                 Constructors                                 */
+    /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* constructor:                                                                 */
+    /* ---------------------------------------------------------------------------- */
     public Job()
     {
     	// This value only gets overwritten when populating from db.
     	setUuid(new TapisUUID(UUIDType.JOB).toString());
+    	
+    	// Set the initial time.
+    	Instant now = Instant.now();
+    	setCreated(now);
+    	setLastUpdated(now);
+    	
+        // Initial status message.
+        setLastMessage(MsgUtils.getMsg("JOBS_ACCEPTED"));
     }
     
     /* **************************************************************************** */

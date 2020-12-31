@@ -1,10 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.TreeMap;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -19,6 +23,7 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
@@ -57,6 +62,9 @@ public final class SubmitContext
     private TSystem _dtnSystem;
     private TSystem _archiveSystem;
     
+    // Macro values.
+    private final TreeMap<String,String> _macros = new TreeMap<String,String>();
+    
     /* **************************************************************************** */
     /*                                Constructors                                  */
     /* **************************************************************************** */
@@ -91,7 +99,7 @@ public final class SubmitContext
         resolveArgs();
         
         // Substitute macro values.
-        
+        assignMacros();
         
         // Validate the job after all arguments are finalized.
         validateArgs();
@@ -742,6 +750,44 @@ public final class SubmitContext
             kv.setKey(pair.getKey());
             kv.setValue(pair.getValue());
             reqKv.add(kv);
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignMacros:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    private void assignMacros()
+    {
+        // Assign ground macros that never depend on other macros and are always assigned.
+        _macros.put(JobTemplateVariables._tapisJobName.name(),    _submitReq.getName());
+        _macros.put(JobTemplateVariables._tapisJobUUID.name(),    _job.getUuid());
+        _macros.put(JobTemplateVariables._tapisTenant.name(),     _submitReq.getTenant());
+        _macros.put(JobTemplateVariables._tapisJobOwner.name(),   _submitReq.getOwner());
+        _macros.put(JobTemplateVariables._tapisEffeciveUserId.name(), _execSystem.getEffectiveUserId());
+        
+        _macros.put(JobTemplateVariables._tapisAppId.name(),      _submitReq.getAppId());
+        _macros.put(JobTemplateVariables._tapisAppVersion.name(), _submitReq.getAppVersion());
+        
+        _macros.put(JobTemplateVariables._tapisExecSystemId.name(),      _submitReq.getExecSystemId());
+        _macros.put(JobTemplateVariables._tapisArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
+        _macros.put(JobTemplateVariables._tapisDynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
+        
+        _macros.put(JobTemplateVariables._tapisNodes.name(),        _submitReq.getNodeCount().toString());
+        _macros.put(JobTemplateVariables._tapisCoresPerNode.name(), _submitReq.getCoresPerNode().toString());
+        _macros.put(JobTemplateVariables._tapisMemoryMB.name(),     _submitReq.getMemoryMB().toString());
+        _macros.put(JobTemplateVariables._tapisMaxMinutes.name(),   _submitReq.getMaxMinutes().toString());
+        
+        // The datetime, date and time strings all end with "Z", signifying ISO-8601 representation of UTC.  
+        OffsetDateTime offDateTime = _job.getCreated().atOffset(ZoneOffset.UTC);
+        _macros.put(JobTemplateVariables._tapisJobCreateDate.name(),      _job.getCreated().toString());
+        _macros.put(JobTemplateVariables._tapisJobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
+        _macros.put(JobTemplateVariables._tapisJobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
+        
+        // Assign ground macros that never depend on other macros and are optional.
+        if (_dtnSystem != null) {
+            _macros.put(JobTemplateVariables._tapisDtnSystemId.name(),        _execSystem.getDtnSystemId());
+            _macros.put(JobTemplateVariables._tapisDtnMountPoint.name(),      _execSystem.getDtnMountPoint());
+            _macros.put(JobTemplateVariables._tapisDtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
         }
     }
     

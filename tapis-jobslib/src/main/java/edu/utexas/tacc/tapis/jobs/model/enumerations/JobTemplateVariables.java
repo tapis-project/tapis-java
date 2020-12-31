@@ -8,38 +8,44 @@ package edu.utexas.tacc.tapis.jobs.model.enumerations;
  */
 public enum JobTemplateVariables 
 {
-	tapisJobName,
-	tapisJobId,
-	tapisTenant,
-	tapisJobOwner,
-	tapisEffeciveUserId,
-	tapisAppId,
-	tapisAppVersion,
-	tapisExecSystemId,
-	tapisArchiveSystemId,
-	tapisExecSystemExecDir,
-	tapisExecSystemInputDir,
-	tapisExecSystemOutputDir,
-	tapisExecSystemLogicalQueue,
-	tapisExecSystemHPCQueue,
-	tapisArchiveOnAppError,
+	_tapisJobName,
+	_tapisJobUUID,
+	_tapisTenant,
+	_tapisJobOwner,
+	_tapisEffeciveUserId,
 	
-	tapisDtnSystemId,
-	tapisDtnMountPoint,
-	tapisDtnSubDir,
+	_tapisAppId,
+	_tapisAppVersion,
 	
-	tapisNodes,
-	tapisCoresPerNode,
-	tapisMemoryMB,
-	tapisMaxMinutes,
+	_tapisExecSystemId,
+	_tapisExecSystemExecDir,
+	_tapisExecSystemInputDir,
+	_tapisExecSystemOutputDir,
+	_tapisDynamicExecSystem,
+	_tapisJobWorkingDir,
+	
+	_tapisExecSystemLogicalQueue,
+	_tapisExecSystemHPCQueue,
+	
+	_tapisArchiveSystemId,
+	_tapisArchiveSystemDir,
+	_tapisArchiveOnAppError,
+	
+	_tapisDtnSystemId,
+	_tapisDtnMountPoint,
+	_tapisDtnMountSourcePath,
+	
+	_tapisNodes,
+	_tapisCoresPerNode,
+	_tapisMemoryMB,
+	_tapisMaxMinutes,
 
-	tapisSysWorkingDir,
-	tapisSysBucketName,
-	tapisSysRootDir,
-	tapisSysHost,
-	tapisSysDTNSystemId,
+	_tapisSysBucketName,
+	_tapisSysRootDir,
+	_tapisSysHost,
+	_tapisSysBatchScheduler,
 	
-	tapisTime,
-	tapisDate,
-	tapisTimestamp
+	_tapisJobCreateTime,
+	_tapisJobCreateDate,
+	_tapisJobCreateTimestamp
 }
