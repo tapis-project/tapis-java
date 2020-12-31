@@ -758,7 +758,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void assignMacros()
     {
-        // Assign ground macros that never depend on other macros and are always assigned.
+        // ---------- Ground Macros
+        // Assign required ground macros that never depend on other macros.
         _macros.put(JobTemplateVariables._tapisJobName.name(),    _submitReq.getName());
         _macros.put(JobTemplateVariables._tapisJobUUID.name(),    _job.getUuid());
         _macros.put(JobTemplateVariables._tapisTenant.name(),     _submitReq.getTenant());
@@ -777,18 +778,20 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables._tapisMemoryMB.name(),     _submitReq.getMemoryMB().toString());
         _macros.put(JobTemplateVariables._tapisMaxMinutes.name(),   _submitReq.getMaxMinutes().toString());
         
-        // The datetime, date and time strings all end with "Z", signifying ISO-8601 representation of UTC.  
+        // The datetime, date and time strings all end with "Z", conforming to the ISO-8601 representation of UTC.  
         OffsetDateTime offDateTime = _job.getCreated().atOffset(ZoneOffset.UTC);
         _macros.put(JobTemplateVariables._tapisJobCreateDate.name(),      _job.getCreated().toString());
         _macros.put(JobTemplateVariables._tapisJobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
         _macros.put(JobTemplateVariables._tapisJobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
         
-        // Assign ground macros that never depend on other macros and are optional.
+        // Assign optional ground macros that never depend on other macros.
         if (_dtnSystem != null) {
             _macros.put(JobTemplateVariables._tapisDtnSystemId.name(),        _execSystem.getDtnSystemId());
             _macros.put(JobTemplateVariables._tapisDtnMountPoint.name(),      _execSystem.getDtnMountPoint());
             _macros.put(JobTemplateVariables._tapisDtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
         }
+        
+        // ---------- Derived Macros
     }
     
     /* ---------------------------------------------------------------------------- */
