@@ -51,6 +51,24 @@ public class MacroResovlerTest
         String result = resolver.resolve(text);
     }
     
+    @Test(expectedExceptions = TapisException.class)
+    public void macroParseTest5() throws TapisException
+    {
+        // Doesn't recognize an empty macro definition.
+        var resolver = new MacroResolver(null, _macroMap);
+        String text = "$$$${}$$$";
+        String result = resolver.resolve(text);
+    }
+    
+    @Test(expectedExceptions = TapisException.class)
+    public void macroParseTest6() throws TapisException
+    {
+        // Doesn't recognize an empty macro definition.
+        var resolver = new MacroResolver(null, _macroMap);
+        String text = "$$$${$$$";
+        String result = resolver.resolve(text);
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* initMacroMap:                                                                */
     /* ---------------------------------------------------------------------------- */

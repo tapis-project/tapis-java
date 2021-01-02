@@ -194,8 +194,11 @@ public final class MacroResolver
         }
         mend += mstart; // make relative to start of text
             
-        // Avoid out-of-bounds indexing.
-        if (mstart+2 >= mend) return text;
+        // Avoid empty macros or out-of-bounds indexing.  
+        if (mstart+2 >= mend) {
+            String msg = MsgUtils.getMsg("JOBS_MACRO_EMPTY", text);
+            throw new TapisException(msg);
+        }
             
         // Split the string into constituent parts.
         String prefix = text.substring(0, mstart);

@@ -762,8 +762,8 @@ public final class SubmitContext
     {
         // Macros can either be ground variables or derived variables.  Ground variables
         // never depend on other variables.  Macros can also be required to have an 
-        // assigned value or optionally have a value.  The four cases are addressed 
-        // separately below.
+        // assigned value or optionally have a value.  Three cases are addressed 
+        // separately below, there are no derived optional macros.
         
         // ---------- Ground, required
         // Assign required ground macros that never depend on other macros.
@@ -802,6 +802,11 @@ public final class SubmitContext
             _macros.put(JobTemplateVariables._tapisDtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
         }
         
+        if (!StringUtils.isBlank(_execSystem.getBucketName()))
+            _macros.put(JobTemplateVariables._tapisSysBucketName.name(), _execSystem.getBucketName());
+        if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
+            _macros.put(JobTemplateVariables._tapisSysBatchScheduler.name(), _execSystem.getBatchScheduler());
+        
         if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
             String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
             _macros.put(JobTemplateVariables._tapisExecSystemLogicalQueue.name(), logicalQueueName);
@@ -816,9 +821,9 @@ public final class SubmitContext
             }
         }
         
+        // ---------- Derived, required
         // Resolve values that can contain macro definitions or host functions.
         try {
-            // ---------- Derived, required
             // Assign all macro values that don't need resolution before assigning any possibly dependent macro values.
             if (!MacroResolver.needsResolution(_execSystem.getJobWorkingDir()))
                 _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), _execSystem.getJobWorkingDir());
@@ -843,12 +848,6 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), resolveMacros(_submitReq.getExecSystemOutputDir()));
             if (!_macros.containsKey(JobTemplateVariables._tapisArchiveSystemDir.name()))
                 _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), resolveMacros(_submitReq.getArchiveSystemDir()));
-            
-            // ---------- Derived, optional
-            if (!StringUtils.isBlank(_execSystem.getBucketName()))
-                _macros.put(JobTemplateVariables._tapisSysBucketName.name(), resolveMacros(_execSystem.getBucketName()));
-            if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
-                _macros.put(JobTemplateVariables._tapisSysBatchScheduler.name(), resolveMacros(_execSystem.getBatchScheduler()));
         } 
         catch (TapisException e) {
             throw new TapisImplException(e.getMessage(), e, Status.BAD_REQUEST.getStatusCode());
