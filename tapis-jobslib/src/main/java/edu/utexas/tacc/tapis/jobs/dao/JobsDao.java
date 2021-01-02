@@ -294,29 +294,31 @@ public final class JobsDao
           pstmt.setBoolean(15, job.isDynamicExecSystem());
               
           pstmt.setString(16, job.getExecSystemId());           
-          pstmt.setString(17, job.getExecSystemExecDir());     // could be null
-          pstmt.setString(18, job.getExecSystemInputDir());    // could be null
-          pstmt.setString(19, job.getExecSystemOutputDir());   // could be null
-          pstmt.setString(20, job.getArchiveSystemId());       // could be null
-          pstmt.setString(21, job.getArchiveSystemDir());      // could be null
-              
-          pstmt.setString(22, job.getDtnSystemId());           // could be null       
-          pstmt.setString(23, job.getDtnMountSourcePath());    // could be null
-          pstmt.setString(24, job.getDtnMountPoint());         // could be null
+          pstmt.setString(17, job.getExecSystemExecDir());      // could be null
+          pstmt.setString(18, job.getExecSystemInputDir());     // could be null
+          pstmt.setString(19, job.getExecSystemOutputDir());    // could be null
+          pstmt.setString(20, job.getExecSystemLogicalQueue()); // could be null
           
-          pstmt.setInt(25, job.getNodeCount());
-          pstmt.setInt(26, job.getCoresPerNode());
-          pstmt.setInt(27, job.getMemoryMB());
-          pstmt.setInt(28, job.getMaxMinutes());
+          pstmt.setString(21, job.getArchiveSystemId());        // could be null
+          pstmt.setString(22, job.getArchiveSystemDir());       // could be null
               
-          pstmt.setString(29, job.getFileInputs());                 
-          pstmt.setString(30, job.getParameterSet());             
-          pstmt.setString(31, job.getExecSystemConstraints());                 
-          pstmt.setString(32, job.getSubscriptions());             
+          pstmt.setString(23, job.getDtnSystemId());            // could be null       
+          pstmt.setString(24, job.getDtnMountSourcePath());     // could be null
+          pstmt.setString(25, job.getDtnMountPoint());          // could be null
+          
+          pstmt.setInt(26, job.getNodeCount());
+          pstmt.setInt(27, job.getCoresPerNode());
+          pstmt.setInt(28, job.getMemoryMB());
+          pstmt.setInt(29, job.getMaxMinutes());
+              
+          pstmt.setString(30, job.getFileInputs());                 
+          pstmt.setString(31, job.getParameterSet());             
+          pstmt.setString(32, job.getExecSystemConstraints());                 
+          pstmt.setString(33, job.getSubscriptions());             
 
-          pstmt.setString(33, job.getTapisQueue());
-          pstmt.setString(34, job.getCreatedby());
-          pstmt.setString(35, job.getCreatedbyTenant());
+          pstmt.setString(34, job.getTapisQueue());
+          pstmt.setString(35, job.getCreatedby());
+          pstmt.setString(36, job.getCreatedbyTenant());
           
           var tags = job.getTags();
           Array tagsArray;
@@ -326,7 +328,7 @@ public final class JobsDao
                 String[] sarray = tags.toArray(new String[tags.size()]);
                 tagsArray = conn.createArrayOf("text", sarray);
             }
-          pstmt.setArray(36, tagsArray);
+          pstmt.setArray(37, tagsArray);
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -589,54 +591,56 @@ public final class JobsDao
 	        obj.setExecSystemExecDir(rs.getString(19));
 	        obj.setExecSystemInputDir(rs.getString(20));
 	        obj.setExecSystemOutputDir(rs.getString(21));
-	        obj.setArchiveSystemId(rs.getString(22));
-	        obj.setArchiveSystemDir(rs.getString(23));
+	        obj.setExecSystemLogicalQueue(rs.getString(22));
 	        
-	        obj.setDtnSystemId(rs.getString(24));
-	        obj.setDtnMountSourcePath(rs.getString(25));
-	        obj.setDtnMountPoint(rs.getString(26));
+	        obj.setArchiveSystemId(rs.getString(23));
+	        obj.setArchiveSystemDir(rs.getString(24));
 	        
-	        obj.setNodeCount(rs.getInt(27));
-	        obj.setCoresPerNode(rs.getInt(28));
-	        obj.setMemoryMB(rs.getInt(29));
-	        obj.setMaxMinutes(rs.getInt(30));
+	        obj.setDtnSystemId(rs.getString(25));
+	        obj.setDtnMountSourcePath(rs.getString(26));
+	        obj.setDtnMountPoint(rs.getString(27));
 	        
-	        obj.setFileInputs(rs.getString(31));
-	        obj.setParameterSet(rs.getString(32));
-	        obj.setExecSystemConstraints(rs.getString(33));
-	        obj.setSubscriptions(rs.getString(34));	        
+	        obj.setNodeCount(rs.getInt(28));
+	        obj.setCoresPerNode(rs.getInt(29));
+	        obj.setMemoryMB(rs.getInt(30));
+	        obj.setMaxMinutes(rs.getInt(31));
 	        
-	        obj.setBlockedCount(rs.getInt(35));
-	        obj.setRemoteJobId(rs.getString(36));
-	        obj.setRemoteJobId2(rs.getString(37));
+	        obj.setFileInputs(rs.getString(32));
+	        obj.setParameterSet(rs.getString(33));
+	        obj.setExecSystemConstraints(rs.getString(34));
+	        obj.setSubscriptions(rs.getString(35));	        
 	        
-	        String s = rs.getString(38);
+	        obj.setBlockedCount(rs.getInt(36));
+	        obj.setRemoteJobId(rs.getString(37));
+	        obj.setRemoteJobId2(rs.getString(38));
+	        
+	        String s = rs.getString(39);
 	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
-	        obj.setRemoteResultInfo(rs.getString(39));
-	        obj.setRemoteQueue(rs.getString(40));
-
-	        ts = rs.getTimestamp(41);
-	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
+	        obj.setRemoteResultInfo(rs.getString(40));
+	        obj.setRemoteQueue(rs.getString(41));
 
 	        ts = rs.getTimestamp(42);
-	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
 
 	        ts = rs.getTimestamp(43);
+	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
+
+	        ts = rs.getTimestamp(44);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(44));
-	        obj.setRemoteChecksSuccess(rs.getInt(45));
-	        obj.setRemoteChecksFailed(rs.getInt(46));
+	        obj.setRemoteSubmitRetries(rs.getInt(45));
+	        obj.setRemoteChecksSuccess(rs.getInt(46));
+	        obj.setRemoteChecksFailed(rs.getInt(47));
 
-	        ts = rs.getTimestamp(47);
+	        ts = rs.getTimestamp(48);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(48));
-	        obj.setVisible(rs.getBoolean(49));
-	        obj.setCreatedby(rs.getString(50));
-	        obj.setCreatedbyTenant(rs.getString(51));
+	        obj.setTapisQueue(rs.getString(49));
+	        obj.setVisible(rs.getBoolean(50));
+	        obj.setCreatedby(rs.getString(51));
+	        obj.setCreatedbyTenant(rs.getString(52));
 	        
-	        Array tagsArray = rs.getArray(52);
+	        Array tagsArray = rs.getArray(53);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
 	            if (stringArray != null && stringArray.length > 0) { 

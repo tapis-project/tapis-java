@@ -25,6 +25,7 @@ public class ReqSubmitJob
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
     private String   			execSystemOutputDir;
+    private String              execSystemLogicalQueue;  // can be null
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
     private Integer   			nodeCount;
@@ -171,7 +172,15 @@ public class ReqSubmitJob
 		this.execSystemOutputDir = execSystemOutputDir;
 	}
 
-	public String getArchiveSystemId() {
+    public String getExecSystemLogicalQueue() {
+        return execSystemLogicalQueue;
+    }
+
+    public void setExecSystemLogicalQueue(String execSystemLogicalQueue) {
+        this.execSystemLogicalQueue = execSystemLogicalQueue;
+    }
+
+    public String getArchiveSystemId() {
 		return archiveSystemId;
 	}
 

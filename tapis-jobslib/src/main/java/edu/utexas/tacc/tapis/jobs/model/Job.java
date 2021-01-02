@@ -70,6 +70,7 @@ public final class Job
     private String   			execSystemExecDir;
     private String   			execSystemInputDir;
     private String   			execSystemOutputDir;
+    private String              execSystemLogicalQueue;
     
     private String   			archiveSystemId;
     private String   			archiveSystemDir;
@@ -349,6 +350,14 @@ public final class Job
 	public void setExecSystemOutputDir(String execSystemOutputDir) {
 		this.execSystemOutputDir = execSystemOutputDir;
 	}
+
+    public String getExecSystemLogicalQueue() {
+        return execSystemLogicalQueue;
+    }
+
+    public void setExecSystemLogicalQueue(String execSystemLogicalQueue) {
+        this.execSystemLogicalQueue = execSystemLogicalQueue;
+    }
 
 	public String getArchiveSystemId() {
 		return archiveSystemId;

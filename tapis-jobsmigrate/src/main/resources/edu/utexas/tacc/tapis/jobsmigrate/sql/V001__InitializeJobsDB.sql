@@ -50,7 +50,9 @@ CREATE TABLE jobs
   exec_system_exec_dir        character varying(4096), 
   exec_system_input_dir       character varying(4096), 
   exec_system_output_dir      character varying(4096), 
-  archive_system_id           character varying(80),
+  exec_system_logical_queue   character varying(80), 
+  
+  archive_system_id           character varying(80) NOT NULL,
   archive_system_dir          character varying(4096),
   
   dtn_system_id               character varying(80),

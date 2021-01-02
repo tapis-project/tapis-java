@@ -24,6 +24,8 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
+import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
@@ -64,6 +66,7 @@ public final class SubmitContext
     
     // Macro values.
     private final TreeMap<String,String> _macros = new TreeMap<String,String>();
+    private MacroResolver _macroResolver;
     
     /* **************************************************************************** */
     /*                                Constructors                                  */
@@ -98,7 +101,7 @@ public final class SubmitContext
         // Calculate all job arguments.
         resolveArgs();
         
-        // Substitute macro values.
+        // Substitute values for tapis macros.
         assignMacros();
         
         // Validate the job after all arguments are finalized.
@@ -258,6 +261,12 @@ public final class SubmitContext
         // Resolve directory assignments.
         resolveDirectoryPathNames();
         
+        // Merge tapis-defined logical queue value, which can ultimately be null.
+        if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+            _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
+        if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+            _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
+        
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
             _submitReq.setDescription(_app.getJobAttributes().getDescription());
@@ -367,17 +376,8 @@ public final class SubmitContext
     private void resolveSystems() throws TapisImplException
     {
         // --------------------- Systems Client ------------------
-        // Get the application client for this user@tenant.
-        SystemsClient systemsClient = null;
-        try {
-            systemsClient = ServiceClients.getInstance().getClient(
-                    _submitReq.getOwner(), _submitReq.getTenant(), SystemsClient.class);
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Systems", 
-                                         _submitReq.getTenant(), _submitReq.getOwner());
-            throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
-        }
+        // Get the system client for this user@tenant.
+        SystemsClient systemsClient = getSystemsClient();
         
         // --------------------- Exec System ---------------------
         // Merge dynamic execution flag.
@@ -756,9 +756,14 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* assignMacros:                                                                */
     /* ---------------------------------------------------------------------------- */
-    private void assignMacros()
+    private void assignMacros() throws TapisImplException
     {
-        // ---------- Ground Macros
+        // Macros can either be ground variables or derived variables.  Ground variables
+        // never depend on other variables.  Macros can also be required to have an 
+        // assigned value or optionally have a value.  The four cases are addressed 
+        // separately below.
+        
+        // ---------- Ground, required
         // Assign required ground macros that never depend on other macros.
         _macros.put(JobTemplateVariables._tapisJobName.name(),    _submitReq.getName());
         _macros.put(JobTemplateVariables._tapisJobUUID.name(),    _job.getUuid());
@@ -772,6 +777,7 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables._tapisExecSystemId.name(),      _submitReq.getExecSystemId());
         _macros.put(JobTemplateVariables._tapisArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
         _macros.put(JobTemplateVariables._tapisDynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
+        _macros.put(JobTemplateVariables._tapisArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
         
         _macros.put(JobTemplateVariables._tapisNodes.name(),        _submitReq.getNodeCount().toString());
         _macros.put(JobTemplateVariables._tapisCoresPerNode.name(), _submitReq.getCoresPerNode().toString());
@@ -784,14 +790,63 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables._tapisJobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
         _macros.put(JobTemplateVariables._tapisJobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
         
-        // Assign optional ground macros that never depend on other macros.
+        // ---------- Ground, optional
         if (_dtnSystem != null) {
             _macros.put(JobTemplateVariables._tapisDtnSystemId.name(),        _execSystem.getDtnSystemId());
             _macros.put(JobTemplateVariables._tapisDtnMountPoint.name(),      _execSystem.getDtnMountPoint());
             _macros.put(JobTemplateVariables._tapisDtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
         }
         
-        // ---------- Derived Macros
+        if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
+            String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
+            _macros.put(JobTemplateVariables._tapisExecSystemLogicalQueue.name(), logicalQueueName);
+            
+       // ********* TODO: replace logicalQueueName with HPCQueueName when that field is added to LogicalQueue
+            // Validation will check that the named logical queue has been defined.
+            for (var q :_execSystem.getBatchLogicalQueues()) {
+                if (logicalQueueName.equals(q.getName())) {
+                    _macros.put(JobTemplateVariables._tapisExecSystemHPCQueue.name(), logicalQueueName);
+                    break;
+                }
+            }
+        }
+        
+        // Resolve values that can contain macro definitions or host functions.
+        try {
+            // ---------- Derived, required
+            _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
+            _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), resolveMacros(_submitReq.getExecSystemInputDir()));    
+            _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), resolveMacros(_submitReq.getExecSystemExecDir()));
+            _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), resolveMacros(_submitReq.getExecSystemOutputDir()));
+            _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), resolveMacros(_submitReq.getArchiveSystemDir()));
+            
+            _macros.put(JobTemplateVariables._tapisSysRootDir.name(), resolveMacros(_execSystem.getRootDir()));
+            _macros.put(JobTemplateVariables._tapisSysHost.name(), resolveMacros(_execSystem.getHost()));
+            
+            // ---------- Derived, optional
+            if (!StringUtils.isBlank(_execSystem.getBucketName()))
+                _macros.put(JobTemplateVariables._tapisSysBucketName.name(), resolveMacros(_execSystem.getBucketName()));
+            if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
+                _macros.put(JobTemplateVariables._tapisSysBatchScheduler.name(), resolveMacros(_execSystem.getBatchScheduler()));
+        } 
+        catch (TapisException e) {
+            throw new TapisImplException(e.getMessage(), e, Status.BAD_REQUEST.getStatusCode());
+        }
+        catch (Exception e) {
+            throw new TapisImplException(e.getMessage(), e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveMacros:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    private String resolveMacros(String text) throws TapisException
+    {
+        // Initialize the resolver for the current context.
+        if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
+        
+        // Return the text with all the macros replaced by their values.
+        return _macroResolver.resolve(text);
     }
     
     /* ---------------------------------------------------------------------------- */

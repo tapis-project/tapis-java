@@ -68,6 +68,11 @@
             "type": "string",
             "maxLength": 4096
           },
+          "execSystemLogicalQueue": {
+            "$comment": "Tapis-defined queue that corresponds to a batch queue on the execution system",
+            "type": "string",
+            "maxLength": 80
+          },
           "archiveSystemId": {
             "$comment": "Archive system ID",
             "type": "string",
