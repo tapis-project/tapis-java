@@ -78,6 +78,23 @@ public final class MacroResolver
         return replaceAllMacros(replaceHostEval(text));
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* needsResolution:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Return true if the string starts with the host function or contains a macro
+     * definition delimiter, false otherwise (including null text). 
+     * 
+     * @param text null or a string
+     * @return true only for non-null strings that contain a host function or delimiter 
+     */
+    public static boolean needsResolution(String text)
+    {
+        if (text == null) return false;
+        if (text.startsWith(HOST_EVAL_PREFIX) || text.indexOf(MACRO_DELIMITER) >= 0)
+            return true;
+        return false;
+    }
+    
     /* **************************************************************************** */
     /*                               Private Methods                                */
     /* **************************************************************************** */

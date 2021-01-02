@@ -106,6 +106,8 @@ public final class SubmitContext
         
         // Validate the job after all arguments are finalized.
         validateArgs();
+        
+        // Assign job fields.
 
         return _job;
     }
@@ -779,6 +781,9 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables._tapisDynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
         _macros.put(JobTemplateVariables._tapisArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
         
+        _macros.put(JobTemplateVariables._tapisSysRootDir.name(), _execSystem.getRootDir());
+        _macros.put(JobTemplateVariables._tapisSysHost.name(), _execSystem.getHost());
+        
         _macros.put(JobTemplateVariables._tapisNodes.name(),        _submitReq.getNodeCount().toString());
         _macros.put(JobTemplateVariables._tapisCoresPerNode.name(), _submitReq.getCoresPerNode().toString());
         _macros.put(JobTemplateVariables._tapisMemoryMB.name(),     _submitReq.getMemoryMB().toString());
@@ -814,14 +819,30 @@ public final class SubmitContext
         // Resolve values that can contain macro definitions or host functions.
         try {
             // ---------- Derived, required
-            _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
-            _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), resolveMacros(_submitReq.getExecSystemInputDir()));    
-            _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), resolveMacros(_submitReq.getExecSystemExecDir()));
-            _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), resolveMacros(_submitReq.getExecSystemOutputDir()));
-            _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), resolveMacros(_submitReq.getArchiveSystemDir()));
+            // Assign all macro values that don't need resolution before assigning any possibly dependent macro values.
+            if (!MacroResolver.needsResolution(_execSystem.getJobWorkingDir()))
+                _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), _execSystem.getJobWorkingDir());
+            if (!MacroResolver.needsResolution(_submitReq.getExecSystemInputDir()))
+                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());
+            if (!MacroResolver.needsResolution(_submitReq.getExecSystemExecDir()))
+               _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
+            if (!MacroResolver.needsResolution(_submitReq.getExecSystemOutputDir()))
+                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+            if (!MacroResolver.needsResolution(_submitReq.getArchiveSystemDir()))
+                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             
-            _macros.put(JobTemplateVariables._tapisSysRootDir.name(), resolveMacros(_execSystem.getRootDir()));
-            _macros.put(JobTemplateVariables._tapisSysHost.name(), resolveMacros(_execSystem.getHost()));
+            // Assign derived values that require resolution.  Note that we assign the execution system's working 
+            // directory first since other macros can depend on it but not vice versa
+            if (!_macros.containsKey(JobTemplateVariables._tapisJobWorkingDir.name()))
+                _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemInputDir.name()))
+                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), resolveMacros(_submitReq.getExecSystemInputDir()));    
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemExecDir.name()))
+                _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), resolveMacros(_submitReq.getExecSystemExecDir()));
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemOutputDir.name()))
+                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), resolveMacros(_submitReq.getExecSystemOutputDir()));
+            if (!_macros.containsKey(JobTemplateVariables._tapisArchiveSystemDir.name()))
+                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), resolveMacros(_submitReq.getArchiveSystemDir()));
             
             // ---------- Derived, optional
             if (!StringUtils.isBlank(_execSystem.getBucketName()))
