@@ -983,7 +983,7 @@ public final class SubmitContext
     private void populateJob() throws TapisImplException
     {
         // The name and owner are guaranteed to be valid by this point.
-        _job.setName(_submitReq.getName());
+        _job.setName(replaceMacros(_submitReq.getName()));
         _job.setOwner(_submitReq.getOwner());
         _job.setTenant(_submitReq.getTenant());
         _job.setDescription(replaceMacros(_submitReq.getDescription()));
