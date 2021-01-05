@@ -26,7 +26,6 @@ public final class Job
 	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
 	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
-	public static final Boolean DEFAULT_STRICT_FILE_INPUTS = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	
 	// Default directory assignments.  All paths are relative to their system's 

@@ -186,8 +186,9 @@ public final class SubmitContext
         }
         
         // Get the application.
-        String authz = "READ,EXECUTE";
-        try {_app = appsClient.getApp(_submitReq.getAppId(), _submitReq.getAppVersion(), authz);}
+        final String authz = "READ,EXECUTE";
+        Boolean execPerm = Boolean.TRUE;
+        try {_app = appsClient.getApp(_submitReq.getAppId(), _submitReq.getAppVersion(), execPerm);}
         catch (TapisClientException e) {
             // Determine why we failed.
             String msg;
@@ -610,7 +611,7 @@ public final class SubmitContext
         // Get the app's input strictness setting.
         boolean strictInputs;
         if (_app.getStrictFileInputs() == null)
-            strictInputs = Job.DEFAULT_STRICT_FILE_INPUTS;  // TODO: ********** TEMP, wait for apps constant
+            strictInputs = AppsClient.DEFAULT_STRICT_FILE_INPUTS;  
           else strictInputs = _app.getStrictFileInputs();
         
         // Process each request file input.
@@ -676,7 +677,8 @@ public final class SubmitContext
             
             // Only add in if required.
             Boolean required = def.getMeta().getRequired();
-            if (required == null || !required) continue;  // TODO:  ****** assumes default is falso
+            if (required == null) required = AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED; 
+            if (!required) continue;  
             
             // Create and save the new request input object.
             var inputSpec = new InputSpec();
@@ -691,7 +693,8 @@ public final class SubmitContext
         for (var def : appInputs) {
             if (def.getMeta() == null) continue;  // should never happen
             Boolean required = def.getMeta().getRequired();
-            if (required == null || !required) continue;  // TODO:  ****** assumes default is falso
+            if (required == null) required = AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED;
+            if (!required) continue;
             
             // Make sure we've processed this named input.
             String defName = def.getMeta().getName();
@@ -728,7 +731,8 @@ public final class SubmitContext
         
         // Fill in the rest of the top-level fields.
         reqInput.setInPlace(appDef.getInPlace());
-        if (reqInput.getInPlace() == null) reqInput.setInPlace(Boolean.FALSE); // TODO:  ****** assumes default is falso
+        if (reqInput.getInPlace() == null) 
+            reqInput.setInPlace(AppsClient.DEFAULT_FILE_INPUT_IN_PLACE);
         
         // Set up the meta objects.
         var appMeta = appDef.getMeta();
@@ -739,8 +743,9 @@ public final class SubmitContext
         // Populate the request meta object.
         reqMeta.setName(appMeta.getName());
         reqMeta.setDescription(appMeta.getDescription());
-        reqMeta.setRequired(appMeta.getRequired());  // TODO:  ****** assumes default is falso
-        if (reqMeta.getRequired() == null) reqMeta.setRequired(Boolean.FALSE);
+        reqMeta.setRequired(appMeta.getRequired());  
+        if (reqMeta.getRequired() == null) 
+            reqMeta.setRequired(AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED);
         
         // Populate the key/value list.
         var appKvPairs = appMeta.getKeyValuePairs();
@@ -811,11 +816,10 @@ public final class SubmitContext
             String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
             _macros.put(JobTemplateVariables._tapisExecSystemLogicalQueue.name(), logicalQueueName);
             
-       // ********* TODO: replace logicalQueueName with HPCQueueName when that field is added to LogicalQueue
             // Validation will check that the named logical queue has been defined.
             for (var q :_execSystem.getBatchLogicalQueues()) {
-                if (logicalQueueName.equals(q.getName())) {
-                    _macros.put(JobTemplateVariables._tapisExecSystemHPCQueue.name(), logicalQueueName);
+                if (logicalQueueName.equals(q.getHpcQueueName())) {
+                    _macros.put(JobTemplateVariables._tapisExecSystemHPCQueue.name(), q.getHpcQueueName());
                     break;
                 }
             }
