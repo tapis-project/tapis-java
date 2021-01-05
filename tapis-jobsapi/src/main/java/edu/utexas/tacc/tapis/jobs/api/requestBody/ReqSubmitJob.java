@@ -38,7 +38,7 @@ public class ReqSubmitJob
     private List<String>        tags;                     // assigned on first get
     private List<NotificationSubscription> subscriptions; // assigned on first get
     
-    // Constraints flattened and aggregated fromp app and job request.
+    // Constraints flattened and aggregated from app and job request.
     private transient String    consolidatedConstraints;          
     
 

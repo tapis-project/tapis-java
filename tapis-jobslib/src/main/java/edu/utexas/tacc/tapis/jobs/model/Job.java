@@ -103,12 +103,12 @@ public final class Job
     private Instant  			remoteLastStatusCheck;
     
     private String   			tapisQueue;
-    private boolean  			visible;
+    private boolean  			visible = true;
     private String   			createdby;
     private String   			createdbyTenant;
     private TreeSet<String>     tags;
     
-    // Transient fields used during processing.
+    // --- Transient fields used during processing.
     private transient Map<String,String> _parmEnvVariables;
     private transient JobParameterSet    _parmSet;
     
@@ -617,11 +617,11 @@ public final class Job
         this._parmEnvVariables = parmEnvVariables;
     }
 
-    public JobParameterSet get_parmSet() {
+    public JobParameterSet getParmSet() {
         return _parmSet;
     }
 
-    public void set_parmSet(JobParameterSet _parmSet) {
-        this._parmSet = _parmSet;
+    public void setParmSet(JobParameterSet parmSet) {
+        this._parmSet = parmSet;
     }
 }

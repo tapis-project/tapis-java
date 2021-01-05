@@ -106,6 +106,61 @@ public final class MacroResolver
         return false;
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* replaceMacros:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** Use the resolved macro definitions to perform simple substitution of macros
+     * in the given text.  Substitution is done on a best effort basis, macros not 
+     * found are skipped.  This method does not throw an exception. 
+     * 
+     * @param text the string contain 0 or more macro references
+     * @return the string with macros replaced by their values if known
+     */
+    public String replaceMacros(String text)
+    {
+        // Avoid crashing.
+        if (text == null) return null;
+        String newText = "";
+        int startIndex = 0;
+        while (startIndex < text.length()) {
+            
+            // Find the beginning of the next macro.
+            int mstart = text.indexOf(MACRO_DELIMITER, startIndex);
+            if (mstart < 0) {
+                newText += text.substring(startIndex);
+                break;
+            }
+                
+            // Find the macro termination.
+            int mend = text.indexOf("}", mstart);
+            if (mend < 0) {
+                newText += text.substring(startIndex);
+                break;
+            }
+            
+            // Avoid empty macros.
+            if (mstart+2 == mend) {
+                newText += text.substring(startIndex, mend + 1);
+                startIndex = mend + 1;
+                continue;
+            }
+            
+            // Isolate the macro name.
+            String macroName = text.substring(mstart+2, mend);
+            String mvalue = _macros.get(macroName);
+            if (StringUtils.isBlank(mvalue)) {
+                newText += text.substring(startIndex, mend + 1);
+            } else {
+                newText += text.substring(startIndex, mstart) + mvalue; 
+            }
+            
+            // Start the next iteration right after the closing brace.
+            startIndex = mend + 1;
+        }
+        
+        return newText;
+    }
+    
     /* **************************************************************************** */
     /*                               Private Methods                                */
     /* **************************************************************************** */
@@ -233,12 +288,11 @@ public final class MacroResolver
         if (mstart < 0) return text;
             
         // Find the macro termination.
-        int mend = text.substring(mstart).indexOf("}");
+        int mend = text.indexOf("}", mstart);
         if (mend < 0) {
             String msg = MsgUtils.getMsg("JOBS_MACRO_ILL_FORMED", text);
             throw new TapisException(msg);
         }
-        mend += mstart; // make relative to start of text
             
         // Avoid empty macros or out-of-bounds indexing.  
         if (mstart+2 >= mend) {

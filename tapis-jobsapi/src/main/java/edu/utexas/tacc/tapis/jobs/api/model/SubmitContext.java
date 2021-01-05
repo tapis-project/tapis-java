@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -104,11 +105,9 @@ public final class SubmitContext
         // Substitute values for tapis macros.
         assignMacros();
         
-        // Validate the job after all arguments are finalized.
-        validateArgs();
+        // Assign validated values to all job fields.
+        populateJob();
         
-        // Assign job fields.
-
         return _job;
     }
     
@@ -394,16 +393,28 @@ public final class SubmitContext
         if (isDynamicExecSystem) resolveDynamicExecSystem(systemsClient);
           else resolveStaticExecSystem(systemsClient);
         
+        // Make sure the execution system is still executable.
+        if (_execSystem.getCanExec() == null || !_execSystem.getCanExec()) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_EXEC_SYSTEM", _execSystem.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
         // --------------------- DTN System ----------------------
         // Load the dtn system if one is specified.
         if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                             requireExecPerm, "DTN"); 
+                                             requireExecPerm, "DTN");
+           if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
+               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
+                                            _dtnSystem.getId());
+               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+           }
+
         }
         
         // --------------------- Archive System ------------------
-        // Load the archive system if one is specified.
+        // Assign and load the archive system if one is specified.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
             _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
         
@@ -499,6 +510,7 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
+        // TODO: Invent optimization strategies.
         // Select the best candidate.  For now, the only selection policy is the 
         // hardcoded random policy.  This will change in future releases.
         _execSystem = execSystems.get(new Random().nextInt(execSystems.size()));
@@ -869,8 +881,20 @@ public final class SubmitContext
         // Initialize the resolver for the current context.
         if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
         
-        // Return the text with all the macros replaced by their values.
+        // Return the text with all the macros replaced by their resolved values.
         return _macroResolver.resolve(text);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* replaceMacros:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    private String replaceMacros(String text)
+    {
+        // Initialize the resolver for the current context.
+        if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
+        
+        // Return the text with all the macros replaced by their existing values.
+        return _macroResolver.replaceMacros(text);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -950,17 +974,66 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateArgs:                                                                */
     /* ---------------------------------------------------------------------------- */
-    private void validateArgs() throws TapisImplException
+    /** By the time we get here the only fields that set in the job object are those
+     * set in its constructor.  This method populates the rest of the job fields 
+     * after validating the values.
+     * 
+     * @throws TapisImplException
+     */
+    private void populateJob() throws TapisImplException
     {
-        // Check the execute flag on the exec system.
-        if (!_execSystem.getCanExec()) {
-            String msg = ""; // ******** TODO
-            throw new TapisImplException(msg, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        // The name and owner are guaranteed to be valid by this point.
+        _job.setName(_submitReq.getName());
+        _job.setOwner(_submitReq.getOwner());
+        _job.setTenant(_submitReq.getTenant());
+        _job.setDescription(replaceMacros(_submitReq.getDescription()));
+        
+        // TODO: JobType and JobExecClass are not implemented yet. *********
+        
+        // Already validated.
+        _job.setAppId(_submitReq.getAppId());
+        _job.setAppVersion(_submitReq.getAppVersion());
+        
+        // Flags already validated.
+        _job.setArchiveOnAppError(_submitReq.getArchiveOnAppError());
+        _job.setDynamicExecSystem(_submitReq.getDynamicExecSystem());
+        
+        // Exec system fields.
+        _job.setExecSystemId(_submitReq.getExecSystemId());
+        _job.setExecSystemInputDir(_submitReq.getExecSystemInputDir());
+        _job.setExecSystemExecDir(_submitReq.getExecSystemExecDir());
+        _job.setExecSystemOutputDir(_submitReq.getExecSystemOutputDir());
+        
+        // TODO: Validate logical queue.  *********
+        _job.setExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
+        
+        // Archive system fields.
+        _job.setArchiveSystemId(_submitReq.getArchiveSystemId());
+        _job.setArchiveSystemDir(_submitReq.getArchiveSystemDir());
+        
+        // DTN system fields.
+        if (_dtnSystem != null) {
+            _job.setDtnSystemId(_execSystem.getDtnSystemId());
+            _job.setDtnMountPoint(_execSystem.getDtnMountPoint());
+            _job.setDtnMountSourcePath(_execSystem.getDtnMountSourcePath());
         }
         
-        // Check the working directory syntax.
+        // Assign job limits.
+        _job.setNodeCount(_submitReq.getNodeCount());
+        _job.setCoresPerNode(_submitReq.getCoresPerNode());
+        _job.setMemoryMB(_submitReq.getMemoryMB());
+        _job.setMaxMinutes(_submitReq.getMaxMinutes());
         
-        // Check that the dtn system is defined as a dtn.
+        // TODO: assign tapisQueue ***********
+        
+        // Creator fields already validated.
+        _job.setCreatedby(_threadContext.getOboUser());
+        _job.setCreatedbyTenant(_threadContext.getOboTenantId());
+        
+        // Tags.
+        var tags = new TreeSet<String>();
+        tags.addAll(_submitReq.getTags());
+        _job.setTags(tags);
         
     }
 
