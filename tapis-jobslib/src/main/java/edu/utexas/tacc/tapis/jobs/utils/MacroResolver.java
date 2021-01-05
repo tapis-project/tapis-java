@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
 
 public final class MacroResolver 
@@ -29,6 +31,13 @@ public final class MacroResolver
     // Maximum number top level iterations allowed when resolving macros.
     private static final int MAX_ITERATIONS = 16;
     
+    // Host eval pattern. Group 1 = variable name, group 2 = suffix.
+    static final Pattern _hostEvalPattern = Pattern.compile("HOST_EVAL\\((.*)\\)(.*)");
+    
+    // Environment variable name format. It can start with an optional $, then a
+    // letter or underscore, and then any sequence of alphanumerics or underscores.
+    static final Pattern _envVarPattern = Pattern.compile("\\$?[a-zA-Z_][a-zA-Z0-9_]*");
+    
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -37,8 +46,10 @@ public final class MacroResolver
     private final Map<String,String> _macros;
     
     // Cache of environment variable values retrieved from the execution system.
+    // The key is the environment variable name prefix with "$", the value is 
+    // the environment variable value retrieved from the execution system.
     private final HashMap<String,String> _hostVariables = new HashMap<String, String>();
-;    
+    
     /* **************************************************************************** */
     /*                                Constructors                                  */
     /* **************************************************************************** */
@@ -101,15 +112,50 @@ public final class MacroResolver
     /* ---------------------------------------------------------------------------- */
     /* replaceHostEval:                                                             */
     /* ---------------------------------------------------------------------------- */
-    private String replaceHostEval(String text)
+    private String replaceHostEval(String text) throws TapisException
     {
         // Do we need to evaluate a host environment variable?
         if (_execSystem == null || !text.startsWith(HOST_EVAL_PREFIX)) return text;
         
+        // Parse the text.
+        var m = _hostEvalPattern.matcher(text);
+        if (!m.matches()) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_HOST_EVAL", text);
+            throw new TapisException(msg);
+        }
         
+        // There are always 2 groups, either of which might be the empty string.
+        String varName = m.group(1);
+        String suffix  = m.group(2);
         
+        // Make sure we have environment variable name.
+        if (varName.isEmpty()) {
+            String msg = MsgUtils.getMsg("JOBS_NO_VARIABLE_IN_HOST_EVAL", text);
+            throw new TapisException(msg);
+        }
         
-        return text;
+        // Validate the variable name is well defined.
+        varName = varName.strip();
+        m = _envVarPattern.matcher(varName);
+        if (!m.matches()) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", varName);
+            throw new TapisException(msg);
+        }
+        
+        // Canonicalize the variable name.
+        if (!varName.startsWith("$")) varName = "$" + varName;
+        
+        // Check for cached value.
+        String result = _hostVariables.get(varName);
+        if (result != null) return result + suffix;
+        
+        // Run the command on the host system and cache results.
+        String cmd = "echo " + varName;
+        var runCmd = new TapisRunCommand(_execSystem, cmd);
+        result = runCmd.execute();
+        _hostVariables.put(varName, result);
+        
+        return result + suffix;
     }
 
     /* ---------------------------------------------------------------------------- */

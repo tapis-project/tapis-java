@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.util.HashMap;
+import java.util.regex.Matcher;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -67,6 +68,37 @@ public class MacroResovlerTest
         var resolver = new MacroResolver(null, _macroMap);
         String text = "$$$${$$$";
         String result = resolver.resolve(text);
+    }
+    
+    @Test
+    public void hostEvalTest1()
+    {
+        Matcher m = MacroResolver._hostEvalPattern.matcher("HOST_EVAL(xxx)/banana");
+        Assert.assertEquals(m.matches(), true);
+        Assert.assertEquals(m.groupCount(), 2);
+        Assert.assertEquals(m.group(1), "xxx");
+        Assert.assertEquals(m.group(2), "/banana");
+        
+        m = MacroResolver._hostEvalPattern.matcher("HOST_EVAL(xxx)");
+        Assert.assertEquals(m.matches(), true);
+        Assert.assertEquals(m.groupCount(), 2);
+        Assert.assertEquals(m.group(1), "xxx");
+        Assert.assertEquals(m.group(2), "");
+    
+        m = MacroResolver._hostEvalPattern.matcher("HOST_EVAL(xxx)/");
+        Assert.assertEquals(m.matches(), true);
+        Assert.assertEquals(m.groupCount(), 2);
+        Assert.assertEquals(m.group(1), "xxx");
+        Assert.assertEquals(m.group(2), "/");
+
+        m = MacroResolver._hostEvalPattern.matcher("HOST_EVAL()");
+        Assert.assertEquals(m.matches(), true);
+        Assert.assertEquals(m.groupCount(), 2);
+        Assert.assertEquals(m.group(1), "");
+        Assert.assertEquals(m.group(2), "");
+
+        m = MacroResolver._hostEvalPattern.matcher("HOST_EVAL(xxx/banana");
+        Assert.assertEquals(m.matches(), false);
     }
     
     /* ---------------------------------------------------------------------------- */
