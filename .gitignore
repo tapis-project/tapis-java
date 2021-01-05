@@ -47,7 +47,6 @@ test-output
 *.iws
 # Include IntelliJ runConfigurations and some
 # other config files to help troubleshoot IDE issues
-!.idea/runConfigurations/
 !.idea/compiler.xml
 !.idea/misc.xml
 !.idea/modules.xml
