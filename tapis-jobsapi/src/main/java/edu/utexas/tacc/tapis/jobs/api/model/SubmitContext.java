@@ -5,6 +5,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -37,6 +38,7 @@ import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -784,7 +786,6 @@ public final class SubmitContext
         
         // ---------- Ground, required
         // Assign required ground macros that never depend on other macros.
-        _macros.put(JobTemplateVariables._tapisJobName.name(),    _submitReq.getName());
         _macros.put(JobTemplateVariables._tapisJobUUID.name(),    _job.getUuid());
         _macros.put(JobTemplateVariables._tapisTenant.name(),     _submitReq.getTenant());
         _macros.put(JobTemplateVariables._tapisJobOwner.name(),   _submitReq.getOwner());
@@ -836,6 +837,11 @@ public final class SubmitContext
                 }
             }
         }
+        
+        // Special case where the job name may reference one or more ground macros.  Any of the previously
+        // assigned macro can be referenced, subsequent macro assignments are not available.
+        _submitReq.setName(replaceMacros(_submitReq.getName()));
+        _macros.put(JobTemplateVariables._tapisJobName.name(), _submitReq.getName());
         
         // ---------- Derived, required
         // Resolve values that can contain macro definitions or host functions.
@@ -983,10 +989,14 @@ public final class SubmitContext
     private void populateJob() throws TapisImplException
     {
         // The name and owner are guaranteed to be valid by this point.
-        _job.setName(replaceMacros(_submitReq.getName()));
+        _job.setName(_submitReq.getName());
         _job.setOwner(_submitReq.getOwner());
         _job.setTenant(_submitReq.getTenant());
         _job.setDescription(replaceMacros(_submitReq.getDescription()));
+        
+        // Creator fields already validated.
+        _job.setCreatedby(_threadContext.getOboUser());
+        _job.setCreatedbyTenant(_threadContext.getOboTenantId());
         
         // TODO: JobType and JobExecClass are not implemented yet. *********
         
@@ -1026,15 +1036,39 @@ public final class SubmitContext
         
         // TODO: assign tapisQueue ***********
         
-        // Creator fields already validated.
-        _job.setCreatedby(_threadContext.getOboUser());
-        _job.setCreatedbyTenant(_threadContext.getOboTenantId());
+        // Complex types stored as json.
+        _job.setFileInputs(TapisGsonUtils.getGson(true).toJson(_submitReq.getFileInputs()));
+        _job.setExecSystemConstraints(TapisGsonUtils.getGson(true).toJson(_submitReq.getExecSystemConstraints()));
+        _job.setSubscriptions(TapisGsonUtils.getGson(true).toJson(_submitReq.getSubscriptions()));
         
+        // Add the macros to the environment variables passed to the runtime application.
+        // The environment variable list is guaranteed to be non-null by this time.  The
+        // populated list is then sorted and the whole parameter set serialized.
+        var envVars = _submitReq.getParameterSet().getEnvVariables();
+        for (var entry : _macros.entrySet()) {
+            var kv = new KeyValuePair();
+            kv.setKey(entry.getKey());
+            kv.setValue(entry.getValue());
+            envVars.add(kv);
+        }
+        envVars.sort(new KeyValuePairComparator());
+        _job.setParameterSet(TapisGsonUtils.getGson(true).toJson(_submitReq.getParameterSet()));
+            
         // Tags.
         var tags = new TreeSet<String>();
         tags.addAll(_submitReq.getTags());
         _job.setTags(tags);
         
     }
-
+    
+    /* **************************************************************************** */
+    /*                        KeyValuePairComparator class                          */
+    /* **************************************************************************** */
+    private static final class KeyValuePairComparator
+     implements Comparator<KeyValuePair>
+    {
+        @Override
+        public int compare(KeyValuePair o1, KeyValuePair o2) 
+        {return o1.getKey().compareToIgnoreCase(o2.getKey());}
+    }
 }

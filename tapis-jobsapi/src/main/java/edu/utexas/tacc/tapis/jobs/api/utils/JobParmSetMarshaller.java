@@ -17,6 +17,12 @@ import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 public final class JobParmSetMarshaller 
 {
     /* **************************************************************************** */
+    /*                                 Constants                                    */
+    /* **************************************************************************** */
+    // Environment variable names that start with this prefix are reserved for Tapis.
+    private static final String TAPIS_ENV_VAR_PREFIX = "_tapis";
+    
+    /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
@@ -92,15 +98,23 @@ public final class JobParmSetMarshaller
         // Validate that the request environment variables contains no duplicate keys.
         var reqEnvVars = reqParmSet.getEnvVariables();
         HashSet<String> origReqEnvKeys = new HashSet<String>(1 + reqEnvVars.size() * 2);
-        for (var kv : reqEnvVars) 
+        for (var kv : reqEnvVars) {
+            // Reserved keys are not allowed.
+            if (kv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
+                String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", kv.getKey(), 
+                                             TAPIS_ENV_VAR_PREFIX, "job request");
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+            // Duplicates are not allowed.
             if (!origReqEnvKeys.add(kv.getKey())) {
                 String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", kv.getKey());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+        }
         
         // Add the environment variables from the app only if they do not already
         // exist in the request set.  The app list has already been checked for
-        // duplicates in the marshalling code.
+        // duplicates and reserved names in the marshalling code.
         var appEnvVars = appParmSet.getEnvVariables();
         if (appEnvVars != null && !appEnvVars.isEmpty())
             for (var kv : appEnvVars) 
@@ -212,6 +226,12 @@ public final class JobParmSetMarshaller
         if (appKvList != null) {
             HashSet<String> dups = new HashSet<String>(1 + appKvList.size() * 2);
             for (var appKv : appKvList) {
+                // Reserved keys are not allowed.
+                if (appKv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
+                    String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", appKv.getKey(), 
+                                                 TAPIS_ENV_VAR_PREFIX, "application");
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
                 // Duplicates are not allowed.
                 if (!dups.add(appKv.getKey())) {
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
@@ -229,6 +249,12 @@ public final class JobParmSetMarshaller
         if (sysKvList != null) {
             HashSet<String> dups = new HashSet<String>(1 + sysKvList.size() * 2);
             for (var sysKv : sysKvList) {
+                // Reserved keys are not allowed.
+                if (sysKv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
+                    String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", sysKv.getKey(), 
+                                                 TAPIS_ENV_VAR_PREFIX, "execution system");
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
                 // Duplicates are not allowed.
                 if (!dups.add(sysKv.getKey())) {
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "system definition", sysKv.getKey());
