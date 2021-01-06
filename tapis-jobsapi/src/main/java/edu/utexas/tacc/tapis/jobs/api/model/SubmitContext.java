@@ -1019,7 +1019,7 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* validateArgs:                                                                */
+    /* populateJob:                                                                 */
     /* ---------------------------------------------------------------------------- */
     /** By the time we get here the only fields that set in the job object are those
      * set in its constructor.  This method populates the rest of the job fields 
@@ -1075,11 +1075,9 @@ public final class SubmitContext
         _job.setMemoryMB(_submitReq.getMemoryMB());
         _job.setMaxMinutes(_submitReq.getMaxMinutes());
         
-        // TODO: assign tapisQueue ***********
-        
-        // Complex types stored as json.
+        // Complex types stored as json.  ****** TODO: This is probably not right yet...
         _job.setFileInputs(TapisGsonUtils.getGson(true).toJson(_submitReq.getFileInputs()));
-        _job.setExecSystemConstraints(TapisGsonUtils.getGson(true).toJson(_submitReq.getExecSystemConstraints()));
+        _job.setExecSystemConstraints(_submitReq.getConsolidatedConstraints());
         _job.setSubscriptions(TapisGsonUtils.getGson(true).toJson(_submitReq.getSubscriptions()));
         
         // Add the macros to the environment variables passed to the runtime application.
@@ -1099,6 +1097,8 @@ public final class SubmitContext
         var tags = new TreeSet<String>();
         tags.addAll(_submitReq.getTags());
         _job.setTags(tags);
+        
+        // TODO: assign tapisQueue ***********
         
     }
     

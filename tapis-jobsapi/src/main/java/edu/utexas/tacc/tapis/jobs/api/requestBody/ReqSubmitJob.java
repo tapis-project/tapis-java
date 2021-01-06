@@ -34,7 +34,7 @@ public class ReqSubmitJob
     private Integer      		maxMinutes;
     private List<InputSpec>  	fileInputs;
     private JobParameterSet 	parameterSet;             // assigned on first get
-    private List<String>        execSystemConstraints;    // assigned on first get
+    private List<String>        execSystemConstraints;    // don't call--used internally only
     private List<String>        tags;                     // assigned on first get
     private List<NotificationSubscription> subscriptions; // assigned on first get
     
@@ -49,7 +49,9 @@ public class ReqSubmitJob
 		return null; // json schema validation is sufficient
 	}
 	
-	/** Combine the sql where clause fragments from the request and application
+	/** --------------- Constraint Processing --------------- 
+	 * 
+	 * Combine the sql where clause fragments from the request and application
 	 * constraints into one sql clause.  If neither are set, the combined clause
 	 * is the empty string.  The result is always placed in the synthetic
 	 * consolidatedConstraints field.
@@ -248,7 +250,6 @@ public class ReqSubmitJob
 	}
 
 	public List<String> getExecSystemConstraints() {
-	    if (execSystemConstraints == null) execSystemConstraints = new ArrayList<String>();
 		return execSystemConstraints;
 	}
 
