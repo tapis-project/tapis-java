@@ -270,6 +270,7 @@ public final class SubmitContext
             _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
         if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
             _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
+        validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
         
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
@@ -831,7 +832,7 @@ public final class SubmitContext
             
             // Validation will check that the named logical queue has been defined.
             for (var q :_execSystem.getBatchLogicalQueues()) {
-                if (logicalQueueName.equals(q.getHpcQueueName())) {
+                if (logicalQueueName.equals(q.getName())) {
                     _macros.put(JobTemplateVariables._tapisExecSystemHPCQueue.name(), q.getHpcQueueName());
                     break;
                 }
@@ -860,16 +861,25 @@ public final class SubmitContext
             
             // Assign derived values that require resolution.  Note that we assign the execution system's working 
             // directory first since other macros can depend on it but not vice versa
-            if (!_macros.containsKey(JobTemplateVariables._tapisJobWorkingDir.name()))
+            if (!_macros.containsKey(JobTemplateVariables._tapisJobWorkingDir.name())) 
                 _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemInputDir.name()))
-                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), resolveMacros(_submitReq.getExecSystemInputDir()));    
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemExecDir.name()))
-                _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), resolveMacros(_submitReq.getExecSystemExecDir()));
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemOutputDir.name()))
-                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), resolveMacros(_submitReq.getExecSystemOutputDir()));
-            if (!_macros.containsKey(JobTemplateVariables._tapisArchiveSystemDir.name()))
-                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), resolveMacros(_submitReq.getArchiveSystemDir()));
+            
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemInputDir.name())) {
+                _submitReq.setExecSystemInputDir(resolveMacros(_submitReq.getExecSystemInputDir()));
+                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());    
+            }
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemExecDir.name())) {
+                _submitReq.setExecSystemExecDir(resolveMacros(_submitReq.getExecSystemExecDir()));
+                _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
+            }
+            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemOutputDir.name())) {
+                _submitReq.setExecSystemOutputDir(resolveMacros(_submitReq.getExecSystemOutputDir()));
+                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+                }
+            if (!_macros.containsKey(JobTemplateVariables._tapisArchiveSystemDir.name())) {
+                _submitReq.setArchiveSystemDir(resolveMacros(_submitReq.getArchiveSystemDir()));
+                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+            }
         } 
         catch (TapisException e) {
             throw new TapisImplException(e.getMessage(), e, Status.BAD_REQUEST.getStatusCode());
@@ -978,6 +988,37 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* validateExecSystemLogicalQueue:                                              */
+    /* ---------------------------------------------------------------------------- */
+    private void validateExecSystemLogicalQueue(String logicalQueueName) 
+     throws TapisImplException
+    {
+        // Do we even need a queue?
+        if (!_execSystem.getJobIsBatch()) return;
+        
+        // We need a queue.
+        if (StringUtils.isBlank(logicalQueueName)) {
+            String msg = MsgUtils.getMsg("JOBS_NO_LOGICAL_QUEUE", _app.getId(), 
+                                         _execSystem.getId(), _submitReq.getTenant());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Validation will check that the named logical queue has been defined.
+        for (var q : _execSystem.getBatchLogicalQueues()) 
+            if (logicalQueueName.equals(q.getName())) return;
+
+        // Queue not defined on exec system.
+        String queues = null;
+        for (var q : _execSystem.getBatchLogicalQueues()) {
+            if (queues == null) queues = q.getName();
+              else queues += ", " + q.getName();
+        }
+        String msg = MsgUtils.getMsg("JOBS_INVALID_LOGICAL_QUEUE", _app.getId(), 
+                _execSystem.getId(), _submitReq.getTenant(), logicalQueueName, queues);
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* validateArgs:                                                                */
     /* ---------------------------------------------------------------------------- */
     /** By the time we get here the only fields that set in the job object are those
@@ -1014,7 +1055,7 @@ public final class SubmitContext
         _job.setExecSystemExecDir(_submitReq.getExecSystemExecDir());
         _job.setExecSystemOutputDir(_submitReq.getExecSystemOutputDir());
         
-        // TODO: Validate logical queue.  *********
+        // The logical (tapis system) queue can be null on non-batch jobs.
         _job.setExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
         
         // Archive system fields.
