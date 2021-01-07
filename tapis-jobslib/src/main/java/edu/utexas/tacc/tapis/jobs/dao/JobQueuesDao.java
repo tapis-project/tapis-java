@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
-import edu.utexas.tacc.tapis.jobs.model.JobQueues;
+import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -51,13 +51,13 @@ public final class JobQueuesDao
   /*                             Public Methods                             */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* getJobQueues:                                                       */
+  /* getJobQueuesByPriorityDesc:                                            */
   /* ---------------------------------------------------------------------- */
-  public List<JobQueues> getJobQueues() 
+  public List<JobQueue> getJobQueuesByPriorityDesc() 
     throws TapisException
   {
       // Initialize result.
-      ArrayList<JobQueues> list = new ArrayList<>();
+      ArrayList<JobQueue> list = new ArrayList<>();
 
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
@@ -67,14 +67,14 @@ public final class JobQueuesDao
           conn = getConnection();
           
           // Get the select command.
-          String sql = SqlStatements.SELECT_JOBQUEUES;
+          String sql = SqlStatements.SELECT_JOBQUEUES_BY_PRIORITY_DESC;
           
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
                       
           // Issue the call for the 1 row result set.
           ResultSet rs = pstmt.executeQuery();
-          JobQueues obj = populateJobQueues(rs);
+          JobQueue obj = populateJobQueues(rs);
           while (obj != null) {
             list.add(obj);
             obj = populateJobQueues(rs);
@@ -112,72 +112,6 @@ public final class JobQueuesDao
       return list;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* getJobQueuesByUUID:                                                 */
-  /* ---------------------------------------------------------------------- */
-  public JobQueues getJobQueuesByUUID(String uuid) 
-    throws TapisException
-  {
-      // ------------------------- Check Input -------------------------
-      if (StringUtils.isBlank(uuid)) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobQueuesByUUID", "uuid");
-          _log.error(msg);
-          throw new TapisException(msg);
-      }
-      
-      // Initialize result.
-      JobQueues result = null;
-
-      // ------------------------- Call SQL ----------------------------
-      Connection conn = null;
-      try
-      {
-          // Get a database connection.
-          conn = getConnection();
-          
-          // Get the select command.
-          String sql = SqlStatements.SELECT_JOBQUEUES_BY_UUID;
-          
-          // Prepare the statement and fill in the placeholders.
-          PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, uuid);
-                      
-          // Issue the call for the 1 row result set.
-          ResultSet rs = pstmt.executeQuery();
-          result = populateJobQueues(rs);
-          
-          // Close the result and statement.
-          rs.close();
-          pstmt.close();
-    
-          // Commit the transaction.
-          conn.commit();
-      }
-      catch (Exception e)
-      {
-          // Rollback transaction.
-          try {if (conn != null) conn.rollback();}
-              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
-          
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "JobQueues", uuid, e.getMessage());
-          _log.error(msg, e);
-          throw new TapisException(msg, e);
-      }
-      finally {
-          // Always return the connection back to the connection pool.
-          try {if (conn != null) conn.close();}
-            catch (Exception e) 
-            {
-              // If commit worked, we can swallow the exception.  
-              // If not, the commit exception will be thrown.
-              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
-              _log.error(msg, e);
-            }
-      }
-      
-      return result;
-  }
-
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
@@ -197,7 +131,7 @@ public final class JobQueuesDao
    * @return a new model object or null if the result set is null or empty
    * @throws AloeJDBCException on SQL access or conversion errors
    */
-  private JobQueues populateJobQueues(ResultSet rs)
+  private JobQueue populateJobQueues(ResultSet rs)
    throws TapisJDBCException
   {
     // Quick check.
@@ -216,7 +150,7 @@ public final class JobQueuesDao
     
     // Populate the JobQueues object using table definition field order,
     // which is the order specified in all calling methods.
-    JobQueues obj = new JobQueues();
+    JobQueue obj = new JobQueue();
     try {
         obj.setId(rs.getInt(1));
         obj.setName(rs.getString(2));

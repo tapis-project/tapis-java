@@ -8,6 +8,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
+import edu.utexas.tacc.tapis.jobs.queue.QueueManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
@@ -150,6 +151,19 @@ extends ResourceConfig
 	    	e.printStackTrace();
 	    }
        
+       // ------ Queue Initialization 
+       // By getting the singleton instance of the queue manager
+       // we also cause all job queues and exchanges to be initialized.
+       // There is some redundancy here since each front-end and
+       // each worker initialize all queue artifacts.  Not a problem, 
+       // but there's room for improvement.
+       try {QueueManager.getInstance();} // called for side effect
+        catch (Exception e) {
+            errors++;
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi QueueManager ****");
+            e.printStackTrace();
+        }
+        
        // We're done.
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
    }

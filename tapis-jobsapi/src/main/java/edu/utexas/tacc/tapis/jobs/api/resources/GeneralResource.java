@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
+import edu.utexas.tacc.tapis.jobs.queue.QueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
@@ -54,6 +55,7 @@ public final class GeneralResource
     // Keep track of the last db monitoring outcome.
     private static final CallSiteToggle _lastQueryDBSucceeded = new CallSiteToggle();
     private static final CallSiteToggle _lastQueryTenantsSucceeded = new CallSiteToggle();
+    private static final CallSiteToggle _lastQueryQueueManagerSucceeded = new CallSiteToggle();
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -192,6 +194,9 @@ public final class GeneralResource
       // Check the tenant manager.
       if (queryTenants()) jobsProbe.tenantsAccess = true;
       
+      // Check rabbitmq.
+      if (queryQueueMananger()) jobsProbe.queueAccess = true;
+      
       // Create the response object.
       RespProbe r = new RespProbe(jobsProbe);
       
@@ -257,6 +262,9 @@ public final class GeneralResource
       
       // Check the tenant manager.
       if (queryTenants()) jobsProbe.tenantsAccess = true;
+      
+      // Check rabbitmq.
+      if (queryQueueMananger()) jobsProbe.queueAccess = true;
       
       // Create the response object.
       RespProbe r = new RespProbe(jobsProbe);
@@ -356,6 +364,42 @@ public final class GeneralResource
       return success;
   }
   
+  /* ---------------------------------------------------------------------------- */
+  /* queryQueueMananger:                                                          */
+  /* ---------------------------------------------------------------------------- */
+  /** Retrieve the singleton queue manager.
+   * 
+   * @return true if the queue manager initialized and is not null, false otherwise
+   */
+  private boolean queryQueueMananger()
+  {
+      // Start optimistically.
+      boolean success = true;
+      
+      try {
+          // Make sure the cached tenants map is not null.
+          var qm = QueueManager.getInstance();
+          if (qm == null) {
+              if (_lastQueryQueueManagerSucceeded.toggleOff()) {
+                  String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
+                                               "Null QueueManager.");
+                  _log.error(msg);
+              }
+              success = false;
+          } else if (_lastQueryQueueManagerSucceeded.toggleOn())
+              _log.info(MsgUtils.getMsg("TAPIS_PROBE_ERROR_CLEARED", "Jobs Service", "QueueManager"));
+      } catch (Exception e) {
+          if (_lastQueryQueueManagerSucceeded.toggleOff()) {
+              String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 
+                                           e.getMessage());
+              _log.error(msg, e);
+          }
+          success = false;
+      }
+      
+      return success;
+  }
+  
   /* **************************************************************************** */
   /*                                    Fields                                    */
   /* **************************************************************************** */
@@ -365,7 +409,8 @@ public final class GeneralResource
       public long    checkNum;
       public boolean databaseAccess;
       public boolean tenantsAccess;
+      public boolean queueAccess;
       
-      public boolean failed() {return !(databaseAccess && tenantsAccess);}
+      public boolean failed() {return !(databaseAccess && tenantsAccess && queueAccess);}
   }
 }

@@ -26,6 +26,7 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
+import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -1098,8 +1099,8 @@ public final class SubmitContext
         tags.addAll(_submitReq.getTags());
         _job.setTags(tags);
         
-        // TODO: assign tapisQueue ***********
-        
+        // Assign tapisQueue now that the job object is completely initialized.
+        _job.setTapisQueue(new SelectQueueName().select(_job));
     }
     
     /* **************************************************************************** */

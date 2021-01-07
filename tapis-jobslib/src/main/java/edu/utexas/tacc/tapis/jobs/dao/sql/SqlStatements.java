@@ -92,14 +92,9 @@ public class SqlStatements
 	/* ---------------------------------------------------------------------- */
 	/* job_queues table:                                                      */
 	/* ---------------------------------------------------------------------- */
-    public static final String SELECT_JOBQUEUES =
+    public static final String SELECT_JOBQUEUES_BY_PRIORITY_DESC =
         "SELECT id, name, priority, filter, uuid, created, last_updated"
-        + " FROM job_queues ORDER BY id";
-
-    public static final String SELECT_JOBQUEUES_BY_UUID =
-        "SELECT id, name, priority, filter, uuid, created, last_updated"
-        + " FROM job_queues"
-        + " WHERE uuid = ?";
+        + " FROM job_queues ORDER BY priority desc";
 
 	/* ---------------------------------------------------------------------- */
 	/* job_events table:                                                      */

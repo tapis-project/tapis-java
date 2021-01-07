@@ -148,7 +148,7 @@ CREATE TABLE job_queues
   id                          serial4 PRIMARY KEY,
   name                        character varying(150) NOT NULL,
   priority                    integer NOT NULL,
-  filter                      character varying(2048) NOT NULL,
+  filter                      character varying(4096) NOT NULL,
   uuid                        character varying(64) NOT NULL,
   created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   last_updated                timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc')
@@ -156,7 +156,7 @@ CREATE TABLE job_queues
 ALTER TABLE job_queues OWNER TO tapis;
 ALTER SEQUENCE job_queues_id_seq RESTART WITH 1;
 CREATE UNIQUE INDEX job_queues_name_idx ON job_queues (name);
-CREATE UNIQUE INDEX job_queues_priority_idx ON job_queues (priority);
+CREATE UNIQUE INDEX job_queues_priority_idx ON job_queues (priority desc);
 CREATE UNIQUE INDEX job_queues_uuid_idx ON job_queues (uuid);
 
 -- ----------------------------------------------------------------------------------------

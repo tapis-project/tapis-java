@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
-import edu.utexas.tacc.tapis.jobs.model.JobEvents;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -52,11 +52,11 @@ public final class JobEventsDao
   /* ---------------------------------------------------------------------- */
   /* getJobEvents:                                                       */
   /* ---------------------------------------------------------------------- */
-  public List<JobEvents> getJobEvents() 
+  public List<JobEvent> getJobEvents() 
     throws TapisException
   {
       // Initialize result.
-      ArrayList<JobEvents> list = new ArrayList<>();
+      ArrayList<JobEvent> list = new ArrayList<>();
 
       // ------------------------- Call SQL ----------------------------
       Connection conn = null;
@@ -73,7 +73,7 @@ public final class JobEventsDao
                       
           // Issue the call for the 1 row result set.
           ResultSet rs = pstmt.executeQuery();
-          JobEvents obj = populateJobEvents(rs);
+          JobEvent obj = populateJobEvents(rs);
           while (obj != null) {
             list.add(obj);
             obj = populateJobEvents(rs);
@@ -131,7 +131,7 @@ public final class JobEventsDao
    * @return a new model object or null if the result set is null or empty
    * @throws AloeJDBCException on SQL access or conversion errors
    */
-  private JobEvents populateJobEvents(ResultSet rs)
+  private JobEvent populateJobEvents(ResultSet rs)
    throws TapisJDBCException
   {
     // Quick check.
@@ -150,7 +150,7 @@ public final class JobEventsDao
     
     // Populate the JobEvents object using table definition field order,
     // which is the order specified in all calling methods.
-    JobEvents obj = new JobEvents();
+    JobEvent obj = new JobEvent();
     try {
         obj.setId(rs.getInt(1));
         obj.setCreated(rs.getTimestamp(2).toInstant());

@@ -94,6 +94,14 @@ public final class RuntimeParameters
 	private String  jdbcURL;
 	private int     dbMeterMinutes;
 	
+    // RabbitMQ configuration.
+    private String  queueUser;
+    private String  queuePassword;
+    private String  queueHost;
+    private int     queuePort;
+    private boolean queueSSLEnabled;
+    private boolean queueAutoRecoveryEnabled;
+    
 	// Mail configuration.
 	private EmailProviderType emailProviderType;
 	private boolean emailAuth;
@@ -689,6 +697,54 @@ public final class RuntimeParameters
 	    this.dbMeterMinutes = dbMeterMinutes;
 	}
 
+    public String getQueueUser() {
+        return queueUser;
+    }
+
+    public void setQueueUser(String queueUser) {
+        this.queueUser = queueUser;
+    }
+
+    public String getQueuePassword() {
+        return queuePassword;
+    }
+
+    public void setQueuePassword(String queuePassword) {
+        this.queuePassword = queuePassword;
+    }
+
+    public String getQueueHost() {
+        return queueHost;
+    }
+
+    public void setQueueHost(String queueHost) {
+        this.queueHost = queueHost;
+    }
+
+    public int getQueuePort() {
+        return queuePort;
+    }
+
+    public void setQueuePort(int queuePort) {
+        this.queuePort = queuePort;
+    }
+
+    public boolean isQueueSSLEnabled() {
+        return queueSSLEnabled;
+    }
+
+    public void setQueueSSLEnabled(boolean queueSSLEnabled) {
+        this.queueSSLEnabled = queueSSLEnabled;
+    }
+
+    public boolean isQueueAutoRecoveryEnabled() {
+        return queueAutoRecoveryEnabled;
+    }
+
+    public void setQueueAutoRecoveryEnabled(boolean queueAutoRecoveryEnabled) {
+        this.queueAutoRecoveryEnabled = queueAutoRecoveryEnabled;
+    }
+    
     public EmailProviderType getEmailProviderType() {
         return emailProviderType;
     }
@@ -800,4 +856,5 @@ public final class RuntimeParameters
 	public void setServicePassword(String servicePassword) {
 		this.servicePassword = servicePassword;
 	}
+
 }

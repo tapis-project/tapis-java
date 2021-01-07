@@ -3,7 +3,7 @@ package edu.utexas.tacc.tapis.jobs.model;
 import java.time.Instant;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
-public final class JobQueues
+public final class JobQueue
 {
     private int     id;
     private String  name;

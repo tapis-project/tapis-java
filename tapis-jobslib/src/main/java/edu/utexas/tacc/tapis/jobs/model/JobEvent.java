@@ -3,7 +3,7 @@ package edu.utexas.tacc.tapis.jobs.model;
 import java.time.Instant;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
-public final class JobEvents
+public final class JobEvent
 {
     private int     id;
     private Instant created;
