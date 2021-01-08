@@ -44,9 +44,6 @@ public final class SelectQueueName
         properties.put("owner", job.getOwner());
         properties.put("tenant", job.getTenant());
         
-        properties.put("type", job.getType().name());
-        properties.put("exec_class", job.getExecClass().name());
-        
         properties.put("created", job.getCreated().toString());
         properties.put("uuid", job.getUuid());
         

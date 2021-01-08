@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -18,10 +17,8 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -279,46 +276,44 @@ public final class JobsDao
           pstmt.setString(4, job.getDescription().trim());
               
           pstmt.setString(5, job.getStatus().name());
-          pstmt.setString(6, job.getType().name());
-          pstmt.setString(7, job.getExecClass().name());
               
-          pstmt.setString(8, job.getLastMessage());
-          pstmt.setTimestamp(9, Timestamp.from(job.getCreated()));
-          pstmt.setTimestamp(10, Timestamp.from(job.getLastUpdated()));
+          pstmt.setString(6, job.getLastMessage());
+          pstmt.setTimestamp(7, Timestamp.from(job.getCreated()));
+          pstmt.setTimestamp(8, Timestamp.from(job.getLastUpdated()));
               
-          pstmt.setString(11, job.getUuid());
+          pstmt.setString(9, job.getUuid());
             
-          pstmt.setString(12, job.getAppId().trim());
-          pstmt.setString(13, job.getAppVersion().trim());
-          pstmt.setBoolean(14, job.isArchiveOnAppError());
-          pstmt.setBoolean(15, job.isDynamicExecSystem());
+          pstmt.setString(10, job.getAppId().trim());
+          pstmt.setString(11, job.getAppVersion().trim());
+          pstmt.setBoolean(12, job.isArchiveOnAppError());
+          pstmt.setBoolean(13, job.isDynamicExecSystem());
               
-          pstmt.setString(16, job.getExecSystemId());           
-          pstmt.setString(17, job.getExecSystemExecDir());      // could be null
-          pstmt.setString(18, job.getExecSystemInputDir());     // could be null
-          pstmt.setString(19, job.getExecSystemOutputDir());    // could be null
-          pstmt.setString(20, job.getExecSystemLogicalQueue()); // could be null
+          pstmt.setString(14, job.getExecSystemId());           
+          pstmt.setString(15, job.getExecSystemExecDir());      // could be null
+          pstmt.setString(16, job.getExecSystemInputDir());     // could be null
+          pstmt.setString(17, job.getExecSystemOutputDir());    // could be null
+          pstmt.setString(18, job.getExecSystemLogicalQueue()); // could be null
           
-          pstmt.setString(21, job.getArchiveSystemId());        // could be null
-          pstmt.setString(22, job.getArchiveSystemDir());       // could be null
+          pstmt.setString(19, job.getArchiveSystemId());        // could be null
+          pstmt.setString(20, job.getArchiveSystemDir());       // could be null
               
-          pstmt.setString(23, job.getDtnSystemId());            // could be null       
-          pstmt.setString(24, job.getDtnMountSourcePath());     // could be null
-          pstmt.setString(25, job.getDtnMountPoint());          // could be null
+          pstmt.setString(21, job.getDtnSystemId());            // could be null       
+          pstmt.setString(22, job.getDtnMountSourcePath());     // could be null
+          pstmt.setString(23, job.getDtnMountPoint());          // could be null
           
-          pstmt.setInt(26, job.getNodeCount());
-          pstmt.setInt(27, job.getCoresPerNode());
-          pstmt.setInt(28, job.getMemoryMB());
-          pstmt.setInt(29, job.getMaxMinutes());
+          pstmt.setInt(24, job.getNodeCount());
+          pstmt.setInt(25, job.getCoresPerNode());
+          pstmt.setInt(26, job.getMemoryMB());
+          pstmt.setInt(27, job.getMaxMinutes());
               
-          pstmt.setString(30, job.getFileInputs());                 
-          pstmt.setString(31, job.getParameterSet());             
-          pstmt.setString(32, job.getExecSystemConstraints());                 
-          pstmt.setString(33, job.getSubscriptions());             
+          pstmt.setString(28, job.getFileInputs());                 
+          pstmt.setString(29, job.getParameterSet());             
+          pstmt.setString(30, job.getExecSystemConstraints());                 
+          pstmt.setString(31, job.getSubscriptions());             
 
-          pstmt.setString(34, job.getTapisQueue());
-          pstmt.setString(35, job.getCreatedby());
-          pstmt.setString(36, job.getCreatedbyTenant());
+          pstmt.setString(32, job.getTapisQueue());
+          pstmt.setString(33, job.getCreatedby());
+          pstmt.setString(34, job.getCreatedbyTenant());
           
           var tags = job.getTags();
           Array tagsArray;
@@ -328,7 +323,7 @@ public final class JobsDao
                 String[] sarray = tags.toArray(new String[tags.size()]);
                 tagsArray = conn.createArrayOf("text", sarray);
             }
-          pstmt.setArray(37, tagsArray);
+          pstmt.setArray(35, tagsArray);
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -464,14 +459,6 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "status");
 	          throw new TapisException(msg);
 		}
-		if (job.getType() == null) {
-	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "type");
-	          throw new TapisException(msg);
-		}
-		if (job.getExecClass() == null) {
-	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execClass");
-	          throw new TapisException(msg);
-		}
 		
 		if (StringUtils.isBlank(job.getUuid())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "uuid");
@@ -572,75 +559,73 @@ public final class JobsDao
 	        obj.setTenant(rs.getString(4));
 	        obj.setDescription(rs.getString(5));
 	        obj.setStatus(JobStatusType.valueOf(rs.getString(6)));
-	        obj.setType(JobType.valueOf(rs.getString(7)));
-	        obj.setExecClass(JobExecClass.valueOf(rs.getString(8)));
-	        obj.setLastMessage(rs.getString(9));
-	        obj.setCreated(rs.getTimestamp(10).toInstant());
+	        obj.setLastMessage(rs.getString(7));
+	        obj.setCreated(rs.getTimestamp(8).toInstant());
 
-	        Timestamp ts = rs.getTimestamp(11);
+	        Timestamp ts = rs.getTimestamp(9);
 	        if (ts != null) obj.setEnded(ts.toInstant());
 
-	        obj.setLastUpdated(rs.getTimestamp(12).toInstant());
-	        obj.setUuid(rs.getString(13));
-	        obj.setAppId(rs.getString(14));
-	        obj.setAppVersion(rs.getString(15));
-	        obj.setArchiveOnAppError(rs.getBoolean(16));
-	        obj.setDynamicExecSystem(rs.getBoolean(17));
+	        obj.setLastUpdated(rs.getTimestamp(10).toInstant());
+	        obj.setUuid(rs.getString(11));
+	        obj.setAppId(rs.getString(12));
+	        obj.setAppVersion(rs.getString(13));
+	        obj.setArchiveOnAppError(rs.getBoolean(14));
+	        obj.setDynamicExecSystem(rs.getBoolean(15));
 	        
-	        obj.setExecSystemId(rs.getString(18));
-	        obj.setExecSystemExecDir(rs.getString(19));
-	        obj.setExecSystemInputDir(rs.getString(20));
-	        obj.setExecSystemOutputDir(rs.getString(21));
-	        obj.setExecSystemLogicalQueue(rs.getString(22));
+	        obj.setExecSystemId(rs.getString(16));
+	        obj.setExecSystemExecDir(rs.getString(17));
+	        obj.setExecSystemInputDir(rs.getString(18));
+	        obj.setExecSystemOutputDir(rs.getString(19));
+	        obj.setExecSystemLogicalQueue(rs.getString(20));
 	        
-	        obj.setArchiveSystemId(rs.getString(23));
-	        obj.setArchiveSystemDir(rs.getString(24));
+	        obj.setArchiveSystemId(rs.getString(21));
+	        obj.setArchiveSystemDir(rs.getString(22));
 	        
-	        obj.setDtnSystemId(rs.getString(25));
-	        obj.setDtnMountSourcePath(rs.getString(26));
-	        obj.setDtnMountPoint(rs.getString(27));
+	        obj.setDtnSystemId(rs.getString(23));
+	        obj.setDtnMountSourcePath(rs.getString(24));
+	        obj.setDtnMountPoint(rs.getString(25));
 	        
-	        obj.setNodeCount(rs.getInt(28));
-	        obj.setCoresPerNode(rs.getInt(29));
-	        obj.setMemoryMB(rs.getInt(30));
-	        obj.setMaxMinutes(rs.getInt(31));
+	        obj.setNodeCount(rs.getInt(26));
+	        obj.setCoresPerNode(rs.getInt(27));
+	        obj.setMemoryMB(rs.getInt(28));
+	        obj.setMaxMinutes(rs.getInt(29));
 	        
-	        obj.setFileInputs(rs.getString(32));
-	        obj.setParameterSet(rs.getString(33));
-	        obj.setExecSystemConstraints(rs.getString(34));
-	        obj.setSubscriptions(rs.getString(35));	        
+	        obj.setFileInputs(rs.getString(30));
+	        obj.setParameterSet(rs.getString(31));
+	        obj.setExecSystemConstraints(rs.getString(32));
+	        obj.setSubscriptions(rs.getString(33));	        
 	        
-	        obj.setBlockedCount(rs.getInt(36));
-	        obj.setRemoteJobId(rs.getString(37));
-	        obj.setRemoteJobId2(rs.getString(38));
+	        obj.setBlockedCount(rs.getInt(34));
+	        obj.setRemoteJobId(rs.getString(35));
+	        obj.setRemoteJobId2(rs.getString(36));
 	        
-	        String s = rs.getString(39);
+	        String s = rs.getString(37);
 	        if (s != null) obj.setRemoteOutcome(JobRemoteOutcome.valueOf(s));
-	        obj.setRemoteResultInfo(rs.getString(40));
-	        obj.setRemoteQueue(rs.getString(41));
+	        obj.setRemoteResultInfo(rs.getString(38));
+	        obj.setRemoteQueue(rs.getString(39));
 
-	        ts = rs.getTimestamp(42);
+	        ts = rs.getTimestamp(40);
 	        if (ts != null) obj.setRemoteSubmitted(ts.toInstant());
 
-	        ts = rs.getTimestamp(43);
+	        ts = rs.getTimestamp(41);
 	        if (ts != null) obj.setRemoteStarted(ts.toInstant());
 
-	        ts = rs.getTimestamp(44);
+	        ts = rs.getTimestamp(42);
 	        if (ts != null) obj.setRemoteEnded(ts.toInstant());
 
-	        obj.setRemoteSubmitRetries(rs.getInt(45));
-	        obj.setRemoteChecksSuccess(rs.getInt(46));
-	        obj.setRemoteChecksFailed(rs.getInt(47));
+	        obj.setRemoteSubmitRetries(rs.getInt(43));
+	        obj.setRemoteChecksSuccess(rs.getInt(44));
+	        obj.setRemoteChecksFailed(rs.getInt(45));
 
-	        ts = rs.getTimestamp(48);
+	        ts = rs.getTimestamp(46);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
 
-	        obj.setTapisQueue(rs.getString(49));
-	        obj.setVisible(rs.getBoolean(50));
-	        obj.setCreatedby(rs.getString(51));
-	        obj.setCreatedbyTenant(rs.getString(52));
+	        obj.setTapisQueue(rs.getString(47));
+	        obj.setVisible(rs.getBoolean(48));
+	        obj.setCreatedby(rs.getString(49));
+	        obj.setCreatedbyTenant(rs.getString(50));
 	        
-	        Array tagsArray = rs.getArray(53);
+	        Array tagsArray = rs.getArray(51);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
 	            if (stringArray != null && stringArray.length > 0) { 

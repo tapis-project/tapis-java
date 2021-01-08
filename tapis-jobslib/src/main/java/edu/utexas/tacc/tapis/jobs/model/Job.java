@@ -6,10 +6,8 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobExecClass;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -50,8 +48,6 @@ public final class Job
     private String   			description;
     
     private JobStatusType   	status = JobStatusType.PENDING;
-    private JobType   			type = JobType.BATCH;
-    private JobExecClass   		execClass = JobExecClass.NORMAL;
     
     private String   			lastMessage;
     private Instant  			created;
@@ -228,22 +224,6 @@ public final class Job
 
 	public void setStatus(JobStatusType status) {
 		this.status = status;
-	}
-
-	public JobType getType() {
-		return type;
-	}
-
-	public void setType(JobType type) {
-		this.type = type;
-	}
-
-	public JobExecClass getExecClass() {
-		return execClass;
-	}
-
-	public void setExecClass(JobExecClass execClass) {
-		this.execClass = execClass;
 	}
 
 	public String getLastMessage() {

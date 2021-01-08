@@ -16,8 +16,6 @@
 -- Types
 CREATE TYPE job_status_enum AS ENUM ('PENDING', 'PROCESSING_INPUTS', 'STAGING_INPUTS', 'STAGING_JOB', 'SUBMITTING_JOB', 'QUEUED', 'RUNNING', 'ARCHIVING', 'FINISHED','CANCELLED', 'FAILED', 'PAUSED', 'BLOCKED');
 CREATE TYPE job_remote_outcome_enum AS ENUM ('FINISHED', 'FAILED', 'FAILED_SKIP_ARCHIVE');
-CREATE TYPE job_type_enum as ENUM ('BATCH', 'INTERACTIVE', 'STREAM');
-CREATE TYPE job_exec_class_enum as ENUM ('NORMAL', 'PROTECTED');
 
 -- ----------------------------------------------------------------------------------------
 --                                          Jobs
@@ -31,8 +29,6 @@ CREATE TABLE jobs
   tenant                      character varying(24) NOT NULL,
   description                 character varying(2048) NOT NULL, 
   status                      job_status_enum NOT NULL,
-  type                        job_type_enum NOT NULL,
-  exec_class                  job_exec_class_enum NOT NULL,
   last_message                character varying(4096) NOT NULL, 
   
   created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       

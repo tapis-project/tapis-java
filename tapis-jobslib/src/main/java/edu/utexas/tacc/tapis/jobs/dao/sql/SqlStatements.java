@@ -11,7 +11,7 @@ public class SqlStatements
 	/* jobs table:                                                            */
 	/* ---------------------------------------------------------------------- */
     public static final String SELECT_JOBS =
-        "SELECT id, name, owner, tenant, description, status, type, exec_class, "
+        "SELECT id, name, owner, tenant, description, status, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
         	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
         	+ "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
@@ -27,7 +27,7 @@ public class SqlStatements
         + " FROM jobs ORDER BY id";
 
     public static final String SELECT_JOBS_BY_UUID =
-        "SELECT id, name, owner, tenant, description, status, type, exec_class, "
+        "SELECT id, name, owner, tenant, description, status, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
         	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
@@ -49,7 +49,7 @@ public class SqlStatements
     //
     public static final String CREATE_JOB = 
     		"INSERT INTO jobs ("
-    		+ "name, owner, tenant, description, status, type, exec_class, "
+    		+ "name, owner, tenant, description, status, "
         	+ "last_message, created, last_updated, uuid, app_id, app_version, "
         	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
@@ -58,7 +58,7 @@ public class SqlStatements
             + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
             + "tapis_queue, createdby, createdby_tenant, tags) "
-    		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, ?::job_type_enum, ?::job_exec_class_enum, "
+    		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
     		+ "?, ?, ?, "
