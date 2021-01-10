@@ -123,9 +123,6 @@ public final class Job
     	Instant now = Instant.now();
     	setCreated(now);
     	setLastUpdated(now);
-    	
-        // Initial status message.
-        setLastMessage(MsgUtils.getMsg("JOBS_ACCEPTED"));
     }
     
     /* **************************************************************************** */

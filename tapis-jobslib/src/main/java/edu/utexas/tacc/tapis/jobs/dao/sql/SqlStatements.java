@@ -72,7 +72,16 @@ public class SqlStatements
     public static final String SELECT_JOBRESUBMIT =
         "SELECT id, job_uuid, job_definition"
         + " FROM job_resubmit ORDER BY id";
-
+    
+    public static final String SELECT_JOBRESUBMIT_BY_UUID =
+        "SELECT id, uuid, job_definition"
+        + " FROM aloe_job_resubmit"
+        + " WHERE uuid = ?";
+        
+    public static final String CREATE_JOBRESUBMIT =
+        "INSERT INTO aloe_job_resubmit (uuid, job_definition) "
+        + "VALUES (?, ?)";
+        
 	/* ---------------------------------------------------------------------- */
 	/* job_recovery table:                                                    */
 	/* ---------------------------------------------------------------------- */

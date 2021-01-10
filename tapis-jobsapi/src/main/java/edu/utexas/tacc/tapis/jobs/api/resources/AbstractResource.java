@@ -67,7 +67,27 @@ class AbstractResource
             String msg = MsgUtils.getMsg("TAPIS_IO_ERROR", e.getMessage());
             throw new TapisException(msg, e);
           }
-        
+             
+       return getPayload(json, schemaFile, classOfT); 
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getPayload:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Get the request's json payload and use it to populate a request-specified 
+     * object.
+     * 
+     * @param <T> the result type
+     * @param json the request payload as json
+     * @param schemaFile the schema file that validates the request json
+     * @param classOfT the class of the result object
+     * @return the object that received the payload
+     * @throws TapisException on error
+     */
+    protected <T extends IReqBody> 
+        T getPayload(String json, String schemaFile, Class<T> classOfT)
+     throws TapisException
+    {
         // Create validator specification.
         JsonValidatorSpec spec = new JsonValidatorSpec(json, schemaFile);
         

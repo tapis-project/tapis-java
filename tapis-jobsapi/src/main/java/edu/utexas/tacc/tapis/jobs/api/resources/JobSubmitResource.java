@@ -1,12 +1,17 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -18,17 +23,23 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -136,7 +147,7 @@ public class JobSubmitResource
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-         )
+     )
      public Response submitJob(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
      {
@@ -147,53 +158,213 @@ public class JobSubmitResource
          _log.trace(msg);
        }
        
-       // ------------------------- Input Processing -------------------------
-       // Parse and validate the json in the request payload, which must exist.
-       ReqSubmitJob payload = null;
-       try {payload = getPayload(payloadStream, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
-       catch (Exception e) {
-           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                        "sbumitJob", e.getMessage());
+       // The shared code takes it from here.
+       return doSubmit(prettyPrint, payloadStream);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* resubmitJob:                                                                 */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/{jobuuid}/resubmit")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Resubmit a job for execution using the original parameters.  "
+                           + "The main phases of job execution are:\n\n"
+                           + ""
+                           + "  - validate input\n"
+                           + "  - check resource availability\n"
+                           + "  - stage input files\n"
+                           + "  - stage application code\n"
+                           + "  - launch application\n"
+                           + "  - monitor application\n"
+                           + "  - archive application output\n"
+                           + "",
+             tags = "jobs",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
+             responses = 
+                 {
+                  @ApiResponse(responseCode = "201", description = "Job created.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+     )
+     public Response resubmitJob(@PathParam("jobuuid") String jobUuid,
+                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+    	 // Trace this request.
+    	 if (_log.isTraceEnabled()) {
+    		 String msg = MsgUtils.getMsg("ALOE_TRACE_REQUEST", getClass().getSimpleName(), "hideJob",
+    				 				      "  " + _request.getRequestURL());
+    		 _log.trace(msg);
+    	 }
+     
+       // ------------------------- Validate Parameter -----------------------
+       if (StringUtils.isAllBlank(jobUuid)) {
+         String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "resubmit", "jobuuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).
+                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Get Resubmit -----------------------------
+       // We have a job to resubmit now go lookup the stored job definition
+       JobResubmit jobResubmit = null;
+       try {
+           var jobResubmitDao = new JobResubmitDao();
+           jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
+       } catch (Exception e) {
+           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-             entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
-
-       // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
-       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+       
+       // Make sure we got something.
+       if (jobResubmit == null) {
+           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
            _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
        
-       // Create the request context object.
-       var reqCtx = new SubmitContext(payload);
-       
-       // ------------------------- Initialize the Job -----------------------
-       // Initialize job with calculated effective parameters.
-       Job job = null;
-       try {job = reqCtx.initNewJob();}
-       catch (TapisImplException e) {
-           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
-           // This should never happen, but we defend against it. 
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       
-       // ------------------------- Validate Parameters ----------------------
+       // The shared code takes it from here.
+       return doSubmit(prettyPrint, jobResubmit.getJobDefinition());
+     }
+     
+     /* **************************************************************************** */
+     /*                               Private Methods                                */
+     /* **************************************************************************** */
+     /* ---------------------------------------------------------------------------- */
+     /* doSubmit:                                                                    */
+     /* ---------------------------------------------------------------------------- */
+     /** Dump the payload from the input stream into a string and then call the 
+      * real doSubmit method.
+      * 
+      * @param prettyPrint the request's query parameter
+      * @param payload the request's payload
+      * @return the response to the user
+      */
+     private Response doSubmit(boolean prettyPrint, InputStream payloadStream)
+     {
+         // ------------------------- Validate Payload -------------------------
+         // Read the payload into a string.
+         String json = null;
+         try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+           catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           }
+         
+         // The real submit.
+         return doSubmit(prettyPrint, json);
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* doSubmit:                                                                    */
+     /* ---------------------------------------------------------------------------- */
+     /** All the work gets done here from both submit and resubmit.
+      * 
+      * @param prettyPrint the request's query parameter
+      * @param payload the request's payload as json
+      * @return the response to the user
+      */
+     private Response doSubmit(boolean prettyPrint, String json)
+     {
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqSubmitJob payload = null;
+         try {payload = getPayload(json, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "sbumitJob", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
 
+         // ------------------------- Create Context ---------------------------
+         // Validate the threadlocal content here so no subsequent code on this request needs to.
+         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+         if (!threadContext.validate()) {
+             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+             _log.error(msg);
+             return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+         
+         // Create the request context object.
+         var reqCtx = new SubmitContext(payload);
+         
+         // ------------------------- Initialize the Job -----------------------
+         // Initialize job with calculated effective parameters.
+         Job job = null;
+         try {job = reqCtx.initNewJob();}
+         catch (TapisImplException e) {
+             _log.error(e.getMessage(), e);
+             return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+         }
+         catch (Exception e) {
+             // This should never happen, but we defend against it. 
+             _log.error(e.getMessage(), e);
+             return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+         }
+         
+         // ------------------------- Save and Submit Job ----------------------
+         // Write the job to the database.
+         try {
+             var jobsDao = new JobsDao();
+             jobsDao.createJob(job);
+         }
+         catch (Exception e) {
+             _log.error(e.getMessage(), e);
+             return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+         }
+         
+         // Submit the job to the worker queue.
+         
+         // Fail the job if unable to queue it.
+         
+         // ------------------------- Make Resubmitable ------------------------
+         // Save the valid job json definition for resubmission in the future
+         // table is indexed on id & uuid.  If the actual job submission below
+         // fails after this database insertion succeeds, we will have a resubmit
+         // record that can never be referenced--no big deal.
+         try {
+             // Create the resubmit object.
+             JobResubmit jobResubmit = new JobResubmit();
+             jobResubmit.setJobUuid(job.getUuid());
+             jobResubmit.setJobDefinition(json);
+             
+             // persist job definition json to resubmit table
+             var jobResubmitDao = new JobResubmitDao();
+             jobResubmitDao.createJobResubmit(jobResubmit);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_FAILED_PERSIST", "resubmit", e.getMessage());
+             _log.error(msg);
+         }
        
-       
-       
-       
-       
-       
-       return null;
+         
+         
+        return null;
      }
 }

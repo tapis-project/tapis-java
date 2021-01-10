@@ -246,11 +246,13 @@ public final class JobsDao
       throws TapisException
 	{
         // ------------------------- Complete Input ----------------------
-        // Fill in Job fields that we control.
+        // Fill in Job fields that we assure.
 		if (StringUtils.isBlank(job.getLastMessage())) job.setLastMessage(JOB_CREATE_MSG);
-        Instant now = Instant.now();
-        job.setCreated(now);
-        job.setLastUpdated(now);
+		if (job.getCreated() == null) {
+	        Instant now = Instant.now();
+	        job.setCreated(now);
+	        job.setLastUpdated(now);
+		}
         
         // ------------------------- Check Input -------------------------
         // Exceptions can be throw from here.
@@ -270,10 +272,10 @@ public final class JobsDao
           // Prepare the statement and fill in the placeholders.
           // The fields that the DB defaults are not set.
           PreparedStatement pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, job.getName().trim());
-          pstmt.setString(2, job.getOwner().trim());
-          pstmt.setString(3, job.getTenant().trim());
-          pstmt.setString(4, job.getDescription().trim());
+          pstmt.setString(1, job.getName());
+          pstmt.setString(2, job.getOwner());
+          pstmt.setString(3, job.getTenant());
+          pstmt.setString(4, job.getDescription());
               
           pstmt.setString(5, job.getStatus().name());
               

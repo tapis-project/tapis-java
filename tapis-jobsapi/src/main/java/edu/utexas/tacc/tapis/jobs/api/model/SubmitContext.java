@@ -111,6 +111,7 @@ public final class SubmitContext
         // Assign validated values to all job fields.
         populateJob();
         
+        // Return the validated and completed job.
         return _job;
     }
     
