@@ -180,11 +180,6 @@ public class JobSubmitResource
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
-             requestBody = 
-                 @RequestBody(
-                     required = true,
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
              responses = 
                  {
                   @ApiResponse(responseCode = "200", description = "Job created.",
