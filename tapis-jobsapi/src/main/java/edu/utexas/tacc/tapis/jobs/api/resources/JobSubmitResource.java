@@ -1,9 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -39,7 +37,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.sharedapi.utils.RestUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -135,7 +132,7 @@ public class JobSubmitResource
                          implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
              responses = 
                  {
-                  @ApiResponse(responseCode = "201", description = "Job created.",
+                  @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
@@ -190,7 +187,7 @@ public class JobSubmitResource
                          implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
              responses = 
                  {
-                  @ApiResponse(responseCode = "201", description = "Job created.",
+                  @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
@@ -344,7 +341,7 @@ public class JobSubmitResource
          
          // Fail the job if unable to queue it.
          
-         // ------------------------- Make Resubmitable ------------------------
+         // ------------------------- Save Resubmit Info -----------------------
          // Save the valid job json definition for resubmission in the future
          // table is indexed on id & uuid.  If the actual job submission below
          // fails after this database insertion succeeds, we will have a resubmit
