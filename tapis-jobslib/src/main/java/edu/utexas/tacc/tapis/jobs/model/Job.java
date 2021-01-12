@@ -104,10 +104,6 @@ public final class Job
     private String   			createdbyTenant;
     private TreeSet<String>     tags;
     
-    // --- Transient fields used during processing.
-    private transient Map<String,String> _parmEnvVariables;
-    private transient JobParameterSet    _parmSet;
-    
     /* **************************************************************************** */
     /*                                 Constructors                                 */
     /* **************************************************************************** */
@@ -582,23 +578,4 @@ public final class Job
 	public void setCreatedbyTenant(String createdbyTenant) {
 		this.createdbyTenant = createdbyTenant;
 	}
-
-    /* **************************************************************************** */
-    /*                         Transient Field Accessors                            */
-    /* **************************************************************************** */
-    public Map<String, String> getParmEnvVariables() {
-        return _parmEnvVariables;
-    }
-
-    public void setParmEnvVariables(Map<String, String> parmEnvVariables) {
-        this._parmEnvVariables = parmEnvVariables;
-    }
-
-    public JobParameterSet getParmSet() {
-        return _parmSet;
-    }
-
-    public void setParmSet(JobParameterSet parmSet) {
-        this._parmSet = parmSet;
-    }
 }
