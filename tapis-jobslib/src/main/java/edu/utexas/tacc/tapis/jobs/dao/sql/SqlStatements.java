@@ -66,6 +66,19 @@ public class SqlStatements
     		+ "?, ?, ?, "
     		+ "?, ?, ?, ?, ?::json, ?::json, ?::json, ?::json, ?, ?, ?, ?)"; 
 
+    public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
+        "SELECT status FROM aloe_jobs WHERE tenant_id = ? AND uuid = ? FOR UPDATE";
+    
+    public static final String UPDATE_JOB_STATUS =
+        "UPDATE aloe_jobs SET status = ?, last_message = ?, last_updated = ?, blocked_count = blocked_count + ?"
+        + " WHERE tenant_id = ? AND uuid = ?";
+    
+    public static final String UPDATE_JOB_ENDED =
+            "UPDATE aloe_jobs SET ended = ? WHERE ended IS NULL AND uuid = ?";
+      
+    public static final String UPDATE_REMOTE_STARTED = 
+            "UPDATE aloe_jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";
+    
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
 	/* ---------------------------------------------------------------------- */

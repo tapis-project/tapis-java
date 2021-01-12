@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
@@ -45,6 +46,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
+@Path("/")
 public class JobSubmitResource 
  extends AbstractResource
 {
@@ -109,6 +111,7 @@ public class JobSubmitResource
      /* submitJob:                                                                   */
      /* ---------------------------------------------------------------------------- */
      @POST
+     @Path("/submit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -134,7 +137,7 @@ public class JobSubmitResource
                  {
                   @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -184,7 +187,7 @@ public class JobSubmitResource
                  {
                   @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -320,7 +323,7 @@ public class JobSubmitResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
-         // ------------------------- Save and Submit Job ----------------------
+         // ------------------------- Save Job ---------------------------------
          // Write the job to the database.
          try {
              var jobsDao = new JobsDao();
@@ -333,8 +336,22 @@ public class JobSubmitResource
          }
          
          // Submit the job to the worker queue.
-         
-         // Fail the job if unable to queue it.
+         // -------------------------- Queue Request ---------------------------
+         // Exceptions are mapped to HTTP error codes.
+//         Job resultJob = null;
+//         try {resultJob = JobSubmitProcessor.submitJob(job, notificationList);}
+//           catch (Exception e) {
+//               // Log the error.
+//               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", job.getName(), job.getAppId(), e.getMessage());
+//               _log.error(msg, e);
+//               
+//               // Fail the job.  
+//               failJob(jobsDao, job, msg);
+//               
+//               // Let the user know the job failed.
+//               return Response.status(Status.INTERNAL_SERVER_ERROR).
+//                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+//           }
          
          // ------------------------- Save Resubmit Info -----------------------
          // Save the valid job json definition for resubmission in the future
@@ -355,8 +372,9 @@ public class JobSubmitResource
              _log.error(msg);
          }
        
-         
-         
-        return null;
+         // Success.
+         RespSubmitJob r = new RespSubmitJob(job);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), prettyPrint, r)).build();
      }
 }

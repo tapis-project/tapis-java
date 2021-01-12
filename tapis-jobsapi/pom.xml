@@ -71,6 +71,12 @@
             <artifactId>apps-client</artifactId>
             <version>${tapis-client-java.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>auth-client</artifactId>
+            <version>${tapis-client-java.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
     <build>

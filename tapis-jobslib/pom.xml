@@ -37,6 +37,10 @@
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.statefulj</groupId>
+            <artifactId>statefulj-fsm</artifactId>
+        </dependency>
     </dependencies>
     
     <build>

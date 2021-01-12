@@ -42,16 +42,16 @@ public class NewJobUtil
 	{
 		// Fail the job.  Note that current status used in the transition 
 	    // to FAILED is the status of the job as defined in the db.
-//		try {jobsDao.failJob("submitJob", job, failMsg);}
-//		  	catch (Exception e) {
-//	            // Swallow exception.
-//	            String msg = MsgUtils.getMsg("JOBS_ZOMBIE_ERROR", 
-//	                                         job.getUuid(), job.getTenant(), "submitJob");
-//	            _log.error(msg, e);
-//	            
-//	            // Try to send the zombie email.
-//	            sendZombieEmail(job, msg);
-//		  	}
+		try {jobsDao.failJob("submitJob", job, failMsg);}
+		  	catch (Exception e) {
+	            // Swallow exception.
+	            String msg = MsgUtils.getMsg("JOBS_ZOMBIE_ERROR", 
+	                                         job.getUuid(), job.getTenant(), "submitJob");
+	            _log.error(msg, e);
+	            
+	            // Try to send the zombie email.
+	            sendZombieEmail(job, msg);
+		  	}
     }
 	  
     /* **************************************************************************** */
@@ -72,9 +72,9 @@ public class NewJobUtil
 	    	  RuntimeParameters runtime = RuntimeParameters.getInstance();
 	    	  EmailClient client = EmailClientFactory.getClient(runtime);
 	    	  client.send(runtime.getSupportName(),
-	    			  runtime.getSupportEmail(),
-	    			  subject,
-	    			  zombiMsg, HTMLizer.htmlize(zombiMsg));
+	    			      runtime.getSupportEmail(),
+	    			      subject,
+	    			      zombiMsg, HTMLizer.htmlize(zombiMsg));
 	    }
 	    catch (TapisException e1) {
 	    	  // log msg that we tried to send email notice to support.

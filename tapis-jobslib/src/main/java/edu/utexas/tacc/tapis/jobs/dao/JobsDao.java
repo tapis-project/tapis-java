@@ -4,6 +4,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,10 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -95,6 +98,9 @@ public final class JobsDao
 	
 	// Message when creating job.
 	private static final String JOB_CREATE_MSG = "Job created";
+	
+	// Length of last message.
+	private static final int JOB_LEN_4096 = 4096;
 	  
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -115,7 +121,7 @@ public final class JobsDao
 	/* getJobs:                                                               */
 	/* ---------------------------------------------------------------------- */
 	public List<Job> getJobs() 
-	  throws TapisException
+	  throws JobException
 	{
 	    // Initialize result.
 	    ArrayList<Job> list = new ArrayList<>();
@@ -155,8 +161,7 @@ public final class JobsDao
 	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
 	          
 	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
-	          _log.error(msg, e);
-	          throw new TapisException(msg, e);
+	          throw new JobException(msg, e);
 	      }
 	      finally {
 	          // Always return the connection back to the connection pool.
@@ -174,16 +179,15 @@ public final class JobsDao
 	    }
 
 	/* ---------------------------------------------------------------------- */  
-	/* getJobsByUUID:                                                         */
+	/* getJobByUUID:                                                          */
 	/* ---------------------------------------------------------------------- */
-	public Job getJobsByUUID(String uuid) 
-	  throws TapisException
+	public Job getJobByUUID(String uuid) 
+	  throws JobException
 	{
 	    // ------------------------- Check Input -------------------------
 	    if (StringUtils.isBlank(uuid)) {
 	        String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobsByUUID", "uuid");
-	        _log.error(msg);
-	        throw new TapisException(msg);
+	        throw new JobException(msg);
 	    }
 	      
 	    // Initialize result.
@@ -221,8 +225,7 @@ public final class JobsDao
 	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
 	          
 	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", uuid, e.getMessage());
-	          _log.error(msg, e);
-	          throw new TapisException(msg, e);
+	          throw new JobException(msg, e);
 	      }
 	      finally {
 	          // Always return the connection back to the connection pool.
@@ -344,7 +347,7 @@ public final class JobsDao
             String msg = MsgUtils.getMsg("JOBS_JOB_CREATE_ERROR", job.getName(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             _log.error(msg, e);
-            throw new JobQueueException(msg, e);
+            throw new JobException(msg, e);
         }
         finally {
             // Always return the connection back to the connection pool.
@@ -360,6 +363,143 @@ public final class JobsDao
         }
 	}
 	
+    /* ---------------------------------------------------------------------- */
+    /* setStatus:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Set the status of the specified job after checking that the transition
+     * from the current status to the new status is legal.  This method commits
+     * the update and returns the last update time. 
+     * 
+     * @param uuid the job whose status is to change    
+     * @param newStatus the job's new status
+     * @param message the status message to be saved in the job record
+     * @return the last update time saved in the job record
+     * @throws JobException if the status could not be updated
+     */
+    public Instant setStatus(String uuid, JobStatusType newStatus, String message)
+     throws JobException
+    {
+        // Check input.
+        if (StringUtils.isBlank(uuid)) {
+            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "uuid");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+
+        // Get the job and create its context object for event processing.
+        // The new context object is referenced in the job, so it's not garbage.
+        Job job = getJobByUUID(uuid);
+        Instant ts = setStatus(job, newStatus, message);
+        
+        return ts;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* setStatus:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** ALL EXTERNAL STATUS UPDATES AFTER JOB CREATION RUN THROUGH THIS METHOD.
+     * 
+     * This method sets the status of the specified job after checking that the 
+     * transition from the current status to the new status is legal.  This method 
+     * commits the update and returns the last update time.
+     * 
+     * Note that a new job event for this status change is persisted and can
+     * trigger notifications to be sent.  Failures in event processing are not
+     * exposed as errors to callers, they are performed on a best-effort basis.   
+     * 
+     * @param uuid the job whose status is to change    
+     * @param newStatus the job's new status
+     * @param message the status message to be saved in the job record
+     * @return the last update time saved in the job record
+     * @throws JobException if the status could not be updated
+     */
+    public Instant setStatus(Job job, JobStatusType newStatus, String message)
+     throws JobException
+    {
+        // ------------------------- Check Input ------------------------
+        // We need a job.
+        if (job == null) {
+            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "job");
+            throw new JobException(msg);
+        }
+        
+        // ------------------------- Change Status ----------------------
+        // Call the real method.
+        Instant now = Instant.now();
+        setStatus(job, newStatus, message, true, now);
+
+        // ------------------------- Send Event -------------------------
+        // TODO: SEND EVENTS
+        // Create and sent a job event indicating the status change.
+//        JobExecutionContext jobCtx = getJobContextSafe(job);
+//        try {jobCtx.getJobEventProcessor().processNewStatus(jobCtx, newStatus);}
+//            catch (Exception e) {/* already logged */}
+
+        // Return the timestamp that's been saved to the database.
+        return now;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* failJob:                                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Set the specified job to the terminal FAILED state when the caller does
+     * not already have a reference to the job object.  If the caller has a job
+     * object, use the overloaded version of this method that accepts a job.
+     * 
+     * @param caller name of calling program or worker
+     * @param jobUuid the job to be failed
+     * @param tenantId the job's tenant
+     * @param failMsg the message to write to the job record
+     * @throws JobException 
+     */
+    public void failJob(String caller, String jobUuid, String tenantId, String failMsg) 
+     throws JobException
+    {
+        // Make sure we write something to the job record.
+        if (StringUtils.isBlank(failMsg)) 
+            failMsg = MsgUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
+        
+        // Fail the job.
+        try {setStatus(jobUuid, JobStatusType.FAILED, failMsg);}
+            catch (Exception e) {
+                // The job will be left in a non-terminal state and probably 
+                // removed from any queue.  It's likely to become a zombie.
+                String msg = MsgUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
+                                              caller, jobUuid, tenantId);
+                throw new JobException(msg, e);
+            }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* failJob:                                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Set the specified job to the terminal FAILED state when the caller 
+     * already has the job object.  This method is more efficient than the 
+     * overloaded version that accepts only a uuid.
+     * 
+     * @param caller name of calling program or worker
+     * @param job the job to be failed
+     * @param failMsg the message to write to the job record
+     * @throws JobException 
+     */
+    public void failJob(String caller, Job job, String failMsg) 
+     throws JobException
+    {
+        // Make sure we write something to the job record.
+        if (StringUtils.isBlank(failMsg)) 
+            failMsg = MsgUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
+        
+        // Fail the job.
+        try {setStatus(job, JobStatusType.FAILED, failMsg);}
+            catch (Exception e) {
+                // The job will be left in a non-terminal state and probably 
+                // removed from any queue.  It's likely to become a zombie.
+                String msg = MsgUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
+                                              caller, job.getUuid(), job.getTenant());
+                throw new JobException(msg, e);
+            }
+    }
+    
 	/* ---------------------------------------------------------------------- */
 	/* queryDB:                                                               */
 	/* ---------------------------------------------------------------------- */
@@ -377,7 +517,6 @@ public final class JobsDao
 		// Exceptions can be throw from here.
 		if (StringUtils.isBlank(tableName)) {
 		    String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "queryDB", "tableName");
-		    _log.error(msg);
 		    throw new TapisException(msg);
 		}
 		      
@@ -431,9 +570,236 @@ public final class JobsDao
 		  return rows;
 	}
 
-	/* ********************************************************************** */
-	/*                             Private Methods                            */
-	/* ********************************************************************** */
+    /* ********************************************************************** */
+    /*                             Private Methods                            */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* setStatus:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Set the status of the specified job after checking that the transition
+     * from the current status to the new status is legal.  If the commit flag
+     * is true, then the transaction is committed and null is returned.  If the
+     * commit flag is false, then the transaction is left uncommitted and the 
+     * open connection is returned.  It is the caller's responsibility to commit
+     * the transaction and close the connection after issuing any number of 
+     * other database calls in the same transaction. 
+     * 
+     * The in-memory job object is also updated with all changes made to the 
+     * database by this method and any method called from this method.
+     * 
+     * It is the responsibility of the caller or a method earlier in the call 
+     * chain to create and process job events.  This method only affects the 
+     * jobs table and in-memory job object.
+     * 
+     * @param uuid the job whose status is to change    
+     * @param newStatus the job's new status
+     * @param message the status message to be saved in the job record
+     * @param commit true to commit the transaction and close the connection;
+     *               false to leave the transaction and connection open
+     * @param updateTime a specific instant for the last update time or null
+     * @return the open connection when the transaction is uncommitted; null otherwise
+     * @throws JobException if the status could not be updated
+     */
+    private Connection setStatus(Job job, JobStatusType newStatus, String message,
+                                 boolean commit, Instant updateTime)
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "job");
+            throw new JobException(msg);
+        }
+        
+        // Assign the update time if the caller hasn't.
+        if (updateTime == null) updateTime = Instant.now();
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+            // Get a database connection.
+            conn = getConnection();
+            
+            // --------- Get current status
+            // Get the current job status from the database and keep record locked.
+            String sql = SqlStatements.SELECT_JOB_STATUS_FOR_UPDATE;
+       
+            // Prepare the statement and fill in the placeholders.
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, job.getTenant());
+            pstmt.setString(2, job.getUuid());
+            
+            // Issue the call for the 1 row, 1 field result set.
+            ResultSet rs = pstmt.executeQuery();
+            if (!rs.next()) {
+                String msg = MsgUtils.getMsg("DB_SELECT_EMPTY_RESULT", sql, 
+                                             StringUtils.joinWith(", ", job.getTenant(), job.getUuid()));
+                throw new JobException(msg);
+            }
+                
+            // Get current status.
+            String curStatusString = rs.getString(1);
+            JobStatusType curStatus = JobStatusType.valueOf(curStatusString);
+            
+            // Debug logging.
+            if (_log.isDebugEnabled())
+                _log.debug(MsgUtils.getMsg("JOBS_STATUS_UPDATE", job.getUuid(), 
+                                           curStatusString, newStatus.name()));
+
+            // --------- Validate requested status transition ---------
+            if (!JobFSMUtils.hasTransition(curStatus, newStatus)) {
+                String msg = MsgUtils.getMsg("JOBS_STATE_NO_TRANSITION", job.getUuid(), 
+                                             curStatusString, newStatus.name());
+                throw new JobException(msg);
+            }
+            // --------------------------------------------------------
+            
+            // Truncate message if it's longer than the database field length.
+            if (message.length() > JOB_LEN_4096) 
+               message = message.substring(0, JOB_LEN_4096 - 1);
+            
+            // Increment the blocked counter if we are transitioning to the blocked state.
+            int blockedIncrement = 0;
+            if (newStatus == JobStatusType.BLOCKED && curStatus != JobStatusType.BLOCKED)
+                blockedIncrement = 1;
+            
+            // --------- Set new status
+            sql = SqlStatements.UPDATE_JOB_STATUS;
+            Timestamp ts = Timestamp.from(updateTime);
+            
+            // Prepare the statement and fill in the placeholders.
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, newStatus.name());
+            pstmt.setString(2, message);
+            pstmt.setTimestamp(3, ts);
+            pstmt.setInt(4, blockedIncrement);
+            pstmt.setString(5, job.getTenant());
+            pstmt.setString(6, job.getUuid());
+            
+            // Issue the call.
+            int rows = pstmt.executeUpdate();
+            if (rows != 1) {
+                String parms = StringUtils.joinWith(", ", newStatus.name(), message, ts, 
+                                                    blockedIncrement, job.getTenant(), job.getUuid());
+                String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+                _log.error(msg);
+                throw new JobException(msg);
+            }
+            
+            // Set the remote execution start time when the new status transitions to RUNNING
+            // or the job ended time if we have transitioned to a terminal state. The called
+            // methods also update the in-memory job object.
+            if (newStatus == JobStatusType.RUNNING) updateRemoteStarted(conn, job, ts);
+            else if (newStatus.isTerminal()) updateEnded(conn, job, ts);
+            
+            // Conditionally commit the transaction.
+            if (commit) conn.commit();
+            
+            // Update the in-memory job object.
+            job.setStatus(newStatus);
+            job.setLastMessage(message);
+            job.setLastUpdated(updateTime);
+            job.setBlockedCount(job.getBlockedCount() + blockedIncrement);
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            // Close and null out the connection here. This overrides the finally block logic and
+            // guarantees that we will not interfere with another thread's use of the connection. 
+            try {if (conn != null) conn.close(); conn = null;}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", job.getUuid(), 
+                                         job.getTenant(), job.getOwner(), e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Conditionally return the connection back to the connection pool.
+            if (commit && (conn != null)) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+        
+        // Return the open connection when no commit occurred.
+        if (commit) return null;
+          else return conn;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* updateRemoteStarted:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Set the remote started timestamp to be equal to the specified timestamp
+     * only if the remote started timestamp is null.  This method is really just 
+     * an extension of the setStatus() method separated for readability.  
+     * 
+     * Once set, the remote started timestamp is not updated by this method, so 
+     * calling it more than once for a job will not change the job record.
+     * 
+     * @param conn the connection with the in-progress transaction
+     * @param uuid the job uuid
+     * @param ts the remote execution start time
+     * @throws SQLException
+     */
+    private void updateRemoteStarted(Connection conn, Job job, Timestamp ts) 
+     throws SQLException
+    {
+        // Set the sql command.
+        String sql = SqlStatements.UPDATE_REMOTE_STARTED;
+            
+        // Prepare the statement and fill in the placeholders.
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setTimestamp(1, ts);
+        pstmt.setString(2, job.getUuid());
+            
+        // Issue the call.
+        int rows = pstmt.executeUpdate();
+        
+        // Update the in-memory object.
+        job.setRemoteStarted(ts.toInstant());
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* updateEnded:                                                           */
+    /* ---------------------------------------------------------------------- */
+    /** Set the ended timestamp to be equal to the specified timestamp
+     * only if the ended timestamp is null.  This method is really just 
+     * an extension of the setStatus() method separated for readability.  
+     * 
+     * Once set, the ended timestamp is not updated by this method, so 
+     * calling it more than once for a job will not change the job record.
+     * 
+     * @param conn the connection with the in-progress transaction
+     * @param uuid the job uuid
+     * @param ts the job termination time
+     * @throws SQLException
+     */
+    private void updateEnded(Connection conn, Job job, Timestamp ts) 
+     throws SQLException
+    {
+        // Set the sql command.
+        String sql = SqlStatements.UPDATE_JOB_ENDED;
+            
+        // Prepare the statement and fill in the placeholders.
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setTimestamp(1, ts);
+        pstmt.setString(2, job.getUuid());
+            
+        // Issue the call.
+        int rows = pstmt.executeUpdate();
+        
+        // Update the in-memory object.
+        job.setEnded(ts.toInstant());
+    }
+    
 	/* ---------------------------------------------------------------------- */
 	/* validateNewJob:                                                        */
 	/* ---------------------------------------------------------------------- */
@@ -481,6 +847,31 @@ public final class JobsDao
 	          throw new TapisException(msg);
 		}
 		
+        if (StringUtils.isBlank(job.getExecSystemExecDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemExecDir");
+            throw new TapisException(msg);
+        }
+      
+        if (StringUtils.isBlank(job.getExecSystemInputDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemInputDir");
+            throw new TapisException(msg);
+        }
+      
+        if (StringUtils.isBlank(job.getExecSystemOutputDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemOutputDir");
+            throw new TapisException(msg);
+        }
+      
+        if (StringUtils.isBlank(job.getArchiveSystemId())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "archiveSystemId");
+            throw new TapisException(msg);
+        }
+      
+        if (StringUtils.isBlank(job.getArchiveSystemDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "archiveSystemDir");
+            throw new TapisException(msg);
+        }
+      
 		// For flexibility, we allow the hpc scheduler to deal with validating resource reservation values.
 		if (job.getMaxMinutes() < 1) {
 	          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateNewJob", "maxMinutes", job.getMaxMinutes());
@@ -491,14 +882,17 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "fileInputs");
 	          throw new TapisException(msg);
 		}
+		
 		if (StringUtils.isBlank(job.getParameterSet())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameterSet");
 	          throw new TapisException(msg);
 		}
+		
 		if (StringUtils.isBlank(job.getExecSystemConstraints())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
 	          throw new TapisException(msg);
 		}
+		
 		if (StringUtils.isBlank(job.getSubscriptions())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "notifications");
 	          throw new TapisException(msg);
@@ -508,6 +902,7 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "tapisQueue");
 	          throw new TapisException(msg);
 		}
+		
 		if (StringUtils.isBlank(job.getCreatedby())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "createdBy");
 	          throw new TapisException(msg);
@@ -547,7 +942,6 @@ public final class JobsDao
 	    }
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
-	      _log.error(msg, e);
 	      throw new TapisJDBCException(msg, e);
 	    }
 	    
@@ -639,7 +1033,6 @@ public final class JobsDao
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
-	      _log.error(msg, e);
 	      throw new TapisJDBCException(msg, e);
 	    }
 	      
