@@ -73,7 +73,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>auth-client</artifactId>
+            <artifactId>jobs-client</artifactId>
             <version>${tapis-client-java.version}</version>
             <scope>test</scope>
         </dependency>
