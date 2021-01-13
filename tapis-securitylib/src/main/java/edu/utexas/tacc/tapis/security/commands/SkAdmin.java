@@ -48,17 +48,16 @@ import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
 import edu.utexas.tacc.tapis.shared.utils.Base62;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
-/** The utility class create or update secrets in SK and, optionally, deploy those
+/** This utility class creates or updates secrets in SK and, optionally, deploys those
  * secrets in Kubernetes. The SkAdminParameters class defines all possible parameters
  * to this program; see that class for details.  
  * 
  * Actions
  * -------
- * Each of the four action parameters control what this program does and can be 
- * described as follows:
+ * Each of the four action parameters control what this program does:
  * 
- *  1. create - creates a secret in SK only if the secret doesn't already exist.
- *  2. update - updates an existing secret in SK or creating it if it doesn't exist.
+ *  1. create - create a secret in SK only if the secret doesn't already exist.
+ *  2. update - update an existing secret in SK or create it if it doesn't exist.
  *  3. deployMerge - deploy the specified key/value pairs into secrets, preserving any 
  *                   key/value pairs already in the secrets that don't conflict the
  *                   specified ones.
@@ -90,7 +89,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * distinguished value "<generate-secret>".  SkAdmin will generate random passwords
  * or asymmetric key pairs as required.
  * 
- * The value of keys fields can also be specified as "file:pathToPEMFile" where
+ * The value of key fields can also be specified as "file:pathToPEMFile" where
  * the pathToPEMFile is a path, usually an absolute path, to a PEM file containing 
  * a public or private key.
  * 
@@ -99,7 +98,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * 
  * Result Reporting
  * ----------------
- * An accounting of what action were performed is printed to standard out when the
+ * An accounting of what actions were performed is printed to standard out when the
  * program completes.  Summary information include counts of secret processing.
  * Detailed information includes an outcome message for each secret action that
  * includes success, failure and skipped outcomes.
