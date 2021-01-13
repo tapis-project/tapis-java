@@ -5,14 +5,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
-import edu.utexas.tacc.tapis.jobs.client.JobsClient;
-import edu.utexas.tacc.tapis.jobs.client.gen.model.ReqSubmitJob;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqCreateSystem;
 
-public class JobSubmitter 
+public class CreateSystem
 {
     // ***************** Configuration Parameters *****************
-    private static final String BASE_URL   = "http://localhost:8080/v3";
+    private static final String BASE_URL   = "https://dev.develop.tapis.io";
     private static final String userJWT = 
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIxOTVhNzU2YS1hZWRhLTQ2NjQtODFhMS1hODg1ZDZhZmJiNDMiLCJpc3MiOiJodHRwczovL2Rldi5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InRlc3R1c2VyMkBkZXYiLCJ0YXBpcy90ZW5hbnRfaWQiOiJkZXYiLCJ0YXBpcy90b2tlbl90eXBlIjoiYWNjZXNzIiwidGFwaXMvZGVsZWdhdGlvbiI6ZmFsc2UsInRhcGlzL2RlbGVnYXRpb25fc3ViIjpudWxsLCJ0YXBpcy91c2VybmFtZSI6InRlc3R1c2VyMiIsInRhcGlzL2FjY291bnRfdHlwZSI6InVzZXIiLCJleHAiOjE5MjU4MzgyMzF9.wbyeWa6PQpROtnPWpykKc9ln2TQj04cD_uwjS40UeF5PMDJ7jd5u8GJ0JPyaH-qj9R3H9-J4H9vQGPnKQg7Wqj9_QIja9t5g5WM7Vz70TaXmu91EO3_rbJkmguXZMRFdBS0YFDYGLccO2i50NVyt3i-nVRAp3nFCn5-eB6UEoU_KEe5MiFnMmuzF6kUIGDi6Cw_26DxI_SsY-zcpjCmX0jx5cM0xqLv8XNv1RIVr8o9fKGuvGupdT0ZdTCp_MiMBPi11OE7OCYo7iwp-yglcpOMlQF8LOCJe9txzJGqcCZSGbQBi4mNLasyYn0cstVak9ToGQpEpiSdz4FvQtSKT9A";
     // ***************** End Configuration Parameters *************
@@ -28,17 +28,17 @@ public class JobSubmitter
     public static void main(String[] args) throws Exception
     {
         // Try to submit a job.
-        var submitter = new JobSubmitter();
-        submitter.submit(args);
+        var creator = new CreateSystem();
+        creator.create(args);
     }
     
-    /** Submit a job request defined in a file.
+    /** Create a tapis application from input in a file.
      * 
      * @param args contains the name of a request file
      * @throws IOException 
      * @throws TapisClientException 
      */
-    public void submit(String[] args) throws IOException, TapisClientException
+    public void create(String[] args) throws IOException, TapisClientException
     {
         // Get the current directory.
         String curDir = System.getProperty("user.dir");
@@ -58,11 +58,11 @@ public class JobSubmitter
         System.out.println("Processing " + reqFile.toString() + ".");
         // System.out.println(reqString);
         
-        // Convert json string into a job submission request.
-        ReqSubmitJob submitReq = TapisGsonUtils.getGson().fromJson(reqString, ReqSubmitJob.class);
+        // Convert json string into an app create request.
+        ReqCreateSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqCreateSystem.class);
         
-        // Create a job client.
-        var jobClient = new JobsClient(BASE_URL, userJWT);
-        jobClient.submitJob(submitReq);
+        // Create the app.
+        var sysClient = new SystemsClient(BASE_URL, userJWT);
+        sysClient.createSystem(sysReq);
     }
 }

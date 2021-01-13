@@ -153,7 +153,7 @@ public class JobSubmitResource
      {
        // Trace this request.
        if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("ALOE_TRACE_REQUEST", getClass().getSimpleName(), "submitJob", 
+         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "submitJob", 
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
@@ -203,7 +203,7 @@ public class JobSubmitResource
      {
     	 // Trace this request.
     	 if (_log.isTraceEnabled()) {
-    		 String msg = MsgUtils.getMsg("ALOE_TRACE_REQUEST", getClass().getSimpleName(), "hideJob",
+    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hideJob",
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }

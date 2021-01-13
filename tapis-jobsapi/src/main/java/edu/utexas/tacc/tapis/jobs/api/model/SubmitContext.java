@@ -254,15 +254,15 @@ public final class SubmitContext
      */
     private void resolveArgs() throws TapisImplException
     {
-        // Combine various components that make up the job's parameterSet from
-        // from the system, app and request definitions.
-        resolveParameterSet();
-        
         // Resolve constraints before resolving systems.
         resolveConstraints();
         
         // Resolve all systems.
         resolveSystems();
+        
+        // Combine various components that make up the job's parameterSet from
+        // from the system, app and request definitions.
+        resolveParameterSet();
         
         // Resolve directory assignments.
         resolveDirectoryPathNames();
@@ -403,6 +403,11 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_INVALID_EXEC_SYSTEM", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        // Make sure a job working directory is defined.
+        if (StringUtils.isBlank(_execSystem.getJobWorkingDir())) {
+            String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_WORKING_DIR", _execSystem.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
         
         // --------------------- DTN System ----------------------
         // Load the dtn system if one is specified.
@@ -415,7 +420,6 @@ public final class SubmitContext
                                             _dtnSystem.getId());
                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
            }
-
         }
         
         // --------------------- Archive System ------------------
