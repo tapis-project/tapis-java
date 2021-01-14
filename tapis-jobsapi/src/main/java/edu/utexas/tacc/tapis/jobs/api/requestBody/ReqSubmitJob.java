@@ -53,8 +53,8 @@ public class ReqSubmitJob
 	 * 
 	 * Combine the sql where clause fragments from the request and application
 	 * constraints into one sql clause.  If neither are set, the combined clause
-	 * is the empty string.  The result is always placed in the synthetic
-	 * consolidatedConstraints field.
+	 * is null.  The result is always placed in the synthetic consolidatedConstraints 
+	 * field.
 	 * 
 	 * @param appConstraintList the application constraints, can be null
 	 */
@@ -64,18 +64,18 @@ public class ReqSubmitJob
 	    String reqConstraints;
 	    if (execSystemConstraints == null || execSystemConstraints.isEmpty())
 	        reqConstraints = "";
-	      else reqConstraints = String.join("", execSystemConstraints);
+	      else reqConstraints = String.join(" ", execSystemConstraints);
 	    String appConstraints;
 	    if (appConstraintList == null || appConstraintList.isEmpty())
 	        appConstraints = "";
-	      else appConstraints = String.join("", appConstraintList);
+	      else appConstraints = String.join(" ", appConstraintList);
 	    
 	    // Combine the sql content in a conjunction if necessary.
 	    if (!reqConstraints.isEmpty() && !appConstraints.isEmpty())
 	        consolidatedConstraints = "(" + reqConstraints + ") AND (" + appConstraints + ")";
 	    else if (!reqConstraints.isEmpty()) consolidatedConstraints = reqConstraints;
 	    else if (!appConstraints.isEmpty()) consolidatedConstraints = appConstraints;
-	    else consolidatedConstraints = "";
+	    else consolidatedConstraints = null;
 	}
 	
 	public String getName() {

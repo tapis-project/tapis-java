@@ -500,10 +500,13 @@ public final class SubmitContext
     private void resolveDynamicExecSystem(SystemsClient systemsClient) 
      throws TapisImplException
     {
-        // Get the candidates.
+        // Populate the constraint argument.
         List<TSystem> execSystems;
         ReqMatchConstraints constraints = new ReqMatchConstraints();
-        constraints.addMatchItem(_submitReq.getConsolidatedConstraints());
+        if (_submitReq.getConsolidatedConstraints() != null)
+            constraints.addMatchItem(_submitReq.getConsolidatedConstraints());
+        
+        // Get the candidates.
         try {execSystems = systemsClient.matchConstraints(constraints);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Systems", "matchConstraints",
@@ -793,53 +796,53 @@ public final class SubmitContext
         
         // ---------- Ground, required
         // Assign required ground macros that never depend on other macros.
-        _macros.put(JobTemplateVariables._tapisJobUUID.name(),    _job.getUuid());
-        _macros.put(JobTemplateVariables._tapisTenant.name(),     _submitReq.getTenant());
-        _macros.put(JobTemplateVariables._tapisJobOwner.name(),   _submitReq.getOwner());
-        _macros.put(JobTemplateVariables._tapisEffeciveUserId.name(), _execSystem.getEffectiveUserId());
+        _macros.put(JobTemplateVariables.JobUUID.name(),    _job.getUuid());
+        _macros.put(JobTemplateVariables.Tenant.name(),     _submitReq.getTenant());
+        _macros.put(JobTemplateVariables.JobOwner.name(),   _submitReq.getOwner());
+        _macros.put(JobTemplateVariables.EffeciveUserId.name(), _execSystem.getEffectiveUserId());
         
-        _macros.put(JobTemplateVariables._tapisAppId.name(),      _submitReq.getAppId());
-        _macros.put(JobTemplateVariables._tapisAppVersion.name(), _submitReq.getAppVersion());
+        _macros.put(JobTemplateVariables.AppId.name(),      _submitReq.getAppId());
+        _macros.put(JobTemplateVariables.AppVersion.name(), _submitReq.getAppVersion());
         
-        _macros.put(JobTemplateVariables._tapisExecSystemId.name(),      _submitReq.getExecSystemId());
-        _macros.put(JobTemplateVariables._tapisArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
-        _macros.put(JobTemplateVariables._tapisDynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
-        _macros.put(JobTemplateVariables._tapisArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
+        _macros.put(JobTemplateVariables.ExecSystemId.name(),      _submitReq.getExecSystemId());
+        _macros.put(JobTemplateVariables.ArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
+        _macros.put(JobTemplateVariables.DynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
+        _macros.put(JobTemplateVariables.ArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
         
-        _macros.put(JobTemplateVariables._tapisSysRootDir.name(), _execSystem.getRootDir());
-        _macros.put(JobTemplateVariables._tapisSysHost.name(), _execSystem.getHost());
+        _macros.put(JobTemplateVariables.SysRootDir.name(), _execSystem.getRootDir());
+        _macros.put(JobTemplateVariables.SysHost.name(), _execSystem.getHost());
         
-        _macros.put(JobTemplateVariables._tapisNodes.name(),        _submitReq.getNodeCount().toString());
-        _macros.put(JobTemplateVariables._tapisCoresPerNode.name(), _submitReq.getCoresPerNode().toString());
-        _macros.put(JobTemplateVariables._tapisMemoryMB.name(),     _submitReq.getMemoryMB().toString());
-        _macros.put(JobTemplateVariables._tapisMaxMinutes.name(),   _submitReq.getMaxMinutes().toString());
+        _macros.put(JobTemplateVariables.Nodes.name(),        _submitReq.getNodeCount().toString());
+        _macros.put(JobTemplateVariables.CoresPerNode.name(), _submitReq.getCoresPerNode().toString());
+        _macros.put(JobTemplateVariables.MemoryMB.name(),     _submitReq.getMemoryMB().toString());
+        _macros.put(JobTemplateVariables.MaxMinutes.name(),   _submitReq.getMaxMinutes().toString());
         
         // The datetime, date and time strings all end with "Z", conforming to the ISO-8601 representation of UTC.  
         OffsetDateTime offDateTime = _job.getCreated().atOffset(ZoneOffset.UTC);
-        _macros.put(JobTemplateVariables._tapisJobCreateDate.name(),      _job.getCreated().toString());
-        _macros.put(JobTemplateVariables._tapisJobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
-        _macros.put(JobTemplateVariables._tapisJobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
+        _macros.put(JobTemplateVariables.JobCreateDate.name(),      _job.getCreated().toString());
+        _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
+        _macros.put(JobTemplateVariables.JobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
         
         // ---------- Ground, optional
         if (_dtnSystem != null) {
-            _macros.put(JobTemplateVariables._tapisDtnSystemId.name(),        _execSystem.getDtnSystemId());
-            _macros.put(JobTemplateVariables._tapisDtnMountPoint.name(),      _execSystem.getDtnMountPoint());
-            _macros.put(JobTemplateVariables._tapisDtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
+            _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
+            _macros.put(JobTemplateVariables.DtnMountPoint.name(),      _execSystem.getDtnMountPoint());
+            _macros.put(JobTemplateVariables.DtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
         }
         
         if (!StringUtils.isBlank(_execSystem.getBucketName()))
-            _macros.put(JobTemplateVariables._tapisSysBucketName.name(), _execSystem.getBucketName());
+            _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
         if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
-            _macros.put(JobTemplateVariables._tapisSysBatchScheduler.name(), _execSystem.getBatchScheduler());
+            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler());
         
         if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
             String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
-            _macros.put(JobTemplateVariables._tapisExecSystemLogicalQueue.name(), logicalQueueName);
+            _macros.put(JobTemplateVariables.ExecSystemLogicalQueue.name(), logicalQueueName);
             
             // Validation will check that the named logical queue has been defined.
             for (var q :_execSystem.getBatchLogicalQueues()) {
                 if (logicalQueueName.equals(q.getName())) {
-                    _macros.put(JobTemplateVariables._tapisExecSystemHPCQueue.name(), q.getHpcQueueName());
+                    _macros.put(JobTemplateVariables.ExecSystemHPCQueue.name(), q.getHpcQueueName());
                     break;
                 }
             }
@@ -848,43 +851,43 @@ public final class SubmitContext
         // Special case where the job name may reference one or more ground macros.  Any of the previously
         // assigned macro can be referenced, subsequent macro assignments are not available.
         _submitReq.setName(replaceMacros(_submitReq.getName()));
-        _macros.put(JobTemplateVariables._tapisJobName.name(), _submitReq.getName());
+        _macros.put(JobTemplateVariables.JobName.name(), _submitReq.getName());
         
         // ---------- Derived, required
         // Resolve values that can contain macro definitions or host functions.
         try {
             // Assign all macro values that don't need resolution before assigning any possibly dependent macro values.
             if (!MacroResolver.needsResolution(_execSystem.getJobWorkingDir()))
-                _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), _execSystem.getJobWorkingDir());
+                _macros.put(JobTemplateVariables.JobWorkingDir.name(), _execSystem.getJobWorkingDir());
             if (!MacroResolver.needsResolution(_submitReq.getExecSystemInputDir()))
-                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());
+                _macros.put(JobTemplateVariables.ExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());
             if (!MacroResolver.needsResolution(_submitReq.getExecSystemExecDir()))
-               _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
+               _macros.put(JobTemplateVariables.ExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
             if (!MacroResolver.needsResolution(_submitReq.getExecSystemOutputDir()))
-                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+                _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
             if (!MacroResolver.needsResolution(_submitReq.getArchiveSystemDir()))
-                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+                _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             
             // Assign derived values that require resolution.  Note that we assign the execution system's working 
             // directory first since other macros can depend on it but not vice versa
-            if (!_macros.containsKey(JobTemplateVariables._tapisJobWorkingDir.name())) 
-                _macros.put(JobTemplateVariables._tapisJobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
+            if (!_macros.containsKey(JobTemplateVariables.JobWorkingDir.name())) 
+                _macros.put(JobTemplateVariables.JobWorkingDir.name(), resolveMacros(_execSystem.getJobWorkingDir()));
             
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemInputDir.name())) {
+            if (!_macros.containsKey(JobTemplateVariables.ExecSystemInputDir.name())) {
                 _submitReq.setExecSystemInputDir(resolveMacros(_submitReq.getExecSystemInputDir()));
-                _macros.put(JobTemplateVariables._tapisExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());    
+                _macros.put(JobTemplateVariables.ExecSystemInputDir.name(), _submitReq.getExecSystemInputDir());    
             }
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemExecDir.name())) {
+            if (!_macros.containsKey(JobTemplateVariables.ExecSystemExecDir.name())) {
                 _submitReq.setExecSystemExecDir(resolveMacros(_submitReq.getExecSystemExecDir()));
-                _macros.put(JobTemplateVariables._tapisExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
+                _macros.put(JobTemplateVariables.ExecSystemExecDir.name(), _submitReq.getExecSystemExecDir());
             }
-            if (!_macros.containsKey(JobTemplateVariables._tapisExecSystemOutputDir.name())) {
+            if (!_macros.containsKey(JobTemplateVariables.ExecSystemOutputDir.name())) {
                 _submitReq.setExecSystemOutputDir(resolveMacros(_submitReq.getExecSystemOutputDir()));
-                _macros.put(JobTemplateVariables._tapisExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+                _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
                 }
-            if (!_macros.containsKey(JobTemplateVariables._tapisArchiveSystemDir.name())) {
+            if (!_macros.containsKey(JobTemplateVariables.ArchiveSystemDir.name())) {
                 _submitReq.setArchiveSystemDir(resolveMacros(_submitReq.getArchiveSystemDir()));
-                _macros.put(JobTemplateVariables._tapisArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+                _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             }
         } 
         catch (TapisException e) {
@@ -1081,10 +1084,10 @@ public final class SubmitContext
         _job.setMemoryMB(_submitReq.getMemoryMB());
         _job.setMaxMinutes(_submitReq.getMaxMinutes());
         
-        // Complex types stored as json.  ****** TODO: This is probably not right yet...
-        _job.setFileInputs(TapisGsonUtils.getGson(true).toJson(_submitReq.getFileInputs()));
+        // Complex types stored as json.
+        _job.setFileInputs(TapisGsonUtils.getGson(false).toJson(_submitReq.getFileInputs()));
         _job.setExecSystemConstraints(_submitReq.getConsolidatedConstraints());
-        _job.setSubscriptions(TapisGsonUtils.getGson(true).toJson(_submitReq.getSubscriptions()));
+        _job.setSubscriptions(TapisGsonUtils.getGson(false).toJson(_submitReq.getSubscriptions()));
         
         // Add the macros to the environment variables passed to the runtime application.
         // The environment variable list is guaranteed to be non-null by this time.  The
@@ -1097,7 +1100,7 @@ public final class SubmitContext
             envVars.add(kv);
         }
         envVars.sort(new KeyValuePairComparator());
-        _job.setParameterSet(TapisGsonUtils.getGson(true).toJson(_submitReq.getParameterSet()));
+        _job.setParameterSet(TapisGsonUtils.getGson(false).toJson(_submitReq.getParameterSet()));
             
         // Tags.
         var tags = new TreeSet<String>();

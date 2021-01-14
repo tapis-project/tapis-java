@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
@@ -20,7 +21,7 @@ public final class JobParmSetMarshaller
     /*                                 Constants                                    */
     /* **************************************************************************** */
     // Environment variable names that start with this prefix are reserved for Tapis.
-    private static final String TAPIS_ENV_VAR_PREFIX = "_tapis";
+    private static final String TAPIS_ENV_VAR_PREFIX = Job.TAPIS_ENV_VAR_PREFIX;
     
     /* **************************************************************************** */
     /*                               Public Methods                                 */

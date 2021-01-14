@@ -41,6 +41,12 @@
             <groupId>org.statefulj</groupId>
             <artifactId>statefulj-fsm</artifactId>
         </dependency>
+        <!-- Needed to hide certain methods from swagger -->
+        <!-- and for date conversion handling.           -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
     </dependencies>
     
     <build>

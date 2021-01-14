@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -98,9 +97,6 @@ public final class JobsDao
 	
 	// Message when creating job.
 	private static final String JOB_CREATE_MSG = "Job created";
-	
-	// Length of last message.
-	private static final int JOB_LEN_4096 = 4096;
 	  
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -655,8 +651,8 @@ public final class JobsDao
             // --------------------------------------------------------
             
             // Truncate message if it's longer than the database field length.
-            if (message.length() > JOB_LEN_4096) 
-               message = message.substring(0, JOB_LEN_4096 - 1);
+            if (message.length() > Job.MAX_LAST_MESSAGE_LEN) 
+               message = message.substring(0, Job.MAX_LAST_MESSAGE_LEN - 1);
             
             // Increment the blocked counter if we are transitioning to the blocked state.
             int blockedIncrement = 0;
@@ -885,11 +881,6 @@ public final class JobsDao
 		
 		if (StringUtils.isBlank(job.getParameterSet())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameterSet");
-	          throw new TapisException(msg);
-		}
-		
-		if (StringUtils.isBlank(job.getExecSystemConstraints())) {
-	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "execSystemConstraints");
 	          throw new TapisException(msg);
 		}
 		

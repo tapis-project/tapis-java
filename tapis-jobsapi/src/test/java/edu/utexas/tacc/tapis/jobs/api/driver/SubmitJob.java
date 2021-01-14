@@ -6,6 +6,7 @@ import java.nio.file.Path;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.client.JobsClient;
+import edu.utexas.tacc.tapis.jobs.client.gen.model.Job;
 import edu.utexas.tacc.tapis.jobs.client.gen.model.ReqSubmitJob;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
@@ -63,6 +64,11 @@ public class SubmitJob
         
         // Create a job client.
         var jobClient = new JobsClient(BASE_URL, userJWT);
-        jobClient.submitJob(submitReq);
+        Job job = jobClient.submitJob(submitReq);
+        System.out.println(TapisGsonUtils.getGson(true).toJson(job));
+        
+        System.out.println();
+        System.out.println("-----------------");
+        System.out.println(job.getParameterSet());
     }
 }

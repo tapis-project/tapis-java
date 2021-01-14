@@ -29,7 +29,7 @@ CREATE TABLE jobs
   tenant                      character varying(24) NOT NULL,
   description                 character varying(2048) NOT NULL, 
   status                      job_status_enum NOT NULL,
-  last_message                character varying(4096) NOT NULL, 
+  last_message                character varying(16384) NOT NULL, 
   
   created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   ended                       timestamp without time zone,       
@@ -62,7 +62,7 @@ CREATE TABLE jobs
   
   file_inputs                 jsonb NOT NULL,
   parameter_set               jsonb NOT NULL,
-  exec_system_constraints     jsonb NOT NULL,
+  exec_system_constraints     character varying(16384),
   subscriptions               jsonb NOT NULL,
   
   blocked_count               integer NOT NULL DEFAULT 0,
@@ -70,7 +70,7 @@ CREATE TABLE jobs
   remote_job_id               character varying(126),
   remote_job_id2              character varying(126),
   remote_outcome              job_remote_outcome_enum,
-  remote_result_info          character varying(4096),
+  remote_result_info          character varying(16384),
   remote_queue                character varying(126),
   remote_submitted            timestamp without time zone,
   remote_started              timestamp without time zone,

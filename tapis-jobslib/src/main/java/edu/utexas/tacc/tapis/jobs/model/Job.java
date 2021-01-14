@@ -1,18 +1,16 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public final class Job
 {
@@ -21,6 +19,7 @@ public final class Job
 	public static final int DEFAULT_CORES_PER_NODE = 1;
 	public static final int DEFAULT_MEM_MB = 100;
 	public static final int DEFAULT_MAX_MINUTES = 10;
+	public static final int MAX_LAST_MESSAGE_LEN = 16384;
 	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
 	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
@@ -30,15 +29,15 @@ public final class Job
 	// rootDir unless otherwise noted.  Leading slashes are optional on relative
 	// paths and required on absolute paths.  When the full path names of relative 
 	// paths are constructed, double slashes at the point of concatenation are prevented.
-	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${jobWorkingDir}/jobs/${jobID}";
+	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
 	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
-	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${dtnMountPoint}/jobs/${jobID}";
+	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${DtnMountPoint}/jobs/${JobUUID}";
 	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
-    public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${jobID}/archive";
+    public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
 	
     // Prefix for reserved template variables (macros).
-    public static final String RESERVED_MACRO_PREFIX = "_tapis";
+    public static final String TAPIS_ENV_VAR_PREFIX = "_tapis";
 	
 	// Fields
     private int      			id;
@@ -81,7 +80,7 @@ public final class Job
     
     private String   			fileInputs = EMPTY_JSON;
     private String   			parameterSet = EMPTY_JSON;
-    private String              execSystemConstraints = EMPTY_JSON;
+    private String              execSystemConstraints;
     private String              subscriptions = EMPTY_JSON;
     
     private int      			blockedCount;
@@ -227,6 +226,7 @@ public final class Job
 		this.lastMessage = lastMessage;
 	}
 
+	@Schema(type = "string")
 	public Instant getCreated() {
 		return created;
 	}
@@ -235,6 +235,7 @@ public final class Job
 		this.created = created;
 	}
 
+	@Schema(type = "string")
 	public Instant getEnded() {
 		return ended;
 	}
@@ -243,6 +244,7 @@ public final class Job
 		this.ended = ended;
 	}
 
+	@Schema(type = "string")
 	public Instant getLastUpdated() {
 		return lastUpdated;
 	}
@@ -483,6 +485,7 @@ public final class Job
 		this.remoteQueue = remoteQueue;
 	}
 
+	@Schema(type = "string")
 	public Instant getRemoteSubmitted() {
 		return remoteSubmitted;
 	}
@@ -491,6 +494,7 @@ public final class Job
 		this.remoteSubmitted = remoteSubmitted;
 	}
 
+	@Schema(type = "string")
 	public Instant getRemoteStarted() {
 		return remoteStarted;
 	}
@@ -499,6 +503,7 @@ public final class Job
 		this.remoteStarted = remoteStarted;
 	}
 
+	@Schema(type = "string")
 	public Instant getRemoteEnded() {
 		return remoteEnded;
 	}
@@ -531,6 +536,7 @@ public final class Job
 		this.remoteChecksFailed = remoteChecksFailed;
 	}
 
+	@Schema(type = "string")
 	public Instant getRemoteLastStatusCheck() {
 		return remoteLastStatusCheck;
 	}

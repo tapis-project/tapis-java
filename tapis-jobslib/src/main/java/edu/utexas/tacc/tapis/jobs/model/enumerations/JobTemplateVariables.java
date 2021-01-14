@@ -1,51 +1,53 @@
 package edu.utexas.tacc.tapis.jobs.model.enumerations;
 
 /** These template variables can be referenced using a ${varName} specification
- * when submitting a job.  These values will also be passed as environment variables
- * into the application.
+ * when submitting a job.  These values will also be prefixed with "" and passed 
+ * as environment variables into the application.  For example, the "JobName" template
+ * variable value is assigned to the environment variable "_tapisJobName" when the 
+ * application launches.
  * 
  * @author rcardone
  */
 public enum JobTemplateVariables 
 {
-	_tapisJobName,
-	_tapisJobUUID,
-	_tapisTenant,
-	_tapisJobOwner,
-	_tapisEffeciveUserId,
+	JobName,
+	JobUUID,
+	Tenant,
+	JobOwner,
+	EffeciveUserId,
 	
-	_tapisAppId,
-	_tapisAppVersion,
+	AppId,
+	AppVersion,
 	
-	_tapisExecSystemId,
-	_tapisExecSystemExecDir,
-	_tapisExecSystemInputDir,
-	_tapisExecSystemOutputDir,
-	_tapisDynamicExecSystem,
-	_tapisJobWorkingDir,
+	ExecSystemId,
+	ExecSystemExecDir,
+	ExecSystemInputDir,
+	ExecSystemOutputDir,
+	DynamicExecSystem,
+	JobWorkingDir,
 	
-	_tapisExecSystemLogicalQueue,
-	_tapisExecSystemHPCQueue,
+	ExecSystemLogicalQueue,
+	ExecSystemHPCQueue,
 	
-	_tapisArchiveSystemId,
-	_tapisArchiveSystemDir,
-	_tapisArchiveOnAppError,
+	ArchiveSystemId,
+	ArchiveSystemDir,
+	ArchiveOnAppError,
 	
-	_tapisDtnSystemId,
-	_tapisDtnMountPoint,
-	_tapisDtnMountSourcePath,
+	DtnSystemId,
+	DtnMountPoint,
+	DtnMountSourcePath,
 	
-	_tapisNodes,
-	_tapisCoresPerNode,
-	_tapisMemoryMB,
-	_tapisMaxMinutes,
+	Nodes,
+	CoresPerNode,
+	MemoryMB,
+	MaxMinutes,
 
-	_tapisSysBucketName,
-	_tapisSysRootDir,
-	_tapisSysHost,
-	_tapisSysBatchScheduler,
+	SysBucketName,
+	SysRootDir,
+	SysHost,
+	SysBatchScheduler,
 	
-	_tapisJobCreateTime,
-	_tapisJobCreateDate,
-	_tapisJobCreateTimestamp
+	JobCreateTime,
+	JobCreateDate,
+	JobCreateTimestamp
 }
