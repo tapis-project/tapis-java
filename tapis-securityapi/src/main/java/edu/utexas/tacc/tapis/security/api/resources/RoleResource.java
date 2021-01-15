@@ -273,7 +273,7 @@ public final class RoleResource
          if (resp != null) return resp;
          
          // ------------------------ Request Processing ------------------------
-         // Create the role.
+         // Get the role.
          SkRole role = null;
          try {
              role = getRoleImpl().getRoleByName(tenant, roleName);

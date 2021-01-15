@@ -137,10 +137,10 @@ public final class JobsDao
 	                      
 	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
-	          Job obj = populateJobs(rs);
+	          Job obj = populateJob(rs);
 	          while (obj != null) {
 	            list.add(obj);
-	            obj = populateJobs(rs);
+	            obj = populateJob(rs);
 	          }
 	          
 	          // Close the result and statement.
@@ -205,7 +205,7 @@ public final class JobsDao
 	                      
 	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
-	          result = populateJobs(rs);
+	          result = populateJob(rs);
 	          
 	          // Close the result and statement.
 	          rs.close();
@@ -905,7 +905,7 @@ public final class JobsDao
 	}
 	
 	/* ---------------------------------------------------------------------- */
-	/* populateJobs:                                                          */
+	/* populateJob:                                                           */
 	/* ---------------------------------------------------------------------- */
 	/** Populate a new Jobs object with a record retrieved from the 
 	 * database.  The result set's cursor will be advanced to the next
@@ -920,7 +920,7 @@ public final class JobsDao
 	 * @return a new model object or null if the result set is null or empty
 	 * @throws AloeJDBCException on SQL access or conversion errors
 	 */
-	private Job populateJobs(ResultSet rs)
+	private Job populateJob(ResultSet rs)
 	 throws TapisJDBCException
 	{
 	    // Quick check.

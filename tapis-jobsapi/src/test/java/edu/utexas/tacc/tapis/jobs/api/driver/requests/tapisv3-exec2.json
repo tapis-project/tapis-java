@@ -16,6 +16,8 @@
 	  "SFTP"
 	],
 	"port": 22,
-	"canExec": true
+	"canExec": true,
+	"jobRuntimes": [{"runtimeType": "DOCKER", "version": "0.0.1d"}],
+	"jobWorkingDir": "workdir"
 }
 

@@ -408,6 +408,11 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_WORKING_DIR", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        // Make sure at least one job runtime is defined.
+        if (_execSystem.getJobRuntimes() == null || _execSystem.getJobRuntimes().isEmpty()) {
+            String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_RUNTIME", _execSystem.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
         
         // --------------------- DTN System ----------------------
         // Load the dtn system if one is specified.
