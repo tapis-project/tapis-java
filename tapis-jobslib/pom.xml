@@ -26,6 +26,11 @@
             <version>${tapis-shared-java.version}</version>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-queue</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>

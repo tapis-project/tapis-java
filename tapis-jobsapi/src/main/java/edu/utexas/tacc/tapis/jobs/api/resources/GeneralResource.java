@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
-import edu.utexas.tacc.tapis.jobs.queue.QueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
@@ -378,7 +378,7 @@ public final class GeneralResource
       
       try {
           // Make sure the cached tenants map is not null.
-          var qm = QueueManager.getInstance();
+          var qm = JobQueueManager.getInstance();
           if (qm == null) {
               if (_lastQueryQueueManagerSucceeded.toggleOff()) {
                   String msg = MsgUtils.getMsg("TAPIS_PROBE_ERROR", "Jobs Service", 

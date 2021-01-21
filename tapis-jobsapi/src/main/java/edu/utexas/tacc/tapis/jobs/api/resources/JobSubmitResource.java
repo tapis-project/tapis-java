@@ -216,7 +216,7 @@ public class JobSubmitResource
      
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
-         String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "resubmit", "jobuuid");
+         String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).
                  entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();

@@ -86,7 +86,7 @@ public final class SelectQueueName
         // Note the single atomic access to the queue mapping; see
         // QueueManager.doRefreshQueueInfo() for a concurrency discussion.
         String selectedQueueName = null;
-        List<JobQueue> queues = getQueues();
+        List<JobQueue> queues = SubmitQueues.getQueues();
         for (JobQueue queue : queues) {
             if (runFilter(queue, properties)) {
                 selectedQueueName = queue.getName();
@@ -96,7 +96,7 @@ public final class SelectQueueName
           
         // Make sure we select some queue.
         if (selectedQueueName == null) {
-            String defaultQueue = QueueManager.getDefaultQueue();
+            String defaultQueue = JobQueueManager.getDefaultQueue();
             _log.error(MsgUtils.getMsg("JOBS_QUEUE_FILTER_NONE", job.getTenant(), job.getName(), defaultQueue));
             
             // Select the default queue.
@@ -133,25 +133,4 @@ public final class SelectQueueName
         }
         return matched;
     }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* getQueues:                                                                   */
-    /* ---------------------------------------------------------------------------- */
-    private List<JobQueue> getQueues()
-    {
-        // Dump the table.
-        try {
-            // Get the list of all queues in descending priority order.
-            var queueDao = new JobQueuesDao();
-            return queueDao.getJobQueuesByPriorityDesc();
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_ALL_QUERY", e.getMessage());
-            _log.error(msg, e);
-        }
-        
-        // An error occurred. 
-        return Collections.emptyList();
-    }
-    
 }

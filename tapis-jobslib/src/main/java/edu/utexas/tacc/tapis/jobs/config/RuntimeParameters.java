@@ -95,12 +95,14 @@ public final class RuntimeParameters
 	private int     dbMeterMinutes;
 	
     // RabbitMQ configuration.
+    private String  queueAdminUser;
+    private String  queueAdminPassword;
     private String  queueUser;
     private String  queuePassword;
     private String  queueHost;
     private int     queuePort;
     private boolean queueSSLEnabled;
-    private boolean queueAutoRecoveryEnabled;
+    private boolean queueAutoRecoveryEnabled = true;
     
 	// Mail configuration.
 	private EmailProviderType emailProviderType;
@@ -696,6 +698,22 @@ public final class RuntimeParameters
 	private void setDbMeterMinutes(int dbMeterMinutes) {
 	    this.dbMeterMinutes = dbMeterMinutes;
 	}
+
+    public String getQueueAdminUser() {
+        return queueAdminUser;
+    }
+
+    public void setQueueAdminUser(String queueAdminUser) {
+        this.queueAdminUser = queueAdminUser;
+    }
+
+    public String getQueueAdminPassword() {
+        return queueAdminPassword;
+    }
+
+    public void setQueueAdminPassword(String queueAdminPassword) {
+        this.queueAdminPassword = queueAdminPassword;
+    }
 
     public String getQueueUser() {
         return queueUser;

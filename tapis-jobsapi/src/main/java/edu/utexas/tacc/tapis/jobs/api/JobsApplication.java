@@ -8,7 +8,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
-import edu.utexas.tacc.tapis.jobs.queue.QueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerParms;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
@@ -157,14 +158,37 @@ extends ResourceConfig
        // There is some redundancy here since each front-end and
        // each worker initialize all queue artifacts.  Not a problem, 
        // but there's room for improvement.
-       try {QueueManager.getInstance();} // called for side effect
+       try {JobQueueManager.getInstance();} // called for side effect
         catch (Exception e) {
             errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi QueueManager ****");
+            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi JobQueueManager ****");
             e.printStackTrace();
         }
         
        // We're done.
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
+   }
+   
+   /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization
+    * requires the overall administrator's credentials to create the vhost and its user if
+    * they don't already exist.
+    */
+   private void initializeJobQueueManager()
+   {
+       // Set up broker initialization.
+       var rt = RuntimeParameters.getInstance();
+       var qmParms = new JobQueueManagerParms();
+       qmParms.setQueueHost(rt.getQueueHost());
+       qmParms.setQueuePort(rt.getQueuePort());
+       qmParms.setQueueUser(rt.getQueueUser());
+       qmParms.setQueuePassword(rt.getQueuePassword());
+       qmParms.setAdminUser(rt.getQueueAdminUser());
+       qmParms.setAdminPassword(rt.getQueueAdminPassword());
+       qmParms.setQueueSSLEnabled(rt.isQueueSSLEnabled());
+       qmParms.setQueueAutoRecoveryEnabled(rt.isQueueAutoRecoveryEnabled());
+       qmParms.setVhost(JobQueueManager.JOBS_VHOST);
+       
+       // This can throw a runtime exception.
+       JobQueueManager.getInstance(qmParms);
    }
 }
