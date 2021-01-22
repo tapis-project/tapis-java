@@ -156,9 +156,9 @@ extends ResourceConfig
        // By getting the singleton instance of the queue manager
        // we also cause all job queues and exchanges to be initialized.
        // There is some redundancy here since each front-end and
-       // each worker initialize all queue artifacts.  Not a problem, 
+       // each worker initializes all queue artifacts.  Not a problem, 
        // but there's room for improvement.
-       try {JobQueueManager.getInstance();} // called for side effect
+       try {initializeJobQueueManager();} // called for side effect
         catch (Exception e) {
             errors++;
             System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi JobQueueManager ****");
