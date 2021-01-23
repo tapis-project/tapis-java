@@ -11,6 +11,7 @@ public class JobQueueManagerParms
 {
     private String  adminUser;
     private String  adminPassword;
+    private int     adminPort;
     
     public void validate() throws TapisRuntimeException
     {
@@ -23,7 +24,12 @@ public class JobQueueManagerParms
             throw new TapisRuntimeException(msg);
         }
         if (StringUtils.isBlank(adminPassword)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "service");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "adminPassword");
+            throw new TapisRuntimeException(msg);
+        }
+        if (adminPort <= 0) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validate", "adminPort", 
+                                         adminPort);
             throw new TapisRuntimeException(msg);
         }
     }
@@ -39,5 +45,11 @@ public class JobQueueManagerParms
     }
     public void setAdminPassword(String adminPassword) {
         this.adminPassword = adminPassword;
+    }
+    public int getAdminPort() {
+        return adminPort;
+    }
+    public void setAdminPort(int adminPort) {
+        this.adminPort = adminPort;
     }
 }

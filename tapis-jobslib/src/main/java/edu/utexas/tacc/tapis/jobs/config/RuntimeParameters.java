@@ -9,6 +9,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.ConnectionFactory;
+
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -97,6 +99,7 @@ public final class RuntimeParameters
     // RabbitMQ configuration.
     private String  queueAdminUser;
     private String  queueAdminPassword;
+    private int     queueAdminPort;
     private String  queueUser;
     private String  queuePassword;
     private String  queueHost;
@@ -314,6 +317,122 @@ public final class RuntimeParameters
           }
       }
     
+    // --------------------- RabbitMQ Parameters ----------------------
+    // The broker's administrator credentials used to set up vhost.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_ADMIN_USER.getEnvName());
+    if (!StringUtils.isBlank(parm)) setQueueAdminUser(parm);
+       else {
+           // Stop on bad input.
+           String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING",
+                                        TapisConstants.SERVICE_NAME_JOBS,
+                                        "queueAdminUser");
+           _log.error(msg);
+           throw new TapisRuntimeException(msg);
+       }
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_ADMIN_PASSWORD.getEnvName());
+    if (!StringUtils.isBlank(parm)) setQueueAdminPassword(parm);
+        else {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queueAdminPassword");
+            _log.error(msg);
+            throw new TapisRuntimeException(msg);
+        }
+    
+    // Optional broker port.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_ADMIN_PORT.getEnvName());
+    if (StringUtils.isBlank(parm)) setQueueAdminPort(isQueueSSLEnabled() ? 15671 : 15672);
+      else {
+        try {setQueueAdminPort(Integer.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queuePort",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
+    // This service's normal runtime credentials.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_USER.getEnvName());
+    if (!StringUtils.isBlank(parm)) setQueueUser(parm);
+        else {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queueUser");
+            _log.error(msg);
+            throw new TapisRuntimeException(msg);
+        }
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_PASSWORD.getEnvName());
+    if (!StringUtils.isBlank(parm)) setQueuePassword(parm);
+        else {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_MISSING",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queuePassword");
+            _log.error(msg);
+            throw new TapisRuntimeException(msg);
+        }
+
+    // Optional ssl enabled.  Compute this value before assigning a default port.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_SSL_ENABLE.getEnvName());
+    if (StringUtils.isBlank(parm)) setQueueSSLEnabled(false);
+      else {
+        try {setQueueSSLEnabled(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queueSSLEnabled",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
+    // Broker host defaults to localhost.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_HOST.getEnvName());
+    if (!StringUtils.isBlank(parm)) setQueueHost(parm);
+      else setQueueHost("localhost");
+
+    // Optional broker port.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_PORT.getEnvName());
+    if (StringUtils.isBlank(parm)) 
+        setQueuePort(isQueueSSLEnabled() ? ConnectionFactory.DEFAULT_AMQP_OVER_SSL_PORT : 
+                                           ConnectionFactory.DEFAULT_AMQP_PORT);
+      else {
+        try {setQueuePort(Integer.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queuePort",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
+    // Optional auto-recovery enabled by default.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_QUEUE_AUTO_RECOVERY.getEnvName());
+    if (StringUtils.isBlank(parm)) setQueueAutoRecoveryEnabled(true);
+      else {
+        try {setQueueAutoRecoveryEnabled(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "queueAutoRecoveryEnabled",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
     // --------------------- Email Parameters -------------------------
     // Currently LOG or SMTP.
     parm = inputProperties.getProperty(EnvVar.TAPIS_MAIL_PROVIDER.getEnvName());
@@ -465,6 +584,22 @@ public final class RuntimeParameters
 	    buf.append("\ntapis.db.meter.minutes: ");
 	    buf.append(this.getDbMeterMinutes());
 	    
+        buf.append("\n------- RabbitMQ Configuration --------------------");
+        buf.append("\ntapis.queue.host: ");
+        buf.append(this.getQueueHost());
+        buf.append("\ntapis.queue.admin.user: ");
+        buf.append(this.getQueueAdminUser());
+        buf.append("\ntapis.queue.admin.port: ");
+        buf.append(this.getQueueAdminPort());
+        buf.append("\ntapis.queue.user: ");
+        buf.append(this.getQueueUser());
+        buf.append("\ntapis.queue.port: ");
+        buf.append(this.getQueuePort());
+        buf.append("\ntapis.queue.ssl.enable: ");
+        buf.append(this.isQueueSSLEnabled());
+        buf.append("\ntapis.queue.auto.recovery: ");
+        buf.append(this.isQueueAutoRecoveryEnabled());
+        
 	    buf.append("\n------- Email Configuration -----------------------");
 	    buf.append("\ntapis.mail.provider: ");
 	    buf.append(this.getEmailProviderType().name());
@@ -715,6 +850,14 @@ public final class RuntimeParameters
         this.queueAdminPassword = queueAdminPassword;
     }
 
+    public int getQueueAdminPort() {
+        return queueAdminPort;
+    }
+
+    public void setQueueAdminPort(int queueAdminPort) {
+        this.queueAdminPort = queueAdminPort;
+    }
+    
     public String getQueueUser() {
         return queueUser;
     }
@@ -874,5 +1017,4 @@ public final class RuntimeParameters
 	public void setServicePassword(String servicePassword) {
 		this.servicePassword = servicePassword;
 	}
-
 }

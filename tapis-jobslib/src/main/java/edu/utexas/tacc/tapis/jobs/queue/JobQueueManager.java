@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.queue;
 
+import java.time.Instant;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
@@ -10,9 +11,10 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 
-import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
+import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -21,8 +23,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
+import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 import edu.utexas.tacc.tapis.sharedq.AbstractQueueManager;
-import edu.utexas.tacc.tapis.sharedq.QueueManagerParms;
 import edu.utexas.tacc.tapis.sharedq.VHostManager;
 import edu.utexas.tacc.tapis.sharedq.VHostParms;
 import edu.utexas.tacc.tapis.sharedq.exceptions.TapisQueueException;
@@ -38,6 +41,9 @@ public final class JobQueueManager
   
   // Convenience access.
   public static final String JOBS_VHOST = JobQueueManagerNames.JOBS_VHOST;
+  
+  // The default queue accepts all jobs as long as the tenant is defined.
+  private static final String DEFAULT_QUEUE_FILTER = "tenant IS NOT NULL";
     
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -66,12 +72,26 @@ public final class JobQueueManager
       // Initialize vhost.
       InitRabbitVHost();
       
+      // Create the queues needed by most if not all applications.
+      try {createStandardQueues();}
+      catch (Exception e) {
+          String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+          throw new TapisRuntimeException(msg, e);
+      }
+      
       // Try to create the tenant event topic but allow 
       // instance creation even in the face of failures.
-      try {createStandardQueues();}
+      try {createStandardJobQueues();}
       catch (Exception e) {
         String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
         throw new TapisRuntimeException(msg, e);
+      }
+      
+      // Create the default queue definition if it doesn't exist.
+      try {ensureDefaultQueueIsDefined();}
+      catch (Exception e) {
+          String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+          throw new TapisRuntimeException(msg, e);
       }
       
       // Try to create all tenant queues but allow 
@@ -96,18 +116,18 @@ public final class JobQueueManager
   private void InitRabbitVHost() throws TapisRuntimeException
   {
       // Collect the runtime message broker information.
-      var rt = RuntimeParameters.getInstance();
-      var host = rt.getQueueHost();
-      var port = rt.getQueuePort();
-      var user = rt.getQueueUser();
-      var pass = rt.getQueuePassword();
-      var adminUser = rt.getQueueAdminUser();
-      var adminPass = rt.getQueueAdminPassword();
+      var host  = _parms.getQueueHost();
+      var user  = _parms.getQueueUser();
+      var pass  = _parms.getQueuePassword();
+      var vhost = _parms.getVhost();
+      var adminUser = ((JobQueueManagerParms)_parms).getAdminUser();
+      var adminPass = ((JobQueueManagerParms)_parms).getAdminPassword();
+      var adminPort = ((JobQueueManagerParms)_parms).getAdminPort();
       
       // Create the vhost object and execute the initialization routine.
-      var parms = new VHostParms(host, port, adminUser, adminPass);
+      var parms = new VHostParms(host, adminPort, adminUser, adminPass);
       var mgr   = new VHostManager(parms);
-      try {mgr.initVHost(JOBS_VHOST, user, pass);}
+      try {mgr.initVHost(vhost, user, pass);}
       catch (Exception e) {
           String msg = MsgUtils.getMsg("QMGR_UNINITIALIZED_ERROR");
           throw new TapisRuntimeException(msg, e);
@@ -253,7 +273,7 @@ public final class JobQueueManager
       // Publish the message to the queue.
       try {
         // Write the job to the selected tenant worker queue.
-        channel.basicPublish(exchangeName, queueName, JobQueueManager.PERSISTENT_JSON, 
+        channel.basicPublish(exchangeName, queueName, JobQueueManagerNames.PERSISTENT_JSON, 
                              message.getBytes("UTF-8"));
         
         // Tracing.
@@ -323,7 +343,7 @@ public final class JobQueueManager
       // Publish the message to the queue.
       try {
         // Write the job to the selected tenant worker queue.
-        channel.basicPublish(exchangeName, routingKey, JobQueueManager.PERSISTENT_JSON, 
+        channel.basicPublish(exchangeName, routingKey, JobQueueManagerNames.PERSISTENT_JSON, 
                              message.getBytes("UTF-8"));
         
         // Tracing.
@@ -402,7 +422,7 @@ public final class JobQueueManager
       // Publish the message to the queue.
       try {
         // Write the job to the tenant recovery queue.
-        channel.basicPublish(exchangeName, DEFAULT_BINDING_KEY, JobQueueManager.PERSISTENT_JSON, 
+        channel.basicPublish(exchangeName, DEFAULT_BINDING_KEY, JobQueueManagerNames.PERSISTENT_JSON, 
                              message.getBytes("UTF-8"));
         
         // Tracing.
@@ -576,7 +596,46 @@ public final class JobQueueManager
   /*                             Private Methods                            */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
-  /* createStandardQueues:                                                  */
+  /* ensureDefaultQueueIsDefined:                                           */
+  /* ---------------------------------------------------------------------- */
+  private void ensureDefaultQueueIsDefined() throws TapisException
+  {
+      // Is the default queue already defined?
+      JobQueue queue = null;
+      JobQueuesDao queueDao;
+      try {
+          // Get the list of all queues in descending priority order.
+          queueDao = new JobQueuesDao();
+          queue = queueDao.getJobQueueByName(JobQueueManagerNames.getDefaultQueue());
+      }
+      catch (Exception e) {
+          String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_QUERY", 
+                                       JobQueueManagerNames.getDefaultQueue(), 
+                                       e.getMessage());
+          throw new JobException(msg, e);
+      }
+      
+      // Is the default queue already defined?
+      if (queue != null) return;
+      
+      // Define the default queue here.
+      queue = new JobQueue();
+      queue.setName(JobQueueManagerNames.getDefaultQueue());
+      queue.setFilter(DEFAULT_QUEUE_FILTER);
+      queue.setPriority(JobQueuesDao.DEFAULT_TENANT_QUEUE_PRIORITY);
+      
+      // Create the queue.
+      try {queueDao.createQueue(queue);}
+      catch (Exception e) {
+          if (e.getMessage().startsWith("JOBS_JOB_QUEUE_CREATE_ERROR")) throw e;
+          String msg = MsgUtils.getMsg("JOBS_JOB_QUEUE_CREATE_ERROR", 
+                                       queue.getName(), e.getMessage());
+          throw new JobException(msg, e);
+      }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* createStandardJobQueues:                                               */
   /* ---------------------------------------------------------------------- */
   /** Create all the exchanges and queues that do not depend on tenants or
    * individual jobs.  These artifacts are used globally.
@@ -584,7 +643,7 @@ public final class JobQueueManager
    * @throws TapisQueueException 
    */
   @SuppressWarnings("unchecked")
-  private void createStandardQueues() throws TapisQueueException
+  private void createStandardJobQueues() throws TapisQueueException
   {
       String service = _parms.getService();
       Channel channel = null;
@@ -595,8 +654,8 @@ public final class JobQueueManager
           // The alternate and dead letter exchanges and queues were created
           // in our superclass constructor, so we can reference them here.
           HashMap<String,Object> exchangeArgs = new HashMap<>();
-          exchangeArgs.put("x-dead-letter-exchange", getDeadLetterExchangeName());
-          exchangeArgs.put("alternate-exchange", getAltExchangeName());
+          exchangeArgs.put("x-dead-letter-exchange", JobQueueManagerNames.getDeadLetterExchangeName());
+          exchangeArgs.put("alternate-exchange", JobQueueManagerNames.getAltExchangeName());
           
           // Create the command exchange but not any queues--those are 
           // dynamically created by workers.
@@ -640,8 +699,8 @@ public final class JobQueueManager
           // The alternate and dead letter exchanges and queues were created
           // in our superclass constructor, so we can reference them here.
           HashMap<String,Object> exchangeArgs = new HashMap<>();
-          exchangeArgs.put("x-dead-letter-exchange", getDeadLetterExchangeName());
-          exchangeArgs.put("alternate-exchange", getAltExchangeName());
+          exchangeArgs.put("x-dead-letter-exchange", JobQueueManagerNames.getDeadLetterExchangeName());
+          exchangeArgs.put("alternate-exchange", JobQueueManagerNames.getAltExchangeName());
           
           // Exchange name is he same for all submit queues.
           final boolean durable = true;

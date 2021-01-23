@@ -1,19 +1,22 @@
 package edu.utexas.tacc.tapis.jobs.queue;
 
-class JobQueueManagerNames 
+import edu.utexas.tacc.tapis.sharedq.QueueManagerNames;
+
+public class JobQueueManagerNames 
+ extends QueueManagerNames
 {
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
   // ----- RabbitMQ naming constants.
   // The Jobs virtual host.
-  public static final String JOBS_VHOST = "jobs";
+  public  static final String JOBS_VHOST = "JobsHost";
     
   // The prefix to all queuing components for the jobs service.
-  private static final String TAPIS_JOBQ_PREFIX = "tapis.jobq.";
+  public  static final String TAPIS_JOBQ_PREFIX = "tapis.jobq.";
   
   // The submission queue part that follows the tenant id and precedes the queue name.
-  private static final String SUBMIT_PART = "submit.";
+  public  static final String SUBMIT_PART = "submit.";
   private static final String DEFAULT_SUBMIT_QUEUE_SUFFIX = "DefaultQueue";
   private static final String DEFAULT_SUBMIT_QUEUE = TAPIS_JOBQ_PREFIX + SUBMIT_PART + DEFAULT_SUBMIT_QUEUE_SUFFIX;
   

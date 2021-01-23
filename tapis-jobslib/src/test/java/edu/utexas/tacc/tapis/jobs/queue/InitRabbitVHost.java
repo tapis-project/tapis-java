@@ -26,7 +26,7 @@ public class InitRabbitVHost
     private static final int    PORT       = 15672;
     private static final String ADMIN_USER = "tapis";
     private static final String ADMIN_PASS = "password";
-    private static final String JOBS_VHOST = "jobshost";
+    private static final String JOBS_VHOST = "JobsHost";
     private static final String JOBS_USER  = "jobs";
     private static final String JOBS_PASS  = "password";
     private static final String JOBS_PERM  = ".*";

@@ -80,7 +80,7 @@ CREATE TABLE jobs
   remote_checks_failed        integer NOT NULL DEFAULT 0,
   remote_last_status_check    timestamp without time zone,
  
-  tapis_queue                 character varying(64) NOT NULL,
+  tapis_queue                 character varying(255) NOT NULL,
   visible                     boolean NOT NULL DEFAULT TRUE,
   createdby                   character varying(60) NOT NULL,  
   createdby_tenant            character varying(24) NOT NULL,
@@ -142,7 +142,7 @@ CREATE INDEX job_events_event_idx ON job_events (event);
 CREATE TABLE job_queues
 (
   id                          serial4 PRIMARY KEY,
-  name                        character varying(150) NOT NULL,
+  name                        character varying(255) NOT NULL,
   priority                    integer NOT NULL,
   filter                      character varying(4096) NOT NULL,
   uuid                        character varying(64) NOT NULL,

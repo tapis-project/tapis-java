@@ -118,6 +118,14 @@ public class SqlStatements
         "SELECT id, name, priority, filter, uuid, created, last_updated"
         + " FROM job_queues ORDER BY priority desc";
 
+    public static final String SELECT_JOBQUEUE_BY_NAME =
+            "SELECT id, name, priority, filter, uuid, created, last_updated"
+            + " FROM job_queues WHERE name = ?";
+
+    public static final String CREATE_JOBQUEUE =
+            "INSERT into job_queues (name, priority, filter, uuid, created, last_updated)"
+            + " VALUES (?, ?, ?, ?, ?, ?)";
+
 	/* ---------------------------------------------------------------------- */
 	/* job_events table:                                                      */
 	/* ---------------------------------------------------------------------- */
