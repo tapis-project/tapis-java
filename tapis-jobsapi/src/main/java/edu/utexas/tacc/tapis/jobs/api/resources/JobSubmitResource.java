@@ -30,14 +30,22 @@ import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
+import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -344,20 +352,19 @@ public class JobSubmitResource
          // Submit the job to the worker queue.
          // -------------------------- Queue Request ---------------------------
          // Exceptions are mapped to HTTP error codes.
-//         Job resultJob = null;
-//         try {resultJob = JobSubmitProcessor.submitJob(job, notificationList);}
-//           catch (Exception e) {
-//               // Log the error.
-//               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", job.getName(), job.getAppId(), e.getMessage());
-//               _log.error(msg, e);
-//               
-//               // Fail the job.  
-//               failJob(jobsDao, job, msg);
-//               
-//               // Let the user know the job failed.
-//               return Response.status(Status.INTERNAL_SERVER_ERROR).
-//                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-//           }
+         try {queueJob(job);}
+           catch (Exception e) {
+               // Log the error.
+               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", job.getName(), job.getAppId(), e.getMessage());
+               _log.error(msg, e);
+               
+               // Fail the job.  
+               failJob(job, msg);
+               
+               // Let the user know the job failed.
+               return Response.status(Status.INTERNAL_SERVER_ERROR).
+                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+           }
          
          // ------------------------- Save Resubmit Info -----------------------
          // Save the valid job json definition for resubmission in the future
@@ -382,5 +389,76 @@ public class JobSubmitResource
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* queueJob:                                                                    */
+     /* ---------------------------------------------------------------------------- */
+     private void queueJob(Job job) throws JobException
+     {
+         // Create the message.
+         var message = new JobSubmitMsg();
+         message.created = job.getCreated().toString();
+         message.uuid = job.getUuid();
+         var jsonMessage = TapisGsonUtils.getGson().toJson(message);
+         
+         var qm = JobQueueManager.getInstance();
+         qm.postSubmitQueue(job.getTapisQueue(), jsonMessage);
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* failJob:                                                                     */
+     /* ---------------------------------------------------------------------------- */
+     /** Mark the job as failed in the database.
+      * 
+      * @param jobDao the db access object
+      * @param job the failed job
+      * @param failMsg the failure message
+     */
+     private static void failJob(Job job, String failMsg)
+     {
+         // Fail the job.  Note that current status used in the transition 
+         // to FAILED is the status of the job as defined in the db.
+         try {
+             var jobsDao = new JobsDao();
+             jobsDao.failJob("submitJob", job, failMsg);
+         }
+         catch (Exception e) {
+             // Swallow exception.
+             String msg = MsgUtils.getMsg("JOBS_ZOMBIE_ERROR", 
+                                          job.getUuid(), job.getTenant(), "submitJob");
+             _log.error(msg, e);
+                 
+             // Try to send the zombie email.
+             sendZombieEmail(job, msg);
+         }
+     }
+       
+     /* ---------------------------------------------------------------------------- */
+     /* sendZombieEmail:                                                             */
+     /* ---------------------------------------------------------------------------- */
+     /** Send an email to alert support that a zombie job exists.
+      * 
+      * @param job the job whose status update failed
+      * @param zombiMsg failure message
+      */
+     private static void sendZombieEmail(Job job, String zombiMsg)
+     {
+         String subject = "Zombie Job Alert: " + job.getUuid() + " is in a zombie state.";
+         try {
+               RuntimeParameters runtime = RuntimeParameters.getInstance();
+               EmailClient client = EmailClientFactory.getClient(runtime);
+               client.send(runtime.getSupportName(),
+                       runtime.getSupportEmail(),
+                       subject,
+                       zombiMsg, HTMLizer.htmlize(zombiMsg));
+         }
+         catch (Exception e1) {
+               // log msg that we tried to send email notice to support.
+               RuntimeParameters runtime = RuntimeParameters.getInstance();
+               String recipient = runtime == null ? "unknown" : runtime.getSupportEmail();
+               String msg = MsgUtils.getMsg("ALOE_SUPPORT_EMAIL_ERROR", recipient, subject, e1.getMessage());
+               _log.error(msg, e1);
+         }
      }
 }
