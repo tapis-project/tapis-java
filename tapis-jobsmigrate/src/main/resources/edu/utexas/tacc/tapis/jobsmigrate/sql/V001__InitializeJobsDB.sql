@@ -79,6 +79,11 @@ CREATE TABLE jobs
   remote_checks_success       integer NOT NULL DEFAULT 0,
   remote_checks_failed        integer NOT NULL DEFAULT 0,
   remote_last_status_check    timestamp without time zone,
+  
+  input_transaction_id        character varying(64),
+  input_correlation_id        character varying(64),
+  archive_transaction_id      character varying(64),
+  archive_correlation_id      character varying(64),
  
   tapis_queue                 character varying(255) NOT NULL,
   visible                     boolean NOT NULL DEFAULT TRUE,

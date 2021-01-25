@@ -97,6 +97,11 @@ public final class Job
     private int      			remoteChecksFailed;
     private Instant  			remoteLastStatusCheck;
     
+    private String              inputTransactionId;
+    private String              inputCorrelationId;
+    private String              archiveTransactionId;
+    private String              archiveCorrelationId;
+    
     private String   			tapisQueue;
     private boolean  			visible = true;
     private String   			createdby;
@@ -584,4 +589,36 @@ public final class Job
 	public void setCreatedbyTenant(String createdbyTenant) {
 		this.createdbyTenant = createdbyTenant;
 	}
+
+    public String getInputTransactionId() {
+        return inputTransactionId;
+    }
+
+    public void setInputTransactionId(String inputTransactionId) {
+        this.inputTransactionId = inputTransactionId;
+    }
+
+    public String getInputCorrelationId() {
+        return inputCorrelationId;
+    }
+
+    public void setInputCorrelationId(String inputCorrelationId) {
+        this.inputCorrelationId = inputCorrelationId;
+    }
+
+    public String getArchiveTransactionId() {
+        return archiveTransactionId;
+    }
+
+    public void setArchiveTransactionId(String archiveTransactionId) {
+        this.archiveTransactionId = archiveTransactionId;
+    }
+
+    public String getArchiveCorrelationId() {
+        return archiveCorrelationId;
+    }
+
+    public void setArchiveCorrelationId(String archiveCorrelationId) {
+        this.archiveCorrelationId = archiveCorrelationId;
+    }
 }

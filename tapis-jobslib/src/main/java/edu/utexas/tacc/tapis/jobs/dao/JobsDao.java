@@ -1006,13 +1006,18 @@ public final class JobsDao
 
 	        ts = rs.getTimestamp(46);
 	        if (ts != null) obj.setRemoteLastStatusCheck(ts.toInstant());
-
-	        obj.setTapisQueue(rs.getString(47));
-	        obj.setVisible(rs.getBoolean(48));
-	        obj.setCreatedby(rs.getString(49));
-	        obj.setCreatedbyTenant(rs.getString(50));
 	        
-	        Array tagsArray = rs.getArray(51);
+	        obj.setInputTransactionId(rs.getString(47));
+	        obj.setInputCorrelationId(rs.getString(48));
+	        obj.setArchiveTransactionId(rs.getString(49));
+	        obj.setArchiveCorrelationId(rs.getString(50));
+
+	        obj.setTapisQueue(rs.getString(51));
+	        obj.setVisible(rs.getBoolean(52));
+	        obj.setCreatedby(rs.getString(53));
+	        obj.setCreatedbyTenant(rs.getString(54));
+	        
+	        Array tagsArray = rs.getArray(55);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
 	            if (stringArray != null && stringArray.length > 0) { 

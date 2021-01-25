@@ -22,8 +22,9 @@ public class SqlStatements
         	+ "blocked_count, remote_job_id, remote_job_id2, "
         	+ "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
         	+ "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
-        	+ "remote_checks_failed, remote_last_status_check, tapis_queue, visible, "
-        	+ "createdby, createdby_tenant, tags"
+        	+ "remote_checks_failed, remote_last_status_check, "
+        	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
+        	+ "tapis_queue, visible, createdby, createdby_tenant, tags"
         + " FROM jobs ORDER BY id";
 
     public static final String SELECT_JOBS_BY_UUID =
@@ -38,8 +39,9 @@ public class SqlStatements
             + "blocked_count, remote_job_id, remote_job_id2, "
             + "remote_outcome, remote_result_info, remote_queue, remote_submitted, "
             + "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
-            + "remote_checks_failed, remote_last_status_check, tapis_queue, visible, "
-            + "createdby, createdby_tenant, tags"
+            + "remote_checks_failed, remote_last_status_check, "
+            + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
+            + "tapis_queue, visible, createdby, createdby_tenant, tags"
         + " FROM jobs"
         + " WHERE uuid = ?";
     
