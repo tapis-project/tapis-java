@@ -145,7 +145,7 @@ extends ResourceConfig
        }
        
        // ----- Database Initialization
-       try {JobsImpl.getInstance().queryDB(QUERY_TABLE);}
+       try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
 	    catch (Exception e) {
        		errors++;
             System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****");

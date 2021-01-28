@@ -82,12 +82,12 @@ public class SubmitQueues
       }
       
       // --- Error case ---
-      // We were unable to load the table, so define the default queue only.
+      // We were unable to load the table, so define a synthetic default queue.
       var q = new JobQueue();
       q.setId(1);
       q.setName(JobQueueManagerNames.getDefaultQueue());
-      q.setFilter("tenant is not null");
-      q.setPriority(1);
+      q.setFilter(JobQueueManagerNames.DEFAULT_QUEUE_FILTER);
+      q.setPriority(JobQueuesDao.DEFAULT_TENANT_QUEUE_PRIORITY);
       q.setUuid(new TapisUUID(UUIDType.JOB_QUEUE).toString());
       var now = Instant.now();
       q.setCreated(now);

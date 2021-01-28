@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.queue;
 
-import java.time.Instant;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
@@ -11,10 +10,8 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 
-import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
-import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -23,8 +20,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
-import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 import edu.utexas.tacc.tapis.sharedq.AbstractQueueManager;
 import edu.utexas.tacc.tapis.sharedq.VHostManager;
 import edu.utexas.tacc.tapis.sharedq.VHostParms;
@@ -42,9 +37,6 @@ public final class JobQueueManager
   // Convenience access.
   public static final String JOBS_VHOST = JobQueueManagerNames.JOBS_VHOST;
   
-  // The default queue accepts all jobs as long as the tenant is defined.
-  private static final String DEFAULT_QUEUE_FILTER = "tenant IS NOT NULL";
-    
   /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
@@ -85,13 +77,6 @@ public final class JobQueueManager
       catch (Exception e) {
         String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
         throw new TapisRuntimeException(msg, e);
-      }
-      
-      // Create the default queue definition if it doesn't exist.
-      try {ensureDefaultQueueIsDefined();}
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
-          throw new TapisRuntimeException(msg, e);
       }
       
       // Try to create all tenant queues but allow 
@@ -595,45 +580,6 @@ public final class JobQueueManager
   /* ********************************************************************** */
   /*                             Private Methods                            */
   /* ********************************************************************** */
-  /* ---------------------------------------------------------------------- */
-  /* ensureDefaultQueueIsDefined:                                           */
-  /* ---------------------------------------------------------------------- */
-  private void ensureDefaultQueueIsDefined() throws TapisException
-  {
-      // Is the default queue already defined?
-      JobQueue queue = null;
-      JobQueuesDao queueDao;
-      try {
-          // Get the list of all queues in descending priority order.
-          queueDao = new JobQueuesDao();
-          queue = queueDao.getJobQueueByName(JobQueueManagerNames.getDefaultQueue());
-      }
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_QUERY", 
-                                       JobQueueManagerNames.getDefaultQueue(), 
-                                       e.getMessage());
-          throw new JobException(msg, e);
-      }
-      
-      // Is the default queue already defined?
-      if (queue != null) return;
-      
-      // Define the default queue here.
-      queue = new JobQueue();
-      queue.setName(JobQueueManagerNames.getDefaultQueue());
-      queue.setFilter(DEFAULT_QUEUE_FILTER);
-      queue.setPriority(JobQueuesDao.DEFAULT_TENANT_QUEUE_PRIORITY);
-      
-      // Create the queue.
-      try {queueDao.createQueue(queue);}
-      catch (Exception e) {
-          if (e.getMessage().startsWith("JOBS_JOB_QUEUE_CREATE_ERROR")) throw e;
-          String msg = MsgUtils.getMsg("JOBS_JOB_QUEUE_CREATE_ERROR", 
-                                       queue.getName(), e.getMessage());
-          throw new JobException(msg, e);
-      }
-  }
-  
   /* ---------------------------------------------------------------------- */
   /* createStandardJobQueues:                                               */
   /* ---------------------------------------------------------------------- */

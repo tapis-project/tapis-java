@@ -4,9 +4,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobQueue;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -113,8 +116,7 @@ public final class JobsImpl
         JobsDao dao = null;
         try {dao = getJobsDao();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "roles");
-               _log.error(msg, e);
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "query test");
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
              }
         
@@ -126,5 +128,44 @@ public final class JobsImpl
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);         
          }
 	        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* ensureDefaultQueueIsDefined:                                           */
+    /* ---------------------------------------------------------------------- */
+    public void ensureDefaultQueueIsDefined() throws TapisException
+    {
+        // Is the default queue already defined?
+        JobQueue queue = null;
+        JobQueuesDao queueDao;
+        try {
+            // Get the list of all queues in descending priority order.
+            queueDao = new JobQueuesDao();
+            queue = queueDao.getJobQueueByName(JobQueueManagerNames.getDefaultQueue());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_QUERY", 
+                                         JobQueueManagerNames.getDefaultQueue(), 
+                                         e.getMessage());
+            throw new JobException(msg, e);
+        }
+        
+        // Is the default queue already defined?
+        if (queue != null) return;
+        
+        // Define the default queue here.
+        queue = new JobQueue();
+        queue.setName(JobQueueManagerNames.getDefaultQueue());
+        queue.setFilter(JobQueueManagerNames.DEFAULT_QUEUE_FILTER);
+        queue.setPriority(JobQueuesDao.DEFAULT_TENANT_QUEUE_PRIORITY);
+        
+        // Create the queue.
+        try {queueDao.createQueue(queue);}
+        catch (Exception e) {
+            if (e.getMessage().startsWith("JOBS_JOB_QUEUE_CREATE_ERROR")) throw e;
+            String msg = MsgUtils.getMsg("JOBS_JOB_QUEUE_CREATE_ERROR", 
+                                         queue.getName(), e.getMessage());
+            throw new JobException(msg, e);
+        }
     }
 }

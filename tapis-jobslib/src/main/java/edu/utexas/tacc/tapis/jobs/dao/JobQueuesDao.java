@@ -140,6 +140,11 @@ public final class JobQueuesDao
   /* ---------------------------------------------------------------------- */
   /* getJobQueuesByPriorityDesc:                                            */
   /* ---------------------------------------------------------------------- */
+  /** Return a non-empty list of queues.  
+   * 
+   * @return the non-empty list of defined queues
+   * @throws TapisException on error or if the result list is empty
+   */
   public List<JobQueue> getJobQueuesByPriorityDesc() 
     throws TapisException
   {
@@ -181,7 +186,6 @@ public final class JobQueuesDao
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
           String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "JobQueues", "allUUIDs", e.getMessage());
-          _log.error(msg, e);
           throw new TapisException(msg, e);
       }
       finally {
@@ -194,6 +198,12 @@ public final class JobQueuesDao
               String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
               _log.error(msg, e);
             }
+      }
+      
+      // Throw an exception is the list is empty.
+      if (list.isEmpty()) {
+          String msg = MsgUtils.getMsg("JOBS_QUEUE_NO_QUEUES");
+          throw new TapisException(msg);
       }
       
       return list;

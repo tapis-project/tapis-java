@@ -6,6 +6,7 @@ import java.util.List;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqSubmitJob 
  implements IReqBody
@@ -275,6 +276,7 @@ public class ReqSubmitJob
         this.tags = tags;
     }
 
+    @Schema(hidden = true)
     public String getConsolidatedConstraints() {
         return consolidatedConstraints;
     }

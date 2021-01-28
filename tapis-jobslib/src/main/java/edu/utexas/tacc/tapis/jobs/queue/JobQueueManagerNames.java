@@ -47,6 +47,9 @@ public class JobQueueManagerNames
   private static final String TOPIC_CMD_WORKER_JID_ROUTING_KEY = CMD_TOPIC_PREFIX + "worker.jid.";
   private static final String TOPIC_CMD_WORKER_JID_BINDING_KEY = CMD_TOPIC_PREFIX + "worker.jid.";
 
+  // The default queue accepts all jobs as long as the tenant is defined.
+  public static final String DEFAULT_QUEUE_FILTER = "tenant IS NOT NULL";
+    
   /* ********************************************************************** */
   /*                              Public Methods                            */
   /* ********************************************************************** */
