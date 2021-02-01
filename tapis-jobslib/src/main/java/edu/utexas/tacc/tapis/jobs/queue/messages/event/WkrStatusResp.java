@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.queue.messages.event;
 
+import edu.utexas.tacc.tapis.jobs.worker.JobWorkerParameters;
+
 //import edu.utexas.tacc.aloe.jobs.worker.JobWorkerParameters;
 
 public final class WkrStatusResp 
@@ -14,7 +16,7 @@ public final class WkrStatusResp
     /*                                 Fields                                 */
     /* ********************************************************************** */
     // Command line parameters.
-//    public JobWorkerParameters workerParms;
+    public JobWorkerParameters workerParms;
     
     // Unique identifier of this worker instance.
     public String              workerUuid;

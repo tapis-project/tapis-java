@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.queue;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -543,7 +544,7 @@ public final class JobQueueManager
    * @param workerUuid the worker's uuid
    * @param channel a channel on which to issue the command 
    */
-  public void unbindWorkerSpecificCmdTopic(String tenantId, String wkrName, String workerUuid)
+  public void unbindWorkerSpecificCmdTopic(String wkrName, String workerUuid)
   {
       // Create the names needed to unbind a queue from an exchange. 
       String queue      = JobQueueManagerNames.getCmdTopicName(wkrName);
@@ -575,6 +576,26 @@ public final class JobQueueManager
                                        channel.getChannelNumber(), e.getMessage());
           _log.warn(msg, e);
       }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getExchangeArgs:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Get the configuration arguments for the standard exchanges created for
+   * tenants.  Using these arguments both senders and receivers can create the
+   * exchange since it will be created in exactly the same way in both cases.  
+   * 
+   * @param tenantId the tenant who is creating an exchange
+   * @return the exchange configuration arguments
+   */
+  public Map<String,Object> getExchangeArgs()
+  {
+      // Create the argument mapping.
+      HashMap<String,Object> args = new HashMap<>();
+      
+      args.put("x-dead-letter-exchange", JobQueueManagerNames.getDeadLetterExchangeName());
+      args.put("alternate-exchange", JobQueueManagerNames.getAltExchangeName());
+      return args;
   }
   
   /* ********************************************************************** */

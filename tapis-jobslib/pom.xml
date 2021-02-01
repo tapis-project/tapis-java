@@ -43,6 +43,10 @@
             <artifactId>activemq-client</artifactId>
         </dependency>
         <dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.statefulj</groupId>
             <artifactId>statefulj-fsm</artifactId>
         </dependency>

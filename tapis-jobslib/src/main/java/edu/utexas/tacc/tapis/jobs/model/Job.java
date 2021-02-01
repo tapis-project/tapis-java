@@ -2,11 +2,14 @@ package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -107,6 +110,21 @@ public final class Job
     private String   			createdby;
     private String   			createdbyTenant;
     private TreeSet<String>     tags;
+    
+    // ------ Runtime-only fields that do not get saved in the database ------
+    // -----------------------------------------------------------------------
+    
+    // Store a reference to the execution context as soon as the worker 
+    // creates the context in TenantQueueProcessor.
+    @Schema(hidden = true)
+    private transient JobExecutionContext _jobCtx;
+    
+    // Only one command at a time is stored, so there's the possibility
+    // of an unread command being overwritten, but sending multiple
+    // asynchronous commands to a job is indeterminate anyway. The field
+    // contains last asynchronous message sent to this job that hasn't been read.
+    @Schema(hidden = true)
+    private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null); 
     
     /* **************************************************************************** */
     /*                                 Constructors                                 */
@@ -621,4 +639,32 @@ public final class Job
     public void setArchiveCorrelationId(String archiveCorrelationId) {
         this.archiveCorrelationId = archiveCorrelationId;
     }
+
+    // Get the current cmdMsg value and atomically set the field to null.
+    @Schema(hidden = true)
+    public CmdMsg getAndSetCmdMsg() {
+        return _cmdMsg.getAndSet(null);
+    }
+    
+    // Get the current cmdMsg value and atomically set the field to a new value.
+    @Schema(hidden = true)
+    public CmdMsg getAndSetCmdMsg(CmdMsg cmdMsg) {
+        return _cmdMsg.getAndSet(cmdMsg);
+    }
+
+    @Schema(hidden = true)
+    public void setCmdMsg(CmdMsg cmdMsg) {
+        _cmdMsg.set(cmdMsg);
+    }
+
+    @Schema(hidden = true)
+    public JobExecutionContext getJobCtx() {
+        return _jobCtx;
+    }
+
+    @Schema(hidden = true)
+    public void setJobCtx(JobExecutionContext jobCtx) {
+        this._jobCtx = jobCtx;
+    }
+
 }
