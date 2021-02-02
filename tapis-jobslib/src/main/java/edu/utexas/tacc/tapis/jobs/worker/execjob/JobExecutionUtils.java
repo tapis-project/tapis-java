@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.killers.JobKiller;
+import edu.utexas.tacc.tapis.jobs.killers.JobKillerFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
@@ -54,14 +56,14 @@ public final class JobExecutionUtils
         }
         
         // Best effort to kill the job on cancel.
-//        if (newStatus.isTerminal())
-//            try {
-//                // We never know if the attack worked.
-//                JobKiller killer = JobKillerFactory.getInstance(job, jobCtx.getExecutionSystem());
-//                killer.attack();
-//            } catch (Exception e) {
-//                _log.warn(MsgUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
-//            }
+        if (newStatus.isTerminal())
+            try {
+                // We never know if the attack worked.
+                JobKiller killer = JobKillerFactory.getInstance(job, jobCtx.getExecutionSystem());
+                killer.attack();
+            } catch (Exception e) {
+                _log.warn(MsgUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
+            }
 
         // Stop further job processing on success.
         throw new JobAsyncCmdException(msg);

@@ -6,8 +6,6 @@ import org.slf4j.MDC;
 
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 abstract class JobWorkerThread 
@@ -25,7 +23,6 @@ abstract class JobWorkerThread
   private final String            _qname;     // the queue or topic that this thread reads
   private final AbstractProcessor _processor; // the message processor
   private final JobWorker         _worker;    // the top-level worker instance 
-  private TapisThreadContext      _tempJtc;   // clone of the parent thread's context
         
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -41,10 +38,6 @@ abstract class JobWorkerThread
       _worker = worker;
       _qname = qname;
       _processor = processor;
-      
-      // Temporarily clone the threadlocal context of the calling thread.
-      // This field will be cleared when the thread starts.
-      _tempJtc = _worker.cloneThreadContext();
   }
   
   /* ********************************************************************** */
@@ -67,10 +60,6 @@ abstract class JobWorkerThread
                                 Thread.currentThread().getId(),
                                 _worker.getParms().name, _qname));
     
-    // Set threadlocal values using the parent thread's 
-    // context and then clear the tempJtc field.
-    initAloeThreadLocal();
-    
     // All the work takes place in the processor class.
     try {_processor.getNextMessage();}
     finally {
@@ -92,22 +81,6 @@ abstract class JobWorkerThread
   /* ********************************************************************** */
   /*                           Protected Methods                            */
   /* ********************************************************************** */
-  /* ---------------------------------------------------------------------- */
-  /* initAloeThreadLocal:                                                   */
-  /* ---------------------------------------------------------------------- */
-  /** This method, called as the thread starts, sets the threadlocal context
-   * to be the clone of the parent thread's context.  Subclasses can override
-   * this method to further customize the context.  The _tempJtc field is
-   * cleared after saving it to thread local to avoid confusion of having
-   * two references to the same object.
-   */
-  protected void initAloeThreadLocal()
-  {
-      // Initialize our thread's local context and discard the field reference.
-      if (_tempJtc != null) TapisThreadLocal.tapisThreadContext.set(_tempJtc);
-      _tempJtc = null;
-  }
-  
   /* ---------------------------------------------------------------------- */
   /* cleanUp:                                                               */
   /* ---------------------------------------------------------------------- */

@@ -8,18 +8,24 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
+import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
+import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 final class JobQueueProcessor 
   extends AbstractProcessor
@@ -56,7 +62,6 @@ final class JobQueueProcessor
    throws TapisRuntimeException
   {
       // Initialize channel parameters.
-      JobQueueManager qmgr = JobQueueManager.getInstance();
       String queueName  = _jobWorker.getParms().queueName;
       
       // Read messages from the tenant topic queue that bind to:
@@ -143,71 +148,58 @@ final class JobQueueProcessor
       // Remove references to the job outside of the context object.
       job = null;
       
-      // Perform one-time validation and assignments to fields with missing values.
-      // The changes here are idempotent, so revalidation will not break the job.
-      // This method changes the job status from PENDING to PROCESSING_INPUTS and
-      // can only be called when the job is in the PENDING state.  This method
-      // readies the job for all processing phases.  We process the PENDING job
-      // event before validation so that it is guaranteed to be the first status
-      // event persisted for this new job.
-//      if (jobCtx.getJob().getStatus() == JobStatusType.PENDING) {
-//          jobCtx.getJobEventProcessor().processNewStatus(jobCtx, JobStatusType.PENDING);
-//          ValidateNewJob.validate(jobCtx);
-//      }
-//      
-//      // Start the job-specific topic thread after completing job initialization so that
-//      // the changes to the job on this thread happen before the topic thread starts.
-//      startJobTopicThread(jobCtx.getJob());
-//
-//      // Begin job processing.  Swallow exceptions that indicate an
-//      // asynchronous command has interrupted normal processing to
-//      // put the job into a inactive or terminal state.  All other
-//      // exceptions are handled by the enclosing try block.
-//      try {ack = processJob(jobCtx);}
-//          catch (JobAsyncCmdException e) {}
+      // Start the job-specific topic thread after completing job initialization so that
+      // the changes to the job on this thread happen before the topic thread starts.
+      startJobTopicThread(jobCtx.getJob());
+
+      // Begin job processing.  Swallow exceptions that indicate an
+      // asynchronous command has interrupted normal processing to
+      // put the job into a inactive or terminal state.  All other
+      // exceptions are handled by the enclosing try block.
+      try {ack = processJob(jobCtx);}
+          catch (JobAsyncCmdException e) {}
     }
     catch (Exception e) {
         // Initialize the job if one exists.
         Job job = null;
         if (jobCtx != null) job = jobCtx.getJob();
         
-//        // Leave breadcrumbs.
-//        JobWorkerThread thd = (JobWorkerThread) Thread.currentThread();
-//        String jobUuid = (jobMsg != null && jobMsg.job != null) ? jobMsg.job.getUuid() : "?";
-//        if ("?".equals(jobUuid) && (job != null)) jobUuid = job.getUuid(); 
-//        String msg = MsgUtils.getMsg("JOBS_WORKER_PROCESSING_ERROR", thd.getName(), _queueName, 
-//                                     getProcessorName(), jobUuid, e.getMessage());
-//        _log.error(msg, e);
-//        
-//        // Leave now if we don't have a job.
-//        if (job == null) { setFinalMessageToNull(jobCtx); return false; }
-//        
-//        // Check for a cancel command that occurred after the exception or
-//        // while the worker thread was blocked on i/o and never had a chance
-//        // to check again.  Cancellation takes precedence over recovery.
-//        if (jobCtx.checkForCancelBeforeRecovery()) { setFinalMessageToNull(jobCtx); return false; }
-//        
-//        // ------------ Recoverable Job Exception
-//        // See if we caught a recoverable exception or one that can be turned into a recoverable exception.
-//        if (e instanceof AloeException) {
-//            // Is this a recoverable situation?
-//            JobRecoverableException rex = RecoveryUtils.makeJobRecoverableException((AloeException)e, jobCtx);
-//            
-//            // Requeue recoverable exceptions on retry queue and return.
-//            // If false is return, then the attempt to put the job into
-//            // recovery failed and the job itself must be abandoned.
-//            if (rex == null) ack = false;
-//              else {
-//            	  ack = putJobIntoRecovery(job, rex);
-//            	  setFinalMessageToNull(jobCtx);
-//              }
-//        } 
-//        else ack = false; // Causes job to fail and be abandoned
-//        
-//        // ------------ Unrecoverable Job Exception
-//        // If we get here with a negative ack, we have to fail the job. 
-//        //
-//        if (!ack) failJob(job, msg);
+        // Leave breadcrumbs.
+        JobWorkerThread thd = (JobWorkerThread) Thread.currentThread();
+        String jobUuid = job == null ? jobMsg.getUuid() : job.getUuid();
+        String msg = MsgUtils.getMsg("JOBS_WORKER_PROCESSING_ERROR", thd.getName(), _queueName, 
+                                     getProcessorName(), jobUuid, e.getMessage());
+        _log.error(msg, e);
+        
+        // Leave now if we don't have a job.
+        if (job == null) { setFinalMessageToNull(jobCtx); return false; }
+        
+        // Check for a cancel command that occurred after the exception or
+        // while the worker thread was blocked on i/o and never had a chance
+        // to check again.  Cancellation takes precedence over recovery.
+        if (jobCtx.checkForCancelBeforeRecovery()) { setFinalMessageToNull(jobCtx); return false; }
+        
+        // ------------ Recoverable Job Exception
+        // See if we caught a recoverable exception or one that can be turned into a recoverable exception.
+        if (e instanceof TapisException) {
+            // Is this a recoverable situation?
+            JobRecoverableException rex = RecoveryUtils.makeJobRecoverableException((TapisException)e, jobCtx);
+            
+            // Requeue recoverable exceptions on retry queue and return.
+            // If false is return, then the attempt to put the job into
+            // recovery failed and the job itself must be abandoned.
+            if (rex == null) ack = false;
+              else {
+            	  ack = putJobIntoRecovery(job, rex);
+            	  setFinalMessageToNull(jobCtx);
+              }
+        } 
+        else ack = false; // Causes job to fail and be abandoned
+        
+        // ------------ Unrecoverable Job Exception
+        // If we get here with a negative ack, we have to fail the job. 
+        //
+        if (!ack) failJob(job, msg);
     }
     finally {
       // We always want to check the finalMessage field. 
@@ -309,29 +301,29 @@ final class JobQueueProcessor
 //      NotificationDao notifDao = new NotificationDao(JobDao.getDataSource());
 //      return notifDao.getNotificationsByAssociatedUUID(job.getUuid());
 //  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* processJob:                                                            */
-//  /* ---------------------------------------------------------------------- */
-//  /** Pick up processing for a job that has a record in the jobs table.
-//   * 
-//   * @param jobCtx an existing job.
-//   * @return true if the job was successfully processed, false if the 
-//   *          job should be rejected and discarded without redelivery.
-//   * @throws AloeException on recoverable or unrecoverable error
-//   * @throws JobAsyncCmdException when an asynchronous command stops or postpones execution 
-//   */
-//  private boolean processJob(JobExecutionContext jobCtx) 
-//   throws AloeException, JobAsyncCmdException
-//  {
-//      // Unpack job for convenience.
-//      Job job = jobCtx.getJob();
-//      
-//      // Begin processing message.
-//      if (_log.isDebugEnabled()) 
-//          _log.debug("\n------------------------\nProcessing job:\n" + 
-//                     AloeUtils.toString(job) + "\n------------------------\n");
-//      
+  
+  /* ---------------------------------------------------------------------- */
+  /* processJob:                                                            */
+  /* ---------------------------------------------------------------------- */
+  /** Pick up processing for a job that has a record in the jobs table.
+   * 
+   * @param jobCtx an existing job.
+   * @return true if the job was successfully processed, false if the 
+   *          job should be rejected and discarded without redelivery.
+   * @throws TapisException on recoverable or unrecoverable error
+   * @throws JobAsyncCmdException when an asynchronous command stops or postpones execution 
+   */
+  private boolean processJob(JobExecutionContext jobCtx) 
+   throws TapisException, JobAsyncCmdException
+  {
+      // Unpack job for convenience.
+      Job job = jobCtx.getJob();
+      
+      // Begin processing message.
+      if (_log.isDebugEnabled()) 
+          _log.debug("\n------------------------\nProcessing job:\n" + 
+                     TapisUtils.toString(job) + "\n------------------------\n");
+      
 //      // ================== Pre-Phase Processing ==================
 //      // ------------------ Initial validation --------------------
 //      // Validate the job specification.
@@ -440,168 +432,169 @@ final class JobQueueProcessor
 //              }
 //          archivingPhase = null; // allow memory reclamation
 //      }
-//      
-//      // Acknowledge the queue message.
-//      return true;
-//  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* putJobIntoRecovery:                                                    */
-//  /* ---------------------------------------------------------------------- */
-//  /** A recoverable condition was detected during job processing.  We put the
-//   * job into a BLOCKED state and post a recovery message on the tenant's
-//   * recovery queue.  The recovery reader process manages the job while it's
-//   * in recovery.
-//   * 
-//   * Zombie Warning
-//   * --------------
-//   * The recovery protocol implemented in this method has the following 
-//   * characteristics:
-//   * 
-//   *   a) The job's status is first changed to BLOCKED.
-//   *   b) An attempt to post a recovery message is only made if the if
-//   *      the status change was committed. 
-//   *      
-//   * If either step fails an attempt is made to fail the job. A catastrophic
-//   * failure between steps a) and b) will lead to a zombie job (one that is
-//   * BLOCKED forever since the job never makes it to the recovery subsystem).
-//   * This can be prevented using 2-phase commit and a transaction manager, 
-//   * otherwise jobs can become zombies.
-//   * 
-//   * In general, jobs will be left in inconsistent states if their statuses
-//   * cannot be updated.  If step a) does not succeed and the subsequent 
-//   * attempt to fail the job also fails, the job will be in a non-terminal
-//   * state but still removed from its submission queue.  If step a) does
-//   * succeed, but the job cannot be posted to the recovery queue, and then
-//   * failing the job does not succeed, the job is again left in an 
-//   * inconsistent state.  These are both ways a job can become a zombie.
-//   * 
-//   * A more elaborate recovery mechanism would take into account the fact
-//   * the the database, the messaging system or both could fail at any time.
-//   * In the future, we might choose to close some or all of these failure 
-//   * windows, or we might implement zombie detection programs that clean up
-//   * jobs left in inconsistent states.   
-//   *      
-//   * @param job the blocked job
-//   * @param recoverableException the exception with wait condition information
-//   * @return true if the job was place into recovery, false otherwise
-//   */
-//  private boolean putJobIntoRecovery(Job job, JobRecoverableException recoverableException)
-//  {
-//      // Make sure the recoverable execution contains a recovery message.
-//      if ((recoverableException == null) || (recoverableException.jobRecoverMsg == null)) {
-//          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "putJobIntoRecovery", "recoverableException");
-//          _log.error(msg);
-//          
-//          // Fail the job.
-//          String failMsg =  MsgUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
-//          failJob(job, failMsg);
-//          _log.error(failMsg);
-//          
-//          // There's nothing more we can do.
-//          return false;
-//      }
-//      
-//      // Set up.
-//      boolean ack = true;    // Assume no problems.
-//      String failMsg = null; // Failure message included in job record.
-//      
-//      // Change the job status.
-//      try
-//      {
-//          // Put the job into a BLOCKED state. Things can go badly if this fails.
-//          JobDao dao = new JobDao();
-//          dao.setStatus(job, JobStatusType.BLOCKED, recoverableException.jobRecoverMsg.getStatusMessage());
-//      } 
-//      catch (Exception e) {
-//          // Declare a failure.
-//          ack = false;
-//          
-//          // Log the exception but don't rethrow it.
-//          failMsg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", job.getUuid(), JobStatusType.BLOCKED);
-//          _log.error(failMsg, e);
-//      }
-//      
-//      /* ----------------------------------------------------
-//       * Catastrophic failure here leads to an inconsistency:
-//       * 
-//       *  - A BLOCKED job is never delivered to the recovery
-//       *    subsystem; it will stay blocked forever.
-//       * ----------------------------------------------------
-//       */
-//      
-//      // On success the job is blocked, so we post the recovery message to the tenant  
-//      // recovery queue. Failure here leads to an inconsistent state where the job is 
-//      // blocked but it cannot be sent to the recovery manager. We will try to fail the 
-//      // job below if this happens.
-//      if (ack) 
-//          try {
-//              QueueManager qm = QueueManager.getInstance();
-//              qm.postRecoveryQueue(recoverableException.jobRecoverMsg);
-//          }
-//          catch (Exception e) {
-//              // Declare a failure.
-//              ack = false;
-//          
-//              // Log the exception but don't rethrow it.
-//              failMsg = MsgUtils.getMsg("JOBS_QUEUE_POST_RECOVERY_QUEUE", job.getUuid(), 
-//                                        job.getTenantId(), job.getOwner(), e.getMessage());
-//              _log.error(failMsg, e);
-//          }
-//      
-//      // Last ditch effort to avoid inconsistencies by failing the job when there's
-//      // been an error. If the attempt above to change the status failed, we may not 
-//      // be able to fail the job since that also involves a status change.
-//      if (!ack) {
-//          // Fail the job.
-//          String msg = MsgUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
-//                                       job.getTenantId(), job.getOwner(), failMsg);
-//          _log.error(msg);
-//          failJob(job, msg);
-//      }
-//      
-//      return ack;
-//  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* failJob:                                                               */
-//  /* ---------------------------------------------------------------------- */
-//  /** Fail the job, quietly noting double faults.
-//   * 
-//   * @param job the job to fail.
-//   */
-//  private void failJob(Job job, String failMsg)
-//  {
-//      // Don't blow up.
-//      if (job == null) return;
-//      
-//      // Fail the job.
-//      JobDao dao = new JobDao();
-//      try {dao.failJob(_jobWorker.getParms().name, job, failMsg);}
-//          catch (JobException e2) {
-//              // Double fault, what a mess.  The job will be left in 
-//              // a non-terminal state and not on any queue.  It's a zombie.
-//              String msg2 = MsgUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
-//                                            _jobWorker.getParms().name,
-//                                            job.getUuid(), job.getTenantId());
-//              _log.error(msg2, e2);
-//              
-//              try {
-//                RuntimeParameters runtime = RuntimeParameters.getInstance();
-//                EmailClient client = EmailClientFactory.getClient(runtime);
-//                client.send(runtime.getSupportName(),
-//                    runtime.getSupportEmail(),
-//                    "Zombie Job Alert " + job.getUuid() + " is in a zombie state.",
-//                    msg2, HTMLizer.htmlize(msg2));
-//              }
-//              catch (AloeException ae) {
-//                // log msg that we tried to send email notice to CICSupport
-//                _log.error(msg2+" Failed to send support Email alert. Email client failed with exception.", ae);
-//              }
-//  
-//          }
-//  }
-//  
+      
+      // Acknowledge the queue message.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* putJobIntoRecovery:                                                    */
+  /* ---------------------------------------------------------------------- */
+  /** A recoverable condition was detected during job processing.  We put the
+   * job into a BLOCKED state and post a recovery message on the tenant's
+   * recovery queue.  The recovery reader process manages the job while it's
+   * in recovery.
+   * 
+   * Zombie Warning
+   * --------------
+   * The recovery protocol implemented in this method has the following 
+   * characteristics:
+   * 
+   *   a) The job's status is first changed to BLOCKED.
+   *   b) An attempt to post a recovery message is only made if the status 
+   *      change was committed. 
+   *      
+   * If either step fails an attempt is made to fail the job. A catastrophic
+   * failure between steps a) and b) will lead to a zombie job (one that is
+   * BLOCKED forever since the job never makes it to the recovery subsystem).
+   * This can be prevented using 2-phase commit and a transaction manager, 
+   * otherwise jobs can become zombies.
+   * 
+   * In general, jobs will be left in inconsistent states if their statuses
+   * cannot be updated.  If step a) does not succeed and the subsequent 
+   * attempt to fail the job also fails, the job will be in a non-terminal
+   * state but still removed from its submission queue.  If step a) does
+   * succeed, but the job cannot be posted to the recovery queue, and then
+   * failing the job does not succeed, the job is again left in an 
+   * inconsistent state.  These are both ways a job can become a zombie.
+   * 
+   * A more elaborate recovery mechanism would take into account the fact
+   * the the database, the messaging system or both could fail at any time.
+   * In the future, we might choose to close some or all of these failure 
+   * windows, or we might implement zombie detection programs that clean up
+   * jobs left in inconsistent states.   
+   *      
+   * @param job the blocked job
+   * @param recoverableException the exception with wait condition information
+   * @return true if the job was place into recovery, false otherwise
+   */
+  private boolean putJobIntoRecovery(Job job, JobRecoverableException recoverableException)
+  {
+      // Make sure the recoverable execution contains a recovery message.
+      if ((recoverableException == null) || (recoverableException.jobRecoverMsg == null)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "putJobIntoRecovery", "recoverableException");
+          _log.error(msg);
+          
+          // Fail the job.
+          String failMsg =  MsgUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
+          failJob(job, failMsg);
+          _log.error(failMsg);
+          
+          // There's nothing more we can do.
+          return false;
+      }
+      
+      // Set up.
+      boolean ack = true;    // Assume no problems.
+      String failMsg = null; // Failure message included in job record.
+      
+      // Change the job status.
+      try
+      {
+          // Put the job into a BLOCKED state. Things can go badly if this fails.
+          JobsDao dao = new JobsDao();
+          dao.setStatus(job, JobStatusType.BLOCKED, recoverableException.jobRecoverMsg.getStatusMessage());
+      } 
+      catch (Exception e) {
+          // Declare a failure.
+          ack = false;
+          
+          // Log the exception but don't rethrow it.
+          failMsg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", job.getUuid(), JobStatusType.BLOCKED);
+          _log.error(failMsg, e);
+      }
+      
+      /* ----------------------------------------------------
+       * Catastrophic failure here leads to an inconsistency:
+       * 
+       *  - A BLOCKED job is never delivered to the recovery
+       *    subsystem; it will stay blocked forever.
+       * ----------------------------------------------------
+       */
+      
+      // On success the job is blocked, so we post the recovery message to the tenant  
+      // recovery queue. Failure here leads to an inconsistent state where the job is 
+      // blocked but it cannot be sent to the recovery manager. We will try to fail the 
+      // job below if this happens.
+      if (ack) 
+          try {
+              JobQueueManager qm = JobQueueManager.getInstance();
+              qm.postRecoveryQueue(recoverableException.jobRecoverMsg);
+          }
+          catch (Exception e) {
+              // Declare a failure.
+              ack = false;
+          
+              // Log the exception but don't rethrow it.
+              failMsg = MsgUtils.getMsg("JOBS_QUEUE_POST_RECOVERY_QUEUE", job.getUuid(), 
+                                        job.getTenant(), job.getOwner(), e.getMessage());
+              _log.error(failMsg, e);
+          }
+      
+      // Last ditch effort to avoid inconsistencies by failing the job when there's
+      // been an error. If the attempt above to change the status failed, we may not 
+      // be able to fail the job since that also involves a status change.
+      if (!ack) {
+          // Fail the job.
+          String msg = MsgUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
+                                       job.getTenant(), job.getOwner(), failMsg);
+          _log.error(msg);
+          failJob(job, msg);
+      }
+      
+      return ack;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* failJob:                                                               */
+  /* ---------------------------------------------------------------------- */
+  /** Fail the job, quietly noting double faults.
+   * 
+   * @param job the job to fail.
+   */
+  private void failJob(Job job, String failMsg)
+  {
+      // Don't blow up.
+      if (job == null) return;
+      
+      // Fail the job.
+      try {
+          JobsDao dao = new JobsDao();
+          dao.failJob(_jobWorker.getParms().name, job, failMsg);
+      }
+      catch (Exception e2) {
+          // Double fault, what a mess.  The job will be left in 
+          // a non-terminal state and not on any queue.  It's a zombie.
+          String msg2 = MsgUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
+                                        _jobWorker.getParms().name,
+                                        job.getUuid(), job.getTenant());
+          _log.error(msg2, e2);
+              
+          try {
+              RuntimeParameters runtime = RuntimeParameters.getInstance();
+              EmailClient client = EmailClientFactory.getClient(runtime);
+              client.send(runtime.getSupportName(),
+                          runtime.getSupportEmail(),
+                          "Zombie Job Alert " + job.getUuid() + " is in a zombie state.",
+                          msg2, HTMLizer.htmlize(msg2));
+          }
+          catch (TapisException e3) {
+              // log msg that we tried to send email notice to CICSupport
+              _log.error(msg2+" Failed to send support Email alert. Email client failed with exception.", e3);
+          }
+      }
+  }
+  
 //  /* ---------------------------------------------------------------------- */
 //  /* checkExecAndArchiveSystems:                                            */
 //  /* ---------------------------------------------------------------------- */

@@ -3,14 +3,20 @@ package edu.utexas.tacc.tapis.jobs.worker.execjob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
 
 public final class JobExecutionContext
 {
@@ -20,6 +26,9 @@ public final class JobExecutionContext
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionContext.class);
     
+    // HTTP codes defined here so we don't reference jax-rs classes on the backend.
+    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -28,6 +37,9 @@ public final class JobExecutionContext
     
 	// Cached dao's used throughout this file and by clients.
     private final JobsDao            _jobsDao;
+    
+    // Tapis resources.
+    private TSystem                  _executionSystem;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -60,21 +72,29 @@ public final class JobExecutionContext
     /*                            Public Methods                              */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* getJob:                                                                */
+    /* getExecutionSystem:                                                    */
     /* ---------------------------------------------------------------------- */
+    public TSystem getExecutionSystem() throws TapisImplException 
+    {
+        // Load the execution system on first use.
+        if (_executionSystem == null) {
+            _executionSystem = loadSystemDefinition(getSystemsClient(), 
+                                 _job.getExecSystemId(), true, "execution");
+        }
+        
+        return _executionSystem;
+    }
+    
+    /* ********************************************************************** */
+    /*                              Accessors                                 */
+    /* ********************************************************************** */
     public Job getJob() {return _job;}
     
-    /* ---------------------------------------------------------------------- */
-    /* getFinalMessage:                                                       */
-    /* ---------------------------------------------------------------------- */
+    public void setExecutionSystem(TSystem executionSystem) 
+       {_executionSystem = executionSystem;}
+    
     public String getFinalMessage() {return _finalMessage;}
-
-    /* ---------------------------------------------------------------------- */
-    /* setFinalMessage:                                                       */
-    /* ---------------------------------------------------------------------- */
-    public void setFinalMessage(String finalMessage) {
-        this._finalMessage = finalMessage;
-    }
+    public void setFinalMessage(String finalMessage) {_finalMessage = finalMessage;}
 
     /* ********************************************************************** */
     /*                      Asynchronous Command Methods                      */
@@ -149,4 +169,78 @@ public final class JobExecutionContext
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getSystemsClient:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Systems service client.  This can only be called after
+     * the request tenant and owner have be assigned.
+     * 
+     * @return the client
+     * @throws TapisImplException
+     */
+    private SystemsClient getSystemsClient() throws TapisImplException
+    {
+        // Get the application client for this user@tenant.
+        SystemsClient systemsClient = null;
+        try {
+            systemsClient = ServiceClients.getInstance().getClient(
+                    _job.getOwner(), _job.getTenant(), SystemsClient.class);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Systems", 
+                                         _job.getTenant(), _job.getOwner());
+            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return systemsClient;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* loadSystemDefinition:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    private TSystem loadSystemDefinition(SystemsClient systemsClient,
+                                         String systemId,
+                                         boolean requireExecPerm,
+                                         String  systemDesc) 
+      throws TapisImplException
+    {
+        // Load the system definition.
+        TSystem system = null;
+        boolean returnCreds = true;
+        AuthnMethod authnMethod = null;
+        try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
+        catch (TapisClientException e) {
+            // Determine why we failed.
+            String msg;
+            switch (e.getCode()) {
+                case 400:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", systemId, _job.getOwner(), 
+                                          _job.getTenant(), systemDesc);
+                break;
+                
+                case 401:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, "READ,EXECUTE", 
+                                          _job.getOwner(), _job.getTenant(), systemDesc);
+                break;
+                
+                case 404:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _job.getOwner(), 
+                                          _job.getTenant(), systemDesc);
+                break;
+                
+                default:
+                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _job.getOwner(), 
+                                          _job.getTenant(), systemDesc);
+            }
+            throw new TapisImplException(msg, e, e.getCode());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _job.getOwner(), 
+                                         _job.getTenant(), systemDesc);
+            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
+        }
+        
+        return system;
+    }
+    
 }
