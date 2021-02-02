@@ -337,6 +337,15 @@ public class JobSubmitResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
+         // ------------------- Create User Subscriptions ----------------------
+         // Subscribe to Notifications service on behalf of user.  The complete list
+         // of subscriptions are guaranteed by context initialization to have been
+         // calculated and non-null by this point. Subscriptions are created before
+         // we make any database changes so the caller can access any events generated.  
+         if (!reqCtx.getSubmitReq().getSubscriptions().isEmpty()) {
+             // TODO: Subscribe to Notifications.
+         }
+         
          // ------------------------- Save Job ---------------------------------
          // Write the job to the database.
          try {
@@ -349,9 +358,8 @@ public class JobSubmitResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
-         // Submit the job to the worker queue.
          // -------------------------- Queue Request ---------------------------
-         // Exceptions are mapped to HTTP error codes.
+         // Submit the job to the worker queue. Exceptions are mapped to HTTP error codes.
          try {queueJob(job);}
            catch (Exception e) {
                // Log the error.
@@ -398,8 +406,8 @@ public class JobSubmitResource
      {
          // Create the message.
          var message = new JobSubmitMsg();
-         message.created = job.getCreated().toString();
-         message.uuid = job.getUuid();
+         message.setCreated(job.getCreated().toString());
+         message.setUuid(job.getUuid());
          var jsonMessage = TapisGsonUtils.getGson().toJson(message);
          
          var qm = JobQueueManager.getInstance();

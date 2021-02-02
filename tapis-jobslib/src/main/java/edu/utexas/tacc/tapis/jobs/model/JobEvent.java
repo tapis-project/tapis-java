@@ -1,25 +1,29 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
 import java.time.Instant;
+
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobEvent
 {
-    private int     id;
-    private Instant created;
-    private String  jobUuid;
-    private String  othUuid;
-    private String  event;
-    private String  description;
+    private long          id;
+    private JobEventType  event;
+    private Instant       created;
+    private String        jobUuid;
+    private JobStatusType jobStatus;
+    private String        othUuid;
+    private String        description;
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
 
-	public int getId() {
+	public long getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(long id) {
 		this.id = id;
 	}
 
@@ -47,11 +51,11 @@ public final class JobEvent
 		this.othUuid = othUuid;
 	}
 
-	public String getEvent() {
+	public JobEventType getEvent() {
 		return event;
 	}
 
-	public void setEvent(String event) {
+	public void setEvent(JobEventType event) {
 		this.event = event;
 	}
 
@@ -62,4 +66,12 @@ public final class JobEvent
 	public void setDescription(String description) {
 		this.description = description;
 	}
+
+    public JobStatusType getJobStatus() {
+        return jobStatus;
+    }
+
+    public void setJobStatus(JobStatusType jobStatus) {
+        this.jobStatus = jobStatus;
+    }
 }

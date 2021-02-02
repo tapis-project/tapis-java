@@ -76,11 +76,15 @@ public class SqlStatements
         + " WHERE tenant_id = ? AND uuid = ?";
     
     public static final String UPDATE_JOB_ENDED =
-            "UPDATE jobs SET ended = ? WHERE ended IS NULL AND uuid = ?";
+        "UPDATE jobs SET ended = ? WHERE ended IS NULL AND uuid = ?";
       
     public static final String UPDATE_REMOTE_STARTED = 
-            "UPDATE jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";
+        "UPDATE jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";
     
+    public static final String UPDATE_JOB_LAST_MESSAGE =
+        "UPDATE aloe_jobs SET last_message = ?, last_updated = ?"
+        + " WHERE tenant = ? AND id = ?";
+      
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
 	/* ---------------------------------------------------------------------- */
@@ -131,8 +135,12 @@ public class SqlStatements
 	/* ---------------------------------------------------------------------- */
 	/* job_events table:                                                      */
 	/* ---------------------------------------------------------------------- */
+    public static final String CREATE_JOB_EVENT = 
+        "INSERT INTO job_events (event, created, job_uuid, job_status, oth_uuid, description) "
+        + "VALUES (?::job_event_enum, ?, ?, ?::job_status_enum, ?, ?)";
+    
     public static final String SELECT_JOBEVENTS =
-        "SELECT id, created, job_uuid, oth_uuid, event, description"
+        "SELECT id, event, created, job_uuid, job_status, oth_uuid, description"
         + " FROM job_events ORDER BY id";
 
 }

@@ -175,23 +175,7 @@ extends ResourceConfig
     */
    private void initializeJobQueueManager()
    {
-       // Set up broker initialization.
-       var rt = RuntimeParameters.getInstance();
-       var qmParms = new JobQueueManagerParms();
-       qmParms.setQueueHost(rt.getQueueHost());
-       qmParms.setQueuePort(rt.getQueuePort());
-       qmParms.setQueueUser(rt.getQueueUser());
-       qmParms.setQueuePassword(rt.getQueuePassword());
-       qmParms.setAdminUser(rt.getQueueAdminUser());
-       qmParms.setAdminPassword(rt.getQueueAdminPassword());
-       qmParms.setAdminPort(rt.getQueueAdminPort());
-       qmParms.setQueueSSLEnabled(rt.isQueueSSLEnabled());
-       qmParms.setQueueAutoRecoveryEnabled(rt.isQueueAutoRecoveryEnabled());
-       qmParms.setVhost(JobQueueManager.JOBS_VHOST);
-       qmParms.setService(TapisConstants.SERVICE_NAME_JOBS);
-       qmParms.setInstanceName(rt.getInstanceName());
-       
        // This can throw a runtime exception.
-       JobQueueManager.getInstance(qmParms);
+       JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());
    }
 }

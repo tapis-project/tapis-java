@@ -15,7 +15,7 @@ import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.event.WkrStatusResp;
 import edu.utexas.tacc.tapis.jobs.utils.Throttle;
-import edu.utexas.tacc.tapis.jobs.worker.TenantQueueProcessor.JobTopicThread;
+import edu.utexas.tacc.tapis.jobs.worker.JobQueueProcessor.JobTopicThread;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -25,7 +25,7 @@ import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
 
-public class JobWorker
+public final class JobWorker
  implements Thread.UncaughtExceptionHandler
 {
     /* ********************************************************************** */
@@ -147,7 +147,7 @@ public class JobWorker
       // some redundancy here since each front-end and
       // each worker initialize all queue artifacts.  
       // Not a problem, but there's room for improvement.
-      JobQueueManager.getInstance();
+      JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());
       
       // Create all threads groups used by this worker.
       createThreadGroups();
@@ -156,7 +156,7 @@ public class JobWorker
       startCmdTopicThread();
       
       // Start the worker threads.
-      startTenantQueueThreads();
+      startJobQueueThreads();
       
       // Wait for the last thread to complete.
       waitForShutdown();
@@ -295,15 +295,15 @@ public class JobWorker
     }
     
     /* ---------------------------------------------------------------------- */
-    /* startTenantQueueThreads:                                               */
+    /* startJobQueueThreads:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Start the configured number of worker threads. */
-    private void startTenantQueueThreads()
+    private void startJobQueueThreads()
     {
       // Create and start the required number of worker threads.
       for (int i = 0; i < _parms.numWorkers; i++) {
         // Create the new thread.
-        TenantQueueThread worker = new TenantQueueThread();
+        JobQueueThread worker = new JobQueueThread();
         
         // Set attributes.
         worker.setDaemon(true);
@@ -389,7 +389,7 @@ public class JobWorker
         JobQueueManager qm = JobQueueManager.getInstance();
         
         // Try to clean up the worker-specific queue binding before we exit.
-//        qm.unbindWorkerSpecificCmdTopic(_parms.tenantId, _parms.name, _uuid.toString());
+        qm.unbindWorkerSpecificCmdTopic(_parms.name, _uuid.toString());
         
         // Shutdown the connections to the queue broker.
         qm.closeConnections(JobQueueManager.DEFAULT_CONN_CLOSE_TIMEOUT_MS);
@@ -468,8 +468,8 @@ public class JobWorker
         if (_threadRestartThrottle.record()) {
             // Create the new thread object.
             JobWorkerThread newWorker = null;
-            if (oldWorker instanceof TenantQueueThread)
-                newWorker = new TenantQueueThread();
+            if (oldWorker instanceof JobQueueThread)
+                newWorker = new JobQueueThread();
             else if (oldWorker instanceof CmdTopicThread)
                 newWorker = new CmdTopicThread();
             else if (oldWorker instanceof JobTopicThread) {
@@ -514,16 +514,16 @@ public class JobWorker
     }
     
     /* ********************************************************************** */
-    /*                         TenantQueueThread Class                        */
+    /*                          JobQueueThread Class                          */
     /* ********************************************************************** */
     /** This class reads the configured tenant queue and processes jobs as they arrive. */
-    private final class TenantQueueThread extends JobWorkerThread
+    private final class JobQueueThread extends JobWorkerThread
     {
       // Constructor
-      private TenantQueueThread() 
+      private JobQueueThread() 
       {
         super(_workerThreadGroup, createWorkerThreadName(), JobWorker.this, 
-              _parms.queueName, new TenantQueueProcessor(JobWorker.this));
+              _parms.queueName, new JobQueueProcessor(JobWorker.this));
       }
     }
     

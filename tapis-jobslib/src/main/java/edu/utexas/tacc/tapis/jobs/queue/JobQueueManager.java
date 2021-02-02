@@ -11,10 +11,12 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -170,6 +172,29 @@ public final class JobQueueManager
   public static String getDefaultQueue()
   {
     return JobQueueManagerNames.getDefaultQueue();
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* JobQueueManagerParms:                                                  */
+  /* ---------------------------------------------------------------------- */
+  public static JobQueueManagerParms initParmsFromRuntime()
+  {
+      // Set up broker initialization.
+      var rt = RuntimeParameters.getInstance();
+      var qmParms = new JobQueueManagerParms();
+      qmParms.setQueueHost(rt.getQueueHost());
+      qmParms.setQueuePort(rt.getQueuePort());
+      qmParms.setQueueUser(rt.getQueueUser());
+      qmParms.setQueuePassword(rt.getQueuePassword());
+      qmParms.setAdminUser(rt.getQueueAdminUser());
+      qmParms.setAdminPassword(rt.getQueueAdminPassword());
+      qmParms.setAdminPort(rt.getQueueAdminPort());
+      qmParms.setQueueSSLEnabled(rt.isQueueSSLEnabled());
+      qmParms.setQueueAutoRecoveryEnabled(rt.isQueueAutoRecoveryEnabled());
+      qmParms.setVhost(JobQueueManager.JOBS_VHOST);
+      qmParms.setService(TapisConstants.SERVICE_NAME_JOBS);
+      qmParms.setInstanceName(rt.getInstanceName());
+      return qmParms;
   }
   
   /* ---------------------------------------------------------------------- */

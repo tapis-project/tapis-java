@@ -67,9 +67,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getFinalMessage:                                                       */
     /* ---------------------------------------------------------------------- */
-    public String getFinalMessage() {
-        return _finalMessage;
-    }
+    public String getFinalMessage() {return _finalMessage;}
 
     /* ---------------------------------------------------------------------- */
     /* setFinalMessage:                                                       */

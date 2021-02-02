@@ -124,7 +124,7 @@ public final class Job
     // asynchronous commands to a job is indeterminate anyway. The field
     // contains last asynchronous message sent to this job that hasn't been read.
     @Schema(hidden = true)
-    private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null); 
+    private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null);
     
     /* **************************************************************************** */
     /*                                 Constructors                                 */

@@ -16,6 +16,7 @@
 -- Types
 CREATE TYPE job_status_enum AS ENUM ('PENDING', 'PROCESSING_INPUTS', 'STAGING_INPUTS', 'STAGING_JOB', 'SUBMITTING_JOB', 'QUEUED', 'RUNNING', 'ARCHIVING', 'FINISHED','CANCELLED', 'FAILED', 'PAUSED', 'BLOCKED');
 CREATE TYPE job_remote_outcome_enum AS ENUM ('FINISHED', 'FAILED', 'FAILED_SKIP_ARCHIVE');
+CREATE TYPE job_event_enum AS ENUM ('JOB_NEW_STATUS', 'JOB_INPUT_TRANSACTION_ID', 'JOB_ARCHIVE_TRANSACTION_ID', 'JOB_ERROR_MESSAGE');
 
 -- ----------------------------------------------------------------------------------------
 --                                          Jobs
@@ -125,20 +126,21 @@ CREATE UNIQUE INDEX job_resubmit_job_uuid_idx ON job_resubmit (job_uuid);
 -- Job Events table
 CREATE TABLE job_events
 (
-  id                          serial4 PRIMARY KEY,
+  id                          serial8 PRIMARY KEY,
+  event                       job_event_enum NOT NULL,
   created                     timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),
   job_uuid                    character varying(64) NOT NULL,
+  job_status                  job_status_enum NOT NULL,
   oth_uuid                    character varying(64),
-  event                       character varying(32) NOT NULL,
-  description                 character varying(2048) NOT NULL,
+  description                 character varying(16384) NOT NULL,
   FOREIGN KEY (job_uuid) REFERENCES jobs (uuid) ON DELETE CASCADE ON UPDATE CASCADE
 );
 ALTER TABLE job_events OWNER TO tapis;
 ALTER SEQUENCE job_events_id_seq RESTART WITH 1;
+CREATE INDEX job_events_event_idx ON job_events (event);
 CREATE INDEX job_events_created_idx ON job_events (created);
 CREATE INDEX job_events_job_uuid_idx ON job_events (job_uuid);
-CREATE INDEX job_events_oth_uuid_idx ON job_events (oth_uuid);
-CREATE INDEX job_events_event_idx ON job_events (event);
+CREATE INDEX job_events_job_status_idx ON job_events (job_status);
 
 -- ----------------------------------------------------------------------------------------
 --                                       Job Queues

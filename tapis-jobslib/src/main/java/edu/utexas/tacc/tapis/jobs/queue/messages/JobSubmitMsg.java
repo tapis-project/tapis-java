@@ -4,9 +4,14 @@ public final class JobSubmitMsg
  extends JobMsg
 {
   // Fields
-  public String created;
-  public String uuid;
+  private String created;
+  private String uuid;
   
   // Constructor
   public JobSubmitMsg() {super(JobMsg.JobMsgType.SUBMIT_JOB);}
+
+  public String getCreated() {return created;}
+  public void setCreated(String created) {this.created = created;}
+  public String getUuid() {return uuid;}
+  public void setUuid(String uuid) {this.uuid = uuid;}
 }

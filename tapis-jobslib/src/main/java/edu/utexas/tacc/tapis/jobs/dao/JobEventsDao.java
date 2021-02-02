@@ -3,14 +3,20 @@ package edu.utexas.tacc.tapis.jobs.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -111,6 +117,94 @@ public final class JobEventsDao
       return list;
   }
 
+  /* ---------------------------------------------------------------------- */
+  /* createEvent:                                                           */
+  /* ---------------------------------------------------------------------- */
+  public void createEvent(JobEvent jobEvent, Connection callerConn)
+    throws TapisException
+  {
+      // ------------------------- Complete Input ----------------------
+      // Fill in Job fields that we assure.
+      jobEvent.setCreated(Instant.now());
+      
+      // ------------------------- Check Input -------------------------
+      if (StringUtils.isBlank(jobEvent.getJobUuid())) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "jobUuid");
+          throw new JobException(msg);
+      }
+      if (StringUtils.isBlank(jobEvent.getDescription())) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "description");
+          throw new JobException(msg);
+      }
+      if (jobEvent.getEvent() == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "event");
+          throw new JobException(msg);
+      }
+      if (jobEvent.getJobStatus() == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "status");
+          throw new JobException(msg);
+      }
+      if (jobEvent.getEvent() == JobEventType.JOB_INPUT_TRANSACTION_ID ||
+          jobEvent.getEvent() == JobEventType.JOB_ARCHIVE_TRANSACTION_ID) {
+          if (StringUtils.isBlank(jobEvent.getOthUuid())) {
+              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "othUuid");
+              throw new JobException(msg);
+          }
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      boolean usingCallerConn = callerConn != null;
+      Connection conn = callerConn;
+      try
+      {
+        // Get a database connection.
+        if (!usingCallerConn) conn = getConnection();
+
+        // Insert into the aloe-jobs table first.
+        // Create the command using table definition field order.
+        String sql = SqlStatements.CREATE_JOB_EVENT;
+        
+        // Prepare the statement and fill in the placeholders.
+        // The fields that the DB defaults are not set.
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, jobEvent.getEvent().name());
+        pstmt.setTimestamp(2, Timestamp.from(jobEvent.getCreated()));
+        pstmt.setString(3, jobEvent.getJobUuid());
+        pstmt.setString(4, jobEvent.getJobStatus().name());
+        pstmt.setString(5, jobEvent.getOthUuid());  // can be null
+        pstmt.setString(6, jobEvent.getDescription());
+        
+        // Issue the call and clean up statement.
+        int rows = pstmt.executeUpdate();
+        if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobEvents", rows, 1));
+        pstmt.close();
+  
+        // Commit the transaction that may include changes to both tables.
+        if (!usingCallerConn) conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (!usingCallerConn && conn != null) conn.rollback();}
+              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", jobEvent.getEvent().name(), 
+                                       jobEvent.getJobUuid(), e.getMessage());
+          throw new JobException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (!usingCallerConn && conn != null) 
+              try {conn.close();}
+                catch (Exception e) 
+                {
+                    // If commit worked, we can swallow the exception.  
+                    // If not, the commit exception will be thrown.
+                    String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                    _log.error(msg, e);
+                }
+      }
+  }
 
   /* ********************************************************************** */
   /*                             Private Methods                            */
@@ -152,13 +246,13 @@ public final class JobEventsDao
     // which is the order specified in all calling methods.
     JobEvent obj = new JobEvent();
     try {
-        obj.setId(rs.getInt(1));
-        obj.setCreated(rs.getTimestamp(2).toInstant());
-        obj.setJobUuid(rs.getString(3));
-        obj.setOthUuid(rs.getString(4));
-        obj.setEvent(rs.getString(5));
-        obj.setDescription(rs.getString(6));
-
+        obj.setId(rs.getLong(1));
+        obj.setEvent(JobEventType.valueOf(rs.getString(2)));
+        obj.setCreated(rs.getTimestamp(3).toInstant());
+        obj.setJobUuid(rs.getString(4));
+        obj.setJobStatus(JobStatusType.valueOf(rs.getString(5)));
+        obj.setOthUuid(rs.getString(6)); // can be null
+        obj.setDescription(rs.getString(7));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

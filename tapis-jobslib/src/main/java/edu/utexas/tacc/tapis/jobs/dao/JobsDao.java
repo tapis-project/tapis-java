@@ -16,8 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
@@ -258,6 +260,7 @@ public final class JobsDao
         validateNewJob(job);
 	
         // ------------------------- Call SQL ----------------------------
+        JobEvent jobEvent = null;
         Connection conn = null;
         try
         {
@@ -330,6 +333,10 @@ public final class JobsDao
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
           pstmt.close();
+          
+          // Write the event table and issue the notification.
+          var eventMgr = JobEventManager.getInstance();
+          jobEvent = eventMgr.recordStatusEvent(job.getUuid(), job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -342,7 +349,6 @@ public final class JobsDao
             
             String msg = MsgUtils.getMsg("JOBS_JOB_CREATE_ERROR", job.getName(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
-            _log.error(msg, e);
             throw new JobException(msg, e);
         }
         finally {
@@ -356,6 +362,11 @@ public final class JobsDao
                       String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
                       _log.error(msg, e);
                   }
+        }
+        
+        // Send a notification after event has been committed.
+        if (jobEvent != null) {
+            // TODO: send notification
         }
 	}
 	
@@ -496,6 +507,72 @@ public final class JobsDao
             }
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* updateLastMessageWithFinalMessage:                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Update the lastMessage field with the finalMessage                    */
+    public void updateLastMessageWithFinalMessage(String finalMessage, Job job)
+    {
+        
+        // Get a database connection.
+        Connection conn = null;
+        
+        // ------------------------- Call SQL ----------------------------
+        try {
+            
+            conn = getConnection(); 
+            String sql = SqlStatements.UPDATE_JOB_LAST_MESSAGE;
+            
+            // Get the variables to be used in the SQL statement. 
+            long jobId = job.getId();
+            String tenantId = job.getTenant();
+            Instant now = Instant.now();
+            Timestamp ts = Timestamp.from(now);
+            
+            // Last message field in the database has a size constraint of 2048 characters.
+            // finalMessage needs to fit in this constraint, or it will fail to update the db. 
+            if ((finalMessage != null) && (finalMessage.length() > Job.MAX_LAST_MESSAGE_LEN))
+                finalMessage = finalMessage.substring(0, Job.MAX_LAST_MESSAGE_LEN - 1);
+
+            // Prepare the statement and fill in the placeholders.
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, finalMessage);
+            pstmt.setTimestamp(2, ts);
+            pstmt.setString(3, tenantId);
+            pstmt.setLong(4, jobId);
+
+            // Issue the call.
+            int rows = pstmt.executeUpdate();
+            if (rows != 1) {
+                String msg = MsgUtils.getMsg("DB_LAST_MESSAGE_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, finalMessage);
+                _log.error(msg);
+                throw new JobException(msg);
+            }
+
+            // Commit the transaction.
+            conn.commit();
+        } 
+        catch (Exception e) {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            // This a best effort attempt. If it fails, we log and move on without making too much noise. 
+            String msg = MsgUtils.getMsg("DB_LAST_MESSAGE_FAILED_UPDATE", e.getMessage());
+            _log.error(msg);
+        } finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+
 	/* ---------------------------------------------------------------------- */
 	/* queryDB:                                                               */
 	/* ---------------------------------------------------------------------- */

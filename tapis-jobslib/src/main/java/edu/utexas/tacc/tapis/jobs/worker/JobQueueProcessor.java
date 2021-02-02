@@ -5,20 +5,30 @@ import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.BuiltinExchangeType;
 
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
+import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
+import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
-final class TenantQueueProcessor 
+final class JobQueueProcessor 
   extends AbstractProcessor
 {
   /* ********************************************************************** */
   /*                               Constants                                */
   /* ********************************************************************** */
   // Tracing.
-  private static final Logger _log = LoggerFactory.getLogger(TenantQueueProcessor.class);
+  private static final Logger _log = LoggerFactory.getLogger(JobQueueProcessor.class);
   
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -32,7 +42,7 @@ final class TenantQueueProcessor
   /* ---------------------------------------------------------------------- */
   /* constructor:                                                           */
   /* ---------------------------------------------------------------------- */
-  TenantQueueProcessor(JobWorker jobWorker){super(jobWorker);}
+  JobQueueProcessor(JobWorker jobWorker){super(jobWorker);}
   
   /* ********************************************************************** */
   /*                           Protected Methods                            */
@@ -99,47 +109,47 @@ final class TenantQueueProcessor
         _log.debug(msg);
     }
     
-//    // Execute the job.
-//    JobExecutionContext jobCtx = null;
+    // Execute the job.
+    JobExecutionContext jobCtx = null;
     boolean ack = true; // be optimistic that things will succeed.
-//    JobSubmitMsg jobMsg = null;
-//    
-//    try {
-//      // Reconstitute the job submit message.
-//      String body = new String(delivery.body);
-//      jobMsg = TapisGsonUtils.getGson(true).fromJson(body, JobSubmitMsg.class);
-//      
-//      // Determine if new or existing job processing is required.
-//      JobsDao jobDao = new JobsDao();
-//      Job job = jobDao.getJobByUUID(jobMsg.job.getUuid());
-//      
-//      // Do we have a record of this job?
-//      if (job == null) {
-//          String msg = MsgUtils.getMsg("JOBS_UNKNOWN_JOB_QUEUED", _jobWorker.getParms().name, 
-//        		                       jobMsg.job.getUuid());
-//          _log.error(msg);
-//    	  sendUnknownJobEmail(jobMsg.job.getUuid(), msg);
-//    	  throw new JobException(msg);
-//      }
-//      
-//      // Create the execution context used for the remainder of job processing.
-//      // Threadlocal fields are set here and reference to the context is also
-//      // stored in the job.  
-//      //
-//      // We also get a fresh notification list from the db, which is necessary
-//      // on resubmissions.
-//      jobCtx = new JobExecutionContext(job, jobDao, getJobNotifications(job));
-//      
-//      // Remove references to the job outside of the context object.
-//      job = null;
-//      
-//      // Perform one-time validation and assignments to fields with missing values.
-//      // The changes here are idempotent, so revalidation will not break the job.
-//      // This method changes the job status from PENDING to PROCESSING_INPUTS and
-//      // can only be called when the job is in the PENDING state.  This method
-//      // readies the job for all processing phases.  We process the PENDING job
-//      // event before validation so that it is guaranteed to be the first status
-//      // event persisted for this new job.
+    JobSubmitMsg jobMsg = null;
+    
+    try {
+      // Reconstitute the job submit message.
+      String body = new String(delivery.body);
+      jobMsg = TapisGsonUtils.getGson(true).fromJson(body, JobSubmitMsg.class);
+      
+      // Determine if new or existing job processing is required.
+      JobsDao jobsDao = new JobsDao();
+      Job job = jobsDao.getJobByUUID(jobMsg.getUuid());
+      
+      // Do we have a record of this job?
+      if (job == null) {
+          String msg = MsgUtils.getMsg("JOBS_UNKNOWN_JOB_QUEUED", _jobWorker.getParms().name, 
+        		                       jobMsg.getUuid());
+          _log.error(msg);
+    	  sendUnknownJobEmail(jobMsg.getUuid(), msg);
+    	  throw new JobException(msg);
+      }
+      
+      // Create the execution context used for the remainder of job processing.
+      // Threadlocal fields are set here and reference to the context is also
+      // stored in the job.  
+      //
+      // We also get a fresh notification list from the db, which is necessary
+      // on resubmissions.
+      jobCtx = new JobExecutionContext(job, jobsDao);
+      
+      // Remove references to the job outside of the context object.
+      job = null;
+      
+      // Perform one-time validation and assignments to fields with missing values.
+      // The changes here are idempotent, so revalidation will not break the job.
+      // This method changes the job status from PENDING to PROCESSING_INPUTS and
+      // can only be called when the job is in the PENDING state.  This method
+      // readies the job for all processing phases.  We process the PENDING job
+      // event before validation so that it is guaranteed to be the first status
+      // event persisted for this new job.
 //      if (jobCtx.getJob().getStatus() == JobStatusType.PENDING) {
 //          jobCtx.getJobEventProcessor().processNewStatus(jobCtx, JobStatusType.PENDING);
 //          ValidateNewJob.validate(jobCtx);
@@ -155,12 +165,12 @@ final class TenantQueueProcessor
 //      // exceptions are handled by the enclosing try block.
 //      try {ack = processJob(jobCtx);}
 //          catch (JobAsyncCmdException e) {}
-//    }
-//    catch (Exception e) {
-//        // Initialize the job if one exists.
-//        Job job = null;
-//        if (jobCtx != null) job = jobCtx.getJob();
-//        
+    }
+    catch (Exception e) {
+        // Initialize the job if one exists.
+        Job job = null;
+        if (jobCtx != null) job = jobCtx.getJob();
+        
 //        // Leave breadcrumbs.
 //        JobWorkerThread thd = (JobWorkerThread) Thread.currentThread();
 //        String jobUuid = (jobMsg != null && jobMsg.job != null) ? jobMsg.job.getUuid() : "?";
@@ -198,18 +208,18 @@ final class TenantQueueProcessor
 //        // If we get here with a negative ack, we have to fail the job. 
 //        //
 //        if (!ack) failJob(job, msg);
-//    }
-//    finally {
-//      // We always want to check the finalMessage field. 
-//      if (jobCtx != null)
-//       	checkFinalMessageField(jobCtx);
-//    	
-//      // Always interrupt and clear the job-specific thread 
-//      // spawned by this thread (if it exists) when we are
-//      // finished processing the current job.
-//      interruptJobTopicThread();
-//    }
-//    
+    }
+    finally {
+      // We always want to check the finalMessage field. 
+      if (jobCtx != null)
+       	checkFinalMessageField(jobCtx);
+    	
+      // Always interrupt and clear the job-specific thread 
+      // spawned by this thread (if it exists) when we are
+      // finished processing the current job.
+      interruptJobTopicThread();
+    }
+    
     // TODO: need more than just ack and reject-discard; exception handling needs thought.
     return ack;
   }
@@ -226,28 +236,28 @@ final class TenantQueueProcessor
    */
   private synchronized void setJobTopicThread(JobTopicThread thread) {_jobTopicThread = thread;}
 
-//  /* ---------------------------------------------------------------------- */
-//  /* startJobTopicThread:                                                   */
-//  /* ---------------------------------------------------------------------- */
-//  private void startJobTopicThread(Job job)
-//  {
-//    // Spawn the job-specific thread and save its reference in _jobTopicThread. 
-//    JobTopicThread jobTopicWorker = new JobTopicThread(Thread.currentThread().getName(), job);
-//    jobTopicWorker.setDaemon(true);
-//    jobTopicWorker.setUncaughtExceptionHandler(_jobWorker);
-//    jobTopicWorker.start();
-//  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* interruptJobTopicThread:                                               */
-//  /* ---------------------------------------------------------------------- */
-//  /** Serialize access to the job thread field whenever it's updated. */
-//  private synchronized void interruptJobTopicThread()
-//  {
-//    if (_jobTopicThread == null) return;
-//    _jobTopicThread.interrupt();
-//    _jobTopicThread = null;
-//  }
+  /* ---------------------------------------------------------------------- */
+  /* startJobTopicThread:                                                   */
+  /* ---------------------------------------------------------------------- */
+  private void startJobTopicThread(Job job)
+  {
+    // Spawn the job-specific thread and save its reference in _jobTopicThread. 
+    JobTopicThread jobTopicWorker = new JobTopicThread(Thread.currentThread().getName(), job);
+    jobTopicWorker.setDaemon(true);
+    jobTopicWorker.setUncaughtExceptionHandler(_jobWorker);
+    jobTopicWorker.start();
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* interruptJobTopicThread:                                               */
+  /* ---------------------------------------------------------------------- */
+  /** Serialize access to the job thread field whenever it's updated. */
+  private synchronized void interruptJobTopicThread()
+  {
+    if (_jobTopicThread == null) return;
+    _jobTopicThread.interrupt();
+    _jobTopicThread = null;
+  }
   
   /* ---------------------------------------------------------------------- */
   /* createJobThreadName:                                                   */
@@ -257,38 +267,38 @@ final class TenantQueueProcessor
     return workerThreadName + JobWorker.JOB_TOPIC_THREAD_SUFFIX;
   }
   
-//  /* ---------------------------------------------------------------------- */
-//  /* checkFinalMessageField:                                                */
-//  /* ---------------------------------------------------------------------- */
-//  /** Check to see if the finalMessage on the JobCtx is null. If it 
-//   *  is not null, we update the lastMessage field in the database          
-//   *  with the finalMessage.                                                */
-//  private void checkFinalMessageField(JobExecutionContext jobCtx) {
-//	String finalMessage = jobCtx.getFinalMessage(); 
-//    if (finalMessage == null) return; 
-//    
-//    // If finalMessage is not null at this point, we will want to update the lastMessage
-//    // field in the database with this finalMessage. 
-//    Job job = jobCtx.getJob();
-//    if (job != null) {
-//    	_log.error(finalMessage);
-//    	jobCtx.getJobDao().updateLastMessageWithFinalMessage(finalMessage, job);
-//    }
-//  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* setFinalMessageToNull:                                                */
-//  /* ---------------------------------------------------------------------- */
-//  /** In certain scenarios, we do not want to update last message with any 
-//   * final message. In those cases, we use this method to ensure finalMessage
-//   * is null. 
-//   * @param jobCtx
-//   */
-//  private void setFinalMessageToNull(JobExecutionContext jobCtx) {
-//	  if (jobCtx == null) return; 
-//	  jobCtx.setFinalMessage(null);
-//  }
-// 
+  /* ---------------------------------------------------------------------- */
+  /* checkFinalMessageField:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** Check to see if the finalMessage on the JobCtx is null. If it 
+   *  is not null, we update the lastMessage field in the database          
+   *  with the finalMessage.                                                */
+  private void checkFinalMessageField(JobExecutionContext jobCtx) {
+	String finalMessage = jobCtx.getFinalMessage(); 
+    if (finalMessage == null) return; 
+    
+    // If finalMessage is not null at this point, we will want to update the lastMessage
+    // field in the database with this finalMessage. 
+    Job job = jobCtx.getJob();
+    if (job != null) {
+    	_log.error(finalMessage);
+    	jobCtx.getJobsDao().updateLastMessageWithFinalMessage(finalMessage, job);
+    }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* setFinalMessageToNull:                                                */
+  /* ---------------------------------------------------------------------- */
+  /** In certain scenarios, we do not want to update last message with any 
+   * final message. In those cases, we use this method to ensure finalMessage
+   * is null. 
+   * @param jobCtx
+   */
+  private void setFinalMessageToNull(JobExecutionContext jobCtx) {
+	  if (jobCtx == null) return; 
+	  jobCtx.setFinalMessage(null);
+  }
+ 
 //  /* ---------------------------------------------------------------------- */
 //  /* getJobNotifications:                                                   */
 //  /* ---------------------------------------------------------------------- */
@@ -652,30 +662,30 @@ final class TenantQueueProcessor
 //              }
 //      }
 //  }
-//  
-//  /* ---------------------------------------------------------------------- */
-//  /* sendUnknownJobEmail:                                                   */
-//  /* ---------------------------------------------------------------------- */
-//  /** Send an email to the support address when a job not in the jobs table
-//   * was queued.
-//   * 
-//   * @param jobId the unknown job uuid
-//   */
-//  private void sendUnknownJobEmail(String jobUuid, String msg)
-//  {
-//      try {
-//          RuntimeParameters runtime = RuntimeParameters.getInstance();
-//          EmailClient client = EmailClientFactory.getClient(runtime);
-//          client.send(runtime.getSupportName(),
-//              runtime.getSupportEmail(),
-//              "Unknown Job Alert: Job " + jobUuid + " is not known.",
-//              msg, HTMLizer.htmlize(msg));
-//        }
-//        catch (AloeException ae) {
-//          // log msg that we tried to send email notice to CICSupport
-//          _log.error(msg + " Failed to send support Email alert. Email client failed with exception.", ae);
-//        }
-//  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* sendUnknownJobEmail:                                                   */
+  /* ---------------------------------------------------------------------- */
+  /** Send an email to the support address when a job not in the jobs table
+   * was queued.
+   * 
+   * @param jobId the unknown job uuid
+   */
+  private void sendUnknownJobEmail(String jobUuid, String msg)
+  {
+      try {
+          RuntimeParameters runtime = RuntimeParameters.getInstance();
+          EmailClient client = EmailClientFactory.getClient(runtime);
+          client.send(runtime.getSupportName(),
+              runtime.getSupportEmail(),
+              "Unknown Job Alert: Job " + jobUuid + " is not known.",
+              msg, HTMLizer.htmlize(msg));
+        }
+        catch (Exception ae) {
+          // log msg that we tried to send email notice to CICSupport
+          _log.error(msg + " Failed to send support Email alert. Email client failed with exception.", ae);
+        }
+  }
   
   /* ********************************************************************** */
   /*                           JobTopicThread Class                         */
@@ -707,7 +717,7 @@ final class TenantQueueProcessor
     // Allow the JobWorker to access the enclosing instance 
     // in case this thread needs to be restarted.  See 
     // JobWorker.uncaughtException() for details.
-    TenantQueueProcessor getEnclosing(){return TenantQueueProcessor.this;}
+    JobQueueProcessor getEnclosing(){return JobQueueProcessor.this;}
     
     // Allow the JobWorker to access the job uuid for restart purposes.
     Job getJob(){return _job;}
