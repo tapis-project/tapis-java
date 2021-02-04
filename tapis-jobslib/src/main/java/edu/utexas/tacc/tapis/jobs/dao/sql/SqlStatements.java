@@ -101,24 +101,6 @@ public class SqlStatements
         "INSERT INTO job_resubmit (job_uuid, job_definition) "
         + "VALUES (?, ?)";
         
-//	/* ---------------------------------------------------------------------- */
-//	/* job_recovery table:                                                    */
-//	/* ---------------------------------------------------------------------- */
-//    public static final String SELECT_JOBRECOVERY =
-//        "SELECT id, tenant_id, condition_code, tester_type, tester_parms, "
-//            + "policy_type, policy_parms, num_attempts, next_attempt, created, "
-//            + "last_updated, tester_hash"
-//        + " FROM job_recovery ORDER BY id";
-//
-//	/* ---------------------------------------------------------------------- */
-//	/* job_blocked table:                                                     */
-//	/* ---------------------------------------------------------------------- */
-//    public static final String SELECT_JOBBLOCKED =
-//        "SELECT id, recovery_id, created, success_status, job_uuid, status_message"
-//        + " FROM job_blocked ORDER BY id";
-    
-
-    
     /* ---------------------------------------------------------------------- */
     /* job_recovery table:                                                    */
     /* ---------------------------------------------------------------------- */
