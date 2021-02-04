@@ -100,6 +100,11 @@ public final class JobsDao
 	// Message when creating job.
 	private static final String JOB_CREATE_MSG = "Job created";
 	  
+    // Comma-separated string of non active statuses ready for sql query.
+    private final static String _nonActiveJobStatuses = JobStatusType.getNonActiveSQLString();
+    // Comma-separated string of terminal statuses ready for sql query.
+    private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
+    
 	/* ********************************************************************** */
 	/*                              Constructors                              */
 	/* ********************************************************************** */
@@ -573,6 +578,106 @@ public final class JobsDao
         }
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* countActiveSystemJobs:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Retrieve the number of jobs in active state on the specified execution
+     * system.
+     * 
+     * @param tenantId the non-null execution system's tenant id
+     * @param systemId the non-null execution system's unique id
+     * @return the number of aloe jobs active on the specified system
+     * @throws JobException 
+     */
+    public int countActiveSystemJobs(String tenantId, String systemId) 
+     throws JobException
+    {
+        return countActiveJobs(tenantId, systemId, null, null);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* countActiveSystemUserJobs:                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Retrieve the number of jobs in active state on the specified execution
+     * system.
+     * 
+     * @param tenantId the non-null execution system's tenant id
+     * @param systemId the non-null execution system's unique id
+     * @param owner non-null job owner
+     * @return the number of aloe jobs active on the specified system
+     * @throws JobException 
+     */
+    public int countActiveSystemUserJobs(String tenantId, String systemId, String owner) 
+     throws JobException
+    {
+        // Only call this method with non-null parms.
+        if (StringUtils.isBlank(owner)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemUserJobs", "owner");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        
+        return countActiveJobs(tenantId, systemId, owner, null);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* countActiveSystemQueueJobs:                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Retrieve the number of jobs in active state on the specified execution
+     * system.
+     * 
+     * @param tenantId the non-null execution system's tenant id
+     * @param systemId the non-null execution system's unique id
+     * @param remoteQueue non-null remote queue
+     * @return the number of aloe jobs active on the specified system
+     * @throws JobException 
+     */
+    public int countActiveSystemQueueJobs(String tenantId, String systemId, 
+                                          String remoteQueue) 
+     throws JobException
+    {
+        // Only call this method with non-null parms.
+        if (StringUtils.isBlank(remoteQueue)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemQueueJobs", "remoteQueue");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        
+        return countActiveJobs(tenantId, systemId, null, remoteQueue);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* countActiveSystemUserQueueJobs:                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Retrieve the number of jobs in active state on the specified execution
+     * system.
+     * 
+     * @param tenantId the non-null execution system's tenant id
+     * @param systemId the non-null execution system's unique id
+     * @param owner non-null job owner
+     * @param remoteQueue non-null remote queue
+     * @return the number of aloe jobs active on the specified system
+     * @throws JobException 
+     */
+    public int countActiveSystemUserQueueJobs(String tenantId, String systemId, 
+                                              String owner, String remoteQueue) 
+     throws JobException
+    {
+        // Only call this method with non-null parms.
+        if (StringUtils.isBlank(owner)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemUserQueueJobs", "owner");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(remoteQueue)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemUserQueueJobs", "remoteQueue");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        
+        return countActiveJobs(tenantId, systemId, owner, remoteQueue);
+    }
+    
 	/* ---------------------------------------------------------------------- */
 	/* queryDB:                                                               */
 	/* ---------------------------------------------------------------------- */
@@ -871,6 +976,120 @@ public final class JobsDao
         
         // Update the in-memory object.
         job.setEnded(ts.toInstant());
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* countActiveSystemJobs:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Retrieve the number of jobs in active state on the specified execution
+     * system with optional owner and remote queue filtering.
+     * 
+     * @param tenantId the non-null execution system's tenant id
+     * @param systemId the non-null execution system's unique id
+     * @param owner job owner or null for any owner
+     * @param remoteQueue remote queue or null for any queue
+     * @return the number of aloe jobs active on the specified system
+     * @throws JobException 
+     */
+    private int countActiveJobs(String tenantId, String systemId, String owner, 
+                                String remoteQueue) 
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (StringUtils.isBlank(tenantId)) {
+            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "countActiveJobs", "tenantId");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(systemId)) {
+            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "countActiveJobs", "systemId");
+            _log.error(msg);
+            throw new JobException(msg);
+        }
+        
+        // Select the query case based on the owner and remoteQueue values.  
+        int queryCase;
+        String sql;
+        if (owner == null && remoteQueue == null) {
+            queryCase = 1;
+            sql = SqlStatements.COUNT_ACTIVE_SYSTEM_JOBS;
+        } else if (owner != null && remoteQueue == null) {
+            queryCase = 2;
+            sql = SqlStatements.COUNT_ACTIVE_SYSTEM_USER_JOBS;
+        } else if (owner == null && remoteQueue != null) {
+            queryCase = 3;
+            sql = SqlStatements.COUNT_ACTIVE_SYSTEM_QUEUE_JOBS;
+        } else {
+            queryCase = 4;
+            sql = SqlStatements.COUNT_ACTIVE_SYSTEM_USER_QUEUE_JOBS;
+        }
+
+        // Substitute the comma-separated non-active 
+        // status list for the placeholder text.
+        sql = sql.replace(":statusList", _nonActiveJobStatuses);
+        
+        // The result.
+        int count = 0;
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+            // Get a database connection.
+            conn = getConnection();
+            
+            // Prepare the statement and fill in the placeholders.
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, tenantId);
+            pstmt.setString(2, systemId);
+            
+            // Conditional value assignments.
+            if (queryCase == 1) {/* do nothing */}
+            else if (queryCase == 2) pstmt.setString(3, owner);
+            else if (queryCase == 3) pstmt.setString(3, remoteQueue);
+            else if (queryCase == 4) {
+                pstmt.setString(3, owner);
+                pstmt.setString(4, remoteQueue);
+            }
+                        
+            // Issue the call for the 1 row result set.
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) count = rs.getInt(1);
+            
+            // Close the result and statement.
+            rs.close();
+            pstmt.close();
+      
+            // Commit the transaction.
+            conn.commit();
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String ownerMsg = owner == null ? "*" : owner;
+            String remoteQueueMsg = remoteQueue == null ? "*" : remoteQueue;
+            String msg = MsgUtils.getMsg("JOBS_COUNT_ACTIVE_SYSTEM_JOBS", tenantId, systemId, 
+                                         ownerMsg, remoteQueueMsg, e.getMessage());
+            _log.error(msg, e);
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+        
+        return count;
     }
     
 	/* ---------------------------------------------------------------------- */

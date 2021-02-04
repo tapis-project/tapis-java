@@ -85,6 +85,26 @@ public class SqlStatements
         "UPDATE jobs SET last_message = ?, last_updated = ?"
         + " WHERE tenant = ? AND id = ?";
       
+    public static final String COUNT_ACTIVE_SYSTEM_JOBS = 
+        "SELECT count(*) FROM jobs"
+        + " WHERE tenant = ? AND exec_system_id = ?"
+        + " AND status NOT IN (:statusList)";
+
+    public static final String COUNT_ACTIVE_SYSTEM_USER_JOBS = 
+        "SELECT count(*) FROM jobs"
+        + " WHERE tenant = ? AND exec_system_id = ? AND owner = ?"
+        + " AND status NOT IN (:statusList)";
+
+    public static final String COUNT_ACTIVE_SYSTEM_QUEUE_JOBS = 
+        "SELECT count(*) FROM jobs"
+        + " WHERE tenant = ? AND exec_system_id = ? AND remote_queue = ?"
+        + " AND status NOT IN (:statusList)";
+
+    public static final String COUNT_ACTIVE_SYSTEM_USER_QUEUE_JOBS = 
+        "SELECT count(*) FROM jobs"
+        + " WHERE tenant = ? AND exec_system_id = ? AND owner = ? AND remote_queue = ?"
+        + " AND status NOT IN (:statusList)";
+
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
 	/* ---------------------------------------------------------------------- */
