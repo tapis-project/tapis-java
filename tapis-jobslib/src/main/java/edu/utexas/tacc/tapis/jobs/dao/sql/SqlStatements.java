@@ -82,7 +82,7 @@ public class SqlStatements
         "UPDATE jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";
     
     public static final String UPDATE_JOB_LAST_MESSAGE =
-        "UPDATE aloe_jobs SET last_message = ?, last_updated = ?"
+        "UPDATE jobs SET last_message = ?, last_updated = ?"
         + " WHERE tenant = ? AND id = ?";
       
 	/* ---------------------------------------------------------------------- */
@@ -101,25 +101,78 @@ public class SqlStatements
         "INSERT INTO job_resubmit (job_uuid, job_definition) "
         + "VALUES (?, ?)";
         
-	/* ---------------------------------------------------------------------- */
-	/* job_recovery table:                                                    */
-	/* ---------------------------------------------------------------------- */
-    public static final String SELECT_JOBRECOVERY =
-        "SELECT id, tenant_id, condition_code, tester_type, tester_parms, "
-            + "policy_type, policy_parms, num_attempts, next_attempt, created, "
-            + "last_updated, tester_hash"
-        + " FROM job_recovery ORDER BY id";
-
-	/* ---------------------------------------------------------------------- */
-	/* job_blocked table:                                                     */
-	/* ---------------------------------------------------------------------- */
-    public static final String SELECT_JOBBLOCKED =
-        "SELECT id, recovery_id, created, success_status, job_uuid, status_message"
-        + " FROM job_blocked ORDER BY id";
+//	/* ---------------------------------------------------------------------- */
+//	/* job_recovery table:                                                    */
+//	/* ---------------------------------------------------------------------- */
+//    public static final String SELECT_JOBRECOVERY =
+//        "SELECT id, tenant_id, condition_code, tester_type, tester_parms, "
+//            + "policy_type, policy_parms, num_attempts, next_attempt, created, "
+//            + "last_updated, tester_hash"
+//        + " FROM job_recovery ORDER BY id";
+//
+//	/* ---------------------------------------------------------------------- */
+//	/* job_blocked table:                                                     */
+//	/* ---------------------------------------------------------------------- */
+//    public static final String SELECT_JOBBLOCKED =
+//        "SELECT id, recovery_id, created, success_status, job_uuid, status_message"
+//        + " FROM job_blocked ORDER BY id";
     
-	/* ---------------------------------------------------------------------- */
-	/* job_queues table:                                                      */
-	/* ---------------------------------------------------------------------- */
+
+    
+    /* ---------------------------------------------------------------------- */
+    /* job_recovery table:                                                    */
+    /* ---------------------------------------------------------------------- */
+    public static final String CREATE_RECOVERY =
+            "INSERT INTO job_recovery (tenant_id, condition_code, tester_type, tester_parms, policy_type, policy_parms, "  
+            + "num_attempts, next_attempt, created, last_updated, tester_hash) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    public static final String DELETE_RECOVERY = "DELETE FROM job_recovery WHERE id = ? AND tenant_id = ?";
+    
+    public static final String SELECT_RECOVERY_BY_TENANT =
+            "SELECT id, tenant_id, condition_code, tester_type, tester_parms, policy_type, policy_parms, "
+            + "num_attempts, next_attempt, created, last_updated, tester_hash "
+            + "FROM job_recovery WHERE tenant_id = ? "
+            + "ORDER BY next_attempt DESC";
+            
+    public static final String SELECT_RECOVERY_BY_HASH_FOR_UPDATE =
+            "SELECT id, tenant_id, condition_code, tester_type, tester_parms, policy_type, policy_parms, "
+            + "num_attempts, next_attempt, created, last_updated, tester_hash "
+            + "FROM job_recovery WHERE tenant_id = ? AND tester_hash = ?";
+            
+    public static final String UPDATE_RECOVERY_TIMESTAMP = 
+            "UPDATE job_recovery SET last_updated = ? WHERE id = ? AND tenant_id = ? ";
+
+    public static final String UPDATE_RECOVERY_ATTEMPTS = 
+            "UPDATE job_recovery SET last_updated = ?, num_attempts = ?, next_attempt = ?"
+            + " WHERE id = ? AND tenant_id = ?";
+
+    /* ---------------------------------------------------------------------- */
+    /* job_blocked table:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public static final String CREATE_BLOCKED_JOB =
+            "INSERT INTO job_blocked (recovery_id, created, success_status, job_uuid, status_message) "  
+            + "VALUES (?, ?, ?, ?, ?)";
+
+    public static final String DELETE_BLOCKED_JOB = "DELETE FROM job_blocked WHERE job_uuid = ?";
+    
+    public static final String SELECT_BLOCKED_JOBS_BY_RECOVERY_ID =
+            "SELECT id, recovery_id, created, success_status, job_uuid, status_message "
+            + "FROM job_blocked "
+            + "WHERE recovery_id = ?";
+
+    public static final String GET_BLOCKED_JOB_BY_UUID = 
+            "SELECT id, recovery_id, created, success_status, job_uuid, status_message "
+            + "FROM job_blocked "
+            + "WHERE job_uuid = ?";
+            
+    public static final String SELECT_JOBBLOCKED =
+            "SELECT id, recovery_id, created, success_status, job_uuid, status_message"
+            + " FROM job_blocked ORDER BY id";
+    
+    /* ---------------------------------------------------------------------- */
+    /* job_queues table:                                                      */
+    /* ---------------------------------------------------------------------- */
     public static final String SELECT_JOBQUEUES_BY_PRIORITY_DESC =
         "SELECT id, name, priority, filter, uuid, created, last_updated"
         + " FROM job_queues ORDER BY priority desc";
@@ -132,9 +185,9 @@ public class SqlStatements
             "INSERT into job_queues (name, priority, filter, uuid, created, last_updated)"
             + " VALUES (?, ?, ?, ?, ?, ?)";
 
-	/* ---------------------------------------------------------------------- */
-	/* job_events table:                                                      */
-	/* ---------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
+    /* job_events table:                                                      */
+    /* ---------------------------------------------------------------------- */
     public static final String CREATE_JOB_EVENT = 
         "INSERT INTO job_events (event, created, job_uuid, job_status, oth_uuid, description) "
         + "VALUES (?::job_event_enum, ?, ?, ?::job_status_enum, ?, ?)";
@@ -142,5 +195,5 @@ public class SqlStatements
     public static final String SELECT_JOBEVENTS =
         "SELECT id, event, created, job_uuid, job_status, oth_uuid, description"
         + " FROM job_events ORDER BY id";
-
+    
 }

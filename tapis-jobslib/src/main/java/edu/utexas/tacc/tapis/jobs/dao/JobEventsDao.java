@@ -160,7 +160,7 @@ public final class JobEventsDao
         // Get a database connection.
         if (!usingCallerConn) conn = getConnection();
 
-        // Insert into the aloe-jobs table first.
+        // Insert into the jobs table first.
         // Create the command using table definition field order.
         String sql = SqlStatements.CREATE_JOB_EVENT;
         
@@ -223,7 +223,7 @@ public final class JobEventsDao
    * 
    * @param rs the unprocessed result set from a query.
    * @return a new model object or null if the result set is null or empty
-   * @throws AloeJDBCException on SQL access or conversion errors
+   * @throws TapisJDBCException on SQL access or conversion errors
    */
   private JobEvent populateJobEvents(ResultSet rs)
    throws TapisJDBCException

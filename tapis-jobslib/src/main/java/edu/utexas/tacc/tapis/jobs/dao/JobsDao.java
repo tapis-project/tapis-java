@@ -267,7 +267,7 @@ public final class JobsDao
           // Get a database connection.
           conn = getConnection();
 
-          // Insert into the aloe-jobs table first.
+          // Insert into the jobs table first.
           // Create the command using table definition field order.
           String sql = SqlStatements.CREATE_JOB;
           
@@ -388,7 +388,7 @@ public final class JobsDao
     {
         // Check input.
         if (StringUtils.isBlank(uuid)) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "uuid");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setStatus", "uuid");
             _log.error(msg);
             throw new JobException(msg);
         }
@@ -426,7 +426,7 @@ public final class JobsDao
         // ------------------------- Check Input ------------------------
         // We need a job.
         if (job == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "job");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setStatus", "job");
             throw new JobException(msg);
         }
         
@@ -679,7 +679,7 @@ public final class JobsDao
     {
         // ------------------------- Check Input -------------------------
         if (job == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "setStatus", "job");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setStatus", "job");
             throw new JobException(msg);
         }
         
@@ -995,7 +995,7 @@ public final class JobsDao
 	 * 
 	 * @param rs the unprocessed result set from a query.
 	 * @return a new model object or null if the result set is null or empty
-	 * @throws AloeJDBCException on SQL access or conversion errors
+	 * @throws TapisJDBCException on SQL access or conversion errors
 	 */
 	private Job populateJob(ResultSet rs)
 	 throws TapisJDBCException

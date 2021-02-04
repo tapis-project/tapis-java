@@ -300,7 +300,7 @@ public final class JobQueuesDao
    * 
    * @param rs the unprocessed result set from a query.
    * @return a new model object or null if the result set is null or empty
-   * @throws AloeJDBCException on SQL access or conversion errors
+   * @throws TapisJDBCException on SQL access or conversion errors
    */
   private JobQueue populateJobQueues(ResultSet rs)
    throws TapisJDBCException

@@ -120,7 +120,7 @@ public final class JobResubmitDao
   {
       // ------------------------- Check Input -------------------------
       if (StringUtils.isBlank(uuid)) {
-          String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "getJobResubmitByUUID", "uuid");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobResubmitByUUID", "uuid");
           throw new TapisException(msg);
       }
       
@@ -244,7 +244,7 @@ public final class JobResubmitDao
    * 
    * @param rs the unprocessed result set from a query.
    * @return a new model object or null if the result set is null or empty
-   * @throws AloeJDBCException on SQL access or conversion errors
+   * @throws TapisJDBCException on SQL access or conversion errors
    */
   private JobResubmit populateJobResubmit(ResultSet rs)
    throws TapisJDBCException
