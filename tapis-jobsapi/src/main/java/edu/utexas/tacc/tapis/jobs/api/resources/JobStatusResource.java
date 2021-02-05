@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
-import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -48,7 +47,7 @@ public class JobStatusResource
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(JobGetResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(JobStatusResource.class);
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
