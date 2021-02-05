@@ -44,10 +44,10 @@ public final class RecoveryUtils
     private static final Logger _log = LoggerFactory.getLogger(RecoveryUtils.class);
     
     // Constants.
-    public static final Integer DEFAULT_MAX_SYSTEM_JOBS          = Integer.MAX_VALUE;
-    public static final Integer DEFAULT_MAX_SYSTEM_JOBS_PER_USER = Integer.MAX_VALUE;
-    public static final long    DEFAULT_MAX_JOBS                 = Long.MAX_VALUE;
-    public static final long    DEFAULT_MAX_USER_JOBS            = Long.MAX_VALUE;
+    public static final int DEFAULT_MAX_SYSTEM_JOBS          = Integer.MAX_VALUE;
+    public static final int DEFAULT_MAX_SYSTEM_JOBS_PER_USER = Integer.MAX_VALUE;
+    public static final int DEFAULT_MAX_JOBS                 = Integer.MAX_VALUE;
+    public static final int DEFAULT_MAX_USER_JOBS            = Integer.MAX_VALUE;
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -123,7 +123,7 @@ public final class RecoveryUtils
     public static TreeMap<String,String> captureSystemState(TSystem system)
     {
         TreeMap<String,String> state = new TreeMap<>();
-        state.put("id", Long.toString(system.getSeqId()));
+        state.put("owner", system.getOwner());
         state.put("name", system.getId());
         state.put("tenantId", system.getTenant());
         return state;
@@ -156,7 +156,7 @@ public final class RecoveryUtils
     public static TreeMap<String,String> captureAppState(App app)
     {
         TreeMap<String,String> state = new TreeMap<>();
-        state.put("id", Long.toString(app.getSeqId()));
+        state.put("owner", app.getOwner());
         state.put("name", app.getId());
         state.put("version", app.getVersion());
         state.put("tenantId", app.getTenant());
@@ -212,19 +212,19 @@ public final class RecoveryUtils
         // Capture or dummy up the execution system limits.
         if (execSys.getJobMaxJobs() != null)
         	state.put("maxSystemJobs", Integer.toString(execSys.getJobMaxJobs()));
-          else state.put("maxSystemJobs", DEFAULT_MAX_SYSTEM_JOBS.toString());
+          else state.put("maxSystemJobs", Integer.toString(DEFAULT_MAX_SYSTEM_JOBS));
         if (execSys.getJobMaxJobsPerUser() != null)
             state.put("maxSystemUserJobs", Integer.toString(execSys.getJobMaxJobsPerUser()));
-          else state.put("maxSystemUserJobs", DEFAULT_MAX_SYSTEM_JOBS_PER_USER.toString());
+          else state.put("maxSystemUserJobs", Integer.toString(DEFAULT_MAX_SYSTEM_JOBS_PER_USER));
 
         // The batchqueue should never be null, but we check to be safe.
         // In either case we always assign a non-null value to each key.
         if (remoteQueue == null) {
-            state.put("maxQueueJobs", Long.toString(DEFAULT_MAX_JOBS));
-            state.put("maxUserQueueJobs", Long.toString(DEFAULT_MAX_USER_JOBS));
+            state.put("maxQueueJobs", Integer.toString(DEFAULT_MAX_JOBS));
+            state.put("maxUserQueueJobs", Integer.toString(DEFAULT_MAX_USER_JOBS));
         } else {
-            state.put("maxQueueJobs", Long.toString(remoteQueue.getMaxJobs()));
-            state.put("maxUserQueueJobs", Long.toString(remoteQueue.getMaxJobsPerUser()));
+            state.put("maxQueueJobs", Integer.toString(remoteQueue.getMaxJobs()));
+            state.put("maxUserQueueJobs", Integer.toString(remoteQueue.getMaxJobsPerUser()));
         }
         
         return state;

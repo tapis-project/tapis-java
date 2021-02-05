@@ -288,7 +288,7 @@ abstract class AbstractProcessor
       try {channel.exchangeDeclare(exchangeName, exchangeType.getType(), durable, autodelete, 
                                    qmgr.getExchangeArgs());}
         catch (IOException e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_TENANT_ERROR", exchangeName, 
+            String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
                                           qmgr.getInConnectionName(), channel.getChannelNumber(), 
                                           e.getMessage());
             _log.error(msg, e);

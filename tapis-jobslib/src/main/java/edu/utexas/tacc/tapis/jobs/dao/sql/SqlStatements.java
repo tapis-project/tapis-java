@@ -131,10 +131,10 @@ public class SqlStatements
     
     public static final String DELETE_RECOVERY = "DELETE FROM job_recovery WHERE id = ? AND tenant_id = ?";
     
-    public static final String SELECT_RECOVERY_BY_TENANT =
+    public static final String SELECT_RECOVERY_DESC =
             "SELECT id, tenant_id, condition_code, tester_type, tester_parms, policy_type, policy_parms, "
             + "num_attempts, next_attempt, created, last_updated, tester_hash "
-            + "FROM job_recovery WHERE tenant_id = ? "
+            + "FROM job_recovery "
             + "ORDER BY next_attempt DESC";
             
     public static final String SELECT_RECOVERY_BY_HASH_FOR_UPDATE =

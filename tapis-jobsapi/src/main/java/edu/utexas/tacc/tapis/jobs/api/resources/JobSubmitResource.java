@@ -360,7 +360,7 @@ public class JobSubmitResource
          
          // -------------------------- Queue Request ---------------------------
          // Submit the job to the worker queue. Exceptions are mapped to HTTP error codes.
-         try {queueJob(job);}
+         try {JobQueueManager.getInstance().queueJob(job);}
            catch (Exception e) {
                // Log the error.
                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", job.getName(), job.getAppId(), e.getMessage());
@@ -399,21 +399,6 @@ public class JobSubmitResource
                  MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), prettyPrint, r)).build();
      }
      
-     /* ---------------------------------------------------------------------------- */
-     /* queueJob:                                                                    */
-     /* ---------------------------------------------------------------------------- */
-     private void queueJob(Job job) throws JobException
-     {
-         // Create the message.
-         var message = new JobSubmitMsg();
-         message.setCreated(job.getCreated().toString());
-         message.setUuid(job.getUuid());
-         var jsonMessage = TapisGsonUtils.getGson().toJson(message);
-         
-         var qm = JobQueueManager.getInstance();
-         qm.postSubmitQueue(job.getTapisQueue(), jsonMessage);
-     }
-
      /* ---------------------------------------------------------------------------- */
      /* failJob:                                                                     */
      /* ---------------------------------------------------------------------------- */

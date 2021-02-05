@@ -376,6 +376,17 @@ public final class JobsDao
 	}
 	
     /* ---------------------------------------------------------------------- */
+    /* getStatusByUUID:                                                       */
+    /* ---------------------------------------------------------------------- */
+	public JobStatusType getStatusByUUID(String uuid)
+	 throws TapisException
+	{
+	    // TODO:
+	    // ********* PLACEHOLDER for Smruti's code *********
+	    return null;
+	}
+	
+    /* ---------------------------------------------------------------------- */
     /* setStatus:                                                             */
     /* ---------------------------------------------------------------------- */
     /** Set the status of the specified job after checking that the transition

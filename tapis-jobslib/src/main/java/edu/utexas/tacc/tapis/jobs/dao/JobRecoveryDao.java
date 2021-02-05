@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobBlocked;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoverConditionCode;
 import edu.utexas.tacc.tapis.jobs.recover.RecoverPolicyType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoverTesterType;
@@ -161,6 +162,136 @@ public final class JobRecoveryDao
     }
     
     /* ---------------------------------------------------------------------- */
+    /* getBlockedJobs:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public List<JobBlocked> getBlockedJobs(long recoveryId) 
+     throws JobException
+    {
+        // ------------------------- Call SQL ----------------------------
+        ArrayList<JobBlocked> list = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Create the command using table definition field order
+          // in each row and descending next attempt row order.
+          String sql = SqlStatements.SELECT_BLOCKED_JOBS_BY_RECOVERY_ID;
+  
+          // Prepare the statement and fill in the placeholders.
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setLong(1, recoveryId);
+          
+          // Execute the query.
+          rs = pstmt.executeQuery();
+          JobBlocked obj = populateJobBlocked(rs);
+          while (obj != null) {
+            list.add(obj);
+            obj = populateJobBlocked(rs);
+          }
+          
+          // Close the result and statement.
+          rs.close();
+          pstmt.close();
+    
+          // Commit the transaction.
+          conn.commit();
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", "tenantId", e.getMessage());
+            _log.error(msg, e);
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+        
+        // Non-null result.
+        return list;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* deleteBlockedJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Delete a blocked job from the blocked job table.
+     * 
+     * @param jobUuid the user's job uuid
+     * @throws JobException 
+     */
+    public void deleteBlockedJob(String jobUuid) 
+     throws JobException
+    {
+        // ------------------------- Tracing -----------------------------
+        if (_log.isDebugEnabled()) {
+            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
+            _log.debug(msg);
+        }
+
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Create the command using table definition field order.
+          String sql = SqlStatements.DELETE_BLOCKED_JOB;
+  
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, jobUuid);
+      
+          // Issue the call.
+          int rows = pstmt.executeUpdate();
+          
+          // Release resources.
+          pstmt.close();
+          
+          // Commit everything.
+          conn.commit();
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETE_BLOCKED_JOB", jobUuid, e.getMessage());
+            _log.error(msg, e);
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
     /* deleteJobRecovery:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Delete the recovery job and all blocked job records associated with it.
@@ -237,16 +368,9 @@ public final class JobRecoveryDao
      * @return the non-null list of job recovery objects
      * @throws JobException 
      */
-    public List<JobRecovery> getRecoveryJobs(String tenantId) 
+    public List<JobRecovery> getRecoveryJobs() 
      throws JobException
     {
-        // ------------------------- Check Input -------------------------
-        // Get the tenant id to guard against inadvertent updates.
-        if (StringUtils.isBlank(tenantId)) {
-            String msg =  MsgUtils.getMsg("JOBS_NO_TENANT_ID");
-            throw new JobException(msg);
-        }
-        
         // ------------------------- Call SQL ----------------------------
         ArrayList<JobRecovery> list = new ArrayList<>();
         Connection conn = null;
@@ -259,11 +383,10 @@ public final class JobRecoveryDao
           
           // Create the command using table definition field order
           // in each row and descending next attempt row order.
-          String sql = SqlStatements.SELECT_RECOVERY_BY_TENANT;
+          String sql = SqlStatements.SELECT_RECOVERY_DESC;
   
           // Prepare the statement and fill in the placeholders.
           pstmt = conn.prepareStatement(sql);
-          pstmt.setString(1, tenantId);
           
           // Execute the query.
           rs = pstmt.executeQuery();
@@ -275,7 +398,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", tenantId, e.getMessage());
+            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
             throw new JobException(msg, e);
         }
         finally {
@@ -635,4 +758,57 @@ public final class JobRecoveryDao
         rec.setTesterHash(rs.getString(12));
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* populateJobBlocked:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Populate a new AloeJobBlocked object with a record retrieved from the 
+     * database.  The result set's cursor will be advanced to the next
+     * position and, if a row exists, its data will be marshalled into a 
+     * AloeJobBlocked object.  The result set is not closed by this method.
+     * 
+     * NOTE: This method assumes all fields are returned table definition order.
+     * 
+     * NOTE: This method must be manually maintained whenever the table schema changes.  
+     * 
+     * @param rs the unprocessed result set from a query.
+     * @return a new model object or null if the result set is null or empty
+     * @throws AloeJDBCException on SQL access or conversion errors
+     */
+    private JobBlocked populateJobBlocked(ResultSet rs)
+     throws TapisJDBCException
+    {
+      // Quick check.
+      if (rs == null) return null;
+      
+      try {
+        // Return null if the results are empty or exhausted.
+        // This call advances the cursor.
+        if (!rs.next()) return null;
+      }
+      catch (Exception e) {
+        String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+        _log.error(msg, e);
+        throw new TapisJDBCException(msg, e);
+      }
+      
+      // Populate the AloeJobBlocked object using table definition field order,
+      // which is the order specified in all calling methods.
+      JobBlocked obj = new JobBlocked();
+      try {
+          obj.setId(rs.getInt(1));
+          obj.setRecoveryId(rs.getInt(2));
+          obj.setCreated(rs.getTimestamp(3).toInstant());
+          obj.setSuccessStatus(JobStatusType.valueOf(rs.getString(4)));
+          obj.setJobUuid(rs.getString(5));
+          obj.setStatusMessage(rs.getString(6));
+
+      } 
+      catch (Exception e) {
+        String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
+        _log.error(msg, e);
+        throw new TapisJDBCException(msg, e);
+      }
+        
+      return obj;
+    }
 }

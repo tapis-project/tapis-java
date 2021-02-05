@@ -161,7 +161,7 @@ public final class JobBlockedDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", "tenantId", e.getMessage());
+          String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
           throw new JobException(msg, e);
       }
       finally {

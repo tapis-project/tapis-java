@@ -14,6 +14,8 @@ import com.rabbitmq.client.Envelope;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
+import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -197,6 +199,19 @@ public final class JobQueueManager
       return qmParms;
   }
   
+  /* ---------------------------------------------------------------------------- */
+  /* queueJob:                                                                    */
+  /* ---------------------------------------------------------------------------- */
+  public void queueJob(Job job) throws JobException
+  {
+      // Create the message.
+      var message = new JobSubmitMsg();
+      message.setCreated(job.getCreated().toString());
+      message.setUuid(job.getUuid());
+      var jsonMessage = TapisGsonUtils.getGson().toJson(message);
+      postSubmitQueue(job.getTapisQueue(), jsonMessage);
+  }
+
   /* ---------------------------------------------------------------------- */
   /* doRefreshQueueInfo:                                                    */
   /* ---------------------------------------------------------------------- */
@@ -707,7 +722,7 @@ public final class JobQueueManager
               if (!exchangeCreated) {
                   try {channel.exchangeDeclare(exchangeName, "direct", durable, autodelete, exchangeArgs);}
                       catch (Exception e) {
-                          String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_TENANT_ERROR", exchangeName, 
+                          String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
                                                         getOutConnectionName(), channel.getChannelNumber(), 
                                                         e.getMessage());
                           throw new TapisQueueException(msg, e);

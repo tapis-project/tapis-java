@@ -11,7 +11,7 @@ public class RecoverShutdownMsg
 {
     // Fields.
     private boolean force = true;
-    private String  tenantId;
+    private String  queueName;
     
     // Constructors.
     public RecoverShutdownMsg() {super(RecoverMsgType.RECOVER_SHUTDOWN, "UnknownSender");}
@@ -24,12 +24,11 @@ public class RecoverShutdownMsg
     public void setForce(boolean force) {
         this.force = force;
     }
-
-    public String getTenantId() {
-        return tenantId;
+    
+    public String getQueueName() {
+        return queueName;
     }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
     }
 }

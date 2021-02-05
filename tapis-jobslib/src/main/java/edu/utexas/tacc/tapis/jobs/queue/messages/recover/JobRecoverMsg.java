@@ -6,6 +6,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoverConditionCode;
@@ -27,8 +28,11 @@ public class JobRecoverMsg
     /* ********************************************************************** */
     /*                              Constructor                               */
     /* ********************************************************************** */
+    // For testing only.
     public JobRecoverMsg() {super(RecoverMsgType.RECOVER, "UnknownSender");}
-    public JobRecoverMsg(String senderId) {super(RecoverMsgType.RECOVER, senderId);}
+    
+    // Use static create method.
+    private JobRecoverMsg(String senderId) {super(RecoverMsgType.RECOVER, senderId);}
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -43,6 +47,7 @@ public class JobRecoverMsg
     // parameters stable.
     //
     private  String                  jobUuid;          // Job in wait state
+    private  String                  jobOwner;         // Job's owner
     private  String                  tenantId;         // Job's tenant ID
     private  RecoverConditionCode    conditionCode;    // Reason for waiting
     private  RecoverPolicyType       policyType;       // Next attempt policy 
@@ -99,48 +104,52 @@ public class JobRecoverMsg
      * @throws JobException on an invalid field value
      */
     public void validate()
-     throws JobException
+     throws JobInputException
     {
         // Many null checks.
         if (jobUuid == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "jobUuid");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
+        }
+        if (jobOwner == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "jobOwner");
+            throw new JobInputException(msg);
         }
         if (tenantId == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "tenantId");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (conditionCode == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "conditionCode");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (testerType == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "testerType");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (testerParameters == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "testerParameters");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (testerHash == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "testerHash");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (policyType == null) {
             String msg = MsgUtils.getMsg("TAPISE_NULL_PARAMETER", "validate", "policyType");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (policyParameters == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "policyParameters");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (successStatus == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "successStatus");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
         if (statusMessage == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "statusMessage");
-            throw new JobException(msg);
+            throw new JobInputException(msg);
         }
     }
     
@@ -182,6 +191,7 @@ public class JobRecoverMsg
         
         // Fill in the other message fields.
         rmsg.setJobUuid(job.getUuid());
+        rmsg.setJobOwner(job.getOwner());
         rmsg.setTenantId(job.getTenant());
         rmsg.setConditionCode(conditionCode);
         rmsg.setPolicyType(policyType);
@@ -208,6 +218,14 @@ public class JobRecoverMsg
         this.jobUuid = jobUuid;
     }
 
+    public String getJobOwner() {
+        return jobOwner;
+    }
+
+    public void setJobOwner(String jobOwner) {
+        this.jobOwner = jobOwner;
+    }
+    
     public String getTenantId() {
         return tenantId;
     }

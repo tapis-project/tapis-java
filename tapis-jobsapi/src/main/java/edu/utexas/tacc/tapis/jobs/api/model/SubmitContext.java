@@ -854,7 +854,7 @@ public final class SubmitContext
         }
         
         // Special case where the job name may reference one or more ground macros.  Any of the previously
-        // assigned macro can be referenced, subsequent macro assignments are not available.
+        // assigned macros can be referenced, subsequent macro assignments are not available.
         _submitReq.setName(replaceMacros(_submitReq.getName()));
         _macros.put(JobTemplateVariables.JobName.name(), _submitReq.getName());
         
@@ -908,11 +908,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private String resolveMacros(String text) throws TapisException
     {
-        // Initialize the resolver for the current context.
-        if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
-        
         // Return the text with all the macros replaced by their resolved values.
-        return _macroResolver.resolve(text);
+        return getMacroResolver().resolve(text);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -920,11 +917,17 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private String replaceMacros(String text)
     {
-        // Initialize the resolver for the current context.
-        if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
-        
         // Return the text with all the macros replaced by their existing values.
-        return _macroResolver.replaceMacros(text);
+        return getMacroResolver().replaceMacros(text);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getMacroResolver:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    private MacroResolver getMacroResolver()
+    {
+        if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
+        return _macroResolver;
     }
     
     /* ---------------------------------------------------------------------------- */

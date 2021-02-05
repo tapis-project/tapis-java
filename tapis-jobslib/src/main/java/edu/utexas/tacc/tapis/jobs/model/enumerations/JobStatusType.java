@@ -58,11 +58,11 @@ public enum JobStatusType
 	public static String getNonActiveSQLString()
 	{
 	    // Construct the quoted string with commas.
-	    return "'" + FINISHED.name() + "', '"
-	               + FAILED.name()   + "', '"
-	               + CANCELLED.name()  + "', '"
-	               + BLOCKED.name()  + "', '" 
-	               + PAUSED.name()   + "'";
+	    return "'" + FINISHED.name()  + "::job_status_enum', '"
+	               + FAILED.name()    + "::job_status_enum', '"
+	               + CANCELLED.name() + "::job_status_enum', '"
+	               + BLOCKED.name()   + "::job_status_enum', '" 
+	               + PAUSED.name()    + "::job_status_enum'";
 	}
 
 	// Construct the string on terminal to be used
@@ -70,9 +70,9 @@ public enum JobStatusType
 	public static String getTerminalSQLString()
 	{
 		// Construct the quoted string with commas.
-		return "'"  + FINISHED.name() + "', '"
-					+ FAILED.name()   + "', '"
-					+ CANCELLED.name()  + "'";
+		return "'"  + FINISHED.name()  + "::job_status_enum', '"
+					+ FAILED.name()    + "::job_status_enum', '"
+					+ CANCELLED.name() + "::job_status_enum'";
 	}
 
 }
