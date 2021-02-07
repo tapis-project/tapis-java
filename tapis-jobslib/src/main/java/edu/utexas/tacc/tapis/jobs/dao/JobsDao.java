@@ -25,6 +25,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 
@@ -181,11 +182,43 @@ public final class JobsDao
 	      return list;
 	    }
 
+    /* ---------------------------------------------------------------------- */  
+    /* getJobByUUID:                                                          */
+    /* ---------------------------------------------------------------------- */
+	/** Get the specified job or return null if not found.
+	 * 
+	 * @param uuid the job to retrieve
+	 * @return the job object or null if not found
+	 * @throws JobException on error (other than job not found)
+	 */
+    public Job getJobByUUID(String uuid) 
+      throws JobException
+    {
+        // The TapisNotFoundException cannot happen since set the throwNotFound
+        // flag as false, but we have account for the exception here to keep it
+        // off of the method signature.  All other exceptions pass through to 
+        // the caller.
+        try {return getJobByUUID(uuid, false);}
+            catch (TapisNotFoundException e) {return null;}
+    }
+    
 	/* ---------------------------------------------------------------------- */  
 	/* getJobByUUID:                                                          */
 	/* ---------------------------------------------------------------------- */
-	public Job getJobByUUID(String uuid) 
-	  throws JobException
+    /** Get the specified job or throw an exception depending on the value of
+     * the throwNotFound flag.  If the flag is true and the job is not found,
+     * then the TapisNotFoundException exeeption is thrown.  If the flag is false
+     * and the job is not found, null is returned.
+     * 
+     * @param uuid the job to retrieve
+     * @param throwNotFound on not found condition, true means throw exception, 
+     *                      false means return null
+     * @return the job or null
+     * @throws JobException on all errors other than not found
+     * @throws TapisNotFoundException on job not found and throwNotFound=true
+     */
+	public Job getJobByUUID(String uuid, boolean throwNotFound) 
+	  throws JobException, TapisNotFoundException
 	{
 	    // ------------------------- Check Input -------------------------
 	    if (StringUtils.isBlank(uuid)) {
@@ -241,6 +274,12 @@ public final class JobsDao
 	              _log.error(msg, e);
 	            }
 	      }
+	    
+	    // Make sure we found a job.
+	    if (result == null && throwNotFound) {
+	        String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", uuid);
+	        throw new TapisNotFoundException(msg, uuid);
+	    }
 	      
 	    return result;
 	}

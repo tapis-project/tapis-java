@@ -26,6 +26,7 @@ import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.reader.RecoveryReader;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** This singleton class is the ultimate processor of job all recovery messages.  It 
@@ -679,15 +680,17 @@ public final class RecoveryManager
             
             // Retrieve the job.
             Job job = null;
-            try {job = _jobsDao.getJobByUUID(blockedJob.getJobUuid());}
+            try {job = _jobsDao.getJobByUUID(blockedJob.getJobUuid(), true);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
                                              blockedJob.getJobUuid(), e.getMessage());
                 _log.error(msg, e);
 
-                // Fail the job.
-                String name = getClass().getSimpleName();
-                failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg);
+                // Fail the job as long as it might exist.
+                if (!(e instanceof TapisNotFoundException)) {
+                    String name = getClass().getSimpleName();
+                    failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg);
+                }
                 continue;
             }
             

@@ -13,6 +13,7 @@ import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 public final class JobsImpl 
@@ -77,7 +78,11 @@ public final class JobsImpl
         
         // ----- Get the job.
         Job job = null;
-        try {job = getJobsDao().getJobByUUID(jobUuid);}
+        try {job = getJobsDao().getJobByUUID(jobUuid, true);}
+        catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
+        }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
