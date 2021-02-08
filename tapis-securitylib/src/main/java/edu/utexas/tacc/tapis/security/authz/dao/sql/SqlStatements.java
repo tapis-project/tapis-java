@@ -119,7 +119,7 @@ public class SqlStatements
       "ON CONFLICT DO NOTHING";
   public static final String ROLE_ADD_CHILD_ROLE_BY_ID =
       "INSERT INTO sk_role_tree " +
-      "(tenant, parent_role_id, child_role_id, createdby_tenant, updatedby, updatedby_tenant) " +
+      "(tenant, parent_role_id, child_role_id, createdby, createdby_tenant, updatedby, updatedby_tenant) " +
       "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING"; // caller guarantees same tenant for roles
   public static final String ROLE_REMOVE_CHILD_ROLE_BY_ID =
       "DELETE FROM sk_role_tree where tenant = ? and parent_role_id = ? and child_role_id = ?";
