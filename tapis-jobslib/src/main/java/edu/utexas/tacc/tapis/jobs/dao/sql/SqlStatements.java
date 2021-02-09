@@ -48,7 +48,7 @@ public class SqlStatements
         + " WHERE uuid = ?";
     
     public static final String SELECT_JOBS_STATUS_BY_UUID =
-            "SELECT uuid, id,  owner, tenant, status, createdby"
+            "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
             + " FROM jobs"
             + " WHERE uuid = ?";
     

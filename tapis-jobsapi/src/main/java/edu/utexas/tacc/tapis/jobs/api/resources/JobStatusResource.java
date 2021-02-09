@@ -26,6 +26,7 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDisplay;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -101,7 +102,6 @@ public class JobStatusResource
      /* ---------------------------------------------------------------------------- */
      @GET
      @Path("/{jobUuid}/status")
-     @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Retrieve status of a previously submitted job by its UUID.\n\n"
@@ -159,7 +159,7 @@ public class JobStatusResource
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
        
-       // ------------------------- Retrieve Job -----------------------------
+       // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
@@ -185,10 +185,21 @@ public class JobStatusResource
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+       
+       } else if(!jobstatus.getVisible()) {
+    	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+       	   _log.warn(msg);
+       	   ResultName missingName = new ResultName();
+       	   missingName.name = jobUuid;
+       	   RespName r = new RespName(missingName);
+       	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
+            msg, prettyPrint, r)).build();
        }
        
        // Success.
-       RespGetJobStatus r = new RespGetJobStatus(jobstatus.getStatus().toString());
+       JobStatusDisplay resultStatus = new JobStatusDisplay ();
+       resultStatus.setStatus(jobstatus.getStatus().toString());
+       RespGetJobStatus r = new RespGetJobStatus(resultStatus);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), prettyPrint, r)).build();
      }

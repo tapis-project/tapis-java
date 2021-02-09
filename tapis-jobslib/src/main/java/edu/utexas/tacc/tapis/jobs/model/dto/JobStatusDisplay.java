@@ -1,9 +1,13 @@
 package edu.utexas.tacc.tapis.jobs.model.dto;
 
 public class JobStatusDisplay {
-	String status;
+	private String status;
 	
-	public JobStatusDisplay(String status){
+	public JobStatusDisplay() {}
+	public void setStatus(String status){
 		this.status=status;
+	}
+	public String getStatus() {
+		return status;
 	}
 }

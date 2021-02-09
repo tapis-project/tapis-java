@@ -6,10 +6,11 @@ public class JobStatusDTO {
 	private String jobUuid;
 	private JobStatusType status;
 	private String owner;
-	private int visible;
+	private boolean visible;
 	private long jobId;
 	private String tenant;
 	private String createdby;
+	private String createdbyTenant;
 	
 	public JobStatusDTO() {};
 
@@ -33,10 +34,10 @@ public class JobStatusDTO {
 	public void setOwner(String owner) {
 		this.owner = owner;
 	}
-	public int getVisible() {
+	public boolean getVisible() {
 		return visible;
 	}
-	public void setVisible(int visible) {
+	public void setVisible(boolean visible) {
 		this.visible = visible;
 	}
 	public long getJobId() {
@@ -58,5 +59,11 @@ public class JobStatusDTO {
 	}
 	public void setCreatedBy(String createdby) {
 		this.createdby = createdby;
+	}
+	public String getCreatedByTenant() {
+		return createdbyTenant;
+	}
+	public void setCreatedByTenant(String createdbyTenant) {
+		this.createdbyTenant = createdbyTenant;
 	}
 }

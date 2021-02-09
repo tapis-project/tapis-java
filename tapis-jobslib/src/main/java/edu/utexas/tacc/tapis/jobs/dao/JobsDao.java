@@ -242,7 +242,7 @@ public final class JobsDao
 	}
 
 	/* ---------------------------------------------------------------------- */  
-	/* getJobStatusByUUID:                                                          */
+	/* getJobStatusByUUID:                                                    */
 	/* ---------------------------------------------------------------------- */
 	public JobStatusDTO getJobStatusByUUID(String uuid) 
 	  throws JobException
@@ -273,6 +273,7 @@ public final class JobsDao
 	                      
 	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
+	         
 	          // Quick check.
 	  	      if (rs == null) return null;
 	  	    
@@ -285,8 +286,8 @@ public final class JobsDao
 	  	    	  String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
 	  	    	  throw new TapisJDBCException(msg, e);
 	  	      }
-	          //result = rs.getString(1);
-	       // Extract the status from the result set.
+	          
+	  	      // Extract the status from the result set.
 	            
 	            jobStatus.setJobUuid(rs.getString(1));
 	            jobStatus.setJobId(rs.getInt(2));
@@ -294,6 +295,8 @@ public final class JobsDao
 	            jobStatus.setTenant(rs.getString(4));
 	            jobStatus.setStatus(JobStatusType.valueOf(rs.getString(5)));
 	            jobStatus.setCreatedBy(rs.getString(6));
+	            jobStatus.setVisible(rs.getBoolean(7));
+	            jobStatus.setCreatedByTenant(rs.getString(8));
 	          
 	          // Close the result and statement.
 	          rs.close();

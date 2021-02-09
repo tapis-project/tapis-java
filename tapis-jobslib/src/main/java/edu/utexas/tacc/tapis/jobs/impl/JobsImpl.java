@@ -87,16 +87,16 @@ public final class JobsImpl
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
         if (!tenant.equals(job.getTenant())) {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
-        if (!user.equals(job.getOwner()) && 
-            !user.equals(job.getCreatedby()) && 
-            !isAdminSafe(user, tenant)) 
-        {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+	        if (!user.equals(job.getOwner()) && 
+	            !user.equals(job.getCreatedby()) && 
+	            !isAdminSafe(user, tenant)) 
+	        {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
         
         // Could be null if not found.
         return job;
@@ -126,22 +126,25 @@ public final class JobsImpl
         JobStatusDTO jobstatus = null;
         try {jobstatus = getJobsDao().getJobStatusByUUID(jobUuid);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
-        if (!tenant.equals(jobstatus.getTenant())) {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
-        if (!user.equals(jobstatus.getOwner()) && 
-            !user.equals(jobstatus.getCreatedBy()) && 
-            !isAdminSafe(user, tenant)) 
-        {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+        if(jobstatus != null) {
+	        if (!tenant.equals(jobstatus.getTenant())) {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+	        if (!user.equals(jobstatus.getOwner()) && 
+	            !user.equals(jobstatus.getCreatedBy()) && 
+	            !isAdminSafe(user, tenant) &&
+	        	!user.equals(jobstatus.getCreatedByTenant()))
+	        {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
         }
         
         // Could be null if not found.

@@ -8,6 +8,6 @@ public final class RespGetJobStatus
  extends RespAbstract
 {
     public JobStatusDisplay result;
-    public RespGetJobStatus(String jobstatus)  {result = new JobStatusDisplay(jobstatus);}
+    public RespGetJobStatus(JobStatusDisplay jobstatus)  {result = jobstatus;}
 }
 
