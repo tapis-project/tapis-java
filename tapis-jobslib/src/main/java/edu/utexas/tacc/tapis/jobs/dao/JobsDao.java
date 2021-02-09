@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
@@ -282,6 +283,94 @@ public final class JobsDao
 	    }
 	      
 	    return result;
+	}
+
+	/* ---------------------------------------------------------------------- */  
+	/* getJobStatusByUUID:                                                    */
+	/* ---------------------------------------------------------------------- */
+	public JobStatusDTO getJobStatusByUUID(String uuid) 
+	  throws JobException
+	{
+	    // ------------------------- Check Input -------------------------
+	    if (StringUtils.isBlank(uuid)) {
+	        String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobsStatusByUUID", "uuid");
+	        throw new JobException(msg);
+	    }
+	      
+	     
+	    // Initialize result.
+	    JobStatusDTO jobStatus = new JobStatusDTO();
+
+	    // ------------------------- Call SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          // Get the select command.
+	          String sql = SqlStatements.SELECT_JOBS_STATUS_BY_UUID;
+	          
+	          // Prepare the statement and fill in the placeholders.
+	          PreparedStatement pstmt = conn.prepareStatement(sql);
+	          pstmt.setString(1, uuid);
+	                      
+	          // Issue the call for the 1 row result set.
+	          ResultSet rs = pstmt.executeQuery();
+	         
+	          // Quick check.
+	  	      if (rs == null) return null;
+	  	    
+	  	      try {
+	  	    	  // Return null if the results are empty or exhausted.
+	  	    	  // This call advances the cursor.
+	  	    	  if (!rs.next()) return null;
+	  	      }
+	  	      catch (Exception e) {
+	  	    	  String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+	  	    	  throw new TapisJDBCException(msg, e);
+	  	      }
+	          
+	  	      // Extract the status from the result set.
+	            
+	            jobStatus.setJobUuid(rs.getString(1));
+	            jobStatus.setJobId(rs.getInt(2));
+	            jobStatus.setOwner(rs.getString(3));
+	            jobStatus.setTenant(rs.getString(4));
+	            jobStatus.setStatus(JobStatusType.valueOf(rs.getString(5)));
+	            jobStatus.setCreatedBy(rs.getString(6));
+	            jobStatus.setVisible(rs.getBoolean(7));
+	            jobStatus.setCreatedByTenant(rs.getString(8));
+	          
+	          // Close the result and statement.
+	          rs.close();
+	          pstmt.close();
+	    
+	          // Commit the transaction.
+	          conn.commit();
+	      }
+	      catch (Exception e)
+	      {
+	          // Rollback transaction.
+	          try {if (conn != null) conn.rollback();}
+	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+	          
+	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", uuid, e.getMessage());
+	          throw new JobException(msg, e);
+	      }
+	      finally {
+	          // Always return the connection back to the connection pool.
+	          try {if (conn != null) conn.close();}
+	            catch (Exception e) 
+	            {
+	              // If commit worked, we can swallow the exception.  
+	              // If not, the commit exception will be thrown.
+	              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+	              _log.error(msg, e);
+	            }
+	      }
+	      
+	    return jobStatus;
 	}
 
 	/* ---------------------------------------------------------------------- */

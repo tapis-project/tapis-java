@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.dao.sql;
 
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+
 public class SqlStatements 
 {
 	/* ---------------------------------------------------------------------- */
@@ -44,6 +46,11 @@ public class SqlStatements
             + "tapis_queue, visible, createdby, createdby_tenant, tags"
         + " FROM jobs"
         + " WHERE uuid = ?";
+    
+    public static final String SELECT_JOBS_STATUS_BY_UUID =
+            "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
+            + " FROM jobs"
+            + " WHERE uuid = ?";
     
     // All of the job fields except:
     // 
