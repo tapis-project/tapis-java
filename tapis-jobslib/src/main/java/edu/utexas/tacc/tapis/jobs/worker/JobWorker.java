@@ -95,7 +95,7 @@ public final class JobWorker
         
       // Parameters cannot be null.
       if (parms == null) {
-        String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "JobWorker", "parms");
+        String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobWorker", "parms");
         _log.error(msg);
         throw new IllegalArgumentException(msg);
       }
@@ -444,14 +444,14 @@ public final class JobWorker
     public void uncaughtException(Thread t, Throwable e) 
     {
         // Record the error.
-        _log.error(MsgUtils.getMsg("ALOE_THREAD_UNCAUGHT_EXCEPTION", _parms.name, e.toString()));
+        _log.error(MsgUtils.getMsg("TAPIS_THREAD_UNCAUGHT_EXCEPTION", _parms.name, e.toString()));
         e.printStackTrace(); // stderr for emphasis
         
         // ---- Do nothing if its not a known thread.
         if (!(t instanceof JobWorkerThread)) {
             // This shouldn't happen since we determine a compile time which
             // threads we are going to restart using this method.
-            String msg = MsgUtils.getMsg("ALOE_THREAD_DIED", t.getName(), t.getId(), 
+            String msg = MsgUtils.getMsg("TAPIS_THREAD_DIED", t.getName(), t.getId(), 
                                          e.getClass().getSimpleName(), e);
             _log.error(msg);
             return;
@@ -479,7 +479,7 @@ public final class JobWorker
             else {
               // We have an unknown subclass of JobWorkerThread!
               // Log the information and return.
-              _log.error(MsgUtils.getMsg("ALOE_THREAD_UNKNOWN_RESTART_TYPE", 
+              _log.error(MsgUtils.getMsg("TAPIS_THREAD_UNKNOWN_RESTART_TYPE", 
                                          oldWorker.getName(), oldWorker.getId(),
                                          _parms.name, _uuid.toString(), 
                                          e.getClass().getSimpleName(),
@@ -492,7 +492,7 @@ public final class JobWorker
             newWorker.setUncaughtExceptionHandler(this);
                 
             // Log more information.
-            _log.error(MsgUtils.getMsg("ALOE_THREAD_RESTART", 
+            _log.error(MsgUtils.getMsg("TAPIS_THREAD_RESTART", 
                                        oldWorker.getName(), oldWorker.getId(),
                                        _parms.name, _uuid.toString(), 
                                        e.getClass().getSimpleName(),
@@ -503,7 +503,7 @@ public final class JobWorker
         }
         else {
             // Too many restarts in the configured time window.
-            _log.error(MsgUtils.getMsg("ALOE_TOO_MANY_RESTARTS_TERMINATION", 
+            _log.error(MsgUtils.getMsg("TAPIS_TOO_MANY_RESTARTS_TERMINATION", 
                                        oldWorker.getName(), oldWorker.getId(),
                                        _threadRestartThrottle.getLimit(),
                                        _threadRestartThrottle.getSeconds()));

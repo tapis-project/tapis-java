@@ -6,10 +6,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -188,6 +190,148 @@ public final class Job
             if (useDTN) return DEFAULT_DTN_SYSTEM_OUTPUT_DIR;
               else return DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         return StringUtils.removeEnd(inputDir, "/") + "/output";
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateForExecution:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    /** Final validation performed just before job execution.  All required fields,
+     * calculated or user supplied, have to be valid by this time.  All the requirements
+     * of front-end processing and database constraints are double-checked here.
+     * 
+     * @throws JobException on invalid job content
+     */
+    @Schema(hidden = true)
+    public void validateForExecution()
+     throws JobException
+    {
+        // Check the expected values of all fields that should be assigned
+        // after the job has been created in the database but before any 
+        // execution processing has occurred.
+        if (id < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "id", id);
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(name)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "name");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(owner)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "owner");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "tenant");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(description)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "description");
+            throw new JobException(msg);
+        }
+        if (status == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "status");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(lastMessage)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "lastMessage");
+            throw new JobException(msg);
+        }
+        if (created == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "created");
+            throw new JobException(msg);
+        }
+        if (lastUpdated == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "lastUpdated");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(uuid)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "uuid");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(appId)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "appId");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(appVersion)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "appVersion");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(execSystemId)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "execSystemId");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(execSystemExecDir)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "execSystemExecDir");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(execSystemInputDir)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "execSystemInputDir");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(execSystemOutputDir)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "execSystemOutputDir");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(archiveSystemId)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "archiveSystemId");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(archiveSystemDir)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "archiveSystemDir");
+            throw new JobException(msg);
+        }
+        if (nodeCount < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "nodeCount", nodeCount);
+            throw new JobException(msg);
+        }
+        if (coresPerNode < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "coresPerNode", coresPerNode);
+            throw new JobException(msg);
+        }
+        if (memoryMB < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "memoryMB", memoryMB);
+            throw new JobException(msg);
+        }
+        if (maxMinutes < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "maxMinutes", maxMinutes);
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(fileInputs)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "fileInputs");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(parameterSet)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(subscriptions)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "subscriptions");
+            throw new JobException(msg);
+        }
+        if (remoteSubmitRetries < 0) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "remoteSubmitRetries", remoteSubmitRetries);
+            throw new JobException(msg);
+        }
+        if (remoteChecksSuccess < 0) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "remoteChecksSuccess", remoteChecksSuccess);
+            throw new JobException(msg);
+        }
+        if (remoteChecksFailed < 0) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "remoteChecksFailed", remoteChecksFailed);
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(tapisQueue)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "tapisQueue");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(createdby)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "createdby");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(createdbyTenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "createdbyTenant");
+            throw new JobException(msg);
+        }
     }
     
     /* **************************************************************************** */

@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -66,7 +67,7 @@ final class JobQueueProcessor
       
       // Read messages from the tenant topic queue that bind to:
       //
-      //    aloe.jobq.<user-selected-queue-name-suffix>
+      //    tapis.jobq.<user-selected-queue-name-suffix>
       //
       String[] bindingKeys = new String[] {queueName};
       
@@ -324,6 +325,64 @@ final class JobQueueProcessor
           _log.debug("\n------------------------\nProcessing job:\n" + 
                      TapisUtils.toString(job) + "\n------------------------\n");
       
+      // ------------------ Initial validation --------------------
+      // Validate the job specification.
+      try {job.validateForExecution();}
+          catch (Exception e) {
+              String msg = MsgUtils.getMsg("JOBS_INVALID_JOB", job.getUuid(), e.getMessage());
+              throw JobUtils.tapisify(e, msg);
+          }
+    
+      // Check for non-runnable state. This includes the BLOCKED state
+      // which means that the job has experienced a recoverable error
+      // and is undergoing recovery processing.  See putJobIntoRecovery()
+      // for details.
+      if (!job.getStatus().isActive()) {
+          String msg = MsgUtils.getMsg("JOBS_INACTIVE_JOB_REMOVED", job.getUuid(), job.getStatus());
+          _log.warn(msg);
+          return false;
+      }
+    
+      // Set the default return code to cause a positive ack to rabbitmq.
+      boolean rc = true;
+      
+      // ------------------ Run the Job ---------------------------
+      // The main processing loop advances state to state.
+      boolean keepProcessing = true;
+      while (keepProcessing) {
+          // Use the result of each case to determine if we iterate.
+          keepProcessing = switch (job.getStatus()) {
+          
+              // Normal processing states.
+              case PENDING           -> doPending(job);
+              case PROCESSING_INPUTS -> doProcessingInputs(job);
+              case STAGING_INPUTS    -> doStagingInputs(job);
+              case STAGING_JOB       -> doStagingJob(job);
+              case SUBMITTING_JOB    -> doSubmittingJob(job);
+              case QUEUED            -> doQueued(job);
+              case RUNNING           -> doRunning(job);
+              case ARCHIVING         -> doArchiving(job);
+
+              // Terminal states.
+              case CANCELLED         -> {rc = false; yield false;}
+              case FAILED            -> {rc = false; yield false;}
+              case FINISHED          -> false;
+              
+              // States that should never be encountered here.
+              case BLOCKED           -> throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.BLOCKED));
+              case PAUSED            -> throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.PAUSED));
+              
+              // Unaccounted for state!
+              default                -> throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNKNOWN_STATUS", job.getUuid(), job.getStatus()));
+          };
+      }
+      
+      // Acknowledge the queue message.
+      return rc;
+      
 //      // ================== Pre-Phase Processing ==================
 //      // ------------------ Initial validation --------------------
 //      // Validate the job specification.
@@ -432,8 +491,229 @@ final class JobQueueProcessor
 //              }
 //          archivingPhase = null; // allow memory reclamation
 //      }
-      
-      // Acknowledge the queue message.
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doPending:                                                             */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doPending(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doProcessingInputs:                                                    */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doProcessingInputs(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doStagingInputs:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doStagingInputs(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doStagingJob:                                                          */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doStagingJob(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doSubmittingJob:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doSubmittingJob(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doQueued:                                                              */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doQueued(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doRunning:                                                             */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doRunning(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
+      return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* doArchiving:                                                           */
+  /* ---------------------------------------------------------------------- */
+  /** This method processes jobs that are in its named state.  This processing 
+   * always results in one of the following outcomes:
+   * 
+   *  - return true to continue job processing in a new state
+   *  - throw a recoverable exception which will cause the job to be put into
+   *      recovery in a blocked state
+   *  - throw async exception as the result of receiving certain asynchronous commands
+   *  - throw an unrecoverable exception to fail this job
+   * 
+   * @param job the currently executing job
+   * @return true to continue processing the job 
+   * @throws TapisException on recoverable or unrecoverable condition
+   * @throws JobAsyncCmdException on terminating asynchronous command 
+   */
+  private boolean doArchiving(Job job)
+   throws TapisException, JobAsyncCmdException
+  {
+      // *** Async command check ***
+      var jobCtx = job.getJobCtx(); 
+      jobCtx.checkCmdMsg();
+    
+      // True means continue processing the job.
       return true;
   }
   
