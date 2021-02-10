@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.killers;
+package edu.utexas.tacc.tapis.jobs.launchers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,18 +6,15 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 
-/** Kill a job on the remote system.
- * @author rcardone
- */
-public abstract class AbstractJobKiller 
- implements JobKiller 
+abstract class AbstractJobLauncher
+ implements JobLauncher
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-	private static final Logger _log = LoggerFactory.getLogger(AbstractJobKiller.class);
-	
+    private static final Logger _log = LoggerFactory.getLogger(AbstractJobLauncher.class);
+
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -30,7 +27,7 @@ public abstract class AbstractJobKiller
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    protected AbstractJobKiller(JobExecutionContext jobCtx)
+    protected AbstractJobLauncher(JobExecutionContext jobCtx)
     {
         _jobCtx = jobCtx;
         _job    = jobCtx.getJob();

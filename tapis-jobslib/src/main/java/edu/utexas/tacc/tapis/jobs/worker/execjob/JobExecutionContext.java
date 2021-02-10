@@ -1,14 +1,18 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.AppsClient;
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
+import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -40,6 +44,7 @@ public final class JobExecutionContext
     
     // Tapis resources.
     private TSystem                  _executionSystem;
+    private App                      _app;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -78,11 +83,24 @@ public final class JobExecutionContext
     {
         // Load the execution system on first use.
         if (_executionSystem == null) {
-            _executionSystem = loadSystemDefinition(getSystemsClient(), 
-                                 _job.getExecSystemId(), true, "execution");
+            _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
+                                     _job.getExecSystemId(), true, "execution");
         }
         
         return _executionSystem;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getApp:                                                                */
+    /* ---------------------------------------------------------------------- */
+    public App getApp() throws TapisImplException 
+    {
+        // Load the execution system on first use.
+        if (_app == null) 
+            _app = loadAppDefinition(getServiceClient(AppsClient.class), 
+                                     _job.getAppId(), _job.getAppVersion());
+        
+        return _app;
     }
     
     /* ********************************************************************** */
@@ -92,6 +110,8 @@ public final class JobExecutionContext
     
     public void setExecutionSystem(TSystem executionSystem) 
        {_executionSystem = executionSystem;}
+    
+    public void setApp(App app) {_app = app;}
     
     public String getFinalMessage() {return _finalMessage;}
     public void setFinalMessage(String finalMessage) {_finalMessage = finalMessage;}
@@ -147,7 +167,7 @@ public final class JobExecutionContext
         // See if there the job received a cancel message
         // and reset the job's message field to null.
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
-        if (cmdMsg == null || cmdMsg.msgType != cmdMsg.msgType.JOB_CANCEL) return false; 
+        if (cmdMsg == null || cmdMsg.msgType != CmdType.JOB_CANCEL) return false; 
         
         // Execute the cancel and indicate it by passing back true.
         try {JobExecutionUtils.executeCmdMsg(this, cmdMsg, JobStatusType.CANCELLED);}
@@ -170,29 +190,30 @@ public final class JobExecutionContext
     /*                            Private Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------------- */
-    /* getSystemsClient:                                                            */
+    /* getServiceClient:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** Get a new or cached Systems service client.  This can only be called after
+    /** Get a new or cached Apps service client.  This can only be called after
      * the request tenant and owner have be assigned.
      * 
      * @return the client
      * @throws TapisImplException
      */
-    private SystemsClient getSystemsClient() throws TapisImplException
+    private <T> T getServiceClient(Class<T> cls) throws TapisImplException
     {
         // Get the application client for this user@tenant.
-        SystemsClient systemsClient = null;
+        T client = null;
         try {
-            systemsClient = ServiceClients.getInstance().getClient(
-                    _job.getOwner(), _job.getTenant(), SystemsClient.class);
+            client = ServiceClients.getInstance().getClient(
+                    _job.getOwner(), _job.getTenant(), cls);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Systems", 
+            var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", serviceName, 
                                          _job.getTenant(), _job.getOwner());
             throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        return systemsClient;
+        return client;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -243,4 +264,48 @@ public final class JobExecutionContext
         return system;
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* loadAppDefinition:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    private App loadAppDefinition(AppsClient appsClient, String appId, String appVersion)
+      throws TapisImplException
+    {
+        // Load the system definition.
+        App app = null;
+        try {app = appsClient.getApp(appId, appVersion);} 
+        catch (TapisClientException e) {
+            // Determine why we failed.
+            String appString = appId + "-" + appVersion;
+            String msg;
+            switch (e.getCode()) {
+                case 400:
+                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INPUT_ERROR", appString, _job.getOwner(), 
+                                          _job.getTenant());
+                break;
+                
+                case 401:
+                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_AUTHZ_ERROR", appString, "READ", 
+                                          _job.getOwner(), _job.getTenant());
+                break;
+                
+                case 404:
+                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_NOT_FOUND", appString, _job.getOwner(), 
+                                          _job.getTenant());
+                break;
+                
+                default:
+                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", appString, _job.getOwner(), 
+                                          _job.getTenant());
+            }
+            throw new TapisImplException(msg, e, e.getCode());
+        }
+        catch (Exception e) {
+            String appString = appId + "-" + appVersion;
+            String msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", appString, _job.getOwner(), 
+                                         _job.getTenant());
+            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
+        }
+        
+        return app;
+    }
 }

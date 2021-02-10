@@ -59,7 +59,7 @@ public final class JobExecutionUtils
         if (newStatus.isTerminal())
             try {
                 // We never know if the attack worked.
-                JobKiller killer = JobKillerFactory.getInstance(job, jobCtx.getExecutionSystem());
+                JobKiller killer = JobKillerFactory.getInstance(jobCtx);
                 killer.attack();
             } catch (Exception e) {
                 _log.warn(MsgUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
