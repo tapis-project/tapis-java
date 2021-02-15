@@ -16,7 +16,10 @@ import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-/** This jax-rs filter performs the following:
+/** This jax-rs filter checks whether Vault is available and, if not, will
+ * attempt to reconnect to it.  If Vault is not available, there's no
+ * point in attempting to satisfy any secrets request, so we quickly
+ * return an error to the user.
  * 
  * This filter is expected to run after all other authentication filters.
  * 

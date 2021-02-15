@@ -636,7 +636,7 @@ public final class UserImpl
     /* ---------------------------------------------------------------------- */
     /* grantRoleInternal:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** Grant the any internal-use role to the user without checking whether the
+    /** Grant the internal-use role to the user without checking whether the
      * requestor is also an administrator.  This method should only be used
      * by SK code, never by clients.
      * 

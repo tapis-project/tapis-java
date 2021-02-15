@@ -26,6 +26,11 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+/** Main JAX-RS application configuration class. This is the first SK code
+ * that executes when the web application is loaded. 
+ * 
+ * @author rcardone
+ */
 @OpenAPIDefinition(
         info = @Info(title = "Tapis Security API",
                      version = "0.1",
