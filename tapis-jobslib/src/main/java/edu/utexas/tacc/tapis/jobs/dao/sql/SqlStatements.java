@@ -104,12 +104,12 @@ public class SqlStatements
 
     public static final String COUNT_ACTIVE_SYSTEM_QUEUE_JOBS = 
         "SELECT count(*) FROM jobs"
-        + " WHERE tenant = ? AND exec_system_id = ? AND remote_queue = ?"
+        + " WHERE tenant = ? AND exec_system_id = ? AND exec_system_logical_queue = ?"
         + " AND status NOT IN (:statusList)";
 
     public static final String COUNT_ACTIVE_SYSTEM_USER_QUEUE_JOBS = 
         "SELECT count(*) FROM jobs"
-        + " WHERE tenant = ? AND exec_system_id = ? AND owner = ? AND remote_queue = ?"
+        + " WHERE tenant = ? AND exec_system_id = ? AND owner = ? AND exec_system_logical_queue = ?"
         + " AND status NOT IN (:statusList)";
 
 	/* ---------------------------------------------------------------------- */

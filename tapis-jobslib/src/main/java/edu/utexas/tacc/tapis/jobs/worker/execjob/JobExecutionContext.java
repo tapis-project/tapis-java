@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
+import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
 
 public final class JobExecutionContext
@@ -45,6 +46,7 @@ public final class JobExecutionContext
     // Tapis resources.
     private TSystem                  _executionSystem;
     private App                      _app;
+    private LogicalQueue             _logicalQueue;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -101,6 +103,33 @@ public final class JobExecutionContext
                                      _job.getAppId(), _job.getAppVersion());
         
         return _app;
+    }
+    
+
+    /* ---------------------------------------------------------------------- */
+    /* getLogicalQueue:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** This method can only throw an exception if the exec system cannot be 
+     * retrieved.  If the exec system or the logical queue are already cached,
+     * no exceptions will be thrown.
+     * 
+     * @return the job's logical queue or null
+     * @throws TapisImplException when the exec system cannot be retrieved
+     */
+    public LogicalQueue getLogicalQueue() throws TapisImplException 
+    {
+        // Select the job's logical queue.
+        if (_logicalQueue == null) {
+            String queueName = _job.getExecSystemLogicalQueue();
+            var logicalQueues = getExecutionSystem().getBatchLogicalQueues();
+            if (logicalQueues != null && !StringUtils.isBlank(queueName))
+                for (var q : logicalQueues) 
+                    if (q.getName().equals(queueName)) {
+                        _logicalQueue = q;
+                        break;
+                    }
+        }
+        return _logicalQueue;
     }
     
     /* ********************************************************************** */

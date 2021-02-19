@@ -256,8 +256,7 @@ public final class RecoveryUtils
         {
             rex.state.put(JobRecoveryDefinitions.BLOCKED_JOB_ACTIVITY, activityStr);
         }
-  }
-
+    }
 
     /* ********************************************************************** */
     /*                            Private Methods                             */

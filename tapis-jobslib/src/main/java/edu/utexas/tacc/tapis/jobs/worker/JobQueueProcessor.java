@@ -19,6 +19,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.QuotaChecker;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -506,7 +507,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -517,6 +518,12 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // ------------------ Quota Checks --------------------------
+      // Determine if the job can proceed based on the various tapis
+      // quotas placed on the execution systems, users and batchqueues.
+      try {(new QuotaChecker(jobCtx)).checkQuotas();;}
+          catch (Exception e) {throw JobUtils.tapisify(e);}
+      
       // True means continue processing the job.
       return true;
   }
@@ -534,7 +541,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -562,7 +569,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -590,7 +597,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -618,7 +625,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -646,7 +653,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -674,7 +681,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */
@@ -702,7 +709,7 @@ final class JobQueueProcessor
    *  - throw an unrecoverable exception to fail this job
    * 
    * @param job the currently executing job
-   * @return true to continue processing the job 
+   * @return true to continue processing the job, false to quit processing 
    * @throws TapisException on recoverable or unrecoverable condition
    * @throws JobAsyncCmdException on terminating asynchronous command 
    */

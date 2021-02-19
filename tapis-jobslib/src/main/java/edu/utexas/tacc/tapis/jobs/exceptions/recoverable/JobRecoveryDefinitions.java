@@ -11,6 +11,6 @@ public final class JobRecoveryDefinitions
     
     // Let's indicate exactly what we were doing when we ran into a blocking condition.
     // This information is added to the state saved in some recoverable exceptions.
-    public enum BlockedJobActivity {CHECK_SYSTEMS, CHECK_QUOTA, STAGING_INPUTS, STAGED, STAGING_JOB,
+    public enum BlockedJobActivity {CHECK_SYSTEMS, CHECK_QUOTA, PROCESSING_INPUTS, STAGING_INPUTS, STAGING_JOB,
                                     SUBMITTING, RUNNING, MONITORING, ARCHIVING}
 }
