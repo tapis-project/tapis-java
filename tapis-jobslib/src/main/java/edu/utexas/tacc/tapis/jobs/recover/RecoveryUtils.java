@@ -60,7 +60,7 @@ public final class RecoveryUtils
      * of JobRecoverableException are themselves trigger exceptions when they
      * are the top-level exception passed into this method.  The other trigger
      * exceptions are found in the edu.utexas.tacc.tapis.shared.exceptions.recoverable
-     * package in the aloe-shared project. These exceptions will be discovered
+     * package in the tapis-shared project. These exceptions will be discovered
      * if they appear anywhere in the chain of causal exceptions starting with
      * the top-level exception passed into this method.  
      * 
@@ -73,7 +73,7 @@ public final class RecoveryUtils
     {
         // There's nothing to do if we already have a recoverable exception.
         // Note that recoverable exceptions should always be top-level; they
-        // should never be wrapped in other exceptions.  See JobUtils.aloeify()
+        // should never be wrapped in other exceptions.  See JobUtils.tapisify()
         // for details.
         if (e instanceof JobRecoverableException) return (JobRecoverableException)e;
         
@@ -166,7 +166,7 @@ public final class RecoveryUtils
     /* ---------------------------------------------------------------------- */
     /* captureQuotaState:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** Capture the information need to check all aloe enforced job quotas.
+    /** Capture the information need to check all tapis enforced job quotas.
      * If values are missing, we use defaults that cause quota checks to be
      * skipped so that all keys are always assigned a non-null value. 
      * 
@@ -175,8 +175,8 @@ public final class RecoveryUtils
      * quotas for faster processing in almost all cases.  Specifically, if an
      * execution system's quotas change after a job is in recovery, the job
      * will still use the old quota values during recovery testing.  On the plus
-     * side, the execution system and batchqueue definitions do not have to be
-     * loaded during recovery.  The only database calls that must be issued
+     * side, the execution system and logical queue definitions do not have to
+     * be loaded during recovery.  The only database calls that must be issued
      * during recovery are those that query the jobs table to determine if
      * quotas are still exceeded. 
      * 
@@ -201,7 +201,7 @@ public final class RecoveryUtils
      */
     public static TreeMap<String,String> captureQuotaState(TSystem execSys,
                                                            Job job, 
-                                                           LogicalQueue remoteQueue)
+                                                           LogicalQueue logicalQueue)
     {
         TreeMap<String,String> state = new TreeMap<>();
         state.put("tenantId", execSys.getTenant());
@@ -219,12 +219,12 @@ public final class RecoveryUtils
 
         // The batchqueue should never be null, but we check to be safe.
         // In either case we always assign a non-null value to each key.
-        if (remoteQueue == null) {
+        if (logicalQueue == null) {
             state.put("maxQueueJobs", Integer.toString(DEFAULT_MAX_JOBS));
             state.put("maxUserQueueJobs", Integer.toString(DEFAULT_MAX_USER_JOBS));
         } else {
-            state.put("maxQueueJobs", Integer.toString(remoteQueue.getMaxJobs()));
-            state.put("maxUserQueueJobs", Integer.toString(remoteQueue.getMaxJobsPerUser()));
+            state.put("maxQueueJobs", Integer.toString(logicalQueue.getMaxJobs()));
+            state.put("maxUserQueueJobs", Integer.toString(logicalQueue.getMaxJobsPerUser()));
         }
         
         return state;
