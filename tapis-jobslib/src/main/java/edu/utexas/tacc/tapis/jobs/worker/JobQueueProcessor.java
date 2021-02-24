@@ -551,6 +551,10 @@ final class JobQueueProcessor
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
+      
+      // Create the input and output directories useb by this job.
+      try {jobCtx.createDirectories();}
+          catch (Exception e) {throw JobUtils.tapisify(e);}
     
       // True means continue processing the job.
       return true;

@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.model.enumerations;
 
 /** These template variables can be referenced using a ${varName} specification
- * when submitting a job.  These values will also be prefixed with "" and passed 
+ * when submitting a job.  These values will also be prefixed with "_tapis" and passed 
  * as environment variables into the application.  For example, the "JobName" template
  * variable value is assigned to the environment variable "_tapisJobName" when the 
  * application launches.

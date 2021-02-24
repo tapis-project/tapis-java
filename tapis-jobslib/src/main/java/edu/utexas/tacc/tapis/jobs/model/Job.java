@@ -280,6 +280,16 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "archiveSystemDir");
             throw new JobException(msg);
         }
+        if (!StringUtils.isBlank(dtnSystemId)) {
+            if (StringUtils.isBlank(dtnMountPoint)) {
+                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnMountPoint");
+                throw new JobException(msg);
+            }
+            if (StringUtils.isBlank(dtnMountSourcePath)) {
+                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnMountSourcePath");
+                throw new JobException(msg);
+            }
+        }
         if (nodeCount < 1) {
             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "nodeCount", nodeCount);
             throw new JobException(msg);

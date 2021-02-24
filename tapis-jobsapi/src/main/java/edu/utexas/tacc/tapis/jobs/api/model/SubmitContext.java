@@ -425,6 +425,17 @@ public final class SubmitContext
                                             _dtnSystem.getId());
                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
            }
+           // Make sure all required dtn definitions are assigned.
+           if (StringUtils.isBlank(_execSystem.getDtnMountPoint())) {
+               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+                                            _dtnSystem.getId(), "dtnMountPoint");
+               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+           }
+           if (StringUtils.isBlank(_execSystem.getDtnMountSourcePath())) {
+               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+                                            _dtnSystem.getId(), "dtnMountSourcePath");
+               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+           }
         }
         
         // --------------------- Archive System ------------------

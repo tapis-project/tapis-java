@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -32,7 +33,7 @@ public final class JobExecutionContext
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionContext.class);
     
     // HTTP codes defined here so we don't reference jax-rs classes on the backend.
-    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+    public static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -45,8 +46,12 @@ public final class JobExecutionContext
     
     // Tapis resources.
     private TSystem                  _executionSystem;
+    private TSystem                  _archiveSystem;
+    private TSystem                  _dtnSystem;
     private App                      _app;
     private LogicalQueue             _logicalQueue;
+    private JobFileManager           _jobFileManager;
+    private JobIOTargets             _jobIOTargets;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -93,6 +98,40 @@ public final class JobExecutionContext
     }
     
     /* ---------------------------------------------------------------------- */
+    /* getArchiveSystem:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public TSystem getArchiveSystem() throws TapisImplException 
+    {
+        // Load the archive system on first use.
+        if (_archiveSystem == null) {
+            if (_job.getExecSystemId().equals(_job.getArchiveSystemId()))
+                _archiveSystem = _executionSystem;
+            if (_archiveSystem == null)    
+                _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
+                                                      _job.getArchiveSystemId(), true, "archive");
+        }
+        
+        return _archiveSystem;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDtnSystem:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public TSystem getDtnSystem() throws TapisImplException 
+    {
+        // The dtn system is optional.
+        if (_job.getDtnSystemId() == null) return null;
+        
+        // Load the execution system on first use.
+        if (_dtnSystem == null) {
+            _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
+                                              _job.getDtnSystemId(), true, "dtn");
+        }
+        
+        return _dtnSystem;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* getApp:                                                                */
     /* ---------------------------------------------------------------------- */
     public App getApp() throws TapisImplException 
@@ -105,7 +144,6 @@ public final class JobExecutionContext
         return _app;
     }
     
-
     /* ---------------------------------------------------------------------- */
     /* getLogicalQueue:                                                       */
     /* ---------------------------------------------------------------------- */
@@ -130,6 +168,36 @@ public final class JobExecutionContext
                     }
         }
         return _logicalQueue;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobFileManager:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public JobFileManager getJobFileManager() 
+    {
+        if (_jobFileManager == null) _jobFileManager = new JobFileManager(this);
+        return _jobFileManager;
+    } 
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobIOTargets:                                                       */
+    /* ---------------------------------------------------------------------- */
+    public JobIOTargets getJobIOTargets() throws TapisImplException 
+    {
+        if (_jobIOTargets == null) 
+            _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
+        return _jobIOTargets;
+    } 
+    
+    /* ---------------------------------------------------------------------- */
+    /* createDirectories:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public void createDirectories() throws TapisImplException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobFileManager().createDirectories(getServiceClient(FilesClient.class));
     }
     
     /* ********************************************************************** */
@@ -336,5 +404,17 @@ public final class JobExecutionContext
         }
         
         return app;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* initSystems:                                                           */
+    /* ---------------------------------------------------------------------- */
+    private void initSystems() throws TapisImplException
+    {
+        // Load the jobs systems to force any exceptions
+        // to be surfaced at this point.
+        getExecutionSystem();
+        getArchiveSystem();
+        getDtnSystem();
     }
 }
