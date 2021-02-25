@@ -583,7 +583,11 @@ final class JobQueueProcessor
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
-    
+      
+      // Stage inputs.
+      try {jobCtx.stageInputs();}
+      catch (Exception e) {throw JobUtils.tapisify(e);}
+
       // True means continue processing the job.
       return true;
   }

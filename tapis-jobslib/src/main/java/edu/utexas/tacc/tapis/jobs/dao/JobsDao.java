@@ -107,6 +107,13 @@ public final class JobsDao
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
     
+    /* ********************************************************************** */
+    /*                                 Enums                                  */
+    /* ********************************************************************** */
+    // Determine which file transfer value is updated.
+    public enum TransferValueType {InputTransferId, InputCorrelationId, 
+                                   ArchiveTransferId, ArchiveCorrelationId}
+    
 	/* ********************************************************************** */
 	/*                              Constructors                              */
 	/* ********************************************************************** */
@@ -296,7 +303,6 @@ public final class JobsDao
 	        String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobsStatusByUUID", "uuid");
 	        throw new JobException(msg);
 	    }
-	      
 	     
 	    // Initialize result.
 	    JobStatusDTO jobStatus = new JobStatusDTO();
@@ -332,15 +338,14 @@ public final class JobsDao
 	  	      }
 	          
 	  	      // Extract the status from the result set.
-	            
-	            jobStatus.setJobUuid(rs.getString(1));
-	            jobStatus.setJobId(rs.getInt(2));
-	            jobStatus.setOwner(rs.getString(3));
-	            jobStatus.setTenant(rs.getString(4));
-	            jobStatus.setStatus(JobStatusType.valueOf(rs.getString(5)));
-	            jobStatus.setCreatedBy(rs.getString(6));
-	            jobStatus.setVisible(rs.getBoolean(7));
-	            jobStatus.setCreatedByTenant(rs.getString(8));
+	          jobStatus.setJobUuid(rs.getString(1));
+	          jobStatus.setJobId(rs.getInt(2));
+	          jobStatus.setOwner(rs.getString(3));
+	          jobStatus.setTenant(rs.getString(4));
+	          jobStatus.setStatus(JobStatusType.valueOf(rs.getString(5)));
+	          jobStatus.setCreatedBy(rs.getString(6));
+	          jobStatus.setVisible(rs.getBoolean(7));
+	          jobStatus.setCreatedByTenant(rs.getString(8));
 	          
 	          // Close the result and statement.
 	          rs.close();
@@ -591,6 +596,96 @@ public final class JobsDao
     }
     
     /* ---------------------------------------------------------------------- */
+    /* updateInputTransferTag:                                                */
+    /* ---------------------------------------------------------------------- */
+    public void updateTransferValue(Job job, String value, TransferValueType type) 
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateInputTransferTag", "job");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(value)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "updateInputTransferTag", "value");
+            throw new JobException(msg);
+        }
+        
+        // Get current time.
+        var now = Instant.now();
+
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Insert into the jobs table first.
+          // Create the command using table definition field order.
+          String sql = switch (type) {
+              case InputTransferId      -> SqlStatements.UPDATE_INPUT_TRANSFER_ID;
+              case InputCorrelationId   -> SqlStatements.UPDATE_INPUT_CORR_ID;
+              case ArchiveTransferId    -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
+              case ArchiveCorrelationId -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
+          };
+          
+          // Prepare the chosen statement.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setTimestamp(1, Timestamp.from(now));
+          pstmt.setString(2, value);
+          pstmt.setInt(3, job.getId());
+          pstmt.setString(4, job.getTenant());
+          
+          // Issue the call and check that one record was updated.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) {
+              String parms = StringUtils.joinWith(", ", now, value, job.getId(), job.getTenant());
+              String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+              throw new JobException(msg);
+          }
+             
+          // Close the result and statement.
+          pstmt.close();
+        
+          // Commit the transaction.
+          conn.commit();
+          
+          // Update the in-memory job with the latest information.
+          job.setLastUpdated(now);
+          switch (type) {
+              case InputTransferId:      job.setInputTransactionId(value); break;
+              case InputCorrelationId:   job.setInputCorrelationId(value); break;
+              case ArchiveTransferId:    job.setArchiveTransactionId(value); break;
+              case ArchiveCorrelationId: job.setArchiveCorrelationId(value); break;
+          }
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getName(), 
+                                         job.getTenant(), job.getOwner(), 
+                                         type.name(), value, e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* failJob:                                                               */
     /* ---------------------------------------------------------------------- */
     /** Set the specified job to the terminal FAILED state when the caller does
@@ -689,7 +784,6 @@ public final class JobsDao
             int rows = pstmt.executeUpdate();
             if (rows != 1) {
                 String msg = MsgUtils.getMsg("DB_LAST_MESSAGE_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, finalMessage);
-                _log.error(msg);
                 throw new JobException(msg);
             }
 

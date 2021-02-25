@@ -111,6 +111,18 @@ public class SqlStatements
         "SELECT count(*) FROM jobs"
         + " WHERE tenant = ? AND exec_system_id = ? AND owner = ? AND exec_system_logical_queue = ?"
         + " AND status NOT IN (:statusList)";
+    
+    public static final String UPDATE_INPUT_TRANSFER_ID = 
+        "UPDATE jobs SET last_updated = ?, input_transaction_id = ? WHERE id = ? AND tenant_id = ?";
+
+    public static final String UPDATE_INPUT_CORR_ID = 
+        "UPDATE jobs SET last_updated = ?, input_correlation_id = ? WHERE id = ? AND tenant_id = ?";
+
+    public static final String UPDATE_ARCHIVE_TRANSFER_ID = 
+        "UPDATE jobs SET last_updated = ?, archive_transaction_id = ? WHERE id = ? AND tenant_id = ?";
+
+    public static final String UPDATE_ARCHIVE_CORR_ID = 
+        "UPDATE jobs SET last_updated = ?, archive_correlation_id = ? WHERE id = ? AND tenant_id = ?";
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */

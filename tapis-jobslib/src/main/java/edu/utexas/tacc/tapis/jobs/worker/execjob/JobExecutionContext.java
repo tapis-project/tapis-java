@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -197,7 +198,45 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobFileManager().createDirectories(getServiceClient(FilesClient.class));
+        getJobFileManager().createDirectories();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* stageInputs:                                                           */
+    /* ---------------------------------------------------------------------- */
+    public void stageInputs() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobFileManager().stageInputs();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getServiceClient:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Apps service client.  This can only be called after
+     * the request tenant and owner have be assigned.
+     * 
+     * @return the client
+     * @throws TapisImplException
+     */
+    public <T> T getServiceClient(Class<T> cls) throws TapisImplException
+    {
+        // Get the application client for this user@tenant.
+        T client = null;
+        try {
+            client = ServiceClients.getInstance().getClient(
+                    _job.getOwner(), _job.getTenant(), cls);
+        }
+        catch (Exception e) {
+            var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", serviceName, 
+                                         _job.getTenant(), _job.getOwner());
+            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return client;
     }
     
     /* ********************************************************************** */
@@ -286,33 +325,6 @@ public final class JobExecutionContext
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
-    /* ---------------------------------------------------------------------------- */
-    /* getServiceClient:                                                            */
-    /* ---------------------------------------------------------------------------- */
-    /** Get a new or cached Apps service client.  This can only be called after
-     * the request tenant and owner have be assigned.
-     * 
-     * @return the client
-     * @throws TapisImplException
-     */
-    private <T> T getServiceClient(Class<T> cls) throws TapisImplException
-    {
-        // Get the application client for this user@tenant.
-        T client = null;
-        try {
-            client = ServiceClients.getInstance().getClient(
-                    _job.getOwner(), _job.getTenant(), cls);
-        }
-        catch (Exception e) {
-            var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");
-            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", serviceName, 
-                                         _job.getTenant(), _job.getOwner());
-            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
-        }
-
-        return client;
-    }
-    
     /* ---------------------------------------------------------------------------- */
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */

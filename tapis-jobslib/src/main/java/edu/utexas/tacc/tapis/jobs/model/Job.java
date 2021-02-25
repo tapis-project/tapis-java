@@ -1,10 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.model;
 
+import java.lang.reflect.Type;
 import java.time.Instant;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
+
+import com.google.gson.reflect.TypeToken;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
@@ -12,6 +16,8 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.InputSpec;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -29,6 +35,7 @@ public final class Job
 	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
+	public static final String EMPTY_JSON_ARRAY = "[]";
 	
 	// Default directory assignments.  All paths are relative to their system's 
 	// rootDir unless otherwise noted.  Leading slashes are optional on relative
@@ -83,7 +90,7 @@ public final class Job
     private int      			memoryMB = DEFAULT_MEM_MB;
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     
-    private String   			fileInputs = EMPTY_JSON;
+    private String   			fileInputs = EMPTY_JSON_ARRAY;
     private String   			parameterSet = EMPTY_JSON;
     private String              execSystemConstraints;
     private String              subscriptions = EMPTY_JSON;
@@ -120,6 +127,10 @@ public final class Job
     // creates the context in TenantQueueProcessor.
     @Schema(hidden = true)
     private transient JobExecutionContext _jobCtx;
+    
+    // The parsed version of the fileInputs json string cached for future use. 
+    @Schema(hidden = true)
+    private List<InputSpec> _fileInputsSpec;
     
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
@@ -191,7 +202,22 @@ public final class Job
               else return DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         return StringUtils.removeEnd(inputDir, "/") + "/output";
     }
-    
+
+    /* ---------------------------------------------------------------------------- */
+    /* getFileInputsSpec:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    @Schema(hidden = true)
+    public List<InputSpec> getFileInputsSpec() 
+    {
+        // Cache a version of the input spec if it doesn't exist.
+        if (_fileInputsSpec == null) {
+            Type listType = new TypeToken<List<InputSpec>>(){}.getType();
+            _fileInputsSpec = TapisGsonUtils.getGson().fromJson(fileInputs, listType);
+        }
+        
+        return _fileInputsSpec;
+    }
+
     /* ---------------------------------------------------------------------------- */
     /* validateForExecution:                                                        */
     /* ---------------------------------------------------------------------------- */
@@ -820,5 +846,4 @@ public final class Job
     public void setJobCtx(JobExecutionContext jobCtx) {
         this._jobCtx = jobCtx;
     }
-
 }
