@@ -559,13 +559,15 @@ public final class JobsDao
      * transition from the current status to the new status is legal.  This method 
      * commits the update and returns the last update time.
      * 
+     * If the message is null, a standard status update message is generated.
+     * 
      * Note that a new job event for this status change is persisted and can
      * trigger notifications to be sent.  Failures in event processing are not
      * exposed as errors to callers, they are performed on a best-effort basis.   
      * 
      * @param uuid the job whose status is to change    
      * @param newStatus the job's new status
-     * @param message the status message to be saved in the job record
+     * @param message the status message to be saved in the job record or null
      * @return the last update time saved in the job record
      * @throws JobException if the status could not be updated
      */
@@ -578,6 +580,10 @@ public final class JobsDao
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setStatus", "job");
             throw new JobException(msg);
         }
+        
+        // Assign standard status message if none is provided.
+        if (StringUtils.isBlank(message)) 
+            message = "Setting job status to " + newStatus.name() + ".";
         
         // ------------------------- Change Status ----------------------
         // Call the real method.
@@ -981,6 +987,93 @@ public final class JobsDao
 		  return rows;
 	}
 
+    /* ---------------------------------------------------------------------- */
+    /* getTransferInfo:                                                       */
+    /* ---------------------------------------------------------------------- */
+	/** Get input staging and output archiving information for a job.  The 
+	 * transfer and correlations ids are returned.  The result will never be
+	 * null, but any or all of the values contained within it can be null.
+	 * 
+	 * @param jobUuid the job uuid to query
+	 * @return the non-null transfer information record
+	 * @throws JobException error condition
+	 * @throws TapisNotFoundException job not found
+	 */
+	public JobTransferInfo getTransferInfo(String jobUuid) 
+	 throws JobException, TapisNotFoundException
+	{
+        // ------------------------- Check Input -------------------------
+        // Exceptions can be throw from here.
+        if (StringUtils.isBlank(jobUuid)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getTransferInfo", "jobUuid");
+            throw new JobException(msg);
+        }
+        
+        // Initialize result.
+	    JobTransferInfo result = null;
+
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+          {
+              // Get a database connection.
+              conn = getConnection();
+              
+              // Get the select command.
+              String sql = SqlStatements.SELECT_JOB_TRANSFER_INFO;
+              
+              // Prepare the statement and fill in the placeholders.
+              PreparedStatement pstmt = conn.prepareStatement(sql);
+              pstmt.setString(1, jobUuid);
+                          
+              // Issue the call for the 1 row result set.
+              ResultSet rs = pstmt.executeQuery();
+              if (rs != null && rs.next()) {
+                  result = new JobTransferInfo();
+                  result.inputTransactionId   = rs.getString(1);
+                  result.inputCorrelationId   = rs.getString(2);
+                  result.archiveTransactionId = rs.getString(3);
+                  result.archiveCorrelationId = rs.getString(4);
+              }
+              
+              // Close the result and statement.
+              rs.close();
+              pstmt.close();
+        
+              // Commit the transaction.
+              conn.commit();
+          }
+          catch (Exception e)
+          {
+              // Rollback transaction.
+              try {if (conn != null) conn.rollback();}
+                  catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+              
+              String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", jobUuid, e.getMessage());
+              throw new JobException(msg, e);
+          }
+          finally {
+              // Always return the connection back to the connection pool.
+              try {if (conn != null) conn.close();}
+                catch (Exception e) 
+                {
+                  // If commit worked, we can swallow the exception.  
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+                }
+          }
+	    
+        // Make sure we found a job.
+        if (result == null) {
+            String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+            throw new TapisNotFoundException(msg, jobUuid);
+        }
+        
+        // Non-null result.
+	    return result;
+	}
+	
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
@@ -1562,5 +1655,17 @@ public final class JobsDao
 	    }
 	      
 	    return obj;
+	}
+	
+    /* ********************************************************************** */
+    /*                          JobTransferInfo class                         */
+    /* ********************************************************************** */
+	// Container for file transfer information.
+	public static final class JobTransferInfo
+	{
+	    public String inputTransactionId;
+	    public String inputCorrelationId;
+        public String archiveTransactionId;
+	    public String archiveCorrelationId;
 	}
 }

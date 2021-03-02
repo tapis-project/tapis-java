@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.BlockedJobActivity;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobSSHAuthException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobSSHConnectionException;
+import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobServiceConnectionException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobSystemAvailableException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
@@ -29,6 +30,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisQuotaException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHAuthException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHConnectionException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSystemAvailableException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -81,11 +83,9 @@ public final class RecoveryUtils
         // for each trigger type separately and, when one is found, it is wrapped
         // in a new recoverable exception that gets thrown.
         Exception trigger;
-        trigger = TapisUtils.findInChain(e, TapisSSHConnectionException.class);
-        if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHConnectionException)trigger);
-
-        trigger = TapisUtils.findInChain(e, TapisSSHAuthException.class);
-        if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHAuthException)trigger);
+        
+        trigger = TapisUtils.findInChain(e, TapisServiceConnectionException.class);
+        if (trigger != null) return handleTrigger(e, jobCtx, (TapisServiceConnectionException)trigger);
 
         trigger = TapisUtils.findInChain(e, TapisSystemAvailableException.class);
         if (trigger != null) return handleTrigger(e, jobCtx, (TapisSystemAvailableException)trigger);
@@ -96,6 +96,12 @@ public final class RecoveryUtils
         trigger = TapisUtils.findInChain(e, TapisQuotaException.class);
         if (trigger != null) return handleTrigger(e, jobCtx, (TapisQuotaException)trigger);
         
+        trigger = TapisUtils.findInChain(e, TapisSSHConnectionException.class);
+        if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHConnectionException)trigger);
+
+        trigger = TapisUtils.findInChain(e, TapisSSHAuthException.class);
+        if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHAuthException)trigger);
+
         // We found no trigger exception from which we can recover, 
         // so we return null.
         return null;
@@ -231,6 +237,34 @@ public final class RecoveryUtils
     }
 
     /* ---------------------------------------------------------------------- */
+    /* captureServiceConnectionState:                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Capture the state of an unavailable service for which recovery will be
+     * attempted.  All services will be tested using their healthcheck endpoints,
+     * so authentication and authorization do not come into play. 
+     * 
+     * General Guidance
+     * ----------------
+     * The tester parameters are converted to json and then hashed to provide
+     * equivalence classes for jobs in recovery (see JobRecoverMsg.setTesterInfo()
+     * for details).  Tester parameters should not contain extra values not used 
+     * in testing that unnecessarily distinguish the hashes.  The goal is to 
+     * coalesce all jobs blocked on the same condition to be serviced by the same
+     * recovery record.  
+     * 
+     * @param system the execution or storage system that is not currently available
+     * @return the recovery information
+     */
+    public static TreeMap<String,String> captureServiceConnectionState(
+                                               String baseUrl, String serviceName)
+    {
+        TreeMap<String,String> state = new TreeMap<>();
+        state.put("baseUrl", baseUrl);
+        state.put("serviceName", serviceName);
+        return state;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* updateJobActivity:                                                     */
     /* ---------------------------------------------------------------------- */
     /** If it is a recoverable exception then update state to indicate the activity in progress
@@ -261,6 +295,37 @@ public final class RecoveryUtils
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* handleTrigger:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Wrap the exception e in a recoverable job exception based on the type
+     * of the trigger exception.
+     */
+    private static JobRecoverableException handleTrigger(TapisException e, 
+                                                         JobExecutionContext jobCtx,
+                                                         TapisServiceConnectionException trigger)
+    {
+        // Create a recoverable exception that wraps the original.
+        // For Service connection failures, the StepwiseBackoffPolicy will be used.
+        // Setup the parameters to retry for about an hour since we expect services
+        // to be available quickly even after failures.
+        //
+        // We don't set a maximum time since the steps are finite.
+        ArrayList<Pair<Integer,Long>> steps = new ArrayList<>();
+        steps.add(Pair.of(5,   60000L));  // 1 minute
+        steps.add(Pair.of(30, 120000L));  // 2 minutes
+        Gson gson = TapisGsonUtils.getGson(true);
+        String stepsStringValue = gson.toJson(steps);
+
+        TreeMap<String, String> policyParameters = new TreeMap<>();
+        policyParameters.put("steps", stepsStringValue);
+        JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
+                                        RecoveryConfiguration.DFT_CONNECTION_FAILURE, 
+                                        jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
+                                        e.getMessage(), policyParameters, trigger.state);
+        return new JobServiceConnectionException(jobRecoverMsg, e.getMessage(), e);
+    }
+
     /* ---------------------------------------------------------------------- */
     /* handleTrigger:                                                         */
     /* ---------------------------------------------------------------------- */

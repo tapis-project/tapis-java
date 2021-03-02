@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.worker.execjob;
 import java.util.HashSet;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,9 +16,13 @@ import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobFileManager 
 {
@@ -26,6 +31,9 @@ public final class JobFileManager
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobFileManager.class);
+    
+    // Special transfer id value indicating no files to stage.
+    private static final String NO_FILE_INPUTS = "no inputs";
 
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -52,7 +60,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    public void createDirectories() throws TapisImplException
+    public void createDirectories() throws TapisImplException, TapisServiceConnectionException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
@@ -144,70 +152,34 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* stageInputs:                                                           */
     /* ---------------------------------------------------------------------- */
+    /** Perform or restart the input file staging process.  Both recoverable
+     * and non-recoverable exceptions can be thrown from here.
+     * 
+     * @throws TapisException on error
+     */
     public void stageInputs() throws TapisException
     {
-        // Get the client from the context.
-        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+        // Determine if we are restarting a previous staging request.
+        var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
+        String transferId = transferInfo.inputTransactionId;
+        String corrId     = transferInfo.inputCorrelationId;
         
-        // -------------------- Assign Transfer Tasks --------------------
-        // Get the job input objects.
-        var fileInputs = _job.getFileInputsSpec();
-        if (fileInputs.isEmpty()) return;
-        
-        // Create the list of elements to send to files.
-        var tasks = new TransferTaskRequest();
-        
-        // Assign each input task.
-        for (var fileInput : fileInputs) {
-            // Skip files that are already in-place. 
-            if (fileInput.getInPlace() != null && fileInput.getInPlace()) continue;
-            
-            // Assign the task.
-            // TODO: Need to pass required value to Files.
-            var task = new TransferTaskRequestElement().
-                            sourceURI(fileInput.getSourceUrl()).
-                            destinationURI(fileInput.getTargetPath());
-            tasks.addElementsItem(task);
+        // See if the transfer id has been set for this job (this implies the
+        // correlation id has also been set).  If so, then the job had already 
+        // submitted its transfer request and we are now in recovery processing.  
+        // There's no need to resubmit the transfer request in this case.  
+        // 
+        // It's possible that the corrId was set but we died before the transferId
+        // was saved.  In this case, we simply generate a new corrId.
+        if (StringUtils.isBlank(transferId)) {
+            corrId = UUID.randomUUID().toString();
+            transferId = stageNewInputs(corrId);
         }
-        
-        // -------------------- Submit Transfer Request ------------------
-        // Generate the probabilistically unique tag returned in every event
-        // associated with this transfer.
-        var tag = UUID.randomUUID().toString();
-        tasks.setTag(tag);
-        
-        // Save the tag now to avoid any race conditions involving asynchronous events.
-        // The in-memory job is updated with the tag value.
-        _jobCtx.getJobsDao().updateTransferValue(_job, tag, TransferValueType.InputCorrelationId);
-        
-        // Submit the transfer request.
-        TransferTaskResponse resp = null;
-        try {resp = filesClient.transfers().createTransferTask(tasks);} 
-        catch (ApiException e) {
-            String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
-                                         e.getCode(), e.getMessage());
-            throw new TapisImplException(msg, e, e.getCode());
-        }
-        
-        // Get the transfer id.
-        String transferId = null;
-        var transferTask = resp.getResult();
-        if (transferTask != null) {
-            var uuid = transferTask.getUuid();
-            if (uuid != null) transferId = uuid.toString();
-        }
-        if (transferId == null) {
-            String msg = MsgUtils.getMsg("JOBS_NO_TRANSFER_ID", "input", _job.getUuid());
-            throw new JobException(msg);
-        }
-        
-        // Save the transfer id and update the in-memory job with the transfer id.
-        _jobCtx.getJobsDao().updateTransferValue(_job, transferId, TransferValueType.InputTransferId);
         
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
-        monitor.monitorTransfer(_job, transferId, tag);
+        monitor.monitorTransfer(_job, transferId, corrId);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -249,5 +221,113 @@ public final class JobFileManager
     private String getDirectoryKey(String systemId, String directory)
     {
         return systemId + "|" + directory;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* stageNewInputs:                                                        */
+    /* ---------------------------------------------------------------------- */
+    private String stageNewInputs(String tag) throws TapisException
+    {
+        // Get the client from the context.
+        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+        
+        // -------------------- Assign Transfer Tasks --------------------
+        // Get the job input objects.
+        var fileInputs = _job.getFileInputsSpec();
+        if (fileInputs.isEmpty()) return NO_FILE_INPUTS;
+        
+        // Create the list of elements to send to files.
+        var tasks = new TransferTaskRequest();
+        
+        // Assign each input task.
+        for (var fileInput : fileInputs) {
+            // Skip files that are already in-place. 
+            if (fileInput.getInPlace() != null && fileInput.getInPlace()) continue;
+            
+            // Assign the task.
+            // TODO: Need to pass required value to Files.
+            var task = new TransferTaskRequestElement().
+                            sourceURI(fileInput.getSourceUrl()).
+                            destinationURI(fileInput.getTargetPath());
+            tasks.addElementsItem(task);
+        }
+        
+        // -------------------- Submit Transfer Request ------------------
+        // Note that failures can occur between the two database calls leaving
+        // the job record with the correlation id set but not the transfer id.
+        // On recovery, a new correlation id will be issued.
+        
+        // Generate the probabilistically unique tag returned in every event
+        // associated with this transfer.
+        tasks.setTag(tag);
+        
+        // Save the tag now to avoid any race conditions involving asynchronous events.
+        // The in-memory job is updated with the tag value.
+        _jobCtx.getJobsDao().updateTransferValue(_job, tag, TransferValueType.InputCorrelationId);
+        
+        // Submit the transfer request and get the new transfer id.
+        String transferId = createTransferTask(filesClient, tasks);
+        
+        // Save the transfer id and update the in-memory job with the transfer id.
+        _jobCtx.getJobsDao().updateTransferValue(_job, transferId, TransferValueType.InputTransferId);
+        
+        // Return the transfer id.
+        return transferId;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createTransferTask:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Issue a transfer request to Files and return the transfer id.  An
+     * exception is thrown if the new transfer id is not attained.
+     * 
+     * @param tasks the tasks 
+     * @return the new, non-null transfer id generated by Files
+     * @throws TapisImplException 
+     */
+    private String createTransferTask(FilesClient filesClient, TransferTaskRequest tasks) 
+     throws TapisException
+    {
+        // Submit the transfer request.
+        TransferTaskResponse resp = null;
+        try {resp = filesClient.transfers().createTransferTask(tasks);} 
+        catch (Exception e) {
+            // Look for a recoverable error in the exception chain. Recoverable
+            // exceptions are those that might indicate a transient network
+            // or server error, typically involving loss of connectivity.
+            Throwable transferException = 
+                TapisUtils.findFirstMatchingException(e, TapisConstants.CONNECTION_EXCEPTION_PREFIX);
+            if (transferException != null) {
+                throw new TapisServiceConnectionException(transferException.getMessage(), 
+                            e, RecoveryUtils.captureServiceConnectionState(
+                               filesClient.getBasePath(), TapisConstants.FILES_SERVICE));
+            }
+            
+            // Unrecoverable error.
+            if (e instanceof ApiException) {
+                var e1 = (ApiException) e;
+                String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
+                                             e1.getCode(), e1.getMessage());
+                throw new TapisImplException(msg, e1, e1.getCode());
+            } else {
+                String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
+                                             0, e.getMessage());
+                throw new TapisImplException(msg, e, 0);
+            }
+        }
+        
+        // Get the transfer id.
+        String transferId = null;
+        var transferTask = resp.getResult();
+        if (transferTask != null) {
+            var uuid = transferTask.getUuid();
+            if (uuid != null) transferId = uuid.toString();
+        }
+        if (transferId == null) {
+            String msg = MsgUtils.getMsg("JOBS_NO_TRANSFER_ID", "input", _job.getUuid());
+            throw new JobException(msg);
+        }
+        
+        return transferId;
     }
 }

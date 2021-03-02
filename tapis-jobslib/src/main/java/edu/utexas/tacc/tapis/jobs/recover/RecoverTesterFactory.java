@@ -11,6 +11,7 @@ import edu.utexas.tacc.tapis.jobs.recover.testers.ConnectionTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.DatabaseTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.JobSuspendedTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.QuotaTester;
+import edu.utexas.tacc.tapis.jobs.recover.testers.ServiceConnectionTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.SystemTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.TransmissionTester;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
@@ -80,6 +81,8 @@ public class RecoverTesterFactory
                 return new SystemTester(jobRecovery);
             case DEFAULT_APPLICATION_TESTER:
                 return new ApplicationTester(jobRecovery);
+            case DEFAULT_SERVICE_CONNECTION_TESTER:
+                return new ServiceConnectionTester(jobRecovery);
             case DEFAULT_CONNECTION_TESTER:
                 return new ConnectionTester(jobRecovery);
             case DEFAULT_TRANSMISSION_TESTER:

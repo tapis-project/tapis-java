@@ -21,6 +21,7 @@ public final class JobRecoverMsgFactory
     public enum RecoveryConfiguration {
         DFT_SYSTEM_NOT_AVAILABLE,
         DFT_APPLICATION_NOT_AVAILABLE,
+        DFT_SERVICE_CONNECTION_FAILURE,
         DFT_CONNECTION_FAILURE,
         DFT_QUOTA_EXCEEDED,
         DFT_AUTHENTICATION_FAILURE,
@@ -102,6 +103,19 @@ public final class JobRecoverMsgFactory
                         job.getStatus(), 
                         msg, 
                         RecoverTesterType.DEFAULT_APPLICATION_TESTER, 
+                        testerParameters);
+                break;
+                
+            case DFT_SERVICE_CONNECTION_FAILURE:
+                rmsg = JobRecoverMsg.create(
+                        job, 
+                        senderId, 
+                        RecoverConditionCode.SERVICE_CONNECTION_FAILURE, 
+                        RecoverPolicyType.STEPWISE_BACKOFF, 
+                        policyParameters, 
+                        job.getStatus(), 
+                        msg, 
+                        RecoverTesterType.DEFAULT_SERVICE_CONNECTION_TESTER, 
                         testerParameters);
                 break;
                 

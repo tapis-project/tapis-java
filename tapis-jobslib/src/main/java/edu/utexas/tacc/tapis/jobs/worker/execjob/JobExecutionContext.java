@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
-import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -15,11 +14,15 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
+import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
@@ -87,7 +90,8 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getExecutionSystem:                                                    */
     /* ---------------------------------------------------------------------- */
-    public TSystem getExecutionSystem() throws TapisImplException 
+    public TSystem getExecutionSystem() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the execution system on first use.
         if (_executionSystem == null) {
@@ -101,7 +105,8 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getArchiveSystem:                                                      */
     /* ---------------------------------------------------------------------- */
-    public TSystem getArchiveSystem() throws TapisImplException 
+    public TSystem getArchiveSystem() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the archive system on first use.
         if (_archiveSystem == null) {
@@ -118,7 +123,8 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getDtnSystem:                                                          */
     /* ---------------------------------------------------------------------- */
-    public TSystem getDtnSystem() throws TapisImplException 
+    public TSystem getDtnSystem() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         // The dtn system is optional.
         if (_job.getDtnSystemId() == null) return null;
@@ -135,7 +141,8 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getApp:                                                                */
     /* ---------------------------------------------------------------------- */
-    public App getApp() throws TapisImplException 
+    public App getApp() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the execution system on first use.
         if (_app == null) 
@@ -154,8 +161,10 @@ public final class JobExecutionContext
      * 
      * @return the job's logical queue or null
      * @throws TapisImplException when the exec system cannot be retrieved
+     * @throws TapisServiceConnectionException 
      */
-    public LogicalQueue getLogicalQueue() throws TapisImplException 
+    public LogicalQueue getLogicalQueue() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         // Select the job's logical queue.
         if (_logicalQueue == null) {
@@ -183,7 +192,8 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getJobIOTargets:                                                       */
     /* ---------------------------------------------------------------------- */
-    public JobIOTargets getJobIOTargets() throws TapisImplException 
+    public JobIOTargets getJobIOTargets() 
+     throws TapisImplException, TapisServiceConnectionException 
     {
         if (_jobIOTargets == null) 
             _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
@@ -193,7 +203,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    public void createDirectories() throws TapisImplException
+    public void createDirectories() throws TapisImplException, TapisServiceConnectionException
     {
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
@@ -332,7 +342,7 @@ public final class JobExecutionContext
                                          String systemId,
                                          boolean requireExecPerm,
                                          String  systemDesc) 
-      throws TapisImplException
+      throws TapisImplException, TapisServiceConnectionException
     {
         // Load the system definition.
         TSystem system = null;
@@ -340,6 +350,17 @@ public final class JobExecutionContext
         AuthnMethod authnMethod = null;
         try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
         catch (TapisClientException e) {
+            // Look for a recoverable error in the exception chain. Recoverable
+            // exceptions are those that might indicate a transient network
+            // or server error, typically involving loss of connectivity.
+            Throwable transferException = 
+                TapisUtils.findFirstMatchingException(e, TapisConstants.CONNECTION_EXCEPTION_PREFIX);
+            if (transferException != null) {
+                throw new TapisServiceConnectionException(transferException.getMessage(), 
+                            e, RecoveryUtils.captureServiceConnectionState(
+                               systemsClient.getBasePath(), TapisConstants.SYSTEMS_SERVICE));
+            }
+            
             // Determine why we failed.
             String msg;
             switch (e.getCode()) {
@@ -377,12 +398,23 @@ public final class JobExecutionContext
     /* loadAppDefinition:                                                           */
     /* ---------------------------------------------------------------------------- */
     private App loadAppDefinition(AppsClient appsClient, String appId, String appVersion)
-      throws TapisImplException
+      throws TapisImplException, TapisServiceConnectionException
     {
         // Load the system definition.
         App app = null;
         try {app = appsClient.getApp(appId, appVersion);} 
         catch (TapisClientException e) {
+            // Look for a recoverable error in the exception chain. Recoverable
+            // exceptions are those that might indicate a transient network
+            // or server error, typically involving loss of connectivity.
+            Throwable transferException = 
+                TapisUtils.findFirstMatchingException(e, TapisConstants.CONNECTION_EXCEPTION_PREFIX);
+            if (transferException != null) {
+                throw new TapisServiceConnectionException(transferException.getMessage(), 
+                            e, RecoveryUtils.captureServiceConnectionState(
+                               appsClient.getBasePath(), TapisConstants.APPS_SERVICE));
+            }
+            
             // Determine why we failed.
             String appString = appId + "-" + appVersion;
             String msg;
@@ -421,7 +453,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* initSystems:                                                           */
     /* ---------------------------------------------------------------------- */
-    private void initSystems() throws TapisImplException
+    private void initSystems() throws TapisImplException, TapisServiceConnectionException
     {
         // Load the jobs systems to force any exceptions
         // to be surfaced at this point.

@@ -30,7 +30,7 @@ public final class RecoveryReaderThread
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
     public RecoveryReaderThread(ThreadGroup threadGroup, String threadName,
-                                 RecoveryReader reader)
+                                RecoveryReader reader)
     {
         // Save inputs.
         super(threadGroup, threadName);

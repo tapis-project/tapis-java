@@ -205,8 +205,7 @@ final class JobQueueProcessor
     }
     finally {
       // We always want to check the finalMessage field. 
-      if (jobCtx != null)
-       	checkFinalMessageField(jobCtx);
+      if (jobCtx != null) checkFinalMessageField(jobCtx);
     	
       // Always interrupt and clear the job-specific thread 
       // spawned by this thread (if it exists) when we are
@@ -524,6 +523,9 @@ final class JobQueueProcessor
       try {(new QuotaChecker(jobCtx)).checkQuotas();;}
           catch (Exception e) {throw JobUtils.tapisify(e);}
       
+      // Advance job to next state.
+      setState(job, JobStatusType.PROCESSING_INPUTS);
+      
       // True means continue processing the job.
       return true;
   }
@@ -556,6 +558,9 @@ final class JobQueueProcessor
       try {jobCtx.createDirectories();}
           catch (Exception e) {throw JobUtils.tapisify(e);}
     
+      // Advance job to next state.
+      setState(job, JobStatusType.STAGING_INPUTS);
+      
       // True means continue processing the job.
       return true;
   }
@@ -588,6 +593,9 @@ final class JobQueueProcessor
       try {jobCtx.stageInputs();}
       catch (Exception e) {throw JobUtils.tapisify(e);}
 
+      // Advance job to next state.
+      setState(job, JobStatusType.STAGING_JOB);
+      
       // True means continue processing the job.
       return true;
   }
@@ -616,6 +624,9 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Advance job to next state.
+      setState(job, JobStatusType.SUBMITTING_JOB);
+      
       // True means continue processing the job.
       return true;
   }
@@ -644,6 +655,9 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Advance job to next state.
+      setState(job, JobStatusType.QUEUED);
+      
       // True means continue processing the job.
       return true;
   }
@@ -672,6 +686,9 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Advance job to next state.
+      setState(job, JobStatusType.RUNNING);
+      
       // True means continue processing the job.
       return true;
   }
@@ -700,6 +717,9 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Advance job to next state.
+      setState(job, JobStatusType.ARCHIVING);
+      
       // True means continue processing the job.
       return true;
   }
@@ -728,8 +748,29 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Advance job to next state.
+      setState(job, JobStatusType.FINISHED);
+      
       // True means continue processing the job.
       return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* setState:                                                              */
+  /* ---------------------------------------------------------------------- */
+  /** Update the job's database record and in memory object to reflect the
+   * transition to the new status.  
+   * 
+   * Currently, there is no recovery from a failure to update status.
+   * 
+   * @param newStatus a legal new status for the job
+   * @throws JobException 
+   */
+  private void setState(Job job, JobStatusType newStatus) throws JobException
+  {
+      // Get the context.
+      var jobCtx = job.getJobCtx();
+      jobCtx.getJobsDao().setStatus(job, newStatus, null);
   }
   
   /* ---------------------------------------------------------------------- */
@@ -867,13 +908,13 @@ final class JobQueueProcessor
           JobsDao dao = new JobsDao();
           dao.failJob(_jobWorker.getParms().name, job, failMsg);
       }
-      catch (Exception e2) {
+      catch (Exception e) {
           // Double fault, what a mess.  The job will be left in 
           // a non-terminal state and not on any queue.  It's a zombie.
           String msg2 = MsgUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
                                         _jobWorker.getParms().name,
                                         job.getUuid(), job.getTenant());
-          _log.error(msg2, e2);
+          _log.error(msg2, e);
               
           try {
               RuntimeParameters runtime = RuntimeParameters.getInstance();
@@ -883,9 +924,9 @@ final class JobQueueProcessor
                           "Zombie Job Alert " + job.getUuid() + " is in a zombie state.",
                           msg2, HTMLizer.htmlize(msg2));
           }
-          catch (TapisException e3) {
+          catch (TapisException e2) {
               // log msg that we tried to send email notice to CICSupport
-              _log.error(msg2+" Failed to send support Email alert. Email client failed with exception.", e3);
+              _log.error(msg2+" Failed to send support Email alert. Email client failed with exception.", e2);
           }
       }
   }

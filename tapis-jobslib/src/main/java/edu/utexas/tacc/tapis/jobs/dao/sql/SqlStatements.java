@@ -123,6 +123,10 @@ public class SqlStatements
 
     public static final String UPDATE_ARCHIVE_CORR_ID = 
         "UPDATE jobs SET last_updated = ?, archive_correlation_id = ? WHERE id = ? AND tenant_id = ?";
+    
+    public static final String SELECT_JOB_TRANSFER_INFO = 
+        "SELECT input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id" 
+        + " FROM jobs WHERE uuid = ?";    
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
