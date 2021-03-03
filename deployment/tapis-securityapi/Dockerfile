@@ -17,8 +17,14 @@ FROM tomcat:9.0.41-jdk15-openjdk-oracle
 ARG VER
 ARG SRVC_ROOT
 ARG GIT_COMMIT
+ARG BUILD_TIME
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
+
+# Set commit info
+LABEL "GIT_COMMIT"=$GIT_COMMIT
+LABEL "VERSION"=$VER
+LABEL "BUILD_TIME"=$BUILD_TIME
 
 # make security webapp subdirectory.
 RUN mkdir /usr/local/tomcat/webapps/v3
@@ -35,8 +41,6 @@ ENV CATALINA_OPTS -Xms6g -Xmx6g
 # Debug port and http port
 EXPOSE 8000
 EXPOSE 8080
-
-LABEL "GIT_COMMIT"=$GIT_COMMIT
 
 # Launch Tomcat on startup
 CMD ${CATALINA_HOME}/bin/catalina.sh run

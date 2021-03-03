@@ -7,14 +7,15 @@
 #
 # environment : TAPIS_VERSION set to the version in tapis/pom.xml 
 #
-# usage : $TAPIS_ROOT/deployment/build-jobsmigrate.sh
+# usage : $TAPIS_ROOT/deployment/build-jobsworker.sh
 #
 ###########################################################
+
 export VER=${TAPIS_VERSION}
 export TAPIS_ENV=${TAPIS_ENV}
-export SRVC=jobsmigrate
+export SRVC=jobsworker
 export TAPIS_ROOT=$(pwd)
-export SRVC_DIR="${TAPIS_ROOT}/tapis-${SRVC}/target"
+export SRVC_DIR="${TAPIS_ROOT}/tapis-jobslib/target"
 export TAG="tapis/${SRVC}:$VER"
 export BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC}"
 export BUILD_FILE="$BUILD_DIR/Dockerfile"
@@ -45,15 +46,15 @@ echo "BUILD_FILE: $BUILD_FILE"
 echo "GIT_COMMIT: $GIT_COMMIT"
 echo ""
 
-echo "    removing any old service jar files from Docker build context"
-rm $BUILD_DIR/${SRVC}.jar
+echo "    $BUILD_DIR/shaded-jobslib.jar"
+rm $BUILD_DIR/shaded-jobslib.jar
 
-echo "    moving $SRVC.jar to Dockerfile context deployment/tapis-${SRVC} "
-cp $SRVC_DIR/${SRVC}.jar $BUILD_DIR
+echo "    copying $SRVC_DIR/shaded-jobslib.jar $BUILD_DIR "
+cp $SRVC_DIR/shaded-jobslib.jar $BUILD_DIR
 
 echo "    building the docker image from deployment/tapis-${SRVC}/Dockerfile"
-echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=$SRVC.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
-docker image build -f $BUILD_FILE --build-arg SRVC_JAR=${SRVC}.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg BUILD_TIME=$BUILD_TIME -t $TAG$TAPIS_ENV $BUILD_DIR
+echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=shaded-jobslib.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR "
+docker image build -f $BUILD_FILE --build-arg SRVC_JAR=shaded-jobslib.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg BUILD_TIME=$BUILD_TIME -t $TAG$TAPIS_ENV $BUILD_DIR
 
-echo "    removing $BUILD_DIR/${SRVC}.jar"
-rm $BUILD_DIR/${SRVC}.jar
+echo "    $BUILD_DIR/shaded-jobslib.jar"
+rm $BUILD_DIR/shaded-jobslib.jar

@@ -17,14 +17,17 @@ FROM openjdk:15-jdk-oracle
 ARG VER
 ARG SRVC_JAR
 ARG GIT_COMMIT
+ARG BUILD_TIME
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
-# add
-COPY $SRVC_JAR /usr/local/bin/securitymigrate.jar
-
 # Set commit info
 LABEL "GIT_COMMIT"=$GIT_COMMIT
+LABEL "VERSION"=$VER
+LABEL "BUILD_TIME"=$BUILD_TIME
+
+# add
+COPY $SRVC_JAR /usr/local/bin/securitymigrate.jar
 
 # Launch the migration script
 CMD java -jar /usr/local/bin/securitymigrate.jar -h $HOST -p $PORT -u $USER -pw $PW -tpw $TPW $FLAGS 

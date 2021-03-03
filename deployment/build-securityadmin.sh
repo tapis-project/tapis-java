@@ -20,11 +20,18 @@ export BUILD_DIR="$TAPIS_ROOT/deployment/tapis-${SRVC}"
 export BUILD_FILE="$BUILD_DIR/Dockerfile"
 export GIT_COMMIT=${GIT_COMMIT}
 
+export BUILD_TIME="$(awk '{print $1}' ${SRVC_DIR}/classes/build.time)"
+
 # See if we can determine the git commit if it's not already set.
 # Basically, we take the second word in the git.info file.
 if [ -z "${GIT_COMMIT}" ]
 then 
-    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/${SRVC}/WEB-INF/classes/git.info)" 
+    export GIT_COMMIT="$(awk '{print $2}' ${SRVC_DIR}/classes/git.info)" 
+fi
+
+if [ -z "${TAPIS_VERSION}" ]
+then
+    export VER="$(awk '{print $1}' ${SRVC_DIR}/classes/tapis.version)"
 fi
 
 echo "VER: $VER"
@@ -46,7 +53,7 @@ cp $SRVC_DIR/shaded-securitylib.jar $BUILD_DIR
 
 echo "    building the docker image from deployment/tapis-${SRVC}/Dockerfile"
 echo "    docker image build -f $BUILD_FILE --build-arg SRVC_JAR=$SRVC.war --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT -t $TAG-$TAPIS_ENV $BUILD_DIR "
-docker image build -f $BUILD_FILE --build-arg SRVC_JAR=shaded-securitylib.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT  -t $TAG$TAPIS_ENV $BUILD_DIR
+docker image build -f $BUILD_FILE --build-arg SRVC_JAR=shaded-securitylib.jar --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg BUILD_TIME=$BUILD_TIME -t $TAG$TAPIS_ENV $BUILD_DIR
 
 echo "    removing $BUILD_DIR/${SRVC}.jar"
 rm $BUILD_DIR/shaded-securitylib.jar
