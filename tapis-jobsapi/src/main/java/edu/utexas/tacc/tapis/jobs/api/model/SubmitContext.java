@@ -43,6 +43,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
+import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
 
@@ -307,6 +308,9 @@ public final class SubmitContext
             _submitReq.setMaxMinutes(_app.getJobAttributes().getMaxMinutes());
         if (_submitReq.getMaxMinutes() == null)
             _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
+        
+        // Check the just assigned values against queue maximums.
+        validateQueueLimits();
         
         // Merge tags, duplicates may be present at this point.
         var tags = _submitReq.getTags(); // force list creation
@@ -1044,6 +1048,59 @@ public final class SubmitContext
         String msg = MsgUtils.getMsg("JOBS_INVALID_LOGICAL_QUEUE", _app.getId(), 
                 _execSystem.getId(), _submitReq.getTenant(), logicalQueueName, queues);
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateQueueLimits:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** This method checks that the logical queue limits have not been exceeded in
+     * the effective job request.  This method is called after the method
+     * validateExecSystemLogicalQueue(), so we know the queue exists when we are
+     * on a batch system.
+     * 
+     * @throws TapisImplException when a limit has been exceeded
+     */
+    private void validateQueueLimits()
+     throws TapisImplException
+    {
+        // Does this job even use a queue?
+        if (!_execSystem.getJobIsBatch()) return;
+        
+        // Get the queue definition which is guaranteed to exist.
+        var queueName = _submitReq.getExecSystemLogicalQueue();
+        LogicalQueue queue = null;
+        for (var q : _execSystem.getBatchLogicalQueues()) 
+            if (queueName.equals(q.getName())) {queue = q; break;}
+        
+        // Check the effective job request values against each queue defined limit.
+        // The limits should never be null, but we verify anyway.
+        Integer maxNodes = queue.getMaxNodeCount();
+        if (maxNodes != null && _submitReq.getNodeCount() > maxNodes) {
+            String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_NODES", _job.getUuid(), 
+                    _execSystem.getId(), queueName, maxNodes, _submitReq.getNodeCount());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer maxCores = queue.getMaxCoresPerNode();
+        if (maxCores != null && _submitReq.getCoresPerNode() > maxCores) {
+            String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_CORES", _job.getUuid(), 
+                    _execSystem.getId(), queueName, maxCores, _submitReq.getCoresPerNode());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer maxMem = queue.getMaxMemoryMB();
+        if (maxMem != null && _submitReq.getMemoryMB() > maxMem) {
+            String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_MEM", _job.getUuid(), 
+                    _execSystem.getId(), queueName, maxMem, _submitReq.getMemoryMB());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer maxMinutes = queue.getMaxMinutes();
+        if (maxMinutes != null && _submitReq.getMaxMinutes() > maxMinutes) {
+            String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_MINUTES", _job.getUuid(), 
+                    _execSystem.getId(), queueName, maxMinutes, _submitReq.getMaxMinutes());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
