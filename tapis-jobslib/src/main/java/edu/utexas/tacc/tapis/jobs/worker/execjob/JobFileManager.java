@@ -7,11 +7,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
-import edu.utexas.tacc.tapis.files.client.gen.ApiException;
+import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequest;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequestElement;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskResponse;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
@@ -60,7 +60,14 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    public void createDirectories() throws TapisImplException, TapisServiceConnectionException
+    /** Create the directories used for I/O on this job.  The directories may
+     * already exist
+     * 
+     * @throws TapisImplException
+     * @throws TapisServiceConnectionException
+     */
+    public void createDirectories() 
+     throws TapisImplException, TapisServiceConnectionException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
@@ -74,13 +81,13 @@ public final class JobFileManager
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
         try {
-            filesClient.operations().mkdir(ioTargets.getExecTarget().systemId, 
-                                           ioTargets.getExecTarget().dir);
-        } catch (ApiException e) {
+            filesClient.mkdir(ioTargets.getExecTarget().systemId, 
+                              ioTargets.getExecTarget().dir);
+        } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                          ioTargets.getExecTarget().host,
                                          _job.getOwner(), _job.getTenant(),
-                                         ioTargets.getExecTarget().dir);
+                                         ioTargets.getExecTarget().dir, e.getCode());
             throw new TapisImplException(msg, e, e.getCode());
         }
         
@@ -95,13 +102,13 @@ public final class JobFileManager
         if (!createdSet.contains(execSysOutputDirKey)) {
             // Create the directory on the system.
             try {
-                filesClient.operations().mkdir(ioTargets.getOutputTarget().systemId, 
-                                               _job.getExecSystemOutputDir());
-            } catch (ApiException e) {
+                filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
+                                  _job.getExecSystemOutputDir());
+            } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getOutputTarget().host,
                                              _job.getOwner(), _job.getTenant(),
-                                             ioTargets.getOutputTarget().dir);
+                                             ioTargets.getOutputTarget().dir, e.getCode());
                 throw new TapisImplException(msg, e, e.getCode());
             }
             
@@ -116,13 +123,13 @@ public final class JobFileManager
         if (!createdSet.contains(execSysInputDirKey)) {
             // Create the directory on the system.
             try {
-                filesClient.operations().mkdir(ioTargets.getInputTarget().systemId, 
-                                               ioTargets.getInputTarget().dir);
-            } catch (ApiException e) {
+                filesClient.mkdir(ioTargets.getInputTarget().systemId, 
+                                 ioTargets.getInputTarget().dir);
+            } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
                                              _job.getOwner(), _job.getTenant(),
-                                             ioTargets.getInputTarget().dir);
+                                             ioTargets.getInputTarget().dir, e.getCode());
                 throw new TapisImplException(msg, e, e.getCode());
             }
             
@@ -137,13 +144,13 @@ public final class JobFileManager
         if (!createdSet.contains(archiveSysDirKey)) {
             // Create the directory on the system.
             try {
-                filesClient.operations().mkdir(_job.getArchiveSystemId(), 
-                                               _job.getArchiveSystemDir());
-            } catch (ApiException e) {
+                filesClient.mkdir(_job.getArchiveSystemId(), 
+                                  _job.getArchiveSystemDir());
+            } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              _jobCtx.getArchiveSystem().getHost(),
                                              _job.getOwner(), _job.getTenant(),
-                                             _job.getArchiveSystemDir());
+                                             _job.getArchiveSystemDir(), e.getCode());
                 throw new TapisImplException(msg, e, e.getCode());
             }
         }
@@ -200,10 +207,8 @@ public final class JobFileManager
             }
         
         // Issue the cancel command.
-        try {filesClient.transfers().cancelTransferTask(transferId);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-            }
+        try {filesClient.cancelTransferTask(transferId);}
+            catch (Exception e) {_log.error(e.getMessage(), e);}
     }
     
     /* ********************************************************************** */
@@ -289,8 +294,8 @@ public final class JobFileManager
      throws TapisException
     {
         // Submit the transfer request.
-        TransferTaskResponse resp = null;
-        try {resp = filesClient.transfers().createTransferTask(tasks);} 
+        TransferTask task = null;
+        try {task = filesClient.createTransferTask(tasks);} 
         catch (Exception e) {
             // Look for a recoverable error in the exception chain. Recoverable
             // exceptions are those that might indicate a transient network
@@ -304,8 +309,8 @@ public final class JobFileManager
             }
             
             // Unrecoverable error.
-            if (e instanceof ApiException) {
-                var e1 = (ApiException) e;
+            if (e instanceof TapisClientException) {
+                var e1 = (TapisClientException) e;
                 String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
                                              e1.getCode(), e1.getMessage());
                 throw new TapisImplException(msg, e1, e1.getCode());
@@ -318,9 +323,8 @@ public final class JobFileManager
         
         // Get the transfer id.
         String transferId = null;
-        var transferTask = resp.getResult();
-        if (transferTask != null) {
-            var uuid = transferTask.getUuid();
+        if (task != null) {
+            var uuid = task.getUuid();
             if (uuid != null) transferId = uuid.toString();
         }
         if (transferId == null) {

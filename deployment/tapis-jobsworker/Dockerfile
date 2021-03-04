@@ -20,7 +20,7 @@
 # the container's name should always be set on the docker run command to reflect
 # the executing program.
 #
-# A minimum docker run command will look something like this:
+# A minimal docker run command will look something like this:
 #
 #   docker run --name RecoveryReader -e 'MAIN_CLASS=edu.utexas.tacc.tapis.jobs.reader.RecoveryReader' tapis/jobsworker:dev
 #

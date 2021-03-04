@@ -9,16 +9,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
-import edu.utexas.tacc.tapis.files.client.gen.ApiException;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask.StatusEnum;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskResponse;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -93,17 +91,15 @@ public final class PollingMonitor
             // ----------------------- Poll Files -----------------------
             // Get the transfer information.  Recoveryable and unrecoverable
             // exceptions can be thrown here,
-            TransferTaskResponse resp = getTransferTask(job, transferId, filesClient);
+            TransferTask task = getTransferTask(job, transferId, filesClient);
             
             // Check result integrity.
-            TransferTask task = resp.getResult();
-            if (resp == null || resp.getResult() == null || 
-                resp.getResult().getStatus() == null) 
+            if (task == null || task.getStatus() == null) 
             {
                 String msg = MsgUtils.getMsg("JOBS_INVALID_TRANSFER_RESULT", job.getUuid(), transferId, corrId);
                 throw new JobException(msg);
             }
-            StatusEnum status = resp.getResult().getStatus();
+            StatusEnum status = task.getStatus();
             
             // Successful termination, we don't need to poll anymore.
             if (status == StatusEnum.COMPLETED) {
@@ -152,12 +148,21 @@ public final class PollingMonitor
     /* ---------------------------------------------------------------------- */
     /* getTransferTask:                                                       */
     /* ---------------------------------------------------------------------- */
-    private TransferTaskResponse getTransferTask(Job job, String transferId, 
-                                                 FilesClient filesClient) 
+    /** Retrieve the current status of a transfer task.
+     * 
+     * @param job the job who issued the task
+     * @param transferId the task id
+     * @param filesClient the Files client
+     * @return the transfer task or null
+     * @throws TapisImplException unrecoverable error
+     * @throws TapisServiceConnectionException recoverable error
+     */
+    private TransferTask getTransferTask(Job job, String transferId, 
+                                         FilesClient filesClient) 
      throws TapisImplException, TapisServiceConnectionException
     {
-        TransferTaskResponse resp = null;
-        try {resp = filesClient.transfers().getTransferTask(transferId);}
+        TransferTask task = null;
+        try {task = filesClient.getTransferTask(transferId);}
             catch (Exception e) {
                 
                 // Look for a recoverable error in the exception chain. Recoverable
@@ -172,8 +177,8 @@ public final class PollingMonitor
                 }
                 
                 // Unrecoverable error.
-                if (e instanceof ApiException) {
-                    ApiException e1 = (ApiException) e;
+                if (e instanceof TapisClientException) {
+                    TapisClientException e1 = (TapisClientException) e;
                     String msg = MsgUtils.getMsg("JOBS_GET_TRANSFER_ERROR", job.getUuid(),
                                                  transferId, e1.getCode(), e1.getMessage());
                     throw new TapisImplException(msg, e1, e1.getCode());
@@ -185,7 +190,7 @@ public final class PollingMonitor
             }
         
         // No exceptions.
-        return resp;
+        return task;
     }
     
     /* ---------------------------------------------------------------------- */
