@@ -1006,9 +1006,9 @@ final class JobQueueProcessor
           RuntimeParameters runtime = RuntimeParameters.getInstance();
           EmailClient client = EmailClientFactory.getClient(runtime);
           client.send(runtime.getSupportName(),
-              runtime.getSupportEmail(),
-              "Unknown Job Alert: Job " + jobUuid + " is not known.",
-              msg, HTMLizer.htmlize(msg));
+                      runtime.getSupportEmail(),
+                      "Unknown Job Alert: Job " + jobUuid + " is not known.",
+                      msg, HTMLizer.htmlize(msg));
         }
         catch (Exception ae) {
           // log msg that we tried to send email notice to CICSupport

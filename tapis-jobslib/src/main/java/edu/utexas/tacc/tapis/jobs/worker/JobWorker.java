@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -11,19 +12,25 @@ import org.slf4j.MDC;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.event.WkrStatusResp;
 import edu.utexas.tacc.tapis.jobs.utils.Throttle;
 import edu.utexas.tacc.tapis.jobs.worker.JobQueueProcessor.JobTopicThread;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
+import edu.utexas.tacc.tapis.systems.client.gen.model.JobRuntime;
+import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 public final class JobWorker
  implements Thread.UncaughtExceptionHandler
@@ -124,9 +131,13 @@ public final class JobWorker
             throw e;
           }
         
-        // Start the worker.
+        // Start the worker.  Log errors here.
         JobWorker worker = new JobWorker(parms);
-        worker.start();
+        try {worker.start();}
+            catch (Exception e) {
+                _log.error(e.getMessage(), e);
+                throw e;
+            }
     }
 
     /* ---------------------------------------------------------------------- */
@@ -142,12 +153,9 @@ public final class JobWorker
       // Announce our arrival.
       if (_log.isInfoEnabled()) _log.info(getStartUpInfo());
       
-      // Establish our connection to the queue broker.
-      // and initialize queues and topics.  There is 
-      // some redundancy here since each front-end and
-      // each worker initialize all queue artifacts.  
-      // Not a problem, but there's room for improvement.
-      JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());
+      // Initalize the tenants, service context, queue broker and db.
+      // Exceptions can be thrown from here.
+      initWorkerEnv();
       
       // Create all threads groups used by this worker.
       createThreadGroups();
@@ -265,6 +273,83 @@ public final class JobWorker
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* waitForShutdown:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private void initWorkerEnv()
+     throws JobException
+    {
+        // Already initiailized, but assigned for convenience.
+        var parms = RuntimeParameters.getInstance();
+        
+        // Force runtime initialization of the tenant manager.  This creates the
+        // singleton instance of the TenantManager that can then be accessed by
+        // all subsequent application code--including filters--without reference
+        // to the tenant service base url parameter.
+        Map<String,Tenant> tenantMap = null;
+        try {
+            // The base url of the tenants service is a required input parameter.
+            // We actually retrieve the tenant list from the tenant service now
+            // to fail fast if we can't access the list.
+            String url = parms.getTenantBaseUrl();
+            tenantMap = TenantManager.getInstance(url).getTenants();
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        if (!tenantMap.isEmpty()) {
+            String msg = ("\n--- " + tenantMap.size() + " tenants retrieved:\n");
+            for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
+            _log.info(msg);
+        } else {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            throw new JobException(msg);
+        }
+        
+        // ----- Service JWT Initialization
+        ServiceContext serviceCxt = ServiceContext.getInstance();
+        try {
+                 serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
+                                           parms.getServicePassword());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        // Print site info.
+        {
+            var targetSites = serviceCxt.getServiceJWT().getTargetSites();
+            int targetSiteCnt = targetSites != null ? targetSites.size() : 0;
+            String msg = "\n--- " + targetSiteCnt + " target sites retrieved:\n";
+            if (targetSites != null) {
+                for (String site : targetSites) msg += "  " + site + "\n";
+            }
+            _log.info(msg);
+        }
+        
+        // ----- Database Initialization
+        try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueuesDao", e.getMessage());
+             throw new JobException(msg, e);
+         }
+        
+        // ------ Queue Initialization 
+        // Establish our connection to the queue broker.
+        // and initialize queues and topics.  There is 
+        // some redundancy here since each front-end and
+        // each worker initialize all queue artifacts.  
+        // Not a problem, but there's room for improvement.
+        try {JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueueManager", e.getMessage());
+                throw new JobException(msg, e);
+        }   
+        
+        // We're done.
+        _log.info(MsgUtils.getMsg("JOBS_WORKER_INIT_COMPLETE"));
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* initThreadRestartThrottle:                                             */
     /* ---------------------------------------------------------------------- */

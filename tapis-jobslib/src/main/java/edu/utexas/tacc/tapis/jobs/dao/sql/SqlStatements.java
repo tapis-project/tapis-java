@@ -76,11 +76,11 @@ public class SqlStatements
     		+ "?, ?, ?, ?, ?::json, ?::json, ?, ?::json, ?, ?, ?, ?)"; 
 
     public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
-        "SELECT status FROM jobs WHERE tenant_id = ? AND uuid = ? FOR UPDATE";
+        "SELECT status FROM jobs WHERE tenant = ? AND uuid = ? FOR UPDATE";
     
     public static final String UPDATE_JOB_STATUS =
-        "UPDATE jobs SET status = ?, last_message = ?, last_updated = ?, blocked_count = blocked_count + ?"
-        + " WHERE tenant_id = ? AND uuid = ?";
+        "UPDATE jobs SET status = ?::job_status_enum, last_message = ?, last_updated = ?, blocked_count = blocked_count + ?"
+        + " WHERE tenant = ? AND uuid = ?";
     
     public static final String UPDATE_JOB_ENDED =
         "UPDATE jobs SET ended = ? WHERE ended IS NULL AND uuid = ?";
@@ -113,16 +113,16 @@ public class SqlStatements
         + " AND status NOT IN (:statusList)";
     
     public static final String UPDATE_INPUT_TRANSFER_ID = 
-        "UPDATE jobs SET last_updated = ?, input_transaction_id = ? WHERE id = ? AND tenant_id = ?";
+        "UPDATE jobs SET last_updated = ?, input_transaction_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String UPDATE_INPUT_CORR_ID = 
-        "UPDATE jobs SET last_updated = ?, input_correlation_id = ? WHERE id = ? AND tenant_id = ?";
+        "UPDATE jobs SET last_updated = ?, input_correlation_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String UPDATE_ARCHIVE_TRANSFER_ID = 
-        "UPDATE jobs SET last_updated = ?, archive_transaction_id = ? WHERE id = ? AND tenant_id = ?";
+        "UPDATE jobs SET last_updated = ?, archive_transaction_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String UPDATE_ARCHIVE_CORR_ID = 
-        "UPDATE jobs SET last_updated = ?, archive_correlation_id = ? WHERE id = ? AND tenant_id = ?";
+        "UPDATE jobs SET last_updated = ?, archive_correlation_id = ? WHERE id = ? AND tenant = ?";
     
     public static final String SELECT_JOB_TRANSFER_INFO = 
         "SELECT input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id" 

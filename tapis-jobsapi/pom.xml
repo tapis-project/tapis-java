@@ -75,7 +75,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jobs-client</artifactId>
             <version>${tapis-client-java.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     

@@ -530,6 +530,8 @@ public final class RuntimeParameters
     // Empty support email means no support emails will be sent.
     parm = inputProperties.getProperty(EnvVar.TAPIS_SUPPORT_EMAIL.getEnvName());
     if (!StringUtils.isBlank(parm)) setSupportEmail(parm);
+      else if (DEFAULT_EMAIL_PROVIDER.equals(getEmailProviderType().name()))
+          setSupportEmail(DEFAULT_EMAIL_PROVIDER);
     
 	}
 	
