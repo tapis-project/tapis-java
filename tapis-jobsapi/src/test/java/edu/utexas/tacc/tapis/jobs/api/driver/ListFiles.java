@@ -41,12 +41,12 @@ public class ListFiles
         if (list == null) {
             System.out.println("Null list returned!");
         } else {
-            System.out.println("Number of files returned: " + list.size() + "\n");
+            System.out.println("Number of files returned: " + list.size());
             for (var f : list) {
-                System.out.println("\nfile " + f.getName() + "\n");
-                System.out.println("  size: " + f.getSize() + "\n");
-                System.out.println("  time: " + f.getLastModified() + "\n");
-                System.out.println("  path: " + f.getPath() + "\n");
+                System.out.println("\nfile " + f.getName());
+                System.out.println("  size: " + f.getSize());
+                System.out.println("  time: " + f.getLastModified());
+                System.out.println("  path: " + f.getPath());
             }
         }
     }
