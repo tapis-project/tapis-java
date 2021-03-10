@@ -43,7 +43,7 @@ public class ListFiles
         } else {
             System.out.println("Number of files returned: " + list.size());
             for (var f : list) {
-                System.out.println("\nfile " + f.getName());
+                System.out.println("\nfile: " + f.getName());
                 System.out.println("  size: " + f.getSize());
                 System.out.println("  time: " + f.getLastModified());
                 System.out.println("  path: " + f.getPath());
