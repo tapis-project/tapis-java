@@ -12,6 +12,12 @@ public class SqlStatements
 	/* ---------------------------------------------------------------------- */
 	/* jobs table:                                                            */
 	/* ---------------------------------------------------------------------- */
+	public static final String SELECT_COLUMN_DATA_TYPE_BY_TABLENAME =
+			"SELECT column_name, udt_name"
+			+ "  FROM information_schema.columns"
+			+ "  WHERE table_schema = 'public'"
+			+ "   AND table_name   = ':tablename'";
+	
     public static final String SELECT_JOBS =
         "SELECT id, name, owner, tenant, description, status, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
