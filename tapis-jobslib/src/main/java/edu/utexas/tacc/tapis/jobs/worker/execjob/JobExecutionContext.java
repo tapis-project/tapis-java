@@ -56,6 +56,7 @@ public final class JobExecutionContext
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
+    private JobExecutionManager      _jobExecutionManager;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -190,6 +191,15 @@ public final class JobExecutionContext
     } 
     
     /* ---------------------------------------------------------------------- */
+    /* getJobExecutionManager:                                                */
+    /* ---------------------------------------------------------------------- */
+    public JobExecutionManager getJobExecutionManager() 
+    {
+        if (_jobExecutionManager == null) _jobExecutionManager = new JobExecutionManager(this);
+        return _jobExecutionManager;
+    } 
+    
+    /* ---------------------------------------------------------------------- */
     /* getJobIOTargets:                                                       */
     /* ---------------------------------------------------------------------- */
     public JobIOTargets getJobIOTargets() 
@@ -220,6 +230,17 @@ public final class JobExecutionContext
         // to avoid double faults in FileManager.
         initSystems();
         getJobFileManager().stageInputs();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* stageJob:                                                             */
+    /* ---------------------------------------------------------------------- */
+    public void stageJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobExecutionManager().stageJob();
     }
     
     /* ---------------------------------------------------------------------------- */

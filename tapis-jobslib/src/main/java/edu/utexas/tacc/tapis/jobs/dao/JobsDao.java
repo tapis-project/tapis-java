@@ -1074,6 +1074,83 @@ public final class JobsDao
 	    return result;
 	}
 	
+    /* ---------------------------------------------------------------------- */
+    /* incrementRemoteStatusCheck:                                            */
+    /* ---------------------------------------------------------------------- */
+    public void incrementRemoteStatusCheck(Job job, boolean success)
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "incrementRemoteStatusCheck", "job");
+            throw new JobException(msg);
+        }
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Insert into the jobs table first.
+          // Create the command using table definition field order.
+          String sql;
+          if (success) sql = SqlStatements.UPDATE_SUCCESS_STATUS_CHECKS;
+            else sql = SqlStatements.UPDATE_FAILED_STATUS_CHECKS;
+          Instant now = Instant.now();
+          
+          // Prepare the chosen statement.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setInt(1, 1);
+          pstmt.setTimestamp(2, Timestamp.from(now));
+          pstmt.setTimestamp(3, Timestamp.from(now));
+          pstmt.setInt(4, job.getId());
+          
+          // Issue the call and check that one record was updated.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) {
+              String parms = StringUtils.joinWith(", ", 1, now, now, job.getId());
+              String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+              throw new JobException(msg);
+          }
+             
+          // Close the result and statement.
+          pstmt.close();
+        
+          // Commit the transaction.
+          conn.commit();
+          
+          // Update the in-memory job with the latest information.
+          if (success) job.setRemoteChecksSuccess(job.getRemoteChecksSuccess() + 1);
+            else job.setRemoteChecksFailed(job.getRemoteChecksFailed() + 1);
+          job.setLastUpdated(now);
+          job.setRemoteLastStatusCheck(now);
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getId(), 
+                                         job.getTenant(), job.getOwner(), e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+    
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */

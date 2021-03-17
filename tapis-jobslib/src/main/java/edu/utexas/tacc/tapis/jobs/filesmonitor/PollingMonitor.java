@@ -101,6 +101,8 @@ public final class PollingMonitor
             }
             StatusEnum status = task.getStatus();
             
+            // TODO: create final success and error messages when TransferTask settles down.
+            
             // Successful termination, we don't need to poll anymore.
             if (status == StatusEnum.COMPLETED) {
                 _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));

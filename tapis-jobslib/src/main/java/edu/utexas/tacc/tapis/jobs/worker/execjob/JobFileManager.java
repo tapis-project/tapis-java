@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobFileManager 
@@ -249,11 +250,17 @@ public final class JobFileManager
             // Skip files that are already in-place. 
             if (fileInput.getInPlace() != null && fileInput.getInPlace()) continue;
             
+            // Determine the optional value.
+            Boolean optional = Boolean.FALSE;
+            if (fileInput.getMeta() != null && 
+                fileInput.getMeta().getRequired() == Boolean.FALSE)
+                optional = Boolean.TRUE;
+            
             // Assign the task.
-            // TODO: Need to pass required value to Files.
             var task = new TransferTaskRequestElement().
                             sourceURI(fileInput.getSourceUrl()).
-                            destinationURI(fileInput.getTargetPath());
+                            destinationURI(makeExecSysPath(fileInput));
+            task.setOptional(optional);;
             tasks.addElementsItem(task);
         }
         
@@ -333,5 +340,23 @@ public final class JobFileManager
         }
         
         return transferId;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeExecSysPath:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on the input spec's destination path and the
+     * execution system id.  The target is never null or empty.
+     * 
+     * @param fileInput a file input spec
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeExecSysPath(InputSpec fileInput)
+    {
+        String dest = fileInput.getTargetPath();
+        String url = "tapis://" + _job.getExecSystemId();
+        if (dest.startsWith("/")) url += dest;
+          else url += "/" + dest;
+        return url;
     }
 }
