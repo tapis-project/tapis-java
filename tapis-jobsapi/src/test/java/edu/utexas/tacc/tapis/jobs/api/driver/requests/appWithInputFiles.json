@@ -1,0 +1,157 @@
+{
+"id": "JobAppWithInput",
+"version": "0.0.1",
+"description": "Sample app for testing",
+"appType": "BATCH",
+"owner": "testuser2",
+"enabled": true,
+"runtime": "DOCKER",
+"runtimeVersion": "0.0.1runtime",
+"containerImage": "containterimage1",
+"maxJobs": 10,
+"maxJobsPerUser": 5,
+"strictFileInputs": false,
+"jobAttributes": {
+  "description": "default job description",
+  "dynamicExecSystem": false,
+  "execSystemConstraints": [ "constraint1 AND", "constraint2" ],
+  "execSystemId": "tapisv3-exec2",
+  "archiveOnAppError": true,
+  "parameterSet": {
+       "appArgs": [
+        { "arg": "apparg1",
+          "meta": {
+            "name": "appArg1Name",
+            "description": "description for app arg 1",
+            "required": true,
+            "keyValuePairs": [ {"key": "aArg1key1", "value": "aArg1val1"}, {"key": "aArg1key2", "value": "aArg1val2"} ]
+          }
+        },
+        { "arg": "apparg2",
+          "meta": {
+            "name": "appArg2Name",
+            "description": "description for app arg 2",
+            "required": false,
+            "keyValuePairs": [ {"key": "aArg2key1", "value": "aArg2val1"}, {"key": "aArg2key2", "value": "aArg2val2"} ]
+          }
+        }
+      ],
+      "containerArgs": [
+        { "arg": "conarg1",
+          "meta": {
+            "name": "conArg1Name",
+            "description": "description for con arg 1",
+            "required": true,
+            "keyValuePairs": [ {"key": "cArg1key1", "value": "cArg1val1"}, {"key": "cArg1key2", "value": "cArg1val2"} ]
+          }
+        },
+        { "arg": "conarg2",
+          "meta": {
+            "name": "conArg2Name",
+            "description": "description for con arg 2",
+            "required": false,
+            "keyValuePairs": [ {"key": "cArg2key1", "value": "cArg2val1"}, {"key": "cArg2key2", "value": "cArg2val2"} ]
+          }
+        }
+      ],
+      "schedulerOptions": [
+        { "arg": "sopt1",
+          "meta": {
+            "name": "sOpt1Name",
+            "description": "description for sOpt 1",
+            "required": true,
+            "keyValuePairs": [ {"key": "sOpt1key1", "value": "sOpt1val1"}, {"key": "sOpt1key2", "value": "sOpt1val2"} ]
+          }
+        },
+        { "arg": "sopt2",
+          "meta": {
+            "name": "sOpt2Name",
+            "description": "description for sOpt 2",
+            "required": false,
+            "keyValuePairs": [ {"key": "sOpt2key1", "value": "sOpt2val1"}, {"key": "sOpt2key2", "value": "sOpt2val2"} ]
+          }
+        }
+      ],
+      "envVariables": [ {"key": "envkey1", "value": "envvalue1"}, {"key": "envkey2", "value": "envvalue2"} ],
+      "archiveFilter": {
+          "includes": [  ],
+          "excludes": [ "fileexclude1", "fileexclude2" ]
+      }
+  },
+  "fileInputDefinitions": [
+    {
+      "sourceUrl": "tapis://tapisv3-exec/jobs/input/empty.txt",
+      "targetPath": "empty.txt",
+      "inPlace": false,
+      "meta": {
+          "name": "empty",
+          "description": "An empty file",
+          "required": true,
+          "keyValuePairs": [ {"key": "fInput1key1", "value": "fInput1val1"}, {"key": "fInput1key2", "value": "fInput1val2"} ]
+        }
+    },
+    {
+      "sourceUrl": "tapis://tapisv3-exec/jobs/input/file1.txt",
+      "targetPath": "file1.txt",
+      "inPlace": false,
+      "meta": {
+          "name": "fle1",
+          "description": "A randome text file",
+          "required": true,
+          "keyValuePairs": [ {"key": "fInput1key1", "value": "fInput1val1"}, {"key": "fInput1key2", "value": "fInput1val2"} ]
+        }
+    },
+    {
+      "sourceUrl": "tapis://tapisv3-exec/jobs/input/file2.txt",
+      "targetPath": "file2.txt",
+      "inPlace": false,
+      "meta": {
+          "name": "file2",
+          "description": "A random text file",
+          "required": true,
+          "keyValuePairs": [ {"key": "fInput1key1", "value": "fInput1val1"}, {"key": "fInput1key2", "value": "fInput1val2"} ]
+        }
+    }
+  ],
+  "nodeCount": 10,
+  "coresPerNode": 2,
+  "memoryMB": 32,
+  "maxMinutes": 120,
+  "subscriptions": [
+    {
+      "filter": "subscription1_filter",
+      "notificationMechanisms": [
+        {
+            "mechanism": "WEBHOOK",
+            "webHookURL": "https://hooks.tapis.io/subscription1_hook1",
+            "emailAddress": "subscription1_test1@example.com"
+        },
+        {
+            "mechanism": "EMAIL",
+            "webHookURL": "https://hooks.tapis.io/subscription1_hook2",
+            "emailAddress": "subscription1_test2@example.com"
+        }
+      ]
+    },
+    {
+      "filter": "subscription2_filter",
+      "notificationMechanisms": [
+        {
+            "mechanism": "WEBHOOK",
+            "webHookURL": "https://hooks.tapis.io/subscription2_hook1",
+            "emailAddress": "subscription2_test1@example.com"
+        },
+        {
+            "mechanism": "EMAIL",
+            "webHookURL": "https://hooks.tapis.io/subscription2_hook2",
+            "emailAddress": "subscription2_test2@example.com"
+        }
+      ]
+    }
+  ],
+  "tags": [ "jobtag1", "jobtag2" ]
+},
+"tags": [ "value1", "value2", "a", "tag with spaces, numbers 1 3 2, special chars [_ $ - & * % @ + = ! ^ ? < > , . ( ) { } / \\ | ]. Backslashes must be escaped." ],
+"notes": { "project": "myproject2", "testdata": "abc2" },
+"importRefId": "importrefid1"
+}

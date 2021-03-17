@@ -132,7 +132,13 @@ public class SqlStatements
     
     public static final String SELECT_JOB_TRANSFER_INFO = 
         "SELECT input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id" 
-        + " FROM jobs WHERE uuid = ?";    
+        + " FROM jobs WHERE uuid = ?"; 
+    
+    public static final String UPDATE_SUCCESS_STATUS_CHECKS =
+        "UPDATE jobs SET remote_status_checks = remote_status_checks + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";
+    
+    public static final String UPDATE_FAILED_STATUS_CHECKS =
+        "UPDATE jobs SET remote_checks_failed = remote_checks_failed + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";
 
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */

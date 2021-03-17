@@ -624,6 +624,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Stage inputs.
+      try {jobCtx.stageJob();}
+      catch (Exception e) {throw JobUtils.tapisify(e);}
+
       // Advance job to next state.
       setState(job, JobStatusType.SUBMITTING_JOB);
       

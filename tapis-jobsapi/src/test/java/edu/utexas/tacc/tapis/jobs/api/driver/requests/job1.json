@@ -1,5 +1,5 @@
 {
     "name": "job1",
-    "appId": "JobApp1",
+    "appId": "JobAppWithInput",
     "appVersion": "0.0.1"
 }
