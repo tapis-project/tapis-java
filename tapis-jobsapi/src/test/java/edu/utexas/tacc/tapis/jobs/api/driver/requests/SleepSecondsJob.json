@@ -1,0 +1,10 @@
+{
+    "name": "SleepSeconds",
+    "appId": "SleepSeconds",
+    "appVersion": "0.0.1",
+    "jobAttributes": {
+      "envVariables": [ 
+        {"JOBS_PARMS": "15"}
+      ]
+    }
+}

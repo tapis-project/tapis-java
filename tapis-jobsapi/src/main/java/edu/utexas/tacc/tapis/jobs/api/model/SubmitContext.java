@@ -288,25 +288,25 @@ public final class SubmitContext
         // Merge node count.
         if (_submitReq.getNodeCount() == null)
             _submitReq.setNodeCount(_app.getJobAttributes().getNodeCount());
-        if (_submitReq.getNodeCount() == null)
+        if (_submitReq.getNodeCount() == null || _submitReq.getNodeCount() <= 0)
             _submitReq.setNodeCount(Job.DEFAULT_NODE_COUNT);
         
         // Merge cores per node.
         if (_submitReq.getCoresPerNode() == null)
             _submitReq.setCoresPerNode(_app.getJobAttributes().getCoresPerNode());
-        if (_submitReq.getCoresPerNode() == null)
+        if (_submitReq.getCoresPerNode() == null || _submitReq.getCoresPerNode() <= 0)
             _submitReq.setCoresPerNode(Job.DEFAULT_CORES_PER_NODE);
         
         // Merge memory MB.
         if (_submitReq.getMemoryMB() == null)
             _submitReq.setMemoryMB(_app.getJobAttributes().getMemoryMB());
-        if (_submitReq.getMemoryMB() == null)
+        if (_submitReq.getMemoryMB() == null || _submitReq.getMemoryMB() <= 0)
             _submitReq.setMemoryMB(Job.DEFAULT_MEM_MB);
         
         // Merge max minutes.
         if (_submitReq.getMaxMinutes() == null)
             _submitReq.setMaxMinutes(_app.getJobAttributes().getMaxMinutes());
-        if (_submitReq.getMaxMinutes() == null)
+        if (_submitReq.getMaxMinutes() == null || _submitReq.getMaxMinutes() <= 0)
             _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
         
         // Check the just assigned values against queue maximums.
@@ -314,7 +314,7 @@ public final class SubmitContext
         
         // Merge tags, duplicates may be present at this point.
         var tags = _submitReq.getTags(); // force list creation
-        if (_app.getTags() != null) tags.addAll(_app.getTags());
+        if (_app.getJobAttributes().getTags() != null) tags.addAll(_app.getJobAttributes().getTags());
         
         // Merge app subscriptions into request subscription list.
         mergeSubscriptions();
@@ -839,9 +839,9 @@ public final class SubmitContext
         
         // The datetime, date and time strings all end with "Z", conforming to the ISO-8601 representation of UTC.  
         OffsetDateTime offDateTime = _job.getCreated().atOffset(ZoneOffset.UTC);
-        _macros.put(JobTemplateVariables.JobCreateDate.name(),      _job.getCreated().toString());
-        _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
-        _macros.put(JobTemplateVariables.JobCreateTimestamp.name(), DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
+        _macros.put(JobTemplateVariables.JobCreateTimestamp.name(), _job.getCreated().toString());
+        _macros.put(JobTemplateVariables.JobCreateDate.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
+        _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
         
         // ---------- Ground, optional
         if (_dtnSystem != null) {
