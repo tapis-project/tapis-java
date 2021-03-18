@@ -1171,7 +1171,7 @@ public final class SubmitContext
         var envVars = _submitReq.getParameterSet().getEnvVariables();
         for (var entry : _macros.entrySet()) {
             var kv = new KeyValuePair();
-            kv.setKey(entry.getKey());
+            kv.setKey(Job.TAPIS_ENV_VAR_PREFIX + entry.getKey());
             kv.setValue(entry.getValue());
             envVars.add(kv);
         }

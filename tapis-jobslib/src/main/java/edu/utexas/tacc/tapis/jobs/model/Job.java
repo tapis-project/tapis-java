@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
+import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
@@ -47,6 +48,11 @@ public final class Job
 	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
+    
+    // Standard container mountpoints.
+    public static final String DEFAULT_EXEC_SYSTEM_INPUT_MOUNTPOINT  = "/TapisInput";
+    public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_MOUNTPOINT = "/TapisOutput";
+    public static final String DEFAULT_EXEC_SYSTEM_EXEC_MOUNTPOINT   = "/TapisExec";
 	
     // Prefix for reserved template variables (macros).
     public static final String TAPIS_ENV_VAR_PREFIX = "_tapis";
@@ -130,7 +136,11 @@ public final class Job
     
     // The parsed version of the fileInputs json string cached for future use. 
     @Schema(hidden = true)
-    private List<InputSpec> _fileInputsSpec;
+    private List<InputSpec>    _fileInputsSpec;
+    
+    // The parsed version of the parameterSet json string cached for future use. 
+    @Schema(hidden = true)
+    private JobParameterSet    _parameterSetModel;
     
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
@@ -216,6 +226,19 @@ public final class Job
         }
         
         return _fileInputsSpec;
+    }
+    
+
+    /* ---------------------------------------------------------------------------- */
+    /* getParameterSetModel:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    @Schema(hidden = true)
+    public JobParameterSet getParameterSetModel() 
+    {
+        // Cache the parsed parameter set if it doesn't exist.
+        if (_parameterSetModel == null)
+            _parameterSetModel = TapisGsonUtils.getGson().fromJson(parameterSet, JobParameterSet.class);
+        return _parameterSetModel;
     }
 
     /* ---------------------------------------------------------------------------- */
