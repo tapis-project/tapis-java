@@ -23,6 +23,7 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -192,7 +193,124 @@ public final class JobsDao
 	      
 	      return list;
 	    }
-
+	/* ---------------------------------------------------------------------- */
+	/* getJobsByUsername:                                                               */
+	/* ---------------------------------------------------------------------- */
+	public List<JobListDTO> getJobsByUsername(String username, String tenant, String orderBy, String order, Integer limit, Integer skip) 
+	  throws JobException
+	{
+	    // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+     
+	    // ------------------------- Call SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          // Get the select command.
+	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
+	          sql = sql.replace(":orderby", orderBy);
+	          sql = sql.replace(":order", order);
+	          
+	          
+	          // Prepare the statement and fill in the placeholders.
+	          PreparedStatement pstmt = conn.prepareStatement(sql);
+	          pstmt.setString(1, username);
+	          pstmt.setString(2, tenant);
+	          pstmt.setBoolean(3, true); //visible is set to true
+	          
+	          pstmt.setInt(4, limit);
+	          pstmt.setInt(5, skip);
+	          
+	                      
+	       // Issue the call for the 1 row result set.
+	          ResultSet rs = pstmt.executeQuery();
+	         
+	          // Quick check.
+	  	      if (rs == null) return null;
+	  	    
+	  	      try {
+	  	    	  // Return null if the results are empty or exhausted.
+	  	    	  // This call advances the cursor.
+	  	    	  if (!rs.next()) return null;
+	  	      }
+	  	      catch (Exception e) {
+	  	    	  String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+	  	    	  throw new TapisJDBCException(msg, e);
+	  	      }
+	  	      
+	          
+	          if (!rs.next()) {
+	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
+	                _log.error(msg);
+	                throw new JobException(msg);
+	            }
+	        
+	          
+	            // JobList for specific user.
+	            JobListDTO jobListObject ;
+	            do {
+	                jobListObject = new JobListDTO();
+	                jobListObject.setUuid(rs.getString(1));
+	                jobListObject.setTenant(tenant);
+	                jobListObject.setName(rs.getString(3));
+	                jobListObject.setOwner(rs.getString(4));
+	                jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
+	                Timestamp ts = rs.getTimestamp(6);
+	                if (ts != null) 
+	                    jobListObject.setCreated(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(7);
+	                if (ts != null) jobListObject.setEnded(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(8);
+	                if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
+	                
+	                jobListObject.setAppId(rs.getString(9));
+	                jobListObject.setAppVersion(rs.getString(10));
+	                jobListObject.setExecSystemId(rs.getString(11));
+	                jobListObject.setArchiveSystemId(rs.getString(11));
+	                ts = rs.getTimestamp(13);
+	                
+	                if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
+	                
+	                jobList.add(jobListObject);
+	                
+	            } while(rs.next()) ;
+	                     
+	          
+	          // Close the result and statement.
+	          rs.close();
+	          pstmt.close();
+	    
+	          // Commit the transaction.
+	          conn.commit();
+	      }
+	      catch (Exception e)
+	      {
+	          // Rollback transaction.
+	          try {if (conn != null) conn.rollback();}
+	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+	          
+	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+	          throw new JobException(msg, e);
+	      }
+	      finally {
+	          // Always return the connection back to the connection pool.
+	          try {if (conn != null) conn.close();}
+	            catch (Exception e) 
+	            {
+	              // If commit worked, we can swallow the exception.  
+	              // If not, the commit exception will be thrown.
+	              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+	              _log.error(msg, e);
+	            }
+	      }
+	      
+	      return jobList;
+	}
     /* ---------------------------------------------------------------------- */  
     /* getJobByUUID:                                                          */
     /* ---------------------------------------------------------------------- */
@@ -1836,20 +1954,5 @@ public final class JobsDao
         
     }
     
-    private String camelCaseToSnakeCase(String camel){
-    	StringBuilder stringBuilder = new StringBuilder();
-    	for (char c : camel.toCharArray()) {
-    	    char nc = 'a';
-    	    if (Character.isUpperCase(c)) {
-    	    	nc = Character.toLowerCase(c);
-    	    
-    	        stringBuilder.append('_').append(nc);
-    	    } else {
-    	        stringBuilder.append(nc);
-    	    }
-        }
-    	return stringBuilder.toString();	
-    }
-
 }
     

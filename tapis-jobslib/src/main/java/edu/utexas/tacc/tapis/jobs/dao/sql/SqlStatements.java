@@ -34,7 +34,16 @@ public class SqlStatements
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags"
         + " FROM jobs ORDER BY id";
-
+    
+    public static final String SELECT_JOBS_BY_USERNAME =
+            "SELECT uuid, tenant, name, owner, status, "
+            	+ "created, ended, last_updated, app_id,"
+            	+ "app_version, exec_system_id, archive_system_id, "
+            	+ "remote_started "
+                + " FROM jobs "
+            	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
+            	+ " ORDER BY :orderby :order LIMIT ? OFFSET ?";
+    
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
         	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
