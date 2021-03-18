@@ -64,5 +64,6 @@ public class CreateApp
         // Create the app.
         var appsClient = new AppsClient(BASE_URL, userJWT);
         appsClient.createApp(appReq);
+        System.out.println("Finished processing " + reqFile.toString() + ".");
     }
 }

@@ -259,7 +259,7 @@ public final class JobFileManager
             // Assign the task.
             var task = new TransferTaskRequestElement().
                             sourceURI(fileInput.getSourceUrl()).
-                            destinationURI(makeExecSysPath(fileInput));
+                            destinationURI(makeExecSysInputPath(fileInput));
             task.setOptional(optional);;
             tasks.addElementsItem(task);
         }
@@ -343,7 +343,7 @@ public final class JobFileManager
     }
     
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysPath:                                                       */
+    /* makeExecSysInputPath:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on the input spec's destination path and the
      * execution system id.  The target is never null or empty.
@@ -351,12 +351,21 @@ public final class JobFileManager
      * @param fileInput a file input spec
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysPath(InputSpec fileInput)
+    private String makeExecSysInputPath(InputSpec fileInput)
     {
-        String dest = fileInput.getTargetPath();
+        // Start with the system id.
         String url = "tapis://" + _job.getExecSystemId();
-        if (dest.startsWith("/")) url += dest;
-          else url += "/" + dest;
+        
+        // Add the job's put input path.
+        var inputPath = _job.getExecSystemInputDir();
+        if (inputPath.startsWith("/")) url += inputPath;
+          else url += "/" + inputPath;
+        
+        // Add the suffix.
+        String dest = fileInput.getTargetPath();
+        if (url.endsWith("/") && dest.startsWith("/")) url += dest.substring(1);
+        else if (!url.endsWith("/") && !dest.startsWith("/")) url += "/" + dest;
+        else url += dest;
         return url;
     }
 }

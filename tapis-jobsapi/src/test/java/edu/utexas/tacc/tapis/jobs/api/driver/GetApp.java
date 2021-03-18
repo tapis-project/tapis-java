@@ -40,6 +40,7 @@ public class GetApp
         }
         
         // Create the app.
+        System.out.println("Retrieving app " + args[0] + " version " + args[1] + ".");
         var appsClient = new AppsClient(BASE_URL, userJWT);
         var app = appsClient.getApp(args[0], args[1]);
         System.out.println(app.toString());

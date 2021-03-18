@@ -61,13 +61,16 @@ public final class DockerRunCmd
     /* ********************************************************************** */
     public static final class BindMount
     {
-        private String source;
-        private String target;
+        private String  source;
+        private String  target;
+        private boolean readOnly;
         
         public String getSource() {return source;}
         public void setSource(String source) {this.source = source;}
         public String getTarget() {return target;}
         public void setTarget(String target) {this.target = target;}
+        public boolean isReadOnly() {return readOnly;}
+        public void setReadOnly(boolean readOnly) {this.readOnly = readOnly;}
     }
 
     /* ********************************************************************** */
@@ -78,7 +81,7 @@ public final class DockerRunCmd
         private String source;
         private String target;
         private String size; // unlimited size by default
-        private String mode; // 1777 octal - world writable by default
+        private String mode; // 1777 octal - world writable w/sticky bit by default
         
         public String getSource() {return source;}
         public void setSource(String source) {this.source = source;}
@@ -155,6 +158,7 @@ public final class DockerRunCmd
     }
 
     public List<AttachEnum> getAttachList() {
+        if (attachList == null) attachList = new ArrayList<AttachEnum>();
         return attachList;
     }
 
@@ -163,6 +167,7 @@ public final class DockerRunCmd
     }
 
     public List<BindMount> getBindMount() {
+        if (bindMount == null) bindMount = new ArrayList<BindMount>();
         return bindMount;
     }
 
@@ -203,6 +208,7 @@ public final class DockerRunCmd
     }
 
     public List<Pair<String, String>> getEnv() {
+        // Initialized on construction.
         return env;
     }
 
@@ -219,6 +225,7 @@ public final class DockerRunCmd
     }
 
     public List<String> getGroups() {
+        if (groups == null) groups = new ArrayList<String>();
         return groups;
     }
 
@@ -243,6 +250,7 @@ public final class DockerRunCmd
     }
 
     public List<Pair<String, String>> getLabels() {
+        if (labels == null) labels = new ArrayList<Pair<String,String>>();
         return labels;
     }
 
@@ -259,6 +267,7 @@ public final class DockerRunCmd
     }
 
     public List<Pair<String, String>> getLogOpts() {
+        if (logOpts == null) logOpts = new ArrayList<Pair<String,String>>();
         return logOpts;
     }
 
@@ -291,6 +300,7 @@ public final class DockerRunCmd
     }
 
     public List<Port> getPortMappings() {
+        if (portMappings == null) portMappings = new ArrayList<Port>();
         return portMappings;
     }
 
@@ -307,6 +317,7 @@ public final class DockerRunCmd
     }
 
     public List<TmpfsMount> getTmpfsMount() {
+        if (tmpfsMount == null) tmpfsMount = new ArrayList<TmpfsMount>();
         return tmpfsMount;
     }
 
@@ -323,6 +334,7 @@ public final class DockerRunCmd
     }
 
     public List<VolumMount> getVolumeMount() {
+        if (volumeMount == null) volumeMount = new ArrayList<VolumMount>();
         return volumeMount;
     }
 
