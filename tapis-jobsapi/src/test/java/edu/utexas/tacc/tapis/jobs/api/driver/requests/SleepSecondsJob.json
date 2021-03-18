@@ -2,9 +2,9 @@
     "name": "SleepSeconds",
     "appId": "SleepSeconds",
     "appVersion": "0.0.1",
-    "jobAttributes": {
+    "parameterSet": {
       "envVariables": [ 
-        {"JOBS_PARMS": "15"}
+        {"key": "JOBS_PARMS", "value": "15"}
       ]
     }
 }
