@@ -6,5 +6,6 @@
       "envVariables": [ 
         {"key": "JOBS_PARMS", "value": "15"}
       ]
-    }
+    },
+    "archiveSystemId" : "tapisv3-exec"
 }
