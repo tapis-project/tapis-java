@@ -64,7 +64,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobListByUsername:                                                          */
     /* ---------------------------------------------------------------------- */
-    public List<JobListDTO> getJobListByUsername(String user, String tenant, String orderBy,String order, Integer limit,Integer skip) 
+    public List<JobListDTO> getJobListByUsername(String user, String tenant, List<String> orderByAttrList,List<String> orderByDirList, Integer limit,Integer skip) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -80,7 +80,7 @@ public final class JobsImpl
         
         // ----- Get the job status.
         List<JobListDTO> jobList = null;
-        try {jobList = (ArrayList<JobListDTO>) getJobsDao().getJobsByUsername(user, tenant,orderBy, order, limit,skip);}
+        try {jobList = (ArrayList<JobListDTO>) getJobsDao().getJobsByUsername(user, tenant,orderByAttrList, orderByDirList, limit,skip);}
         catch (Exception e) {
           //  String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
             throw new TapisImplException("", e, Condition.INTERNAL_SERVER_ERROR);

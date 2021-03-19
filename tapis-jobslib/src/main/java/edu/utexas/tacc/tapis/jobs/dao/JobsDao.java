@@ -111,6 +111,8 @@ public final class JobsDao
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
     
+    private static final String SUFFIX_COMMA_SPACE = ", ";
+    
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -196,7 +198,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobsByUsername:                                                               */
 	/* ---------------------------------------------------------------------- */
-	public List<JobListDTO> getJobsByUsername(String username, String tenant, String orderBy, String order, Integer limit, Integer skip) 
+	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<String> orderByAttrList, List<String> orderByDirList, Integer limit, Integer skip) 
 	  throws JobException
 	{
 	    // Initialize result.
@@ -211,8 +213,30 @@ public final class JobsDao
 	          
 	          // Get the select command.
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
+	          String orderBy="";
+	          int listsize = orderByAttrList.size();
+	          for(int i =0;i<listsize; i++) {
+	        	  
+	        	  if(orderBy.isBlank()) {
+	        		  orderBy = orderByAttrList.get(i);
+	        	  } else {
+	        		 orderBy = orderBy + " " + orderByAttrList.get(i);
+	        		  
+	        	  }
+	        	  if(!orderByDirList.get(i).isBlank()) {
+	        		  orderBy =  orderBy + " " + orderByDirList.get(i) + SUFFIX_COMMA_SPACE;
+	        	  }else {
+	        		  orderBy =  orderBy + SUFFIX_COMMA_SPACE;
+	        	  }
+	          }
+	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
+	          _log.debug("orderBy sql str to be appended to query1:::" + orderBy);
+	          if(orderBy.isBlank()) {
+	        	  orderBy = "last_updated";
+	          }
+	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
 	          sql = sql.replace(":orderby", orderBy);
-	          sql = sql.replace(":order", order);
+	          
 	          
 	          
 	          // Prepare the statement and fill in the placeholders.

@@ -42,7 +42,7 @@ public class SqlStatements
             	+ "remote_started "
                 + " FROM jobs "
             	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
-            	+ " ORDER BY :orderby :order LIMIT ? OFFSET ?";
+            	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
     
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "

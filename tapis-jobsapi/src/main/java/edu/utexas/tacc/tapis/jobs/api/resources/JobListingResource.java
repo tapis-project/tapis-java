@@ -23,15 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
-import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
-import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
-import edu.utexas.tacc.tapis.jobs.model.dto.JobListDisplayDTO;
-import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
-import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDisplay;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -184,7 +178,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           var jobsImpl = JobsImpl.getInstance();
 	          
 	           jobList = jobsImpl.getJobListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(),
-	        		   srchParms.getOrderBy(),srchParms.getOrderByDirection(), srchParms.getLimit(),srchParms.getSkip());                       
+	        		   srchParms.getOrderByAttrList(),srchParms.getOrderByAttrList(), srchParms.getLimit(),srchParms.getSkip());                       
 	       }
 	       catch (TapisImplException e) {
 	           _log.error(e.getMessage(), e);
