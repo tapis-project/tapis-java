@@ -31,6 +31,8 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -47,12 +49,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    /* **************************************************************************** */
 	    // Local logger.
 	    private static final Logger _log = LoggerFactory.getLogger(JobListingResource.class);
-	    private static final int DEFAULT_LIMIT = 100;
-	    private static final int DEFAULT_SKIP = 0;
-	    private static final String DEFAULT_ORDERBY = "lastUpdated";
-	    private static enum ORDER {DESC, ASC};
-	    private static final String SUFFIX = ", ";
-	    private static final String DUMMY_TENANT_BASE_URL = "https://dummy-tenant-url.fixme/";
+	    
 	    
 	    /* **************************************************************************** */
 	    /*                                    Fields                                    */
@@ -144,8 +141,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	         _log.trace(msg);
 	       }
 	       
-	       // ------------------------- Input Processing -------------------------
-	       
 	       // ------------------------- Create Context ---------------------------
 	       // Validate the threadlocal content here so no subsequent code on this request needs to.
 	       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -157,17 +152,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 	       
 	       // ------ Set default values for the reserved query parameters ------------
+	       // orderBy is of the format - fname1(DESC), fname2, fname(ASC), ...
+	       // ThreadContext designed to never return null for SearchParameters
+	       SearchParameters srchParms = threadContext.getSearchParameters();
 	        
-	       /*
-	         * orderBy is of the format - fname1(DESC), fname2, fname(ASC), ...
-	         *  
-	         *  
-	         */
-	        //------- Get reserved query parameters from the API request ------------
-	       	// ThreadContext designed to never return null for SearchParameters
-	        SearchParameters srchParms = threadContext.getSearchParameters();
-	        
-	        if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
+	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
 	        
 	        
 	       // ------------------------- Retrieve Job List -----------------------------
@@ -188,7 +177,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	       }
-
+	       
+	       if(jobList.isEmpty()) {
+               String msg =  MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+               RespGetJobList r = new RespGetJobList(jobList);
+               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
+            }
+	       
+	       
 	       // ------------------------- Process Results --------------------------
 	       // Success.
 	       RespGetJobList r = new RespGetJobList(jobList);
