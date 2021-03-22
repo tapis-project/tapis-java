@@ -1952,7 +1952,9 @@ public final class JobsDao
             // Extract the field name and type from the result set.
             do {
                 jmap.put(rs.getString(1), rs.getString(2));
-                _log.debug("key = " + rs.getString(1) + "  type= "+ rs.getString(2) );
+                
+                // This can be uncommented to check if it is returning all column names and type
+                //_log.debug("key = " + rs.getString(1) + "  type= "+ rs.getString(2) );
             } while(rs.next()) ; 
            
                      

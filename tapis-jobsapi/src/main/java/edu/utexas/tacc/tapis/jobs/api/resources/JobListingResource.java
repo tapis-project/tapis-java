@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 
-	import java.util.List;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -26,7 +26,6 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
-import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -103,10 +102,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	     /*                                Public Methods                                */
 	     /* **************************************************************************** */
 	     /* ---------------------------------------------------------------------------- */
-	     /* getJobStatus:                                                                      */
+	     /* getJobList:                                                                      */
 	     /* ---------------------------------------------------------------------------- */
 	     @GET
-	     @Path("/")
 	     @Produces(MediaType.APPLICATION_JSON)
 	     @Operation(
 	             description = "Retrieve list of jobs for the user.\n\n"
@@ -118,7 +116,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                 {
 	                  @ApiResponse(responseCode = "200", description = "Jobs List retrieved.",
 	                      content = @Content(schema = @Schema(
-	                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus.class))),
+	                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList.class))),
 	                  @ApiResponse(responseCode = "400", description = "Input error.",
 	                      content = @Content(schema = @Schema(
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -172,7 +170,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	        if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
 	        
 	        
-	       // ------------------------- Retrieve Job Status-----------------------------
+	       // ------------------------- Retrieve Job List -----------------------------
 	       List<JobListDTO> jobList = null;
 	       try {
 	           var jobsImpl = JobsImpl.getInstance();
