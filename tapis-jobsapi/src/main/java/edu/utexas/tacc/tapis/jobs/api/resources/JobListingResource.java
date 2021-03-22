@@ -178,7 +178,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           var jobsImpl = JobsImpl.getInstance();
 	          
 	           jobList = jobsImpl.getJobListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(),
-	        		   srchParms.getOrderByAttrList(),srchParms.getOrderByAttrList(), srchParms.getLimit(),srchParms.getSkip());                       
+	        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
 	       }
 	       catch (TapisImplException e) {
 	           _log.error(e.getMessage(), e);

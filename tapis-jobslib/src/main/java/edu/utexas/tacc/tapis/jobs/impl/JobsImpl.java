@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 
 public final class JobsImpl 
  extends BaseImpl
@@ -64,7 +65,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobListByUsername:                                                          */
     /* ---------------------------------------------------------------------- */
-    public List<JobListDTO> getJobListByUsername(String user, String tenant, List<String> orderByAttrList,List<String> orderByDirList, Integer limit,Integer skip) 
+    public List<JobListDTO> getJobListByUsername(String user, String tenant, List<OrderBy> orderByList, Integer limit,Integer skip) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -80,7 +81,7 @@ public final class JobsImpl
         
         // ----- Get the job status.
         List<JobListDTO> jobList = null;
-        try {jobList = (ArrayList<JobListDTO>) getJobsDao().getJobsByUsername(user, tenant,orderByAttrList, orderByDirList, limit,skip);}
+        try {jobList = (ArrayList<JobListDTO>) getJobsDao().getJobsByUsername(user, tenant,orderByList,limit,skip);}
         catch (Exception e) {
           //  String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
             throw new TapisImplException("", e, Condition.INTERNAL_SERVER_ERROR);

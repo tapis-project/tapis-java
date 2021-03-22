@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
+import javax.sql.DataSource;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +34,9 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
@@ -111,8 +115,14 @@ public final class JobsDao
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
     
+    // comma space string to be appended during ORDER BY SQL clause statement preparation
     private static final String SUFFIX_COMMA_SPACE = ", ";
     
+    // Table name from which columns names are retrieved
+    private static final String JOBS_TABLENAME = "jobs";
+    
+    // Initialize Jobs Table Map with column name and type;
+    public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -198,7 +208,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobsByUsername:                                                               */
 	/* ---------------------------------------------------------------------- */
-	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<String> orderByAttrList, List<String> orderByDirList, Integer limit, Integer skip) 
+	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<OrderBy> orderByList,Integer limit, Integer skip) 
 	  throws JobException
 	{
 	    // Initialize result.
@@ -214,20 +224,17 @@ public final class JobsDao
 	          // Get the select command.
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
-	          int listsize = orderByAttrList.size();
-	          for(int i =0;i<listsize; i++) {
+	          int listsize = orderByList.size();
+	          for(int i = 0;i < listsize; i++) {
 	        	  
 	        	  if(orderBy.isBlank()) {
-	        		  orderBy = orderByAttrList.get(i);
+	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
-	        		 orderBy = orderBy + " " + orderByAttrList.get(i);
+	        		 orderBy = orderBy + " " + SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        		  
 	        	  }
-	        	  if(!orderByDirList.get(i).isBlank()) {
-	        		  orderBy =  orderBy + " " + orderByDirList.get(i) + SUFFIX_COMMA_SPACE;
-	        	  }else {
-	        		  orderBy =  orderBy + SUFFIX_COMMA_SPACE;
-	        	  }
+	        	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
+	        	  
 	          }
 	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
 	          _log.debug("orderBy sql str to be appended to query1:::" + orderBy);
@@ -1895,10 +1902,11 @@ public final class JobsDao
 	/* ************************************* */
     /*            Initialize Jobs Map         */
     /* ************************************* */ 
-    private static Map<String,String> initializeJobFieldMap(){
-        Map<String,String> jmap = new HashMap<String,String>(80);
-        
-        jmap.put("id", "uuid");
+    public static Map<String,String> initializeJobFieldMap(){
+        // Map<String,String> jmap = new HashMap<String,String>(80);
+        Map<String, String> jmap;
+		jmap = getDBJobColumnAndType(JOBS_TABLENAME);
+		        
         return Collections.unmodifiableMap(jmap);
     }
     
@@ -1910,7 +1918,7 @@ public final class JobsDao
      * @param tableName
      * @return
      */
-    public Map<String, String> getDBJobColumnAndType(String tableName) throws JobException {
+    public static  Map<String, String> getDBJobColumnAndType(String tableName) {
         
     	Map<String,String> jmap = new HashMap<String,String>(80);
      
@@ -1919,10 +1927,11 @@ public final class JobsDao
         try
         {
             // Get a database connection.
-        	
-	        conn = getConnection();
+        	DataSource ds = getDataSource();
+	        conn = ds.getConnection();
             
             // Get the select command.
+	        // it queries column name and type
             String sql = SqlStatements.SELECT_COLUMN_DATA_TYPE_BY_TABLENAME;
             sql = sql.replace(":tablename", tableName);
             // Prepare the statement and fill in the placeholders.
