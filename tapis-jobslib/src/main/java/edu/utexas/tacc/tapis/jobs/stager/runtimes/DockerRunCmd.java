@@ -5,6 +5,14 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+/** This class stores the command line options for the docker run command that executes
+ * an application's container.  The general approach is to take the user-specified text
+ * as is.  Validation and reformatting kept to a minimum.  More rigorous parsing and 
+ * validation can be added if the need arises, but this approach is simple to implement
+ * and maintain.
+ * 
+ * @author rcardone
+ */
 public final class DockerRunCmd 
  implements RunCmd
 {
@@ -13,36 +21,37 @@ public final class DockerRunCmd
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
+    // List fields that we always populate are initialized on construction,
+    // all others are initialized on demand.
     private String                    addHost;
     private List<AttachEnum>          attachList;
-    private List<BindMount>           bindMount;
     private String                    cidFile;
     private String                    cpus;
     private String                    cpusetCPUs;
     private String                    cpusetMEMs;
     private List<Pair<String,String>> env = new ArrayList<Pair<String,String>>();
-    private GpuOptions                gpus;
+    private String                    gpus;
     private List<String>              groups;
     private String                    hostName;
     private String                    ip;
+    private String                    ip6;
     private List<Pair<String,String>> labels;
     private String                    logDriver;
-    private List<Pair<String,String>> logOpts;
+    private String                    logOpts;
+    private List<String>              mount = new ArrayList<String>();
     private String                    memory;
     private String                    name;
     private String                    network;
-    private List<Port>                portMappings;
-    private boolean                   rm;
-    private List<TmpfsMount>          tmpfsMount;
+    private String                    networkAlias;
+    private List<String>              portMappings;
+    private boolean                   rm = true;
+    private List<String>              tmpfs;
     private String                    user;
-    private List<VolumMount>          volumeMount;
+    private List<String>              volumeMount;
     private String                    workdir;
     
     // Valid values for the attach option.
     public enum AttachEnum {stdin, stdout, stderr}
-    
-    // Port protocols.
-    public enum TransportProcol {tcp, udp, sctp}
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -60,33 +69,45 @@ public final class DockerRunCmd
     /*                           BindMount Class                              */
     /* ********************************************************************** */
     public static final class BindMount
+     extends AbstractDockerMount
     {
-        private String  source;
-        private String  target;
         private boolean readOnly;
         
-        public String getSource() {return source;}
-        public void setSource(String source) {this.source = source;}
-        public String getTarget() {return target;}
-        public void setTarget(String target) {this.target = target;}
+        public BindMount() {super(MountType.bind);}
+        
         public boolean isReadOnly() {return readOnly;}
         public void setReadOnly(boolean readOnly) {this.readOnly = readOnly;}
+        
+        @Override
+        public String toString()
+        {
+            // Construct the value of a bind mount (i.e. everything
+            // other than the --mount flag).
+            final int capacity = 256;
+            StringBuilder buf = new StringBuilder(capacity);
+            buf.append("type=");
+            buf.append(type.name());
+            buf.append(",source=");
+            buf.append(source);
+            buf.append(",target=");
+            buf.append(target);
+            if (readOnly) buf.append(",readonly");
+            
+            return buf.toString();
+        }
     }
 
     /* ********************************************************************** */
     /*                          TmpfsMount Class                              */
     /* ********************************************************************** */
     public static final class TmpfsMount
+     extends AbstractDockerMount
     {
-        private String source;
-        private String target;
         private String size; // unlimited size by default
         private String mode; // 1777 octal - world writable w/sticky bit by default
         
-        public String getSource() {return source;}
-        public void setSource(String source) {this.source = source;}
-        public String getTarget() {return target;}
-        public void setTarget(String target) {this.target = target;}
+        public TmpfsMount() {super(MountType.tmpfs);}
+        
         public String getSize() {return size;}
         public void setSize(String size) {this.size = size;}
         public String getMode() {return mode;}
@@ -94,56 +115,22 @@ public final class DockerRunCmd
     }
     
     /* ********************************************************************** */
-    /*                          VolumMount Class                              */
+    /*                          VolumeMount Class                             */
     /* ********************************************************************** */
-    public static final class VolumMount
+    public static final class VolumeMount
+     extends AbstractDockerMount
     {
-        private String                    source;
-        private String                    target;
         private boolean                   readonly;
         private List<Pair<String,String>> keyValueList = new ArrayList<Pair<String,String>>();
         
-        public String getSource() {return source;}
-        public void setSource(String source) {this.source = source;}
-        public String getTarget() {return target;}
-        public void setTarget(String target) {this.target = target;}
+        public VolumeMount() {super(MountType.volume);}
+        
         public boolean isReadonly() {return readonly;}
         public void setReadonly(boolean readonly) {this.readonly = readonly;}
         public List<Pair<String,String>> getKeyValueList() {return keyValueList;}
         public void setKeyValueList(List<Pair<String,String>> keyValueList) {
             this.keyValueList = keyValueList;
         }
-    }
-
-    /* ********************************************************************** */
-    /*                          VolumMount Class                              */
-    /* ********************************************************************** */
-    public static final class Port
-    {
-        private String          hostInterface;
-        private String          hostPort;
-        private String          containerPort;
-        private TransportProcol protocol;
-        
-        public String getHostInterface() {return hostInterface;}
-        public void setHostInterface(String hostInterface) {this.hostInterface = hostInterface;}
-        public String getHostPort() {return hostPort;}
-        public void setHostPort(String hostPort) {this.hostPort = hostPort;}
-        public String getContainerPort() {return containerPort;}
-        public void setContainerPort(String containerPort) {this.containerPort = containerPort;}
-        public TransportProcol getProtocol() {return protocol;}
-        public void setProtocol(TransportProcol protocol) {this.protocol = protocol;}
-    }
-    
-    /* ********************************************************************** */
-    /*                          VolumMount Class                              */
-    /* ********************************************************************** */
-    public static final class GpuOptions
-    {
-        private String options;
-
-        public String getOptions() {return options;}
-        public void setOptions(String options) {this.options = options;}
     }
 
     /* ********************************************************************** */
@@ -164,15 +151,6 @@ public final class DockerRunCmd
 
     public void setAttachList(List<AttachEnum> attachList) {
         this.attachList = attachList;
-    }
-
-    public List<BindMount> getBindMount() {
-        if (bindMount == null) bindMount = new ArrayList<BindMount>();
-        return bindMount;
-    }
-
-    public void setBindMount(List<BindMount> bindMount) {
-        this.bindMount = bindMount;
     }
 
     public String getCidFile() {
@@ -216,11 +194,11 @@ public final class DockerRunCmd
         this.env = env;
     }
 
-    public GpuOptions getGpus() {
+    public String getGpus() {
         return gpus;
     }
 
-    public void setGpus(GpuOptions gpus) {
+    public void setGpus(String gpus) {
         this.gpus = gpus;
     }
 
@@ -249,6 +227,14 @@ public final class DockerRunCmd
         this.ip = ip;
     }
 
+    public String getIp6() {
+        return ip6;
+    }
+
+    public void setIp6(String ip6) {
+        this.ip6 = ip6;
+    }
+
     public List<Pair<String, String>> getLabels() {
         if (labels == null) labels = new ArrayList<Pair<String,String>>();
         return labels;
@@ -266,12 +252,11 @@ public final class DockerRunCmd
         this.logDriver = logDriver;
     }
 
-    public List<Pair<String, String>> getLogOpts() {
-        if (logOpts == null) logOpts = new ArrayList<Pair<String,String>>();
+    public String getLogOpts() {
         return logOpts;
     }
 
-    public void setLogOpts(List<Pair<String, String>> logOpts) {
+    public void setLogOpts(String logOpts) {
         this.logOpts = logOpts;
     }
 
@@ -281,6 +266,14 @@ public final class DockerRunCmd
 
     public void setMemory(String memory) {
         this.memory = memory;
+    }
+
+    public List<String> getMount() {
+        return mount;
+    }
+
+    public void setMount(List<String> mount) {
+        this.mount = mount;
     }
 
     public String getName() {
@@ -299,12 +292,20 @@ public final class DockerRunCmd
         this.network = network;
     }
 
-    public List<Port> getPortMappings() {
-        if (portMappings == null) portMappings = new ArrayList<Port>();
+    public String getNetworkAlias() {
+        return networkAlias;
+    }
+
+    public void setNetworkAlias(String networkAlias) {
+        this.networkAlias = networkAlias;
+    }
+
+    public List<String> getPortMappings() {
+        if (portMappings == null) portMappings = new ArrayList<String>();
         return portMappings;
     }
 
-    public void setPortMappings(List<Port> portMappings) {
+    public void setPortMappings(List<String> portMappings) {
         this.portMappings = portMappings;
     }
 
@@ -316,13 +317,13 @@ public final class DockerRunCmd
         this.rm = rm;
     }
 
-    public List<TmpfsMount> getTmpfsMount() {
-        if (tmpfsMount == null) tmpfsMount = new ArrayList<TmpfsMount>();
-        return tmpfsMount;
+    public List<String> getTmpfs() {
+        if (tmpfs == null) tmpfs = new ArrayList<String>();
+        return tmpfs;
     }
 
-    public void setTmpfsMount(List<TmpfsMount> tmpfsMount) {
-        this.tmpfsMount = tmpfsMount;
+    public void setTmpfs(List<String> tmpfs) {
+        this.tmpfs = tmpfs;
     }
 
     public String getUser() {
@@ -333,12 +334,12 @@ public final class DockerRunCmd
         this.user = user;
     }
 
-    public List<VolumMount> getVolumeMount() {
-        if (volumeMount == null) volumeMount = new ArrayList<VolumMount>();
+    public List<String> getVolumeMount() {
+        if (volumeMount == null) volumeMount = new ArrayList<String>();
         return volumeMount;
     }
 
-    public void setVolumeMount(List<VolumMount> volumeMount) {
+    public void setVolumeMount(List<String> volumeMount) {
         this.volumeMount = volumeMount;
     }
 
