@@ -121,6 +121,9 @@ public final class JobsDao
     // Table name from which columns names are retrieved
     private static final String JOBS_TABLENAME = "jobs";
     
+    // Default orderBy field value
+    private static final String DEFAULT_ORDER_BY = "lastUpdated";
+    
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
     /* ********************************************************************** */
@@ -206,7 +209,7 @@ public final class JobsDao
 	      return list;
 	    }
 	/* ---------------------------------------------------------------------- */
-	/* getJobsByUsername:                                                               */
+	/* getJobsByUsername:                                                     */
 	/* ---------------------------------------------------------------------- */
 	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<OrderBy> orderByList,Integer limit, Integer skip) 
 	  throws JobException
@@ -225,6 +228,7 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
+	          _log.debug("listsize: " + listsize);
 	          for(int i = 0;i < listsize; i++) {
 	        	  
 	        	  if(orderBy.isBlank()) {
@@ -234,12 +238,11 @@ public final class JobsDao
 	        		  
 	        	  }
 	        	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
-	        	  
 	          }
 	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
-	          _log.debug("orderBy sql str to be appended to query1:::" + orderBy);
+	          
 	          if(orderBy.isBlank()) {
-	        	  orderBy = "last_updated";
+	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
 	          }
 	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
 	          sql = sql.replace(":orderby", orderBy);
@@ -273,11 +276,11 @@ public final class JobsDao
 	  	      }
 	  	      
 	          
-	          if (!rs.next()) {
+	          /*if (!rs.next()) {
 	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
 	                _log.error(msg);
 	                throw new JobException(msg);
-	            }
+	            }*/
 	        
 	          
 	            // JobList for specific user.

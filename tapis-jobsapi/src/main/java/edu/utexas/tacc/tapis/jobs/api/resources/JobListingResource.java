@@ -26,6 +26,7 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -170,7 +171,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	        
 	        if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
 	        
-	        if(srchParms.getOrderBy() == null) {srchParms.setOrderBy(DEFAULT_ORDERBY);}
 	        
 	       // ------------------------- Retrieve Job Status-----------------------------
 	       List<JobListDTO> jobList = null;
@@ -192,15 +192,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 
 	       // ------------------------- Process Results --------------------------
-	       // Adjust status based on whether we found the job.
-	       
-	       
 	       // Success.
-	       //List<JobListDisplayDTO> resultJobList =  jobList;
-	     
 	       RespGetJobList r = new RespGetJobList(jobList);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-	               MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", ""), prettyPrint, r)).build();
+	               MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 	     }
 	}
 
