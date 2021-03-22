@@ -8,8 +8,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
+
+import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -20,6 +25,7 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -28,7 +34,9 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
@@ -107,6 +115,17 @@ public final class JobsDao
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
     
+    // comma space string to be appended during ORDER BY SQL clause statement preparation
+    private static final String SUFFIX_COMMA_SPACE = ", ";
+    
+    // Table name from which columns names are retrieved
+    private static final String JOBS_TABLENAME = "jobs";
+    
+    // Default orderBy field value
+    private static final String DEFAULT_ORDER_BY = "lastUpdated";
+    
+    // Initialize Jobs Table Map with column name and type;
+    public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -189,7 +208,143 @@ public final class JobsDao
 	      
 	      return list;
 	    }
-
+	/* ---------------------------------------------------------------------- */
+	/* getJobsByUsername:                                                     */
+	/* ---------------------------------------------------------------------- */
+	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws JobException
+	{
+	    // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+     
+	    // ------------------------- Call SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          // Get the select command.
+	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
+	          String orderBy="";
+	          int listsize = orderByList.size();
+	          _log.debug("listsize: " + listsize);
+	          for(int i = 0;i < listsize; i++) {
+	        	  
+	        	  if(orderBy.isBlank()) {
+	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+	        	  } else {
+	        		 orderBy = orderBy + " " + SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+	        		  
+	        	  }
+	        	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
+	          }
+	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
+	          
+	          if(orderBy.isBlank()) {
+	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
+	          }
+	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
+	          sql = sql.replace(":orderby", orderBy);
+	          
+	          
+	          
+	          // Prepare the statement and fill in the placeholders.
+	          PreparedStatement pstmt = conn.prepareStatement(sql);
+	          pstmt.setString(1, username);
+	          pstmt.setString(2, tenant);
+	          pstmt.setBoolean(3, true); //visible is set to true
+	          
+	          pstmt.setInt(4, limit);
+	          pstmt.setInt(5, skip);
+	          
+	                      
+	       // Issue the call for the 1 row result set.
+	          ResultSet rs = pstmt.executeQuery();
+	         
+	          // Quick check.
+	  	      if (rs == null) return null;
+	  	    
+	  	      try {
+	  	    	  // Return null if the results are empty or exhausted.
+	  	    	  // This call advances the cursor.
+	  	    	  if (!rs.next()) return null;
+	  	      }
+	  	      catch (Exception e) {
+	  	    	  String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+	  	    	  throw new TapisJDBCException(msg, e);
+	  	      }
+	  	      
+	          
+	          /*if (!rs.next()) {
+	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
+	                _log.error(msg);
+	                throw new JobException(msg);
+	            }*/
+	        
+	          
+	            // JobList for specific user.
+	            JobListDTO jobListObject ;
+	            do {
+	                jobListObject = new JobListDTO();
+	                jobListObject.setUuid(rs.getString(1));
+	                jobListObject.setTenant(tenant);
+	                jobListObject.setName(rs.getString(3));
+	                jobListObject.setOwner(rs.getString(4));
+	                jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
+	                Timestamp ts = rs.getTimestamp(6);
+	                if (ts != null) 
+	                    jobListObject.setCreated(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(7);
+	                if (ts != null) jobListObject.setEnded(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(8);
+	                if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
+	                
+	                jobListObject.setAppId(rs.getString(9));
+	                jobListObject.setAppVersion(rs.getString(10));
+	                jobListObject.setExecSystemId(rs.getString(11));
+	                jobListObject.setArchiveSystemId(rs.getString(11));
+	                ts = rs.getTimestamp(13);
+	                
+	                if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
+	                
+	                jobList.add(jobListObject);
+	                
+	            } while(rs.next()) ;
+	                     
+	          
+	          // Close the result and statement.
+	          rs.close();
+	          pstmt.close();
+	    
+	          // Commit the transaction.
+	          conn.commit();
+	      }
+	      catch (Exception e)
+	      {
+	          // Rollback transaction.
+	          try {if (conn != null) conn.rollback();}
+	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+	          
+	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+	          throw new JobException(msg, e);
+	      }
+	      finally {
+	          // Always return the connection back to the connection pool.
+	          try {if (conn != null) conn.close();}
+	            catch (Exception e) 
+	            {
+	              // If commit worked, we can swallow the exception.  
+	              // If not, the commit exception will be thrown.
+	              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+	              _log.error(msg, e);
+	            }
+	      }
+	      
+	      return jobList;
+	}
     /* ---------------------------------------------------------------------- */  
     /* getJobByUUID:                                                          */
     /* ---------------------------------------------------------------------- */
@@ -1734,6 +1889,7 @@ public final class JobsDao
 	    return obj;
 	}
 	
+
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
     /* ********************************************************************** */
@@ -1745,4 +1901,94 @@ public final class JobsDao
         public String archiveTransactionId;
 	    public String archiveCorrelationId;
 	}
+
+	/* ************************************* */
+    /*            Initialize Jobs Map         */
+    /* ************************************* */ 
+    public static Map<String,String> initializeJobFieldMap(){
+        // Map<String,String> jmap = new HashMap<String,String>(80);
+        Map<String, String> jmap;
+		jmap = getDBJobColumnAndType(JOBS_TABLENAME);
+		        
+        return Collections.unmodifiableMap(jmap);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDBJobColumnAndType:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * getDBJobColumnAndType: Get resource model's DB table columns
+     * @param tableName
+     * @return
+     */
+    public static  Map<String, String> getDBJobColumnAndType(String tableName) {
+        
+    	Map<String,String> jmap = new HashMap<String,String>(80);
+     
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+            // Get a database connection.
+        	DataSource ds = getDataSource();
+	        conn = ds.getConnection();
+            
+            // Get the select command.
+	        // it queries column name and type
+            String sql = SqlStatements.SELECT_COLUMN_DATA_TYPE_BY_TABLENAME;
+            sql = sql.replace(":tablename", tableName);
+            // Prepare the statement and fill in the placeholders.
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            _log.debug("prepared stmt: " + pstmt);
+                        
+            // Issue the call for the 1 row result set.
+            ResultSet rs = pstmt.executeQuery();
+            if (!rs.next()) {
+                String msg = MsgUtils.getMsg("SEARCH_ABORT_UNABLE_TO_GET_DB_FIELD_AND_TYPE", tableName);
+                _log.error(msg);
+                throw new JobException(msg);
+            }
+            
+            // Extract the field name and type from the result set.
+            do {
+                jmap.put(rs.getString(1), rs.getString(2));
+                _log.debug("key = " + rs.getString(1) + "  type= "+ rs.getString(2) );
+            } while(rs.next()) ; 
+           
+                     
+            // Close the result and statement.
+            rs.close();
+            pstmt.close();
+      
+            // Commit the transaction.
+            conn.commit();
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            //AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
+            String msg = MsgUtils.getMsg("DB_TABLE_INFORMATION_SCHEMA_ERROR");
+            _log.error(msg, e);
+           
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+        return jmap;
+        
+    }
+    
 }
+    
