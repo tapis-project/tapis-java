@@ -57,8 +57,12 @@ public final class JobExecutionManager
         // Create the wrapper script.
         String wrapperScript = _jobStager.generateWrapperScript();
         
+        // Create the environment variable definition file.
+        String envVarFile = _jobStager.generateEnvVarFile();
+        
         // Install the wrapper script on the execution system.
         installWrapperScript(wrapperScript);
+        
     }
     
     /* ********************************************************************** */
