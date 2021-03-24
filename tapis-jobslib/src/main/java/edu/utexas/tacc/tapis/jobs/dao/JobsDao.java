@@ -37,6 +37,18 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.TableField;
+import org.jooq.impl.DSL;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.*;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
+
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
@@ -345,6 +357,172 @@ public final class JobsDao
 	      
 	      return jobList;
 	}
+	
+	/* ---------------------------------------------------------------------- */
+	/* getJobsSearchByUsername:                                                     */
+	/* ---------------------------------------------------------------------- */
+	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws JobException
+	{
+	    // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    String orderBy = "";
+	    
+        for(int i = 0;i < listsize; i++) {
+      	  
+      	  if(orderBy.isBlank()) {
+      		  String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+      		 // Determine and check orderBy column
+      		  Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+      	  } else {
+      		 orderBy = orderBy + " " + SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+      		  
+      	  }
+      	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
+        }
+        orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
+	    
+	 
+	   
+	    
+	    // ------------------------- Call SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          // Get the select command.
+	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
+	          //String orderBy = "";
+	          
+	          _log.debug("listsize: " + listsize);
+	          for(int i = 0;i < listsize; i++) {
+	        	  
+	        	  if(orderBy.isBlank()) {
+	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+	        	  } else {
+	        		 orderBy = orderBy + " " + SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+	        		  
+	        	  }
+	        	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
+	          }
+	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
+	          
+	          if(orderBy.isBlank()) {
+	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
+	          }
+	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
+	          sql = sql.replace(":orderby", orderBy);
+	          
+	          
+	          
+	          // Prepare the statement and fill in the placeholders.
+	          PreparedStatement pstmt = conn.prepareStatement(sql);
+	          pstmt.setString(1, username);
+	          pstmt.setString(2, tenant);
+	          pstmt.setBoolean(3, true); //visible is set to true
+	          
+	          pstmt.setInt(4, limit);
+	          pstmt.setInt(5, skip);
+	          
+	                      
+	       // Issue the call for the 1 row result set.
+	          ResultSet rs = pstmt.executeQuery();
+	         
+	          // Quick check.
+	  	      if (rs == null) return null;
+	  	    
+	  	      try {
+	  	    	  // Return null if the results are empty or exhausted.
+	  	    	  // This call advances the cursor.
+	  	    	  if (!rs.next()) return null;
+	  	      }
+	  	      catch (Exception e) {
+	  	    	  String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+	  	    	  throw new TapisJDBCException(msg, e);
+	  	      }
+	  	      
+	          
+	          /*if (!rs.next()) {
+	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
+	                _log.error(msg);
+	                throw new JobException(msg);
+	            }*/
+	        
+	          
+	            // JobList for specific user.
+	            JobListDTO jobListObject ;
+	            do {
+	                jobListObject = new JobListDTO();
+	                jobListObject.setUuid(rs.getString(1));
+	                jobListObject.setTenant(tenant);
+	                jobListObject.setName(rs.getString(3));
+	                jobListObject.setOwner(rs.getString(4));
+	                jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
+	                Timestamp ts = rs.getTimestamp(6);
+	                if (ts != null) 
+	                    jobListObject.setCreated(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(7);
+	                if (ts != null) jobListObject.setEnded(ts.toInstant());
+	                
+	                ts = rs.getTimestamp(8);
+	                if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
+	                
+	                jobListObject.setAppId(rs.getString(9));
+	                jobListObject.setAppVersion(rs.getString(10));
+	                jobListObject.setExecSystemId(rs.getString(11));
+	                jobListObject.setArchiveSystemId(rs.getString(11));
+	                ts = rs.getTimestamp(13);
+	                
+	                if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
+	                
+	                jobList.add(jobListObject);
+	                
+	            } while(rs.next()) ;
+	                     
+	          
+	          // Close the result and statement.
+	          rs.close();
+	          pstmt.close();
+	    
+	          // Commit the transaction.
+	          conn.commit();
+	      }
+	      catch (Exception e)
+	      {
+	          // Rollback transaction.
+	          try {if (conn != null) conn.rollback();}
+	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+	          
+	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+	          throw new JobException(msg, e);
+	      }
+	      finally {
+	          // Always return the connection back to the connection pool.
+	          try {if (conn != null) conn.close();}
+	            catch (Exception e) 
+	            {
+	              // If commit worked, we can swallow the exception.  
+	              // If not, the commit exception will be thrown.
+	              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+	              _log.error(msg, e);
+	            }
+	      }
+	      
+	      return jobList;
+	}
+	
+	
     /* ---------------------------------------------------------------------- */  
     /* getJobByUUID:                                                          */
     /* ---------------------------------------------------------------------- */
