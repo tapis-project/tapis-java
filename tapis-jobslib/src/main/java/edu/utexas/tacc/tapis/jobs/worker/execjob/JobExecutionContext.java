@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -22,6 +23,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.system.TapisAbstractConnection;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -57,6 +60,7 @@ public final class JobExecutionContext
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
     private JobExecutionManager      _jobExecutionManager;
+    private SSHConnection            _execSysConn; // always use accessor
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -243,6 +247,17 @@ public final class JobExecutionContext
         getJobExecutionManager().stageJob();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* submitJob:                                                             */
+    /* ---------------------------------------------------------------------- */
+    public void submitJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobExecutionManager().submitJob();
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getServiceClient:                                                            */
     /* ---------------------------------------------------------------------------- */
@@ -268,6 +283,48 @@ public final class JobExecutionContext
         }
 
         return client;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getExecSystemConnection:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    public SSHConnection getExecSystemConnection() throws JobException 
+    {
+        if (_execSysConn == null) 
+            try {_execSysConn = TapisAbstractConnection.createNewConnection(_executionSystem);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
+                                                 _executionSystem.getId(),
+                                                 _executionSystem.getHost(),
+                                                 _executionSystem.getEffectiveUserId(),
+                                                 _executionSystem.getTenant(),
+                                                 _executionSystem.getDefaultAuthnMethod().name(),
+                                                 _job.getUuid(),
+                                                 e.getMessage());
+                    throw new JobException(msg, e);
+                }
+        return _execSysConn;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* closeExecSystemConnection:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Close the ssh session to the execution system if one exists. */
+    public void closeExecSystemConnection()
+    {
+        if (_execSysConn != null) {
+            _execSysConn.closeSession();
+            _execSysConn = null;
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* close:                                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Clean up after job executes. */
+    public void close()
+    {
+        closeExecSystemConnection();
     }
     
     /* ********************************************************************** */

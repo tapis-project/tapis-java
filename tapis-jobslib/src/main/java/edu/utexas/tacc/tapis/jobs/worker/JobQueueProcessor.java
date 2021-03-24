@@ -202,6 +202,9 @@ final class JobQueueProcessor
         // If we get here with a negative ack, we have to fail the job. 
         //
         if (!ack) failJob(job, msg);
+        
+        // Clean up context.
+        jobCtx.close();
     }
     finally {
       // We always want to check the finalMessage field. 
@@ -624,7 +627,7 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
-      // Stage inputs.
+      // Stage job.
       try {jobCtx.stageJob();}
       catch (Exception e) {throw JobUtils.tapisify(e);}
 
@@ -659,6 +662,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Stage job.
+      try {jobCtx.submitJob();}
+      catch (Exception e) {throw JobUtils.tapisify(e);}
+
       // Advance job to next state.
       setState(job, JobStatusType.QUEUED);
       
