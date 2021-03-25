@@ -20,6 +20,15 @@ public final class JobExecutionUtils
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionUtils.class);
     
+    // Job wrapper script name.
+    public static final String JOB_WRAPPER_SCRIPT = "tapisjob.sh";
+    public static final String JOB_ENV_FILE       = "tapisjob.env";
+    
+    // Docker command templates.
+    private static final String DOCKER_ID = "docker ps -a --no-trunc -f \"%s\" --format \"{{.ID}}\"";
+    private static final String DOCKER_STATUS = "docker ps -a --no-trunc -f \"name=%s\" --format \"{{.Status}}\"";
+    private static final String DOCKER_RM = "docker rm %s";
+
     /* ********************************************************************** */
     /*                            Public Methods                              */
     /* ********************************************************************** */
@@ -84,4 +93,24 @@ public final class JobExecutionUtils
         
         // TODO: put job status on event queue
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDockerCidCommand:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerCidCommand(String containerName)
+    {return String.format(DOCKER_ID, containerName);}
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDockerStatusCommand:                                                */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerStatusCommand(String containerName)
+    {return String.format(DOCKER_STATUS, containerName);}
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDockerRmCommand:                                                    */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerRmCommand(String containerName)
+    {return String.format(DOCKER_RM, containerName);}
+    
+
 }

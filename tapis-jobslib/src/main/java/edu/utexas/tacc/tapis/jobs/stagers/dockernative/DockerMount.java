@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager.dockernative;
+package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
 public interface DockerMount 
 {

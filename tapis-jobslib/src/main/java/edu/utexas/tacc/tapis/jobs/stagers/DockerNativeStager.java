@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager;
+package edu.utexas.tacc.tapis.jobs.stagers;
 
 import java.util.regex.Pattern;
 
@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.stager.dockernative.DockerRunCmd;
-import edu.utexas.tacc.tapis.jobs.stager.dockernative.DockerRunCmd.BindMount;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;

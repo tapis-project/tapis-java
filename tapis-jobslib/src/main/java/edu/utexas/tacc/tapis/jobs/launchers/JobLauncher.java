@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
-import edu.utexas.tacc.tapis.jobs.launchers.parsers.JobLaunchResult;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 public interface JobLauncher 
 {
@@ -9,5 +9,5 @@ public interface JobLauncher
      * 
      * @return reference information for remote job access 
      */
-    JobLaunchResult launch();
+    void launch() throws TapisException;
 }

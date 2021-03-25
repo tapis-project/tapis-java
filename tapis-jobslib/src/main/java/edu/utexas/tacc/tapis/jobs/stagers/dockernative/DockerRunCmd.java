@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager.dockernative;
+package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
 import java.util.ArrayList;
 import java.util.List;
