@@ -662,7 +662,7 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
-      // Stage job.
+      // Submit job.
       try {jobCtx.submitJob();}
       catch (Exception e) {throw JobUtils.tapisify(e);}
 
@@ -697,6 +697,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Check queued job.
+      try {jobCtx.monitorQueuedJob();}
+      catch (Exception e) {throw JobUtils.tapisify(e);}
+
       // Advance job to next state.
       setState(job, JobStatusType.RUNNING);
       
@@ -728,6 +732,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Check running job.
+      try {jobCtx.monitorRunningJob();}
+      catch (Exception e) {throw JobUtils.tapisify(e);}
+
       // Advance job to next state.
       setState(job, JobStatusType.ARCHIVING);
       

@@ -346,7 +346,11 @@ public final class JobFileManager
     /* makeExecSysInputPath:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on the input spec's destination path and the
-     * execution system id.  The target is never null or empty.
+     * execution system id.  Implicit in the tapis protocol is that the Files
+     * service will prefix path portion of the url with  the execution system's 
+     * rootDir when actually transferring files. 
+     * 
+     * The target is never null or empty.
      * 
      * @param fileInput a file input spec
      * @return the tapis url indicating a path on the exec system.

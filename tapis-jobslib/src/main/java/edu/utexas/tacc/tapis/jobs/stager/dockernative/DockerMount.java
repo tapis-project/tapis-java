@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager.runtimes;
+package edu.utexas.tacc.tapis.jobs.stager.dockernative;
 
 public interface DockerMount 
 {

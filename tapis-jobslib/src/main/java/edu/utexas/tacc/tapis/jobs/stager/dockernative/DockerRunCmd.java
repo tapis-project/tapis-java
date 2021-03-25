@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager.runtimes;
+package edu.utexas.tacc.tapis.jobs.stager.dockernative;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +70,7 @@ public final class DockerRunCmd
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
-        buf.append("docker run --name ");
+        buf.append("docker run -d --name ");
         buf.append(name);
         buf.append(" --user ");
         buf.append(user);

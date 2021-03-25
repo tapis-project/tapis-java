@@ -8,6 +8,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 public final class JobExecStageFactory 
 {
+    /* ---------------------------------------------------------------------- */
+    /* getInstance:                                                           */
+    /* ---------------------------------------------------------------------- */
     /** Create a stager based on the type of job and its execution environment.
      * This method either returns the appropriate stager or throws an exception.
      * 
@@ -26,35 +29,83 @@ public final class JobExecStageFactory
         // The result.
         JobExecStager stager = null;
         
-        // By app type, then runtime.
+        // ------------------------- FORK -------------------------
         if (appType == AppTypeEnum.FORK) {
-            stager = switch (runtime) 
-                {
-                    case DOCKER      -> new JobDockerStager(jobCtx);
+            stager = switch (runtime) {
+                case DOCKER      -> new DockerNativeStager(jobCtx);
                 //    case SINGULARITY -> null;
-                    default -> {
-                        String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
-                                                     "JobExecStageFactory");
-                        throw new JobException(msg);
-                    }
-                };
+                default -> {
+                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                                                 "JobExecStageFactory");
+                    throw new JobException(msg);
+                }
+            };
         }
+        // ------------------------- BATCH ------------------------
         else if (appType == AppTypeEnum.BATCH) {
-            stager = switch (runtime) 
-                {
-                    case DOCKER      -> new JobDockerStager(jobCtx);
-               //     case SINGULARITY -> null;
-                    default -> {
-                        String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime,
-                                                     "JobExecStageFactory");
-                        throw new JobException(msg);
-                    }
-                };
+            // Get the scheduler under which containers will be launched.
+            var system = jobCtx.getExecutionSystem();
+            var scheduler = system.getBatchScheduler();
+            
+            // Get the stager for each supported runtime/scheduler combination.
+            stager = switch (runtime) {
+                case DOCKER      -> getBatchDockerStager(jobCtx, scheduler);
+                case SINGULARITY -> getBatchSingularityStager(jobCtx, scheduler);
+                default -> {
+                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                                                 "JobExecStageFactory");
+                    throw new JobException(msg);
+                }
+            };
         }
         else {
             String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobExecStageFactory");
             throw new JobException(msg);
         }
+        
+        return stager;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getBatchDockerStager:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static JobExecStager getBatchDockerStager(JobExecutionContext jobCtx,
+                                                      String scheduler) 
+     throws TapisException
+    {
+        // Get the scheduler's docker stager. 
+        JobExecStager stager = switch (scheduler) {
+            case "slurm" -> new DockerSlurmStager(jobCtx);
+            
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                                             scheduler + "(DOCKER)", 
+                                             "JobExecStageFactory");
+                throw new JobException(msg);
+            }
+        };
+        
+        return stager;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchSingularityStager:                                             */
+    /* ---------------------------------------------------------------------- */
+    private static JobExecStager getBatchSingularityStager(JobExecutionContext jobCtx,
+                                                           String scheduler) 
+     throws TapisException
+    {
+        // Get the scheduler's docker stager. 
+        JobExecStager stager = switch (scheduler) {
+            case "slurmX" -> null; // not implemented
+        
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                                             scheduler + "(SINGULARITY)", 
+                                             "JobExecStageFactory");
+                throw new JobException(msg);
+            }
+        };
         
         return stager;
     }

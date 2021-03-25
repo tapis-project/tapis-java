@@ -258,6 +258,28 @@ public final class JobExecutionContext
         getJobExecutionManager().submitJob();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* monitorQueuedJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public void monitorQueuedJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobExecutionManager().monitorJob();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* monitorRunningJob:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public void monitorRunningJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobExecutionManager().monitorJob();
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getServiceClient:                                                            */
     /* ---------------------------------------------------------------------------- */

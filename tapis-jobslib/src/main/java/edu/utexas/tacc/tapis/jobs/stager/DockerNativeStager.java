@@ -9,20 +9,20 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.stager.runtimes.DockerRunCmd;
-import edu.utexas.tacc.tapis.jobs.stager.runtimes.DockerRunCmd.BindMount;
+import edu.utexas.tacc.tapis.jobs.stager.dockernative.DockerRunCmd;
+import edu.utexas.tacc.tapis.jobs.stager.dockernative.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class JobDockerStager 
+public class DockerNativeStager 
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(JobDockerStager.class);
+    private static final Logger _log = LoggerFactory.getLogger(DockerNativeStager.class);
     
     // Container id file suffix.
     private static final String CID_SUFFIX = ".cid";
@@ -56,7 +56,7 @@ public final class JobDockerStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobDockerStager(JobExecutionContext jobCtx)
+    public DockerNativeStager(JobExecutionContext jobCtx)
      throws TapisException
     {
         // Create and populate the docker command.

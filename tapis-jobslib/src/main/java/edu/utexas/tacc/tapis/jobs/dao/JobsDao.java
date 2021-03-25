@@ -112,6 +112,7 @@ public final class JobsDao
 	  
     // Comma-separated string of non active statuses ready for sql query.
     private final static String _nonActiveJobStatuses = JobStatusType.getNonActiveSQLString();
+    
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
     
@@ -827,7 +828,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getName(), 
+            String msg = MsgUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), 
                                          type.name(), value, e.getMessage());
             throw new JobException(msg, e);
@@ -1306,6 +1307,18 @@ public final class JobsDao
         }
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* setRemoteJobId:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void setRemoteJobId(Job job, String remoteId) throws JobException
+    {setRemoteJobId(job, remoteId, true);}
+    
+    /* ---------------------------------------------------------------------- */
+    /* setRemoteJobId2:                                                       */
+    /* ---------------------------------------------------------------------- */
+    public void setRemoteJobId2(Job job, String remoteId2) throws JobException
+    {setRemoteJobId(job, remoteId2, false);}
+    
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
@@ -1649,7 +1662,89 @@ public final class JobsDao
         
         return count;
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* setRemoteJobId:                                                        */
+    /* ---------------------------------------------------------------------- */
+    private void setRemoteJobId(Job job, String remoteId, boolean primary) 
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteJobId", "job");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(remoteId)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteJobId", "remoteId");
+            throw new JobException(msg);
+        }
+        
+        // Get current time.
+        var now = Instant.now();
+
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Insert into the jobs table first.
+          // Create the command using table definition field order.
+          String sql = primary ? SqlStatements.UPDATE_REMOTE_JOB_ID : SqlStatements.UPDATE_REMOTE_JOB_ID2;
+          
+          // Prepare the chosen statement.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setTimestamp(1, Timestamp.from(now));
+          pstmt.setString(2, remoteId);
+          pstmt.setInt(3, job.getId());
+          pstmt.setString(4, job.getTenant());
+          
+          // Issue the call and check that one record was updated.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) {
+              String parms = StringUtils.joinWith(", ", now, remoteId, job.getId(), job.getTenant());
+              String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+              throw new JobException(msg);
+          }
+             
+          // Close the result and statement.
+          pstmt.close();
+        
+          // Commit the transaction.
+          conn.commit();
+          
+          // Update the in-memory job with the latest information.
+          job.setLastUpdated(now);
+          if (primary) job.setRemoteJobId(remoteId);
+            else job.setRemoteJobId2(remoteId);
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String idSuffix = primary ? "" : "2";
+            String msg = MsgUtils.getMsg("JOBS_UPDATE_REMOTE_ID_ERROR", job.getUuid(), 
+                                         job.getTenant(), job.getOwner(), 
+                                         idSuffix, remoteId, e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+
 	/* ---------------------------------------------------------------------- */
 	/* validateNewJob:                                                        */
 	/* ---------------------------------------------------------------------- */
