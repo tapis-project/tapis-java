@@ -12,12 +12,12 @@ public class JobLauncherFactory
     /* ---------------------------------------------------------------------- */
     /* getInstance:                                                           */
     /* ---------------------------------------------------------------------- */
-    /** Create a stager based on the type of job and its execution environment.
-     * This method either returns the appropriate stager or throws an exception.
+    /** Create a launcher based on the type of job and its execution environment.
+     * This method either returns the appropriate luuncher or throws an exception.
      * 
      * @param jobCtx job context
-     * @return the stager designated for the current job type and environment
-     * @throws TapisException when no stager is found or a network error occurs
+     * @return the launcher designated for the current job type and environment
+     * @throws TapisException when no launcher is found or a network error occurs
      */
     public static JobLauncher getInstance(JobExecutionContext jobCtx) 
      throws TapisException 
@@ -28,11 +28,11 @@ public class JobLauncherFactory
         var runtime = app.getRuntime();
         
         // The result.
-        JobLauncher stager = null;
+        JobLauncher launcher = null;
         
         // ------------------------- FORK -------------------------
         if (appType == AppTypeEnum.FORK) {
-            stager = switch (runtime) {
+            launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
                 //    case SINGULARITY -> null;
                 default -> {
@@ -48,8 +48,8 @@ public class JobLauncherFactory
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
             
-            // Get the stager for each supported runtime/scheduler combination.
-            stager = switch (runtime) {
+            // Get the laucher for each supported runtime/scheduler combination.
+            launcher = switch (runtime) {
                 case DOCKER      -> getBatchDockerLauncher(jobCtx, scheduler);
                 case SINGULARITY -> getBatchSingularityLauncher(jobCtx, scheduler);
                 default -> {
@@ -60,22 +60,22 @@ public class JobLauncherFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobExecStageFactory");
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobLauncherFactory");
             throw new JobException(msg);
         }
         
-        return stager;
+        return launcher;
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getBatchDockerStager:                                                  */
+    /* getBatchDockerLauncher:                                                */
     /* ---------------------------------------------------------------------- */
     private static JobLauncher getBatchDockerLauncher(JobExecutionContext jobCtx,
                                                     String scheduler) 
      throws TapisException
     {
-        // Get the scheduler's docker stager. 
-        JobLauncher stager = switch (scheduler) {
+        // Get the scheduler's docker launcher. 
+        JobLauncher launcher = switch (scheduler) {
             case "slurmX" -> null;
             
             default -> {
@@ -86,18 +86,18 @@ public class JobLauncherFactory
             }
         };
         
-        return stager;
+        return launcher;
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getBatchSingularityStager:                                             */
+    /* getBatchSingularityLauncher:                                           */
     /* ---------------------------------------------------------------------- */
     private static JobLauncher getBatchSingularityLauncher(JobExecutionContext jobCtx,
                                                            String scheduler) 
      throws TapisException
     {
-        // Get the scheduler's docker stager. 
-        JobLauncher stager = switch (scheduler) {
+        // Get the scheduler's docker launcher. 
+        JobLauncher launcher = switch (scheduler) {
             case "slurmX" -> null; // not implemented
         
             default -> {
@@ -108,6 +108,6 @@ public class JobLauncherFactory
             }
         };
         
-        return stager;
+        return launcher;
     }
 }
