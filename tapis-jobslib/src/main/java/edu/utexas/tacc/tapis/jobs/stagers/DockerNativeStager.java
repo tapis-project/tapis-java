@@ -65,7 +65,7 @@ public class DockerNativeStager
     }
 
     /* ********************************************************************** */
-    /*                             Public Methods                             */
+    /*                          Protected Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
@@ -75,7 +75,7 @@ public class DockerNativeStager
      * @return the wrapper script content
      */
     @Override
-    public String generateWrapperScript() 
+    protected String generateWrapperScript() 
      throws TapisException
     {
         // Construct the docker command.
@@ -98,7 +98,7 @@ public class DockerNativeStager
      * @return the content for a environment variable definition file 
      */
     @Override
-    public String generateEnvVarFile()
+    protected String generateEnvVarFile()
     {
         return _dockerRunCmd.generateEnvVarFileContent();
     }

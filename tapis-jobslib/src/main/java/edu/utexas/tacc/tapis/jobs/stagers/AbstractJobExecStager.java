@@ -1,10 +1,18 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import java.io.ByteArrayInputStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.system.TapisSftp;
 
 public abstract class AbstractJobExecStager 
  implements JobExecStager
@@ -43,9 +51,54 @@ public abstract class AbstractJobExecStager
         _cmd = new StringBuilder(INIT_CMD_LEN);
     }
 
+
+    /* ********************************************************************** */
+    /*                             Public Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* stageJob:                                                              */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    public void stageJob() throws TapisException 
+    {
+        // Create the wrapper script.
+        String wrapperScript = generateWrapperScript();
+        
+        // Create the environment variable definition file.
+        String envVarFile = generateEnvVarFile();
+        
+        // Get the ssh connection used by this job 
+        // communicate with the execution system.
+        var conn = _jobCtx.getExecSystemConnection();
+        
+        // Install the wrapper script on the execution system.
+        installExecFile(conn, wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, TapisSftp.RWXRWX);
+        
+        // Install the env variable definition file.
+        installExecFile(conn, envVarFile, JobExecutionUtils.JOB_ENV_FILE, TapisSftp.RWRW);
+    }
+    
     /* ********************************************************************** */
     /*                           Protected Methods                            */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* generateWrapperScript:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** This method generates the wrapper script content.
+     * 
+     * @return the wrapper script content
+     */
+    protected abstract String generateWrapperScript() throws TapisException;
+    
+    /* ---------------------------------------------------------------------- */
+    /* generateEnvVarFile:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** This method generates content for a environment variable definition file.
+     *  
+     * @return the content for a environment variable definition file 
+     */
+    protected abstract String generateEnvVarFile() throws TapisException;
+    
     /* ---------------------------------------------------------------------- */
     /* initBashScript:                                                        */
     /* ---------------------------------------------------------------------- */
@@ -59,6 +112,43 @@ public abstract class AbstractJobExecStager
     /*                            Private Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
+    /* installExecFile:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private void installExecFile(SSHConnection conn, String content,
+                                 String fileName, int mod) 
+      throws TapisException
+    {
+        // Put the wrapperScript text into a stream.
+        var in = new ByteArrayInputStream(content.getBytes());
+        
+        // Calculate the destination file path.
+        String filePath = _job.getExecSystemExecDir();
+        if (filePath.endsWith("/")) filePath += fileName;
+          else filePath += "/" + fileName;
+        
+        // Initialize the sftp transporter.
+        var sftp = new TapisSftp(_jobCtx.getExecutionSystem(), conn);
+        
+        // Transfer the wrapper script.
+        try {
+            sftp.put(in, filePath);
+            sftp.chmod(mod, filePath);
+        } 
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SFTP_CMD_ERROR", 
+                                         _jobCtx.getExecutionSystem().getId(),
+                                         _jobCtx.getExecutionSystem().getHost(),
+                                         _jobCtx.getExecutionSystem().getEffectiveUserId(),
+                                         _jobCtx.getExecutionSystem().getTenant(),
+                                         _job.getUuid(),
+                                         filePath, e.getMessage());
+            throw new JobException(msg, e);
+        } 
+        // Always close the channel but keep the connection open.
+        finally {sftp.closeChannel();} 
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* appendDescription:                                                     */
     /* ---------------------------------------------------------------------- */
     private void appendDescription()
@@ -71,5 +161,4 @@ public abstract class AbstractJobExecStager
         _cmd.append("       application and system definitions.\n");
         _cmd.append("\n");
     }
-
 }

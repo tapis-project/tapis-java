@@ -28,17 +28,11 @@ public class DockerNativeMonitor
     /*                             Public Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* monitor:                                                               */
+    /* monitorQueuedJob:                                                      */
     /* ---------------------------------------------------------------------- */
     @Override
-    public void monitor() throws TapisException {
-        
+    public void monitorQueuedJob() throws TapisException
+    {
+        // The queued state is a no-op for forked jobs.
     }
-
-    /* ---------------------------------------------------------------------- */
-    /* allowEmptyResult:                                                      */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    public boolean allowEmptyResult() {return false;}
-
 }

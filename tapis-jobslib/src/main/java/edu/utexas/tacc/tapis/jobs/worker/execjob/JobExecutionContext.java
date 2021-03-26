@@ -10,12 +10,15 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.monitors.JobMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecStageFactory;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -59,7 +62,6 @@ public final class JobExecutionContext
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
-    private JobExecutionManager      _jobExecutionManager;
     private SSHConnection            _execSysConn; // always use accessor
     
     // Last message to be written to job record when job terminates.
@@ -195,15 +197,6 @@ public final class JobExecutionContext
     } 
     
     /* ---------------------------------------------------------------------- */
-    /* getJobExecutionManager:                                                */
-    /* ---------------------------------------------------------------------- */
-    public JobExecutionManager getJobExecutionManager() 
-    {
-        if (_jobExecutionManager == null) _jobExecutionManager = new JobExecutionManager(this);
-        return _jobExecutionManager;
-    } 
-    
-    /* ---------------------------------------------------------------------- */
     /* getJobIOTargets:                                                       */
     /* ---------------------------------------------------------------------- */
     public JobIOTargets getJobIOTargets() 
@@ -244,7 +237,8 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobExecutionManager().stageJob();
+        var stager = JobExecStageFactory.getInstance(this);
+        stager.stageJob();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -255,7 +249,8 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobExecutionManager().submitJob();
+        var launcher = JobLauncherFactory.getInstance(this);
+        launcher.launch();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -266,7 +261,8 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobExecutionManager().monitorJob();
+        var monitor = JobMonitorFactory.getInstance(this);
+        monitor.monitorQueuedJob();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -277,7 +273,8 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobExecutionManager().monitorJob();
+        var monitor = JobMonitorFactory.getInstance(this);
+        monitor.monitorRunningJob();
     }
     
     /* ---------------------------------------------------------------------------- */
