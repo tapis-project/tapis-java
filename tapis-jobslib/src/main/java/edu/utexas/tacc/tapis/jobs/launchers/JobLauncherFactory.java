@@ -5,6 +5,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 
 /** All supported launchers are instantiated using this class. */
 public class JobLauncherFactory 
@@ -48,6 +49,13 @@ public class JobLauncherFactory
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
             
+            // Doublecheck that a scheduler is assigned.
+            if (scheduler == null) {
+                String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
+                                              jobCtx.getJob().getUuid());
+                throw new JobException(msg);
+            }
+            
             // Get the laucher for each supported runtime/scheduler combination.
             launcher = switch (runtime) {
                 case DOCKER      -> getBatchDockerLauncher(jobCtx, scheduler);
@@ -71,12 +79,12 @@ public class JobLauncherFactory
     /* getBatchDockerLauncher:                                                */
     /* ---------------------------------------------------------------------- */
     private static JobLauncher getBatchDockerLauncher(JobExecutionContext jobCtx,
-                                                    String scheduler) 
+                                                      SchedulerTypeEnum scheduler) 
      throws TapisException
     {
         // Get the scheduler's docker launcher. 
         JobLauncher launcher = switch (scheduler) {
-            case "slurmX" -> null;
+            case SLURM -> null;
             
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
@@ -93,12 +101,12 @@ public class JobLauncherFactory
     /* getBatchSingularityLauncher:                                           */
     /* ---------------------------------------------------------------------- */
     private static JobLauncher getBatchSingularityLauncher(JobExecutionContext jobCtx,
-                                                           String scheduler) 
+                                                           SchedulerTypeEnum scheduler) 
      throws TapisException
     {
         // Get the scheduler's docker launcher. 
         JobLauncher launcher = switch (scheduler) {
-            case "slurmX" -> null; // not implemented
+            case SLURM -> null; // not implemented
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 

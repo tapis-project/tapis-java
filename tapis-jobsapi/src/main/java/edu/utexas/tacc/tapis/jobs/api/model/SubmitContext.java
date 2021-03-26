@@ -852,8 +852,8 @@ public final class SubmitContext
         
         if (!StringUtils.isBlank(_execSystem.getBucketName()))
             _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
-        if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
-            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler());
+        if (_execSystem.getBatchScheduler() != null)
+            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler().name());
         
         if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
             String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
