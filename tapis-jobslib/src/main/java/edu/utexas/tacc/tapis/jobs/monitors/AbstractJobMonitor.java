@@ -118,9 +118,12 @@ abstract class AbstractJobMonitor
     /* ---------------------------------------------------------------------- */
     /* monitor:                                                               */
     /* ---------------------------------------------------------------------- */
-    /** This is the actual monitor call.  The status is the last known status
-     * of the job and the one for which we are monitoring changes.  The only 
-     * two valid initial status values are QUEUE and RUNNING.
+    /** This is the actual monitor call.  The initial status values determine
+     * how a remote status change is detected.  The only two valid initial status 
+     * values are QUEUE and RUNNING.  Subclasses implement the abstract methods
+     * of this class to issue the actual query commands on the execution system.
+     * Subclasses can also override the JobMonitor interface's methods to take
+     * control of monitoring before it reaches this method.
      * 
      * The general approach is to issue monitoring queries until the remote job's 
      * status changes.  The frequency and other limits placed on querying are
@@ -129,7 +132,12 @@ abstract class AbstractJobMonitor
      * exception is thrown indicating to the caller that the job should be 
      * considered FAILED.
      * 
+     * Depending on the policy settings, long intervals between monitor queries
+     * may cause the connection to the execution system to be closed.
      * 
+     * Under normal conditions, when a job terminates the remote job outcome
+     * and exit code are retrieved and used to update the job in memory and 
+     * in the database.  
      */
     protected void monitor(final JobStatusType initialStatus)
      throws TapisException
@@ -303,5 +311,4 @@ abstract class AbstractJobMonitor
             }
         }
     }
-
 }

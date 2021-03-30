@@ -340,9 +340,15 @@ public final class JobExecutionContext
     /** Close the ssh session to the execution system if one exists. */
     public void closeExecSystemConnection()
     {
+        // Close the ssh session.
         if (_execSysConn != null) {
             _execSysConn.closeSession();
             _execSysConn = null;
+            
+            // Log the action.
+            if (_log.isInfoEnabled())
+               _log.info(MsgUtils.getMsg("JOBS_SSH_CLOSE_CONN", 
+                                         _job.getUuid(), _job.getExecSystemId()));
         }
     }
     
