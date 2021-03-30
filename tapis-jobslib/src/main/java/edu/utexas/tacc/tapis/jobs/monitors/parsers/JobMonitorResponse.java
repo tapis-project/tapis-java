@@ -8,5 +8,5 @@ public interface JobMonitorResponse
      * 
      * @return the remote job id
      */
-    JobMonitorResponseType getResponseType();
+    JobRemoteStatus getResponseType();
 }

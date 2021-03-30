@@ -127,6 +127,7 @@ public final class JobsDao
     
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
+    
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -1319,6 +1320,170 @@ public final class JobsDao
     public void setRemoteJobId2(Job job, String remoteId2) throws JobException
     {setRemoteJobId(job, remoteId2, false);}
     
+    /* ---------------------------------------------------------------------- */
+    /* setRemoteOutcome:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public void setRemoteOutcome(Job job, JobRemoteOutcome outcome) 
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteOutcome", "job");
+            throw new JobException(msg);
+        }
+        if (outcome == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteOutcome", "outcome");
+            throw new JobException(msg);
+        }
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.UPDATE_REMOTE_OUTCOME;
+          
+          // Calculate the new values.
+          Instant now = Instant.now();
+          Timestamp ts = Timestamp.from(now);
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, outcome.name());
+          pstmt.setTimestamp(2, ts);
+          pstmt.setTimestamp(3, ts);
+          pstmt.setLong(4, job.getId());
+          
+          // Issue the call.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) {
+              String parms = StringUtils.joinWith(", ", outcome.name(), ts, ts, job.getId());
+              String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+              _log.error(msg);
+              throw new JobException(msg);
+          }
+          
+          // Close the result and statement.
+          pstmt.close();
+        
+          // Commit the transaction.
+          conn.commit();
+          
+          // Update the job object.
+          job.setRemoteOutcome(outcome);
+          job.setLastUpdated(now);
+          job.setRemoteEnded(now);
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
+                                         job.getTenant(), job.getOwner(), e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* setRemoteOutcomeAndResult:                                             */
+    /* ---------------------------------------------------------------------- */
+    public void setRemoteOutcomeAndResult(Job job, JobRemoteOutcome outcome, String result) 
+     throws JobException
+    {
+        // ------------------------- Check Input -------------------------
+        if (job == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteOutcome", "job");
+            throw new JobException(msg);
+        }
+        if (outcome == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setRemoteOutcome", "outcome");
+            throw new JobException(msg);
+        }
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql = SqlStatements.UPDATE_REMOTE_OUTCOME_AND_RESULT;
+          
+          // Calculate the new values.
+          Instant now = Instant.now();
+          Timestamp ts = Timestamp.from(now);
+          
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, outcome.name());
+          pstmt.setString(2, result);
+          pstmt.setTimestamp(3, ts);
+          pstmt.setTimestamp(4, ts);
+          pstmt.setLong(5, job.getId());
+          
+          // Issue the call.
+          int rows = pstmt.executeUpdate();
+          if (rows != 1) {
+              String parms = StringUtils.joinWith(", ", outcome.name(), result, ts, ts, job.getId());
+              String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+              _log.error(msg);
+              throw new JobException(msg);
+          }
+          
+          // Close the result and statement.
+          pstmt.close();
+        
+          // Commit the transaction.
+          conn.commit();
+          
+          // Update the job object.
+          job.setRemoteOutcome(outcome);
+          job.setRemoteResultInfo(result);
+          job.setLastUpdated(now);
+          job.setRemoteEnded(now);
+        }
+        catch (Exception e)
+        {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
+                                         job.getTenant(), job.getOwner(), e.getMessage());
+            throw new JobException(msg, e);
+        }
+        finally {
+            // Always return the connection back to the connection pool.
+            if (conn != null) 
+                try {conn.close();}
+                  catch (Exception e) 
+                  {
+                      // If commit worked, we can swallow the exception.  
+                      // If not, the commit exception will be thrown.
+                      String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                      _log.error(msg, e);
+                  }
+        }
+    }
+
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
@@ -1559,7 +1724,7 @@ public final class JobsDao
      * @param systemId the non-null execution system's unique id
      * @param owner job owner or null for any owner
      * @param remoteQueue remote queue or null for any queue
-     * @return the number of aloe jobs active on the specified system
+     * @return the number of tapis jobs active on the specified system
      * @throws JobException 
      */
     private int countActiveJobs(String tenantId, String systemId, String owner, 
@@ -1568,12 +1733,12 @@ public final class JobsDao
     {
         // ------------------------- Check Input -------------------------
         if (StringUtils.isBlank(tenantId)) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "countActiveJobs", "tenantId");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveJobs", "tenantId");
             _log.error(msg);
             throw new JobException(msg);
         }
         if (StringUtils.isBlank(systemId)) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "countActiveJobs", "systemId");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveJobs", "systemId");
             _log.error(msg);
             throw new JobException(msg);
         }
@@ -1998,7 +2163,7 @@ public final class JobsDao
 	}
 
 	/* ************************************* */
-    /*            Initialize Jobs Map         */
+    /*            Initialize Jobs Map        */
     /* ************************************* */ 
     public static Map<String,String> initializeJobFieldMap(){
         // Map<String,String> jmap = new HashMap<String,String>(80);

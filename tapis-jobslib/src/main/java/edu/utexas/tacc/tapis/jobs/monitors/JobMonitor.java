@@ -23,4 +23,16 @@ public interface JobMonitor
      * @throws TapisException on monitoring error
      */
     void monitorRunningJob() throws TapisException;
+    
+    /** Return the application exit code as reported by docker.  If no exit
+     * code has been ascertained, null is returned. 
+     * 
+     * @return the application exit code or null
+     */
+    public String getExitCode();
+    
+    /** Close the connection to the monitored host if there are no other 
+     * active channels using the connection.  
+     */
+    void closeConnection();
 }

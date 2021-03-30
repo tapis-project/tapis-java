@@ -326,6 +326,15 @@ public final class JobExecutionContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* existsExecSystemConnection:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Test if the connection exists with no side-effects.  
+     * 
+     * @return true is the connection exist, false otherwise
+     */
+    public boolean existsExecSystemConnection() {return _execSysConn != null;}
+    
+    /* ---------------------------------------------------------------------------- */
     /* closeExecSystemConnection:                                                   */
     /* ---------------------------------------------------------------------------- */
     /** Close the ssh session to the execution system if one exists. */
@@ -517,22 +526,22 @@ public final class JobExecutionContext
             String msg;
             switch (e.getCode()) {
                 case 400:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INPUT_ERROR", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INPUT_ERROR", appString, _job.getOwner(), 
                                           _job.getTenant());
                 break;
                 
                 case 401:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_AUTHZ_ERROR", appString, "READ", 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_AUTHZ_ERROR", appString, "READ", 
                                           _job.getOwner(), _job.getTenant());
                 break;
                 
                 case 404:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_NOT_FOUND", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_NOT_FOUND", appString, _job.getOwner(), 
                                           _job.getTenant());
                 break;
                 
                 default:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INTERNAL_ERROR", appString, _job.getOwner(), 
                                           _job.getTenant());
             }
             throw new TapisImplException(msg, e, e.getCode());

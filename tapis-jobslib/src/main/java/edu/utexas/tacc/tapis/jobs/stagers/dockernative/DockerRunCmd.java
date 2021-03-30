@@ -19,8 +19,6 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 public final class DockerRunCmd 
  implements RunCmd
 {
-// docker run --name SleepSeconds --rm -u "$(id -u):$(id -g)" ${vmounts} ${envdirs} ${jobparms} -e 'MAIN_CLASS=edu.utexas.tacc.testapps.tapis.SleepSeconds' tapis/testapps:main 
-    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */

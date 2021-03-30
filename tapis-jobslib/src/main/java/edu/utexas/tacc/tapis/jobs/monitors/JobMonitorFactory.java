@@ -2,6 +2,9 @@ package edu.utexas.tacc.tapis.jobs.monitors;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicyParameters;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.StepwiseBackoffPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -13,6 +16,27 @@ public class JobMonitorFactory
     /* ---------------------------------------------------------------------- */
     /* getInstance:                                                           */
     /* ---------------------------------------------------------------------- */
+    /** Create a monitor based on the type of job and its execution environment
+     * using the default monitor policy.  This method either returns the 
+     * appropriate monitor or throws an exception.
+     * 
+     * @param jobCtx job context
+     * @return the monitor designated for the current job type and environment
+     * @throws TapisException when no monitor is found or a network error occurs
+     */
+    public static JobMonitor getInstance(JobExecutionContext jobCtx) 
+     throws TapisException 
+    {
+        // Use the default policy with the default parameters to create a monitor.
+        var parms  = new MonitorPolicyParameters();
+        parms.setDefaultMaxElapsedSecond(jobCtx.getJob());
+        var policy = new StepwiseBackoffPolicy(jobCtx.getJob(), parms);
+        return getInstance(jobCtx, policy);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getInstance:                                                           */
+    /* ---------------------------------------------------------------------- */
     /** Create a monitor based on the type of job and its execution environment.
      * This method either returns the appropriate monitor or throws an exception.
      * 
@@ -20,7 +44,7 @@ public class JobMonitorFactory
      * @return the monitor designated for the current job type and environment
      * @throws TapisException when no monitor is found or a network error occurs
      */
-    public static JobMonitor getInstance(JobExecutionContext jobCtx) 
+    public static JobMonitor getInstance(JobExecutionContext jobCtx, MonitorPolicy policy) 
      throws TapisException 
     {
         // Extract required information from app.
@@ -34,7 +58,7 @@ public class JobMonitorFactory
         // ------------------------- FORK -------------------------
         if (appType == AppTypeEnum.FORK) {
             monitor = switch (runtime) {
-                case DOCKER      -> new DockerNativeMonitor(jobCtx);
+                case DOCKER      -> new DockerNativeMonitor(jobCtx, policy);
                 //    case SINGULARITY -> null;
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
@@ -58,8 +82,8 @@ public class JobMonitorFactory
             
             // Get the monitor for each supported runtime/scheduler combination.
             monitor = switch (runtime) {
-                case DOCKER      -> getBatchDockerMonitor(jobCtx, scheduler);
-                case SINGULARITY -> getBatchSingularityMonitor(jobCtx, scheduler);
+                case DOCKER      -> getBatchDockerMonitor(jobCtx, policy, scheduler);
+                case SINGULARITY -> getBatchSingularityMonitor(jobCtx, policy, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobMonitorFactory");
@@ -79,12 +103,13 @@ public class JobMonitorFactory
     /* getBatchDockermonitor:                                                 */
     /* ---------------------------------------------------------------------- */
     private static JobMonitor getBatchDockerMonitor(JobExecutionContext jobCtx,
+                                                    MonitorPolicy policy,
                                                     SchedulerTypeEnum scheduler) 
      throws TapisException
     {
         // Get the scheduler's docker monitor. 
         JobMonitor monitor = switch (scheduler) {
-            case SLURM -> new DockerSlurmMonitor(jobCtx);
+            case SLURM -> new DockerSlurmMonitor(jobCtx, policy);
             
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
@@ -101,6 +126,7 @@ public class JobMonitorFactory
     /* getBatchSingularityMonitor:                                            */
     /* ---------------------------------------------------------------------- */
     private static JobMonitor getBatchSingularityMonitor(JobExecutionContext jobCtx,
+                                                         MonitorPolicy policy,
                                                          SchedulerTypeEnum scheduler) 
      throws TapisException
     {
