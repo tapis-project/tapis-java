@@ -228,7 +228,6 @@ public final class Job
         return _fileInputsSpec;
     }
     
-
     /* ---------------------------------------------------------------------------- */
     /* getParameterSetModel:                                                        */
     /* ---------------------------------------------------------------------------- */
@@ -241,6 +240,34 @@ public final class Job
         return _parameterSetModel;
     }
 
+    /* ---------------------------------------------------------------------------- */
+    /* isArchiveSameAsOutput:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine if the archive-directory and the output-directory are the same and
+     * they are defined on the same system.  
+     * 
+     * @return true if the archive and output directories are same on the same system,
+     *         false otherwise
+     */
+    @Schema(hidden = true)
+    public boolean isArchiveSameAsOutput()
+    {
+        // Don't blow up if called before job is initialized.
+        if (execSystemOutputDir == null ||
+            archiveSystemDir    == null ||
+            execSystemId        == null ||
+            archiveSystemId     == null)
+            return false;
+        
+        // Compare directories and systems.
+        if (execSystemId.equals(archiveSystemId) &&
+            execSystemOutputDir.equals(archiveSystemDir))
+            return true;
+        
+        // Not the same.
+        return false;
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* validateForExecution:                                                        */
     /* ---------------------------------------------------------------------------- */

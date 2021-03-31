@@ -772,6 +772,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Stage inputs.
+      try {jobCtx.archiveOutputs();}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.ARCHIVING);}
+
       // Advance job to next state.
       setState(job, JobStatusType.FINISHED);
       

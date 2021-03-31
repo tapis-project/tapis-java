@@ -277,6 +277,17 @@ public final class JobExecutionContext
         monitor.monitorRunningJob();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* archiveOutputs:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void archiveOutputs() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobFileManager().archiveOutputs();
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getServiceClient:                                                            */
     /* ---------------------------------------------------------------------------- */

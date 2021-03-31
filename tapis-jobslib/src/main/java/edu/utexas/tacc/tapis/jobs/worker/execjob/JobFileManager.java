@@ -1,7 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -9,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
+import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequest;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequestElement;
@@ -22,6 +25,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -35,7 +39,16 @@ public final class JobFileManager
     
     // Special transfer id value indicating no files to stage.
     private static final String NO_FILE_INPUTS = "no inputs";
+    
+    // Determine if a string is made up of 1 or more asterisks only.
+    private static final Pattern _allAsterisks = Pattern.compile("[*]+");
 
+    /* ********************************************************************** */
+    /*                                Enums                                   */
+    /* ********************************************************************** */
+    // We transfer files in these phases of job processing.
+    private enum JobTransferPhase {INPUT, ARCHIVE}
+    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -191,6 +204,39 @@ public final class JobFileManager
     }
     
     /* ---------------------------------------------------------------------- */
+    /* archiveOutputs:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Perform or restart the output file archiving process.  Both recoverable
+     * and non-recoverable exceptions can be thrown from here.
+     * 
+     * @throws TapisException on error
+     */
+    public void archiveOutputs() throws TapisException
+    {
+        // Determine if we are restarting a previous staging request.
+        var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
+        String transferId = transferInfo.archiveTransactionId;
+        String corrId     = transferInfo.archiveCorrelationId;
+        
+        // See if the transfer id has been set for this job (this implies the
+        // correlation id has also been set).  If so, then the job had already 
+        // submitted its transfer request and we are now in recovery processing.  
+        // There's no need to resubmit the transfer request in this case.  
+        // 
+        // It's possible that the corrId was set but we died before the transferId
+        // was saved.  In this case, we simply generate a new corrId.
+        if (StringUtils.isBlank(transferId)) {
+            corrId = UUID.randomUUID().toString();
+            transferId = archiveNewOutputs(corrId);
+        }
+        
+        // Block until the transfer is complete. If the transfer fails because of
+        // a communication, api or transfer problem, an exception is thrown from here.
+        var monitor = TransferMonitorFactory.getMonitor();
+        monitor.monitorTransfer(_job, transferId, corrId);
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* cancelTransfer:                                                        */
     /* ---------------------------------------------------------------------- */
     /** Best effort attempt to cancel a transfer.
@@ -234,9 +280,6 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     private String stageNewInputs(String tag) throws TapisException
     {
-        // Get the client from the context.
-        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
-        
         // -------------------- Assign Transfer Tasks --------------------
         // Get the job input objects.
         var fileInputs = _job.getFileInputsSpec();
@@ -264,10 +307,93 @@ public final class JobFileManager
             tasks.addElementsItem(task);
         }
         
-        // -------------------- Submit Transfer Request ------------------
+        // Return the transfer id.
+        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
+        return submitTransferTask(tasks, tag, JobTransferPhase.INPUT);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* archiveNewOutputs:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private String archiveNewOutputs(String tag) throws TapisException
+    {
+        // -------------------- Assess Work ------------------------------
+        // Get the archive filter spec in canonical form.
+        var parmSet = _job.getParameterSetModel();
+        var archiveFilter = parmSet.getArchiveFilter();
+        if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter();
+        archiveFilter.initAll();
+        var includes = archiveFilter.getIncludes();
+        var excludes = archiveFilter.getExcludes();
+        
+        // Determine if the archive directory is the same as the output
+        // directory on the same system.
+        boolean archiveSameAsOutput = _job.isArchiveSameAsOutput();
+        
+        // See if there's any work to do at all.
+        if (archiveSameAsOutput) {
+            // If the filters are no-ops, we also leave the output in place.
+            if (includes.isEmpty() && excludes.isEmpty() && 
+                !archiveFilter.getIncludeLaunchFiles())
+                return NO_FILE_INPUTS;
+        }
+        
+        // -------------------- Assign Transfer Tasks --------------------
+        // Create the list of elements to send to files.
+        var tasks = new TransferTaskRequest();
+        
+        // Add the tapis generated files to the task.
+        if (archiveFilter.getIncludeLaunchFiles()) addLaunchFiles(tasks);
+        
+        // There's nothing to do if we exclude all output files.
+        if (!matchesAll(excludes)) {
+            // Will any filtering be necessary at all?
+            if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
+            {
+                // We only need to specify the whole output directory  
+                // subtree to archive all files.
+                var task = new TransferTaskRequestElement().
+                        sourceURI(_job.getExecSystemOutputDir()).
+                        destinationURI(_job.getArchiveSystemDir());
+                tasks.addElementsItem(task);
+            } 
+            else 
+            {
+                // We need to filter each and every file, so we need
+                // to retrieve the output directory file listing.
+//                getOutputDirFileListing();
+            }
+        }
+        
+        // Return the transfer id.
+        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
+        return submitTransferTask(tasks, tag, JobTransferPhase.ARCHIVE);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* submitTransferTask:                                                    */
+    /* ---------------------------------------------------------------------- */
+    private String submitTransferTask(TransferTaskRequest tasks, String tag, 
+                                      JobTransferPhase phase)
+     throws TapisException
+    {
         // Note that failures can occur between the two database calls leaving
         // the job record with the correlation id set but not the transfer id.
         // On recovery, a new correlation id will be issued.
+        
+        // Get the client from the context now to catch errors early.
+        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+        
+        // Database assignment keys.
+        TransferValueType tid;
+        TransferValueType corrId;
+        if (phase == JobTransferPhase.INPUT) {
+            tid = TransferValueType.InputTransferId;
+            corrId = TransferValueType.InputCorrelationId;
+        } else {
+            tid = TransferValueType.ArchiveTransferId;
+            corrId = TransferValueType.ArchiveCorrelationId;
+        }
         
         // Generate the probabilistically unique tag returned in every event
         // associated with this transfer.
@@ -275,16 +401,65 @@ public final class JobFileManager
         
         // Save the tag now to avoid any race conditions involving asynchronous events.
         // The in-memory job is updated with the tag value.
-        _jobCtx.getJobsDao().updateTransferValue(_job, tag, TransferValueType.InputCorrelationId);
+        _jobCtx.getJobsDao().updateTransferValue(_job, tag, corrId);
         
         // Submit the transfer request and get the new transfer id.
         String transferId = createTransferTask(filesClient, tasks);
         
         // Save the transfer id and update the in-memory job with the transfer id.
-        _jobCtx.getJobsDao().updateTransferValue(_job, transferId, TransferValueType.InputTransferId);
+        _jobCtx.getJobsDao().updateTransferValue(_job, transferId, tid);
         
         // Return the transfer id.
         return transferId;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addLaunchFiles:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Add task entries to copy the generated tapis launch files to the archive
+     * directory.
+     * 
+     * @param tasks the task collection into which new transfer tasks are inserted
+     */
+    private void addLaunchFiles(TransferTaskRequest tasks)
+    {
+        // Assign the tasks for the two generated files.
+        var task = new TransferTaskRequestElement().
+                        sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
+                        destinationURI(makeArchiveSysPath(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
+        tasks.addElementsItem(task);
+        task = new TransferTaskRequestElement().
+                        sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_ENV_FILE)).
+                        destinationURI(makeArchiveSysPath(JobExecutionUtils.JOB_ENV_FILE));
+        tasks.addElementsItem(task);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* matchesAll:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Determine if the filter list will match any string.  Only the most 
+     * common way of specifying a pattern that matches all strings are tested. 
+     * In addition, combinations of filters whose effect would be to match all
+     * strings are not considered.  Simplistic as it may be, filters specified
+     * in a reasonable, straightforward manner to match all strings are identified.   
+     * 
+     * @param filters the list of glob or regex filters
+     * @return true if list contains a filter that will match all strings, false 
+     *              if no single filter will match all strings
+     */
+    private boolean matchesAll(List<String> filters)
+    {
+        // Check the most common ways to express all strings using glob.
+        for (var f : filters) {
+            // Check for non-empty strings of all asterisks.
+            if (_allAsterisks.matcher(f).matches()) return true;
+        }
+        
+        // Check the common way to expess all strings using a regex.
+        if (filters.contains("REGEX(.*)")) return true;
+        
+        // No no-op filters found.
+        return false;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -372,4 +547,72 @@ public final class JobFileManager
         else url += dest;
         return url;
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeExecSysOutputPath:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on a file pathname and the execution system id.  
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with  the execution system's rootDir when actually 
+     * transferring files. 
+     * 
+     * The pathName is never null or empty.
+     * 
+     * @param fileInput a file input spec
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeExecSysOutputPath(String pathName)
+    {
+        // Start with the system id.
+        String url = "tapis://" + _job.getExecSystemId();
+        
+        // Add the job's put input path.
+        var outputPath = _job.getExecSystemOutputDir();
+        if (outputPath.startsWith("/")) url += outputPath;
+          else url += "/" + outputPath;
+        
+        // Add the suffix.
+        if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
+        else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
+        else url += pathName;
+        return url;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* makeExecSysOutputPath:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on a file pathname and the archive system id.  
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with  the execution system's rootDir when actually 
+     * transferring files. 
+     * 
+     * The pathName is never null or empty.
+     * 
+     * @param fileInput a file input spec
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeArchiveSysPath(String pathName)
+    {
+        // Start with the system id.
+        String url = "tapis://" + _job.getArchiveSystemId();
+        
+        // Add the job's put input path.
+        var archivePath = _job.getArchiveSystemDir();
+        if (archivePath.startsWith("/")) url += archivePath;
+          else url += "/" + archivePath;
+        
+        // Add the suffix.
+        if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
+        else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
+        else url += pathName;
+        return url;
+    }
+    
+//    private getOutputDirFileListing()
+//    {
+//        // Get the client from the context now to catch errors early.
+//        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+//        List<FileInfo> flist = filesClient.listFiles(NO_FILE_INPUTS, NO_FILE_INPUTS, 0, 0, false);
+//        
+//    }
 }

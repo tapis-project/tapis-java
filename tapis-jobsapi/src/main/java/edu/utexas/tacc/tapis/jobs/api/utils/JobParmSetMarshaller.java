@@ -129,6 +129,12 @@ public final class JobParmSetMarshaller
                 reqParmSet.getArchiveFilter().getIncludes().addAll(appIncludes);
             if (appExcludes != null && !appExcludes.isEmpty()) 
                 reqParmSet.getArchiveFilter().getExcludes().addAll(appExcludes);
+            
+            // Assign the launch file inclusion flag.
+            if (reqParmSet.getArchiveFilter().getIncludeLaunchFiles() == null)
+                reqParmSet.getArchiveFilter().setIncludeLaunchFiles(appParmSet.getArchiveFilter().getIncludeLaunchFiles());
+            if (reqParmSet.getArchiveFilter().getIncludeLaunchFiles() == null)
+                reqParmSet.getArchiveFilter().setIncludeLaunchFiles(Boolean.TRUE);
         }
     }
 
