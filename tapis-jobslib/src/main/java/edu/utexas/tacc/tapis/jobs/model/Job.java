@@ -243,7 +243,7 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     /* isArchiveSameAsOutput:                                                       */
     /* ---------------------------------------------------------------------------- */
-    /** Determine if the archive-directory and the output-directory are the same and
+    /** Determine if the archive directory and the output directory are the same and
      * they are defined on the same system.  
      * 
      * @return true if the archive and output directories are same on the same system,
@@ -262,6 +262,34 @@ public final class Job
         // Compare directories and systems.
         if (execSystemId.equals(archiveSystemId) &&
             execSystemOutputDir.equals(archiveSystemDir))
+            return true;
+        
+        // Not the same.
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isArchiveSameAsExec:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine if the archive directory and the exec directory are the same and
+     * they are defined on the same system.  
+     * 
+     * @return true if the archive and exec directories are same on the same system,
+     *         false otherwise
+     */
+    @Schema(hidden = true)
+    public boolean isArchiveSameAsExec()
+    {
+        // Don't blow up if called before job is initialized.
+        if (execSystemExecDir == null ||
+            archiveSystemDir  == null ||
+            execSystemId      == null ||
+            archiveSystemId   == null)
+            return false;
+        
+        // Compare directories and systems.
+        if (execSystemId.equals(archiveSystemId) &&
+            execSystemExecDir.equals(archiveSystemDir))
             return true;
         
         // Not the same.

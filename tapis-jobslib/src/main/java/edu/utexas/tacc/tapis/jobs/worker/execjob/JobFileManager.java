@@ -1,5 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +31,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
+import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobFileManager 
@@ -40,14 +45,17 @@ public final class JobFileManager
     // Special transfer id value indicating no files to stage.
     private static final String NO_FILE_INPUTS = "no inputs";
     
-    // Determine if a string is made up of 1 or more asterisks only.
-    private static final Pattern _allAsterisks = Pattern.compile("[*]+");
-
+    // Filters are interpretted as globs unless they have this prefix.
+    private static final String REGEX_FILTER_PREFIX = "REGEX:";
+    
     /* ********************************************************************** */
     /*                                Enums                                   */
     /* ********************************************************************** */
     // We transfer files in these phases of job processing.
     private enum JobTransferPhase {INPUT, ARCHIVE}
+    
+    // Archive filter types.
+    private enum FilterType {INCLUDES, EXCLUDES}
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -210,8 +218,9 @@ public final class JobFileManager
      * and non-recoverable exceptions can be thrown from here.
      * 
      * @throws TapisException on error
+     * @throws TapisClientException 
      */
-    public void archiveOutputs() throws TapisException
+    public void archiveOutputs() throws TapisException, TapisClientException
     {
         // Determine if we are restarting a previous staging request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
@@ -315,7 +324,8 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* archiveNewOutputs:                                                     */
     /* ---------------------------------------------------------------------- */
-    private String archiveNewOutputs(String tag) throws TapisException
+    private String archiveNewOutputs(String tag) 
+     throws TapisException, TapisClientException
     {
         // -------------------- Assess Work ------------------------------
         // Get the archive filter spec in canonical form.
@@ -327,16 +337,13 @@ public final class JobFileManager
         var excludes = archiveFilter.getExcludes();
         
         // Determine if the archive directory is the same as the output
-        // directory on the same system.
+        // directory on the same system.  If so, we won't apply either of
+        // the two filters.
         boolean archiveSameAsOutput = _job.isArchiveSameAsOutput();
         
         // See if there's any work to do at all.
-        if (archiveSameAsOutput) {
-            // If the filters are no-ops, we also leave the output in place.
-            if (includes.isEmpty() && excludes.isEmpty() && 
-                !archiveFilter.getIncludeLaunchFiles())
-                return NO_FILE_INPUTS;
-        }
+        if (archiveSameAsOutput && !archiveFilter.getIncludeLaunchFiles()) 
+            return NO_FILE_INPUTS;
         
         // -------------------- Assign Transfer Tasks --------------------
         // Create the list of elements to send to files.
@@ -345,8 +352,9 @@ public final class JobFileManager
         // Add the tapis generated files to the task.
         if (archiveFilter.getIncludeLaunchFiles()) addLaunchFiles(tasks);
         
-        // There's nothing to do if we exclude all output files.
-        if (!matchesAll(excludes)) {
+        // There's nothing to do if the archive and output directories are 
+        // the same or if we have to exclude all output files. 
+        if (!archiveSameAsOutput && !matchesAll(excludes)) {
             // Will any filtering be necessary at all?
             if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
             {
@@ -361,11 +369,23 @@ public final class JobFileManager
             {
                 // We need to filter each and every file, so we need
                 // to retrieve the output directory file listing.
-//                getOutputDirFileListing();
+                // Get the client from the context now to catch errors early.
+                FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+                var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
+                                                       _job.getExecSystemOutputDir());
+                var fileList = listSubtree.list();
+                
+                // Apply the excludes list first since it has precedence, then
+                // the includes list.  The fileList can be modified in both calls.
+                applyArchiveFilters(excludes, fileList, FilterType.EXCLUDES);
+                applyArchiveFilters(includes, fileList, FilterType.INCLUDES);
+                
+                // Create a task entry for each of the filtered output files.
+                addOutputFiles(tasks, fileList);
             }
         }
         
-        // Return the transfer id.
+        // Return a transfer id if tasks is not empty.
         if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
         return submitTransferTask(tasks, tag, JobTransferPhase.ARCHIVE);
     }
@@ -423,6 +443,10 @@ public final class JobFileManager
      */
     private void addLaunchFiles(TransferTaskRequest tasks)
     {
+        // There's nothing to do if the exec and archive 
+        // directories are same and on the same system.
+        if (_job.isArchiveSameAsExec()) return;
+        
         // Assign the tasks for the two generated files.
         var task = new TransferTaskRequestElement().
                         sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
@@ -432,6 +456,25 @@ public final class JobFileManager
                         sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysPath(JobExecutionUtils.JOB_ENV_FILE));
         tasks.addElementsItem(task);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addOutputFiles:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Add each output file in list to the archive tasks. 
+     * 
+     * @param tasks the archive tasks
+     * @param fileList the filtered list of files in the job's output directory
+     */
+    private void addOutputFiles(TransferTaskRequest tasks, List<FileInfo> fileList)
+    {
+        // Add each output file as a task element.
+        for (var f : fileList) {
+            var task = new TransferTaskRequestElement().
+                    sourceURI(makeExecSysOutputPath(f.getPath())).
+                    destinationURI(makeArchiveSysPath(f.getPath()));
+            tasks.addElementsItem(task);
+        }
     }
     
     /* ---------------------------------------------------------------------- */
@@ -450,16 +493,101 @@ public final class JobFileManager
     private boolean matchesAll(List<String> filters)
     {
         // Check the most common ways to express all strings using glob.
-        for (var f : filters) {
-            // Check for non-empty strings of all asterisks.
-            if (_allAsterisks.matcher(f).matches()) return true;
-        }
+        if (filters.contains("**/*")) return true;
         
         // Check the common way to expess all strings using a regex.
         if (filters.contains("REGEX(.*)")) return true;
         
         // No no-op filters found.
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* applyArchiveFilters:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Apply either the includes or excludes list to the file list.  In either
+     * case, the file list can be modified by having items deleted.
+     * 
+     * The filter items can either be in glob or regex format.  Each item is 
+     * applied to the path of a file info object.  When a match occurs the 
+     * appropriate action is taken based on the filter type being processed.
+     * 
+     * @param filterList the includes or excludes list as identified by the filterType 
+     * @param fileList the file list that may have items deleted
+     * @param filterType filter indicator
+     */
+    private void applyArchiveFilters(List<String> filterList, List<FileInfo> fileList, 
+                                     FilterType filterType)
+    {
+        // Is there any work to do?
+        if (filterType == FilterType.EXCLUDES) {
+            if (filterList.isEmpty()) return;
+        } else 
+            if (filterList.isEmpty() || matchesAll(filterList)) return;
+        
+        // Local cache of compiled regexes.  The keys are the filters
+        // exactly as defined by users and the values are the compiled 
+        // form of those filters.
+        HashMap<String,Pattern> regexes   = new HashMap<>();
+        HashMap<String,PathMatcher> globs = new HashMap<>();
+        
+        // Iterate through the file list.
+        var fileIt = fileList.listIterator();
+        while (fileIt.hasNext()) {
+            var fileInfo = fileIt.next();
+            for (String filter : filterList) {
+                // Use cached filters to match paths.
+                boolean matches = matchFilter(filter, fileInfo.getPath(), 
+                                              globs, regexes);
+                
+                // Removal depends on matches and the filter type.
+                if (filterType == FilterType.EXCLUDES) {
+                    if (matches) fileIt.remove();
+                    break;
+                } else {
+                    if (!matches) fileIt.remove();
+                    break;
+                }
+            }
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* matchFilter:                                                           */
+    /* ---------------------------------------------------------------------- */
+    /** Determine if the path matches the filter, which can be either a glob
+     * or regex.  In each case, the appropriate cache is consulted and, if
+     * necessary, updated so that each filter is only compiled once per call
+     * to applyArchiveFilters().
+     * 
+     * @param filter the glob or regex
+     * @param path the path to be matched
+     * @param globs the glob cache
+     * @param regexes the regex cache
+     * @return true if the path matches the filter, false otherwise
+     */
+    private boolean matchFilter(String filter, String path, 
+                                HashMap<String,PathMatcher> globs,
+                                HashMap<String,Pattern> regexes)
+    {
+        // Check the cache for glob and regex filters.
+        if (filter.startsWith(REGEX_FILTER_PREFIX)) {
+            Pattern p = regexes.get(filter);
+            if (p == null) {
+                p = Pattern.compile(filter.substring(REGEX_FILTER_PREFIX.length()));
+                regexes.put(filter, p);
+            }
+            var m = p.matcher(path);
+            return m.matches();
+        } else {
+            PathMatcher m = globs.get(filter);
+            if (m == null) {
+                m = FileSystems.getDefault().getPathMatcher("glob:"+filter);
+                globs.put(filter, m);
+            }
+            var pathObj = Paths.get(path);
+            return m.matches(pathObj);
+        }
     }
     
     /* ---------------------------------------------------------------------- */

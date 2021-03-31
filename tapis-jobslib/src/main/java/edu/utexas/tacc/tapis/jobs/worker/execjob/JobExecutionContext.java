@@ -280,7 +280,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* archiveOutputs:                                                        */
     /* ---------------------------------------------------------------------- */
-    public void archiveOutputs() throws TapisImplException, TapisException
+    public void archiveOutputs() throws TapisImplException, TapisException, TapisClientException
     {
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
