@@ -80,7 +80,7 @@ public final class JobsImpl
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
-        // ----- Get the job status.
+        // ----- Get the job list.
         List<JobListDTO> jobList = null;
         try {jobList =  getJobsDao().getJobsByUsername(user, tenant,orderByList,limit,skip);}
         catch (Exception e) {
@@ -128,7 +128,7 @@ public final class JobsImpl
             throw new IllegalArgumentException(msg);
           }
         }
-        // ----- Get the job status.
+        // ----- Get the job list.
         List<JobListDTO> jobList = null;
         try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
         catch (Exception e) {
