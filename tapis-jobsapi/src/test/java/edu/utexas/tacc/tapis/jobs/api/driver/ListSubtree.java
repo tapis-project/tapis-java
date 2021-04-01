@@ -67,7 +67,7 @@ public class ListSubtree
                 System.out.println("  type:  " + f.getType());
                 System.out.println("  owner: " + f.getOwner());
                 System.out.println("  group: " + f.getGroup());
-                System.out.println("  perms: " + f.getPermissions());
+                System.out.println("  perms: " + f.getPosixPermissions());
                 System.out.println("  mime:  " + f.getMimeType());
             }
         }
