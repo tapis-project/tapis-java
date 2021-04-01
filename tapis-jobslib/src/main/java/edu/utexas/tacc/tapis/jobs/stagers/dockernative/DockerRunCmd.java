@@ -1,9 +1,12 @@
-package edu.utexas.tacc.tapis.jobs.stager.runtimes;
+package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+
+import edu.utexas.tacc.tapis.jobs.model.Job;
 
 /** This class stores the command line options for the docker run command that executes
  * an application's container.  The general approach is to take the user-specified text
@@ -16,15 +19,12 @@ import org.apache.commons.lang3.tuple.Pair;
 public final class DockerRunCmd 
  implements RunCmd
 {
-// docker run --name SleepSeconds --rm -u "$(id -u):$(id -g)" ${vmounts} ${envdirs} ${jobparms} -e 'MAIN_CLASS=edu.utexas.tacc.testapps.tapis.SleepSeconds' tapis/testapps:main 
-    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
     // List fields that we always populate are initialized on construction,
     // all others are initialized on demand.
     private String                    addHost;
-    private List<AttachEnum>          attachList;
     private String                    cidFile;
     private String                    cpus;
     private String                    cpusetCPUs;
@@ -35,23 +35,24 @@ public final class DockerRunCmd
     private String                    hostName;
     private String                    ip;
     private String                    ip6;
+    private String                    image;
     private List<Pair<String,String>> labels;
     private String                    logDriver;
     private String                    logOpts;
-    private List<String>              mount = new ArrayList<String>();
     private String                    memory;
+    private List<String>              mount = new ArrayList<String>();
     private String                    name;
     private String                    network;
     private String                    networkAlias;
     private List<String>              portMappings;
-    private boolean                   rm = true;
+    private boolean                   rm;
     private List<String>              tmpfs;
     private String                    user;
     private List<String>              volumeMount;
     private String                    workdir;
     
-    // Valid values for the attach option.
-    public enum AttachEnum {stdin, stdout, stderr}
+    // Arguments passed to application, which always begin with a space character.
+    private String                    appArguments; 
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -60,9 +61,156 @@ public final class DockerRunCmd
     /* generateRunCmd:                                                        */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateRunCmd() 
+    public String generateRunCmd(Job job) 
     {
-        return null;
+        // Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // ------ Start filling in the options that are tapis-only assigned.
+        buf.append("docker run -d --name ");
+        buf.append(name);
+        buf.append(" --user ");
+        buf.append(user);
+        buf.append(" --cidfile ");
+        buf.append(cidFile);
+        if (rm) buf.append(" --rm");
+        
+        // ------ Fill in the options that the user may have set.
+        if (addHost != null) {
+            buf.append(" --addhost ");
+            buf.append(addHost);
+        }
+        if (cpus != null) {
+            buf.append(" --cpus ");
+            buf.append(cpus);
+        }
+        if (cpusetCPUs != null) {
+            buf.append(" --cpuset-cpus ");
+            buf.append(cpusetCPUs);
+        }
+        if (cpusetMEMs != null) {
+            buf.append(" --cpuset-mems ");
+            buf.append(cpusetMEMs);
+        }
+        if (gpus != null) {
+            buf.append(" --gpus ");
+            buf.append(gpus);
+        }
+        if (groups != null) {
+            for (var s : groups) {
+                buf.append(" --group-add ");
+                buf.append(s);
+            }
+        }
+        if (hostName != null) {
+            buf.append(" --hostname ");
+            buf.append(hostName);
+        }
+        if (ip != null) {
+            buf.append(" --ip ");
+            buf.append(ip);
+        }
+        if (ip6 != null) {
+            buf.append(" --ip6 ");
+            buf.append(ip6);
+        }
+        if (labels != null) {
+            for (var s : labels) {
+                buf.append(" --label ");
+                buf.append(s);
+            }
+        }
+        if (logDriver != null) {
+            buf.append(" --log-driver ");
+            buf.append(logDriver);
+        }
+        if (logOpts != null) {
+            buf.append(" --log-opt ");
+            buf.append(logOpts);
+        }
+        if (memory != null) {
+            buf.append(" --memory ");
+            buf.append(memory);
+        }
+        if (network != null) {
+            buf.append(" --network ");
+            buf.append(network);
+        }
+        if (networkAlias != null) {
+            buf.append(" --network-alias ");
+            buf.append(networkAlias);
+        }
+        if (portMappings != null) {
+            for (var s : portMappings) {
+                buf.append(" -p ");
+                buf.append(s);
+            }
+        }
+        if (workdir != null) {
+            buf.append(" --workdir ");
+            buf.append(workdir);
+        }
+        
+        // ------ Assign the volume mounts.
+        for (var s : mount) {
+            buf.append(" --mount ");
+            buf.append(s);
+        }
+        if (tmpfs != null) {
+            for (var s : tmpfs) {
+                buf.append(" --tmpfs ");
+                buf.append(s);
+            }
+        }
+        if (volumeMount != null) {
+            for (var s : volumeMount) {
+                buf.append(" --volume ");
+                buf.append(s);
+            }
+        }
+        
+        // ------ Append the image.
+        buf.append(" ");
+        buf.append(image);
+        
+        // ------ Append the application arguments.
+        if (!StringUtils.isBlank(appArguments))
+            buf.append(appArguments); // begins with space char
+        
+        return buf.toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generateEnvVarFileContent:                                             */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    public String generateEnvVarFileContent() 
+    {
+        // Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // Write each assignment to the buffer.
+        for (var pair : env) {
+            // The key always starts the line.
+            buf.append(pair.getKey());
+            
+            // Are we going to use the short or long form?
+            // The short form is just the name of an environment variable
+            // that docker will import into the container ONLY IF it exists
+            // in the environment from which docker is called.  The long 
+            // form is key=value.
+            var value = pair.getValue();
+            if (value != null && !value.isEmpty()) {
+                // The long form forces an explicit assignment.
+                buf.append("=");
+                buf.append(pair.getValue());
+            }
+            buf.append("\n");
+        }
+        
+        return buf.toString();
     }
     
     /* ********************************************************************** */
@@ -142,15 +290,6 @@ public final class DockerRunCmd
 
     public void setAddHost(String addHost) {
         this.addHost = addHost;
-    }
-
-    public List<AttachEnum> getAttachList() {
-        if (attachList == null) attachList = new ArrayList<AttachEnum>();
-        return attachList;
-    }
-
-    public void setAttachList(List<AttachEnum> attachList) {
-        this.attachList = attachList;
     }
 
     public String getCidFile() {
@@ -233,6 +372,14 @@ public final class DockerRunCmd
 
     public void setIp6(String ip6) {
         this.ip6 = ip6;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public List<Pair<String, String>> getLabels() {
@@ -349,5 +496,13 @@ public final class DockerRunCmd
 
     public void setWorkdir(String workdir) {
         this.workdir = workdir;
+    }
+
+    public String getAppArguments() {
+        return appArguments;
+    }
+
+    public void setAppArguments(String appArguments) {
+        this.appArguments = appArguments;
     }
 }

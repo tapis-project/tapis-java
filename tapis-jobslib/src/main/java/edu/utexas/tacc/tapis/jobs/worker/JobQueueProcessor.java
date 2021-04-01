@@ -9,6 +9,8 @@ import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
+import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
+import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.BlockedJobActivity;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -21,6 +23,7 @@ import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.QuotaChecker;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
@@ -202,6 +205,9 @@ final class JobQueueProcessor
         // If we get here with a negative ack, we have to fail the job. 
         //
         if (!ack) failJob(job, msg);
+        
+        // Clean up context.
+        jobCtx.close();
     }
     finally {
       // We always want to check the finalMessage field. 
@@ -520,8 +526,8 @@ final class JobQueueProcessor
       // ------------------ Quota Checks --------------------------
       // Determine if the job can proceed based on the various tapis
       // quotas placed on the execution systems, users and batchqueues.
-      try {(new QuotaChecker(jobCtx)).checkQuotas();;}
-          catch (Exception e) {throw JobUtils.tapisify(e);}
+      try {(new QuotaChecker(jobCtx)).checkQuotas();}
+          catch (Exception e) {handleException(job, e, BlockedJobActivity.CHECK_QUOTA);}
       
       // Advance job to next state.
       setState(job, JobStatusType.PROCESSING_INPUTS);
@@ -556,7 +562,7 @@ final class JobQueueProcessor
       
       // Create the input and output directories useb by this job.
       try {jobCtx.createDirectories();}
-          catch (Exception e) {throw JobUtils.tapisify(e);}
+          catch (Exception e) {handleException(job, e, BlockedJobActivity.PROCESSING_INPUTS);}
     
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_INPUTS);
@@ -591,7 +597,7 @@ final class JobQueueProcessor
       
       // Stage inputs.
       try {jobCtx.stageInputs();}
-      catch (Exception e) {throw JobUtils.tapisify(e);}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.STAGING_INPUTS);}
 
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_JOB);
@@ -624,9 +630,9 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
-      // Stage inputs.
+      // Stage job.
       try {jobCtx.stageJob();}
-      catch (Exception e) {throw JobUtils.tapisify(e);}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.STAGING_JOB);}
 
       // Advance job to next state.
       setState(job, JobStatusType.SUBMITTING_JOB);
@@ -659,6 +665,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Submit job.
+      try {jobCtx.submitJob();}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.SUBMITTING);}
+
       // Advance job to next state.
       setState(job, JobStatusType.QUEUED);
       
@@ -690,7 +700,11 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
-      // Advance job to next state.
+      // Check queued job.
+      try {jobCtx.monitorQueuedJob();}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.QUEUED);}
+
+      // Advance job to next state. 
       setState(job, JobStatusType.RUNNING);
       
       // True means continue processing the job.
@@ -721,6 +735,12 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Check the remote running job unless it has already reached a terminal
+      // state, in which case there's not need for further monitoring.
+      if (job.getRemoteOutcome() == null)
+          try {jobCtx.monitorRunningJob();}
+          catch (Exception e) {handleException(job, e, BlockedJobActivity.RUNNING);}
+
       // Advance job to next state.
       setState(job, JobStatusType.ARCHIVING);
       
@@ -752,6 +772,10 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
     
+      // Stage inputs.
+      try {jobCtx.archiveOutputs();}
+      catch (Exception e) {handleException(job, e, BlockedJobActivity.ARCHIVING);}
+
       // Advance job to next state.
       setState(job, JobStatusType.FINISHED);
       
@@ -760,21 +784,54 @@ final class JobQueueProcessor
   }
   
   /* ---------------------------------------------------------------------- */
+  /* handleException:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Change the job status to FAILED on unrecoverable errors, otherwise 
+   * leave the state alone so that the recovery code can put the job into the
+   * BLOCKED state capturing the appropriate details.
+   * 
+   * Except on database update errors, this method always throws the original 
+   * exception as-is or wrapped.
+   * 
+   * @param job the job that experienced an exception
+   * @param e the exception
+   * @throws TapisException a new db error or the possibly wrapped original exception
+   */
+  private void handleException(Job job, Exception e, BlockedJobActivity activity) 
+   throws TapisException
+  {
+      // Assign blocked activity in recoverable exceptions.
+      RecoveryUtils.updateJobActivity(e, activity.name());
+      
+      // Always throw the massaged exception from here. 
+      throw JobUtils.tapisify(e);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* setState:                                                              */
+  /* ---------------------------------------------------------------------- */
+  private void setState(Job job, JobStatusType newStatus) throws JobException
+  {setState(job, newStatus, null);}
+  
+  /* ---------------------------------------------------------------------- */
   /* setState:                                                              */
   /* ---------------------------------------------------------------------- */
   /** Update the job's database record and in memory object to reflect the
-   * transition to the new status.  
+   * transition to the new status.  If the update message is null the default
+   * state change message will be saved in the database.  
    * 
    * Currently, there is no recovery from a failure to update status.
    * 
+   * @param job the executing job 
    * @param newStatus a legal new status for the job
+   * @param msg the update message or null
    * @throws JobException 
    */
-  private void setState(Job job, JobStatusType newStatus) throws JobException
+  private void setState(Job job, JobStatusType newStatus, String msg) throws JobException
   {
       // Get the context.
       var jobCtx = job.getJobCtx();
-      jobCtx.getJobsDao().setStatus(job, newStatus, null);
+      jobCtx.getJobsDao().setStatus(job, newStatus, msg);
   }
   
   /* ---------------------------------------------------------------------- */

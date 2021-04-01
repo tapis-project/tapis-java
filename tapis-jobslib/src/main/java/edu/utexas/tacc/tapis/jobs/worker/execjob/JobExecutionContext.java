@@ -8,13 +8,17 @@ import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.monitors.JobMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecStageFactory;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -22,6 +26,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.system.TapisAbstractConnection;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -56,7 +62,7 @@ public final class JobExecutionContext
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
-    private JobExecutionManager      _jobExecutionManager;
+    private SSHConnection            _execSysConn; // always use accessor
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -191,15 +197,6 @@ public final class JobExecutionContext
     } 
     
     /* ---------------------------------------------------------------------- */
-    /* getJobExecutionManager:                                                */
-    /* ---------------------------------------------------------------------- */
-    public JobExecutionManager getJobExecutionManager() 
-    {
-        if (_jobExecutionManager == null) _jobExecutionManager = new JobExecutionManager(this);
-        return _jobExecutionManager;
-    } 
-    
-    /* ---------------------------------------------------------------------- */
     /* getJobIOTargets:                                                       */
     /* ---------------------------------------------------------------------- */
     public JobIOTargets getJobIOTargets() 
@@ -240,7 +237,55 @@ public final class JobExecutionContext
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
-        getJobExecutionManager().stageJob();
+        var stager = JobExecStageFactory.getInstance(this);
+        stager.stageJob();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* submitJob:                                                             */
+    /* ---------------------------------------------------------------------- */
+    public void submitJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        var launcher = JobLauncherFactory.getInstance(this);
+        launcher.launch();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* monitorQueuedJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public void monitorQueuedJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        var monitor = JobMonitorFactory.getInstance(this);
+        monitor.monitorQueuedJob();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* monitorRunningJob:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public void monitorRunningJob() throws TapisImplException, TapisException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        var monitor = JobMonitorFactory.getInstance(this);
+        monitor.monitorRunningJob();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* archiveOutputs:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void archiveOutputs() throws TapisImplException, TapisException, TapisClientException
+    {
+        // Load the exec, archive and dtn systems now
+        // to avoid double faults in FileManager.
+        initSystems();
+        getJobFileManager().archiveOutputs();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -268,6 +313,63 @@ public final class JobExecutionContext
         }
 
         return client;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getExecSystemConnection:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    public SSHConnection getExecSystemConnection() throws JobException 
+    {
+        if (_execSysConn == null) 
+            try {_execSysConn = TapisAbstractConnection.createNewConnection(_executionSystem);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
+                                                 _executionSystem.getId(),
+                                                 _executionSystem.getHost(),
+                                                 _executionSystem.getEffectiveUserId(),
+                                                 _executionSystem.getTenant(),
+                                                 _executionSystem.getDefaultAuthnMethod().name(),
+                                                 _job.getUuid(),
+                                                 e.getMessage());
+                    throw new JobException(msg, e);
+                }
+        return _execSysConn;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* existsExecSystemConnection:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Test if the connection exists with no side-effects.  
+     * 
+     * @return true is the connection exist, false otherwise
+     */
+    public boolean existsExecSystemConnection() {return _execSysConn != null;}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* closeExecSystemConnection:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Close the ssh session to the execution system if one exists. */
+    public void closeExecSystemConnection()
+    {
+        // Close the ssh session.
+        if (_execSysConn != null) {
+            _execSysConn.closeSession();
+            _execSysConn = null;
+            
+            // Log the action.
+            if (_log.isInfoEnabled())
+               _log.info(MsgUtils.getMsg("JOBS_SSH_CLOSE_CONN", 
+                                         _job.getUuid(), _job.getExecSystemId()));
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* close:                                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Clean up after job executes. */
+    public void close()
+    {
+        closeExecSystemConnection();
     }
     
     /* ********************************************************************** */
@@ -441,22 +543,22 @@ public final class JobExecutionContext
             String msg;
             switch (e.getCode()) {
                 case 400:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INPUT_ERROR", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INPUT_ERROR", appString, _job.getOwner(), 
                                           _job.getTenant());
                 break;
                 
                 case 401:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_AUTHZ_ERROR", appString, "READ", 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_AUTHZ_ERROR", appString, "READ", 
                                           _job.getOwner(), _job.getTenant());
                 break;
                 
                 case 404:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_NOT_FOUND", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_NOT_FOUND", appString, _job.getOwner(), 
                                           _job.getTenant());
                 break;
                 
                 default:
-                    msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", appString, _job.getOwner(), 
+                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INTERNAL_ERROR", appString, _job.getOwner(), 
                                           _job.getTenant());
             }
             throw new TapisImplException(msg, e, e.getCode());

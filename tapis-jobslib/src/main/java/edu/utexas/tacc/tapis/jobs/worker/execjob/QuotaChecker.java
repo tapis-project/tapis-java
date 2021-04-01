@@ -106,7 +106,6 @@ public final class QuotaChecker
                                          execSys.getTenant(), execSys.getId(),
                                          maxSystemJobs);
             _log.warn(msg);
-            // An exception will never be thrown from here since we already have the exec system.
             throw new TapisQuotaException(msg, 
                 RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue()));        
         }
@@ -141,7 +140,6 @@ public final class QuotaChecker
                                          execSys.getTenant(), execSys.getId(),
                                          maxSystemJobsPerUser, _job.getOwner());
             _log.warn(msg);
-            // An exception will never be thrown from here since we already have the exec system.
             throw new TapisQuotaException(msg, 
                 RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue()));        
         }

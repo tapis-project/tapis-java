@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao.sql;
 
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
-
 public class SqlStatements 
 {
 	/* ---------------------------------------------------------------------- */
@@ -149,6 +147,19 @@ public class SqlStatements
     public static final String UPDATE_FAILED_STATUS_CHECKS =
         "UPDATE jobs SET remote_checks_failed = remote_checks_failed + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";
 
+    public static final String UPDATE_REMOTE_JOB_ID = 
+        "UPDATE jobs SET last_updated = ?, remote_job_id = ? WHERE id = ? AND tenant = ?";
+    
+    public static final String UPDATE_REMOTE_JOB_ID2 = 
+        "UPDATE jobs SET last_updated = ?, remote_job_id2 = ? WHERE id = ? AND tenant = ?";
+    
+    public static final String UPDATE_REMOTE_OUTCOME =
+        "UPDATE jobs SET remote_outcome = ?, last_updated = ?, remote_ended = ? WHERE id = ?";
+
+    public static final String UPDATE_REMOTE_OUTCOME_AND_RESULT =
+            "UPDATE jobs SET remote_outcome = ?, remote_result_info = ?, last_updated = ?, remote_ended = ? WHERE id = ?";
+
+    
 	/* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
 	/* ---------------------------------------------------------------------- */

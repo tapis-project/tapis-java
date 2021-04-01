@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stager;
+package edu.utexas.tacc.tapis.jobs.stagers;
 
 import java.util.regex.Pattern;
 
@@ -9,21 +9,23 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.stager.runtimes.DockerRunCmd;
-import edu.utexas.tacc.tapis.jobs.stager.runtimes.DockerRunCmd.AttachEnum;
-import edu.utexas.tacc.tapis.jobs.stager.runtimes.DockerRunCmd.BindMount;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class JobDockerStager 
+public class DockerNativeStager 
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(JobDockerStager.class);
+    private static final Logger _log = LoggerFactory.getLogger(DockerNativeStager.class);
+    
+    // Container id file suffix.
+    private static final String CID_SUFFIX = ".cid";
     
     // Docker command line option parser.  This regex captures 3 groups:
     //
@@ -43,30 +45,62 @@ public final class JobDockerStager
     private static final Pattern _portPattern = Pattern.compile("[:/]");
 
     /* ********************************************************************** */
+    /*                                Fields                                  */
+    /* ********************************************************************** */
+    // Docker run command object.
+    private final DockerRunCmd _dockerRunCmd;
+    
+    /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobDockerStager(JobExecutionContext jobCtx){super(jobCtx);}
+    public DockerNativeStager(JobExecutionContext jobCtx)
+     throws TapisException
+    {
+        // Create and populate the docker command.
+        super(jobCtx);
+        _dockerRunCmd = configureRunCmd();
+    }
 
     /* ********************************************************************** */
-    /*                             Public Methods                             */
+    /*                          Protected Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
+    /** This method generates the wrapper script content.
+     * 
+     * @return the wrapper script content
+     */
     @Override
-    public String generateWrapperScript() 
+    protected String generateWrapperScript() 
      throws TapisException
     {
-        // Create and populate the docker command.
-        var dockerRun = configureRunCmd();
+        // Construct the docker command.
+        String dockerCmd = _dockerRunCmd.generateRunCmd(_job);
         
         // Build the command file content.
         initBashScript();
         
+        // Add the docker command the the command file.
+        _cmd.append(dockerCmd);
+                
         return _cmd.toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generateEnvVarFile:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** This method generates content for a environment variable definition file.
+     *  
+     * @return the content for a environment variable definition file 
+     */
+    @Override
+    protected String generateEnvVarFile()
+    {
+        return _dockerRunCmd.generateEnvVarFileContent();
     }
     
     /* ********************************************************************** */
@@ -76,7 +110,7 @@ public final class JobDockerStager
     /* configureRunCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     private DockerRunCmd configureRunCmd()
-     throws JobException
+     throws TapisException
     {
         // Create and populate the docker command.
         var dockerRunCmd = new DockerRunCmd();
@@ -85,19 +119,45 @@ public final class JobDockerStager
         // Containers are named after the job uuid.
         dockerRunCmd.setName(_job.getUuid());
         
-        // Remove the container after it runs.
-        dockerRunCmd.setRm(true);
+        // Set the user id under which the container runs.
+        dockerRunCmd.setUser("$(id -u):$(id -g)");
+        
+        // Write the container id to a host file.
+        setCidFile(dockerRunCmd);
         
         // Set the standard bind mounts.
         setStandardBindMounts(dockerRunCmd);
         
+        // Set the image.
+        dockerRunCmd.setImage(_jobCtx.getApp().getContainerImage());
+        
+        // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
         setEnvVariables(dockerRunCmd);
         
         // Set the docker options.
         setDockerOptions(dockerRunCmd);
         
+        // Set the application arguments.
+        setAppArguments(dockerRunCmd);
+                
         return dockerRunCmd;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* setCidFile:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Write the container id to a fhost file.
+     * 
+     * @param dockerRunCmd the run command to be updated
+     */
+    private void setCidFile(DockerRunCmd dockerRunCmd)
+    {
+        // Put the cid file in the execution directory.
+        String path = _job.getExecSystemExecDir();
+        if (path.endsWith("/")) path += _job.getUuid() + CID_SUFFIX;
+          else path += "/" + _job.getUuid() + CID_SUFFIX;
+        dockerRunCmd.setCidFile(path);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -140,7 +200,7 @@ public final class JobDockerStager
      */
     private void setEnvVariables(DockerRunCmd dockerRunCmd)
     {
-        // Get the list of environment variable.
+        // Get the list of environment variables.
         var parmSet = _job.getParameterSetModel();
         var envList = parmSet.getEnvVariables();
         if (envList == null || envList.isEmpty()) return;
@@ -148,6 +208,28 @@ public final class JobDockerStager
         // Process each environment variable.
         var dockerEnv = dockerRunCmd.getEnv();
         for (var kv : envList) dockerEnv.add(Pair.of(kv.getKey(), kv.getValue()));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* setAppArguments:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Assemble the application arguments into a single string and then assign
+     * them to the dockerRunCmd.  If there are any arguments, the generated 
+     * string always begins with a space character.
+     * 
+     * @param dockerRunCmd the run command to be updated
+     */
+     private void setAppArguments(DockerRunCmd dockerRunCmd)
+    {
+         // Get the list of user-specified container arguments.
+         var parmSet = _job.getParameterSetModel();
+         var opts    = parmSet.getAppArgs();
+         if (opts == null || opts.isEmpty()) return;
+         
+         // Assemble the application's argument string.
+         String args = "";
+         for (var opt : opts) args += " " + opt.getArg();
+         dockerRunCmd.setAppArguments(args);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -208,13 +290,6 @@ public final class JobDockerStager
             case "--add-host":
                 dockerRunCmd.setAddHost(value); // Should be name:ipaddr format
                 break;
-            case "--attach":
-            case "-a":
-                attachIO(dockerRunCmd, option, value);
-                break;
-            case "--cidfile":
-                dockerRunCmd.setCidFile(value); // File name can reference env vars
-                break;
             case "--cpus":
                 dockerRunCmd.setCpus(value); // Value will be doublequoted
                 break;
@@ -232,7 +307,8 @@ public final class JobDockerStager
                 dockerRunCmd.setGpus(value);
                 break;
             case "--group-add":
-                addGroup(dockerRunCmd, option, value);
+                isAssigned(dockerRunCmd, option, value);
+                dockerRunCmd.getGroups().add(value);
                 break;
             case "--hostname":
             case "-h":
@@ -245,8 +321,8 @@ public final class JobDockerStager
                 dockerRunCmd.setIp6(value);
                 break;
             case "--label":
-                addLabel(dockerRunCmd, option, value);
             case "-l":
+                addLabel(dockerRunCmd, option, value);
                 break;
             case "--log-driver":
                 dockerRunCmd.setLogDriver(value);
@@ -259,7 +335,8 @@ public final class JobDockerStager
                 dockerRunCmd.setMemory(value);
                 break;
             case "--mount":
-                addMount(dockerRunCmd, option, value);
+                isAssigned(dockerRunCmd, option, value);
+                dockerRunCmd.getMount().add(value);
                 break;
             case "--network":
             case "--net":
@@ -271,32 +348,41 @@ public final class JobDockerStager
                 break;
             case "--publish":
             case "-p":
-                addPort(dockerRunCmd, option, value);
+                isAssigned(dockerRunCmd, option, value);
+                dockerRunCmd.getPortMappings().add(value);
                 break;
             case "--rm":
                 // Always set, ignore redundancy.
                 break;
             case "--tmpfs":
-                addTmpfs(dockerRunCmd, option, value);
+                isAssigned(dockerRunCmd, option, value);
+                dockerRunCmd.getTmpfs().add(value);
                 break;
             case "--volume":
             case "-v":
-                addVolumeMount(dockerRunCmd, option, value);
+                isAssigned(dockerRunCmd, option, value);
+                dockerRunCmd.getVolumeMount().add(value);
                 break;
             case "--workdir":
                 dockerRunCmd.setWorkdir(value);
                 break;
                 
             default:
+                // The following options are reserved for tapis-only use.
+                // If the user specifies any of them as a container option,
+                // the job will abort.
+                //
+                //   --cidfile, --name, --rm, --user 
+                //
                 String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
                 throw new JobException(msg);
         }
     }
     
     /* ---------------------------------------------------------------------- */
-    /* attachIO:                                                              */
+    /* isAssigned:                                                            */
     /* ---------------------------------------------------------------------- */
-    private void attachIO(DockerRunCmd dockerRunCmd, String option, String value) 
+    private void isAssigned(DockerRunCmd dockerRunCmd, String option, String value)
      throws JobException
     {
         // Make sure we have a value.
@@ -304,33 +390,6 @@ public final class JobDockerStager
             String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
             throw new JobException(msg);
         }
-        
-        // Make sure the value is valid.
-        AttachEnum v;
-        try {v = AttachEnum.valueOf(value.toLowerCase());}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_INVALID_ARG", "docker", option, value);
-                throw new JobException(msg, e);
-            }
-        
-        // Add value to attach list.
-        dockerRunCmd.getAttachList().add(v);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addGroup:                                                              */
-    /* ---------------------------------------------------------------------- */
-    private void addGroup(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
-        
-        // This is a repeatable option where each occurrence specifies a single group.
-        dockerRunCmd.getGroups().add(value);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -340,10 +399,7 @@ public final class JobDockerStager
      throws JobException
     {
         // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
+        isAssigned(dockerRunCmd, option, value);
         
         // Find the first equals sign.  We expect the value to be in key=text format.
         int index = value.indexOf("=");
@@ -351,74 +407,12 @@ public final class JobDockerStager
             String msg = MsgUtils.getMsg("JOBS_CONTAINER_INVALID_ARG", "docker", option, value);
             throw new JobException(msg);
         }
+        
+        // The text can be the empty string when value is "key=". 
         String key  = value.substring(0, index);
         String text = value.substring(index+1);
         
         // This is a repeatable option where each occurrence specifies a single group.
         dockerRunCmd.getLabels().add(Pair.of(key, text));
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addPort:                                                               */
-    /* ---------------------------------------------------------------------- */
-    /** Add a ipv4 port mapping between host and container. */ 
-    private void addPort(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
-        // Add the port to the port list.
-        dockerRunCmd.getPortMappings().add(value);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addMount:                                                              */
-    /* ---------------------------------------------------------------------- */
-    private void addMount(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
-        
-        // Add the value to the mount list.
-        dockerRunCmd.getMount().add(value);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addTmpfs:                                                              */
-    /* ---------------------------------------------------------------------- */
-    private void addTmpfs(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
-        
-        // Add the value to the tmpfs list.
-        dockerRunCmd.getTmpfs().add(value);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addVolumeMount:                                                        */
-    /* ---------------------------------------------------------------------- */
-    private void addVolumeMount(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
-        }
-        
-        // Add the value to the volume list.
-        dockerRunCmd.getVolumeMount().add(value);
     }
 }

@@ -14,11 +14,14 @@ public interface MonitorPolicy
     
     // The default step size (i.e., number of milliseconds) cutoff 
     // after which connections are dropped after each use.
-    static final long DEFAULT_STEP_CONN_CLOSE_MS = 60000; // 1 minute
+    static final long DEFAULT_STEP_CONN_CLOSE_MS = 360000; // 6 minutes
     
     // The number of minutes in which an unbroken sequence of monitoring
     // attempts failures causes a timeout.
-    static final long DEFAULT_CONSECUTIVE_FAILURE_MINUTES = 180; // 3 hours 
+    static final long DEFAULT_CONSECUTIVE_FAILURE_MINUTES = 60; // 1 hour 
+    
+    // The default number of seconds we will keep a batch job queued.
+    public static final long DEFAULT_QUEUE_SECS = 259200; // 3 days
     
     /* ********************************************************************** */
     /*                                 Enums                                  */

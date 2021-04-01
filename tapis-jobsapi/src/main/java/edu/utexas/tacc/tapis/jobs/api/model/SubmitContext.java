@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
+import java.nio.file.FileSystems;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -28,10 +30,12 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
+import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
@@ -347,6 +351,10 @@ public final class SubmitContext
         
         // Parameters set in the job submission request have the highest precedence.
         marshaller.mergeParmSets(_submitReq.getParameterSet(), appSysParmSet);
+        
+        // Validate parameter set components.
+        validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getIncludes(), "includes");
+        validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getExcludes(), "excludes");
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -852,8 +860,8 @@ public final class SubmitContext
         
         if (!StringUtils.isBlank(_execSystem.getBucketName()))
             _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
-        if (!StringUtils.isBlank(_execSystem.getBatchScheduler()))
-            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler());
+        if (_execSystem.getBatchScheduler() != null)
+            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler().name());
         
         if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
             String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
@@ -1100,6 +1108,37 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_MINUTES", _job.getUuid(), 
                     _execSystem.getId(), queueName, maxMinutes, _submitReq.getMaxMinutes());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateArchiveFilters:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Validate that each glob and regex in the filter lists can be compiled.
+     * 
+     * @param archiveFilter the final archive filter
+     * @throws TapisImplException on invalid filter content
+     */
+    private void validateArchiveFilters(List<String> filters, String filterName)
+     throws TapisImplException
+    {
+        // Compile the items in each of the filters.
+        for (var f : filters) {
+            if (f.startsWith(JobFileManager.REGEX_FILTER_PREFIX)) {
+                try {Pattern.compile(f.substring(JobFileManager.REGEX_FILTER_PREFIX.length()));}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("JOBS_INVALID_REGEX_FILTER", _job.getUuid(), 
+                                                     filterName, f, e.getMessage());
+                        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                    }
+            } else {
+                try {FileSystems.getDefault().getPathMatcher("glob:"+f);}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("JOBS_INVALID_GLOB_FILTER", _job.getUuid(), 
+                                                     filterName, f, e.getMessage());
+                        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                    }
+            }
         }
     }
     

@@ -38,18 +38,15 @@ public class GetPathPerms
     {
         // Check permissions.
         var filesClient = new FilesClient(BASE_URL, userJWT);
-        var list = filesClient.getFilePermissions(EXEC_SYSTEM, PATH, "testuser2");
-        if (list == null) {
+        var filePerm = filesClient.getFilePermissions(EXEC_SYSTEM, PATH, "testuser2");
+        if (filePerm == null) {
             System.out.println("Null list returned!");
         } else {
-            System.out.println("Number of permissions returned: " + list.size());
-            for (var p : list) {
-                System.out.println("\nsystem: " + p.getSystemId());
-                System.out.println("  path  : " + p.getPath());
-                System.out.println("  perm  : " + p.getPermissions());
-                System.out.println("  tenant: " + p.getTenantId());
-                System.out.println("  use   : " + p.getUsername());
-            }
+            System.out.println("\nsystem: " + filePerm.getSystemId());
+            System.out.println("  path  : " + filePerm.getPath());
+            System.out.println("  perm  : " + filePerm.getPermission());
+            System.out.println("  tenant: " + filePerm.getTenantId());
+            System.out.println("  use   : " + filePerm.getUsername());
         }
     }
 }

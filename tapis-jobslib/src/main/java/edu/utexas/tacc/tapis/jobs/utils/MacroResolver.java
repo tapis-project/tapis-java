@@ -206,8 +206,8 @@ public final class MacroResolver
         
         // Run the command on the host system and cache results.
         String cmd = "echo " + varName;
-        var runCmd = new TapisRunCommand(_execSystem, cmd);
-        result = runCmd.execute();
+        var runCmd = new TapisRunCommand(_execSystem);
+        result = runCmd.execute(cmd, true); // connection automatically closed
         _hostVariables.put(varName, result);
         
         return result + suffix;

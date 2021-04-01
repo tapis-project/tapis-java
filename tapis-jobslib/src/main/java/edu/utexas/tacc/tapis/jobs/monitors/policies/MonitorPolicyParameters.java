@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+
 /** This class is a container for parameters for all monitor policy
  * concrete classes.  As such, it represents the union of all possible
  * parameters for all policy classes.  The policy classes can use the 
@@ -24,7 +27,7 @@ public final class MonitorPolicyParameters
     //
     // A default list of steps will be provided if this parameter is 
     // null or the list is empty.
-    List<Pair<Integer,Long>> steps;
+    public List<Pair<Integer,Long>> steps;
     
     // This parameter limits the maximum number of seconds between the
     // first try and the last try.  This value provides a way to 
@@ -32,15 +35,33 @@ public final class MonitorPolicyParameters
     // how the steps are configured.  
     //
     // A value of zero or less disables this parameter.
-    long maxElapsedSeconds;
+    public long maxElapsedSeconds;
     
     // Steps with wait times this size or greater will close their
     // connection to the remote system after each status check.  The
     // goal is to avoid the connection setup/teardown overhead on
     // status calls that might be issued in quick succession.
-    long stepConnectionCloseMillis = MonitorPolicy.DEFAULT_STEP_CONN_CLOSE_MS;
+    public long stepConnectionCloseMillis = MonitorPolicy.DEFAULT_STEP_CONN_CLOSE_MS;
     
     // The maximum number of minutes in which an unbroken sequence of 
     // monitoring attempts failures causes a timeout.
-    long maxConsecutiveFailureMinutes = MonitorPolicy.DEFAULT_CONSECUTIVE_FAILURE_MINUTES; 
+    public long maxConsecutiveFailureMinutes = MonitorPolicy.DEFAULT_CONSECUTIVE_FAILURE_MINUTES; 
+    
+    /* ********************************************************************** */
+    /*                             Public Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* setDefaultMaxElapsedSecond:                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Set the default maximum elapsed seconds when the job status is QUEUED,
+     * otherwise set it to zero and let the policy class set it.
+     * 
+     * @param job the executing job
+     */
+    public void setDefaultMaxElapsedSecond(Job job)
+    {
+        if (job.getStatus() == JobStatusType.QUEUED) 
+            maxElapsedSeconds = MonitorPolicy.DEFAULT_QUEUE_SECS;
+          else maxElapsedSeconds = 0;
+    }
 }

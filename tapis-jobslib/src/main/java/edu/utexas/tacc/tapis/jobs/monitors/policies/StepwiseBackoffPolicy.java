@@ -292,7 +292,8 @@ public final class StepwiseBackoffPolicy
         steps.add(Pair.of(1,   1000L));   // 1 second    
         steps.add(Pair.of(1,   60000L));  // 1 minute (default connection cutoff)
         steps.add(Pair.of(100, 180000L)); // 3 minutes 
-        steps.add(Pair.of(-1,  300000L)); // 5 minutes forever
+        steps.add(Pair.of(100, 300000L)); // 5 minutes 
+        steps.add(Pair.of(-1,  600000L)); // 10 minutes forever
         
         return steps;
     }

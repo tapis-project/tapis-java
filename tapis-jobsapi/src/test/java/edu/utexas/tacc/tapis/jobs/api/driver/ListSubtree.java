@@ -4,8 +4,10 @@ import java.io.IOException;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 
-public class ListFiles 
+public class ListSubtree 
 {
     // ***************** Configuration Parameters *****************
     private static final String BASE_URL = "https://dev.develop.tapis.io";
@@ -23,8 +25,8 @@ public class ListFiles
     public static void main(String[] args) throws Exception
     {
         // Try to submit a job.
-        var listFiles = new ListFiles();
-        listFiles.get(args);
+        var listSubtree = new ListSubtree();
+        listSubtree.get(args);
     }
     
     /** Get a list of files on the system.
@@ -45,12 +47,14 @@ public class ListFiles
      * @param args contains the name of a request file
      * @throws IOException 
      * @throws TapisClientException 
+     * @throws TapisException 
      */
-    public void get(String[] args) throws IOException, TapisClientException
+    public void get(String[] args) throws IOException, TapisClientException, TapisException
     {
         // Create the app.
         var filesClient = new FilesClient(BASE_URL, userJWT);
-        var list = filesClient.listFiles(EXEC_SYSTEM, "/", 100, 0, true);
+        var filesListSubtree = new FilesListSubtree(filesClient, EXEC_SYSTEM, "/");
+        var list = filesListSubtree.list();
         if (list == null) {
             System.out.println("Null list returned!");
         } else {

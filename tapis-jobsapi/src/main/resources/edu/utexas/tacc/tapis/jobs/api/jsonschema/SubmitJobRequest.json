@@ -168,7 +168,8 @@
                         "type": "object",
                         "properties": {
                             "includes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
-                            "excludes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+                            "excludes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+                            "includeLaunchFiles": {"type": "boolean"}
                         },
                         "additionalProperties": false
                     }

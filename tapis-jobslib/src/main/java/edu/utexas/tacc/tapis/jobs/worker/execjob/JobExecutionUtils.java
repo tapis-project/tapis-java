@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +22,45 @@ public final class JobExecutionUtils
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionUtils.class);
     
+    // Job wrapper script name.
+    public static final String JOB_WRAPPER_SCRIPT = "tapisjob.sh";
+    public static final String JOB_ENV_FILE       = "tapisjob.env";
+    
+    // ----------------------------- Docker Section -----------------------------
+    // Docker command templates.
+    private static final String DOCKER_ID = "docker ps -a --no-trunc -f \"%s\" --format \"{{.ID}}\"";
+    private static final String DOCKER_STATUS = "docker ps -a --no-trunc -f \"name=%s\" --format \"{{.Status}}\"";
+    private static final String DOCKER_RM = "docker rm %s";
+
+    // Docker status return values.
+    public static final String DOCKER_ACTIVE_STATUS_PREFIX = "Up ";
+    public static final String DOCKER_INACTIVE_STATUS_PREFIX = "Exited ";
+    
+    // Get the remote application's return code as reported by docker.
+    // A terminated application will be indicated by a string like "Exited (0) 41 seconds ago".
+    // Group 1 of this regex would return the "0" in the example.
+    public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*");
+
     /* ********************************************************************** */
     /*                            Public Methods                              */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* getDockerCidCommand:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerCidCommand(String containerName)
+    {return String.format(DOCKER_ID, containerName);}
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDockerStatusCommand:                                                */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerStatusCommand(String containerName)
+    {return String.format(DOCKER_STATUS, containerName);}
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDockerRmCommand:                                                    */
+    /* ---------------------------------------------------------------------- */
+    public static String getDockerRmCommand(String containerName)
+    {return String.format(DOCKER_RM, containerName);}
     
     /* ********************************************************************** */
     /*                            Package Methods                             */
