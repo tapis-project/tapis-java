@@ -803,14 +803,6 @@ final class JobQueueProcessor
       // Assign blocked activity in recoverable exceptions.
       RecoveryUtils.updateJobActivity(e, activity.name());
       
-      // See if the exception or any of it ancestors in the causal 
-      // chain are recoverable.  If not, the exception indicates the
-      // job has failed, so we set the state accordingly.
-      final var exArray = new Class<?>[] {TapisRecoverableException.class,
-                                          JobRecoverableException.class};
-      if (TapisUtils.findInChain(e, exArray) == null) 
-          setState(job, JobStatusType.FAILED);
-          
       // Always throw the massaged exception from here. 
       throw JobUtils.tapisify(e);
   }

@@ -121,7 +121,9 @@ public final class JobParmSetMarshaller
             for (var kv : appEnvVars) 
                 if (!origReqEnvKeys.contains(kv.getKey())) reqParmSet.getEnvVariables().add(kv);    
         
-        // Merge the archive files.
+        // Merge the archive files.  The elements of the includes and excludes lists can
+        // be globs or regexes.  The two are distinguished by prefixing regexes with "REGEX:"
+        // whereas globs are written as they would appear on a command line.
         if (appParmSet.getArchiveFilter() != null) {
             var appIncludes = appParmSet.getArchiveFilter().getIncludes();
             var appExcludes = appParmSet.getArchiveFilter().getExcludes();

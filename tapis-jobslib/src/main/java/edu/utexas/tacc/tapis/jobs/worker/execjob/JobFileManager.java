@@ -46,7 +46,7 @@ public final class JobFileManager
     private static final String NO_FILE_INPUTS = "no inputs";
     
     // Filters are interpretted as globs unless they have this prefix.
-    private static final String REGEX_FILTER_PREFIX = "REGEX:";
+    public static final String REGEX_FILTER_PREFIX = "REGEX:";
     
     /* ********************************************************************** */
     /*                                Enums                                   */
