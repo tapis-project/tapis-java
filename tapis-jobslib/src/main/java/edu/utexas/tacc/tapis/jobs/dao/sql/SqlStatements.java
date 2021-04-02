@@ -154,10 +154,11 @@ public class SqlStatements
         "UPDATE jobs SET last_updated = ?, remote_job_id2 = ? WHERE id = ? AND tenant = ?";
     
     public static final String UPDATE_REMOTE_OUTCOME =
-        "UPDATE jobs SET remote_outcome = ?, last_updated = ?, remote_ended = ? WHERE id = ?";
+        "UPDATE jobs SET remote_outcome = ?::job_remote_outcome_enum, last_updated = ?, remote_ended = ? WHERE id = ?";
 
     public static final String UPDATE_REMOTE_OUTCOME_AND_RESULT =
-            "UPDATE jobs SET remote_outcome = ?, remote_result_info = ?, last_updated = ?, remote_ended = ? WHERE id = ?";
+        "UPDATE jobs SET remote_outcome = ?::job_remote_outcome_enum, remote_result_info = ?, last_updated = ?, remote_ended = ?"
+        + " WHERE id = ?";
 
     
 	/* ---------------------------------------------------------------------- */

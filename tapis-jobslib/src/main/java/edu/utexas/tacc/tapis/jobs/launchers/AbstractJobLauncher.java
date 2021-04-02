@@ -65,57 +65,70 @@ abstract class AbstractJobLauncher
         String cmd = getLaunchCommand();
         
         // Log the command we are about to issue.
-        if (_log.isInfoEnabled()) 
-            _log.info(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
-                                      _job.getUuid(), cmd));
+        if (_log.isDebugEnabled()) 
+            _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
+                                       _job.getUuid(), cmd));
         
         // Start the container.
-        String result = runCmd.execute(cmd);
-
-        // We expect there to be no result.
-        if (!StringUtils.isBlank(result)) {
+        String result  = runCmd.execute(cmd);
+        int exitStatus = runCmd.getExitStatus();
+        
+        // Let's see what happened.
+        String cid = UNKNOWN_CONTAINER_ID;       
+        if (exitStatus == 0 && !StringUtils.isBlank(result)) {
+            cid = result.trim();
+            if (_log.isDebugEnabled()) {
+                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+                                             _job.getUuid(), cid, exitStatus);
+                _log.debug(msg);
+            }
+        } else {
             String msg = MsgUtils.getMsg("JOBS_SUBMIT_WARN", getClass().getSimpleName(), 
-                                         _job.getUuid(), cmd, result);
+                                         _job.getUuid(), cmd, result, exitStatus);
             _log.warn(msg);
         }
+
+        // We expect there to be no result.
+//        if (!StringUtils.isBlank(result)) {
+//        }
                 
         // Get and save the container id. The container name is always the job uuid.  
         // Account for slow docker execution by retrying here.  We'll wait for 15 
         // seconds at most.
-        result = null;
-        final int iterations   = 4;
-        final int sleepMillis  = 5000;
-        String cmd2 = getRemoteIdCommand(); // subclass call.
-        for (int i = 0; i < iterations; i++) {
-            // Sleep on all iterations other than the first.
-            if (i != 0) try {Thread.sleep(sleepMillis);} catch (Exception e) {}
-            
-            // Query for the container id.
-            try {result = runCmd.execute(cmd2);}
-                catch (Exception e) {
-                    int attemptsLeft = (iterations - 1) - i;
-                    String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
-                                                 _job.getUuid(), cmd2, attemptsLeft, e.getMessage());
-                    _log.error(msg, e);
-                    continue;
-                } 
-            
-            // We expect the full container id to be returned.
-            if (StringUtils.isBlank(result)) {
-                int attemptsLeft = (iterations - 1) - i;
-                String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
-                                             _job.getUuid(), cmd2, attemptsLeft, "empty result");
-                _log.error(msg);
-                continue;
-            }
-            
-            // We got an id.
-            break;
-        }
+//        result = null;
+//        final int iterations   = 4;
+//        final int sleepMillis  = 5000;
+//        String cmd2 = getRemoteIdCommand(); // subclass call.
+//        for (int i = 0; i < iterations; i++) {
+//            // Sleep on all iterations other than the first.
+//            if (i != 0) try {Thread.sleep(sleepMillis);} catch (Exception e) {}
+//            
+//            // Query for the container id.
+//            try {result = runCmd.execute(cmd2);}
+//                catch (Exception e) {
+//                    int attemptsLeft = (iterations - 1) - i;
+//                    String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
+//                                                 _job.getUuid(), cmd2, attemptsLeft, e.getMessage());
+//                    _log.error(msg, e);
+//                    continue;
+//                } 
+//            
+//            // We expect the full container id to be returned.
+//            if (StringUtils.isBlank(result)) {
+//                int attemptsLeft = (iterations - 1) - i;
+//                String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
+//                                             _job.getUuid(), cmd2, attemptsLeft, "empty result");
+//                _log.error(msg);
+//                continue;
+//            }
+//            
+//            // We got an id.
+//            break;
+//        }
         
         // Save the container id or the unknown id string.
-        if (StringUtils.isBlank(result)) result = UNKNOWN_CONTAINER_ID;
-        _jobCtx.getJobsDao().setRemoteJobId(_job, result);
+        if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
+        _jobCtx.getJobsDao().setRemoteJobId(_job, cid);
     }
     
     /* ********************************************************************** */

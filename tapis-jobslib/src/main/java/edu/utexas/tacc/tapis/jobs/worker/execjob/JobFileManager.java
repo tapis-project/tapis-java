@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -31,6 +32,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
+import edu.utexas.tacc.tapis.shared.ssh.system.TapisSftp;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -47,6 +49,10 @@ public final class JobFileManager
     
     // Filters are interpretted as globs unless they have this prefix.
     public static final String REGEX_FILTER_PREFIX = "REGEX:";
+    
+    // Various useful posix permission settings.
+    public static final int RWRW   = TapisSftp.RWRW;
+    public static final int RWXRWX = TapisSftp.RWXRWX;
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -267,6 +273,103 @@ public final class JobFileManager
             catch (Exception e) {_log.error(e.getMessage(), e);}
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* installExecFile:                                                       */
+    /* ---------------------------------------------------------------------- */
+    public void installExecFile(String content, String fileName, int mod) 
+      throws TapisException
+    {
+        // Get the ssh connection used by this job 
+        // communicate with the execution system.
+        var conn = _jobCtx.getExecSystemConnection();
+        
+        // Put the wrapperScript text into a stream.
+        var in = new ByteArrayInputStream(content.getBytes());
+        
+        // Calculate the destination file path.
+        String destPath = makePath(_jobCtx.getExecutionSystem().getRootDir(), 
+                                   _job.getExecSystemExecDir(),
+                                   fileName);
+        
+        // Initialize the sftp transporter.
+        var sftp = new TapisSftp(_jobCtx.getExecutionSystem(), conn);
+        
+        // Transfer the wrapper script.
+        try {
+            sftp.put(in, destPath);
+            sftp.chmod(mod, destPath);
+        } 
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_SFTP_CMD_ERROR", 
+                                         _jobCtx.getExecutionSystem().getId(),
+                                         _jobCtx.getExecutionSystem().getHost(),
+                                         _jobCtx.getExecutionSystem().getEffectiveUserId(),
+                                         _jobCtx.getExecutionSystem().getTenant(),
+                                         _job.getUuid(),
+                                         destPath, e.getMessage());
+            throw new JobException(msg, e);
+        } 
+        // Always close the channel but keep the connection open.
+        finally {sftp.closeChannel();} 
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeAbsExecSysInputPath:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Make the absolute path on the exec system starting at the rootDir, 
+     * including the input directory and ending with 0 or more other segments.
+     * 
+     * @param more 0 or more path segments
+     * @return the absolute path
+     */
+    public String makeAbsExecSysInputPath(String... more) 
+     throws TapisServiceConnectionException, TapisImplException
+    {
+        String[] components = new String[1 + more.length];
+        components[0] = _job.getExecSystemInputDir();
+        for (int i = 0; i < more.length; i++) components[i+1] = more[i];
+        return makePath(_jobCtx.getExecutionSystem().getRootDir(), 
+                        components);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeAbsExecSysExecPath:                                                */
+    /* ---------------------------------------------------------------------- */
+    /** Make the absolute path on the exec system starting at the rootDir, 
+     * including the exec directory and ending with 0 or more other segments.
+     * 
+     * @param more 0 or more path segments
+     * @return the absolute path
+     */
+    public String makeAbsExecSysExecPath(String... more) 
+     throws TapisServiceConnectionException, TapisImplException
+    {
+        String[] components = new String[1 + more.length];
+        components[0] = _job.getExecSystemExecDir();
+        for (int i = 0; i < more.length; i++) components[i+1] = more[i];
+        return makePath(_jobCtx.getExecutionSystem().getRootDir(), 
+                        components);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeAbsExecSysOutputPath:                                              */
+    /* ---------------------------------------------------------------------- */
+    /** Make the absolute path on the exec system starting at the rootDir, 
+     * including the output directory and ending with 0 or more other segments.
+     * 
+     * @param more 0 or more path segments
+     * @return the absolute path
+     */
+    public String makeAbsExecSysOutputPath(String... more) 
+     throws TapisServiceConnectionException, TapisImplException
+    {
+        String[] components = new String[1 + more.length];
+        components[0] = _job.getExecSystemOutputDir();
+        for (int i = 0; i < more.length; i++) components[i+1] = more[i];
+        return makePath(_jobCtx.getExecutionSystem().getRootDir(), 
+                        components);
+    }
+    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -311,7 +414,7 @@ public final class JobFileManager
             // Assign the task.
             var task = new TransferTaskRequestElement().
                             sourceURI(fileInput.getSourceUrl()).
-                            destinationURI(makeExecSysInputPath(fileInput));
+                            destinationURI(makeExecSysInputUrl(fileInput));
             task.setOptional(optional);;
             tasks.addElementsItem(task);
         }
@@ -449,12 +552,12 @@ public final class JobFileManager
         
         // Assign the tasks for the two generated files.
         var task = new TransferTaskRequestElement().
-                        sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
-                        destinationURI(makeArchiveSysPath(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
+                        sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
+                        destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
         tasks.addElementsItem(task);
         task = new TransferTaskRequestElement().
-                        sourceURI(makeExecSysOutputPath(JobExecutionUtils.JOB_ENV_FILE)).
-                        destinationURI(makeArchiveSysPath(JobExecutionUtils.JOB_ENV_FILE));
+                        sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
+                        destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
         tasks.addElementsItem(task);
     }
     
@@ -471,8 +574,8 @@ public final class JobFileManager
         // Add each output file as a task element.
         for (var f : fileList) {
             var task = new TransferTaskRequestElement().
-                    sourceURI(makeExecSysOutputPath(f.getPath())).
-                    destinationURI(makeArchiveSysPath(f.getPath()));
+                    sourceURI(makeExecSysOutputUrl(f.getPath())).
+                    destinationURI(makeArchiveSysUrl(f.getPath()));
             tasks.addElementsItem(task);
         }
     }
@@ -644,9 +747,9 @@ public final class JobFileManager
         
         return transferId;
     }
-    
+
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysInputPath:                                                  */
+    /* makeExecSysInputUrl:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on the input spec's destination path and the
      * execution system id.  Implicit in the tapis protocol is that the Files
@@ -658,26 +761,14 @@ public final class JobFileManager
      * @param fileInput a file input spec
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysInputPath(InputSpec fileInput)
+    private String makeExecSysInputUrl(InputSpec fileInput)
     {
-        // Start with the system id.
-        String url = "tapis://" + _job.getExecSystemId();
-        
-        // Add the job's put input path.
-        var inputPath = _job.getExecSystemInputDir();
-        if (inputPath.startsWith("/")) url += inputPath;
-          else url += "/" + inputPath;
-        
-        // Add the suffix.
-        String dest = fileInput.getTargetPath();
-        if (url.endsWith("/") && dest.startsWith("/")) url += dest.substring(1);
-        else if (!url.endsWith("/") && !dest.startsWith("/")) url += "/" + dest;
-        else url += dest;
-        return url;
+        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemInputDir(), 
+                              fileInput.getTargetPath());
     }
     
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysOutputPath:                                                 */
+    /* makeExecSysOutputUrl:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and the execution system id.  
      * Implicit in the tapis protocol is that the Files service will prefix path 
@@ -686,18 +777,75 @@ public final class JobFileManager
      * 
      * The pathName is never null or empty.
      * 
-     * @param fileInput a file input spec
+     * @param pathName a file path name
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysOutputPath(String pathName)
+    private String makeExecSysExecUrl(String pathName)
+    {
+        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), pathName);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* makeExecSysOutputUrl:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on a file pathname and the execution system id.  
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with  the execution system's rootDir when actually 
+     * transferring files. 
+     * 
+     * The pathName is never null or empty.
+     * 
+     * @param pathName a file path name
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeExecSysOutputUrl(String pathName)
+    {
+        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemOutputDir(), pathName);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* makeArchiveSysUrl:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on a file pathname and the archive system id.  
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with  the execution system's rootDir when actually 
+     * transferring files. 
+     * 
+     * The pathName is never null or empty.
+     * 
+     * @param pathName a file path name
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeArchiveSysUrl(String pathName)
+    {
+        return makeSystemUrl(_job.getArchiveSystemId(), _job.getArchiveSystemDir(), pathName);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* makeSystemUrl:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on the systemId, a base path on thate system
+     * and a file pathname.  
+     *   
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with  the execution system's rootDir when actually 
+     * transferring files.
+     * 
+     * The pathName is never null or empty.
+     * 
+     * @param systemId the target tapis system
+     * @param basePath the jobs base path (input, output, exec) relative to the system's rootDir
+     * @param pathName the file pathname relative to the basePath
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeSystemUrl(String systemId, String basePath, String pathName)
     {
         // Start with the system id.
-        String url = "tapis://" + _job.getExecSystemId();
+        String url = "tapis://" + systemId;
         
         // Add the job's put input path.
-        var outputPath = _job.getExecSystemOutputDir();
-        if (outputPath.startsWith("/")) url += outputPath;
-          else url += "/" + outputPath;
+        if (basePath.startsWith("/")) url += basePath;
+          else url += "/" + basePath;
         
         // Add the suffix.
         if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
@@ -707,34 +855,19 @@ public final class JobFileManager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysOutputPath:                                                 */
+    /* makePath:                                                              */
     /* ---------------------------------------------------------------------- */
-    /** Create a tapis url based on a file pathname and the archive system id.  
-     * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with  the execution system's rootDir when actually 
-     * transferring files. 
+    /** Make a path from components with proper treatment of slashes.
      * 
-     * The pathName is never null or empty.
-     * 
-     * @param fileInput a file input spec
-     * @return the tapis url indicating a path on the exec system.
+     * @param first non-null start of path
+     * @param more 0 or more additional segments
+     * @return the path as a string
      */
-    private String makeArchiveSysPath(String pathName)
+    private String makePath(String first, String... more)
     {
-        // Start with the system id.
-        String url = "tapis://" + _job.getArchiveSystemId();
-        
-        // Add the job's put input path.
-        var archivePath = _job.getArchiveSystemDir();
-        if (archivePath.startsWith("/")) url += archivePath;
-          else url += "/" + archivePath;
-        
-        // Add the suffix.
-        if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
-        else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
-        else url += pathName;
-        return url;
+        return Paths.get(first, more).toString();
     }
+    
     
 //    private getOutputDirFileListing()
 //    {

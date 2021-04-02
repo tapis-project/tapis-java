@@ -129,7 +129,7 @@ public class DockerNativeMonitor
             }
             
             // Remove the container from the execution system.
-            removeContainer(_jobCtx.getExecutionSystem(), conn);
+//            removeContainer(_jobCtx.getExecutionSystem(), conn);
             
             return status;
         }

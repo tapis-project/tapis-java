@@ -30,6 +30,7 @@ public final class DockerRunCmd
     private String                    cpusetCPUs;
     private String                    cpusetMEMs;
     private List<Pair<String,String>> env = new ArrayList<Pair<String,String>>();
+    private String                    envFile;
     private String                    gpus;
     private List<String>              groups;
     private String                    hostName;
@@ -74,6 +75,8 @@ public final class DockerRunCmd
         buf.append(user);
         buf.append(" --cidfile ");
         buf.append(cidFile);
+        buf.append(" --env-file ");
+        buf.append(envFile);
         if (rm) buf.append(" --rm");
         
         // ------ Fill in the options that the user may have set.
@@ -331,6 +334,14 @@ public final class DockerRunCmd
 
     public void setEnv(List<Pair<String, String>> env) {
         this.env = env;
+    }
+
+    public String getEnvFile() {
+        return envFile;
+    }
+
+    public void setEnvFile(String envFile) {
+        this.envFile = envFile;
     }
 
     public String getGpus() {
