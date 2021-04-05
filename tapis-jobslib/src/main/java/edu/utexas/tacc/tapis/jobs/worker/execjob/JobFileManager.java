@@ -70,6 +70,9 @@ public final class JobFileManager
     private final JobExecutionContext _jobCtx;
     private final Job                 _job;
     
+    // Derived path prefix value removed before filtering.
+    private String                    _filterIgnorePrefix;
+    
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
@@ -464,8 +467,8 @@ public final class JobFileManager
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
                 var task = new TransferTaskRequestElement().
-                        sourceURI(makeExecSysOutputUrl(null)).
-                        destinationURI(makeArchiveSysUrl(null));
+                        sourceURI(makeExecSysOutputUrl("")).
+                        destinationURI(makeArchiveSysUrl(""));
                 tasks.addElementsItem(task);
             } 
             else 
@@ -573,9 +576,10 @@ public final class JobFileManager
     {
         // Add each output file as a task element.
         for (var f : fileList) {
+            var relativePath = getOutputRelativePath(f.getPath());
             var task = new TransferTaskRequestElement().
-                    sourceURI(makeExecSysOutputUrl(f.getPath())).
-                    destinationURI(makeArchiveSysUrl(f.getPath()));
+                    sourceURI(makeExecSysOutputUrl(relativePath)).
+                    destinationURI(makeArchiveSysUrl(relativePath));
             tasks.addElementsItem(task);
         }
     }
@@ -638,10 +642,10 @@ public final class JobFileManager
         var fileIt = fileList.listIterator();
         while (fileIt.hasNext()) {
             var fileInfo = fileIt.next();
+            var path = getOutputRelativePath(fileInfo.getPath());
             for (String filter : filterList) {
                 // Use cached filters to match paths.
-                boolean matches = matchFilter(filter, fileInfo.getPath(), 
-                                              globs, regexes);
+                boolean matches = matchFilter(filter, path, globs, regexes);
                 
                 // Removal depends on matches and the filter type.
                 if (filterType == FilterType.EXCLUDES) {
@@ -655,6 +659,44 @@ public final class JobFileManager
         }
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* getOutputRelativePath:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Strip the job output directory prefix from the absolute pathname before
+     * performing a filter matching operation.
+     * 
+     * @param absPath the absolute path name of a file rooted in the job output directory 
+     * @return the path name relative to the job output directory
+     */
+    private String getOutputRelativePath(String absPath)
+    {
+        var prefix = getOutputPathPrefix();
+        if (absPath.startsWith(prefix))
+            return absPath.substring(prefix.length());
+        return absPath;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getOutputPathPrefix:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Assign the filter ignore prefix value for this job.  This value is the
+     * path prefix (with trailing slash) that will be removed from all output
+     * file path before filtering is carried out.  Users provide glob or regex
+     * pattern that are applied to file paths relative to the job output directory. 
+     * 
+     * @return the prefix to be removed from all path before filter matching
+     */
+    private String getOutputPathPrefix()
+    {
+        // Assign the filter ignore prefix the job output directory including 
+        // a trailing slash.
+        if (_filterIgnorePrefix == null) {
+            _filterIgnorePrefix = _job.getExecSystemOutputDir();
+            if (!_filterIgnorePrefix.endsWith("/")) _filterIgnorePrefix += "/";
+        }
+        return _filterIgnorePrefix;
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* matchFilter:                                                           */
     /* ---------------------------------------------------------------------- */
@@ -814,7 +856,7 @@ public final class JobFileManager
      * The pathName can be null or empty.
      * 
      * @param pathName a file path name
-     * @return the tapis url indicating a path on the exec system.
+     * @return the tapis url indicating a path on the archive system.
      */
     private String makeArchiveSysUrl(String pathName)
     {
