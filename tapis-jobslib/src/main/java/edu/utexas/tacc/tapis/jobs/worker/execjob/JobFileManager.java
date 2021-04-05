@@ -464,8 +464,8 @@ public final class JobFileManager
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
                 var task = new TransferTaskRequestElement().
-                        sourceURI(_job.getExecSystemOutputDir()).
-                        destinationURI(_job.getArchiveSystemDir());
+                        sourceURI(makeExecSysOutputUrl(null)).
+                        destinationURI(makeArchiveSysUrl(null));
                 tasks.addElementsItem(task);
             } 
             else 
@@ -775,7 +775,7 @@ public final class JobFileManager
      * portion of the url with  the execution system's rootDir when actually 
      * transferring files. 
      * 
-     * The pathName is never null or empty.
+     * The pathName can be null or empty.
      * 
      * @param pathName a file path name
      * @return the tapis url indicating a path on the exec system.
@@ -793,7 +793,7 @@ public final class JobFileManager
      * portion of the url with  the execution system's rootDir when actually 
      * transferring files. 
      * 
-     * The pathName is never null or empty.
+     * The pathName can be null or empty.
      * 
      * @param pathName a file path name
      * @return the tapis url indicating a path on the exec system.
@@ -811,7 +811,7 @@ public final class JobFileManager
      * portion of the url with  the execution system's rootDir when actually 
      * transferring files. 
      * 
-     * The pathName is never null or empty.
+     * The pathName can be null or empty.
      * 
      * @param pathName a file path name
      * @return the tapis url indicating a path on the exec system.
@@ -831,7 +831,7 @@ public final class JobFileManager
      * portion of the url with  the execution system's rootDir when actually 
      * transferring files.
      * 
-     * The pathName is never null or empty.
+     * The pathName can be null or empty.
      * 
      * @param systemId the target tapis system
      * @param basePath the jobs base path (input, output, exec) relative to the system's rootDir
@@ -848,6 +848,7 @@ public final class JobFileManager
           else url += "/" + basePath;
         
         // Add the suffix.
+        if (StringUtils.isBlank(pathName)) return url;
         if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
         else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
         else url += pathName;
