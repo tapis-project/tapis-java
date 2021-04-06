@@ -88,44 +88,6 @@ abstract class AbstractJobLauncher
             _log.warn(msg);
         }
 
-        // We expect there to be no result.
-//        if (!StringUtils.isBlank(result)) {
-//        }
-                
-        // Get and save the container id. The container name is always the job uuid.  
-        // Account for slow docker execution by retrying here.  We'll wait for 15 
-        // seconds at most.
-//        result = null;
-//        final int iterations   = 4;
-//        final int sleepMillis  = 5000;
-//        String cmd2 = getRemoteIdCommand(); // subclass call.
-//        for (int i = 0; i < iterations; i++) {
-//            // Sleep on all iterations other than the first.
-//            if (i != 0) try {Thread.sleep(sleepMillis);} catch (Exception e) {}
-//            
-//            // Query for the container id.
-//            try {result = runCmd.execute(cmd2);}
-//                catch (Exception e) {
-//                    int attemptsLeft = (iterations - 1) - i;
-//                    String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
-//                                                 _job.getUuid(), cmd2, attemptsLeft, e.getMessage());
-//                    _log.error(msg, e);
-//                    continue;
-//                } 
-//            
-//            // We expect the full container id to be returned.
-//            if (StringUtils.isBlank(result)) {
-//                int attemptsLeft = (iterations - 1) - i;
-//                String msg = MsgUtils.getMsg("JOBS_GET_CID_ERROR", getClass().getSimpleName(), 
-//                                             _job.getUuid(), cmd2, attemptsLeft, "empty result");
-//                _log.error(msg);
-//                continue;
-//            }
-//            
-//            // We got an id.
-//            break;
-//        }
-        
         // Save the container id or the unknown id string.
         if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
         _jobCtx.getJobsDao().setRemoteJobId(_job, cid);
