@@ -10,10 +10,21 @@ import edu.utexas.tacc.tapis.jobs.client.gen.model.Job;
 import edu.utexas.tacc.tapis.jobs.client.gen.model.ReqSubmitJob;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
+/** This test submits a job using previously created systems, apps and job definitions.
+ * The command format requires a job request file name and, optionally, the base url for 
+ * the jobs service.
+ * 
+ *      java SubmitJob <job submission request file> [jobs service base url]
+ * 
+ * If the second parameter is not provided, the address of the job service running on 
+ * the local host is assumed.
+ * 
+ * @author rcardone
+ */
 public class SubmitJob 
 {
     // ***************** Configuration Parameters *****************
-    private static final String BASE_URL   = "http://localhost:8080/v3";
+    private String BASE_URL   = "http://localhost:8080/v3";
     private static final String userJWT = 
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIxOTVhNzU2YS1hZWRhLTQ2NjQtODFhMS1hODg1ZDZhZmJiNDMiLCJpc3MiOiJodHRwczovL2Rldi5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InRlc3R1c2VyMkBkZXYiLCJ0YXBpcy90ZW5hbnRfaWQiOiJkZXYiLCJ0YXBpcy90b2tlbl90eXBlIjoiYWNjZXNzIiwidGFwaXMvZGVsZWdhdGlvbiI6ZmFsc2UsInRhcGlzL2RlbGVnYXRpb25fc3ViIjpudWxsLCJ0YXBpcy91c2VybmFtZSI6InRlc3R1c2VyMiIsInRhcGlzL2FjY291bnRfdHlwZSI6InVzZXIiLCJleHAiOjE5MjU4MzgyMzF9.wbyeWa6PQpROtnPWpykKc9ln2TQj04cD_uwjS40UeF5PMDJ7jd5u8GJ0JPyaH-qj9R3H9-J4H9vQGPnKQg7Wqj9_QIja9t5g5WM7Vz70TaXmu91EO3_rbJkmguXZMRFdBS0YFDYGLccO2i50NVyt3i-nVRAp3nFCn5-eB6UEoU_KEe5MiFnMmuzF6kUIGDi6Cw_26DxI_SsY-zcpjCmX0jx5cM0xqLv8XNv1RIVr8o9fKGuvGupdT0ZdTCp_MiMBPi11OE7OCYo7iwp-yglcpOMlQF8LOCJe9txzJGqcCZSGbQBi4mNLasyYn0cstVak9ToGQpEpiSdz4FvQtSKT9A";
     // ***************** End Configuration Parameters *************
@@ -50,6 +61,7 @@ public class SubmitJob
             System.out.println("Supply the name of a request file in directory " + reqDir + ".");
             return;
         }
+        if (args.length > 1) BASE_URL = args[1]; // optional jobs service base url.
         
         // Read the file into a string.
         Path reqFile = Path.of(reqDir, args[0]);
@@ -57,6 +69,7 @@ public class SubmitJob
         
         // Informational message.
         System.out.println("Processing " + reqFile.toString() + ".");
+        System.out.println("Contacting Jobs Service at " + BASE_URL + ".");
         // System.out.println(reqString);
         
         // Convert json string into a job submission request.
