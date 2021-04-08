@@ -9,20 +9,20 @@
         <module name="shared" />
         <module name="files-client" />
         <module name="tapis-shared-db" />
-        <module name="tapis-systemslib" />
         <module name="tapis-shared-api" />
         <module name="tapis-jobslib" />
         <module name="meta-client" />
+        <module name="apps-client" />
         <module name="tapis-shared-lib" />
         <module name="tapis-securitylib" />
         <module name="tapis-jobsapi" />
+        <module name="jobs-client" />
         <module name="tokens-client" />
+        <module name="tapis-shared-notifications" />
         <module name="auth-client" />
         <module name="tapis-securityapi" />
         <module name="tapis-shared-searchlib" />
         <module name="tapis-securitymigrate" />
-        <module name="meta" />
-        <module name="tapis-systemsapi" />
         <module name="tapis-jobsmigrate" />
         <module name="security-client" />
         <module name="systems-client" />
@@ -31,31 +31,35 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="auth-client" target="1.13" />
-      <module name="files-client" target="1.13" />
+      <module name="apps-client" target="1.15" />
+      <module name="auth-client" target="1.15" />
+      <module name="files-client" target="1.15" />
+      <module name="jobs-client" target="1.15" />
       <module name="meta" target="1.13" />
-      <module name="meta-client" target="1.13" />
-      <module name="security-client" target="1.13" />
-      <module name="shared" target="1.13" />
-      <module name="systems-client" target="1.13" />
+      <module name="meta-client" target="1.15" />
+      <module name="notifications-client" target="1.15" />
+      <module name="security-client" target="1.15" />
+      <module name="shared" target="1.15" />
+      <module name="systems-client" target="1.15" />
       <module name="tapis-client-java" target="1.5" />
       <module name="tapis-java" target="1.5" />
-      <module name="tapis-jobsapi" target="1.13" />
-      <module name="tapis-jobslib" target="1.13" />
-      <module name="tapis-jobsmigrate" target="1.13" />
-      <module name="tapis-securityapi" target="1.13" />
-      <module name="tapis-securitylib" target="1.13" />
-      <module name="tapis-securitymigrate" target="1.13" />
-      <module name="tapis-shared-api" target="1.13" />
-      <module name="tapis-shared-db" target="1.13" />
+      <module name="tapis-jobsapi" target="1.15" />
+      <module name="tapis-jobslib" target="1.15" />
+      <module name="tapis-jobsmigrate" target="1.15" />
+      <module name="tapis-securityapi" target="1.15" />
+      <module name="tapis-securitylib" target="1.15" />
+      <module name="tapis-securitymigrate" target="1.15" />
+      <module name="tapis-shared-api" target="1.15" />
+      <module name="tapis-shared-db" target="1.15" />
       <module name="tapis-shared-java" target="1.5" />
-      <module name="tapis-shared-lib" target="1.13" />
-      <module name="tapis-shared-queue" target="1.13" />
-      <module name="tapis-shared-searchlib" target="1.13" />
+      <module name="tapis-shared-lib" target="1.15" />
+      <module name="tapis-shared-notifications" target="1.15" />
+      <module name="tapis-shared-queue" target="1.15" />
+      <module name="tapis-shared-searchlib" target="1.15" />
       <module name="tapis-systemsapi" target="1.13" />
       <module name="tapis-systemslib" target="1.13" />
-      <module name="tenants-client" target="1.13" />
-      <module name="tokens-client" target="1.13" />
+      <module name="tenants-client" target="1.15" />
+      <module name="tokens-client" target="1.15" />
     </bytecodeTargetLevel>
   </component>
 </project>

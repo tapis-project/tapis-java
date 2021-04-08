@@ -32,7 +32,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class JobExecutionContext
 {
@@ -55,9 +55,9 @@ public final class JobExecutionContext
     private final JobsDao            _jobsDao;
     
     // Tapis resources.
-    private TSystem                  _executionSystem;
-    private TSystem                  _archiveSystem;
-    private TSystem                  _dtnSystem;
+    private TapisSystem             _executionSystem;
+    private TapisSystem             _archiveSystem;
+    private TapisSystem             _dtnSystem;
     private App                      _app;
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
@@ -97,7 +97,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getExecutionSystem:                                                    */
     /* ---------------------------------------------------------------------- */
-    public TSystem getExecutionSystem() 
+    public TapisSystem getExecutionSystem() 
      throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the execution system on first use.
@@ -112,7 +112,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getArchiveSystem:                                                      */
     /* ---------------------------------------------------------------------- */
-    public TSystem getArchiveSystem() 
+    public TapisSystem getArchiveSystem() 
      throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the archive system on first use.
@@ -130,7 +130,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getDtnSystem:                                                          */
     /* ---------------------------------------------------------------------- */
-    public TSystem getDtnSystem() 
+    public TapisSystem getDtnSystem() 
      throws TapisImplException, TapisServiceConnectionException 
     {
         // The dtn system is optional.
@@ -377,7 +377,7 @@ public final class JobExecutionContext
     /* ********************************************************************** */
     public Job getJob() {return _job;}
     
-    public void setExecutionSystem(TSystem executionSystem) 
+    public void setExecutionSystem(TapisSystem executionSystem) 
        {_executionSystem = executionSystem;}
     
     public void setApp(App app) {_app = app;}
@@ -461,14 +461,14 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------------- */
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */
-    private TSystem loadSystemDefinition(SystemsClient systemsClient,
+    private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                          String systemId,
                                          boolean requireExecPerm,
                                          String  systemDesc) 
       throws TapisImplException, TapisServiceConnectionException
     {
         // Load the system definition.
-        TSystem system = null;
+        TapisSystem system = null;
         boolean returnCreds = true;
         AuthnMethod authnMethod = null;
         try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 

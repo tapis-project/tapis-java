@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisQuotaException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class QuotaChecker 
 {
@@ -90,7 +90,7 @@ public final class QuotaChecker
     private void checkMaxSystemJobs() throws TapisException
     {
         // Does the exec system have a hard limit on the number of jobs?
-        TSystem execSys = _jobCtx.getExecutionSystem();
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
         Integer maxSystemJobs = execSys.getJobMaxJobs();
         if (maxSystemJobs == null || maxSystemJobs <= 0) return;
         
@@ -122,7 +122,7 @@ public final class QuotaChecker
     private void checkMaxSystemUserJobs() throws TapisException
     {
         // Does the exec system have a hard limit on the number of jobs?
-        TSystem execSys = _jobCtx.getExecutionSystem();
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
         Integer maxSystemJobsPerUser = execSys.getJobMaxJobsPerUser();
         if (maxSystemJobsPerUser == null || maxSystemJobsPerUser <= 0) return;
         
@@ -157,7 +157,7 @@ public final class QuotaChecker
     private void checkMaxSystemQueueJobs() throws TapisException
     {
         // Does the exec system queue have a hard limit on the number of jobs?
-        TSystem execSys = _jobCtx.getExecutionSystem();
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
         LogicalQueue logicalQueue = _jobCtx.getLogicalQueue();
         
         // Make sure we have a queue.  If not, skip this quota check.
@@ -197,7 +197,7 @@ public final class QuotaChecker
     private void checkMaxSystemUserQueueJobs() throws TapisException
     {
         // Does the exec system queue have a hard limit on the number of jobs?
-        TSystem execSys = _jobCtx.getExecutionSystem();
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
         LogicalQueue logicalQueue = _jobCtx.getLogicalQueue();
         
         // Make sure we have a queue.  If not, skip this quota check.

@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class MacroResolver 
 {
@@ -42,7 +42,7 @@ public final class MacroResolver
     /*                                    Fields                                    */
     /* **************************************************************************** */
     // Used to access host environment variables.
-    private final TSystem _execSystem;
+    private final TapisSystem _execSystem;
     private final Map<String,String> _macros;
     
     // Cache of environment variable values retrieved from the execution system.
@@ -64,7 +64,7 @@ public final class MacroResolver
      * @param execSystem the execution system or null for testing
      * @param macros non-null mapping of resolved macro names to their values
      */
-    public MacroResolver(TSystem execSystem, Map<String,String> macros)
+    public MacroResolver(TapisSystem execSystem, Map<String,String> macros)
     {
         _execSystem = execSystem;
         _macros = macros;
