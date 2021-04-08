@@ -14,22 +14,6 @@
   "execSystemId": "tapisv3-exec2",
   "archiveOnAppError": true,
   "parameterSet": {
-      "containerArgs": [
-        { "arg": "--name ${_tapisJobUUID}",
-          "meta": {
-            "name": "name",
-            "description": "container name",
-            "required": true
-          }
-        },
-        { "arg": "-u testuser2:testuser2",
-          "meta": {
-            "name": "user",
-            "description": "userid under which container runs",
-            "required": true
-          }
-        }
-      ],
       "envVariables": [ 
         {"key": "MAIN_CLASS", "value": "edu.utexas.tacc.testapps.tapis.SleepSeconds"}
       ]

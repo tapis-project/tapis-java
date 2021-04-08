@@ -5,7 +5,11 @@
     "parameterSet": {
       "envVariables": [ 
         {"key": "JOBS_PARMS", "value": "15"}
-      ]
+      ],
+      "archiveFilter": {
+        "includes": ["Sleep*"],
+        "includeLaunchFiles": true
+      }
     },
     "archiveSystemId" : "tapisv3-exec"
 }

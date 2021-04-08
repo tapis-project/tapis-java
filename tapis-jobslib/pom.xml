@@ -46,6 +46,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-searchlib</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jobs-client</artifactId>
             <version>${tapis-client-java.version}</version>
         </dependency>

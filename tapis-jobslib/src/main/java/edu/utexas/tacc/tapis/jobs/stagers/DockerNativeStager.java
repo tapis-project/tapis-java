@@ -12,7 +12,11 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 public class DockerNativeStager 
@@ -125,6 +129,9 @@ public class DockerNativeStager
         // Write the container id to a host file.
         setCidFile(dockerRunCmd);
         
+        // Write all the environment variables to file.
+        setEnvFile(dockerRunCmd);
+        
         // Set the standard bind mounts.
         setStandardBindMounts(dockerRunCmd);
         
@@ -150,14 +157,34 @@ public class DockerNativeStager
     /** Write the container id to a fhost file.
      * 
      * @param dockerRunCmd the run command to be updated
+     * @throws TapisImplException 
+     * @throws TapisServiceConnectionException 
      */
-    private void setCidFile(DockerRunCmd dockerRunCmd)
+    private void setCidFile(DockerRunCmd dockerRunCmd) 
+     throws TapisException
     {
         // Put the cid file in the execution directory.
-        String path = _job.getExecSystemExecDir();
-        if (path.endsWith("/")) path += _job.getUuid() + CID_SUFFIX;
-          else path += "/" + _job.getUuid() + CID_SUFFIX;
+        var fm = new JobFileManager(_jobCtx);
+        String path = fm.makeAbsExecSysExecPath(_job.getUuid() + CID_SUFFIX);
         dockerRunCmd.setCidFile(path);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* setEnvFile:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Write the environment variables to a fhost file.
+     * 
+     * @param dockerRunCmd the run command to be updated
+     * @throws TapisImplException 
+     * @throws TapisServiceConnectionException 
+     */
+    private void setEnvFile(DockerRunCmd dockerRunCmd) 
+     throws TapisException
+    {
+        // Put the cid file in the execution directory.
+        var fm = new JobFileManager(_jobCtx);
+        String path = fm.makeAbsExecSysExecPath(JobExecutionUtils.JOB_ENV_FILE);
+        dockerRunCmd.setEnvFile(path);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -167,23 +194,29 @@ public class DockerNativeStager
      * using the same, standard Tapis mountpoints in each container.
      * 
      * @param dockerRunCmd the run command to be updated
+     * @throws TapisImplException 
+     * @throws TapisServiceConnectionException 
      */
-    private void setStandardBindMounts(DockerRunCmd dockerRunCmd)
+    private void setStandardBindMounts(DockerRunCmd dockerRunCmd) 
+     throws TapisException
     {
+        // Let the file manager make paths.
+        var fm = new JobFileManager(_jobCtx);
+        
         // Set standard bind mounts.
         var mount = new BindMount();
-        mount.setSource(_job.getExecSystemInputDir());
+        mount.setSource(fm.makeAbsExecSysInputPath());
         mount.setTarget(Job.DEFAULT_EXEC_SYSTEM_INPUT_MOUNTPOINT);
         mount.setReadOnly(true);
         dockerRunCmd.getMount().add(mount.toString());
         
         mount = new BindMount();
-        mount.setSource(_job.getExecSystemOutputDir());
+        mount.setSource(fm.makeAbsExecSysOutputPath());
         mount.setTarget(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_MOUNTPOINT);
         dockerRunCmd.getMount().add(mount.toString());
         
         mount = new BindMount();
-        mount.setSource(_job.getExecSystemExecDir());
+        mount.setSource(fm.makeAbsExecSysExecPath());
         mount.setTarget(Job.DEFAULT_EXEC_SYSTEM_EXEC_MOUNTPOINT);
         dockerRunCmd.getMount().add(mount.toString());
     }

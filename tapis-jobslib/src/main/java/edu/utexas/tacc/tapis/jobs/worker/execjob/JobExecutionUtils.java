@@ -37,9 +37,9 @@ public final class JobExecutionUtils
     public static final String DOCKER_INACTIVE_STATUS_PREFIX = "Exited ";
     
     // Get the remote application's return code as reported by docker.
-    // A terminated application will be indicated by a string like "Exited (0) 41 seconds ago".
+    // A terminated application will be indicated by a string like "Exited (0) 41 seconds ago\n".
     // Group 1 of this regex would return the "0" in the example.
-    public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*");
+    public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
 
     /* ********************************************************************** */
     /*                            Public Methods                              */

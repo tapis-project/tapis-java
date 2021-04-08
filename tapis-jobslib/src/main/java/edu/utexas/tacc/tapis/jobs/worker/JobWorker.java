@@ -19,7 +19,6 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.event.WkrStatusResp;
 import edu.utexas.tacc.tapis.jobs.utils.Throttle;
 import edu.utexas.tacc.tapis.jobs.worker.JobQueueProcessor.JobTopicThread;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
@@ -29,7 +28,6 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
 import edu.utexas.tacc.tapis.shareddb.datasource.TapisDataSource;
-import edu.utexas.tacc.tapis.systems.client.gen.model.JobRuntime;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 public final class JobWorker
