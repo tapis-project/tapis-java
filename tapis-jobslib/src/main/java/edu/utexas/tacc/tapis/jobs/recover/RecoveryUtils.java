@@ -35,7 +35,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSystemAvailableE
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class RecoveryUtils 
 {
@@ -126,7 +126,7 @@ public final class RecoveryUtils
      * @param system the execution or storage system that is not currently available
      * @return the recovery information
      */
-    public static TreeMap<String,String> captureSystemState(TSystem system)
+    public static TreeMap<String,String> captureSystemState(TapisSystem system)
     {
         TreeMap<String,String> state = new TreeMap<>();
         state.put("owner", system.getOwner());
@@ -205,7 +205,7 @@ public final class RecoveryUtils
      * @param job the job that needs recovery
      * @return the recovery information 
      */
-    public static TreeMap<String,String> captureQuotaState(TSystem execSys,
+    public static TreeMap<String,String> captureQuotaState(TapisSystem execSys,
                                                            Job job, 
                                                            LogicalQueue logicalQueue)
     {

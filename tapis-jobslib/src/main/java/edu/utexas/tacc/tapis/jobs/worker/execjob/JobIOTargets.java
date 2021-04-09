@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 /** During job execution the Jobs service uses three main directories for input
  * and output:
@@ -52,8 +52,8 @@ public final class JobIOTargets
     /* ********************************************************************** */
     // The initialized job context.
     private final Job                 _job;
-    private final TSystem             _execSystem;
-    private final TSystem             _dtnSystem;
+    private final TapisSystem        _execSystem;
+    private final TapisSystem        _dtnSystem;
     
     // Initialized on construction.
     private final JobIOTarget         _execTarget = new JobIOTarget();
@@ -66,7 +66,7 @@ public final class JobIOTargets
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobIOTargets(Job job, TSystem execSystem, TSystem dtnSystem)
+    public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem)
     {
         _job = job;
         _execSystem = execSystem;

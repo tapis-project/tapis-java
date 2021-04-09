@@ -49,7 +49,7 @@ import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class SubmitContext 
 {
@@ -69,9 +69,9 @@ public final class SubmitContext
     
     // The raw sources of job information.
     private App     _app;
-    private TSystem _execSystem;
-    private TSystem _dtnSystem;
-    private TSystem _archiveSystem;
+    private TapisSystem _execSystem;
+    private TapisSystem _dtnSystem;
+    private TapisSystem _archiveSystem;
     
     // Macro values.
     private final TreeMap<String,String> _macros = new TreeMap<String,String>();
@@ -241,9 +241,9 @@ public final class SubmitContext
     /* **************************************************************************** */
     public Job getJob() {return _job;}
     public App getApp() {return _app;}
-    public TSystem getExecSystem() {return _execSystem;}
-    public TSystem getDtnSystem() {return _dtnSystem;}
-    public TSystem getArchiveSystem() {return _archiveSystem;}
+    public TapisSystem getExecSystem() {return _execSystem;}
+    public TapisSystem getDtnSystem() {return _dtnSystem;}
+    public TapisSystem getArchiveSystem() {return _archiveSystem;}
     public ReqSubmitJob getSubmitReq() {return _submitReq;}
 
     /* **************************************************************************** */
@@ -529,7 +529,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Populate the constraint argument.
-        List<TSystem> execSystems;
+        List<TapisSystem> execSystems;
         ReqMatchConstraints constraints = new ReqMatchConstraints();
         if (_submitReq.getConsolidatedConstraints() != null)
             constraints.addMatchItem(_submitReq.getConsolidatedConstraints());
@@ -982,14 +982,14 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */
-    private TSystem loadSystemDefinition(SystemsClient systemsClient,
+    private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                          String systemId, 
                                          boolean requireExecPerm,
                                          String  systemDesc) 
       throws TapisImplException
     {
         // Load the system definition.
-        TSystem system = null;
+        TapisSystem system = null;
         boolean returnCreds = true;
         AuthnMethod authnMethod = null;
         try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
-    <file url="file://$PROJECT_DIR$/tapis-systemslib/src/main/resources/db/migration/V001__init.sql" dialect="PostgreSQL" />
-    <file url="file://$PROJECT_DIR$/tapis-systemslib/src/main/resources/sql/drop.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/tapis-jobsmigrate/src/main/resources/edu/utexas/tacc/tapis/jobsmigrate/sql/V001__InitializeJobsDB.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/tapis-securitymigrate/src/main/resources/edu/utexas/tacc/tapis/securitymigrate/sql/V001__InitializeSecurityDB.sql" dialect="GenericSQL" />
   </component>
 </project>
