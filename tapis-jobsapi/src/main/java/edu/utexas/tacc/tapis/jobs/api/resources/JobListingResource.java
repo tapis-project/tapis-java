@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearch;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
@@ -32,8 +33,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
-import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
-import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -153,7 +152,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 	       
 	       // ------ Set default values for the reserved query parameters ------------
-	       // orderBy is of the format - fname1(DESC), fname2, fname(ASC), ...
+	       // orderBy is of the format - fname1(DESC), fname2, fname3(ASC), ...
 	       // ThreadContext designed to never return null for SearchParameters
 	       SearchParameters srchParms = threadContext.getSearchParameters();
 	        
@@ -195,7 +194,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	     
 	     
 	     /* ---------------------------------------------------------------------------- */
-	     /* getJobList:                                                                      */
+	     /* getJobSearchList:                                                                      */
 	     /* ---------------------------------------------------------------------------- */
 	     @GET
 	     @Path("/search")
@@ -233,7 +232,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	     {
 	       // Trace this request.
 	       if (_log.isTraceEnabled()) {
-	         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobList", 
+	         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobSearchList", 
 	                                      "  " + _request.getRequestURL());
 	         _log.trace(msg);
 	       }
@@ -261,6 +260,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       if (searchList != null && !searchList.isEmpty()) _log.debug("Using searchList. First value = " + searchList.get(0));
 	       // ThreadContext designed to never return null for SearchParameters
 	       SearchParameters srchParms = threadContext.getSearchParameters();
+	        
+	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
 	       
 	       List<JobListDTO> jobList = null;
 	       try {
@@ -289,9 +290,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       
 	       // ------------------------- Process Results --------------------------
 	       // Success.
-	       RespGetJobList r = new RespGetJobList(jobList);
+	       RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-	               MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
+	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 
 		  
 	     }
