@@ -52,9 +52,9 @@ public final class JobIOTargets
     /* ********************************************************************** */
     // The initialized job context.
     private final Job                 _job;
-    private final TapisSystem        _execSystem;
-    private final TapisSystem        _dtnSystem;
-    
+    private final TapisSystem         _execSystem;
+    private final TapisSystem         _dtnSystem;
+
     // Initialized on construction.
     private final JobIOTarget         _execTarget = new JobIOTarget();
     private final JobIOTarget         _inputTarget = new JobIOTarget();

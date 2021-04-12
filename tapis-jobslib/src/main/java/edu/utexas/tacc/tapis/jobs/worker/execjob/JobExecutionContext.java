@@ -55,9 +55,9 @@ public final class JobExecutionContext
     private final JobsDao            _jobsDao;
     
     // Tapis resources.
-    private TapisSystem             _executionSystem;
-    private TapisSystem             _archiveSystem;
-    private TapisSystem             _dtnSystem;
+    private TapisSystem              _executionSystem;
+    private TapisSystem              _archiveSystem;
+    private TapisSystem              _dtnSystem;
     private App                      _app;
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
@@ -462,9 +462,9 @@ public final class JobExecutionContext
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */
     private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
-                                         String systemId,
-                                         boolean requireExecPerm,
-                                         String  systemDesc) 
+                                             String systemId,
+                                             boolean requireExecPerm,
+                                             String  systemDesc) 
       throws TapisImplException, TapisServiceConnectionException
     {
         // Load the system definition.
