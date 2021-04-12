@@ -209,7 +209,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                 {
 	                  @ApiResponse(responseCode = "200", description = "Jobs Search List retrieved.",
 	                      content = @Content(schema = @Schema(
-	                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList.class))),
+	                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearch.class))),
 	                  @ApiResponse(responseCode = "400", description = "Input error.",
 	                      content = @Content(schema = @Schema(
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -219,7 +219,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                  @ApiResponse(responseCode = "403", description = "Forbidden.",
 	                      content = @Content(schema = @Schema(
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-	                  @ApiResponse(responseCode = "404", description = "Job not found.",
+	                  @ApiResponse(responseCode = "404", description = "Jobs not found.",
 	                      content = @Content(schema = @Schema(
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
 	                  @ApiResponse(responseCode = "500", description = "Server error.",
@@ -253,7 +253,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 	       catch (Exception e)
 	       {
-	         String msg = MsgUtils.getMsg("SEARCH_INVALID_ERROR",threadContext.getOboUser(), threadContext.getOboTenantId(), e.getMessage());
+	    	  String msg = MsgUtils.getMsg("SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
 	         _log.error(msg, e);
 	         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
 	       }
@@ -262,6 +262,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       SearchParameters srchParms = threadContext.getSearchParameters();
 	        
 	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
+	       
+	       boolean computeTotal = srchParms.getComputeTotal();
 	       
 	       List<JobListDTO> jobList = null;
 	       try {
@@ -282,8 +284,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 	       
 	       if(jobList.isEmpty()) {
-               String msg =  MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
-               RespGetJobList r = new RespGetJobList(jobList);
+               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
                return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
             }
 	       
