@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 
 /** This class stores the command line options for the docker run command that executes
  * an application's container.  The general approach is to take the user-specified text
@@ -17,7 +18,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
  * @author rcardone
  */
 public final class DockerRunCmd 
- implements RunCmd
+ implements JobExecCmd
 {
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -59,10 +60,10 @@ public final class DockerRunCmd
     /*                             Public Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* generateRunCmd:                                                        */
+    /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateRunCmd(Job job) 
+    public String generateExecCmd(Job job) 
     {
         // Create the command buffer.
         final int capacity = 1024;

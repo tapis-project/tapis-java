@@ -83,7 +83,7 @@ public class DockerNativeStager
      throws TapisException
     {
         // Construct the docker command.
-        String dockerCmd = _dockerRunCmd.generateRunCmd(_job);
+        String dockerCmd = _dockerRunCmd.generateExecCmd(_job);
         
         // Build the command file content.
         initBashScript();
