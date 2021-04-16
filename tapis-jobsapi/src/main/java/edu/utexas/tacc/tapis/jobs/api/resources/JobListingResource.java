@@ -22,12 +22,17 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
+
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearch;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchAllAttributes;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -247,6 +252,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
 	       }
 	       List<String> searchList;
+	       int totalCount = -1;
 	       try
 	       {
 	         searchList = SearchUtils.buildListFromQueryParms(_uriInfo.getQueryParameters());
@@ -262,37 +268,105 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       SearchParameters srchParms = threadContext.getSearchParameters();
 	        
 	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
-	       
+	       List<String> selectList = srchParms.getSelectList();
+	       boolean allAttributesInResponse = false;
+	       if ((!selectList.isEmpty() ) && selectList.contains("allAttributes") ) {
+	    	   allAttributesInResponse = true;
+	    	   _log.debug("allAttributesInResponse is set to true");
+	       } ;
 	       boolean computeTotal = srchParms.getComputeTotal();
 	       
+	       var jobsImpl = JobsImpl.getInstance();
+	       
+	       // summary attributes
 	       List<JobListDTO> jobList = null;
-	       try {
-	           var jobsImpl = JobsImpl.getInstance();
-	          
-	           jobList = jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
-	        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
-	       }
-	       catch (TapisImplException e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	       }
-	       catch (Exception e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	       }
+	       List<Job> jobs = null; 
 	       
-	       if(jobList.isEmpty()) {
-               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
-               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
-               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
-            }
+	       // If we need the count and there was a limit then we need to make a call
+	       if (computeTotal && srchParms.getLimit() > 0)
+	       {
+	         
+					try {
+						totalCount = jobsImpl.getJobsSearchListCountByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+								   srchParms.getOrderByList());
+					} catch (TapisImplException e) {
+						_log.error(e.getMessage(), e);
+				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+				                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+					}
+				
+		    }
+	       
+	       if(allAttributesInResponse == false && selectList.isEmpty() ) {
+		       try {
+		          
+		          
+		           jobList = jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
+		       }
+		       catch (TapisImplException e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       catch (Exception e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(Status.INTERNAL_SERVER_ERROR).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       
+		       if(jobList.isEmpty()) {
+	               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+	               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
+	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
+	            }
 	       
 	       
+		       if (computeTotal && srchParms.getLimit() <= 0) totalCount = jobList.size();
+		       RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+		       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+		               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build(); 
+	       
+	       } else {
+	    	   // select is provided by the user,
+	    	   // select all attributes in the query to db
+	    	   // then select the attributes that the user provides 
+	    	   try {
+			          
+			          
+		           jobs = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
+		       }
+		       catch (TapisImplException e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       catch (Exception e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(Status.INTERNAL_SERVER_ERROR).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       
+		       if(jobs.isEmpty()) {
+	               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+	               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
+	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
+	            }
+	       }
+
+	       if (computeTotal && srchParms.getLimit() <= 0) totalCount = jobs.size();
+	       
+	       // customize the response
+	       if(!selectList.isEmpty() && !selectList.contains("allAttributes") && !selectList.contains("summaryAttributes") ) {
+	    	  //TODO selectable fields
+	    	   
+	       }
 	       // ------------------------- Process Results --------------------------
 	       // Success.
-	       RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
+	       RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobs,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+	       
+	       
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
 	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 

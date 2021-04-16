@@ -92,7 +92,71 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getJobListByUsername:                                                          */
+    /* getJobListCountByUsername:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * Get count of all systems matching certain criteria and for which user has READ permission
+     * @param authenticatedUser - principal user containing tenant and user info
+     * @param searchList - optional list of conditions used for searching
+     * @param orderByList - orderBy entries for sorting, e.g. orderBy=created(desc).
+     * @param startAfter - where to start when sorting, e.g. orderBy=id(asc)&startAfter=101 (may not be used with skip)
+     * @return Count of TSystem objects
+     * @throws TapisException - for Tapis related exceptions
+     */
+   
+    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList, List<OrderBy> orderByList) 
+    		throws TapisImplException
+    {
+    	// ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListCountByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListCountByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+     
+     
+
+      // Build verified list of search conditions
+      var verifiedSearchList = new ArrayList<String>();
+      if (searchList != null && !searchList.isEmpty())
+      {
+        try
+        {
+          for (String cond : searchList)
+          {
+            // Use SearchUtils to validate condition
+            String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
+            verifiedSearchList.add(verifiedCondStr);
+          }
+        }
+        catch (Exception e)
+        {        
+           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+           _log.error(msg, e);
+           throw new IllegalArgumentException(msg);
+              
+        }
+      }
+
+      int count= 0;
+
+      // Count all allowed systems matching the search conditions
+      try {
+		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList) ;
+	} catch (TapisException e) {
+		String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
+        throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+		}
+      return count;
+    }
+
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobListByUsername:                                                  */
     /* ---------------------------------------------------------------------- */
     public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
      throws TapisImplException
@@ -132,8 +196,57 @@ public final class JobsImpl
         List<JobListDTO> jobList = null;
         try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
         catch (Exception e) {
-          //  String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
-            throw new TapisImplException("", e, Condition.INTERNAL_SERVER_ERROR);
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobList;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobListByUsername:                                                  */
+    /* ---------------------------------------------------------------------- */
+    public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // Build verified list of search conditions
+        var verifiedSearchList = new ArrayList<String>();
+        if (searchList != null && !searchList.isEmpty())
+        {
+          try
+          {
+            for (String cond : searchList)
+            {
+              // Use SearchUtils to validate condition
+              String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
+              verifiedSearchList.add(verifiedCondStr);
+            }
+          }
+          catch (Exception e)
+          {
+            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+            _log.error(msg, e);
+            throw new IllegalArgumentException(msg);
+          }
+        }
+        // ----- Get the job list.
+        List<Job> jobList = null;
+        try {jobList = getJobsDao().getJobSearchAllAttributesByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         // Could be null if not found.
         return jobList;
