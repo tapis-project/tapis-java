@@ -35,7 +35,7 @@ public final class SingularityRunCmd
     {
         // The generated wrapper script will contain a singularity run command:
         //
-        //   singularity run [run options...] <container> [args]
+        //   singularity run [run options...] <container> [args] > tapisjob.out 2>&1 &
         
         // Create the command buffer.
         final int capacity = 1024;
@@ -63,7 +63,11 @@ public final class SingularityRunCmd
         // ------ Run as a background command with stdout/stderr redirected to a file.
         buf.append(" > ");
         buf.append(getRedirectFile());
-        buf.append(" 2>&1 &");
+        buf.append(" 2>&1 &\n\n");
+        
+        // ------ Collect the PID of the background process.
+        buf.append("pid=$!\n");
+        buf.append("echo $pid");
 
         return buf.toString();
     }

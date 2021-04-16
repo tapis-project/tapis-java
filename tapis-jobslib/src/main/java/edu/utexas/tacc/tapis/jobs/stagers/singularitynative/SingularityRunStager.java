@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public class SingularityRunStager
+public final class SingularityRunStager
  extends AbstractSingularityStager
 {
     /* ********************************************************************** */

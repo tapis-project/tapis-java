@@ -8,7 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 
-public abstract class AbstractSingularityExecCmd 
+abstract class AbstractSingularityExecCmd 
   implements JobExecCmd
 {
     /* ********************************************************************** */

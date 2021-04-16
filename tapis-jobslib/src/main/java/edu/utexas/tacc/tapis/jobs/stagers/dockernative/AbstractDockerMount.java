@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
-public abstract class AbstractDockerMount
+abstract class AbstractDockerMount
  implements DockerMount
 {
     // Fields.

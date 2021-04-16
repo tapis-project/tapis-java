@@ -41,6 +41,9 @@ public final class JobExecutionUtils
     // A terminated application will be indicated by a string like "Exited (0) 41 seconds ago\n".
     // Group 1 of this regex would return the "0" in the example.
     public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
+    
+    // -------------------------- Singularity Section ----------------------------
+    public static final String SINGULARITY_START_PID = "singularity instance list ";
 
     /* ********************************************************************** */
     /*                            Public Methods                              */

@@ -12,7 +12,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public abstract class AbstractSingularityStager 
+abstract class AbstractSingularityStager 
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
