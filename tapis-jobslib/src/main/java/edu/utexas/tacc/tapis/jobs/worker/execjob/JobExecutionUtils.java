@@ -23,8 +23,9 @@ public final class JobExecutionUtils
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionUtils.class);
     
     // Job wrapper script name.
-    public static final String JOB_WRAPPER_SCRIPT = "tapisjob.sh";
-    public static final String JOB_ENV_FILE       = "tapisjob.env";
+    public static final String JOB_WRAPPER_SCRIPT       = "tapisjob.sh";
+    public static final String JOB_ENV_FILE             = "tapisjob.env";
+    public static final String JOB_OUTPUT_REDIRECT_FILE = "tapisjob.out";
     
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.

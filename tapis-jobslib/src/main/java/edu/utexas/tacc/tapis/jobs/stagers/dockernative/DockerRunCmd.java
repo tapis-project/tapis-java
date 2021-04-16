@@ -65,6 +65,10 @@ public final class DockerRunCmd
     @Override
     public String generateExecCmd(Job job) 
     {
+        // The generated wrapper script will contain a docker run command: 
+        //
+        //   docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]
+        
         // Create the command buffer.
         final int capacity = 1024;
         StringBuilder buf = new StringBuilder(capacity);
@@ -204,7 +208,8 @@ public final class DockerRunCmd
             // The short form is just the name of an environment variable
             // that docker will import into the container ONLY IF it exists
             // in the environment from which docker is called.  The long 
-            // form is key=value.
+            // form is key=value.  Note that we don't escape characters in 
+            // the value.
             var value = pair.getValue();
             if (value != null && !value.isEmpty()) {
                 // The long form forces an explicit assignment.

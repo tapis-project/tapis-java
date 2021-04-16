@@ -910,13 +910,4 @@ public final class JobFileManager
     {
         return Paths.get(first, more).toString();
     }
-    
-    
-//    private getOutputDirFileListing()
-//    {
-//        // Get the client from the context now to catch errors early.
-//        FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
-//        List<FileInfo> flist = filesClient.listFiles(NO_FILE_INPUTS, NO_FILE_INPUTS, 0, 0, false);
-//        
-//    }
 }

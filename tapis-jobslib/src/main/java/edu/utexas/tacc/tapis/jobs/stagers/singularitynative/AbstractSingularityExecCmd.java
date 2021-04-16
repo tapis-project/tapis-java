@@ -50,6 +50,9 @@ public abstract class AbstractSingularityExecCmd
     private boolean                   writable;     // This option makes the container file system accessible as read/write
     private boolean                   writableTmpfs;// makes the file system accessible as read-write with non persistent data (with overlay support only)
 
+    // Arguments passed to application, which always begin with a space character.
+    private String                    appArguments; 
+    
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
@@ -399,5 +402,12 @@ public abstract class AbstractSingularityExecCmd
     }
     public void setWritableTmpfs(boolean writableTmpfs) {
         this.writableTmpfs = writableTmpfs;
+    }
+
+    public String getAppArguments() {
+        return appArguments;
+    }
+    public void setAppArguments(String appArguments) {
+        this.appArguments = appArguments;
     }
  }

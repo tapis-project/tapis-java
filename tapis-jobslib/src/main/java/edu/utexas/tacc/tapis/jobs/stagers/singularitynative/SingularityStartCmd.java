@@ -11,7 +11,8 @@ public final class SingularityStartCmd
     /*                                Fields                                  */
     /* ********************************************************************** */
     // Fields specific to instance start. 
-    private String                    pidFile;      // Tapis hardcoded file path for instance pid
+    private String                    name;    // Instance name.      
+    private String                    pidFile; // Tapis hardcoded file path for instance pid
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -22,38 +23,36 @@ public final class SingularityStartCmd
     @Override
     public String generateExecCmd(Job job) 
     {
+        // The generated wrapper script will contain a singularity start command:
+        //
+        //  singularity instance start [start options...] <container path> <instance name> [startscript args...]
+        
         // Create the command buffer.
         final int capacity = 1024;
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
         buf.append("singularity instance start");
-        if (!getEnv().isEmpty()) {
-            buf.append(" --env-file ");
-            buf.append(getEnvFile());
-        }
+        buf.append(" --env-file ");
+        buf.append(getEnvFile());
         buf.append(" --pid-file ");
         buf.append(getPidFile());
         
         // ------ Fill in the common user-specified arguments.
         addCommonExecArgs(buf);
         
-        // ------ Fill in command-specific user-specified arguments.
-        if (StringUtils.isNotBlank(getPidFile())) {
-            buf.append(" --pid-file ");
-            buf.append(getPidFile());
-        }
-        
         // ------ Assign image.
         buf.append(" ");
         buf.append(getImage());
         
-        // ------ Assign application arguments.
-        
         // ------ Assign instance name.
         buf.append(" ");
-        buf.append(job.getUuid());
+        buf.append(getName());
 
+        // ------ Assign application arguments.
+        if (!StringUtils.isBlank(getAppArguments()))
+            buf.append(getAppArguments()); // begins with space char
+        
         return buf.toString();
     }
 
@@ -73,9 +72,18 @@ public final class SingularityStartCmd
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    
     /* ********************************************************************** */
     /*                               Accessors                                */
     /* ********************************************************************** */
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getPidFile() {
         return pidFile;
     }
@@ -83,5 +91,4 @@ public final class SingularityStartCmd
     public void setPidFile(String pidFile) {
         this.pidFile = pidFile;
     }
-
 }

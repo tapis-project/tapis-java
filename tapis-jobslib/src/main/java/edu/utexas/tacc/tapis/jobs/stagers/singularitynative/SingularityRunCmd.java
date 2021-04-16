@@ -21,6 +21,9 @@ public final class SingularityRunCmd
     private String          vmIP;     // IP Address to assign for container usage, default is DHCP in bridge network
     private String          vmRAM;    // amount of RAM in MiB to allocate to Virtual Machine (default "1024")
     
+    // Redirect stdout/stderr to a file in the output directory.
+    private String          redirectFile;
+    
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
@@ -30,21 +33,66 @@ public final class SingularityRunCmd
     @Override
     public String generateExecCmd(Job job) 
     {
+        // The generated wrapper script will contain a singularity run command:
+        //
+        //   singularity run [run options...] <container> [args]
+        
         // Create the command buffer.
         final int capacity = 1024;
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
         buf.append("nohup singularity run");
-        if (!getEnv().isEmpty()) {
-            buf.append(" --env-file ");
-            buf.append(getEnvFile());
-        }
+        buf.append(" --env-file ");
+        buf.append(getEnvFile());
         
         // ------ Fill in the common user-specified arguments.
         addCommonExecArgs(buf);
         
         // ------ Fill in command-specific user-specified arguments.
+        addRunSpecificArgs(buf);
+        
+        // ------ Assign image.
+        buf.append(" ");
+        buf.append(getImage());
+
+        // ------ Assign application arguments.
+        if (!StringUtils.isBlank(getAppArguments()))
+            buf.append(getAppArguments()); // begins with space char
+        
+        // ------ Run as a background command with stdout/stderr redirected to a file.
+        buf.append(" > ");
+        buf.append(getRedirectFile());
+        buf.append(" 2>&1 &");
+
+        return buf.toString();
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* generateEnvVarFileContent:                                             */
+    /* ---------------------------------------------------------------------- */
+    @Override
+    public String generateEnvVarFileContent() 
+    {
+        // This should never happen since tapis variables are always specified.
+        if (getEnv().isEmpty()) return null;
+        
+        // Create the key=value records, one per line.
+        return getPairListArgs(getEnv());
+    }
+    
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* addRunSpecificArgs:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Add the container arguments that are specific to singularity run
+     * 
+     * @param buf the command buffer
+     */
+    private void addRunSpecificArgs(StringBuilder buf)
+    {
         if (StringUtils.isNotBlank(getApp())) {
             buf.append(" --app ");
             buf.append(getApp());
@@ -68,30 +116,6 @@ public final class SingularityRunCmd
             buf.append(" --vm-ram ");
             buf.append(getVmRAM());
         }
-        
-        // ------ Assign image.
-        buf.append(" ");
-        buf.append(getImage());
-
-        // ------ Assign application arguments.
-        
-        // ------ Run as a background command.
-        buf.append(" &");
-
-        return buf.toString();
-    }
-
-    /* ---------------------------------------------------------------------- */
-    /* generateEnvVarFileContent:                                             */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    public String generateEnvVarFileContent() 
-    {
-        // This should never happen since tapis variables are always specified.
-        if (getEnv().isEmpty()) return null;
-        
-        // Create the key=value records, one per line.
-        return getPairListArgs(getEnv());
     }
 
     /* ********************************************************************** */
@@ -167,5 +191,13 @@ public final class SingularityRunCmd
 
     public void setVmRAM(String vmRAM) {
         this.vmRAM = vmRAM;
+    }
+
+    public String getRedirectFile() {
+        return redirectFile;
+    }
+
+    public void setRedirectFile(String redirectFile) {
+        this.redirectFile = redirectFile;
     }
 }
