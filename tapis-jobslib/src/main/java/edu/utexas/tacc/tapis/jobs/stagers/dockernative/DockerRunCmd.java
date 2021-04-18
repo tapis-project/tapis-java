@@ -74,6 +74,9 @@ public final class DockerRunCmd
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
+        buf.append("# Issue docker run command and write container ID to file.\n");
+        buf.append("# Format: docker run [options] image[:tag|@digest] [app args]\n");
+        
         buf.append("docker run -d --name ");
         buf.append(name);
         buf.append(" --user ");

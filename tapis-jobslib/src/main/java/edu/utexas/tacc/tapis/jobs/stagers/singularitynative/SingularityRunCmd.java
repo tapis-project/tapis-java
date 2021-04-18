@@ -42,6 +42,10 @@ public final class SingularityRunCmd
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
+        buf.append("# Issue background singularity run command and protect from dropped\n");
+        buf.append("# terminal sessions by nohup.  Send stdout and stderr to file.\n");
+        buf.append("# Format: singularity run [options...] <container> [args] > tapisjob.out 2>&1 &\n");
+        
         buf.append("nohup singularity run");
         buf.append(" --env-file ");
         buf.append(getEnvFile());
@@ -66,6 +70,7 @@ public final class SingularityRunCmd
         buf.append(" 2>&1 &\n\n");
         
         // ------ Collect the PID of the background process.
+        buf.append("# Capture and return the PID of the background process.\n");
         buf.append("pid=$!\n");
         buf.append("echo $pid");
 

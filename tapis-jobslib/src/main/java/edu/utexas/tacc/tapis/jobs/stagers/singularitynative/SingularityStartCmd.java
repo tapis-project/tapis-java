@@ -32,6 +32,9 @@ public final class SingularityStartCmd
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
+        buf.append("# Issue singularity instance start command and write PID to file.\n");
+        buf.append("# Format: singularity instance start [options] <container path> <instance name> [app args]\n");
+        
         buf.append("singularity instance start");
         buf.append(" --env-file ");
         buf.append(getEnvFile());
