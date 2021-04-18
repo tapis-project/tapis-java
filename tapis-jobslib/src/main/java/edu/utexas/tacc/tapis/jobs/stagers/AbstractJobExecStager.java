@@ -36,7 +36,7 @@ public abstract class AbstractJobExecStager
     // the option and value.  The optional equals sign is also ignored, whether
     // there's whitespace on either side of it or not.
     // (\s=whitespace, \S=not whitespace)
-    protected static final Pattern _optionPattern = Pattern.compile("\s*(--?[^=\s]*)\s*=?\s*(\\S*)\s*");
+    protected static final Pattern _optionPattern = Pattern.compile("\\s*(--?[^=\\s]*)\\s*=?\\s*(\\S*)\\s*");
     
     /* ********************************************************************** */
     /*                                 Fields                                 */

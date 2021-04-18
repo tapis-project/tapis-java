@@ -59,9 +59,4 @@ abstract class AbstractJobLauncher
         cmd += ";./" + JobExecutionUtils.JOB_WRAPPER_SCRIPT;
         return cmd;
     }
-
-    /* ---------------------------------------------------------------------- */
-    /* getRemoteIdCommand:                                                    */
-    /* ---------------------------------------------------------------------- */
-    protected abstract String getRemoteIdCommand();
 }    

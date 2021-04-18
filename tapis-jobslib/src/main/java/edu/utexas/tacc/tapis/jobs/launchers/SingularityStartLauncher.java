@@ -6,12 +6,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
+/** Launch a job using singularity instance start and singularity instance list
+ * to retrieve the root PID of the spawned process.
+ * 
+ * @author rcardone
+ */
 public final class SingularityStartLauncher 
  extends AbstractJobLauncher
 {
@@ -22,7 +28,7 @@ public final class SingularityStartLauncher
     private static final Logger _log = LoggerFactory.getLogger(SingularityStartLauncher.class);
     
     // Remote empty result.
-    private static final String NO_RESULT = "<no result>";
+    private static final String NO_RESULT = "<no result text>";
     
     // Split text on whitespace.
     private static final Pattern wsPattern = Pattern.compile("\\s");
@@ -49,13 +55,6 @@ public final class SingularityStartLauncher
     @Override
     public void launch() throws TapisException
     {
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
-        // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
-        
         // -------------------- Launch Container --------------------
         // Subclasses can override default implementation.
         String cmd = getLaunchCommand();
@@ -65,6 +64,13 @@ public final class SingularityStartLauncher
             _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
                                        _job.getUuid(), cmd));
         
+        // Get the ssh connection used by this job 
+        // communicate with the execution system.
+        var conn = _jobCtx.getExecSystemConnection();
+        
+        // Get the command object.
+        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        
         // Start the container.
         String result  = runCmd.execute(cmd);
         int exitStatus = runCmd.getExitStatus();
@@ -73,35 +79,45 @@ public final class SingularityStartLauncher
         if (!StringUtils.isBlank(result)) result = result.trim();
           else result = NO_RESULT;
         if (exitStatus == 0) {
-            if (_log.isDebugEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
-                                             _job.getUuid(), result, exitStatus);
-                _log.debug(msg);
-            }
-        } else {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_WARN", getClass().getSimpleName(), 
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd, result, exitStatus);
-            _log.warn(msg);
+            throw new JobException(msg);
+        }
+            
+        // Note success.  
+        if (_log.isDebugEnabled()) {
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+                                         _job.getUuid(), result, exitStatus);
+            _log.debug(msg);
         }
 
         // -------------------- Get PID -----------------------------
-        // Get the singularity list command for this container.
+        // Run the singularity list command for this container.
         String idCmd = getRemoteIdCommand();
-        
-        // List the container.
         result = runCmd.execute(idCmd);
         exitStatus = runCmd.getExitStatus();
-        String pid = extractPid(result);
-        
-        // We cannot monitor without a pid.
-        if (pid == null) {
-            // **** error
+        if (exitStatus != 0) {
+            // Issue a warning here, we'll determine if the problem is fatal below.
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_LIST_PID_WARN", getClass().getSimpleName(), 
+                                         _job.getUuid(), idCmd, exitStatus);
+            _log.warn(msg);
         }
         
-        // Save the container id or the unknown id string.
+        // We cannot monitor without a pid.
+        String pid = extractPid(result);
+        if (pid == null) {
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_LIST_PID_ERROR", getClass().getSimpleName(), 
+                                         _job.getUuid(), idCmd, result);
+            throw new JobException(msg);
+        }
+        
+        // Save the container id.
         _jobCtx.getJobsDao().setRemoteJobId(_job, pid);
     }
     
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* getRemoteIdCommand:                                                    */
     /* ---------------------------------------------------------------------- */
@@ -109,8 +125,7 @@ public final class SingularityStartLauncher
      * Not currently called. 
      * @return the command that returns the container id
      */
-    @Override
-    protected String getRemoteIdCommand()
+    private String getRemoteIdCommand()
     {
         return JobExecutionUtils.SINGULARITY_START_PID + _job.getUuid();
     }
@@ -127,7 +142,7 @@ public final class SingularityStartLauncher
      * found, null is returned. 
      * 
      * @param result the singularity list result
-     * @return the pid of the container we just started 
+     * @return the pid of the container we just started or null
      */
     private String extractPid(String result)
     {

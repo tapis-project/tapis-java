@@ -36,6 +36,7 @@ public class JobLauncherFactory
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
                 case SINGULARITY -> new SingularityStartLauncher(jobCtx);
+                // case SINGULARITY_RUN -> new SingularityRunLauncher(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobLauncherFactory");

@@ -4,20 +4,25 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
-public final class DockerNativeLauncher 
+/** Launch a job using singularity run from a wrapper script that returns the
+ * PID of the spawned background process.
+ * 
+ * @author rcardone
+ */
+public final class SingularityRunLauncher 
  extends AbstractJobLauncher
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(DockerNativeLauncher.class);
+    private static final Logger _log = LoggerFactory.getLogger(SingularityRunLauncher.class);
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -25,7 +30,7 @@ public final class DockerNativeLauncher
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public DockerNativeLauncher(JobExecutionContext jobCtx)
+    public SingularityRunLauncher(JobExecutionContext jobCtx)
      throws TapisException
     {
         // Create and populate the docker command.
@@ -41,13 +46,7 @@ public final class DockerNativeLauncher
     @Override
     public void launch() throws TapisException
     {
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
-        // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
-        
+        // -------------------- Launch Container --------------------
         // Subclasses can override default implementation.
         String cmd = getLaunchCommand();
         
@@ -56,42 +55,49 @@ public final class DockerNativeLauncher
             _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
                                        _job.getUuid(), cmd));
         
-        // Start the container.
+        // Get the ssh connection used by this job 
+        // communicate with the execution system.
+        var conn = _jobCtx.getExecSystemConnection();
+        
+        // Get the command object.
+        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        
+        // Start the container and retrieve the pid.
         String result  = runCmd.execute(cmd);
         int exitStatus = runCmd.getExitStatus();
         
         // Let's see what happened.
-        String cid = UNKNOWN_CONTAINER_ID;       
-        if (exitStatus == 0 && !StringUtils.isBlank(result)) {
-            cid = result.trim();
-            if (_log.isDebugEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
-                                             _job.getUuid(), cid, exitStatus);
-                _log.debug(msg);
-            }
-        } else {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_WARN", getClass().getSimpleName(), 
+        if (exitStatus != 0) {
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd, result, exitStatus);
-            _log.warn(msg);
+            throw new JobException(msg);
         }
 
-        // Save the container id or the unknown id string.
-        if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
-        _jobCtx.getJobsDao().setRemoteJobId(_job, cid);
-    }
-    
-    /* ********************************************************************** */
-    /*                            Private Methods                             */
-    /* ********************************************************************** */
-    /* ---------------------------------------------------------------------- */
-    /* getRemoteIdCommand:                                                    */
-    /* ---------------------------------------------------------------------- */
-    /** Get the remote command that would return the docker container id.
-     * Not currently called. 
-     * @return the command that returns the container id
-     */
-    private String getRemoteIdCommand()
-    {
-        return JobExecutionUtils.getDockerCidCommand(_job.getUuid());
+        // Note success.
+        if (_log.isDebugEnabled()) {
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+                                         _job.getUuid(), result, exitStatus);
+            _log.debug(msg);
+        }
+        
+        // -------------------- Get PID -----------------------------
+        // We have a problem if the result is not the pid.
+        if (StringUtils.isBlank(result)) {
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RUN_NO_PID_ERROR", getClass().getSimpleName(), 
+                                         _job.getUuid(), cmd);
+            throw new JobException(msg);
+        }
+        
+        // Make sure the pid is an integer.
+        String pid = result.trim();
+        try {Integer.valueOf(pid);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RUN_INVALID_PID_ERROR", getClass().getSimpleName(), 
+                                             _job.getUuid(), cmd, pid);
+                throw new JobException(msg, e);
+            }
+        
+        // Save the container id.
+        _jobCtx.getJobsDao().setRemoteJobId(_job, pid);
     }
 }
