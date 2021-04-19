@@ -10,7 +10,11 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
+import java.sql.Array;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TreeSet;
 
 import org.jooq.JSONB;
 import org.jooq.Record1;
@@ -875,6 +879,27 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         set(51, visible);
         set(52, createdby);
         set(53, createdbyTenant);
-        set(54, tags);
+        //set(54, tags);
+        var tagsSet = new TreeSet<String>();
+        List<String>value = Arrays.asList(tags);
+        if (value != null && value.size() > 0) { 
+            
+            for (String s1 : value) tagsSet.add(s1);
+            
+        }
+     
+        set(54, tagsSet);
     }
+
+	public void setTags(List<String> value) {
+		//Array tagsArray = rs.getArray(55);
+		var tagsSet = new TreeSet<String>();
+            if (value != null && value.size() > 0) { 
+                
+                for (String s1 : value) tagsSet.add(s1);
+                
+            }
+         
+		set(54, tagsSet);
+	}
 }

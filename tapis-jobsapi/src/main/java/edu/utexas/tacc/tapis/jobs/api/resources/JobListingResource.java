@@ -136,7 +136,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
 	     )
 	     public Response getJobList(
-	                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+	    		 				@QueryParam("limit") int limit, 
+	    		 				@QueryParam("skip") int skip,
+	    		 				@QueryParam("startAfter") int startAfter,
+	    		 				@QueryParam("orderBy") int OrderBy,
+	    		 				@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
 	                               
 	     {
 	       // Trace this request.
@@ -232,7 +236,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
 	     )
 	     public Response getJobSearchList(
-	                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+	    		 		@QueryParam("limit") int limit, 
+	    		 		@QueryParam("skip") int skip,
+	    		 		@QueryParam("startAfter") int startAfter,
+	    		 		@QueryParam("computeTotal") boolean computeTotal,
+	    		 		@QueryParam("select") String select,
+	                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
 	                               
 	     {
 	       // Trace this request.
@@ -274,7 +283,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    	   allAttributesInResponse = true;
 	    	   _log.debug("allAttributesInResponse is set to true");
 	       } ;
-	       boolean computeTotal = srchParms.getComputeTotal();
+	       computeTotal = srchParms.getComputeTotal();
 	       
 	       var jobsImpl = JobsImpl.getInstance();
 	       

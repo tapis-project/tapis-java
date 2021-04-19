@@ -8,7 +8,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +22,8 @@ import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonElement;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
@@ -43,6 +47,7 @@ import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.OrderField;
 import org.jooq.Record;
 import org.jooq.Result;
@@ -590,7 +595,7 @@ public final class JobsDao
 	
 	/* ---------------------------------------------------------------------- */
 	/* getJobsSearchByUsername:                                               */
-	/*  summary attributes                                                                       */
+	/*  all attributes                                                                       */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
@@ -653,7 +658,7 @@ public final class JobsDao
 	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
 	          //       Jooq claims to handle it well.
 	          Result<JobsRecord> results;
-	          org.jooq.SelectConditionStep condStep = db.selectFrom(Tables.JOBS).where(whereCondition);
+	          org.jooq.SelectConditionStep condStep = db.select(DSL.asterisk()).from(Tables.JOBS).where(whereCondition);
 	          if(orderByList != null && limit >= 0) {
 	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
 	          } else if (limit >= 0) {
@@ -665,12 +670,14 @@ public final class JobsDao
 	            // We are not limiting and not ordering
 	            results = condStep.fetchInto(Tables.JOBS);
 	          }
-
 	          if (results == null || results.isEmpty()) return jobs;
 
 	          // Create Job object from Job objects.
 	          for (JobsRecord r : results)
 	          {
+	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
+	        	  r.setTags(Arrays.asList(r.getTags()));
+	        	 
 	            Job job = r.into(Job.class);
 	            jobs.add(job);
 	          }
