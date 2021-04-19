@@ -22,8 +22,6 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearch;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchAllAttributes;
@@ -32,7 +30,6 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.search.SearchUtils;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -139,7 +136,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    		 				@QueryParam("limit") int limit, 
 	    		 				@QueryParam("skip") int skip,
 	    		 				@QueryParam("startAfter") int startAfter,
-	    		 				@QueryParam("orderBy") int OrderBy,
+	    		 				@QueryParam("orderBy") String OrderBy,
+	    		 				@QueryParam("computeTotal")  boolean computeTotal,
 	    		 				@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
 	                               
 	     {
@@ -170,9 +168,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	        
 	       // ------------------------- Retrieve Job List -----------------------------
 	       List<JobListDTO> jobList = null;
-	       try {
-	           var jobsImpl = JobsImpl.getInstance();
+	       var jobsImpl = JobsImpl.getInstance();
 	          
+	       try {
+	           
 	           jobList = jobsImpl.getJobListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(),
 	        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
 	       }
@@ -192,11 +191,34 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
                RespGetJobList r = new RespGetJobList(jobList);
                return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
             }
-	       
-	       
+	        // -------------------- Calculate the total count --------------------
+	       int totalCount = -1;
+	       computeTotal = srchParms.getComputeTotal();
+	       // If we need the count and there was a limit then we need to make a call
+	       List<String>searchList = srchParms.getSearchList();
+	       if (computeTotal && srchParms.getLimit() > 0)
+	       {
+	         
+					try {
+						totalCount = jobsImpl.getJobsSearchListCountByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+								   srchParms.getOrderByList());
+					} catch (TapisImplException e) {
+						_log.error(e.getMessage(), e);
+				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+				                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+					}
+				
+		    } else if (computeTotal && srchParms.getLimit() <= 0) {
+		    	totalCount = jobList.size();
+		    } else {
+		    	totalCount = -1;
+		    	
+		    }
+		    
 	       // ------------------------- Process Results --------------------------
 	       // Success.
 	       RespGetJobList r = new RespGetJobList(jobList);
+	       //RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
 	               MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 	     }
@@ -239,6 +261,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    		 		@QueryParam("limit") int limit, 
 	    		 		@QueryParam("skip") int skip,
 	    		 		@QueryParam("startAfter") int startAfter,
+	    		 		@QueryParam("orderBy") String orderBy,
 	    		 		@QueryParam("computeTotal") boolean computeTotal,
 	    		 		@QueryParam("select") String select,
 	                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
