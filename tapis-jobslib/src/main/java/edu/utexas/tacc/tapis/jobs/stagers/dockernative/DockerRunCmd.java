@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 
 /** This class stores the command line options for the docker run command that executes
  * an application's container.  The general approach is to take the user-specified text
@@ -17,7 +18,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
  * @author rcardone
  */
 public final class DockerRunCmd 
- implements RunCmd
+ implements JobExecCmd
 {
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -59,16 +60,23 @@ public final class DockerRunCmd
     /*                             Public Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* generateRunCmd:                                                        */
+    /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateRunCmd(Job job) 
+    public String generateExecCmd(Job job) 
     {
+        // The generated wrapper script will contain a docker run command: 
+        //
+        //   docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]
+        
         // Create the command buffer.
         final int capacity = 1024;
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start filling in the options that are tapis-only assigned.
+        buf.append("# Issue docker run command and write container ID to file.\n");
+        buf.append("# Format: docker run [options] image[:tag|@digest] [app args]\n");
+        
         buf.append("docker run -d --name ");
         buf.append(name);
         buf.append(" --user ");
@@ -203,7 +211,8 @@ public final class DockerRunCmd
             // The short form is just the name of an environment variable
             // that docker will import into the container ONLY IF it exists
             // in the environment from which docker is called.  The long 
-            // form is key=value.
+            // form is key=value.  Note that we don't escape characters in 
+            // the value.
             var value = pair.getValue();
             if (value != null && !value.isEmpty()) {
                 // The long form forces an explicit assignment.

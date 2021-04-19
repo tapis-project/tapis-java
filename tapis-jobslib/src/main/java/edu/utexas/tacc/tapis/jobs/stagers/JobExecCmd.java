@@ -1,8 +1,8 @@
-package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
+package edu.utexas.tacc.tapis.jobs.stagers;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
 
-public interface RunCmd 
+public interface JobExecCmd 
 {
     /** Generate the container run command.  The generated text does not
      * contain any parameters to be passed to the application.  Depending
@@ -13,7 +13,7 @@ public interface RunCmd
      * @param job the executing job
      * @return the command with its options
      */
-    String generateRunCmd(Job job);
+    String generateExecCmd(Job job);
     
     /** Generate the key/value assignments to be injected into a container's
      * runtime environment.  The format of the assignments are dictated by the

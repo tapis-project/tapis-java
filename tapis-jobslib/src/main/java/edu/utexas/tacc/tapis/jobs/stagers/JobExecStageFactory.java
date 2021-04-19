@@ -2,6 +2,9 @@ package edu.utexas.tacc.tapis.jobs.stagers;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
+import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -34,7 +37,7 @@ public final class JobExecStageFactory
         if (appType == AppTypeEnum.FORK) {
             stager = switch (runtime) {
                 case DOCKER      -> new DockerNativeStager(jobCtx);
-                //    case SINGULARITY -> null;
+                case SINGULARITY -> new SingularityStartStager(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobExecStageFactory");

@@ -1,13 +1,18 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 public abstract class AbstractJobExecStager 
  implements JobExecStager
@@ -21,6 +26,18 @@ public abstract class AbstractJobExecStager
     // Command buffer initial capacity.
     private static final int INIT_CMD_LEN = 2048;
 
+    // Command line option parser.  This regex captures 3 groups:
+    //
+    //   0 - the complete value unparsed
+    //   1 - the docker option starting with 1 or 2 hypens (-e, --env, etc.)
+    //   2 - the value assigned to the option, which may be empty
+    //
+    // Leading and trailing whitespace is ignored, as is any whitespace between
+    // the option and value.  The optional equals sign is also ignored, whether
+    // there's whitespace on either side of it or not.
+    // (\s=whitespace, \S=not whitespace)
+    protected static final Pattern _optionPattern = Pattern.compile("\\s*(--?[^=\\s]*)\\s*=?\\s*(\\S*)\\s*");
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -46,7 +63,6 @@ public abstract class AbstractJobExecStager
         _cmd = new StringBuilder(INIT_CMD_LEN);
     }
 
-
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
@@ -64,7 +80,7 @@ public abstract class AbstractJobExecStager
         
         // Get the ssh connection used by this job 
         // communicate with the execution system.
-        var fm = new JobFileManager(_jobCtx);
+        var fm = _jobCtx.getJobFileManager();
         
         // Install the wrapper script on the execution system.
         fm.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
@@ -103,6 +119,41 @@ public abstract class AbstractJobExecStager
         appendDescription();
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* concatAppArguments:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Assemble the application arguments into a single string and then assign
+     * them to the caller.  If there are any arguments, the generated 
+     * string always begins with a space character.
+     * 
+     * @return the app argument string or null if there aren't any.
+     */
+     protected String concatAppArguments()
+    {
+         // Get the list of user-specified container arguments.
+         var parmSet = _job.getParameterSetModel();
+         var opts    = parmSet.getAppArgs();
+         if (opts == null || opts.isEmpty()) return null;
+         
+         // Assemble the application's argument string.
+         String args = "";
+         for (var opt : opts) args += " " + opt.getArg();
+         return args;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* isAssigned:                                                            */
+    /* ---------------------------------------------------------------------- */
+    protected void isAssigned(String runtimeName, String option, String value)
+     throws JobException
+    {
+        // Make sure we have a value.
+        if (StringUtils.isBlank(value)) {
+            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", runtimeName, option);
+            throw new JobException(msg);
+        }
+    }
+     
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -116,7 +167,7 @@ public abstract class AbstractJobExecStager
         _cmd.append("#\n");
         _cmd.append("#   1. Standard Tapis and user-supplied environment variables are exported.\n");
         _cmd.append("#   2. The application container is run with container options, environment\n");
-        _cmd.append("#      variables and application parameters as specified in the Tapis job,\n");
+        _cmd.append("#      variables and application parameters as supplied in the Tapis job,\n");
         _cmd.append("#       application and system definitions.\n");
         _cmd.append("\n");
     }

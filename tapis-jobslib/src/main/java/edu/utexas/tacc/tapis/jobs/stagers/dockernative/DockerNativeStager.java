@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers;
+package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
 import java.util.regex.Pattern;
 
@@ -9,11 +9,10 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd;
+import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
@@ -30,18 +29,6 @@ public class DockerNativeStager
     
     // Container id file suffix.
     private static final String CID_SUFFIX = ".cid";
-    
-    // Docker command line option parser.  This regex captures 3 groups:
-    //
-    //   0 - the complete value unparsed
-    //   1 - the docker option starting with 1 or 2 hypens (-e, --env, etc.)
-    //   2 - the value assigned to the option, which may be empty
-    //
-    // Leading and trailing whitespace is ignored, as is any whitespace between
-    // the option and value.  The optional equals sign is also ignored, whether
-    // there's whitespace on either side of it or not.
-    // (\s=whitespace, \S=not whitespace)
-    private static final Pattern _optionPattern = Pattern.compile("\s*(--?[^=\s]*)\s*=?\s*(\\S*)\s*");
     
     // Split port values that can have the maximal form: ipaddr:port:port/protocol,
     // such as 127.0.0.1:80:8080/tcp.  NOTE: We currently only support ipv4 port 
@@ -83,7 +70,7 @@ public class DockerNativeStager
      throws TapisException
     {
         // Construct the docker command.
-        String dockerCmd = _dockerRunCmd.generateRunCmd(_job);
+        String dockerCmd = _dockerRunCmd.generateExecCmd(_job);
         
         // Build the command file content.
         initBashScript();
@@ -164,7 +151,7 @@ public class DockerNativeStager
      throws TapisException
     {
         // Put the cid file in the execution directory.
-        var fm = new JobFileManager(_jobCtx);
+        var fm = _jobCtx.getJobFileManager();
         String path = fm.makeAbsExecSysExecPath(_job.getUuid() + CID_SUFFIX);
         dockerRunCmd.setCidFile(path);
     }
@@ -182,7 +169,7 @@ public class DockerNativeStager
      throws TapisException
     {
         // Put the cid file in the execution directory.
-        var fm = new JobFileManager(_jobCtx);
+        var fm = _jobCtx.getJobFileManager();
         String path = fm.makeAbsExecSysExecPath(JobExecutionUtils.JOB_ENV_FILE);
         dockerRunCmd.setEnvFile(path);
     }
@@ -201,7 +188,7 @@ public class DockerNativeStager
      throws TapisException
     {
         // Let the file manager make paths.
-        var fm = new JobFileManager(_jobCtx);
+        var fm = _jobCtx.getJobFileManager();
         
         // Set standard bind mounts.
         var mount = new BindMount();
@@ -254,15 +241,9 @@ public class DockerNativeStager
      */
      private void setAppArguments(DockerRunCmd dockerRunCmd)
     {
-         // Get the list of user-specified container arguments.
-         var parmSet = _job.getParameterSetModel();
-         var opts    = parmSet.getAppArgs();
-         if (opts == null || opts.isEmpty()) return;
-         
          // Assemble the application's argument string.
-         String args = "";
-         for (var opt : opts) args += " " + opt.getArg();
-         dockerRunCmd.setAppArguments(args);
+         String args = concatAppArguments();
+         if (args != null) dockerRunCmd.setAppArguments(args);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -332,15 +313,11 @@ public class DockerNativeStager
             case "--cpuset-mems":
                 dockerRunCmd.setCpusetMEMs(value);
                 break;
-            case "--env":
-            case "-e":
-                // Already set, so ignore.    
-                break;
             case "--gpus":
                 dockerRunCmd.setGpus(value);
                 break;
             case "--group-add":
-                isAssigned(dockerRunCmd, option, value);
+                isAssigned("docker", option, value);
                 dockerRunCmd.getGroups().add(value);
                 break;
             case "--hostname":
@@ -368,7 +345,7 @@ public class DockerNativeStager
                 dockerRunCmd.setMemory(value);
                 break;
             case "--mount":
-                isAssigned(dockerRunCmd, option, value);
+                isAssigned("docker", option, value);
                 dockerRunCmd.getMount().add(value);
                 break;
             case "--network":
@@ -381,19 +358,19 @@ public class DockerNativeStager
                 break;
             case "--publish":
             case "-p":
-                isAssigned(dockerRunCmd, option, value);
+                isAssigned("docker", option, value);
                 dockerRunCmd.getPortMappings().add(value);
                 break;
             case "--rm":
                 // Always set, ignore redundancy.
                 break;
             case "--tmpfs":
-                isAssigned(dockerRunCmd, option, value);
+                isAssigned("docker", option, value);
                 dockerRunCmd.getTmpfs().add(value);
                 break;
             case "--volume":
             case "-v":
-                isAssigned(dockerRunCmd, option, value);
+                isAssigned("docker", option, value);
                 dockerRunCmd.getVolumeMount().add(value);
                 break;
             case "--workdir":
@@ -403,25 +380,13 @@ public class DockerNativeStager
             default:
                 // The following options are reserved for tapis-only use.
                 // If the user specifies any of them as a container option,
-                // the job will abort.
+                // the job will abort.  Note that environment variables are 
+                // passed in via their own ParameterSet object.
                 //
-                //   --cidfile, --name, --rm, --user 
+                //   --cidfile, -e, --env, --name, --rm, --user 
                 //
                 String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
                 throw new JobException(msg);
-        }
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* isAssigned:                                                            */
-    /* ---------------------------------------------------------------------- */
-    private void isAssigned(DockerRunCmd dockerRunCmd, String option, String value)
-     throws JobException
-    {
-        // Make sure we have a value.
-        if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", "docker", option);
-            throw new JobException(msg);
         }
     }
     
@@ -432,7 +397,7 @@ public class DockerNativeStager
      throws JobException
     {
         // Make sure we have a value.
-        isAssigned(dockerRunCmd, option, value);
+        isAssigned("docker", option, value);
         
         // Find the first equals sign.  We expect the value to be in key=text format.
         int index = value.indexOf("=");

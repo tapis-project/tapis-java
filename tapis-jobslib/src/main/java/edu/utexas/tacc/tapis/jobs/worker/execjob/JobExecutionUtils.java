@@ -23,8 +23,9 @@ public final class JobExecutionUtils
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionUtils.class);
     
     // Job wrapper script name.
-    public static final String JOB_WRAPPER_SCRIPT = "tapisjob.sh";
-    public static final String JOB_ENV_FILE       = "tapisjob.env";
+    public static final String JOB_WRAPPER_SCRIPT       = "tapisjob.sh";
+    public static final String JOB_ENV_FILE             = "tapisjob.env";
+    public static final String JOB_OUTPUT_REDIRECT_FILE = "tapisjob.out";
     
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.
@@ -40,6 +41,16 @@ public final class JobExecutionUtils
     // A terminated application will be indicated by a string like "Exited (0) 41 seconds ago\n".
     // Group 1 of this regex would return the "0" in the example.
     public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
+    
+    // -------------------------- Singularity Section ----------------------------
+    // Get the PID of the sinit process.
+    public static final String SINGULARITY_START_PID = "singularity instance list ";
+    
+    // Stop the detached singularity instance.
+    public static final String SINGULARITY_STOP = "singularity instance stop ";
+    
+    // Get select information about all processes running on the system.
+    public static final String SINGULARITY_START_MONITOR = "ps -eo pid,ppid,stat,euser,cmd";
 
     /* ********************************************************************** */
     /*                            Public Methods                              */

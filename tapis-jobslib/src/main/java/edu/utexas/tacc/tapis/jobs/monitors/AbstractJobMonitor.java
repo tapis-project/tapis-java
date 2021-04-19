@@ -104,8 +104,8 @@ abstract class AbstractJobMonitor
     /* queryRemoteJob:                                                        */
     /* ---------------------------------------------------------------------- */
     /** Return a non-null remote job status value.  Subclasses must issue the
-     * query on the ssh connection to execution system.  The active flag allows
-     * the query to be tailored to the state of the remote job.  Specify 
+     * query on the ssh connection to the execution system.  The active flag
+     * allows the query to be tailored to the state of the remote job.  Specify 
      * active=true for any state before the job terminates; specify active=false
      * after the job has terminated.
      * 
@@ -194,7 +194,7 @@ abstract class AbstractJobMonitor
             
                 // ------------------------- Request Status --------------------------
                 // The query method never returns null.  It's first called assuming the job is active
-                // and, if necessary, called assuming the job has terminated.  The implementing
+                // and, if necessary, then called assuming the job has terminated.  The implementing
                 // subclass chooses how to support each of the calls.
                 JobRemoteStatus remoteStatus = queryRemoteJob(true);
                 if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)

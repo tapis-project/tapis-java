@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers;
+package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
