@@ -1,5 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +29,9 @@ public class SingularityStartMonitor
     
     // Zero is recognized as the application success code.
     private static final String SUCCESS_RC = "0";
+    
+    // Split on new lines.
+    private static final Pattern _newLinePattern = Pattern.compile("\n");
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -75,7 +82,7 @@ public class SingularityStartMonitor
     @Override
     protected JobRemoteStatus queryRemoteJob(boolean active) throws TapisException
     {
-        // There's no difference between the active and inactive docker queries, 
+        // There's no difference between the active and inactive singularity queries, 
         // so there's no point in issuing a second (inactive) query if the first
         // one did not return a result.
         if (!active) return JobRemoteStatus.NULL;
@@ -88,7 +95,7 @@ public class SingularityStartMonitor
         var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
         
         // Get the command text for this job's container.
-        String cmd = JobExecutionUtils.getDockerStatusCommand(_job.getUuid());
+        String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
         
         // Query the container.
         String result = null;
@@ -101,44 +108,64 @@ public class SingularityStartMonitor
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
         
-        // Is the container in a non-terminal state?
-        if (result.startsWith(JobExecutionUtils.DOCKER_ACTIVE_STATUS_PREFIX))
-            return JobRemoteStatus.ACTIVE;
+        // Parse in the results from the execution system.
         
-        // Has the container terminated?  If so, we always set the application
-        // exit code and return the status from within this block.  We also
-        // remote the container from the execution system.
-        if (result.startsWith(JobExecutionUtils.DOCKER_INACTIVE_STATUS_PREFIX)) 
-        {
-            // The status that will be returned.
-            JobRemoteStatus status;
-            
-            // We expect a status string that looks like "Exited (0) 41 seconds ago".
-            // Group 1 in the regex match isolates the parenthesized return code.
-            var m = JobExecutionUtils.DOCKER_RC_PATTERN.matcher(result);
-            if (m.matches()) {
-                _exitCode = m.group(1);
-                if (SUCCESS_RC.equals(_exitCode)) status = JobRemoteStatus.DONE;
-                  else status = JobRemoteStatus.FAILED;
-            } else {
-                String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
-                                             _job.getUuid(), result, cmd);
-                _log.warn(msg);
-                _exitCode = SUCCESS_RC;
-                status = JobRemoteStatus.DONE;
-            }
-            
-            // Remove the container from the execution system.
-            removeContainer(_jobCtx.getExecutionSystem(), conn);
-            
-            return status;
-        }
         
-        // This should not happen.
-        String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
-                                     _job.getUuid(), result, cmd);
-        _log.error(msg);
+//        // Is the container in a non-terminal state?
+//        if (result.startsWith(JobExecutionUtils.DOCKER_ACTIVE_STATUS_PREFIX))
+//            return JobRemoteStatus.ACTIVE;
+//        
+//        // Has the container terminated?  If so, we always set the application
+//        // exit code and return the status from within this block.  We also
+//        // remote the container from the execution system.
+//        if (result.startsWith(JobExecutionUtils.DOCKER_INACTIVE_STATUS_PREFIX)) 
+//        {
+//            // The status that will be returned.
+//            JobRemoteStatus status;
+//            
+//            // We expect a status string that looks like "Exited (0) 41 seconds ago".
+//            // Group 1 in the regex match isolates the parenthesized return code.
+//            var m = JobExecutionUtils.DOCKER_RC_PATTERN.matcher(result);
+//            if (m.matches()) {
+//                _exitCode = m.group(1);
+//                if (SUCCESS_RC.equals(_exitCode)) status = JobRemoteStatus.DONE;
+//                  else status = JobRemoteStatus.FAILED;
+//            } else {
+//                String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
+//                                             _job.getUuid(), result, cmd);
+//                _log.warn(msg);
+//                _exitCode = SUCCESS_RC;
+//                status = JobRemoteStatus.DONE;
+//            }
+//            
+//            // Remove the container from the execution system.
+//            removeContainer(_jobCtx.getExecutionSystem(), conn);
+//            
+//            return status;
+//        }
+//        
+//        // This should not happen.
+//        String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
+//                                     _job.getUuid(), result, cmd);
+//        _log.error(msg);
         return JobRemoteStatus.EMPTY;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* parseMonitorResults:                                                   */
+    /* ---------------------------------------------------------------------- */
+    private List<PsRecord> parseMonitorResults(String results)
+    {
+        // Start with a reasonable capacity.
+        var list = new ArrayList<PsRecord>();
+        
+        // Separate records and find the one that contains the instance name.
+        String[] records = _newLinePattern.split(results);
+        //for ()
+        
+        
+        
+        return list;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -162,5 +189,18 @@ public class SingularityStartMonitor
                                              _job.getUuid(), execSystem.getId(), cid, result, cmd);
                 _log.error(msg, e);
             }
+    }
+    
+    /* ********************************************************************** */
+    /*                             Public Methods                             */
+    /* ********************************************************************** */
+    // Record to hold parsed result of "ps -eo pid,ppid,stat,euser,cmd".
+    private final static class PsRecord
+    {
+        private String pid;
+        private String ppid;
+        private String stat;
+        private String euser;
+        private String cmd;
     }
 }

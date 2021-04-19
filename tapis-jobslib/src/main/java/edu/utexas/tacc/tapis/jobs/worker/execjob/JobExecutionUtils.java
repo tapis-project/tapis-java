@@ -43,7 +43,14 @@ public final class JobExecutionUtils
     public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
     
     // -------------------------- Singularity Section ----------------------------
+    // Get the PID of the sinit process.
     public static final String SINGULARITY_START_PID = "singularity instance list ";
+    
+    // Stop the detached singularity instance.
+    public static final String SINGULARITY_STOP = "singularity instance stop ";
+    
+    // Get select information about all processes running on the system.
+    public static final String SINGULARITY_START_MONITOR = "ps -eo pid,ppid,stat,euser,cmd";
 
     /* ********************************************************************** */
     /*                            Public Methods                              */
