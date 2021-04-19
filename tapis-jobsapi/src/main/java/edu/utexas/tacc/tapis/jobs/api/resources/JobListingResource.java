@@ -164,8 +164,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       SearchParameters srchParms = threadContext.getSearchParameters();
 	        
 	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
-	        
-	        
+	       int totalCount = -1; 
+	       computeTotal = srchParms.getComputeTotal(); 
 	       // ------------------------- Retrieve Job List -----------------------------
 	       List<JobListDTO> jobList = null;
 	       var jobsImpl = JobsImpl.getInstance();
@@ -185,15 +185,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	       }
-	       
 	       if(jobList.isEmpty()) {
                String msg =  MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
-               RespGetJobList r = new RespGetJobList(jobList);
+               RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
                return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
-            }
+           }
 	        // -------------------- Calculate the total count --------------------
-	       int totalCount = -1;
-	       computeTotal = srchParms.getComputeTotal();
+	      	       
 	       // If we need the count and there was a limit then we need to make a call
 	       List<String>searchList = srchParms.getSearchList();
 	       if (computeTotal && srchParms.getLimit() > 0)
@@ -217,9 +215,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 		    
 	       // ------------------------- Process Results --------------------------
 	       // Success.
-	       RespGetJobList r = new RespGetJobList(jobList);
+	      
+	       RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	       //RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
-	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+	       return Response.status(Status.OK).entity(TapisRestUtils
+	    		   .createSuccessResponse(
 	               MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 	     }
 	     
@@ -350,7 +350,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 		       if(jobList.isEmpty()) {
 	               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 	               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
-	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
+	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,prettyPrint,r)).build(); 
 	            }
 	       
 	       
@@ -383,7 +383,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 		       if(jobs.isEmpty()) {
 	               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 	               RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
-	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
+	               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,prettyPrint,r)).build(); 
 	            }
 	       }
 
