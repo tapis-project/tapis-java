@@ -23,6 +23,9 @@ abstract class AbstractJobMonitor
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(AbstractJobMonitor.class);
 
+    // Zero is recognized as the application success code.
+    protected static final String SUCCESS_RC = "0";
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -193,9 +196,9 @@ abstract class AbstractJobMonitor
                 _jobCtx.checkCmdMsg();
             
                 // ------------------------- Request Status --------------------------
-                // The query method never returns null.  It's first called assuming the job is active
-                // and, if necessary, then called assuming the job has terminated.  The implementing
-                // subclass chooses how to support each of the calls.
+                // The query method never returns null.  The call is first made assuming the job
+                // is active.  If necessary, a second call is made assuming taht the job has 
+                // terminated.  The implementing subclass chooses how to support each of the calls.
                 JobRemoteStatus remoteStatus = queryRemoteJob(true);
                 if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)
                     remoteStatus = queryRemoteJob(false);

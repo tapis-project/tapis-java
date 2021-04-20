@@ -15,14 +15,14 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
-public class SingularityStartMonitor 
+public class SingularityRunMonitor 
  extends AbstractSingularityMonitor
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SingularityStartMonitor.class);
+    private static final Logger _log = LoggerFactory.getLogger(SingularityRunMonitor.class);
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -30,7 +30,7 @@ public class SingularityStartMonitor
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SingularityStartMonitor(JobExecutionContext jobCtx, MonitorPolicy policy)
+    public SingularityRunMonitor(JobExecutionContext jobCtx, MonitorPolicy policy)
     {super(jobCtx, policy);}
 
     /* ********************************************************************** */
@@ -100,20 +100,11 @@ public class SingularityStartMonitor
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
         
         // Extract records of interest from the results.
-        PsStartInfo psInfo = extractInstanceInfo(result);
+        PsRunInfo psInfo = extractInstanceInfo(result);
         
-        // We should always have found the sinit record, which represents the 
-        // process the singularity instance start command spawned.
-        if (psInfo.sinit == null) {
-            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_MISSING_SINIT", _job.getUuid(),
-                                         _job.getRemoteJobId());
-            _log.error(msg);
-            return JobRemoteStatus.EMPTY;
-        }
-        
-        // If there is a startscript process, we assume it's active even
-        // though it could be suspended (stopped) or even a zombie.
-        if (psInfo.startscript != null) return JobRemoteStatus.ACTIVE;
+        // If the parent isn't running we can assume application execution terminated,
+        // though the parent could be suspended (stopped) or even a zombie.
+        if (psInfo.parent != null) return JobRemoteStatus.ACTIVE;
         
         // Remove the container from the execution system.
         removeContainer(runCmd);
@@ -150,33 +141,31 @@ public class SingularityStartMonitor
     /* extractInstanceInfo:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Extract process information for remote processes associated with this
-     * job.  The job's remoteJobId is the PID returned by "singularity instance start"
+     * job.  The job's remoteJobId is the PID returned by "singularity run ... &"
      * command and should always be present in the monitoring results.  
      * 
      * @param results raw results from remote ps command
      * @return the parsed records of interest for this job
      */
-    private PsStartInfo extractInstanceInfo(String results)
+    private PsRunInfo extractInstanceInfo(String results)
     {
-        // Example list call:
-        //  singularity instance list XXX
-        //     - 624785 is returned for example below
+        // Example run call:
+        //  singularity run XXX.sif &
+        //     - 898024 is returned for example below
         //
         // Monitor command:
         //  ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd
         //
         // Example ps result records:
         //
-        //  624784    2286 Ssl  rcardone Singularity instance: rcardone [XXX]
-        //  624785  624784 Sl   rcardone sinit
-        //  624799       2 S<   root     [loop1]
-        //  624807  624785 S    rcardone /bin/sh /.singularity.d/startscript
-        //  624810  624807 Sl   rcardone java -cp /usr/local/bin/testapps.jar edu.utexas.tacc.testapps.tapis.SleepSeconds 120
+        //  898024    2286 Sl   rcardone Singularity runtime parent
+        //  898044  898024 S    rcardone /bin/sh /.singularity.d/runscript
+        //  898057       2 S<   root     [loop1]
+        //  898066  898044 Sl   rcardone java -cp /usr/local/bin/testapps.jar edu.utexas.tacc.testapps.tapis.SleepSeconds 120
         
         // Result object.
-        var info = new PsStartInfo();
-        final String instanceSearch = "[" + _job.getUuid() + "]";
-        String startscriptPid = null;
+        var info = new PsRunInfo();
+        String runscriptPid = null;
         
         // Split on newlines.
         String[] records = _newLinePattern.split(results);
@@ -200,14 +189,12 @@ public class SingularityStartMonitor
             // returns records in ascending pid order.  This causes records to be returned 
             // in the order shown above.  This code below doesn't depend on this ordering,
             // but does test records in the same order.
-            if (info.instance == null && rest.endsWith(instanceSearch)) {
-                info.instance = new PsRecord(pid, ppid, rest);
-            } else if (info.sinit == null && pid.equals(_job.getRemoteJobId())) {
-                info.sinit = new PsRecord(pid, ppid, rest);
-            } else if (info.startscript == null && ppid.equals(_job.getRemoteJobId())) {
-                info.startscript = new PsRecord(pid, ppid, rest);
-                startscriptPid = pid;  // the process whose absence indicates app termination
-            } else if (startscriptPid != null && info.app == null && ppid.equals(startscriptPid)) {
+            if (info.parent == null && pid.equals(_job.getRemoteJobId())) {
+                info.parent = new PsRecord(pid, ppid, rest);
+            } else if (info.runscript == null && ppid.equals(_job.getRemoteJobId())) {
+                info.runscript = new PsRecord(pid, ppid, rest);
+                runscriptPid = pid;  // the process whose absence indicates app termination
+            } else if (runscriptPid != null && info.app == null && ppid.equals(runscriptPid)) {
                 info.app = new PsRecord(pid, ppid, rest);
             }
         
@@ -219,23 +206,21 @@ public class SingularityStartMonitor
     }
     
     /* ********************************************************************** */
-    /*                            PsStartInfo Class                           */
+    /*                            PsRunInfo Class                             */
     /* ********************************************************************** */
     /** This class holds information about the processes associated with the 
-     * singularity instance of the Tapis job.
+     * singularity run of the Tapis job.
      */
-    private final static class PsStartInfo
+    private final static class PsRunInfo
     {
-        private PsRecord instance;
-        private PsRecord sinit;
-        private PsRecord startscript;
+        private PsRecord parent;
+        private PsRecord runscript;
         private PsRecord app;
         
         // Have all fields been assigned?
         private boolean isComplete() {
-            if (instance == null || sinit == null || startscript == null || app == null)
-                return false;
-            return true;
+            if (parent == null || runscript == null || app == null) return false;
+              else return true;
         }
     }
 }
