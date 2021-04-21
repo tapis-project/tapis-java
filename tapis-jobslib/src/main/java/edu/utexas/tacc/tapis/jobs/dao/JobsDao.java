@@ -231,6 +231,7 @@ public final class JobsDao
 	      
 	      return list;
 	    }
+	
 	/* ---------------------------------------------------------------------- */
 	/* getJobsByUsername:                                                     */
 	/* ---------------------------------------------------------------------- */
@@ -251,7 +252,7 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	          _log.debug("listsize: " + listsize);
+	         
 	          for(int i = 0;i < listsize; i++) {
 	        	  
 	        	  if(orderBy.isBlank()) {
@@ -267,7 +268,7 @@ public final class JobsDao
 	          if(orderBy.isBlank()) {
 	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
 	          }
-	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
+	          
 	          sql = sql.replace(":orderby", orderBy);
 	          
 	          
@@ -282,7 +283,7 @@ public final class JobsDao
 	          pstmt.setInt(5, skip);
 	          
 	                      
-	       // Issue the call for the 1 row result set.
+	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
 	         
 	          // Quick check.
@@ -298,14 +299,7 @@ public final class JobsDao
 	  	    	  throw new TapisJDBCException(msg, e);
 	  	      }
 	  	      
-	          
-	          /*if (!rs.next()) {
-	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
-	                _log.error(msg);
-	                throw new JobException(msg);
-	            }*/
-	        
-	          
+	    
 	            // JobList for specific user.
 	            JobListDTO jobListObject ;
 	            do {
@@ -370,7 +364,7 @@ public final class JobsDao
 	}
 	
 	/* ********************************************************************** */
-	/* getJobsSearchListCountByUsername:                                                */
+	/* getJobsSearchListCountByUsername:                                      */
 	/* ********************************************************************** */
 	@SuppressWarnings("rawtypes")
 	public int getJobsSearchListCountByUsername(String username, String tenant, List<String> searchList, List<OrderBy> orderByList) 
@@ -742,7 +736,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
     /** Get the specified job or throw an exception depending on the value of
      * the throwNotFound flag.  If the flag is true and the job is not found,
-     * then the TapisNotFoundException exeeption is thrown.  If the flag is false
+     * then the TapisNotFoundException exception is thrown.  If the flag is false
      * and the job is not found, null is returned.
      * 
      * @param uuid the job to retrieve
