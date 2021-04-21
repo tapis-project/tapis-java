@@ -111,16 +111,16 @@ public class JobMonitorFactory
     {
         // We are only interested in the singularity options.
         var opts = app.getRuntimeOptions();
-        boolean start = opts.contains(RuntimeOptionEnum.START);
-        boolean run   = opts.contains(RuntimeOptionEnum.RUN);
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
         
         // Did we get conflicting information?
         if (start && run) {
             String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
                                          jobCtx.getJob().getUuid(), 
                                          app.getId(),
-                                         RuntimeOptionEnum.START.name(),
-                                         RuntimeOptionEnum.RUN.name());
+                                         RuntimeOptionEnum.SINGULARITY_START.name(),
+                                         RuntimeOptionEnum.SINGULARITY_RUN.name());
             throw new JobException(msg);
         }
         if (!(start || run)) {
