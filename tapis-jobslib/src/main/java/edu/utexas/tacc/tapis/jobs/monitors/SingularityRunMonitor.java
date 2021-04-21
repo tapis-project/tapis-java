@@ -106,35 +106,12 @@ public class SingularityRunMonitor
         // though the parent could be suspended (stopped) or even a zombie.
         if (psInfo.parent != null) return JobRemoteStatus.ACTIVE;
         
-        // Remove the container from the execution system.
-        removeContainer(runCmd);
-
         // No startscript means the application has terminated.  If possible,
         // let's determine if it failed or succeeded by reading the optional
         // exit code file.  Even if that fails, the exit code is set.
         _exitCode = readExitCodeFile(runCmd);
         if (!SUCCESS_RC.equals(_exitCode)) return JobRemoteStatus.FAILED;
           else return JobRemoteStatus.DONE;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* removeContainer:                                                       */
-    /* ---------------------------------------------------------------------- */
-    private void removeContainer(TapisRunCommand runCmd) 
-     throws TapisServiceConnectionException, TapisImplException
-    {
-        // Get the command text to terminate this job's singularity instance.
-        String cmd = JobExecutionUtils.SINGULARITY_STOP + _job.getUuid();
-        
-        // Stop the instance.
-        String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                var execSysId = _jobCtx.getExecutionSystem().getId();
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
-                                             _job.getUuid(), execSysId, result, cmd);
-                _log.error(msg, e);
-            }
     }
     
     /* ---------------------------------------------------------------------- */
