@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputDefinition;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
@@ -233,6 +235,9 @@ public final class SubmitContext
                             _submitReq.getAppVersion(), authz, _submitReq.getOwner(), _submitReq.getTenant());
             throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
         }
+        
+        // Check that the runtime has appropriate options selected.
+        validateApp(_app);
     }
 
     /* **************************************************************************** */
@@ -1140,7 +1145,38 @@ public final class SubmitContext
             }
         }
     }
-    
+
+    /* ---------------------------------------------------------------------------- */
+    /* validateApp:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    private void validateApp(App app) throws TapisImplException
+    {
+        // This should be checked in apps, but we double check here.
+        if (app.getRuntime() == RuntimeEnum.SINGULARITY) {
+            
+            // Make sure one runtime execution option is chosen.
+            var opts = app.getRuntimeOptions();
+            boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+            boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
+            
+            // Did we get conflicting information?
+            if (start && run) {
+                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
+                                             _job.getUuid(), 
+                                             app.getId(),
+                                             RuntimeOptionEnum.SINGULARITY_START.name(),
+                                             RuntimeOptionEnum.SINGULARITY_RUN.name());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+            if (!(start || run)) {
+                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
+                                             _job.getUuid(),
+                                             app.getId());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
+    }
+
     /* ---------------------------------------------------------------------------- */
     /* populateJob:                                                                 */
     /* ---------------------------------------------------------------------------- */
