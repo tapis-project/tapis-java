@@ -23,9 +23,6 @@ public class DockerNativeMonitor
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(DockerNativeMonitor.class);
     
-    // Zero is recognized as the application success code.
-    private static final String SUCCESS_RC = "0";
-    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -45,7 +42,7 @@ public class DockerNativeMonitor
     /*                             Public Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* getRC:                                                                 */
+    /* getExitCode:                                                           */
     /* ---------------------------------------------------------------------- */
     /** Return the application exit code as reported by docker.  If no exit
      * code has been ascertained, null is returned. 

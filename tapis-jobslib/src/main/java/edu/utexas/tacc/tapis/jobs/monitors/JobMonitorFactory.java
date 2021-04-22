@@ -1,6 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicyParameters;
@@ -59,7 +61,7 @@ public class JobMonitorFactory
         if (appType == AppTypeEnum.FORK) {
             monitor = switch (runtime) {
                 case DOCKER      -> new DockerNativeMonitor(jobCtx, policy);
-                //    case SINGULARITY -> null;
+                case SINGULARITY -> getSingularityOption(jobCtx, policy, app);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobMonitorFactory");
@@ -97,6 +99,40 @@ public class JobMonitorFactory
         }
         
         return monitor;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityOption:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static JobMonitor getSingularityOption(JobExecutionContext jobCtx,
+                                                   MonitorPolicy policy,
+                                                   App app) 
+     throws JobException
+    {
+        // We are only interested in the singularity options.
+        var opts = app.getRuntimeOptions();
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
+        
+        // Did we get conflicting information?
+        if (start && run) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
+                                         jobCtx.getJob().getUuid(), 
+                                         app.getId(),
+                                         RuntimeOptionEnum.SINGULARITY_START.name(),
+                                         RuntimeOptionEnum.SINGULARITY_RUN.name());
+            throw new JobException(msg);
+        }
+        if (!(start || run)) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
+                                         jobCtx.getJob().getUuid(),
+                                         app.getId());
+            throw new JobException(msg);
+        }
+        
+        // Create the specified monitor.
+        if (start) return new SingularityStartMonitor(jobCtx, policy);
+          else return new SingularityRunMonitor(jobCtx, policy);
     }
     
     /* ---------------------------------------------------------------------- */

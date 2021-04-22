@@ -26,6 +26,7 @@ public final class JobExecutionUtils
     public static final String JOB_WRAPPER_SCRIPT       = "tapisjob.sh";
     public static final String JOB_ENV_FILE             = "tapisjob.env";
     public static final String JOB_OUTPUT_REDIRECT_FILE = "tapisjob.out";
+    public static final String JOB_OUTPUT_EXITCODE_FILE = "tapisjob.exitcode";
     
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.
@@ -50,7 +51,7 @@ public final class JobExecutionUtils
     public static final String SINGULARITY_STOP = "singularity instance stop ";
     
     // Get select information about all processes running on the system.
-    public static final String SINGULARITY_START_MONITOR = "ps -eo pid,ppid,stat,euser,cmd";
+    public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 
     /* ********************************************************************** */
     /*                            Public Methods                              */
