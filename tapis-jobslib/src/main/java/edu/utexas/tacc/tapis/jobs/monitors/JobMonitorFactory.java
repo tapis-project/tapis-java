@@ -109,26 +109,10 @@ public class JobMonitorFactory
                                                    App app) 
      throws JobException
     {
-        // We are only interested in the singularity options.
+        // We are only interested in the singularity options.  These have
+        // been validated in JobExecStageFactory, so no need to repeat here.
         var opts = app.getRuntimeOptions();
         boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
-        
-        // Did we get conflicting information?
-        if (start && run) {
-            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
-                                         jobCtx.getJob().getUuid(), 
-                                         app.getId(),
-                                         RuntimeOptionEnum.SINGULARITY_START.name(),
-                                         RuntimeOptionEnum.SINGULARITY_RUN.name());
-            throw new JobException(msg);
-        }
-        if (!(start || run)) {
-            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
-                                         jobCtx.getJob().getUuid(),
-                                         app.getId());
-            throw new JobException(msg);
-        }
         
         // Create the specified monitor.
         if (start) return new SingularityStartMonitor(jobCtx, policy);

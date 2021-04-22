@@ -1,7 +1,13 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.monitors.JobMonitor;
+import edu.utexas.tacc.tapis.jobs.monitors.SingularityRunMonitor;
+import edu.utexas.tacc.tapis.jobs.monitors.SingularityStartMonitor;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -35,8 +41,7 @@ public class JobLauncherFactory
         if (appType == AppTypeEnum.FORK) {
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
-                case SINGULARITY -> new SingularityStartLauncher(jobCtx);
-                // case SINGULARITY_RUN -> new SingularityRunLauncher(jobCtx);
+                case SINGULARITY -> getSingularityOption(jobCtx, app);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobLauncherFactory");
@@ -74,6 +79,23 @@ public class JobLauncherFactory
         }
         
         return launcher;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityOption:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static JobLauncher getSingularityOption(JobExecutionContext jobCtx,
+                                                    App app) 
+     throws TapisException
+    {
+        // We are only interested in the singularity options.  These have
+        // been validated in JobExecStageFactory, so no need to repeat here.
+        var opts = app.getRuntimeOptions();
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        
+        // Create the specified monitor.
+        if (start) return new SingularityStartLauncher(jobCtx);
+          else return new SingularityRunLauncher(jobCtx);
     }
     
     /* ---------------------------------------------------------------------- */

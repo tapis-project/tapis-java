@@ -1,0 +1,15 @@
+{
+    "name": "SyRunSleepSeconds",
+    "appId": "SyRunSleepSeconds",
+    "appVersion": "0.0.1",
+    "parameterSet": {
+      "envVariables": [ 
+        {"key": "JOBS_PARMS", "value": "15"}
+      ],
+      "archiveFilter": {
+        "includes": ["Sleep*"],
+        "includeLaunchFiles": true
+      }
+    },
+    "archiveSystemId" : "tapisv3-exec"
+}

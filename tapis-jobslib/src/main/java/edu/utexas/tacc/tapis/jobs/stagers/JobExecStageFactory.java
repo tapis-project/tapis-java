@@ -1,9 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -37,7 +40,7 @@ public final class JobExecStageFactory
         if (appType == AppTypeEnum.FORK) {
             stager = switch (runtime) {
                 case DOCKER      -> new DockerNativeStager(jobCtx);
-                case SINGULARITY -> new SingularityStartStager(jobCtx);
+                case SINGULARITY -> getSingularityOption(jobCtx, app);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobExecStageFactory");
@@ -75,6 +78,39 @@ public final class JobExecStageFactory
         }
         
         return stager;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityOption:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static JobExecStager getSingularityOption(JobExecutionContext jobCtx,
+                                                      App app) 
+     throws TapisException
+    {
+        // We are only interested in the singularity options.
+        var opts = app.getRuntimeOptions();
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
+        
+        // Did we get conflicting information?
+        if (start && run) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
+                                         jobCtx.getJob().getUuid(), 
+                                         app.getId(),
+                                         RuntimeOptionEnum.SINGULARITY_START.name(),
+                                         RuntimeOptionEnum.SINGULARITY_RUN.name());
+            throw new JobException(msg);
+        }
+        if (!(start || run)) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
+                                         jobCtx.getJob().getUuid(),
+                                         app.getId());
+            throw new JobException(msg);
+        }
+        
+        // Create the specified monitor.
+        if (start) return new SingularityStartStager(jobCtx);
+          else return new SingularityRunStager(jobCtx);
     }
     
     /* ---------------------------------------------------------------------- */
