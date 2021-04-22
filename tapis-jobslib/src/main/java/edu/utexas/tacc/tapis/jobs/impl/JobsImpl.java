@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -71,39 +72,173 @@ public final class JobsImpl
         // ----- Check input.
         
         if (StringUtils.isBlank(user)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobListByUsername", "user");
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobListByUsername", "tenant");
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
-        // ----- Get the job status.
+        // ----- Get the job list.
         List<JobListDTO> jobList = null;
-        try {jobList = (ArrayList<JobListDTO>) getJobsDao().getJobsByUsername(user, tenant,orderByList,limit,skip);}
+        try {jobList =  getJobsDao().getJobsByUsername(user, tenant, orderByList,limit, skip);}
         catch (Exception e) {
-          //  String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
-            throw new TapisImplException("", e, Condition.INTERNAL_SERVER_ERROR);
+            String msg = MsgUtils.getMsg("JOBS_SELECT_BY_USERNAME_ERROR", user, tenant,e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobList;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobListCountByUsername:                                             */
+    /* ---------------------------------------------------------------------- */
+   
+    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList, List<OrderBy> orderByList) 
+    		throws TapisImplException
+    {
+    	// ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListCountByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListCountByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+     
+     
+
+      // Build verified list of search conditions
+      var verifiedSearchList = new ArrayList<String>();
+      if (searchList != null && !searchList.isEmpty())
+      {
+        try
+        {
+          for (String cond : searchList)
+          {
+            // Use SearchUtils to validate condition
+            String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
+            verifiedSearchList.add(verifiedCondStr);
+          }
+        }
+        catch (Exception e)
+        {        
+           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+           _log.error(msg, e);
+           throw new IllegalArgumentException(msg);
+              
+        }
+      }
+
+      int count= 0;
+
+      // Count all allowed jobs matching the search conditions
+      try {
+		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList) ;
+	} catch (TapisException e) {
+		String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
+        throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+		}
+      return count;
+    }
+
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobSearchListByUsername:                                            */
+    /* ---------------------------------------------------------------------- */
+    public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-      /*  if(jobstatus != null) {
-	        if (!tenant.equals(jobstatus.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(jobstatus.getOwner()) && 
-	            !user.equals(jobstatus.getCreatedBy()) && 
-	            !isAdminSafe(user, tenant) &&
-	        	!user.equals(jobstatus.getCreatedByTenant()))
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-        }*/
+        // Build verified list of search conditions
+        var verifiedSearchList = new ArrayList<String>();
+        if (searchList != null && !searchList.isEmpty())
+        {
+          try
+          {
+            for (String cond : searchList)
+            {
+              // Use SearchUtils to validate condition
+              String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
+              verifiedSearchList.add(verifiedCondStr);
+            }
+          }
+          catch (Exception e)
+          {
+            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+            _log.error(msg, e);
+            throw new IllegalArgumentException(msg);
+          }
+        }
+        // ----- Get the job list.
+        List<JobListDTO> jobList = null;
+        try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobList;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobSearchAllAttributesByUsername:                                   */
+    /* ---------------------------------------------------------------------- */
+    public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
         
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // Build verified list of search conditions
+        var verifiedSearchList = new ArrayList<String>();
+        if (searchList != null && !searchList.isEmpty())
+        {
+          try
+          {
+            for (String cond : searchList)
+            {
+              // Use SearchUtils to validate condition
+              String verifiedCondStr = SearchUtils.validateAndProcessSearchCondition(cond);
+              verifiedSearchList.add(verifiedCondStr);
+            }
+          }
+          catch (Exception e)
+          {
+            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+            _log.error(msg, e);
+            throw new IllegalArgumentException(msg);
+          }
+        }
+        // ----- Get the job list.
+        List<Job> jobList = null;
+        try {jobList = getJobsDao().getJobSearchAllAttributesByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
         // Could be null if not found.
         return jobList;
     }
