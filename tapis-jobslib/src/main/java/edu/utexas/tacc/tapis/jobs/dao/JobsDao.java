@@ -6,8 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +22,8 @@ import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonElement;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
@@ -37,6 +42,22 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
+
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.JSONB;
+import org.jooq.OrderField;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.TableField;
+import org.jooq.impl.DSL;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.*;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
+
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
@@ -210,6 +231,7 @@ public final class JobsDao
 	      
 	      return list;
 	    }
+	
 	/* ---------------------------------------------------------------------- */
 	/* getJobsByUsername:                                                     */
 	/* ---------------------------------------------------------------------- */
@@ -230,7 +252,7 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	          _log.debug("listsize: " + listsize);
+	         
 	          for(int i = 0;i < listsize; i++) {
 	        	  
 	        	  if(orderBy.isBlank()) {
@@ -246,7 +268,7 @@ public final class JobsDao
 	          if(orderBy.isBlank()) {
 	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
 	          }
-	          _log.debug("orderBy sql str to be appended to query1:::->" + orderBy);
+	          
 	          sql = sql.replace(":orderby", orderBy);
 	          
 	          
@@ -261,7 +283,7 @@ public final class JobsDao
 	          pstmt.setInt(5, skip);
 	          
 	                      
-	       // Issue the call for the 1 row result set.
+	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
 	         
 	          // Quick check.
@@ -277,14 +299,7 @@ public final class JobsDao
 	  	    	  throw new TapisJDBCException(msg, e);
 	  	      }
 	  	      
-	          
-	          /*if (!rs.next()) {
-	                String msg = MsgUtils.getMsg("SEARCH_NO_JOBS_FOUND", tenant, username); 
-	                _log.error(msg);
-	                throw new JobException(msg);
-	            }*/
-	        
-	          
+	    
 	            // JobList for specific user.
 	            JobListDTO jobListObject ;
 	            do {
@@ -347,7 +362,356 @@ public final class JobsDao
 	      
 	      return jobList;
 	}
-    /* ---------------------------------------------------------------------- */  
+	
+	/* ********************************************************************** */
+	/* getJobsSearchListCountByUsername:                                      */
+	/* ********************************************************************** */
+	@SuppressWarnings("rawtypes")
+	public int getJobsSearchListCountByUsername(String username, String tenant, List<String> searchList, List<OrderBy> orderByList) 
+			  throws TapisException
+	{
+		int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	   
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchList != null) {
+      		whereCondition = addSearchListToWhere(whereCondition, searchList);
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+      		
+        
+	 
+      	// ------------------------- Build and execute SQL ----------------------------
+      	int count = 0;
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including orderByAttrList, startAfter
+	          count = db.selectCount().from(Tables.JOBS).where(whereCondition).fetchOne(0,int.class);
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	    return count;
+    }
+	
+	/* ---------------------------------------------------------------------- */
+	/* getJobsSearchByUsername:                                               */
+	/*  summary attributes                                                                       */
+	/* ---------------------------------------------------------------------- */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws TapisException
+	{
+	    // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchList != null) {
+      		whereCondition = addSearchListToWhere(whereCondition, searchList);
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+      		
+        
+	 
+     // Build list of attributes we will be returning.
+        List<TableField> fieldList = new ArrayList<>();
+        fieldList.add(Tables.JOBS.UUID);
+        fieldList.add(Tables.JOBS.TENANT);
+        fieldList.add(Tables.JOBS.NAME);
+        fieldList.add(Tables.JOBS.OWNER);
+        fieldList.add(Tables.JOBS.STATUS);
+        fieldList.add(Tables.JOBS.CREATED);
+        fieldList.add(Tables.JOBS.ENDED);
+        fieldList.add(Tables.JOBS.LAST_UPDATED);
+        fieldList.add(Tables.JOBS.APP_ID);
+        fieldList.add(Tables.JOBS.APP_VERSION);
+        fieldList.add(Tables.JOBS.EXEC_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.ARCHIVE_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.REMOTE_STARTED);
+    
+	    
+	    // ------------------------- Build and execute SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including limit, orderByAttrList, skip and startAfter
+	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
+	          //       Jooq claims to handle it well.
+	          Result<JobsRecord> results;
+	          org.jooq.SelectConditionStep condStep = db.select(fieldList).from(Tables.JOBS).where(whereCondition);
+	          if(orderByList != null && limit >= 0) {
+	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
+	          } else if (limit >= 0) {
+	            // We are limiting but not ordering
+	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          }
+	          else
+	          {
+	            // We are not limiting and not ordering
+	            results = condStep.fetchInto(Tables.JOBS);
+	          }
+
+	          if (results == null || results.isEmpty()) return jobList;
+
+	          // Create SystemBasic objects from TSystem objects.
+	          for (JobsRecord r : results)
+	          {
+	            JobListDTO job = r.into(JobListDTO.class);
+	            jobList.add(job);
+	          }
+	          
+	          
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	        return jobList;
+	          
+	        
+	}
+	
+	/* ---------------------------------------------------------------------- */
+	/* getJobsSearchByUsername:                                               */
+	/*  all attributes                                                                       */
+	/* ---------------------------------------------------------------------- */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws TapisException
+	{
+	    // Initialize result.
+	    ArrayList<Job> jobs = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchList != null) {
+      		whereCondition = addSearchListToWhere(whereCondition, searchList);
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+   
+	    // ------------------------- Build and execute SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including limit, orderByAttrList, skip and startAfter
+	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
+	          //       Jooq claims to handle it well.
+	          Result<JobsRecord> results;
+	          org.jooq.SelectConditionStep condStep = db.select(DSL.asterisk()).from(Tables.JOBS).where(whereCondition);
+	          if(orderByList != null && limit >= 0) {
+	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
+	          } else if (limit >= 0) {
+	            // We are limiting but not ordering
+	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          }
+	          else
+	          {
+	            // We are not limiting and not ordering
+	            results = condStep.fetchInto(Tables.JOBS);
+	          }
+	          if (results == null || results.isEmpty()) return jobs;
+
+	          // Create Job object from Job objects.
+	          for (JobsRecord r : results)
+	          {
+	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
+	        	  r.setTags(Arrays.asList(r.getTags()));
+	        	 
+	            Job job = r.into(Job.class);
+	            jobs.add(job);
+	          }
+	          
+	          
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	        return jobs;
+	          
+	        
+	}
+	
+   
+	
+
+	/* ---------------------------------------------------------------------- */  
     /* getJobByUUID:                                                          */
     /* ---------------------------------------------------------------------- */
 	/** Get the specified job or return null if not found.
@@ -372,7 +736,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
     /** Get the specified job or throw an exception depending on the value of
      * the throwNotFound flag.  If the flag is true and the job is not found,
-     * then the TapisNotFoundException exeeption is thrown.  If the flag is false
+     * then the TapisNotFoundException exception is thrown.  If the flag is false
      * and the job is not found, null is returned.
      * 
      * @param uuid the job to retrieve
@@ -2149,6 +2513,134 @@ public final class JobsDao
 	    return obj;
 	}
 	
+	/* -------------------------------------------------- */
+	/*              Search private methods                */
+	/* -------------------------------------------------- */
+	 private Condition addSearchListToWhere(Condition whereCondition, List<String> searchList) throws TapisException {
+	    	if (searchList == null || searchList.isEmpty()) return whereCondition;
+	        // Parse searchList and add conditions to the WHERE clause
+	        for (String condStr : searchList)
+	        {
+	          whereCondition = addSearchCondStrToWhere(whereCondition, condStr, "AND");
+	        }
+	        return whereCondition;
+		}
+
+		private Condition addSearchCondStrToWhere(Condition whereCondition, String searchStr, String joinOp) throws TapisException {
+			 // If we have no search string then return what we were given
+		    if (StringUtils.isBlank(searchStr)) return whereCondition;
+		    // If we are given a condition but no indication of how to join new condition to it then return what we were given
+		    if (whereCondition != null && StringUtils.isBlank(joinOp)) return whereCondition;
+		    if (whereCondition != null && joinOp != null && !joinOp.equalsIgnoreCase("AND") && !joinOp.equalsIgnoreCase("OR"))
+		    {
+		      return whereCondition;
+		    }
+
+		    // Parse search value into column name, operator and value
+		    // Format must be column_name.op.value
+		    String[] parsedStrArray = searchStr.split("\\.", 3);
+		    // Validate column name
+		    String column = parsedStrArray[0];
+		    Field<?> col = Tables.JOBS.field(DSL.name(column));
+		    // Check for column name passed in as camelcase
+		    if (col == null)
+		    {
+		      col = Tables.JOBS.field(DSL.name(SearchUtils.camelCaseToSnakeCase(column)));
+		    }
+		    // If column not found then it is an error
+		    if (col == null)
+		    {
+		      String msg = MsgUtils.getMsg("SEARCH_DB_NO_COLUMN", DSL.name(column));
+		      throw new TapisException(msg);
+		    }
+		    // Validate and convert operator string
+		    String opStr = parsedStrArray[1].toUpperCase();
+		    SearchOperator op = SearchUtils.getSearchOperator(opStr);
+		    if (op == null)
+		    {
+		      String msg = MsgUtils.getMsg("SEARCH_DB_INVALID_SEARCH_OP", opStr, Tables.JOBS.getName(), DSL.name(column));
+		      throw new TapisException(msg);
+		    }
+
+		    // Check that column value is compatible for column type and search operator
+		    String val = parsedStrArray[2];
+		    checkConditionValidity(col, op, val);
+
+		     // If val is a timestamp then convert the string(s) to a form suitable for SQL
+		    // Use a utility method since val may be a single item or a list of items, e.g. for the BETWEEN operator
+		    if (col.getDataType().getSQLType() == Types.TIMESTAMP)
+		    {
+		      val = SearchUtils.convertValuesToTimestamps(op, val);
+		    }
+
+		    // Create the condition
+		    Condition newCondition = createCondition(col, op, val);
+		    // If specified add the condition to the WHERE clause
+		    if (StringUtils.isBlank(joinOp) || whereCondition == null) return newCondition;
+		    else if (joinOp.equalsIgnoreCase("AND")) return whereCondition.and(newCondition);
+		    else if (joinOp.equalsIgnoreCase("OR")) return whereCondition.or(newCondition);
+		    return newCondition;
+		}
+
+		@SuppressWarnings("unchecked")
+		private Condition createCondition(Field col, SearchOperator op, String val) {
+			List<String> valList = Collections.emptyList();
+		    if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
+		    switch (op) {
+		      case EQ:
+		        return col.eq(val);
+		      case NEQ:
+		        return col.ne(val);
+		      case LT:
+		        return col.lt(val);
+		      case LTE:
+		        return col.le(val);
+		      case GT:
+		        return col.gt(val);
+		      case GTE:
+		        return col.ge(val);
+		      case LIKE:
+		        return col.like(val);
+		      case NLIKE:
+		        return col.notLike(val);
+		      case IN:
+		        return col.in(valList);
+		      case NIN:
+		        return col.notIn(valList);
+		      case BETWEEN:
+		        return col.between(valList.get(0), valList.get(1));
+		      case NBETWEEN:
+		        return col.notBetween(valList.get(0), valList.get(1));
+		    }
+			return null;
+		}
+
+		private void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) throws TapisException {
+			var dataType = col.getDataType();
+		    int sqlType = dataType.getSQLType();
+		    String sqlTypeName = dataType.getTypeName();
+
+		    // Make sure we support the sqlType
+		    if (SearchUtils.ALLOWED_OPS_BY_TYPE.get(sqlType) == null)
+		    {
+		      String msg = MsgUtils.getMsg("SEARCH_DB_UNSUPPORTED_SQLTYPE", Tables.JOBS.getName(), col.getName(), op.name(), sqlTypeName);
+		      throw new TapisException(msg);
+		    }
+		    // Check that operation is allowed for column data type
+		    if (!SearchUtils.ALLOWED_OPS_BY_TYPE.get(sqlType).contains(op))
+		    {
+		      String msg = MsgUtils.getMsg("SEARCH_DB_INVALID_SEARCH_TYPE", Tables.JOBS.getName(), col.getName(), op.name(), sqlTypeName);
+		      throw new TapisException(msg);
+		    }
+
+		    // Check that value (or values for op that takes a list) are compatible with sqlType
+		    if (!SearchUtils.validateTypeAndValueList(sqlType, op, valStr, sqlTypeName, Tables.JOBS.getName(), col.getName()))
+		    {
+		      String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_VALUE", op.name(), sqlTypeName, valStr, Tables.JOBS.getName(), col.getName());
+		      throw new TapisException(msg);
+		    }
+		  }
+			
 
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
