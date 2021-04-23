@@ -187,6 +187,11 @@ public final class SingularityStartLauncher
                 String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
                                              _job.getUuid(), execSysId, result, cmd);
                 _log.error(msg, e);
+                return;
             }
+        
+        // Record the successful removal of the instance.
+        if (_log.isDebugEnabled()) 
+           _log.debug(MsgUtils.getMsg("JOBS_SINGULARITY_INSTANCE_REMOVED",_job.getUuid()));
     }
 }

@@ -112,11 +112,19 @@ abstract class AbstractJobMonitor
      * active=true for any state before the job terminates; specify active=false
      * after the job has terminated.
      * 
-     * 
      * @param active true for pre-termination, false for post-termination
      * @return non-null remote job status
      */
     protected abstract JobRemoteStatus queryRemoteJob(boolean active) throws TapisException;
+    
+    /* ---------------------------------------------------------------------- */
+    /* cleanUpRemoteJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Offer subclasses a way to clean up a job that the higher level monitor
+     * loop has decided to end monitoring even though the job has not been 
+     * declared as terminal.  The default implementation does nothing.
+     */
+    protected void cleanUpRemoteJob() {}
     
     /* ---------------------------------------------------------------------- */
     /* monitor:                                                               */
@@ -167,6 +175,9 @@ abstract class AbstractJobMonitor
                     // Set the job outcome so that archiving is skipped since the job may
                     // still be running or start running at some point in the future.
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
+                    
+                    // Give the specific monitor a chance to clean up.
+                    cleanUpRemoteJob();
                 
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
                     String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", _policy.getReasonCode().name());
@@ -197,7 +208,7 @@ abstract class AbstractJobMonitor
             
                 // ------------------------- Request Status --------------------------
                 // The query method never returns null.  The call is first made assuming the job
-                // is active.  If necessary, a second call is made assuming taht the job has 
+                // is active.  If necessary, a second call is made assuming that the job has 
                 // terminated.  The implementing subclass chooses how to support each of the calls.
                 JobRemoteStatus remoteStatus = queryRemoteJob(true);
                 if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)

@@ -10,8 +10,6 @@ import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
@@ -127,10 +125,59 @@ public class SingularityStartMonitor
     }
     
     /* ---------------------------------------------------------------------- */
+    /* cleanUpRemoteJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    protected void cleanUpRemoteJob() 
+    {
+        // Best effort, no noise.
+        try {
+            // Get the ssh connection used by this job to
+            // communicate with the execution system.
+            var conn = _jobCtx.getExecSystemConnection();
+            
+            // Get the command object.
+            var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+            
+            // Get the command text for this job's container.
+            String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
+            
+            // Query the container.
+            String result = null;
+            try {result = runCmd.execute(cmd);}
+                catch (Exception e) {
+                    _log.error(e.getMessage(), e);
+                    return;
+                }
+            
+            // We should have gotten something.
+            if (StringUtils.isBlank(result)) return;
+            
+            // Extract records of interest from the results.
+            PsStartInfo psInfo = extractInstanceInfo(result);
+            
+            // We should always have found the sinit record, which represents the 
+            // process the singularity instance start command spawned.
+            if (psInfo.sinit == null) {
+                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_MISSING_SINIT", _job.getUuid(),
+                                             _job.getRemoteJobId());
+                _log.warn(msg);
+                return;
+            }
+            
+            // If there is no startscript process, we remove the instance.
+            if (psInfo.startscript == null) removeContainer(runCmd);;
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_CLEAN_UP_ERROR", _job.getUuid(),
+                                         _job.getRemoteJobId());
+            _log.error(msg, e);
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* removeContainer:                                                       */
     /* ---------------------------------------------------------------------- */
     private void removeContainer(TapisRunCommand runCmd) 
-     throws TapisServiceConnectionException, TapisImplException
     {
         // Get the command text to terminate this job's singularity instance.
         String cmd = JobExecutionUtils.SINGULARITY_STOP + _job.getUuid();
@@ -139,11 +186,17 @@ public class SingularityStartMonitor
         String result = null;
         try {result = runCmd.execute(cmd);}
             catch (Exception e) {
-                var execSysId = _jobCtx.getExecutionSystem().getId();
+                String execSysId = null;
+                try {execSysId = _jobCtx.getExecutionSystem().getId();} catch (Exception e1) {}
                 String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
                                              _job.getUuid(), execSysId, result, cmd);
                 _log.error(msg, e);
+                return;
             }
+        
+        // Record the successful removal of the instance.
+        if (_log.isDebugEnabled()) 
+           _log.debug(MsgUtils.getMsg("JOBS_SINGULARITY_INSTANCE_REMOVED",_job.getUuid()));
     }
     
     /* ---------------------------------------------------------------------- */
