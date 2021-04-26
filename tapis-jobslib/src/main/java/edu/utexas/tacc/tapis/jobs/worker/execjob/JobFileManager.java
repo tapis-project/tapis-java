@@ -24,6 +24,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -231,6 +232,9 @@ public final class JobFileManager
      */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
+        // Determine if archiving is necessary.
+        if (_job.getRemoteOutcome() == JobRemoteOutcome.FAILED_SKIP_ARCHIVE) return;
+        
         // Determine if we are restarting a previous staging request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
         String transferId = transferInfo.archiveTransactionId;
@@ -639,11 +643,15 @@ public final class JobFileManager
         HashMap<String,PathMatcher> globs = new HashMap<>();
         
         // Iterate through the file list.
+        final int lastFilterIndex = filterList.size() - 1;
         var fileIt = fileList.listIterator();
         while (fileIt.hasNext()) {
             var fileInfo = fileIt.next();
             var path = getOutputRelativePath(fileInfo.getPath());
-            for (String filter : filterList) {
+            for (int i = 0; i < filterList.size(); i++) {
+                // Get the current filter.
+                String filter = filterList.get(i);
+                
                 // Use cached filters to match paths.
                 boolean matches = matchFilter(filter, path, globs, regexes);
                 
@@ -652,8 +660,9 @@ public final class JobFileManager
                     if (matches) fileIt.remove();
                     break;
                 } else {
-                    if (!matches) fileIt.remove();
-                    break;
+                    // Remove item only after all include filters have failed to match.
+                    if (matches) break; // keep in list 
+                    if (!matches && (i == lastFilterIndex)) fileIt.remove();
                 }
             }
         }

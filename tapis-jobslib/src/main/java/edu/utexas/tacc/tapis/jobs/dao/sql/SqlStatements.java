@@ -142,7 +142,7 @@ public class SqlStatements
         + " FROM jobs WHERE uuid = ?"; 
     
     public static final String UPDATE_SUCCESS_STATUS_CHECKS =
-        "UPDATE jobs SET remote_status_checks = remote_status_checks + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";
+        "UPDATE jobs SET remote_checks_success = remote_checks_success + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";
     
     public static final String UPDATE_FAILED_STATUS_CHECKS =
         "UPDATE jobs SET remote_checks_failed = remote_checks_failed + ?, last_updated = ?, remote_last_status_check = ? WHERE id = ?";

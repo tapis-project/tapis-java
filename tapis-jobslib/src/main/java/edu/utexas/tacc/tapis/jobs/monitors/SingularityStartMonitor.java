@@ -113,9 +113,6 @@ public class SingularityStartMonitor
         // though it could be suspended (stopped) or even a zombie.
         if (psInfo.startscript != null) return JobRemoteStatus.ACTIVE;
         
-        // Remove the container from the execution system.
-        removeContainer(runCmd);
-
         // No startscript means the application has terminated.  If possible,
         // let's determine if it failed or succeeded by reading the optional
         // exit code file.  Even if that fails, the exit code is set.
@@ -138,39 +135,8 @@ public class SingularityStartMonitor
             // Get the command object.
             var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
             
-            // Get the command text for this job's container.
-            String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
-            
-            // Query the container.
-            String result = null;
-            try {result = runCmd.execute(cmd);}
-                catch (Exception e) {
-                    _log.error(e.getMessage(), e);
-                    return;
-                }
-            
-            // We should have gotten something.
-            if (StringUtils.isBlank(result)) return;
-            
-            // Extract records of interest from the results.
-            PsStartInfo psInfo = extractInstanceInfo(result);
-            
-            // We should always have found the sinit record, which represents the 
-            // process the singularity instance start command spawned.
-            if (psInfo.sinit == null) {
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_MISSING_SINIT", _job.getUuid(),
-                                             _job.getRemoteJobId());
-                _log.warn(msg);
-                return;
-            }
-            
-            // If there is no startscript process, we remove the instance.
-            if (psInfo.startscript == null) removeContainer(runCmd);
-              else if (_log.isDebugEnabled()) {
-                  _log.debug(MsgUtils.getMsg("JOBS_SINGULARITY_KEEPING_CONTAINER", 
-                             _job.getUuid(), psInfo.sinit.pid, 
-                             psInfo.startscript.pid, psInfo.startscript.ppid));
-              }
+            // Unconditionally remove the singularity instance container.
+            removeContainer(runCmd);
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SINGULARITY_CLEAN_UP_ERROR", _job.getUuid(),

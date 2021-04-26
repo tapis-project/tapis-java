@@ -162,7 +162,9 @@ abstract class AbstractJobMonitor
         
         // We put all code inside the try block so that we can guarantee the job 
         // outcome will always be set during this phase.
+        boolean exceptionThrown = false;
         boolean recoverableExceptionThrown = false;
+        JobRemoteStatus remoteStatus = null;
         try {
             // Monitor the remote job as prescribed by the monitor policy until
             // it reaches a terminal state or a policy limit has been reached.
@@ -170,15 +172,13 @@ abstract class AbstractJobMonitor
             while (true) 
             {
                 // ------------------------- Consult Policy --------------------------
+                remoteStatus = null; // reset on each iteration.
                 Long waitMillis = _policy.millisToWait(lastAttemptFailed);
                 if (waitMillis == null) {
                     // Set the job outcome so that archiving is skipped since the job may
                     // still be running or start running at some point in the future.
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
                     
-                    // Give the specific monitor a chance to clean up.
-//                    cleanUpRemoteJob();
-                
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
                     String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", _policy.getReasonCode().name());
                     _jobCtx.setFinalMessage(finalMessage);
@@ -210,7 +210,7 @@ abstract class AbstractJobMonitor
                 // The query method never returns null.  The call is first made assuming the job
                 // is active.  If necessary, a second call is made assuming that the job has 
                 // terminated.  The implementing subclass chooses how to support each of the calls.
-                JobRemoteStatus remoteStatus = queryRemoteJob(true);
+                remoteStatus = queryRemoteJob(true);
                 if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)
                     remoteStatus = queryRemoteJob(false);
                 
@@ -293,18 +293,20 @@ abstract class AbstractJobMonitor
         catch (Exception e) {
             // We need to do two things in this catch clause:
             //   
-            //  1. Wrap unrecoverable exceptions that meet certain conditions in a recoverable  
-            //     exception and throw that new outer exception.
-            //  2. Set the recoverable flag if a recoverable exception is thrown from this 
-            //     catch clause.
+            //  1. Record that an exception happened.
+            //  2. Record whether the exception is recoverable or not.
+            _log.error(e.getMessage(), e);
                 
             // Are we dealing with a recoverable condition?  Connection problems are always
             // treated as recoverable, see the recovery code in TenantQueueProcessor.
+            exceptionThrown = true;
             if (e instanceof TapisRecoverableException) 
             {
                 // Do not set the outcome when monitoring will resume in the future.
                 recoverableExceptionThrown = true;
             } 
+            
+            throw e;
         }
         finally {
             // Make sure the job outcome is set.  If we got here via an exception,
@@ -315,17 +317,17 @@ abstract class AbstractJobMonitor
                 // An exception could be thrown from here.
                 _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
                 
-                // Record the outcome. The hardcoded remote status parameter is not significant.
+                // Record the outcome. The remote status parameter reflects the last value set, which could be null.
                 if (_log.isDebugEnabled()) {
                     String outcome = _job.getRemoteOutcome() == null ? "null" : _job.getRemoteOutcome().name();
                     String msg = MsgUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(),
-                                                 _job.getUuid(), JobRemoteStatus.NULL.name(), outcome, null);
+                                                 _job.getUuid(), remoteStatus, outcome, null);
                     _log.debug(msg);
                 }
             }
             
             // Give the specific monitor a chance to clean up.
-            cleanUpRemoteJob();
+            if (exceptionThrown || initialStatus == JobStatusType.RUNNING) cleanUpRemoteJob();
         }
     }
 }
