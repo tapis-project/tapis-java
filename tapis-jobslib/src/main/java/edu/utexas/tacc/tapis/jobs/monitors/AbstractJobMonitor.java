@@ -177,7 +177,7 @@ abstract class AbstractJobMonitor
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
                     
                     // Give the specific monitor a chance to clean up.
-                    cleanUpRemoteJob();
+//                    cleanUpRemoteJob();
                 
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
                     String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", _policy.getReasonCode().name());
@@ -323,6 +323,9 @@ abstract class AbstractJobMonitor
                     _log.debug(msg);
                 }
             }
+            
+            // Give the specific monitor a chance to clean up.
+            cleanUpRemoteJob();
         }
     }
 }

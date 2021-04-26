@@ -7,7 +7,7 @@
         {"key": "JOBS_PARMS", "value": "15"}
       ],
       "archiveFilter": {
-        "includes": ["Sleep*"],
+        "includes": ["Sleep*", "tapisjob.exitcode"],
         "includeLaunchFiles": true
       }
     },

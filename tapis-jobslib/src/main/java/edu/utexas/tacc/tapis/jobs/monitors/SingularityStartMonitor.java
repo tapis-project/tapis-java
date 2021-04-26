@@ -165,7 +165,12 @@ public class SingularityStartMonitor
             }
             
             // If there is no startscript process, we remove the instance.
-            if (psInfo.startscript == null) removeContainer(runCmd);;
+            if (psInfo.startscript == null) removeContainer(runCmd);
+              else if (_log.isDebugEnabled()) {
+                  _log.debug(MsgUtils.getMsg("JOBS_SINGULARITY_KEEPING_CONTAINER", 
+                             _job.getUuid(), psInfo.sinit.pid, 
+                             psInfo.startscript.pid, psInfo.startscript.ppid));
+              }
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SINGULARITY_CLEAN_UP_ERROR", _job.getUuid(),
