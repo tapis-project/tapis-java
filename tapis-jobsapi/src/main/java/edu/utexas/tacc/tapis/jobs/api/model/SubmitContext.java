@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputDefinition;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
@@ -69,7 +69,7 @@ public final class SubmitContext
     private final Job                _job;
     
     // The raw sources of job information.
-    private App     _app;
+    private TapisApp     _app;
     private TapisSystem _execSystem;
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
@@ -244,7 +244,7 @@ public final class SubmitContext
     /*                                  Accessors                                   */
     /* **************************************************************************** */
     public Job getJob() {return _job;}
-    public App getApp() {return _app;}
+    public TapisApp getApp() {return _app;}
     public TapisSystem getExecSystem() {return _execSystem;}
     public TapisSystem getDtnSystem() {return _dtnSystem;}
     public TapisSystem getArchiveSystem() {return _archiveSystem;}
@@ -1149,7 +1149,7 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateApp:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    private void validateApp(App app) throws TapisImplException
+    private void validateApp(TapisApp app) throws TapisImplException
     {
         // This should be checked in apps, but we double check here.
         if (app.getRuntime() == RuntimeEnum.SINGULARITY) {

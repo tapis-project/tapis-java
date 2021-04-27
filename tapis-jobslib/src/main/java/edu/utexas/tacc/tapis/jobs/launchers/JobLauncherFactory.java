@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -85,7 +85,7 @@ public class JobLauncherFactory
     /* getSingularityOption:                                                  */
     /* ---------------------------------------------------------------------- */
     private static JobLauncher getSingularityOption(JobExecutionContext jobCtx,
-                                                    App app) 
+                                                    TapisApp app)
      throws TapisException
     {
         // We are only interested in the singularity options.  These have
