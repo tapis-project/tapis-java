@@ -7,6 +7,7 @@ package edu.utexas.tacc.tapis.jobs.gen.jooq.tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Public;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobBlockedRecord;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
@@ -27,6 +28,8 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.EnumConverter;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -36,7 +39,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobBlocked extends TableImpl<JobBlockedRecord> {
 
-    private static final long serialVersionUID = -148485397;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.job_blocked</code>
@@ -54,38 +57,39 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
     /**
      * The column <code>public.job_blocked.id</code>.
      */
-    public final TableField<JobBlockedRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('job_blocked_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobBlockedRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.job_blocked.recovery_id</code>.
      */
-    public final TableField<JobBlockedRecord, Integer> RECOVERY_ID = createField(DSL.name("recovery_id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobBlockedRecord, Integer> RECOVERY_ID = createField(DSL.name("recovery_id"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.job_blocked.created</code>.
      */
-    public final TableField<JobBlockedRecord, LocalDateTime> CREATED = createField(DSL.name("created"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobBlockedRecord, LocalDateTime> CREATED = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.job_blocked.success_status</code>.
      */
-    public final TableField<JobBlockedRecord, JobStatusType> SUCCESS_STATUS = createField(DSL.name("success_status"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType>(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType.class));
+    public final TableField<JobBlockedRecord, JobStatusType> SUCCESS_STATUS = createField(DSL.name("success_status"), SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new EnumConverter<JobStatusEnum, JobStatusType>(JobStatusEnum.class, JobStatusType.class));
 
     /**
      * The column <code>public.job_blocked.job_uuid</code>.
      */
-    public final TableField<JobBlockedRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobBlockedRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_blocked.status_message</code>.
      */
-    public final TableField<JobBlockedRecord, String> STATUS_MESSAGE = createField(DSL.name("status_message"), org.jooq.impl.SQLDataType.VARCHAR(2048).nullable(false), this, "");
+    public final TableField<JobBlockedRecord, String> STATUS_MESSAGE = createField(DSL.name("status_message"), SQLDataType.VARCHAR(2048).nullable(false), this, "");
 
-    /**
-     * Create a <code>public.job_blocked</code> table reference
-     */
-    public JobBlocked() {
-        this(DSL.name("job_blocked"), null);
+    private JobBlocked(Name alias, Table<JobBlockedRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private JobBlocked(Name alias, Table<JobBlockedRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -102,12 +106,11 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
         this(alias, JOB_BLOCKED);
     }
 
-    private JobBlocked(Name alias, Table<JobBlockedRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private JobBlocked(Name alias, Table<JobBlockedRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.job_blocked</code> table reference
+     */
+    public JobBlocked() {
+        this(DSL.name("job_blocked"), null);
     }
 
     public <O extends Record> JobBlocked(Table<O> child, ForeignKey<O, JobBlockedRecord> key) {
@@ -126,7 +129,7 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
 
     @Override
     public Identity<JobBlockedRecord, Integer> getIdentity() {
-        return Keys.IDENTITY_JOB_BLOCKED;
+        return (Identity<JobBlockedRecord, Integer>) super.getIdentity();
     }
 
     @Override
@@ -144,8 +147,13 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
         return Arrays.<ForeignKey<JobBlockedRecord, ?>>asList(Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
     }
 
+    private transient JobRecovery _jobRecovery;
+
     public JobRecovery jobRecovery() {
-        return new JobRecovery(this, Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
+        if (_jobRecovery == null)
+            _jobRecovery = new JobRecovery(this, Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
+
+        return _jobRecovery;
     }
 
     @Override

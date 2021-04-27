@@ -25,6 +25,7 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -34,7 +35,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobResubmit extends TableImpl<JobResubmitRecord> {
 
-    private static final long serialVersionUID = 634709912;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.job_resubmit</code>
@@ -52,23 +53,24 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
     /**
      * The column <code>public.job_resubmit.id</code>.
      */
-    public final TableField<JobResubmitRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('job_resubmit_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobResubmitRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.job_resubmit.job_uuid</code>.
      */
-    public final TableField<JobResubmitRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobResubmitRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_resubmit.job_definition</code>.
      */
-    public final TableField<JobResubmitRecord, String> JOB_DEFINITION = createField(DSL.name("job_definition"), org.jooq.impl.SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<JobResubmitRecord, String> JOB_DEFINITION = createField(DSL.name("job_definition"), SQLDataType.CLOB.nullable(false), this, "");
 
-    /**
-     * Create a <code>public.job_resubmit</code> table reference
-     */
-    public JobResubmit() {
-        this(DSL.name("job_resubmit"), null);
+    private JobResubmit(Name alias, Table<JobResubmitRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private JobResubmit(Name alias, Table<JobResubmitRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -85,12 +87,11 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
         this(alias, JOB_RESUBMIT);
     }
 
-    private JobResubmit(Name alias, Table<JobResubmitRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private JobResubmit(Name alias, Table<JobResubmitRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.job_resubmit</code> table reference
+     */
+    public JobResubmit() {
+        this(DSL.name("job_resubmit"), null);
     }
 
     public <O extends Record> JobResubmit(Table<O> child, ForeignKey<O, JobResubmitRecord> key) {
@@ -109,7 +110,7 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
 
     @Override
     public Identity<JobResubmitRecord, Integer> getIdentity() {
-        return Keys.IDENTITY_JOB_RESUBMIT;
+        return (Identity<JobResubmitRecord, Integer>) super.getIdentity();
     }
 
     @Override

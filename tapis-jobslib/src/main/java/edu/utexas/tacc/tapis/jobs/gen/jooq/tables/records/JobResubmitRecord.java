@@ -19,7 +19,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobResubmitRecord extends UpdatableRecordImpl<JobResubmitRecord> implements Record3<Integer, String, String> {
 
-    private static final long serialVersionUID = -1400384782;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.job_resubmit.id</code>.
@@ -174,8 +174,8 @@ public class JobResubmitRecord extends UpdatableRecordImpl<JobResubmitRecord> im
     public JobResubmitRecord(Integer id, String jobUuid, String jobDefinition) {
         super(JobResubmit.JOB_RESUBMIT);
 
-        set(0, id);
-        set(1, jobUuid);
-        set(2, jobDefinition);
+        setId(id);
+        setJobUuid(jobUuid);
+        setJobDefinition(jobDefinition);
     }
 }

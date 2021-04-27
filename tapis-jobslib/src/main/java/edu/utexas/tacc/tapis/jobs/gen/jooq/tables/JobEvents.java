@@ -7,6 +7,8 @@ package edu.utexas.tacc.tapis.jobs.gen.jooq.tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Public;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobEventsRecord;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -28,6 +30,8 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.EnumConverter;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -37,7 +41,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobEvents extends TableImpl<JobEventsRecord> {
 
-    private static final long serialVersionUID = 667958109;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.job_events</code>
@@ -55,43 +59,44 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
     /**
      * The column <code>public.job_events.id</code>.
      */
-    public final TableField<JobEventsRecord, Long> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.BIGINT.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('job_events_id_seq'::regclass)", org.jooq.impl.SQLDataType.BIGINT)), this, "");
+    public final TableField<JobEventsRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.job_events.event</code>.
      */
-    public final TableField<JobEventsRecord, JobEventType> EVENT = createField(DSL.name("event"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum.class), this, "", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum, edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType>(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum.class, edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType.class));
+    public final TableField<JobEventsRecord, JobEventType> EVENT = createField(DSL.name("event"), SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum.class), this, "", new EnumConverter<JobEventEnum, JobEventType>(JobEventEnum.class, JobEventType.class));
 
     /**
      * The column <code>public.job_events.created</code>.
      */
-    public final TableField<JobEventsRecord, LocalDateTime> CREATED = createField(DSL.name("created"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobEventsRecord, LocalDateTime> CREATED = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.job_events.job_uuid</code>.
      */
-    public final TableField<JobEventsRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobEventsRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_events.job_status</code>.
      */
-    public final TableField<JobEventsRecord, JobStatusType> JOB_STATUS = createField(DSL.name("job_status"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType>(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType.class));
+    public final TableField<JobEventsRecord, JobStatusType> JOB_STATUS = createField(DSL.name("job_status"), SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new EnumConverter<JobStatusEnum, JobStatusType>(JobStatusEnum.class, JobStatusType.class));
 
     /**
      * The column <code>public.job_events.oth_uuid</code>.
      */
-    public final TableField<JobEventsRecord, String> OTH_UUID = createField(DSL.name("oth_uuid"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "");
+    public final TableField<JobEventsRecord, String> OTH_UUID = createField(DSL.name("oth_uuid"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.job_events.description</code>.
      */
-    public final TableField<JobEventsRecord, String> DESCRIPTION = createField(DSL.name("description"), org.jooq.impl.SQLDataType.VARCHAR(16384).nullable(false), this, "");
+    public final TableField<JobEventsRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(16384).nullable(false), this, "");
 
-    /**
-     * Create a <code>public.job_events</code> table reference
-     */
-    public JobEvents() {
-        this(DSL.name("job_events"), null);
+    private JobEvents(Name alias, Table<JobEventsRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private JobEvents(Name alias, Table<JobEventsRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -108,12 +113,11 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
         this(alias, JOB_EVENTS);
     }
 
-    private JobEvents(Name alias, Table<JobEventsRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private JobEvents(Name alias, Table<JobEventsRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.job_events</code> table reference
+     */
+    public JobEvents() {
+        this(DSL.name("job_events"), null);
     }
 
     public <O extends Record> JobEvents(Table<O> child, ForeignKey<O, JobEventsRecord> key) {
@@ -132,7 +136,7 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
 
     @Override
     public Identity<JobEventsRecord, Long> getIdentity() {
-        return Keys.IDENTITY_JOB_EVENTS;
+        return (Identity<JobEventsRecord, Long>) super.getIdentity();
     }
 
     @Override

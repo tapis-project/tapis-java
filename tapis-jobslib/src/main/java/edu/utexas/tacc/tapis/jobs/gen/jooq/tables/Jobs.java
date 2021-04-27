@@ -7,9 +7,12 @@ package edu.utexas.tacc.tapis.jobs.gen.jooq.tables;
 import com.google.gson.JsonElement;
 
 import edu.utexas.tacc.tapis.jobs.dao.JSONBToJsonElementBinding;
+import edu.utexas.tacc.tapis.jobs.dao.TagsConverter;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Public;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobRemoteOutcomeEnum;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -17,6 +20,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -31,6 +35,8 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.EnumConverter;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -40,7 +46,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Jobs extends TableImpl<JobsRecord> {
 
-    private static final long serialVersionUID = -1675391107;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.jobs</code>
@@ -58,283 +64,284 @@ public class Jobs extends TableImpl<JobsRecord> {
     /**
      * The column <code>public.jobs.id</code>.
      */
-    public final TableField<JobsRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('jobs_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobsRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.jobs.name</code>.
      */
-    public final TableField<JobsRecord, String> NAME = createField(DSL.name("name"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobsRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.owner</code>.
      */
-    public final TableField<JobsRecord, String> OWNER = createField(DSL.name("owner"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobsRecord, String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.tenant</code>.
      */
-    public final TableField<JobsRecord, String> TENANT = createField(DSL.name("tenant"), org.jooq.impl.SQLDataType.VARCHAR(24).nullable(false), this, "");
+    public final TableField<JobsRecord, String> TENANT = createField(DSL.name("tenant"), SQLDataType.VARCHAR(24).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.description</code>.
      */
-    public final TableField<JobsRecord, String> DESCRIPTION = createField(DSL.name("description"), org.jooq.impl.SQLDataType.VARCHAR(2048).nullable(false), this, "");
+    public final TableField<JobsRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(2048).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.status</code>.
      */
-    public final TableField<JobsRecord, JobStatusType> STATUS = createField(DSL.name("status"), org.jooq.impl.SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType>(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class, edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType.class));
+    public final TableField<JobsRecord, JobStatusType> STATUS = createField(DSL.name("status"), SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new EnumConverter<JobStatusEnum, JobStatusType>(JobStatusEnum.class, JobStatusType.class));
 
     /**
      * The column <code>public.jobs.last_message</code>.
      */
-    public final TableField<JobsRecord, String> LAST_MESSAGE = createField(DSL.name("last_message"), org.jooq.impl.SQLDataType.VARCHAR(16384).nullable(false), this, "");
+    public final TableField<JobsRecord, String> LAST_MESSAGE = createField(DSL.name("last_message"), SQLDataType.VARCHAR(16384).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.created</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> CREATED = createField(DSL.name("created"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobsRecord, LocalDateTime> CREATED = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.jobs.ended</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> ENDED = createField(DSL.name("ended"), org.jooq.impl.SQLDataType.LOCALDATETIME, this, "");
+    public final TableField<JobsRecord, LocalDateTime> ENDED = createField(DSL.name("ended"), SQLDataType.LOCALDATETIME(6), this, "");
 
     /**
      * The column <code>public.jobs.last_updated</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobsRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.jobs.uuid</code>.
      */
-    public final TableField<JobsRecord, String> UUID = createField(DSL.name("uuid"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobsRecord, String> UUID = createField(DSL.name("uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.app_id</code>.
      */
-    public final TableField<JobsRecord, String> APP_ID = createField(DSL.name("app_id"), org.jooq.impl.SQLDataType.VARCHAR(80).nullable(false), this, "");
+    public final TableField<JobsRecord, String> APP_ID = createField(DSL.name("app_id"), SQLDataType.VARCHAR(80).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.app_version</code>.
      */
-    public final TableField<JobsRecord, String> APP_VERSION = createField(DSL.name("app_version"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobsRecord, String> APP_VERSION = createField(DSL.name("app_version"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.archive_on_app_error</code>.
      */
-    public final TableField<JobsRecord, Boolean> ARCHIVE_ON_APP_ERROR = createField(DSL.name("archive_on_app_error"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("true", org.jooq.impl.SQLDataType.BOOLEAN)), this, "");
+    public final TableField<JobsRecord, Boolean> ARCHIVE_ON_APP_ERROR = createField(DSL.name("archive_on_app_error"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("true", SQLDataType.BOOLEAN)), this, "");
 
     /**
      * The column <code>public.jobs.dynamic_exec_system</code>.
      */
-    public final TableField<JobsRecord, Boolean> DYNAMIC_EXEC_SYSTEM = createField(DSL.name("dynamic_exec_system"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("false", org.jooq.impl.SQLDataType.BOOLEAN)), this, "");
+    public final TableField<JobsRecord, Boolean> DYNAMIC_EXEC_SYSTEM = createField(DSL.name("dynamic_exec_system"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("false", SQLDataType.BOOLEAN)), this, "");
 
     /**
      * The column <code>public.jobs.exec_system_id</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_ID = createField(DSL.name("exec_system_id"), org.jooq.impl.SQLDataType.VARCHAR(80).nullable(false), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_ID = createField(DSL.name("exec_system_id"), SQLDataType.VARCHAR(80).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.exec_system_exec_dir</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_EXEC_DIR = createField(DSL.name("exec_system_exec_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_EXEC_DIR = createField(DSL.name("exec_system_exec_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>public.jobs.exec_system_input_dir</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_INPUT_DIR = createField(DSL.name("exec_system_input_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_INPUT_DIR = createField(DSL.name("exec_system_input_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>public.jobs.exec_system_output_dir</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_OUTPUT_DIR = createField(DSL.name("exec_system_output_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_OUTPUT_DIR = createField(DSL.name("exec_system_output_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>public.jobs.exec_system_logical_queue</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_LOGICAL_QUEUE = createField(DSL.name("exec_system_logical_queue"), org.jooq.impl.SQLDataType.VARCHAR(80), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_LOGICAL_QUEUE = createField(DSL.name("exec_system_logical_queue"), SQLDataType.VARCHAR(80), this, "");
 
     /**
      * The column <code>public.jobs.archive_system_id</code>.
      */
-    public final TableField<JobsRecord, String> ARCHIVE_SYSTEM_ID = createField(DSL.name("archive_system_id"), org.jooq.impl.SQLDataType.VARCHAR(80).nullable(false), this, "");
+    public final TableField<JobsRecord, String> ARCHIVE_SYSTEM_ID = createField(DSL.name("archive_system_id"), SQLDataType.VARCHAR(80).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.archive_system_dir</code>.
      */
-    public final TableField<JobsRecord, String> ARCHIVE_SYSTEM_DIR = createField(DSL.name("archive_system_dir"), org.jooq.impl.SQLDataType.VARCHAR(4096), this, "");
+    public final TableField<JobsRecord, String> ARCHIVE_SYSTEM_DIR = createField(DSL.name("archive_system_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>public.jobs.dtn_system_id</code>.
      */
-    public final TableField<JobsRecord, String> DTN_SYSTEM_ID = createField(DSL.name("dtn_system_id"), org.jooq.impl.SQLDataType.VARCHAR(80), this, "");
+    public final TableField<JobsRecord, String> DTN_SYSTEM_ID = createField(DSL.name("dtn_system_id"), SQLDataType.VARCHAR(80), this, "");
 
     /**
      * The column <code>public.jobs.dtn_mount_source_path</code>.
      */
-    public final TableField<JobsRecord, String> DTN_MOUNT_SOURCE_PATH = createField(DSL.name("dtn_mount_source_path"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "");
+    public final TableField<JobsRecord, String> DTN_MOUNT_SOURCE_PATH = createField(DSL.name("dtn_mount_source_path"), SQLDataType.VARCHAR(1024), this, "");
 
     /**
      * The column <code>public.jobs.dtn_mount_point</code>.
      */
-    public final TableField<JobsRecord, String> DTN_MOUNT_POINT = createField(DSL.name("dtn_mount_point"), org.jooq.impl.SQLDataType.VARCHAR(1024), this, "");
+    public final TableField<JobsRecord, String> DTN_MOUNT_POINT = createField(DSL.name("dtn_mount_point"), SQLDataType.VARCHAR(1024), this, "");
 
     /**
      * The column <code>public.jobs.node_count</code>.
      */
-    public final TableField<JobsRecord, Integer> NODE_COUNT = createField(DSL.name("node_count"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobsRecord, Integer> NODE_COUNT = createField(DSL.name("node_count"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.cores_per_node</code>.
      */
-    public final TableField<JobsRecord, Integer> CORES_PER_NODE = createField(DSL.name("cores_per_node"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobsRecord, Integer> CORES_PER_NODE = createField(DSL.name("cores_per_node"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.memory_mb</code>.
      */
-    public final TableField<JobsRecord, Integer> MEMORY_MB = createField(DSL.name("memory_mb"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobsRecord, Integer> MEMORY_MB = createField(DSL.name("memory_mb"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.max_minutes</code>.
      */
-    public final TableField<JobsRecord, Integer> MAX_MINUTES = createField(DSL.name("max_minutes"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobsRecord, Integer> MAX_MINUTES = createField(DSL.name("max_minutes"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.file_inputs</code>.
      */
-    public final TableField<JobsRecord, JSONB> FILE_INPUTS = createField(DSL.name("file_inputs"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "");
+    public final TableField<JobsRecord, JSONB> FILE_INPUTS = createField(DSL.name("file_inputs"), SQLDataType.JSONB.nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.parameter_set</code>.
      */
-    public final TableField<JobsRecord, JsonElement> PARAMETER_SET = createField(DSL.name("parameter_set"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "", new JSONBToJsonElementBinding());
+    public final TableField<JobsRecord, JsonElement> PARAMETER_SET = createField(DSL.name("parameter_set"), SQLDataType.JSONB.nullable(false), this, "", new JSONBToJsonElementBinding());
 
     /**
      * The column <code>public.jobs.exec_system_constraints</code>.
      */
-    public final TableField<JobsRecord, String> EXEC_SYSTEM_CONSTRAINTS = createField(DSL.name("exec_system_constraints"), org.jooq.impl.SQLDataType.VARCHAR(16384), this, "");
+    public final TableField<JobsRecord, String> EXEC_SYSTEM_CONSTRAINTS = createField(DSL.name("exec_system_constraints"), SQLDataType.VARCHAR(16384), this, "");
 
     /**
      * The column <code>public.jobs.subscriptions</code>.
      */
-    public final TableField<JobsRecord, JsonElement> SUBSCRIPTIONS = createField(DSL.name("subscriptions"), org.jooq.impl.SQLDataType.JSONB.nullable(false), this, "", new JSONBToJsonElementBinding());
+    public final TableField<JobsRecord, JsonElement> SUBSCRIPTIONS = createField(DSL.name("subscriptions"), SQLDataType.JSONB.nullable(false), this, "", new JSONBToJsonElementBinding());
 
     /**
      * The column <code>public.jobs.blocked_count</code>.
      */
-    public final TableField<JobsRecord, Integer> BLOCKED_COUNT = createField(DSL.name("blocked_count"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("0", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobsRecord, Integer> BLOCKED_COUNT = createField(DSL.name("blocked_count"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field("0", SQLDataType.INTEGER)), this, "");
 
     /**
      * The column <code>public.jobs.remote_job_id</code>.
      */
-    public final TableField<JobsRecord, String> REMOTE_JOB_ID = createField(DSL.name("remote_job_id"), org.jooq.impl.SQLDataType.VARCHAR(126), this, "");
+    public final TableField<JobsRecord, String> REMOTE_JOB_ID = createField(DSL.name("remote_job_id"), SQLDataType.VARCHAR(126), this, "");
 
     /**
      * The column <code>public.jobs.remote_job_id2</code>.
      */
-    public final TableField<JobsRecord, String> REMOTE_JOB_ID2 = createField(DSL.name("remote_job_id2"), org.jooq.impl.SQLDataType.VARCHAR(126), this, "");
+    public final TableField<JobsRecord, String> REMOTE_JOB_ID2 = createField(DSL.name("remote_job_id2"), SQLDataType.VARCHAR(126), this, "");
 
     /**
      * The column <code>public.jobs.remote_outcome</code>.
      */
-    public final TableField<JobsRecord, JobRemoteOutcome> REMOTE_OUTCOME = createField(DSL.name("remote_outcome"), org.jooq.impl.SQLDataType.VARCHAR.asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobRemoteOutcomeEnum.class), this, "", new org.jooq.impl.EnumConverter<edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobRemoteOutcomeEnum, edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome>(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobRemoteOutcomeEnum.class, edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome.class));
+    public final TableField<JobsRecord, JobRemoteOutcome> REMOTE_OUTCOME = createField(DSL.name("remote_outcome"), SQLDataType.VARCHAR.asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobRemoteOutcomeEnum.class), this, "", new EnumConverter<JobRemoteOutcomeEnum, JobRemoteOutcome>(JobRemoteOutcomeEnum.class, JobRemoteOutcome.class));
 
     /**
      * The column <code>public.jobs.remote_result_info</code>.
      */
-    public final TableField<JobsRecord, String> REMOTE_RESULT_INFO = createField(DSL.name("remote_result_info"), org.jooq.impl.SQLDataType.VARCHAR(16384), this, "");
+    public final TableField<JobsRecord, String> REMOTE_RESULT_INFO = createField(DSL.name("remote_result_info"), SQLDataType.VARCHAR(16384), this, "");
 
     /**
      * The column <code>public.jobs.remote_queue</code>.
      */
-    public final TableField<JobsRecord, String> REMOTE_QUEUE = createField(DSL.name("remote_queue"), org.jooq.impl.SQLDataType.VARCHAR(126), this, "");
+    public final TableField<JobsRecord, String> REMOTE_QUEUE = createField(DSL.name("remote_queue"), SQLDataType.VARCHAR(126), this, "");
 
     /**
      * The column <code>public.jobs.remote_submitted</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> REMOTE_SUBMITTED = createField(DSL.name("remote_submitted"), org.jooq.impl.SQLDataType.LOCALDATETIME, this, "");
+    public final TableField<JobsRecord, LocalDateTime> REMOTE_SUBMITTED = createField(DSL.name("remote_submitted"), SQLDataType.LOCALDATETIME(6), this, "");
 
     /**
      * The column <code>public.jobs.remote_started</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> REMOTE_STARTED = createField(DSL.name("remote_started"), org.jooq.impl.SQLDataType.LOCALDATETIME, this, "");
+    public final TableField<JobsRecord, LocalDateTime> REMOTE_STARTED = createField(DSL.name("remote_started"), SQLDataType.LOCALDATETIME(6), this, "");
 
     /**
      * The column <code>public.jobs.remote_ended</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> REMOTE_ENDED = createField(DSL.name("remote_ended"), org.jooq.impl.SQLDataType.LOCALDATETIME, this, "");
+    public final TableField<JobsRecord, LocalDateTime> REMOTE_ENDED = createField(DSL.name("remote_ended"), SQLDataType.LOCALDATETIME(6), this, "");
 
     /**
      * The column <code>public.jobs.remote_submit_retries</code>.
      */
-    public final TableField<JobsRecord, Integer> REMOTE_SUBMIT_RETRIES = createField(DSL.name("remote_submit_retries"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("0", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobsRecord, Integer> REMOTE_SUBMIT_RETRIES = createField(DSL.name("remote_submit_retries"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field("0", SQLDataType.INTEGER)), this, "");
 
     /**
      * The column <code>public.jobs.remote_checks_success</code>.
      */
-    public final TableField<JobsRecord, Integer> REMOTE_CHECKS_SUCCESS = createField(DSL.name("remote_checks_success"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("0", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobsRecord, Integer> REMOTE_CHECKS_SUCCESS = createField(DSL.name("remote_checks_success"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field("0", SQLDataType.INTEGER)), this, "");
 
     /**
      * The column <code>public.jobs.remote_checks_failed</code>.
      */
-    public final TableField<JobsRecord, Integer> REMOTE_CHECKS_FAILED = createField(DSL.name("remote_checks_failed"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("0", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobsRecord, Integer> REMOTE_CHECKS_FAILED = createField(DSL.name("remote_checks_failed"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field("0", SQLDataType.INTEGER)), this, "");
 
     /**
      * The column <code>public.jobs.remote_last_status_check</code>.
      */
-    public final TableField<JobsRecord, LocalDateTime> REMOTE_LAST_STATUS_CHECK = createField(DSL.name("remote_last_status_check"), org.jooq.impl.SQLDataType.LOCALDATETIME, this, "");
+    public final TableField<JobsRecord, LocalDateTime> REMOTE_LAST_STATUS_CHECK = createField(DSL.name("remote_last_status_check"), SQLDataType.LOCALDATETIME(6), this, "");
 
     /**
      * The column <code>public.jobs.input_transaction_id</code>.
      */
-    public final TableField<JobsRecord, String> INPUT_TRANSACTION_ID = createField(DSL.name("input_transaction_id"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "");
+    public final TableField<JobsRecord, String> INPUT_TRANSACTION_ID = createField(DSL.name("input_transaction_id"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.jobs.input_correlation_id</code>.
      */
-    public final TableField<JobsRecord, String> INPUT_CORRELATION_ID = createField(DSL.name("input_correlation_id"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "");
+    public final TableField<JobsRecord, String> INPUT_CORRELATION_ID = createField(DSL.name("input_correlation_id"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.jobs.archive_transaction_id</code>.
      */
-    public final TableField<JobsRecord, String> ARCHIVE_TRANSACTION_ID = createField(DSL.name("archive_transaction_id"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "");
+    public final TableField<JobsRecord, String> ARCHIVE_TRANSACTION_ID = createField(DSL.name("archive_transaction_id"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.jobs.archive_correlation_id</code>.
      */
-    public final TableField<JobsRecord, String> ARCHIVE_CORRELATION_ID = createField(DSL.name("archive_correlation_id"), org.jooq.impl.SQLDataType.VARCHAR(64), this, "");
+    public final TableField<JobsRecord, String> ARCHIVE_CORRELATION_ID = createField(DSL.name("archive_correlation_id"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.jobs.tapis_queue</code>.
      */
-    public final TableField<JobsRecord, String> TAPIS_QUEUE = createField(DSL.name("tapis_queue"), org.jooq.impl.SQLDataType.VARCHAR(255).nullable(false), this, "");
+    public final TableField<JobsRecord, String> TAPIS_QUEUE = createField(DSL.name("tapis_queue"), SQLDataType.VARCHAR(255).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.visible</code>.
      */
-    public final TableField<JobsRecord, Boolean> VISIBLE = createField(DSL.name("visible"), org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.field("true", org.jooq.impl.SQLDataType.BOOLEAN)), this, "");
+    public final TableField<JobsRecord, Boolean> VISIBLE = createField(DSL.name("visible"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("true", SQLDataType.BOOLEAN)), this, "");
 
     /**
      * The column <code>public.jobs.createdby</code>.
      */
-    public final TableField<JobsRecord, String> CREATEDBY = createField(DSL.name("createdby"), org.jooq.impl.SQLDataType.VARCHAR(60).nullable(false), this, "");
+    public final TableField<JobsRecord, String> CREATEDBY = createField(DSL.name("createdby"), SQLDataType.VARCHAR(60).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.createdby_tenant</code>.
      */
-    public final TableField<JobsRecord, String> CREATEDBY_TENANT = createField(DSL.name("createdby_tenant"), org.jooq.impl.SQLDataType.VARCHAR(24).nullable(false), this, "");
+    public final TableField<JobsRecord, String> CREATEDBY_TENANT = createField(DSL.name("createdby_tenant"), SQLDataType.VARCHAR(24).nullable(false), this, "");
 
     /**
      * The column <code>public.jobs.tags</code>.
      */
-    public final TableField<JobsRecord, String[]> TAGS = createField(DSL.name("tags"), org.jooq.impl.SQLDataType.CLOB.getArrayDataType(), this, "");
+    public final TableField<JobsRecord, TreeSet> TAGS = createField(DSL.name("tags"), SQLDataType.CLOB.getArrayDataType(), this, "", new TagsConverter());
 
-    /**
-     * Create a <code>public.jobs</code> table reference
-     */
-    public Jobs() {
-        this(DSL.name("jobs"), null);
+    private Jobs(Name alias, Table<JobsRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private Jobs(Name alias, Table<JobsRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -351,12 +358,11 @@ public class Jobs extends TableImpl<JobsRecord> {
         this(alias, JOBS);
     }
 
-    private Jobs(Name alias, Table<JobsRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private Jobs(Name alias, Table<JobsRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.jobs</code> table reference
+     */
+    public Jobs() {
+        this(DSL.name("jobs"), null);
     }
 
     public <O extends Record> Jobs(Table<O> child, ForeignKey<O, JobsRecord> key) {
@@ -375,7 +381,7 @@ public class Jobs extends TableImpl<JobsRecord> {
 
     @Override
     public Identity<JobsRecord, Integer> getIdentity() {
-        return Keys.IDENTITY_JOBS;
+        return (Identity<JobsRecord, Integer>) super.getIdentity();
     }
 
     @Override
