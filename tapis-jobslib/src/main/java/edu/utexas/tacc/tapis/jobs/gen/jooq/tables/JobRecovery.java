@@ -26,6 +26,7 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -35,7 +36,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobRecovery extends TableImpl<JobRecoveryRecord> {
 
-    private static final long serialVersionUID = -339113297;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.job_recovery</code>
@@ -53,68 +54,69 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
     /**
      * The column <code>public.job_recovery.id</code>.
      */
-    public final TableField<JobRecoveryRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('job_recovery_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobRecoveryRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.job_recovery.tenant_id</code>.
      */
-    public final TableField<JobRecoveryRecord, String> TENANT_ID = createField(DSL.name("tenant_id"), org.jooq.impl.SQLDataType.VARCHAR(24).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> TENANT_ID = createField(DSL.name("tenant_id"), SQLDataType.VARCHAR(24).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.condition_code</code>.
      */
-    public final TableField<JobRecoveryRecord, String> CONDITION_CODE = createField(DSL.name("condition_code"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> CONDITION_CODE = createField(DSL.name("condition_code"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.tester_type</code>.
      */
-    public final TableField<JobRecoveryRecord, String> TESTER_TYPE = createField(DSL.name("tester_type"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> TESTER_TYPE = createField(DSL.name("tester_type"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.tester_parms</code>.
      */
-    public final TableField<JobRecoveryRecord, String> TESTER_PARMS = createField(DSL.name("tester_parms"), org.jooq.impl.SQLDataType.VARCHAR(2048).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> TESTER_PARMS = createField(DSL.name("tester_parms"), SQLDataType.VARCHAR(2048).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.policy_type</code>.
      */
-    public final TableField<JobRecoveryRecord, String> POLICY_TYPE = createField(DSL.name("policy_type"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> POLICY_TYPE = createField(DSL.name("policy_type"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.policy_parms</code>.
      */
-    public final TableField<JobRecoveryRecord, String> POLICY_PARMS = createField(DSL.name("policy_parms"), org.jooq.impl.SQLDataType.VARCHAR(2048).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> POLICY_PARMS = createField(DSL.name("policy_parms"), SQLDataType.VARCHAR(2048).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.num_attempts</code>.
      */
-    public final TableField<JobRecoveryRecord, Integer> NUM_ATTEMPTS = createField(DSL.name("num_attempts"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, Integer> NUM_ATTEMPTS = createField(DSL.name("num_attempts"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.next_attempt</code>.
      */
-    public final TableField<JobRecoveryRecord, LocalDateTime> NEXT_ATTEMPT = createField(DSL.name("next_attempt"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, LocalDateTime> NEXT_ATTEMPT = createField(DSL.name("next_attempt"), SQLDataType.LOCALDATETIME(6).nullable(false), this, "");
 
     /**
      * The column <code>public.job_recovery.created</code>.
      */
-    public final TableField<JobRecoveryRecord, LocalDateTime> CREATED = createField(DSL.name("created"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobRecoveryRecord, LocalDateTime> CREATED = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.job_recovery.last_updated</code>.
      */
-    public final TableField<JobRecoveryRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobRecoveryRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.job_recovery.tester_hash</code>.
      */
-    public final TableField<JobRecoveryRecord, String> TESTER_HASH = createField(DSL.name("tester_hash"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobRecoveryRecord, String> TESTER_HASH = createField(DSL.name("tester_hash"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
-    /**
-     * Create a <code>public.job_recovery</code> table reference
-     */
-    public JobRecovery() {
-        this(DSL.name("job_recovery"), null);
+    private JobRecovery(Name alias, Table<JobRecoveryRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private JobRecovery(Name alias, Table<JobRecoveryRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -131,12 +133,11 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
         this(alias, JOB_RECOVERY);
     }
 
-    private JobRecovery(Name alias, Table<JobRecoveryRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private JobRecovery(Name alias, Table<JobRecoveryRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.job_recovery</code> table reference
+     */
+    public JobRecovery() {
+        this(DSL.name("job_recovery"), null);
     }
 
     public <O extends Record> JobRecovery(Table<O> child, ForeignKey<O, JobRecoveryRecord> key) {
@@ -155,7 +156,7 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
 
     @Override
     public Identity<JobRecoveryRecord, Integer> getIdentity() {
-        return Keys.IDENTITY_JOB_RECOVERY;
+        return (Identity<JobRecoveryRecord, Integer>) super.getIdentity();
     }
 
     @Override

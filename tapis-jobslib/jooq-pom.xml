@@ -1,0 +1,212 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+		<groupId>edu.utexas.tacc.tapis</groupId>
+		<artifactId>tapis</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	
+	<artifactId>tapis-jooq-jobslib</artifactId>
+	
+	<name>Tapis Jobs Library</name>
+	<description>Tapis Jobs backend library</description>
+    
+    <!-- DB connect properties for jOOQ and Flyway -->
+  <properties>
+    <db.url>jdbc:postgresql://localhost:5400/tapisjobsdb</db.url>
+    <db.username>tapis</db.username>
+    <db.password>password</db.password>
+    <db.schema>public</db.schema>
+    <!-- If necessary set a specific version of the shared code. Parent pom file from tapis-bom has a range. -->
+    <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
+  </properties>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-lib</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-searchlib</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-db</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-queue</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tapis-shared-searchlib</artifactId>
+            <version>${tapis-shared-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jobs-client</artifactId>
+            <version>${tapis-client-java.version}</version>
+        </dependency>
+	    <dependency>
+		    <groupId>org.jooq</groupId>
+		    <artifactId>jooq</artifactId>
+		    </dependency>
+	    <dependency>
+	       <groupId>org.jooq</groupId>
+		   <artifactId>jooq-meta</artifactId>
+		</dependency>
+	   <dependency>
+		   <groupId>org.jooq</groupId>
+		   <artifactId>jooq-codegen</artifactId>
+	   </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.statefulj</groupId>
+            <artifactId>statefulj-fsm</artifactId>
+        </dependency>
+        <!-- Needed to hide certain methods from swagger -->
+        <!-- and for date conversion handling.           -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
+
+        <plugins>
+            <!-- Capture the git commit hash and branch identifiers. -->
+            <!-- See parent pom for configuration details. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+            </plugin>
+             <plugin>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-codegen-maven</artifactId>
+      <executions>
+        <execution>
+          <id>jooq-codegen</id>
+          <phase>generate-sources</phase>
+          <goals> <goal>generate</goal> </goals>
+          <configuration>
+            <jdbc>
+              <driver>org.postgresql.Driver</driver>
+              <url>${db.url}</url>
+              <user>${db.username}</user>
+              <password>${db.password}</password>
+            </jdbc>
+            <generator>
+              <name>org.jooq.codegen.JavaGenerator</name>
+              <generate>
+                <javaTimeTypes>true</javaTimeTypes>
+              </generate>
+              <target>
+                <!-- The destination package of your generated classes (within the destination directory) -->
+                <packageName>edu.utexas.tacc.tapis.jobs.gen.jooq</packageName>
+                <!-- The destination directory of your generated classes. Using Maven directory layout here -->
+                <directory>src/main/java</directory>
+              </target>
+              <database>
+                <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                <inputSchema>public</inputSchema>
+                <!-- Include everything from the schema -->
+                <includes>.*</includes>
+                
+                  <!-- ****************************************** -->
+                  <!-- Register custom bindings -->
+                  <!-- ****************************************** -->
+                  <!-- Bind Postgresql JSONB type to Gson JsonElement -->
+                <forcedTypes>
+                  <forcedType>
+                    <userType>com.google.gson.JsonElement</userType>
+                    <binding>edu.utexas.tacc.tapis.jobs.dao.JSONBToJsonElementBinding</binding>
+                    <!-- Match only certain columns, no need to filter on type -->
+                    <includeExpression>(jobs\.files_inputs|jobs\.parameter_set|jobs\.subscriptions)</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <!-- ****************************************** -->
+                  <!-- Bind our enum types for convenience -->
+                  <!-- ****************************************** -->
+                  <forcedType>
+                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
+                    <!-- Use built-in enum converter -->
+                    <enumConverter>true</enumConverter>
+                    <!-- Explicitly match one column. -->
+                    <includeExpression>jobs\.status</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <forcedType>
+                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome</userType>
+                    <!-- Use built-in enum converter -->
+                    <enumConverter>true</enumConverter>
+                    <!-- Explicitly match one column. -->
+                    <includeExpression>jobs\.remote_outcome</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <forcedType>
+                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType</userType>
+                    <!-- Use built-in enum converter -->
+                    <enumConverter>true</enumConverter>
+                    <!-- Explicitly match one column. -->
+                    <includeExpression>job_events\.event</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <forcedType>
+                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
+                    <!-- Use built-in enum converter -->
+                    <enumConverter>true</enumConverter>
+                    <!-- Explicitly match one column. -->
+                    <includeExpression>job_events\.job_status</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <forcedType>
+                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
+                    <!-- Use built-in enum converter -->
+                    <enumConverter>true</enumConverter>
+                    <!-- Explicitly match one column. -->
+                    <includeExpression>job_blocked\.success_status</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                  <!-- Convert jobs.tags column to/from a TreeSet -->
+                  <forcedType>
+                    <userType>java.util.TreeSet</userType>
+                    <converter>edu.utexas.tacc.tapis.jobs.dao.TagsConverter</converter>
+                    <includeExpression>jobs\.tags</includeExpression>
+                    <includeTypes>.*</includeTypes>
+                  </forcedType>
+                </forcedTypes>
+              </database>
+            </generator>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+ </build>
+    
+   
+</project>

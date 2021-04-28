@@ -22,7 +22,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobBlockedRecord extends UpdatableRecordImpl<JobBlockedRecord> implements Record6<Integer, Integer, LocalDateTime, JobStatusType, String, String> {
 
-    private static final long serialVersionUID = 1051742727;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.job_blocked.id</code>.
@@ -285,11 +285,11 @@ public class JobBlockedRecord extends UpdatableRecordImpl<JobBlockedRecord> impl
     public JobBlockedRecord(Integer id, Integer recoveryId, LocalDateTime created, JobStatusType successStatus, String jobUuid, String statusMessage) {
         super(JobBlocked.JOB_BLOCKED);
 
-        set(0, id);
-        set(1, recoveryId);
-        set(2, created);
-        set(3, successStatus);
-        set(4, jobUuid);
-        set(5, statusMessage);
+        setId(id);
+        setRecoveryId(recoveryId);
+        setCreated(created);
+        setSuccessStatus(successStatus);
+        setJobUuid(jobUuid);
+        setStatusMessage(statusMessage);
     }
 }

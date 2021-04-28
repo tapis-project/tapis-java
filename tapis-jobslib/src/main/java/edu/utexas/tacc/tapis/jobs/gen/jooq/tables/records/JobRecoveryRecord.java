@@ -21,7 +21,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobRecoveryRecord extends UpdatableRecordImpl<JobRecoveryRecord> implements Record12<Integer, String, String, String, String, String, String, Integer, LocalDateTime, LocalDateTime, LocalDateTime, String> {
 
-    private static final long serialVersionUID = -715536778;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.job_recovery.id</code>.
@@ -500,17 +500,17 @@ public class JobRecoveryRecord extends UpdatableRecordImpl<JobRecoveryRecord> im
     public JobRecoveryRecord(Integer id, String tenantId, String conditionCode, String testerType, String testerParms, String policyType, String policyParms, Integer numAttempts, LocalDateTime nextAttempt, LocalDateTime created, LocalDateTime lastUpdated, String testerHash) {
         super(JobRecovery.JOB_RECOVERY);
 
-        set(0, id);
-        set(1, tenantId);
-        set(2, conditionCode);
-        set(3, testerType);
-        set(4, testerParms);
-        set(5, policyType);
-        set(6, policyParms);
-        set(7, numAttempts);
-        set(8, nextAttempt);
-        set(9, created);
-        set(10, lastUpdated);
-        set(11, testerHash);
+        setId(id);
+        setTenantId(tenantId);
+        setConditionCode(conditionCode);
+        setTesterType(testerType);
+        setTesterParms(testerParms);
+        setPolicyType(policyType);
+        setPolicyParms(policyParms);
+        setNumAttempts(numAttempts);
+        setNextAttempt(nextAttempt);
+        setCreated(created);
+        setLastUpdated(lastUpdated);
+        setTesterHash(testerHash);
     }
 }

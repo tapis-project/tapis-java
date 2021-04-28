@@ -13,16 +13,7 @@
 	
 	<name>Tapis Jobs Library</name>
 	<description>Tapis Jobs backend library</description>
-    
-    <!-- DB connect properties for jOOQ and Flyway -->
-  <properties>
-    <db.url>jdbc:postgresql://localhost:5400/tapisjobsdb</db.url>
-    <db.username>tapis</db.username>
-    <db.password>password</db.password>
-    <db.schema>public</db.schema>
-    <!-- If necessary set a specific version of the shared code. Parent pom file from tapis-bom has a range. -->
-    <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
-  </properties>
+ 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -57,17 +48,14 @@
 	    <dependency>
 		    <groupId>org.jooq</groupId>
 		    <artifactId>jooq</artifactId>
-		    <version>${jooq.version}</version>
-	    </dependency>
+		</dependency>
 	    <dependency>
 	       <groupId>org.jooq</groupId>
 		   <artifactId>jooq-meta</artifactId>
-		   <version>${jooq.version}</version>
-	   </dependency>
+	    </dependency>
 	   <dependency>
 		   <groupId>org.jooq</groupId>
 		   <artifactId>jooq-codegen</artifactId>
-		   <version>${jooq.version}</version>
 	    </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
@@ -123,120 +111,4 @@
         <finalName>jobslib</finalName>
     </build>
     
-    <profiles>
-  <!-- Profile to conditionally run flyway DB migration and jooq code generation -->
-  <!-- To be used when DB schema is updated                                  -->
-  <!-- When DB schema changes need to re-run flyway and jOOQ code generation -->
-  <!--   To run check that db.password property is set correctly.            -->
-  <!--   Then unless flyway will be making the updates make sure the DB at   -->
-  <!--     db.url has the correct schema. May need to drop the current       -->
-  <!--     the schema if flyway is still on V001__init.sql                   -->
-  <!-- Finally run:                                                          -->
-  <!--   cd lib                                                              -->
-  <!--   mvn clean install -Pdb-update                                       -->
-  <profile>
-    <id>db-update</id>
-    <build>
-    <plugins>
-   
-    <!-- **************** Run jOOQ **************** -->
-    <plugin>
-      <groupId>org.jooq</groupId>
-      <artifactId>jooq-codegen-maven</artifactId>
-      <executions>
-        <execution>
-          <id>jooq-codegen</id>
-          <phase>generate-sources</phase>
-          <goals> <goal>generate</goal> </goals>
-          <configuration>
-            <jdbc>
-              <driver>org.postgresql.Driver</driver>
-              <url>${db.url}</url>
-              <user>${db.username}</user>
-              <password>${db.password}</password>
-            </jdbc>
-            <generator>
-              <name>org.jooq.codegen.JavaGenerator</name>
-              <generate>
-                <javaTimeTypes>true</javaTimeTypes>
-              </generate>
-              <target>
-                <!-- The destination package of your generated classes (within the destination directory) -->
-                <packageName>edu.utexas.tacc.tapis.jobs.gen.jooq</packageName>
-                <!-- The destination directory of your generated classes. Using Maven directory layout here -->
-                <directory>src/main/java</directory>
-              </target>
-              <database>
-                <name>org.jooq.meta.postgres.PostgresDatabase</name>
-                <inputSchema>public</inputSchema>
-                <!-- Include everything from the schema -->
-                <includes>.*</includes>
-                
-                  <!-- ****************************************** -->
-                  <!-- Register custom bindings -->
-                  <!-- ****************************************** -->
-                  <!-- Bind Postgresql JSONB type to Gson JsonElement -->
-                <forcedTypes>
-                  <forcedType>
-                    <userType>com.google.gson.JsonElement</userType>
-                    <binding>edu.utexas.tacc.tapis.jobs.dao.JSONBToJsonElementBinding</binding>
-                    <!-- Match only certain columns, no need to filter on type -->
-                    <includeExpression>(jobs\.files_inputs|jobs\.parameter_set|jobs\.subscriptions)</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                  <!-- ****************************************** -->
-                  <!-- Bind our enum types for convenience -->
-                  <!-- ****************************************** -->
-                  <forcedType>
-                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
-                    <!-- Use built-in enum converter -->
-                    <enumConverter>true</enumConverter>
-                    <!-- Explicitly match one column. -->
-                    <includeExpression>jobs\.status</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                  <forcedType>
-                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome</userType>
-                    <!-- Use built-in enum converter -->
-                    <enumConverter>true</enumConverter>
-                    <!-- Explicitly match one column. -->
-                    <includeExpression>jobs\.remote_outcome</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                  <forcedType>
-                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType</userType>
-                    <!-- Use built-in enum converter -->
-                    <enumConverter>true</enumConverter>
-                    <!-- Explicitly match one column. -->
-                    <includeExpression>job_events\.event</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                  <forcedType>
-                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
-                    <!-- Use built-in enum converter -->
-                    <enumConverter>true</enumConverter>
-                    <!-- Explicitly match one column. -->
-                    <includeExpression>job_events\.job_status</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                  <forcedType>
-                    <userType>edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType</userType>
-                    <!-- Use built-in enum converter -->
-                    <enumConverter>true</enumConverter>
-                    <!-- Explicitly match one column. -->
-                    <includeExpression>job_blocked\.success_status</includeExpression>
-                    <includeTypes>.*</includeTypes>
-                  </forcedType>
-                </forcedTypes>
-              </database>
-            </generator>
-          </configuration>
-        </execution>
-      </executions>
-    </plugin>
-    </plugins>
-    </build>
-  </profile>
-  </profiles>
-    
-</project>
+ </project>

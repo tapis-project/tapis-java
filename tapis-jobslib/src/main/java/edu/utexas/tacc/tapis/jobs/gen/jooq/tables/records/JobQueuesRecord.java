@@ -21,7 +21,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobQueuesRecord extends UpdatableRecordImpl<JobQueuesRecord> implements Record7<Integer, String, Integer, String, String, LocalDateTime, LocalDateTime> {
 
-    private static final long serialVersionUID = -1912542489;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.job_queues.id</code>.
@@ -320,12 +320,12 @@ public class JobQueuesRecord extends UpdatableRecordImpl<JobQueuesRecord> implem
     public JobQueuesRecord(Integer id, String name, Integer priority, String filter, String uuid, LocalDateTime created, LocalDateTime lastUpdated) {
         super(JobQueues.JOB_QUEUES);
 
-        set(0, id);
-        set(1, name);
-        set(2, priority);
-        set(3, filter);
-        set(4, uuid);
-        set(5, created);
-        set(6, lastUpdated);
+        setId(id);
+        setName(name);
+        setPriority(priority);
+        setFilter(filter);
+        setUuid(uuid);
+        setCreated(created);
+        setLastUpdated(lastUpdated);
     }
 }

@@ -670,7 +670,7 @@ public final class JobsDao
 	          for (JobsRecord r : results)
 	          {
 	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
-	        	  r.setTags(Arrays.asList(r.getTags()));
+	        	 //  r.setTags(Arrays.asList(r.getTags()));
 	        	 
 	            Job job = r.into(Job.class);
 	            jobs.add(job);

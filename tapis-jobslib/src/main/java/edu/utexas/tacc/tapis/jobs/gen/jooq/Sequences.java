@@ -6,10 +6,11 @@ package edu.utexas.tacc.tapis.jobs.gen.jooq;
 
 import org.jooq.Sequence;
 import org.jooq.impl.Internal;
+import org.jooq.impl.SQLDataType;
 
 
 /**
- * Convenience access to all sequences in public
+ * Convenience access to all sequences in public.
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Sequences {
@@ -17,30 +18,30 @@ public class Sequences {
     /**
      * The sequence <code>public.job_blocked_id_seq</code>
      */
-    public static final Sequence<Integer> JOB_BLOCKED_ID_SEQ = Internal.createSequence("job_blocked_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> JOB_BLOCKED_ID_SEQ = Internal.createSequence("job_blocked_id_seq", Public.PUBLIC, SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
      * The sequence <code>public.job_events_id_seq</code>
      */
-    public static final Sequence<Long> JOB_EVENTS_ID_SEQ = Internal.createSequence("job_events_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.BIGINT.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Long> JOB_EVENTS_ID_SEQ = Internal.createSequence("job_events_id_seq", Public.PUBLIC, SQLDataType.BIGINT.nullable(false), null, null, null, null, false, null);
 
     /**
      * The sequence <code>public.job_queues_id_seq</code>
      */
-    public static final Sequence<Integer> JOB_QUEUES_ID_SEQ = Internal.createSequence("job_queues_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> JOB_QUEUES_ID_SEQ = Internal.createSequence("job_queues_id_seq", Public.PUBLIC, SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
      * The sequence <code>public.job_recovery_id_seq</code>
      */
-    public static final Sequence<Integer> JOB_RECOVERY_ID_SEQ = Internal.createSequence("job_recovery_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> JOB_RECOVERY_ID_SEQ = Internal.createSequence("job_recovery_id_seq", Public.PUBLIC, SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
      * The sequence <code>public.job_resubmit_id_seq</code>
      */
-    public static final Sequence<Integer> JOB_RESUBMIT_ID_SEQ = Internal.createSequence("job_resubmit_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> JOB_RESUBMIT_ID_SEQ = Internal.createSequence("job_resubmit_id_seq", Public.PUBLIC, SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 
     /**
      * The sequence <code>public.jobs_id_seq</code>
      */
-    public static final Sequence<Integer> JOBS_ID_SEQ = Internal.createSequence("jobs_id_seq", Public.PUBLIC, org.jooq.impl.SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
+    public static final Sequence<Integer> JOBS_ID_SEQ = Internal.createSequence("jobs_id_seq", Public.PUBLIC, SQLDataType.INTEGER.nullable(false), null, null, null, null, false, null);
 }

@@ -10,10 +10,7 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
-import java.sql.Array;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 import java.util.TreeSet;
 
 import org.jooq.JSONB;
@@ -27,7 +24,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
 
-    private static final long serialVersionUID = -1462326282;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.jobs.id</code>.
@@ -788,15 +785,15 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Setter for <code>public.jobs.tags</code>.
      */
-    public void setTags(String[] value) {
+    public void setTags(TreeSet value) {
         set(54, value);
     }
 
     /**
      * Getter for <code>public.jobs.tags</code>.
      */
-    public String[] getTags() {
-        return (String[]) get(54);
+    public TreeSet getTags() {
+        return (TreeSet) get(54);
     }
 
     // -------------------------------------------------------------------------
@@ -822,84 +819,63 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Create a detached, initialised JobsRecord
      */
-    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, String[] tags) {
+    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags) {
         super(Jobs.JOBS);
 
-        set(0, id);
-        set(1, name);
-        set(2, owner);
-        set(3, tenant);
-        set(4, description);
-        set(5, status);
-        set(6, lastMessage);
-        set(7, created);
-        set(8, ended);
-        set(9, lastUpdated);
-        set(10, uuid);
-        set(11, appId);
-        set(12, appVersion);
-        set(13, archiveOnAppError);
-        set(14, dynamicExecSystem);
-        set(15, execSystemId);
-        set(16, execSystemExecDir);
-        set(17, execSystemInputDir);
-        set(18, execSystemOutputDir);
-        set(19, execSystemLogicalQueue);
-        set(20, archiveSystemId);
-        set(21, archiveSystemDir);
-        set(22, dtnSystemId);
-        set(23, dtnMountSourcePath);
-        set(24, dtnMountPoint);
-        set(25, nodeCount);
-        set(26, coresPerNode);
-        set(27, memoryMb);
-        set(28, maxMinutes);
-        set(29, fileInputs);
-        set(30, parameterSet);
-        set(31, execSystemConstraints);
-        set(32, subscriptions);
-        set(33, blockedCount);
-        set(34, remoteJobId);
-        set(35, remoteJobId2);
-        set(36, remoteOutcome);
-        set(37, remoteResultInfo);
-        set(38, remoteQueue);
-        set(39, remoteSubmitted);
-        set(40, remoteStarted);
-        set(41, remoteEnded);
-        set(42, remoteSubmitRetries);
-        set(43, remoteChecksSuccess);
-        set(44, remoteChecksFailed);
-        set(45, remoteLastStatusCheck);
-        set(46, inputTransactionId);
-        set(47, inputCorrelationId);
-        set(48, archiveTransactionId);
-        set(49, archiveCorrelationId);
-        set(50, tapisQueue);
-        set(51, visible);
-        set(52, createdby);
-        set(53, createdbyTenant);
-        //set(54, tags);
-        var tagsSet = new TreeSet<String>();
-        List<String>value = Arrays.asList(tags);
-        if (value != null && value.size() > 0) { 
-            
-            for (String s1 : value) tagsSet.add(s1);
-            
-        }
-     
-        set(54, tagsSet);
+        setId(id);
+        setName(name);
+        setOwner(owner);
+        setTenant(tenant);
+        setDescription(description);
+        setStatus(status);
+        setLastMessage(lastMessage);
+        setCreated(created);
+        setEnded(ended);
+        setLastUpdated(lastUpdated);
+        setUuid(uuid);
+        setAppId(appId);
+        setAppVersion(appVersion);
+        setArchiveOnAppError(archiveOnAppError);
+        setDynamicExecSystem(dynamicExecSystem);
+        setExecSystemId(execSystemId);
+        setExecSystemExecDir(execSystemExecDir);
+        setExecSystemInputDir(execSystemInputDir);
+        setExecSystemOutputDir(execSystemOutputDir);
+        setExecSystemLogicalQueue(execSystemLogicalQueue);
+        setArchiveSystemId(archiveSystemId);
+        setArchiveSystemDir(archiveSystemDir);
+        setDtnSystemId(dtnSystemId);
+        setDtnMountSourcePath(dtnMountSourcePath);
+        setDtnMountPoint(dtnMountPoint);
+        setNodeCount(nodeCount);
+        setCoresPerNode(coresPerNode);
+        setMemoryMb(memoryMb);
+        setMaxMinutes(maxMinutes);
+        setFileInputs(fileInputs);
+        setParameterSet(parameterSet);
+        setExecSystemConstraints(execSystemConstraints);
+        setSubscriptions(subscriptions);
+        setBlockedCount(blockedCount);
+        setRemoteJobId(remoteJobId);
+        setRemoteJobId2(remoteJobId2);
+        setRemoteOutcome(remoteOutcome);
+        setRemoteResultInfo(remoteResultInfo);
+        setRemoteQueue(remoteQueue);
+        setRemoteSubmitted(remoteSubmitted);
+        setRemoteStarted(remoteStarted);
+        setRemoteEnded(remoteEnded);
+        setRemoteSubmitRetries(remoteSubmitRetries);
+        setRemoteChecksSuccess(remoteChecksSuccess);
+        setRemoteChecksFailed(remoteChecksFailed);
+        setRemoteLastStatusCheck(remoteLastStatusCheck);
+        setInputTransactionId(inputTransactionId);
+        setInputCorrelationId(inputCorrelationId);
+        setArchiveTransactionId(archiveTransactionId);
+        setArchiveCorrelationId(archiveCorrelationId);
+        setTapisQueue(tapisQueue);
+        setVisible(visible);
+        setCreatedby(createdby);
+        setCreatedbyTenant(createdbyTenant);
+        setTags(tags);
     }
-
-	public void setTags(List<String> value) {
-		//Array tagsArray = rs.getArray(55);
-		var tagsSet = new TreeSet<String>();
-            if (value != null && value.size() > 0) { 
-                
-                for (String s1 : value) tagsSet.add(s1);
-                
-            }
-         
-		set(54, tagsSet);
-	}
 }

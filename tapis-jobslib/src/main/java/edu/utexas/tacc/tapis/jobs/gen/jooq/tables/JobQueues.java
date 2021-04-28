@@ -26,6 +26,7 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
 
@@ -35,7 +36,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobQueues extends TableImpl<JobQueuesRecord> {
 
-    private static final long serialVersionUID = 172694407;
+    private static final long serialVersionUID = 1L;
 
     /**
      * The reference instance of <code>public.job_queues</code>
@@ -53,43 +54,44 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
     /**
      * The column <code>public.job_queues.id</code>.
      */
-    public final TableField<JobQueuesRecord, Integer> ID = createField(DSL.name("id"), org.jooq.impl.SQLDataType.INTEGER.nullable(false).defaultValue(org.jooq.impl.DSL.field("nextval('job_queues_id_seq'::regclass)", org.jooq.impl.SQLDataType.INTEGER)), this, "");
+    public final TableField<JobQueuesRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.nullable(false).identity(true), this, "");
 
     /**
      * The column <code>public.job_queues.name</code>.
      */
-    public final TableField<JobQueuesRecord, String> NAME = createField(DSL.name("name"), org.jooq.impl.SQLDataType.VARCHAR(255).nullable(false), this, "");
+    public final TableField<JobQueuesRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255).nullable(false), this, "");
 
     /**
      * The column <code>public.job_queues.priority</code>.
      */
-    public final TableField<JobQueuesRecord, Integer> PRIORITY = createField(DSL.name("priority"), org.jooq.impl.SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<JobQueuesRecord, Integer> PRIORITY = createField(DSL.name("priority"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>public.job_queues.filter</code>.
      */
-    public final TableField<JobQueuesRecord, String> FILTER = createField(DSL.name("filter"), org.jooq.impl.SQLDataType.VARCHAR(4096).nullable(false), this, "");
+    public final TableField<JobQueuesRecord, String> FILTER = createField(DSL.name("filter"), SQLDataType.VARCHAR(4096).nullable(false), this, "");
 
     /**
      * The column <code>public.job_queues.uuid</code>.
      */
-    public final TableField<JobQueuesRecord, String> UUID = createField(DSL.name("uuid"), org.jooq.impl.SQLDataType.VARCHAR(64).nullable(false), this, "");
+    public final TableField<JobQueuesRecord, String> UUID = createField(DSL.name("uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_queues.created</code>.
      */
-    public final TableField<JobQueuesRecord, LocalDateTime> CREATED = createField(DSL.name("created"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobQueuesRecord, LocalDateTime> CREATED = createField(DSL.name("created"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * The column <code>public.job_queues.last_updated</code>.
      */
-    public final TableField<JobQueuesRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("timezone('utc'::text, now())", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<JobQueuesRecord, LocalDateTime> LAST_UPDATED = createField(DSL.name("last_updated"), SQLDataType.LOCALDATETIME(6).nullable(false).defaultValue(DSL.field("timezone('utc'::text, now())", SQLDataType.LOCALDATETIME)), this, "");
 
-    /**
-     * Create a <code>public.job_queues</code> table reference
-     */
-    public JobQueues() {
-        this(DSL.name("job_queues"), null);
+    private JobQueues(Name alias, Table<JobQueuesRecord> aliased) {
+        this(alias, aliased, null);
+    }
+
+    private JobQueues(Name alias, Table<JobQueuesRecord> aliased, Field<?>[] parameters) {
+        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
     }
 
     /**
@@ -106,12 +108,11 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
         this(alias, JOB_QUEUES);
     }
 
-    private JobQueues(Name alias, Table<JobQueuesRecord> aliased) {
-        this(alias, aliased, null);
-    }
-
-    private JobQueues(Name alias, Table<JobQueuesRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table());
+    /**
+     * Create a <code>public.job_queues</code> table reference
+     */
+    public JobQueues() {
+        this(DSL.name("job_queues"), null);
     }
 
     public <O extends Record> JobQueues(Table<O> child, ForeignKey<O, JobQueuesRecord> key) {
@@ -130,7 +131,7 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
 
     @Override
     public Identity<JobQueuesRecord, Integer> getIdentity() {
-        return Keys.IDENTITY_JOB_QUEUES;
+        return (Identity<JobQueuesRecord, Integer>) super.getIdentity();
     }
 
     @Override
