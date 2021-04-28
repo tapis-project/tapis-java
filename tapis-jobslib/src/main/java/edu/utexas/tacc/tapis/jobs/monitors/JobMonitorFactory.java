@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -106,7 +106,7 @@ public class JobMonitorFactory
     /* ---------------------------------------------------------------------- */
     private static JobMonitor getSingularityOption(JobExecutionContext jobCtx,
                                                    MonitorPolicy policy,
-                                                   App app) 
+                                                   TapisApp app)
      throws JobException
     {
         // We are only interested in the singularity options.  These have

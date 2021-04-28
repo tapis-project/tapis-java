@@ -1,8 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
@@ -84,7 +84,7 @@ public final class JobExecStageFactory
     /* getSingularityOption:                                                  */
     /* ---------------------------------------------------------------------- */
     private static JobExecStager getSingularityOption(JobExecutionContext jobCtx,
-                                                      App app) 
+                                                      TapisApp app)
      throws TapisException
     {
         // We are only interested in the singularity options.

@@ -9,7 +9,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -426,7 +426,7 @@ public final class StepwiseBackoffPolicy
         
         // See if the execution system specifies a remote scheduler.
         try {
-            App app = jobCtx.getApp();
+            TapisApp app = jobCtx.getApp();
             if (app.getAppType() == AppTypeEnum.BATCH) return true;
         }
         catch (Exception e) {
