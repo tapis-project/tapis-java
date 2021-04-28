@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobAppAvailableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
@@ -159,7 +159,7 @@ public final class RecoveryUtils
      * @param app the application that is not currently available
      * @return the recovery information
      */
-    public static TreeMap<String,String> captureAppState(App app)
+    public static TreeMap<String,String> captureAppState(TapisApp app)
     {
         TreeMap<String,String> state = new TreeMap<>();
         state.put("owner", app.getOwner());
