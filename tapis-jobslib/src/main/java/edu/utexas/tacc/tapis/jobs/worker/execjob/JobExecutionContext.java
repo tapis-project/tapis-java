@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.App;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -58,7 +58,7 @@ public final class JobExecutionContext
     private TapisSystem              _executionSystem;
     private TapisSystem              _archiveSystem;
     private TapisSystem              _dtnSystem;
-    private App                      _app;
+    private TapisApp                 _app;
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
@@ -148,7 +148,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* getApp:                                                                */
     /* ---------------------------------------------------------------------- */
-    public App getApp() 
+    public TapisApp getApp()
      throws TapisImplException, TapisServiceConnectionException 
     {
         // Load the execution system on first use.
@@ -380,7 +380,7 @@ public final class JobExecutionContext
     public void setExecutionSystem(TapisSystem executionSystem) 
        {_executionSystem = executionSystem;}
     
-    public void setApp(App app) {_app = app;}
+    public void setApp(TapisApp app) {_app = app;}
     
     public String getFinalMessage() {return _finalMessage;}
     public void setFinalMessage(String finalMessage) {_finalMessage = finalMessage;}
@@ -520,11 +520,11 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------------- */
     /* loadAppDefinition:                                                           */
     /* ---------------------------------------------------------------------------- */
-    private App loadAppDefinition(AppsClient appsClient, String appId, String appVersion)
+    private TapisApp loadAppDefinition(AppsClient appsClient, String appId, String appVersion)
       throws TapisImplException, TapisServiceConnectionException
     {
         // Load the system definition.
-        App app = null;
+        TapisApp app = null;
         try {app = appsClient.getApp(appId, appVersion);} 
         catch (TapisClientException e) {
             // Look for a recoverable error in the exception chain. Recoverable
