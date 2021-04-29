@@ -23,7 +23,7 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class JobEventsRecord extends UpdatableRecordImpl<JobEventsRecord> implements Record7<Long, JobEventType, LocalDateTime, String, JobStatusType, String, String> {
 
-    private static final long serialVersionUID = -1697612344;
+    private static final long serialVersionUID = 1L;
 
     /**
      * Setter for <code>public.job_events.id</code>.
@@ -322,12 +322,12 @@ public class JobEventsRecord extends UpdatableRecordImpl<JobEventsRecord> implem
     public JobEventsRecord(Long id, JobEventType event, LocalDateTime created, String jobUuid, JobStatusType jobStatus, String othUuid, String description) {
         super(JobEvents.JOB_EVENTS);
 
-        set(0, id);
-        set(1, event);
-        set(2, created);
-        set(3, jobUuid);
-        set(4, jobStatus);
-        set(5, othUuid);
-        set(6, description);
+        setId(id);
+        setEvent(event);
+        setCreated(created);
+        setJobUuid(jobUuid);
+        setJobStatus(jobStatus);
+        setOthUuid(othUuid);
+        setDescription(description);
     }
 }
