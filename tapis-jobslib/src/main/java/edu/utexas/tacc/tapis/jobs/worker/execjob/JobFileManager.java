@@ -215,6 +215,9 @@ public final class JobFileManager
             transferId = stageNewInputs(corrId);
         }
         
+        // Is there anything to transfer?
+        if (transferId.equals(NO_FILE_INPUTS)) return;
+        
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
@@ -251,6 +254,9 @@ public final class JobFileManager
             corrId = UUID.randomUUID().toString();
             transferId = archiveNewOutputs(corrId);
         }
+        
+        // Is there anything to transfer?
+        if (transferId.equals(NO_FILE_INPUTS)) return;
         
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
