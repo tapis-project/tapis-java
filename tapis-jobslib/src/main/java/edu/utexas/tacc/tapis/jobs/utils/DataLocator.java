@@ -73,6 +73,7 @@ public class DataLocator {
     		systemId = _job.getArchiveSystemId();
     		systemDir = _job.getArchiveSystemDir();
     		systemUrl = makeSystemUrl(_job.getArchiveSystemId(), _job.getArchiveSystemDir(), pathName);
+    		_log.debug("setting up archive path url: " + systemUrl);
     		jobOutputInfo =  new JobOutputInfo(systemId,systemId, systemUrl);
     	 } else {
     		 systemId = _job.getExecSystemId();
@@ -90,7 +91,7 @@ public class DataLocator {
     	// Get the File Service client 
          FilesClient filesClient = null;
 		try {
-			filesClient = getServiceClient(FilesClient.class, tenant, owner);
+			filesClient = getServiceClient(FilesClient.class, owner, tenant);
 		} catch (TapisImplException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -140,52 +141,22 @@ public class DataLocator {
      private String makeSystemUrl(String systemId, String basePath, String pathName)
      {
          // Start with the system id.
-         String url = "tapis://" + systemId;
-         
+         //String url = "tapis://" + systemId;
+         String url = "";
          // Add the job's put input path.
-         if (basePath.startsWith("/")) url += basePath;
-           else url += "/" + basePath;
-         
+        // if (basePath.startsWith("/")) url += basePath;
+        //   else url += "/" + basePath;
+         url = basePath;
          // Add the suffix.
          if (StringUtils.isBlank(pathName)) return url;
          if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
          else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
          else url += pathName;
+         _log.debug("system url for path: " + url);
          return url;
      }
 
-    /* ---------------------------------------------------------------------- */
-    /* getExecutionSystem:                                                    */
-    /* ---------------------------------------------------------------------- */
-   /* public TapisSystem getExecutionSystem(Job job, String tenant, String owner) 
-     throws TapisImplException, TapisServiceConnectionException 
-    {
-        // Load the execution system on first use.
-        if (_executionSystem == null) {
-            _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class, tenant, owner), 
-                                     job.getExecSystemId(), true, "execution", job);
-        }
-        
-        return _executionSystem;
-    }
-    */
-    /* ---------------------------------------------------------------------- */
-    /* getArchiveSystem:                                                      */
-    /* ---------------------------------------------------------------------- */
-    /*public TapisSystem getArchiveSystem(Job job, String tenant, String owner) 
-     throws TapisImplException, TapisServiceConnectionException 
-    {
-        // Load the archive system on first use.
-        if (_archiveSystem == null) {
-            if (job.getExecSystemId().equals(job.getArchiveSystemId()))
-                _archiveSystem = _executionSystem;
-            if (_archiveSystem == null)    
-                _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class, tenant,owner), 
-                                                      job.getArchiveSystemId(), true, "archive", job);
-        }
-        
-        return _archiveSystem;
-    }*/
+   
    
     /* ---------------------------------------------------------------------------- */
     /* getServiceClient:                                                            */
@@ -196,7 +167,7 @@ public class DataLocator {
      * @return the client
      * @throws TapisImplException
      */
-    public <T> T getServiceClient(Class<T> cls, String tenant, String owner) throws TapisImplException
+    public <T> T getServiceClient(Class<T> cls,  String owner, String tenant) throws TapisImplException
     {
         // Get the application client for this user@tenant.
         T client = null;
@@ -212,66 +183,5 @@ public class DataLocator {
         }
 
         return client;
-    }
-    /* ********************************************************************** */
-    /*                            Private Methods                             */
-    /* ********************************************************************** */
-    /* ---------------------------------------------------------------------------- */
-    /* loadSystemDefinition:                                                        */
-    /* ---------------------------------------------------------------------------- */
-    private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
-                                             String systemId,
-                                             boolean requireExecPerm,
-                                             String  systemDesc, Job job) 
-      throws TapisImplException, TapisServiceConnectionException
-    {
-        // Load the system definition.
-        TapisSystem system = null;
-        boolean returnCreds = true;
-        AuthnMethod authnMethod = null;
-        try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
-        catch (TapisClientException e) {
-            // Look for a recoverable error in the exception chain. Recoverable
-            // exceptions are those that might indicate a transient network
-            // or server error, typically involving loss of connectivity.
-            Throwable transferException = 
-                TapisUtils.findFirstMatchingException(e, TapisConstants.CONNECTION_EXCEPTION_PREFIX);
-            if (transferException != null) {
-                throw new TapisServiceConnectionException(transferException.getMessage(), 
-                            e, RecoveryUtils.captureServiceConnectionState(
-                               systemsClient.getBasePath(), TapisConstants.SYSTEMS_SERVICE));
-            }
-            
-            // Determine why we failed.
-            String msg;
-            switch (e.getCode()) {
-                case 400:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", systemId, job.getOwner(), 
-                                          job.getTenant(), systemDesc);
-                break;
-                
-                case 401:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, "READ,EXECUTE", 
-                                          job.getOwner(), job.getTenant(), systemDesc);
-                break;
-                
-                case 404:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, job.getOwner(), 
-                                          job.getTenant(), systemDesc);
-                break;
-                
-                default:
-                    msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, job.getOwner(), 
-                                          job.getTenant(), systemDesc);
-            }
-            throw new TapisImplException(msg, e, e.getCode());
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, job.getOwner(), 
-                                         job.getTenant(), systemDesc);
-            throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
-        }
-        
-        return system;
     }
 }

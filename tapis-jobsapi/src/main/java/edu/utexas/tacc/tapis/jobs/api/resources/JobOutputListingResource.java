@@ -31,6 +31,7 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
@@ -103,6 +104,17 @@ public class JobOutputListingResource extends AbstractResource{
      /* ---------------------------------------------------------------------------- */
      /* getJobOutputListing:                                                                      */
      /* ---------------------------------------------------------------------------- */
+     
+     /*@GET
+     @Path("/{jobUuid}/output/list")
+     @Produces(MediaType.APPLICATION_JSON)
+     public Response getJobOutputFileListing(@PathParam("jobUuid") String jobUuid,
+             @DefaultValue("")@PathParam("path")String path, 
+             @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+         return getJobOutputFileListingForPath( jobUuid,"", prettyPrint);
+     }*/
+     
      @GET
      @Path("/{jobUuid}/output/list/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_JSON)
@@ -133,7 +145,7 @@ public class JobOutputListingResource extends AbstractResource{
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@PathParam("outputPath") String outputPath,
+     public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @QueryParam("limit") int limit,	@QueryParam("skip") int skip,
     		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
@@ -210,10 +222,12 @@ public class JobOutputListingResource extends AbstractResource{
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                    MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid), prettyPrint, r)).build(); 
        }
-      
+       SearchParameters srchParms = threadContext.getSearchParameters();
+       
+       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
        List<FileInfo> filesList =null;
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, limit,skip);
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, srchParms.getLimit(),skip);
 	   } catch (TapisImplException e) {
 		// TODO Auto-generated catch block
 		   e.printStackTrace();
