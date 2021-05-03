@@ -49,7 +49,11 @@ public final class JobParmSetMarshaller
     {
         // Always create a new parameter set.
         var parmSet = new JobParameterSet();
-        if (appParmSet == null) return parmSet;
+        if (appParmSet == null) {
+            // The system may define environment variables.
+            parmSet.setEnvVariables(marshalAppKvList(null, sysEnv));
+            return parmSet;
+        }
         
         // Null can be returned from the marshal method.
         var appAppArgs = appParmSet.getAppArgs();
