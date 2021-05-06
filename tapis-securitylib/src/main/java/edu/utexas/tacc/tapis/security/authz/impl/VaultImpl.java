@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.security.authz.model.SkSecretList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretMetadata;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersion;
 import edu.utexas.tacc.tapis.security.authz.model.SkSecretVersionMetadata;
+import edu.utexas.tacc.tapis.security.authz.secrets.GenerateSecrets;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper.SecretPathMapperParms;
 import edu.utexas.tacc.tapis.security.secrets.SecretType;
@@ -234,6 +235,18 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
+       
+       // ------------------------ Secret Generation -------------------------
+       // Replace the <generate-secret> directive with new secrets.
+       try {(new GenerateSecrets(pathParms.getSecretType(), pathParms.getSecretName(), secretMap)).generate();}
+           catch (Exception e) {
+               String msg = MsgUtils.getMsg("SK_SECRET_GENERATION_ERROR", 
+                                            pathParms.getSecretType().name(),
+                                            pathParms.getSecretName(), tenant, 
+                                            user, e.getMessage());
+               _log.error(msg);
+               throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+           }
        
        // ------------------------ Request Processing ------------------------
        // Construct the secret's full path that include tenant and user.

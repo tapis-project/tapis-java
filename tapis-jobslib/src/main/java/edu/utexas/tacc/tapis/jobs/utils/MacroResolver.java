@@ -34,9 +34,13 @@ public final class MacroResolver
     // Host eval pattern. Group 1 = variable name, group 2 = suffix.
     static final Pattern _hostEvalPattern = Pattern.compile("HOST_EVAL\\((.*)\\)(.*)");
     
-    // Environment variable name format. It can start with an optional $, then a
-    // letter or underscore, and then any sequence of alphanumerics or underscores.
-    static final Pattern _envVarPattern = Pattern.compile("\\$?[a-zA-Z_][a-zA-Z0-9_]*");
+    // Environment variable name and default path format. The name can start with an 
+    // optional $, then a letter or underscore, and then any sequence of alphanumerics 
+    // or underscores.  The optional path is separated from the name with a comma,
+    // which can have whitespace on either side of it.  The path itself consists of
+    // non-whitespace characters.  Trailing whitespace is ignored.
+    static final Pattern _envVarPattern = 
+        Pattern.compile("(\\$?[a-zA-Z_][a-zA-Z0-9_]*)\\s*(,\\s*(\\S+)\\s*)?");
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -180,22 +184,27 @@ public final class MacroResolver
         }
         
         // There are always 2 groups, either of which might be the empty string.
-        String varName = m.group(1);
+        String parms = m.group(1);
         String suffix  = m.group(2);
         
-        // Make sure we have environment variable name.
-        if (varName.isEmpty()) {
+        // Make sure we have non-empty parms.
+        if (StringUtils.isBlank(parms)) {
             String msg = MsgUtils.getMsg("JOBS_NO_VARIABLE_IN_HOST_EVAL", text);
             throw new TapisException(msg);
         }
         
-        // Validate the variable name is well defined.
-        varName = varName.strip();
-        m = _envVarPattern.matcher(varName);
+        // Validate the variable name and optional default path are well defined.
+        parms = parms.strip();
+        m = _envVarPattern.matcher(parms);
         if (!m.matches()) {
-            String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", varName);
+            String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", parms);
             throw new TapisException(msg);
         }
+        
+        // Extract the variable and an optional default path, 
+        // the latter of which can be null.
+        String varName = m.group(1);
+        String defaultPath = m.group(3);
         
         // Canonicalize the variable name.
         if (!varName.startsWith("$")) varName = "$" + varName;
@@ -208,8 +217,17 @@ public final class MacroResolver
         String cmd = "echo " + varName;
         var runCmd = new TapisRunCommand(_execSystem);
         result = runCmd.execute(cmd, true); // connection automatically closed
+        if (StringUtils.isBlank(result)) 
+            if (!StringUtils.isBlank(defaultPath)) result = defaultPath;
+              else {
+                  String msg = MsgUtils.getMsg("JOBS_RESOLVE_HOST_EVAL_ERROR", text, varName);
+                  throw new TapisException(msg);
+              }
+        
+        // Cache the result.
         _hostVariables.put(varName, result);
         
+        // Return the complete pathname.
         return result + suffix;
     }
 
