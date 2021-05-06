@@ -102,7 +102,6 @@ public class JobSearchResource extends AbstractResource {
     /* getJobSearchList:                                                            */
     /* ---------------------------------------------------------------------------- */
     @GET
-    //@Path("/search")
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Retrieve list of jobs for the user based on search conditions in the query paramter on the dedicated search end-point.\n\n"
