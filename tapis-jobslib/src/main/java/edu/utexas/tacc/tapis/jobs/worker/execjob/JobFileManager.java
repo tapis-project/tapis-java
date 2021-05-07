@@ -763,6 +763,10 @@ public final class JobFileManager
     private String createTransferTask(FilesClient filesClient, TransferTaskRequest tasks) 
      throws TapisException
     {
+        // Tracing.
+        if (_log.isDebugEnabled()) 
+            _log.debug(MsgUtils.getMsg("FILES_TRANSFER_TASK_REQ", printTasks(tasks)));
+        
         // Submit the transfer request.
         TransferTask task = null;
         try {task = filesClient.createTransferTask(tasks);} 
@@ -924,5 +928,27 @@ public final class JobFileManager
     private String makePath(String first, String... more)
     {
         return Paths.get(first, more).toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* printTasks:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private String printTasks(TransferTaskRequest tasks)
+    {
+        var buf = new StringBuilder(1024);
+        buf.append("Requesting TransferTask with tag ");
+        buf.append(tasks.getTag());
+        buf.append(" and ");
+        buf.append(tasks.getElements().size());
+        buf.append(" elements:");
+        for (var element : tasks.getElements()) {
+            buf.append("\n  src: ");
+            buf.append(element.getSourceURI());
+            buf.append(", dst: ");
+            buf.append(element.getDestinationURI());
+            buf.append(", optional=");
+            buf.append(element.getOptional());        
+        }
+        return buf.toString();
     }
 }
