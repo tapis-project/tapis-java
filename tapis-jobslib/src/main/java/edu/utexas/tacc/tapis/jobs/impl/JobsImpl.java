@@ -269,11 +269,11 @@ public final class JobsImpl
         Job job = null;
         try {job = getJobsDao().getJobByUUID(jobUuid, true);}
         catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         

@@ -84,8 +84,8 @@ public class DataLocator {
 			outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true);
 		} catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
-            		jobOutputInfo.getSystemId(), _job.getOwner(), _job.getTenant(),
-                                         jobOutputInfo.getSystemUrl(), e.getCode());
+            		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), limit, skip,_job.getOwner(),
+            	   _job.getTenant(), e.getCode());
             throw new TapisImplException(msg, e, e.getCode());
         }
 		

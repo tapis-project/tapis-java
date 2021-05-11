@@ -250,9 +250,9 @@ public class JobOutputListingResource extends AbstractResource{
       
        
        // Success.
-       RespGetJobOutputList r = new RespGetJobOutputList(filesList,limit,skip);
+       RespGetJobOutputList r = new RespGetJobOutputList(filesList,srchParms.getLimit(),srchParms.getSkip());
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),jobUuid,threadContext.getOboTenantId()), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),threadContext.getOboTenantId()), prettyPrint, r)).build();
      }
      
      
