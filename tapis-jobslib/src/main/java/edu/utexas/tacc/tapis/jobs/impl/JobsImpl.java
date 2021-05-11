@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -15,6 +16,8 @@ import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
+import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -266,11 +269,11 @@ public final class JobsImpl
         Job job = null;
         try {job = getJobsDao().getJobByUUID(jobUuid, true);}
         catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant);
+            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         
@@ -340,6 +343,51 @@ public final class JobsImpl
         // Could be null if not found.
         return jobstatus;
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobOutputList:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        if (StringUtils.isBlank(job.getUuid())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobOutputList", "jobUuid");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // ----- Authorization checks.
+        // Make sure the user and tenant are authorized.
+        if (!tenant.equals(job.getTenant())) {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+	        if (!user.equals(job.getOwner()) && 
+	            !user.equals(job.getCreatedby()) && 
+	            !isAdminSafe(user, tenant)) 
+	        {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+        
+        // ----- Get the job output files list.
+        DataLocator dataLocator = new DataLocator(job);
+        
+        JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfoForOutputListing(pathName);
+        
+        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip);
+               
+        return outputList;
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* queryDB:                                                               */
     /* ---------------------------------------------------------------------- */
