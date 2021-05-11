@@ -345,14 +345,14 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getJobOutputList:                                                          */
+    /* getJobOutputList:                                                      */
     /* ---------------------------------------------------------------------- */
     public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip) 
      throws TapisImplException
     {
         // ----- Check input.
         if (StringUtils.isBlank(job.getUuid())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobOutputList", "jobUuid");
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         if (StringUtils.isBlank(user)) {

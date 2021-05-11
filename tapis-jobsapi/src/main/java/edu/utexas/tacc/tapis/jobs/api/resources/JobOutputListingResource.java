@@ -49,7 +49,7 @@ public class JobOutputListingResource extends AbstractResource{
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(JobGetResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
     
     
     
@@ -102,33 +102,35 @@ public class JobOutputListingResource extends AbstractResource{
      /*                                Public Methods                                */
      /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
-     /* getJobOutputListing:                                                                      */
+     /* getJobOutputListing:                                                         */
      /* ---------------------------------------------------------------------------- */
      
      /*@GET
      @Path("/{jobUuid}/output/list")
      @Produces(MediaType.APPLICATION_JSON)
      public Response getJobOutputFileListing(@PathParam("jobUuid") String jobUuid,
-             @DefaultValue("")@PathParam("path")String path, 
-             @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+			  @QueryParam("limit") int limit, @QueryParam("skip") int skip,
+			  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
-         return getJobOutputFileListingForPath( jobUuid,"", prettyPrint);
-     }*/
-     
+         return getJobOutputList(jobUuid,"",
+				   limit, skip,	prettyPrint);
+     }
+     */
      @GET
      @Path("/{jobUuid}/output/list/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Retrieve a previously submitted job by its UUID.\n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator."
+             description = "Retrieve job's output files list for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
+                           + "The caller must be the job owner, creator or a tenant administrator.\n"
+            		       + "/ must be appended after list end-point even if there is no outputPath is specified "
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job retrieved.",
+                  @ApiResponse(responseCode = "200", description = "Job's output files list retrieved.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJob.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobOutputList.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -212,7 +214,7 @@ public class JobOutputListingResource extends AbstractResource{
                           prettyPrint)).build();
        }
         
-       // ------------------------- Check Job status -----------------------------
+       // ------------------------- Check the Job's status -----------------------------
        // If job is still running and not in terminal state then output listing cannot be performed.
        
        if(!job.getStatus().isTerminal()) {
@@ -220,25 +222,37 @@ public class JobOutputListingResource extends AbstractResource{
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                   MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid), prettyPrint, r)).build(); 
+                   MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
        }
+       
+       // Set default parameters
        SearchParameters srchParms = threadContext.getSearchParameters();
        
        if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
-       List<FileInfo> filesList =null;
+       
+       List<FileInfo> filesList = null;
        try {
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, srchParms.getLimit(),skip);
 	   } catch (TapisImplException e) {
-		// TODO Auto-generated catch block
-		   e.printStackTrace();
+		   _log.error(e.getMessage(), e);
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
+       if(filesList == null) {
+    	   ResultName missingName = new ResultName();
+           missingName.name = jobUuid;
+           RespName r = new RespName(missingName);
+           return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), prettyPrint, r)).build();
+       }
+       
        // ------------------------- Process Results --------------------------
       
        
        // Success.
        RespGetJobOutputList r = new RespGetJobOutputList(filesList,limit,skip);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_RETRIEVED", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),jobUuid,threadContext.getOboTenantId()), prettyPrint, r)).build();
      }
      
      
