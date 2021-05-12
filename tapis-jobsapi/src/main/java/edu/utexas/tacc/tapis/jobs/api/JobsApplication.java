@@ -165,7 +165,9 @@ extends ResourceConfig
         }
         
        // We're done.
+       System.out.println("\n**********************************************");
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
+       System.out.println("**********************************************\n");
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization

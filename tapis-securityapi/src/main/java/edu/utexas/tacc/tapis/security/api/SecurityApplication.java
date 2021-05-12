@@ -7,6 +7,7 @@ import javax.ws.rs.ApplicationPath;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.security.api.utils.TenantInit;
+import edu.utexas.tacc.tapis.security.authz.impl.RoleImpl;
 import edu.utexas.tacc.tapis.security.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.security.secrets.VaultManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -99,6 +100,7 @@ public class SecurityApplication
         JWTValidateRequestFilter.setSiteId(parms.getSiteId());
         
         // ------------------- Recoverable Errors -------------------
+        // ------- Vault Initialization
         // Force runtime initialization of vault.
         boolean success = false;
         try {VaultManager.getInstance(parms); success = true;}
@@ -110,6 +112,17 @@ public class SecurityApplication
             }
         if (success) System.out.println("**** SUCCESS:  VaultManager initialized ****");
         
+        // ------- Database Initialization
+        success = false;
+        try {RoleImpl.getInstance().queryDB("sk_role"); success = true;}
+         catch (Exception e) {
+             errors++;
+             System.out.println("**** FAILURE TO INITIALIZE: tapis-securitysapi Database ****");
+             e.printStackTrace();
+         }
+        if (success) System.out.println("**** SUCCESS:  PostgreSQL Database initialized ****");
+        
+        // ------- Tenants Initialization
         // Force runtime initialization of the tenant manager.  This creates the
         // singleton instance of the TenantManager that can then be accessed by
         // all subsequent application code--including filters--without reference
@@ -135,6 +148,7 @@ public class SecurityApplication
         } else
         	System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager - No Tenants ****");
         
+        // ------- Authorization Initialization
         // Initialize tenant roles and administrators.
         success = false;
         try {TenantInit.initializeTenants(tenantMap); success = true;}
@@ -147,6 +161,8 @@ public class SecurityApplication
         if (success) System.out.println("**** SUCCESS:  Tenant admins initialized ****");
         
         // We're done.
+        System.out.println("\n**************************************************");
         System.out.println("**** tapis-securityapi Initialized [errors=" + errors + "] ****");
+        System.out.println("**************************************************\n");
     }
 }
