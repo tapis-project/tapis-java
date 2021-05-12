@@ -388,7 +388,7 @@ public final class ExtWildcardPermission
         fileMatchInfo._extensions.add(Pair.of(ExtMatchType._RECURSIVE_PATH, 4));
         extMatchList.add(fileMatchInfo);
         
-        // Double-check that Shiro-parsign unsafe types only appear in the last 
+        // Double-check that Shiro-parsing unsafe types only appear in the last 
         // position.  This is for future-proofing...
         validateExtMatchInfoList(extMatchList);
         

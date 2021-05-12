@@ -17,6 +17,11 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.Base62;
 
+/** Class used to dynamically generate passwords and public/private key pairs
+ * to store into SK.
+ * 
+ * @author rcardone
+ */
 public final class GenerateSecrets 
 {
     /* ********************************************************************** */

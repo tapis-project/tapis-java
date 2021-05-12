@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/RemovePermissionFromAllRolesRequest",
+    "description": "Top-level schema for removing a permission from all roles in a tenant.",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "permSpec": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "tenant",
+        "permSpec"   
+    ]
+}
+
+

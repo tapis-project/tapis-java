@@ -401,7 +401,7 @@ public final class RoleImpl
                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
             }
         
-        // Create the role.
+        // Delete the permission from the role.
         int rows = 0;
         try {
             rows = dao.removePermission(roleTenant, roleName, permSpec);
@@ -414,6 +414,100 @@ public final class RoleImpl
             _log.error(msg, e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST); 
         }
+
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* removePermissionFromRoles:                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Remove permissions from all roles in a tenant where the permSpec exactly
+     * matches permissions assigned to roles, character by character.  Matching 
+     * is syntactic, not the "implies" matching that understands permission 
+     * semantics. 
+     * 
+     * @param tenant the tenant where this is applied
+     * @param permSpec the matching permission
+     * @return the number of roles permissions removed
+     * @throws TapisImplException
+     */
+    public int removePermissionFromRoles(String tenant, String permSpec)
+     throws TapisImplException
+    {
+        // Get the dao.
+        SkRolePermissionDao dao = null;
+        try {dao = getSkRolePermissionDao();}
+            catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                 _log.error(msg, e);
+                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+               
+        // Delete the permission from the tenant.
+        final boolean isPath = false;
+        int rows = 0;
+        try {rows = dao.removePermissionFromRoles(tenant, permSpec, isPath);}
+            catch (Exception e) {
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR); 
+            }
+
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* removePathPermissionFromRoles:                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Remove permissions from all roles in a tenant where the extended permSpec
+     * matches permissions assigned to roles.  Matching is syntactic, not the
+     * "implies" matching that understands permission semantics. 
+     * 
+     * @param tenant the tenant where this is applied
+     * @param permSpec the matching permission
+     * @return the number of roles permissions removed
+     * @throws TapisImplException
+     */
+    public int removePathPermissionFromRoles(String tenant, String permSpec)
+     throws TapisImplException
+    {
+        // Split the non-empty permSpec into it colon separated parts.
+        var parts = permSpec.split(":");
+        if (parts == null || parts.length == 0) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "removePathPermissionFromRoles",  "permSpec", permSpec);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // Get the index of the path part from the registry.
+        var schema = parts[0];
+        int pathIndex = ExtWildcardPermission.getRecursivePathIndex(schema);
+        if (pathIndex < 0) {
+            String msg = MsgUtils.getMsg("SK_PERM_NO_PATH_SUPPORT", schema);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (parts.length < pathIndex + 1) {
+            String msg = MsgUtils.getMsg("SK_PERM_PREFIX_NOT_FOUND", permSpec, "<pathname>", pathIndex);
+            _log.error(msg);
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+                
+        // Get the dao.
+        SkRolePermissionDao dao = null;
+        try {dao = getSkRolePermissionDao();}
+            catch (Exception e) {
+                 String msg = MsgUtils.getMsg("DB_DAO_ERROR", "rolePermission");
+                 _log.error(msg, e);
+                 throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+               
+        // Delete the extended permission from all roles in the tenant.
+        final boolean isPath = true;
+        final String extendedSpec = permSpec + "%"; // append sql wildcard
+        int rows = 0;
+        try {rows = dao.removePermissionFromRoles(tenant, extendedSpec, isPath);}
+            catch (Exception e) {
+                throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR); 
+            }
 
         return rows;
     }

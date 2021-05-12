@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqAddRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqCreateRole;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqPreviewPathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveChildRole;
+import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemovePermissionFromAllRoles;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqRemoveRolePermission;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqReplacePathPrefix;
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqUpdateRoleDescription;
@@ -88,6 +89,8 @@ public final class RoleResource
             "/edu/utexas/tacc/tapis/security/api/jsonschema/AddChildRoleRequest.json";
     private static final String FILE_SK_REMOVE_ROLE_PERM_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveRolePermissionRequest.json";
+    private static final String FILE_SK_REMOVE_PERM_FROM_ALL_ROLES_REQUEST = 
+            "/edu/utexas/tacc/tapis/security/api/jsonschema/RemovePermissionFromAllRolesRequest.json";
     private static final String FILE_SK_REMOVE_CHILD_ROLE_REQUEST = 
             "/edu/utexas/tacc/tapis/security/api/jsonschema/RemoveChildRoleRequest.json";
     private static final String FILE_SK_PREVIEW_PATH_PREFIX_REQUEST = 
@@ -1701,4 +1704,221 @@ public final class RoleResource
              MsgUtils.getMsg("TAPIS_FOUND", "Role", name), prettyPrint, r)).build();
      }
 
+     /* ---------------------------------------------------------------------------- */
+     /* removePermissionFromAllRoles:                                                */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/removePermFromAllRoles")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Remove a permission from all roles in a tenant using a request body.  "
+                     + "The tenant and permission must be specified in the request body.\n\n"
+                     + ""
+                     + "Each role in the tenant is searched for the *exact* permission string and, "
+                     + "where found, that permission is removed.  The matching algorithm is simple, "
+                     + "character by character, string comparison.\n\n"
+                     + "Permissions are not interpreted.  For example, a "
+                     + "permission that contains a wildcard (*) will only match a role's permission "
+                     + "when the same wildcard is found in the exact same position.  The same rule "
+                     + "applies to permission segments with multiple, comma separated components: "
+                     + "a match requires the exact same ordering and spacing of components.\n\n"
+                     + ""
+                     + "Only services are authorized to make this call."
+                     + "",
+             tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemovePermissionFromAllRoles.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Permission removed from roles.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response removePermissionFromAllRoles(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                                  InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "removePermissionFromAllRoles", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRemovePermissionFromAllRoles payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_PERM_FROM_ALL_ROLES_REQUEST, 
+                                   ReqRemovePermissionFromAllRoles.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "removeRolePermission", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String reqTenant = payload.tenant;
+         String permSpec  = payload.permSpec;
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(reqTenant, null)
+                             .setCheckIsService()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Remove the permission from the role.
+         int rows = 0;
+         try {rows = getRoleImpl().removePermissionFromRoles(reqTenant, permSpec);} 
+         catch (Exception e) {
+             // Role not found is an error in this case.
+             String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_FROM_ROLES_ERROR", requestor,
+                                          requestorTenant, permSpec, reqTenant, e.getMessage());
+             return getExceptionResponse(e, msg, prettyPrint, "Permission", permSpec);
+         }
+
+         // Report the number of rows changed.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Permission", permSpec), prettyPrint, r)).build();
+     }
+
+     /* ---------------------------------------------------------------------------- */
+     /* removePathPermissionFromAllRoles:                                             */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/removePathPermFromAllRoles")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Remove an extended permission from all roles in a tenant using a request body.  "
+                     + "The tenant and permission must be specified in the request body.\n\n"
+                     + ""
+                     + "Each role in the tenant is searched for the extended permission string and, "
+                     + "where found, that permission is removed.  The matching algorithm is string "
+                     + "comparison with wildcard semantics on the path component.  This is the same "
+                     + "as an exact string match for all parts of the permission specification up to "
+                     + "the path part.  A match on the path part, however, occurs "
+                     + "when its path is a prefix of a role permission's path.  Consider the following "
+                     + "permission specification:\n\n"
+                     + ""
+                     + "    files:mytenant:read:mysystem:/my/dir\n\n"
+                     + ""
+                     + "which will match both of the following role permissions:\n\n"
+                     + ""
+                     + "    files:mytenant:read:mysystem:/my/dir/subdir/myfile\n"
+                     + "    files:mytenant:read:mysystem:/my/dir33/yourfile\n\n"
+                     + ""
+                     + "Note that a match to the second role permission might be a *false capture* "
+                     + "if the intension was to remove all permissions to resources in the /my/dir "
+                     + "subtree, but not those in other directories.  To avoid this potential problem, "
+                     + "callers can make two calls, one to this endpoint with a permSpec that ends "
+                     + "with a slash (\"/\") and one to the removePermissionFromeAllRoles endpoint "
+                     + "with no trailing slash.  The former removes all children from the directory "
+                     + "subtree, the latter removes the directory itself.\n\n"
+                     + ""
+                     + "Only the Files service is authorized to make this call."
+                     + "",
+             tags = "role",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.security.api.requestBody.ReqRemovePermissionFromAllRoles.class))),
+             responses = 
+                 {@ApiResponse(responseCode = "200", description = "Path permission removed from roles.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+         )
+     public Response removePathPermissionFromAllRoles(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                                                      InputStream payloadStream)
+     {
+         // Trace this request.
+         if (_log.isTraceEnabled()) {
+             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                          "removePathPermissionFromAllRoles", _request.getRequestURL());
+             _log.trace(msg);
+         }
+         
+         // ------------------------- Input Processing -------------------------
+         // Parse and validate the json in the request payload, which must exist.
+         ReqRemovePermissionFromAllRoles payload = null;
+         try {payload = getPayload(payloadStream, FILE_SK_REMOVE_PERM_FROM_ALL_ROLES_REQUEST, 
+                                   ReqRemovePermissionFromAllRoles.class);
+         } 
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                          "removeRolePermission", e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.BAD_REQUEST).
+               entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+             
+         // Fill in the parameter fields.
+         String reqTenant = payload.tenant;
+         String permSpec  = payload.permSpec;
+         
+         // ------------------------- Check Authz ------------------------------
+         // Authorization passed if a null response is returned.
+         Response resp = SKCheckAuthz.configure(reqTenant, null)
+                             .setCheckIsFilesService()
+                             .check(prettyPrint);
+         if (resp != null) return resp;
+         
+         // ------------------------ Request Processing ------------------------
+         // Remove the permission from the role.
+         int rows = 0;
+         try {rows = getRoleImpl().removePathPermissionFromRoles(reqTenant, permSpec);} 
+         catch (Exception e) {
+             // Role not found is an error in this case.
+             String requestor = TapisThreadLocal.tapisThreadContext.get().getJwtUser();
+             String requestorTenant = TapisThreadLocal.tapisThreadContext.get().getJwtTenantId();
+             String msg = MsgUtils.getMsg("SK_REMOVE_PERMISSION_FROM_ROLES_ERROR", requestor,
+                                          requestorTenant, permSpec, reqTenant, e.getMessage());
+             return getExceptionResponse(e, msg, prettyPrint, "Permission", permSpec);
+         }
+
+         // Report the number of rows changed.
+         ResultChangeCount count = new ResultChangeCount();
+         count.changes = rows;
+         RespChangeCount r = new RespChangeCount(count);
+         
+         // ---------------------------- Success ------------------------------- 
+         // Success means we found the role. 
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+             MsgUtils.getMsg("TAPIS_UPDATED", "Permission", permSpec), prettyPrint, r)).build();
+     }
 }

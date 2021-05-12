@@ -374,6 +374,78 @@ public final class SkRolePermissionDao
   }
   
   /* ---------------------------------------------------------------------- */
+  /* removePermissionFromRoles:                                             */
+  /* ---------------------------------------------------------------------- */
+  public int removePermissionFromRoles(String tenant, String permission, boolean isPath)
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "tenant");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(permission)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "assignPermission", "permission");
+          _log.error(msg);
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+
+          // Set the sql command.
+          String sql;
+          if (isPath) sql = SqlStatements.ROLE_REMOVE_PATH_PERMISSION_FROM_ALL_ROLES;
+            else sql = SqlStatements.ROLE_REMOVE_PERMISSION_FROM_ALL_ROLES;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setString(2, permission);
+
+          // Issue the call. 0 rows will be returned when a duplicate
+          // key conflict occurs--this is not considered an error.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          // Log the exception.
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_role_permission");
+          _log.error(msg, e);
+          throw TapisUtils.tapisify(e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
   /* getMatchingPermissions:                                                */
   /* ---------------------------------------------------------------------- */
   /** Get the short permission records for permissions in a tenant that are
