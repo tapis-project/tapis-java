@@ -18,6 +18,7 @@ import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager.ExchangeUse;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -95,6 +96,11 @@ public abstract class AbstractQueueReader
     /* getExchangeName:                                                             */
     /* ---------------------------------------------------------------------------- */
     protected abstract String getExchangeName();
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getExchangeUse:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    protected abstract ExchangeUse getExchangeUse();
     
     /* ---------------------------------------------------------------------------- */
     /* getQueueName:                                                                */
@@ -348,7 +354,7 @@ public abstract class AbstractQueueReader
           boolean durable = true;
           boolean autodelete = false;
           try {channel.exchangeDeclare(exchangeName, getExchangeType().getType(), durable, autodelete,
-                                       qm.getExchangeArgs());}
+                                       qm.getExchangeArgs(getExchangeUse()));}
             catch (IOException e) {
                 String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR",
                                               qm.getInConnectionName(), channel.getChannelNumber(), 

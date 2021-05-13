@@ -19,6 +19,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager.ExchangeUse;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
@@ -332,6 +333,12 @@ public final class RecoveryReader
     /* ---------------------------------------------------------------------- */
     @Override
     protected String getExchangeName() {return _exchangeName;}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getExchangeUse:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    @Override
+    protected ExchangeUse getExchangeUse() {return ExchangeUse.OTHER;}
     
     /* ---------------------------------------------------------------------- */
     /* getQueueName:                                                          */

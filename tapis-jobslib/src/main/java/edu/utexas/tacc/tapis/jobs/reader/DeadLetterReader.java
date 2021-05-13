@@ -11,6 +11,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager.ExchangeUse;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
@@ -184,6 +185,12 @@ public final class DeadLetterReader
     /* ---------------------------------------------------------------------- */
     @Override
     protected String getExchangeName() {return _exchangeName;}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getExchangeUse:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    @Override
+    protected ExchangeUse getExchangeUse() {return ExchangeUse.DEAD;}
     
     /* ---------------------------------------------------------------------- */
     /* getQueueName:                                                          */

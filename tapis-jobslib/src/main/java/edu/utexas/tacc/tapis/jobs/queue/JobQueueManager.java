@@ -43,6 +43,11 @@ public final class JobQueueManager
   public static final String JOBS_VHOST = JobQueueManagerNames.JOBS_VHOST;
   
   /* ********************************************************************** */
+  /*                                Enums                                   */
+  /* ********************************************************************** */
+  public enum ExchangeUse {ALT, DEAD, OTHER}
+  
+  /* ********************************************************************** */
   /*                                 Fields                                 */
   /* ********************************************************************** */
   // Singleton instance of this class.
@@ -616,6 +621,27 @@ public final class JobQueueManager
                                        channel.getChannelNumber(), e.getMessage());
           _log.warn(msg, e);
       }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getExchangeArgs:                                                       */
+  /* ---------------------------------------------------------------------- */
+  /** Get the configuration arguments for the standard exchanges created for
+   * tenants.  Using these arguments both senders and receivers can create the
+   * exchange since it will be created in exactly the same way in both cases.  
+   * 
+   * @param tenantId the tenant who is creating an exchange
+   * @return the exchange configuration arguments
+   */
+  public Map<String,Object> getExchangeArgs(ExchangeUse etype)
+  {
+      // Dead letter exchanges don't get configured with any other exchanges.
+      if (etype == ExchangeUse.DEAD) return null;
+      
+      // Create the argument mapping.
+      var args = getExchangeArgs();
+      if (etype == ExchangeUse.ALT) args.remove("alternate-exchange");
+      return args;
   }
   
   /* ---------------------------------------------------------------------- */

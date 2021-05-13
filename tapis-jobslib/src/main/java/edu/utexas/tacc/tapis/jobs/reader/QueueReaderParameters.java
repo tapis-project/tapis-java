@@ -26,10 +26,6 @@ final class QueueReaderParameters
     // Length limits.
     private static final int MAX_WORKER_NAME_LEN = 16;
     
-    // For readers that use thread pools, the default number of threads in the pool.
-    private static final int DEFAULT_THREAD_POOL_SIZE = 4;
-    private static final int MAX_THREAD_POOL_SIZE = 40;
-    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -41,10 +37,6 @@ final class QueueReaderParameters
     @Option(name = "-b", required = false, aliases = {"-bindingkey"}, 
             metaVar = "<binding key>", usage = "Key to bind queue or topic to exchange")
     public String bindingKey = JobQueueManagerNames.DEFAULT_BINDING_KEY;;
-    
-    @Option(name = "-threads", required = false, 
-            metaVar = "<pool size>", usage = "Number of threads in pool (where applicable)")
-    public int threads = DEFAULT_THREAD_POOL_SIZE;
     
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")
@@ -138,13 +130,6 @@ final class QueueReaderParameters
       // Allow alphanumerics plus [_.-].
       if (!pattern.matcher(name).matches()) {
           String msg = MsgUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "name", name);
-          _log.error(msg);
-          throw new JobInputException(msg);
-      }
-        
-      // Pool size.
-      if ((threads < 0) || (threads > MAX_THREAD_POOL_SIZE)) {
-          String msg = MsgUtils.getMsg("JOBS_WORKER_NUMBER_WORKERS", 1, MAX_THREAD_POOL_SIZE);
           _log.error(msg);
           throw new JobInputException(msg);
       }
