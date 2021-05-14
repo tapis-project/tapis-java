@@ -22,8 +22,6 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedq.AbstractQueueManager;
 import edu.utexas.tacc.tapis.sharedq.VHostManager;
@@ -277,16 +275,6 @@ public final class JobQueueManager
   public void postSubmitQueue(String queueName, String message)
     throws JobException
   {
-    // Get the non-null tenantId from the context.
-    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-    String tenantId = threadContext.getOboTenantId();
-    
-    // Don't allow processing for an uninitialized tenant.
-    if (TapisThreadContext.INVALID_ID.equals(tenantId)) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_MISSING_TENANT_ID", queueName);
-        throw new JobException(msg);
-    }
-    
     // Create a temporary channel.
     Channel channel = null;
     boolean abortChannel = false;
@@ -294,7 +282,7 @@ public final class JobQueueManager
       // Create a temporary channel.
       try {channel = getNewOutChannel();}
         catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_TENANT_ERROR", tenantId);
+          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
           throw new JobException(msg, e);
         }
     
@@ -309,7 +297,7 @@ public final class JobQueueManager
         
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", tenantId, exchangeName, queueName);
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
             _log.debug(msg);
         }
       }
@@ -354,16 +342,6 @@ public final class JobQueueManager
   public void postTopic(String exchangeName, String message, String routingKey)
     throws JobException
   {
-    // Get the non-null tenantId from the context.
-    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-    String tenantId = threadContext.getOboTenantId();
-    
-    // Don't allow processing for an uninitialized tenant.
-    if (TapisThreadContext.INVALID_ID.equals(tenantId)) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_MISSING_TENANT_ID", exchangeName);
-        throw new JobException(msg);
-    }
-    
     // Create a temporary channel.
     Channel channel = null;
     boolean abortChannel = false;
@@ -379,7 +357,7 @@ public final class JobQueueManager
         
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", tenantId, exchangeName, routingKey);
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, routingKey);
             _log.debug(msg);
         }
       }
@@ -424,17 +402,6 @@ public final class JobQueueManager
   public void postRecoveryQueue(String message)
     throws JobException
   {
-    // Get the non-null tenantId from the context.
-    TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-    String tenantId = threadContext.getOboTenantId();
-    
-    // Don't allow processing for an uninitialized tenant.
-    if (TapisThreadContext.INVALID_ID.equals(tenantId)) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_MISSING_TENANT_ID", "recoveryQueue");
-        _log.error(msg);
-        throw new JobException(msg);
-    }
-    
     // Get the exchange and queuenames.
     String queueName    = JobQueueManagerNames.getRecoveryQueueName();
     String exchangeName = JobQueueManagerNames.getRecoveryExchangeName(); 
@@ -446,7 +413,7 @@ public final class JobQueueManager
       // Create a temporary channel.
       try {channel = getNewOutChannel();}
         catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_TENANT_ERROR", tenantId);
+          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
           throw new JobException(msg, e);
         }
     
@@ -458,7 +425,7 @@ public final class JobQueueManager
         
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", tenantId, exchangeName, queueName);
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
             _log.debug(msg);
         }
       }

@@ -34,13 +34,13 @@ public class SqlStatements
         + " FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_USERNAME =
-            "SELECT uuid, tenant, name, owner, status, "
-            	+ "created, ended, last_updated, app_id,"
-            	+ "app_version, exec_system_id, archive_system_id, "
-            	+ "remote_started "
-                + " FROM jobs "
-            	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
-            	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
+        "SELECT uuid, tenant, name, owner, status, "
+         	+ "created, ended, last_updated, app_id,"
+           	+ "app_version, exec_system_id, archive_system_id, "
+           	+ "remote_started "
+            + " FROM jobs "
+           	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
+           	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
     
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
@@ -57,13 +57,16 @@ public class SqlStatements
             + "remote_checks_failed, remote_last_status_check, "
             + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
             + "tapis_queue, visible, createdby, createdby_tenant, tags"
-        + " FROM jobs"
-        + " WHERE uuid = ?";
+            + " FROM jobs"
+            + " WHERE uuid = ?";
     
-    public static final String SELECT_JOBS_STATUS_BY_UUID =
+    public static final String SELECT_JOBS_STATUS_INFO_BY_UUID =
             "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
             + " FROM jobs"
             + " WHERE uuid = ?";
+    
+    public static final String SELECT_JOBS_STATUS_BY_UUID =
+            "SELECT status FROM jobs WHERE uuid = ?";
     
     // All of the job fields except:
     // 
@@ -210,7 +213,7 @@ public class SqlStatements
     /* ---------------------------------------------------------------------- */
     public static final String CREATE_BLOCKED_JOB =
             "INSERT INTO job_blocked (recovery_id, created, success_status, job_uuid, status_message) "  
-            + "VALUES (?, ?, ?, ?, ?)";
+            + "VALUES (?, ?, ?::job_status_enum, ?, ?)";
 
     public static final String DELETE_BLOCKED_JOB = "DELETE FROM job_blocked WHERE job_uuid = ?";
     

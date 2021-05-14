@@ -172,7 +172,7 @@ public final class RecoveryUtils
     /* ---------------------------------------------------------------------- */
     /* captureQuotaState:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** Capture the information need to check all tapis enforced job quotas.
+    /** Capture the information needed to check all tapis enforced job quotas.
      * If values are missing, we use defaults that cause quota checks to be
      * skipped so that all keys are always assigned a non-null value. 
      * 

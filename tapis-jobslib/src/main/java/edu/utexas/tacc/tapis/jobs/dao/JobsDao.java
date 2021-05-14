@@ -8,9 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -20,14 +18,21 @@ import java.util.TreeSet;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.OrderField;
+import org.jooq.Result;
+import org.jooq.TableField;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.JsonElement;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
@@ -35,28 +40,14 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
+import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
-import edu.utexas.tacc.tapis.search.SearchUtils;
-import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
-
-import org.jooq.Condition;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.JSONB;
-import org.jooq.OrderField;
-import org.jooq.Record;
-import org.jooq.Result;
-import org.jooq.TableField;
-import org.jooq.impl.DSL;
-import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
-import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.*;
-import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
-import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
 
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
@@ -836,7 +827,7 @@ public final class JobsDao
 	          conn = getConnection();
 	          
 	          // Get the select command.
-	          String sql = SqlStatements.SELECT_JOBS_STATUS_BY_UUID;
+	          String sql = SqlStatements.SELECT_JOBS_STATUS_INFO_BY_UUID;
 	          
 	          // Prepare the statement and fill in the placeholders.
 	          PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -1035,9 +1026,66 @@ public final class JobsDao
 	public JobStatusType getStatusByUUID(String uuid)
 	 throws TapisException
 	{
-	    // TODO:
-	    // ********* PLACEHOLDER for Smruti's code *********
-	    return null;
+	      // ------------------------- Check Input -------------------------
+	      if (StringUtils.isBlank(uuid)) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getStatusByUUID", "uuid");
+	          throw new TapisException(msg);
+	      }
+	      
+	      // Initialize result.
+	      JobStatusType result = null;
+
+	      // ------------------------- Call SQL ----------------------------
+	      Connection conn = null;
+	      try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          // Get the select command.
+	          String sql = SqlStatements.SELECT_JOBS_STATUS_BY_UUID;
+	          
+	          // Prepare the statement and fill in the placeholders.
+	          PreparedStatement pstmt = conn.prepareStatement(sql);
+	          pstmt.setString(1, uuid);
+	                      
+	          // Issue the call for the 1 row result set.
+	          ResultSet rs = pstmt.executeQuery();
+	          if (rs.next()) {
+	              String type = rs.getString(1);
+	              result = JobStatusType.valueOf(type);
+	          }
+	          
+	          // Close the result and statement.
+	          rs.close();
+	          pstmt.close();
+	    
+	          // Commit the transaction.
+	          conn.commit();
+	      }
+	      catch (Exception e)
+	      {
+	          // Rollback transaction.
+	          try {if (conn != null) conn.rollback();}
+	              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+	          
+	          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "getStatusByUUID", uuid, e.getMessage());
+	          _log.error(msg, e);
+	          throw new TapisException(msg, e);
+	      }
+	      finally {
+	          // Always return the connection back to the connection pool.
+	          try {if (conn != null) conn.close();}
+	            catch (Exception e) 
+	            {
+	              // If commit worked, we can swallow the exception.  
+	              // If not, the commit exception will be thrown.
+	              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+	              _log.error(msg, e);
+	            }
+	      }
+	      
+	      return result;
 	}
 	
     /* ---------------------------------------------------------------------- */

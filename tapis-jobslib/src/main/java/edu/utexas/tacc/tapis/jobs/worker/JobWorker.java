@@ -22,8 +22,6 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -214,21 +212,6 @@ public final class JobWorker
     /* getJobThreadGroup:                                                     */
     /* ---------------------------------------------------------------------- */
     ThreadGroup getJobThreadGroup() {return _jobThreadGroup;}
-    
-    /* ---------------------------------------------------------------------- */
-    /* cloneThreadContext:                                                    */
-    /* ---------------------------------------------------------------------- */
-    /** Clone the thread local context or return null if there's a failure. */
-    TapisThreadContext cloneThreadContext() 
-    {
-        // This should never fail, but if it does we pass back null.
-        TapisThreadContext jtc = null;
-        try {jtc = TapisThreadLocal.tapisThreadContext.get().clone();}
-            catch (CloneNotSupportedException e) {
-                _log.error(MsgUtils.getMsg("JOBS_WORKER_THREADLOCAL_CLONE_ERROR", _parms.name));
-            }
-        return jtc;
-    }
     
     /* ---------------------------------------------------------------------- */
     /* getWorkerStatusResp:                                                   */
