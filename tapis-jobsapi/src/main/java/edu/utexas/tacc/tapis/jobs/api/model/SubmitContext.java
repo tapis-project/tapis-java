@@ -60,6 +60,12 @@ public final class SubmitContext
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SubmitContext.class);
     
+    /* ********************************************************************** */
+    /*                                Enums                                   */
+    /* ********************************************************************** */
+    // The different types of systems loaded in this class.
+    private enum LoadSystemTypes {execution, archive, dtn}
+    
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -234,6 +240,13 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("TAPIS_APPCLIENT_INTERNAL_ERROR", _submitReq.getAppId(), 
                             _submitReq.getAppVersion(), authz, _submitReq.getOwner(), _submitReq.getTenant());
             throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
+        }
+        
+        // Reject the job early if its application is not available.
+        if (_app.getEnabled() == null || !_app.getEnabled()) 
+        {
+            String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", _job.getUuid(), _app.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
         // Check that the runtime has appropriate options selected.
@@ -435,7 +448,7 @@ public final class SubmitContext
         if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                             requireExecPerm, "DTN");
+                                             requireExecPerm, LoadSystemTypes.dtn);
            if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
                                             _dtnSystem.getId());
@@ -470,7 +483,7 @@ public final class SubmitContext
         else {
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
-                                                 requireExecPerm, "archive"); 
+                                                 requireExecPerm, LoadSystemTypes.archive); 
         }
     }
     
@@ -505,7 +518,7 @@ public final class SubmitContext
         
         // Load the system.
         boolean requireExecPerm = true;
-        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, "execution");
+        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, LoadSystemTypes.execution);
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
@@ -986,10 +999,21 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */
+    /** Load the system but don't check for availability.  This approach allows jobs
+     * to be queue to a worker who will then verify that the system is enabled and,
+     * if necessary, attempt recovery.
+     * 
+     * @param systemsClient
+     * @param systemId
+     * @param requireExecPerm
+     * @param systemDesc
+     * @return
+     * @throws TapisImplException
+     */
     private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                              String systemId, 
                                              boolean requireExecPerm,
-                                             String  systemDesc) 
+                                             LoadSystemTypes systemType) 
       throws TapisImplException
     {
         // Load the system definition.
@@ -1003,29 +1027,39 @@ public final class SubmitContext
             switch (e.getCode()) {
                 case 400:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", systemId, _submitReq.getOwner(), 
-                                          _submitReq.getTenant(), systemDesc);
+                                          _submitReq.getTenant(), systemType.name());
                 break;
                 
                 case 401:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, "READ,EXECUTE", 
-                                          _submitReq.getOwner(), _submitReq.getTenant(), systemDesc);
+                                          _submitReq.getOwner(), _submitReq.getTenant(), systemType.name());
                 break;
                 
                 case 404:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _submitReq.getOwner(), 
-                                          _submitReq.getTenant(), systemDesc);
+                                          _submitReq.getTenant(), systemType.name());
                 break;
                 
                 default:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), 
-                                          _submitReq.getTenant(), systemDesc);
+                                          _submitReq.getTenant(), systemType.name());
             }
             throw new TapisImplException(msg, e, e.getCode());
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _submitReq.getOwner(), 
-                                         _submitReq.getTenant(), systemDesc);
+                                         _submitReq.getTenant(), systemType.name());
             throw new TapisImplException(msg, e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        }
+        
+        // Reject the job early if a required system is not available.  A DTN system
+        // may be defined but not used, so we don't check its availability.
+        if (system != null && 
+            systemType != LoadSystemTypes.dtn &&
+            (system.getEnabled() == null || !system.getEnabled())) 
+        {
+            String msg = MsgUtils.getMsg("JOBS_SYSTEM_NOT_AVAILABLE", _job.getUuid(), system.getId());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
         return system;

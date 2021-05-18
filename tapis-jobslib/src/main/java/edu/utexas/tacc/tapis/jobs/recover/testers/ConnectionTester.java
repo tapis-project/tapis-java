@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryAbortException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
 
 public final class ConnectionTester 
  extends AbsTester
@@ -32,7 +33,7 @@ public final class ConnectionTester
     private boolean _parmsValidated = false;
     
     // Validated test parameters saved as fields for convenient access.
-//    private LoginProtocolType _protocol;
+    private AuthMethod        _protocol;
     private String            _username;
     private String            _hostname;
     private int               _port;

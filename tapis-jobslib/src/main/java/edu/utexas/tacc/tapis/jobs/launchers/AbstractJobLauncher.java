@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 
@@ -49,7 +50,7 @@ abstract class AbstractJobLauncher
     /* getLaunchCommand:                                                      */
     /* ---------------------------------------------------------------------- */
     protected String getLaunchCommand() 
-     throws TapisServiceConnectionException, TapisImplException
+     throws TapisException
     {
         // Create the command that changes the directory to the execution 
         // directory and runs the wrapper script.  The directory is expressed

@@ -46,6 +46,12 @@ public final class JobExecutionContext
     public static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     
     /* ********************************************************************** */
+    /*                                Enums                                   */
+    /* ********************************************************************** */
+    // The different types of systems loaded in this class.
+    private enum LoadSystemTypes {execution, archive, dtn}
+    
+    /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
     // The job to run.
@@ -98,12 +104,12 @@ public final class JobExecutionContext
     /* getExecutionSystem:                                                    */
     /* ---------------------------------------------------------------------- */
     public TapisSystem getExecutionSystem() 
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         // Load the execution system on first use.
         if (_executionSystem == null) {
             _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                     _job.getExecSystemId(), true, "execution");
+                                   _job.getExecSystemId(), true, LoadSystemTypes.execution);
         }
         
         return _executionSystem;
@@ -113,7 +119,7 @@ public final class JobExecutionContext
     /* getArchiveSystem:                                                      */
     /* ---------------------------------------------------------------------- */
     public TapisSystem getArchiveSystem() 
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         // Load the archive system on first use.
         if (_archiveSystem == null) {
@@ -121,7 +127,7 @@ public final class JobExecutionContext
                 _archiveSystem = _executionSystem;
             if (_archiveSystem == null)    
                 _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                                      _job.getArchiveSystemId(), true, "archive");
+                                     _job.getArchiveSystemId(), true, LoadSystemTypes.archive);
         }
         
         return _archiveSystem;
@@ -131,7 +137,7 @@ public final class JobExecutionContext
     /* getDtnSystem:                                                          */
     /* ---------------------------------------------------------------------- */
     public TapisSystem getDtnSystem() 
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         // The dtn system is optional.
         if (_job.getDtnSystemId() == null) return null;
@@ -139,7 +145,7 @@ public final class JobExecutionContext
         // Load the execution system on first use.
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                              _job.getDtnSystemId(), true, "dtn");
+                             _job.getDtnSystemId(), true, LoadSystemTypes.dtn);
         }
         
         return _dtnSystem;
@@ -149,7 +155,7 @@ public final class JobExecutionContext
     /* getApp:                                                                */
     /* ---------------------------------------------------------------------- */
     public TapisApp getApp()
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         // Load the execution system on first use.
         if (_app == null) 
@@ -167,11 +173,10 @@ public final class JobExecutionContext
      * no exceptions will be thrown.
      * 
      * @return the job's logical queue or null
-     * @throws TapisImplException when the exec system cannot be retrieved
-     * @throws TapisServiceConnectionException 
+     * @throws TapisException 
      */
     public LogicalQueue getLogicalQueue() 
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         // Select the job's logical queue.
         if (_logicalQueue == null) {
@@ -200,7 +205,7 @@ public final class JobExecutionContext
     /* getJobIOTargets:                                                       */
     /* ---------------------------------------------------------------------- */
     public JobIOTargets getJobIOTargets() 
-     throws TapisImplException, TapisServiceConnectionException 
+     throws TapisException 
     {
         if (_jobIOTargets == null) 
             _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
@@ -210,7 +215,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    public void createDirectories() throws TapisImplException, TapisServiceConnectionException
+    public void createDirectories() throws TapisException, TapisServiceConnectionException
     {
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
@@ -464,8 +469,8 @@ public final class JobExecutionContext
     private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                              String systemId,
                                              boolean requireExecPerm,
-                                             String  systemDesc) 
-      throws TapisImplException, TapisServiceConnectionException
+                                             LoadSystemTypes loadType) 
+      throws TapisException
     {
         // Load the system definition.
         TapisSystem system = null;
@@ -489,30 +494,35 @@ public final class JobExecutionContext
             switch (e.getCode()) {
                 case 400:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INPUT_ERROR", systemId, _job.getOwner(), 
-                                          _job.getTenant(), systemDesc);
+                                          _job.getTenant(), loadType.name());
                 break;
                 
                 case 401:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_AUTHZ_ERROR", systemId, "READ,EXECUTE", 
-                                          _job.getOwner(), _job.getTenant(), systemDesc);
+                                          _job.getOwner(), _job.getTenant(), loadType.name());
                 break;
                 
                 case 404:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_NOT_FOUND", systemId, _job.getOwner(), 
-                                          _job.getTenant(), systemDesc);
+                                          _job.getTenant(), loadType.name());
                 break;
                 
                 default:
                     msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _job.getOwner(), 
-                                          _job.getTenant(), systemDesc);
+                                          _job.getTenant(), loadType.name());
             }
             throw new TapisImplException(msg, e, e.getCode());
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_SYSCLIENT_INTERNAL_ERROR", systemId, _job.getOwner(), 
-                                         _job.getTenant(), systemDesc);
+                                         _job.getTenant(), loadType.name());
             throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
         }
+        
+        // Check the enabled flag here for systems that we are definitely going to use.  The
+        // DTN may or may not be used depending on what directories are specified for I/O.
+        if (loadType == LoadSystemTypes.execution || loadType == LoadSystemTypes.archive) 
+            JobExecutionUtils.checkSystemEnabled(system, _job);
         
         return system;
     }
@@ -521,7 +531,7 @@ public final class JobExecutionContext
     /* loadAppDefinition:                                                           */
     /* ---------------------------------------------------------------------------- */
     private TapisApp loadAppDefinition(AppsClient appsClient, String appId, String appVersion)
-      throws TapisImplException, TapisServiceConnectionException
+      throws TapisException
     {
         // Load the system definition.
         TapisApp app = null;
@@ -570,13 +580,16 @@ public final class JobExecutionContext
             throw new TapisImplException(msg, e, HTTP_INTERNAL_SERVER_ERROR);
         }
         
+        // Make sure the app is enabled.
+        JobExecutionUtils.checkAppEnabled(app, _job);
+        
         return app;
     }
 
     /* ---------------------------------------------------------------------- */
     /* initSystems:                                                           */
     /* ---------------------------------------------------------------------- */
-    private void initSystems() throws TapisImplException, TapisServiceConnectionException
+    private void initSystems() throws TapisException
     {
         // Load the jobs systems to force any exceptions
         // to be surfaced at this point.

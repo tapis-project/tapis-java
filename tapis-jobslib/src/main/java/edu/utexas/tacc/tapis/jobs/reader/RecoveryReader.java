@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -25,14 +26,18 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverShutdownMsg;
 import edu.utexas.tacc.tapis.jobs.utils.Throttle;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 /** This class drives all job recovery by servicing messages placed on the 
  * recovery queue.  The main thread is the designated RabbitMQ queue reader 
@@ -175,6 +180,9 @@ public final class RecoveryReader
       if (_log.isInfoEnabled()) 
           _log.info(MsgUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
                                     _queueName, getBindingKey()));
+      
+      // Get our service tokens.
+      initReaderEnv();
       
       // Initialize the recovery framework.
       initRecoveryReaderThread();
@@ -356,6 +364,61 @@ public final class RecoveryReader
     /*                             Private Methods                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
+    /* initReaderEnv:                                                         */
+    /* ---------------------------------------------------------------------- */
+    private void initReaderEnv()
+     throws JobException
+    {
+        // Already initiailized, but assigned for convenience.
+        var parms = RuntimeParameters.getInstance();
+        
+        // Force runtime initialization of the tenant manager.  This creates the
+        // singleton instance of the TenantManager that can then be accessed by
+        // all subsequent application code--including filters--without reference
+        // to the tenant service base url parameter.
+        Map<String,Tenant> tenantMap = null;
+        try {
+            // The base url of the tenants service is a required input parameter.
+            // We actually retrieve the tenant list from the tenant service now
+            // to fail fast if we can't access the list.
+            String url = parms.getTenantBaseUrl();
+            tenantMap = TenantManager.getInstance(url).getTenants();
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        if (!tenantMap.isEmpty()) {
+            String msg = ("\n--- " + tenantMap.size() + " tenants retrieved:\n");
+            for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
+            _log.info(msg);
+        } else {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            throw new JobException(msg);
+        }
+        
+        // ----- Service JWT Initialization
+        ServiceContext serviceCxt = ServiceContext.getInstance();
+        try {
+                 serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
+                                           parms.getServicePassword());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        // Print site info.
+        {
+            var targetSites = serviceCxt.getServiceJWT().getTargetSites();
+            int targetSiteCnt = targetSites != null ? targetSites.size() : 0;
+            String msg = "\n--- " + targetSiteCnt + " target sites retrieved:\n";
+            if (targetSites != null) {
+                for (String site : targetSites) msg += "  " + site + "\n";
+            }
+            _log.info(msg);
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* createRecoveryManagerThreadName:                                       */
     /* ---------------------------------------------------------------------- */
     private String createRecoveryManagerThreadName() 
@@ -482,9 +545,6 @@ public final class RecoveryReader
             }
     }
     
-    /* ********************************************************************** */
-    /*                           Protected Methods                            */
-    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* processMsg:                                                            */
     /* ---------------------------------------------------------------------- */
@@ -529,7 +589,7 @@ public final class RecoveryReader
         
         // Add the recovery record to the database.  Note that this method
         // updates the id field in jobRecovery with its db-generated value.
-        // Both the aloe_job_recovery and aloe_job_blocked tables are updated.
+        // Both the job_recovery and job_blocked tables are updated.
         try {_recoveryDao.addJobRecovery(jobRecovery);}
             catch (TapisDBConnectionException e) {
                 // For now we consider failing to get a db connection fatal.

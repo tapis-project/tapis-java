@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 /** During job execution the Jobs service uses three main directories for input
@@ -66,13 +67,15 @@ public final class JobIOTargets
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem)
+    public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem) 
+     throws TapisException
     {
         _job = job;
         _execSystem = execSystem;
         _dtnSystem = dtnSystem;
         
         initSystemsAndDirs();
+        checkDtnEnabled();
     }
     
     /* ********************************************************************** */
@@ -139,6 +142,22 @@ public final class JobIOTargets
         }
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* checkDtnEnabled:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private void checkDtnEnabled() throws TapisException
+    {
+        // DTN systems are not checked for availability when loaded because
+        // they are used only if the job directories reference their mountpoints.
+        if (_dtnSystem == null) return;
+        if (_inputTarget.systemId.equals(_dtnSystem.getId())  ||
+            _outputTarget.systemId.equals(_dtnSystem.getId()) ||
+            _execTarget.systemId.equals(_dtnSystem.getId())) 
+        {
+            JobExecutionUtils.checkSystemEnabled(_dtnSystem, _job);
+        }
+    }
+    
     /* ********************************************************************** */
     /*                           JobIOTarget Class                            */
     /* ********************************************************************** */

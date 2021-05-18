@@ -93,18 +93,18 @@ public final class JobFileManager
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create the directories used for I/O on this job.  The directories may
-     * already exist
+     * already exist.
      * 
      * @throws TapisImplException
      * @throws TapisServiceConnectionException
      */
     public void createDirectories() 
-     throws TapisImplException, TapisServiceConnectionException
+     throws TapisException, TapisServiceConnectionException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
         
-        // Get the IO targets for the job.
+        // Get the IO targets for the job and check that the systems are enabled.
         var ioTargets = _jobCtx.getJobIOTargets();
         
         // Create a set to that records the directories already created.
@@ -334,9 +334,10 @@ public final class JobFileManager
      * 
      * @param more 0 or more path segments
      * @return the absolute path
+     * @throws TapisException 
      */
     public String makeAbsExecSysInputPath(String... more) 
-     throws TapisServiceConnectionException, TapisImplException
+     throws TapisException
     {
         String[] components = new String[1 + more.length];
         components[0] = _job.getExecSystemInputDir();
@@ -353,9 +354,10 @@ public final class JobFileManager
      * 
      * @param more 0 or more path segments
      * @return the absolute path
+     * @throws TapisException 
      */
     public String makeAbsExecSysExecPath(String... more) 
-     throws TapisServiceConnectionException, TapisImplException
+     throws TapisException
     {
         String[] components = new String[1 + more.length];
         components[0] = _job.getExecSystemExecDir();
@@ -372,9 +374,10 @@ public final class JobFileManager
      * 
      * @param more 0 or more path segments
      * @return the absolute path
+     * @throws TapisException 
      */
     public String makeAbsExecSysOutputPath(String... more) 
-     throws TapisServiceConnectionException, TapisImplException
+     throws TapisException
     {
         String[] components = new String[1 + more.length];
         components[0] = _job.getExecSystemOutputDir();

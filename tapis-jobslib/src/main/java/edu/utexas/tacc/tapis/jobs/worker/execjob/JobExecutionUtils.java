@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.killers.JobKiller;
 import edu.utexas.tacc.tapis.jobs.killers.JobKillerFactory;
@@ -12,7 +13,11 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
+import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisAppAvailableException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSystemAvailableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class JobExecutionUtils 
 {
@@ -133,5 +138,51 @@ public final class JobExecutionUtils
         }
         
         // TODO: put job status on event queue
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* checkSystemEnabled:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Check system availability.  The system can be null, the job cannot.
+     * 
+     * @param system the system to be checked
+     * @param job the non-null executing job
+     * @throws TapisSystemAvailableException when not available 
+     */
+    static void checkSystemEnabled(TapisSystem system, Job job)
+     throws TapisSystemAvailableException
+    {
+        // See if the system has been explicitly enabled.
+        if (system == null) return;
+        Boolean enabled = system.getEnabled();
+        if (enabled != null && enabled) return;
+            
+        // Throw a recoverable exception.
+        String msg = MsgUtils.getMsg("JOBS_SYSTEM_NOT_AVAILABLE", job.getUuid(), system.getId());
+        _log.warn(msg);
+        throw new TapisSystemAvailableException(msg, RecoveryUtils.captureSystemState(system));        
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* checkAppEnabled:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Check application availability.  The app can be null, the job cannot.
+     * 
+     * @param app the application to be checked
+     * @param job the non-null executing job
+     * @throws TapisAppAvailableException when not available 
+     */
+    static void checkAppEnabled(TapisApp app, Job job)
+     throws TapisAppAvailableException 
+    {
+        // See if the system has been explicitly enabled.
+        if (app == null) return;
+        Boolean enabled = app.getEnabled();
+        if (enabled != null && enabled) return;
+            
+        // Throw a recoverable exception.
+        String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", job.getUuid(), app.getId());
+        _log.warn(msg);
+        throw new TapisAppAvailableException(msg, RecoveryUtils.captureAppState(app));        
     }
 }

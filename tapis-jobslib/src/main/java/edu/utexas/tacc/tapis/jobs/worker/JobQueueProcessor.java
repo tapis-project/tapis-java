@@ -449,7 +449,7 @@ final class JobQueueProcessor
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
       
-      // Create the input and output directories useb by this job.
+      // Create the input and output directories used by this job.
       try {jobCtx.createDirectories();}
           catch (Exception e) {handleException(job, e, BlockedJobActivity.PROCESSING_INPUTS);}
     

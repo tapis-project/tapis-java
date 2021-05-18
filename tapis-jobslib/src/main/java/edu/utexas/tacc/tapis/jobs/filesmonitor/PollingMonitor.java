@@ -101,8 +101,6 @@ public final class PollingMonitor
             }
             StatusEnum status = task.getStatus();
             
-            // TODO: create final success and error messages when TransferTask settles down.
-            
             // Successful termination, we don't need to poll anymore.
             if (status == StatusEnum.COMPLETED) {
                 _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));
@@ -125,6 +123,8 @@ public final class PollingMonitor
             }
 
             // Wait the policy-determined number of milliseconds; exceptions are logged.
+            if (_log.isDebugEnabled())
+                _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_WAIT", job.getUuid(), transferId, corrId, status, waitMillis));
             try {Thread.sleep(waitMillis);} 
                 catch (InterruptedException e) {
                     String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", job.getUuid(), 
