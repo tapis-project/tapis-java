@@ -41,7 +41,7 @@ public class JobRecoverMsg
     // parameters maintain the same order during iteration.  This provides an
     // extra level of assurance when comparing parameters from different sources.
     //
-    // The testerHash comprises the tester type and its parameters to uniquely
+    // The testerHash comprises the tenant, tester type and its parameters to uniquely
     // identify a condition on which one or more jobs may be blocked.  The strict
     // ordering of test parameter keys makes the hashes that incorporate those
     // parameters stable.
@@ -58,7 +58,7 @@ public class JobRecoverMsg
     // There's a single setter for these fields.
     private RecoverTesterType        testerType;       // Condition tester name
     private TreeMap<String,String>   testerParameters; // Tester parms
-    private String                   testerHash;       // Hash of testerType & testerParameters
+    private String                   testerHash;       // Hash of tenant, testerType & testerParameters
     
     /* ********************************************************************** */
     /*                            Public Methods                              */
@@ -67,7 +67,8 @@ public class JobRecoverMsg
     /* setTesterInfo:                                                         */
     /* ---------------------------------------------------------------------- */
     /** Control access to the tester fields since we need to create a hash
-     * from their values.
+     * from their values.  Each of the input fields are incorporated into a 
+     * hash value used to group jobs blocked on the same condition.
      * 
      * Note that it is possible that two recovery messages with different condition
      * codes code have the same tester type and parameters.  In that case, the first
@@ -75,10 +76,11 @@ public class JobRecoverMsg
      * under that record.  In practice this problem should not arise because
      * different conditions are expected to use different monitoring tests.  
      * 
+     * @param tenant the job's tenant
      * @param type the tester type processor
      * @param parms parameters used by the test type processor
      */
-    public void setTesterInfo(RecoverTesterType type, TreeMap<String,String> parms)
+    public void setTesterInfo(String tenant, RecoverTesterType type, TreeMap<String,String> parms)
     {
         // Don't allow a null type.
         if (type == null) {
@@ -92,7 +94,7 @@ public class JobRecoverMsg
           else testerParameters = parms;
         
         // Calculate the hash for this combination of tester information.
-        String data = type.name() + "|" + TapisGsonUtils.getGson().toJson(testerParameters);
+        String data = tenant + "|" + type.name() + "|" + TapisGsonUtils.getGson().toJson(testerParameters);
         testerHash = DigestUtils.sha1Hex(data);
     }
 
@@ -198,7 +200,7 @@ public class JobRecoverMsg
         rmsg.setPolicyParameters(policyParameters);
         rmsg.setSuccessStatus(successStatus);
         rmsg.setStatusMessage(statusMessage);
-        rmsg.setTesterInfo(testerType, testerParms);
+        rmsg.setTesterInfo(job.getTenant(), testerType, testerParms);
         
         return rmsg;
     }

@@ -325,8 +325,8 @@ public final class RecoveryManager
             // Squirrel away the id for use in error message.
             curRecoveryId = jobRecovery.getId();
             try {
-                // Populate the blocked job list for the recovery job. An index on the
-                // aloe_jobs_blocked prevents a job from appearing more than once in the table.
+                // Populate the blocked job list for the recovery job. An index on
+                // jobs_blocked prevents a job from appearing more than once in the table.
                 List<JobBlocked> blockedJobs = _recoveryDao.getBlockedJobs(curRecoveryId);
                 jobRecovery.addBlockedJobs(blockedJobs);
                 

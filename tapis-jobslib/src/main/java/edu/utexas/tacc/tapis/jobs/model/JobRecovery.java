@@ -300,7 +300,10 @@ public final class JobRecovery
             (this.testerHash == null) || (that.testerHash == null))
           return false;
         
-        // The tenant and tester hash determine equality.
+        // The tenant and tester hash determine equality.  Though not strictly
+        // necessary, we explicitly compare tenant ids even though that id
+        // is incorporated in the hash value.  See JobRecoveryMsg.setTesterInfo()
+        // for details.
         if (this.tenantId.equals(that.tenantId) && 
             this.testerHash.equals(that.testerHash))
           return true;
@@ -464,9 +467,9 @@ public final class JobRecovery
      implements Comparator<JobRecovery>
     {
         /** This method assumes only recovery records from the same tenant
-         * will be compared.  Comparing records from different tenants is 
-         * not supported and will give meaningless results.  See Comparator 
-         * documentation for details about being consistent with equals.  
+         * will be compared.  This assumption is guaranteed by including the
+         * tenant id in the hash itself.  See Comparator documentation for 
+         * details about being consistent with equals.  
          */
         @Override
         public int compare(JobRecovery rec1, JobRecovery rec2) 
