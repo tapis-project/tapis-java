@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.jobs.recover.testers.ApplicationTester;
-import edu.utexas.tacc.tapis.jobs.recover.testers.AuthenticationTester;
-import edu.utexas.tacc.tapis.jobs.recover.testers.ConnectionTester;
+import edu.utexas.tacc.tapis.jobs.recover.testers.SSHConnectionTester;
+import edu.utexas.tacc.tapis.jobs.recover.testers.SSHAuthenticationTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.DatabaseTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.JobSuspendedTester;
 import edu.utexas.tacc.tapis.jobs.recover.testers.QuotaTester;
@@ -84,7 +84,7 @@ public class RecoverTesterFactory
             case DEFAULT_SERVICE_CONNECTION_TESTER:
                 return new ServiceConnectionTester(jobRecovery);
             case DEFAULT_CONNECTION_TESTER:
-                return new ConnectionTester(jobRecovery);
+                return new SSHConnectionTester(jobRecovery);
             case DEFAULT_TRANSMISSION_TESTER:
                 return new TransmissionTester(jobRecovery);
             case DEFAULT_DATABASE_TESTER:
@@ -94,7 +94,7 @@ public class RecoverTesterFactory
             case DEFAULT_JOB_SUSPENDED_TESTER:
                 return new JobSuspendedTester(jobRecovery);
             case DEFAULT_AUTHENTICATION_TESTER:
-                return new AuthenticationTester(jobRecovery);
+                return new SSHAuthenticationTester(jobRecovery);
         
             default:
             {

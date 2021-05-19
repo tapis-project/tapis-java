@@ -9,21 +9,20 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryAbortException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
 import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
 
-public final class ConnectionTester 
+public class SSHAuthenticationTester 
  extends AbsTester
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(ConnectionTester.class);
+    private static final Logger _log = LoggerFactory.getLogger(SSHAuthenticationTester.class);
     
     // The tester parameter key used by this tester.
+    public static final String PARM_SYSTEM_ID = "systemId";
     public static final String PARM_AUTH_METHOD = "authMethod";
-    public static final String PARM_CHANNEL_TYPE = "channelType";
     public static final String PARM_HOSTNAME = "hostname";
     public static final String PARM_PORT = "port";
     public static final String PARM_PROXY_HOST = "proxyHost";
@@ -37,13 +36,11 @@ public final class ConnectionTester
     private boolean _parmsValidated = false;
     
     // Validated test parameters saved as fields for convenient access.
-    private AuthMethod        _authMethod;
-    private String            _channelType;
-    private String            _username;
-    private String            _hostname;
-    private int               _port;
-    private String            _proxyHost;
-    private int               _proxyPort;
+    protected String            _systemId;
+    protected AuthMethod        _authMethod;
+    protected String            _username;
+    protected String            _hostname;
+    protected int               _port;
     
     /* ********************************************************************** */
     /*                               Constructors                             */
@@ -51,7 +48,7 @@ public final class ConnectionTester
     /* -----------------------------------------------------------------------*/
     /* constructor:                                                           */
     /* -----------------------------------------------------------------------*/
-    public ConnectionTester(JobRecovery jobRecovery)
+    public SSHAuthenticationTester(JobRecovery jobRecovery)
     {
         super(jobRecovery);
     }
@@ -70,37 +67,29 @@ public final class ConnectionTester
         // An exception can be thrown here.
         validateTesterParameters(testerParameters);
         
-//        // Create the SSH remote client. We don't need a password just to connect.
-//        // The proxy host and port can also be null.
-//        MaverickSSHSubmissionClient client = 
-//            new MaverickSSHSubmissionClient(
-//                    _hostname, 
-//                    _port, 
-//                    _username, 
-//                    null, 
-//                    _proxyHost, 
-//                    _proxyPort);
-//        
-//        // See if we can connect without authentication to the host.
-//        // The connection is always close by the called method.
-//        boolean available = client.canEstablishSSHConnection();
-        boolean available = canEstablishConnection();
+        // Try to connect.
+        boolean canConnect = canEstablishConnection();
         
         // Return whether is the system is marked available.
-        if (available) return DEFAULT_RESUBMIT_BATCHSIZE;
+        if (canConnect) return DEFAULT_RESUBMIT_BATCHSIZE;
         else return NO_RESUBMIT_BATCHSIZE;
     }
     
+    /* ********************************************************************** */
+    /*                           Protected Methods                            */
+    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* canEstablishConnection:                                                */
     /* ---------------------------------------------------------------------- */
-    private boolean canEstablishConnection()
+    protected boolean canEstablishConnection() throws JobRecoveryAbortException
     {
-//        SSHConnection conn = null;
-//        if ()
-//            conn = new SSHConnection(_hostname, _port, _username, PARM_AUTH_METHOD)
+        // Recovery abort exception can be thrown from here.
+        var conn = getSSHConnection(_username, _systemId, _authMethod);
+        if (conn == null) return false;
         
-        return false;
+        // An established connection means the condition has cleared.
+        conn.closeSession();
+        return true;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -114,7 +103,7 @@ public final class ConnectionTester
      * @param testerParameters the test parameter map
      * @throws JobRecoveryAbortException on validation error
      */
-    private void validateTesterParameters(Map<String, String> testerParameters)
+    protected void validateTesterParameters(Map<String, String> testerParameters)
      throws JobRecoveryAbortException
     {
         // No need to validate more than once.
@@ -139,6 +128,13 @@ public final class ConnectionTester
             }
         
         // ---- Make sure all the other required parms are acceptable.
+        _systemId = testerParameters.get(PARM_SYSTEM_ID);
+        if (StringUtils.isBlank(_systemId)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
+                                         PARM_SYSTEM_ID);
+            _log.error(msg);
+            throw new JobRecoveryAbortException(msg);
+        }
         _username = testerParameters.get(PARM_USERNAME);
         if (StringUtils.isBlank(_username)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
@@ -153,18 +149,22 @@ public final class ConnectionTester
             _log.error(msg);
             throw new JobRecoveryAbortException(msg);
         }
-        if (StringUtils.isBlank(testerParameters.get(PARM_PORT))) {
+        
+        // We don't use the port, but we make sure it's set.
+        String port = testerParameters.get(PARM_PORT);
+        if (StringUtils.isBlank(port)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
                                          PARM_PORT);
             _log.error(msg);
             throw new JobRecoveryAbortException(msg);
         }
-        if (StringUtils.isBlank(testerParameters.get(PARM_CHANNEL_TYPE))) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
-                                          PARM_CHANNEL_TYPE);
-            _log.error(msg);
-            throw new JobRecoveryAbortException(msg);
-        }
+        try {_port = Integer.valueOf(port);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateTesterParameters",
+                                             PARM_PORT, port);
+                _log.error(msg, e);
+                throw new JobRecoveryAbortException(msg, e);
+            }
         
         // We're good if we get here.
         _parmsValidated = true;
