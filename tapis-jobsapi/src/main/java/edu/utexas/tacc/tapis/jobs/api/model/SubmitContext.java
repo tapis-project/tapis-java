@@ -1118,6 +1118,7 @@ public final class SubmitContext
         for (var q : _execSystem.getBatchLogicalQueues()) 
             if (queueName.equals(q.getName())) {queue = q; break;}
         
+        // ---------------------- Check Maximums ----------------------
         // Check the effective job request values against each queue defined limit.
         // The limits should never be null, but we verify anyway.
         Integer maxNodes = queue.getMaxNodeCount();
@@ -1145,6 +1146,37 @@ public final class SubmitContext
         if (maxMinutes != null && _submitReq.getMaxMinutes() > maxMinutes) {
             String msg = MsgUtils.getMsg("JOBS_Q_EXCEEDED_MAX_MINUTES", _job.getUuid(), 
                     _execSystem.getId(), queueName, maxMinutes, _submitReq.getMaxMinutes());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---------------------- Check Minimums ----------------------
+        // Check the effective job request values against each queue defined limit.
+        // The limits should never be null, but we verify anyway.
+        Integer minNodes = queue.getMinNodeCount();
+        if (minNodes != null && _submitReq.getNodeCount() < minNodes) {
+            String msg = MsgUtils.getMsg("JOBS_Q_MIN_NODES_ERROR", _job.getUuid(), 
+                    _execSystem.getId(), queueName, minNodes, _submitReq.getNodeCount());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer minCores = queue.getMinCoresPerNode();
+        if (minCores != null && _submitReq.getCoresPerNode() < minCores) {
+            String msg = MsgUtils.getMsg("JOBS_Q_MIN_CORES_ERROR", _job.getUuid(), 
+                    _execSystem.getId(), queueName, minCores, _submitReq.getCoresPerNode());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer minMem = queue.getMinMemoryMB();
+        if (minMem != null && _submitReq.getMemoryMB() < minMem) {
+            String msg = MsgUtils.getMsg("JOBS_Q_MIN_MEM_ERROR", _job.getUuid(), 
+                    _execSystem.getId(), queueName, minMem, _submitReq.getMemoryMB());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+
+        Integer minMinutes = queue.getMinMinutes();
+        if (minMinutes != null && _submitReq.getMaxMinutes() < minMinutes) {
+            String msg = MsgUtils.getMsg("JOBS_Q_MIN_MINUTES_ERROR", _job.getUuid(), 
+                    _execSystem.getId(), queueName, minMinutes, _submitReq.getMaxMinutes());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
