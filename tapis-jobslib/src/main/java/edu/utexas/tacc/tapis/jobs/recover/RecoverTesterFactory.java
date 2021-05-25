@@ -83,7 +83,7 @@ public class RecoverTesterFactory
                 return new ApplicationTester(jobRecovery);
             case DEFAULT_SERVICE_CONNECTION_TESTER:
                 return new ServiceConnectionTester(jobRecovery);
-            case DEFAULT_CONNECTION_TESTER:
+            case DEFAULT_SSH_CONNECTION_TESTER:
                 return new SSHConnectionTester(jobRecovery);
             case DEFAULT_TRANSMISSION_TESTER:
                 return new TransmissionTester(jobRecovery);
@@ -93,7 +93,8 @@ public class RecoverTesterFactory
                 return new QuotaTester(jobRecovery);
             case DEFAULT_JOB_SUSPENDED_TESTER:
                 return new JobSuspendedTester(jobRecovery);
-            case DEFAULT_AUTHENTICATION_TESTER:
+            case DEFAULT_SSH_AUTHENTICATION_TESTER:
+            case DEFAULT_SSH_CONNECTION_TIMEOUT_TESTER:    
                 return new SSHAuthenticationTester(jobRecovery);
         
             default:

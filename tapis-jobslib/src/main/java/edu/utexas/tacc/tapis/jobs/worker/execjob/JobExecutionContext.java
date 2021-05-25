@@ -9,6 +9,7 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -22,6 +23,7 @@ import edu.utexas.tacc.tapis.jobs.stagers.JobExecStageFactory;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHAuthException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -72,6 +74,9 @@ public final class JobExecutionContext
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
+    
+    // Treat authentication errors on the initial connection attempt specially.
+    private boolean                  _execSysConnFirstAttempt = true;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -328,6 +333,15 @@ public final class JobExecutionContext
         if (_execSysConn == null) 
             try {_execSysConn = TapisAbstractConnection.createNewConnection(_executionSystem);}
                 catch (Exception e) {
+                    // Add the job activity to auth exceptions on first attempt only.
+                    if (e instanceof TapisSSHAuthException) 
+                        if (_execSysConnFirstAttempt) {
+                            String activity = JobRecoveryDefinitions.BlockedJobActivity.CHECK_SYSTEMS.name();
+                            RecoveryUtils.updateJobActivity(e, activity);
+                            _execSysConnFirstAttempt = false;
+                        }
+                    
+                    // Create the informative message.
                     String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
                                                  _executionSystem.getId(),
                                                  _executionSystem.getHost(),
@@ -336,8 +350,12 @@ public final class JobExecutionContext
                                                  _executionSystem.getDefaultAuthnMethod().name(),
                                                  _job.getUuid(),
                                                  e.getMessage());
+                    // Always wrap the exception.
                     throw new JobException(msg, e);
                 }
+        
+        // Record that we have connected to the exec system at least once.
+        _execSysConnFirstAttempt = false;
         return _execSysConn;
     }
     
