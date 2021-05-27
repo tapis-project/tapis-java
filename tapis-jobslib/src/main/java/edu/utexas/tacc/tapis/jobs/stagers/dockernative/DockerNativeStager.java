@@ -274,8 +274,8 @@ public class DockerNativeStager
             String option = null;
             String value  = ""; // default value when none provided
             int groupCount = m.groupCount();
-            if (groupCount > 1) option = m.group(1);
-            if (groupCount > 2) value  = m.group(2);            
+            if (groupCount > 0) option = m.group(1);
+            if (groupCount > 1) value  = m.group(2);            
             
             // The option should always exist.
             if (StringUtils.isBlank(option)) {
@@ -374,6 +374,7 @@ public class DockerNativeStager
                 dockerRunCmd.getVolumeMount().add(value);
                 break;
             case "--workdir":
+            case "-w":
                 dockerRunCmd.setWorkdir(value);
                 break;
                 
