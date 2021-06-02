@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -8,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
+import edu.utexas.tacc.tapis.files.client.FilesClient.StreamedFile;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
@@ -15,6 +18,8 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public class DataLocator {
 	/* ********************************************************************** */
@@ -48,7 +53,7 @@ public class DataLocator {
     /* ---------------------------------------------------------------------- */
     /* getJobOutputSystemInfoForOutputListing:                                */
     /* ---------------------------------------------------------------------- */
-     public JobOutputInfo getJobOutputSystemInfoForOutputListing(String pathName) {
+     public JobOutputInfo getJobOutputSystemInfo(String pathName) {
     	 String systemId = "";
     	 String systemUrl = "";
     	 JobOutputInfo jobOutputInfo = null;
@@ -94,23 +99,38 @@ public class DataLocator {
         	_log.debug("Null Job output Files list returned!");
          } else {
             _log.debug("Number of Job output files returned: " + outputList.size());
-             /*
-              * For testing 
-              for (var f : outputList) {
-                 System.out.println("\nfile:  " + f.getName());
-                 System.out.println("  size:  " + f.getSize());
-                 System.out.println("  time:  " + f.getLastModified());
-                 System.out.println("  path:  " + f.getPath());
-                 System.out.println("  type:  " + f.getType());
-                 System.out.println("  owner: " + f.getOwner());
-                 System.out.println("  group: " + f.getGroup());
-                 System.out.println("  perms: " + f.getNativePermissions());
-                 System.out.println("  mime:  " + f.getMimeType());
-             }
-             */
          }
     	 return outputList;
      }
+     /* ---------------------------------------------------------------------- */
+     /* getJobOutputDownload:                                                  */
+     /* ---------------------------------------------------------------------- */
+     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, boolean compress ) throws TapisImplException{
+    	
+    	 // Get the File Service client 
+         FilesClient filesClient = null;
+		
+		 filesClient = getServiceClient(FilesClient.class, user, tenant);
+		 StreamedFile streamFromFiles = null;
+		 try {
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress);
+			
+		} catch (TapisClientException e) {
+			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 
+            		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), _job.getOwner(),
+            	   _job.getTenant(), e.getCode());
+            throw new TapisImplException(msg, e, e.getCode());
+		}
+         	
+        if (streamFromFiles == null) {
+        	_log.debug("No files returned!");
+         } else {
+            _log.debug("Transferring streams using Files service");
+           
+         }
+    	 return streamFromFiles;
+     }
+     
      
      /* ---------------------------------------------------------------------- */
      /* makeSystemUrl:                                                         */
