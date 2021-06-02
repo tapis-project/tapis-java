@@ -64,7 +64,7 @@ public final class JobRecovery
     private transient RecoverTester    tester;           // Condition tester object
     private transient RecoverPolicy    policy;           // Next attempt policy object
     
-    // Jobs blocked on this recovery's condition
+    // Jobs blocked on this recovery's condition.
     private transient final List<JobBlocked> blockedJobs = new ArrayList<JobBlocked>();
 
     /* ********************************************************************** */

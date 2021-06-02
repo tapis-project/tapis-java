@@ -30,6 +30,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisQuotaException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHAuthException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHConnectionException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSSHTimeoutException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSystemAvailableException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -98,6 +99,9 @@ public final class RecoveryUtils
         
         trigger = TapisUtils.findInChain(e, TapisSSHConnectionException.class);
         if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHConnectionException)trigger);
+
+        trigger = TapisUtils.findInChain(e, TapisSSHTimeoutException.class);
+        if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHTimeoutException)trigger);
 
         trigger = TapisUtils.findInChain(e, TapisSSHAuthException.class);
         if (trigger != null) return handleTrigger(e, jobCtx, (TapisSSHAuthException)trigger);
@@ -320,7 +324,7 @@ public final class RecoveryUtils
         TreeMap<String, String> policyParameters = new TreeMap<>();
         policyParameters.put("steps", stepsStringValue);
         JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
-                                        RecoveryConfiguration.DFT_CONNECTION_FAILURE, 
+                                        RecoveryConfiguration.DFT_SERVICE_CONNECTION_FAILURE, 
                                         jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
                                         e.getMessage(), policyParameters, trigger.state);
         return new JobServiceConnectionException(jobRecoverMsg, e.getMessage(), e);
@@ -353,7 +357,40 @@ public final class RecoveryUtils
         policyParameters.put("steps", stepsStringValue);
         policyParameters.put("maxElapsedSeconds", "10800000"); // 3 hours
         JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
-                                        RecoveryConfiguration.DFT_CONNECTION_FAILURE, 
+                                        RecoveryConfiguration.DFT_SSH_CONNECTION_FAILURE, 
+                                        jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
+                                        e.getMessage(), policyParameters, trigger.state);
+        return new JobSSHConnectionException(jobRecoverMsg, e.getMessage(), e);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* handleTrigger:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Wrap the exception e in a recoverable job exception based on the type
+     * of the trigger exception.
+     */
+    private static JobRecoverableException handleTrigger(TapisException e, 
+                                                         JobExecutionContext jobCtx,
+                                                         TapisSSHTimeoutException trigger)
+    {
+        // Create a recoverable exception that wraps the original.
+        // For SSH connection failures, the StepwiseBackoffPolicy will be used.
+        // Setup the parameters to retry about every minute for 5 attempts then
+        //       every 2 minutes for 5 attempts and finally every 5 minutes
+        //       every 5 minutes for 3 attempts.
+        // Set the maximum time to retry to 3 hours as a fallback
+        ArrayList<Pair<Integer,Long>> steps = new ArrayList<>();
+        steps.add(Pair.of(5,   60000L));   // 1 minute
+        steps.add(Pair.of(5,  120000L));   // 2 minutes
+        steps.add(Pair.of(10, 300000L));   // 5 minutes
+        Gson gson = TapisGsonUtils.getGson(true);
+        String stepsStringValue = gson.toJson(steps);
+
+        TreeMap<String, String> policyParameters = new TreeMap<>();
+        policyParameters.put("steps", stepsStringValue);
+        policyParameters.put("maxElapsedSeconds", "10800000"); // 3 hours
+        JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
+                                        RecoveryConfiguration.DFT_SSH_CONNECTION_TIMEOUT, 
                                         jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
                                         e.getMessage(), policyParameters, trigger.state);
         return new JobSSHConnectionException(jobRecoverMsg, e.getMessage(), e);
@@ -383,7 +420,7 @@ public final class RecoveryUtils
     String activity = trigger.state.get(JobRecoveryDefinitions.BLOCKED_JOB_ACTIVITY);
     if (activity != null && activity.equals(BlockedJobActivity.CHECK_SYSTEMS.name())) {
       // Set the configuration type.
-      config = RecoveryConfiguration.FIRST_AUTHENTICATION_FAILURE;
+      config = RecoveryConfiguration.FIRST_SSH_AUTHENTICATION_FAILURE;
 
       // Set constant backoff policy parameters to stick with the default
       // wait time but reduce the number of retries.
@@ -391,7 +428,7 @@ public final class RecoveryUtils
     }
     else {
       // Set the default configuration type and take the policy defaults.
-      config = RecoveryConfiguration.DFT_AUTHENTICATION_FAILURE;
+      config = RecoveryConfiguration.DFT_SSH_AUTHENTICATION_FAILURE;
 
       // Set constant backoff policy parameters to stick with the default
       // wait time but reduce the number of retries.

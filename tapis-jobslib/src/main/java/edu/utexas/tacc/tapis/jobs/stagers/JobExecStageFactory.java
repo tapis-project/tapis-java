@@ -144,7 +144,7 @@ public final class JobExecStageFactory
     {
         // Get the scheduler's docker stager. 
         JobExecStager stager = switch (scheduler) {
-            case SLURM -> null; // not implemented
+            case SLURM -> new SingularityRunStager(jobCtx);
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 

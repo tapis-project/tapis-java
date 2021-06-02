@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SingularityRunStager
+public class SingularityRunStager
  extends AbstractSingularityStager
 {
     /* ********************************************************************** */
@@ -74,6 +74,11 @@ public final class SingularityRunStager
     {
         return _singularityCmd.generateEnvVarFileContent();
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityRunCmd:                                                  */
+    /* ---------------------------------------------------------------------- */
+    protected SingularityRunCmd getSingularityRunCmd() {return _singularityCmd;}
     
     /* ********************************************************************** */
     /*                            Private Methods                             */
@@ -178,8 +183,8 @@ public final class SingularityRunStager
             String option = null;
             String value  = ""; // default value when none provided
             int groupCount = m.groupCount();
-            if (groupCount > 1) option = m.group(1);
-            if (groupCount > 2) value  = m.group(2);            
+            if (groupCount > 0) option = m.group(1);
+            if (groupCount > 1) value  = m.group(2);            
             
             // The option should always exist.
             if (StringUtils.isBlank(option)) {

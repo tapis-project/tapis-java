@@ -22,10 +22,11 @@ public final class JobRecoverMsgFactory
         DFT_SYSTEM_NOT_AVAILABLE,
         DFT_APPLICATION_NOT_AVAILABLE,
         DFT_SERVICE_CONNECTION_FAILURE,
-        DFT_CONNECTION_FAILURE,
         DFT_QUOTA_EXCEEDED,
-        DFT_AUTHENTICATION_FAILURE,
-        FIRST_AUTHENTICATION_FAILURE
+        DFT_SSH_CONNECTION_FAILURE,
+        DFT_SSH_CONNECTION_TIMEOUT,
+        DFT_SSH_AUTHENTICATION_FAILURE,
+        FIRST_SSH_AUTHENTICATION_FAILURE
     }
     
     // TODO: Implement more recoverable configurations.
@@ -119,16 +120,29 @@ public final class JobRecoverMsgFactory
                         testerParameters);
                 break;
                 
-            case DFT_CONNECTION_FAILURE:
+            case DFT_SSH_CONNECTION_FAILURE:
                 rmsg = JobRecoverMsg.create(
                         job, 
                         senderId, 
-                        RecoverConditionCode.CONNECTION_FAILURE, 
+                        RecoverConditionCode.SSH_CONNECTION_FAILURE, 
                         RecoverPolicyType.STEPWISE_BACKOFF, 
                         policyParameters, 
                         job.getStatus(), 
                         msg, 
-                        RecoverTesterType.DEFAULT_CONNECTION_TESTER, 
+                        RecoverTesterType.DEFAULT_SSH_CONNECTION_TESTER, 
+                        testerParameters);
+                break;
+                
+            case DFT_SSH_CONNECTION_TIMEOUT:
+                rmsg = JobRecoverMsg.create(
+                        job, 
+                        senderId, 
+                        RecoverConditionCode.SSH_CONNECTION_TIMEOUT, 
+                        RecoverPolicyType.STEPWISE_BACKOFF, 
+                        policyParameters, 
+                        job.getStatus(), 
+                        msg, 
+                        RecoverTesterType.DEFAULT_SSH_CONNECTION_TIMEOUT_TESTER, 
                         testerParameters);
                 break;
                 
@@ -145,29 +159,29 @@ public final class JobRecoverMsgFactory
                         testerParameters);
                 break;
                 
-            case DFT_AUTHENTICATION_FAILURE:
+            case DFT_SSH_AUTHENTICATION_FAILURE:
                 rmsg = JobRecoverMsg.create(
                         job, 
                         senderId, 
-                        RecoverConditionCode.AUTHENTICATION_FAILED, 
+                        RecoverConditionCode.SSH_AUTHENTICATION_FAILED, 
                         RecoverPolicyType.CONSTANT_BACKOFF, 
                         policyParameters, 
                         job.getStatus(), 
                         msg, 
-                        RecoverTesterType.DEFAULT_AUTHENTICATION_TESTER, 
+                        RecoverTesterType.DEFAULT_SSH_AUTHENTICATION_TESTER, 
                         testerParameters);
                 break;
 
-            case FIRST_AUTHENTICATION_FAILURE:
+            case FIRST_SSH_AUTHENTICATION_FAILURE:
                 rmsg = JobRecoverMsg.create(
                         job,
                         senderId,
-                        RecoverConditionCode.FIRST_AUTHENTICATION_FAILED,
+                        RecoverConditionCode.FIRST_SSH_AUTHENTICATION_FAILED,
                         RecoverPolicyType.CONSTANT_BACKOFF,
                         policyParameters,
                         job.getStatus(),
                         msg,
-                        RecoverTesterType.DEFAULT_AUTHENTICATION_TESTER,
+                        RecoverTesterType.DEFAULT_SSH_AUTHENTICATION_TESTER,
                         testerParameters);
                 break;
 

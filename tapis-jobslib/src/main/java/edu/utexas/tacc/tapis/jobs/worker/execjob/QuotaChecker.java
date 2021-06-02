@@ -59,8 +59,6 @@ public final class QuotaChecker
     public void checkQuotas() 
       throws TapisException
     {
-      try
-      {
         // number of tapis jobs submitted to an execution system
         checkMaxSystemJobs();
 
@@ -72,13 +70,6 @@ public final class QuotaChecker
 
         // number of tapis jobs submitted by a particular user to a batchqueue
         checkMaxSystemUserQueueJobs();
-      }
-      catch (TapisRecoverableException e)
-      {
-        // It is a recoverable exception so add job activity
-        RecoveryUtils.updateJobActivity(e, JobRecoveryDefinitions.BlockedJobActivity.CHECK_QUOTA.name());
-        throw e;
-      }
     }
     
     /* ********************************************************************** */

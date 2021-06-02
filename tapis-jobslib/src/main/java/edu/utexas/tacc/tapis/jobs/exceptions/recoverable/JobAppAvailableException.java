@@ -7,9 +7,6 @@ public class JobAppAvailableException
 {
     private static final long serialVersionUID = 7407724521479303081L;
     
-    public JobAppAvailableException(JobRecoverMsg jobRecoverMsg, String message) {
-        super(jobRecoverMsg, message);
-    }
     public JobAppAvailableException(JobRecoverMsg jobRecoverMsg, String message, Throwable cause)
     {
         super(jobRecoverMsg, message, cause);
