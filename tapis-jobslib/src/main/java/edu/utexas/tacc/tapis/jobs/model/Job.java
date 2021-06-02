@@ -448,6 +448,21 @@ public final class Job
         }
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* getTotalTasks:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** This method is only guaranteed to return valid information after the 
+     * validateForExecution() tests pass.  This method calculates the total 
+     * number of task as the product of coresPerNode and number of nodes.   
+     * 
+     * @return the total number of processors requested across all nodes
+     */
+    @Schema(hidden = true)
+    public int getTotalTasks()
+    {
+        return coresPerNode * nodeCount;
+    }
+    
     /* **************************************************************************** */
     /*                                  Accessors                                   */
     /* **************************************************************************** */

@@ -152,7 +152,7 @@ abstract class AbstractSingularityExecCmd
     /* ---------------------------------------------------------------------- */
     /** Create the string of key=value pairs separated by new line characters.
      * 
-     * @param values NON-EMPTY list of pair values, one per occurance
+     * @param values NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments
      */
     protected String getPairListArgs(List<Pair<String,String>> pairs)
@@ -186,6 +186,32 @@ abstract class AbstractSingularityExecCmd
         String s = "";
         for (var v : values) s += arg + v;
         return s;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getEnvArg:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Create the string of key=value pairs separated by new line characters.
+     * 
+     * @param values NON-EMPTY list of pair values, one per occurrence
+     * @return the string that contains all assignments
+     */
+    protected String getEnvArg(List<Pair<String,String>> pairs)
+    {
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // Create the string " --env key=value[,key=value]".
+        boolean first = true;
+        for (var v : pairs) {
+            if (first) {buf.append(" --env "); first = false;}
+              else buf.append(",");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(v.getRight());
+        }
+        return buf.toString();
     }
     
     /* ********************************************************************** */

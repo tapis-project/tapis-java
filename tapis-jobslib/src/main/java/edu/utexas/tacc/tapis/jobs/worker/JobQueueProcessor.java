@@ -1,10 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.BuiltinExchangeType;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -346,7 +348,11 @@ final class JobQueueProcessor
           _log.warn(msg);
           return false;
       }
-    
+      
+      // Batch job validation
+      try {validateBatchParameters(jobCtx);}
+          catch (Exception e) {throw JobUtils.tapisify(e, e.getMessage());}
+      
       // Set the default return code to cause a positive ack to rabbitmq.
       boolean rc = true;
       
@@ -670,6 +676,37 @@ final class JobQueueProcessor
       
       // True means continue processing the job.
       return true;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* validateBatchParameters:                                               */
+  /* ---------------------------------------------------------------------- */
+  /** If running a batch job, make sure we know to which hpc queue we are submitting.
+   * 
+   * @param jobCtx current job context
+   * @throws TapisException if batch job does not have an hpc queue defined 
+   */
+  private void validateBatchParameters(JobExecutionContext jobCtx) 
+   throws TapisException
+  {
+      // Get the application type.
+      var app = jobCtx.getApp();
+      if (app.getAppType() != AppTypeEnum.BATCH) return;
+      
+      // The job better have a queue at this point.
+      var logicalQueue = jobCtx.getLogicalQueue();
+      if (logicalQueue == null) {
+          String msg = MsgUtils.getMsg("JOBS_BATCH_NO_LOGICAL_QUEUE", jobCtx.getJob().getUuid(),
+                                       app.getId());
+          throw new TapisException(msg);
+      }
+      
+      // Make sure the hpc queue is defined.
+      if (StringUtils.isBlank(logicalQueue.getHpcQueueName())) {
+          String msg = MsgUtils.getMsg("JOBS_BATCH_NO_HPC_QUEUE", jobCtx.getJob().getUuid(),
+                                       app.getId(), logicalQueue.getName());
+          throw new TapisException(msg);
+      }
   }
   
   /* ---------------------------------------------------------------------- */
