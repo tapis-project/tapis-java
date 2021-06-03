@@ -20,7 +20,7 @@ final class WrappedSingularityRunStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    WrappedSingularityRunStager(JobExecutionContext jobCtx)
+    protected WrappedSingularityRunStager(JobExecutionContext jobCtx)
      throws TapisException
     {
         super(jobCtx);

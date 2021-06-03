@@ -45,7 +45,7 @@ public final class SingularityRunSlurmStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    protected SingularityRunSlurmStager(JobExecutionContext jobCtx)
+    public SingularityRunSlurmStager(JobExecutionContext jobCtx)
      throws TapisException
     {
         // The singularity stager must initialize before the slurm run command.
@@ -66,11 +66,8 @@ public final class SingularityRunSlurmStager
         // Create the wrapper script.
         String wrapperScript = generateWrapperScript();
         
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var fm = _jobCtx.getJobFileManager();
-        
         // Install the wrapper script on the execution system.
+        var fm = _jobCtx.getJobFileManager();
         fm.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
     }
     
@@ -182,6 +179,9 @@ public final class SingularityRunSlurmStager
         // Tell slurm the total runtime of the application in minutes.
         slurmCmd.setTime(Integer.toString(_job.getMaxMinutes()));
         
+        // Tell slurm the memory per node requirement in megabytes.
+        slurmCmd.setMem(Integer.toString(_job.getMemoryMB()));
+        
         // We've already checked in JobQueueProcessor before processing any
         // state changes that the logical and hpc queues have been assigned.
         var logicalQueue = _jobCtx.getLogicalQueue();
@@ -206,8 +206,10 @@ public final class SingularityRunSlurmStager
         // Unless the user explicitly specifies an error file, both
         // stdout and stderr will go the designated output file.
         if (StringUtils.isBlank(slurmCmd.getOutput()) && 
-            StringUtils.isNotBlank(slurmCmd.getArray())) {
-            slurmCmd.setOutput(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE);
+            StringUtils.isBlank(slurmCmd.getArray())) {
+            var fm = _jobCtx.getJobFileManager();
+            slurmCmd.setOutput(
+                fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE));
         }
     }
     

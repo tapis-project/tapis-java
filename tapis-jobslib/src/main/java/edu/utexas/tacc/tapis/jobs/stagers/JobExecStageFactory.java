@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -29,7 +30,7 @@ public final class JobExecStageFactory
      throws TapisException 
     {
         // Extract required information from app.
-        var app = jobCtx.getApp();
+        var app     = jobCtx.getApp();
         var appType = app.getAppType();
         var runtime = app.getRuntime();
         
@@ -144,7 +145,7 @@ public final class JobExecStageFactory
     {
         // Get the scheduler's docker stager. 
         JobExecStager stager = switch (scheduler) {
-            case SLURM -> new SingularityRunStager(jobCtx);
+            case SLURM -> new SingularityRunSlurmStager(jobCtx);
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 

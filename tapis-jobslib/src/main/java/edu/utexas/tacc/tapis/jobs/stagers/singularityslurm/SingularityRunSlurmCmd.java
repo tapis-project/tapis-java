@@ -134,25 +134,20 @@ public final class SingularityRunSlurmCmd
     @Override
     public String generateExecCmd(Job job) 
     {
-        // The generated wrapper script will contain a non-heterogeneous 
-        // sbatch command that conforms to this template
+        // The ultimate command produced conforms to this template:
         //
         // sbatch [OPTIONS...] tapisjob.sh
-    
+        //
         // The generated tapisjob.sh script will contain the singularity run 
         // command with its options, the designated image and the application
         // arguments.
         //
         //   singularity run [run options...] <image> [args] 
-        
-        // Create the command buffer.
-        final int capacity = 2048;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // ------ Fill in the SBATCH directives.
-        buf.append(getSBatchDirectives());
-
-        return buf.toString();
+        //
+        // In a departure from the usual role this method plays, we only generate
+        // the slurm OPTIONS section of the tapisjob.sh script here.  The caller 
+        // constructs the complete script.
+        return getSBatchDirectives();
     }
 
     /* ---------------------------------------------------------------------- */
@@ -174,6 +169,12 @@ public final class SingularityRunSlurmCmd
     /* ---------------------------------------------------------------------- */
     /* getSBatchDirectives:                                                   */
     /* ---------------------------------------------------------------------- */
+    /** Generate the sbatch directives separated by newline characters.  Each
+     * system can have its own policy that filters out certain slurm options.
+     * This method performs that filtering.
+     * 
+     * @return the list of #SBATCH directives
+     */
     private String getSBatchDirectives()
     {
         // Create a buffer to hold the sbatch directives
@@ -185,6 +186,7 @@ public final class SingularityRunSlurmCmd
         // Add the sbatch directives in alphabetic order.
         buf.append("# Slurm directives.\n");
         for (var entry : _directives.entrySet()) {
+            if (skipSlurmOption(entry.getKey())) continue;
             buf.append(DIRECTIVE_PREFIX);
             buf.append(entry.getKey());
             if (StringUtils.isNotBlank(entry.getValue())) {
@@ -197,6 +199,23 @@ public final class SingularityRunSlurmCmd
         
         // Return the sbatch directives.
         return buf.toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* skipSlurmOption:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Skip options that are not allowed by the target system.
+     * 
+     * @param option the long form slurm option
+     * @return true to skip option, false to pass option to slurm
+     */
+    private boolean skipSlurmOption(String option)
+    {
+        // TODO: Hardcode TACC policy here for now.
+        if (option.equals("--mem")) return true;
+        
+        // Allow option.
+        return false;
     }
     
     /* ********************************************************************** */
