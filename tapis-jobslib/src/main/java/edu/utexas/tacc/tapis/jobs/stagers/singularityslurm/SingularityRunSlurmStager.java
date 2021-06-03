@@ -225,7 +225,7 @@ public final class SingularityRunSlurmStager
     {
         // Get the list of user-specified container arguments.
         var parmSet = _job.getParameterSetModel();
-        var opts    = parmSet.getContainerArgs();
+        var opts    = parmSet.getSchedulerOptions();
         if (opts == null || opts.isEmpty()) return;
         
         // Iterate through the list of options.

@@ -120,7 +120,7 @@ public class JobMonitorFactory
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getBatchDockermonitor:                                                 */
+    /* getBatchDockerMonitor:                                                 */
     /* ---------------------------------------------------------------------- */
     private static JobMonitor getBatchDockerMonitor(JobExecutionContext jobCtx,
                                                     MonitorPolicy policy,
@@ -129,12 +129,11 @@ public class JobMonitorFactory
     {
         // Get the scheduler's docker monitor. 
         JobMonitor monitor = switch (scheduler) {
-            case SLURM -> new DockerSlurmMonitor(jobCtx, policy);
+            case SLURM -> null; // not implemented
             
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
-                                             scheduler + "(DOCKER)", 
-                                             "JobMonitorFactory");
+                                             scheduler.name(), "JobMonitorFactory");
                 throw new JobException(msg);
             }
         };
@@ -152,12 +151,11 @@ public class JobMonitorFactory
     {
         // Get the scheduler's docker monitor. 
         JobMonitor monitor = switch (scheduler) {
-            case SLURM -> null; // not implemented
+            case SLURM -> new SlurmMonitor(jobCtx, policy);
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
-                                             scheduler + "(SINGULARITY)", 
-                                             "JobMonitorFactory");
+                                             scheduler.name(), "JobMonitorFactory");
                 throw new JobException(msg);
             }
         };
