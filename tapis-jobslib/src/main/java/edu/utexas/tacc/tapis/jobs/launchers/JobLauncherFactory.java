@@ -129,7 +129,7 @@ public class JobLauncherFactory
     {
         // Get the scheduler's docker launcher. 
         JobLauncher launcher = switch (scheduler) {
-            case SLURM -> null; // not implemented
+            case SLURM -> new SingularityRunSlurmLauncher(jobCtx);
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
