@@ -1,8 +1,13 @@
 package edu.utexas.tacc.tapis.jobs.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.ws.rs.core.StreamingOutput;
+
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +30,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public final class JobsImpl 
  extends BaseImpl
@@ -381,13 +388,57 @@ public final class JobsImpl
         // ----- Get the job output files list.
         DataLocator dataLocator = new DataLocator(job);
         
-        JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfoForOutputListing(pathName);
+        JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
         
         List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip);
                
         return outputList;
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* getJobOutputDownloadInfo:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) throws TapisImplException
+    {
+        // ----- Check input.
+        if (StringUtils.isBlank(job.getUuid())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobOutputList", "jobUuid");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        // ----- Authorization checks.
+        // Make sure the user and tenant are authorized.
+        if (!tenant.equals(job.getTenant())) {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+	        if (!user.equals(job.getOwner()) && 
+	            !user.equals(job.getCreatedby()) && 
+	            !isAdminSafe(user, tenant)) 
+	        {
+	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+        
+        // ----- Download Info for the job output files.
+        DataLocator dataLocator = new DataLocator(job);
+        
+        JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
+       
+        return jobOutputFilesinfo;   
+       
+    }
+    
+    
+   
     /* ---------------------------------------------------------------------- */
     /* queryDB:                                                               */
     /* ---------------------------------------------------------------------- */

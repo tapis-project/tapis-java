@@ -23,15 +23,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.files.client.FilesClient.StreamedFile;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
-import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobOutputList;
-import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
+import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
@@ -44,14 +44,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
-public class JobOutputListingResource extends AbstractResource{
+public class JobOutputDownloadResource extends AbstractResource{
 	/* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(JobOutputDownloadResource.class);
     
-    
+    private static final int ONE_GB_IN_KB = 1000000;
+    private static final int DEFAULT_LIMIT = 100;
+    private static final int DEFAULT_SKIP = 0;
     
     
     /* **************************************************************************** */
@@ -102,24 +104,23 @@ public class JobOutputListingResource extends AbstractResource{
      /*                                Public Methods                                */
      /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
-     /* getJobOutputListing:                                                         */
+     /* getJobOutputDownload:                                                         */
      /* ---------------------------------------------------------------------------- */
     
      @GET
-     @Path("/{jobUuid}/output/list/{outputPath: (.*+)}")
-     @Produces(MediaType.APPLICATION_JSON)
+     @Path("/{jobUuid}/output/download/{outputPath: (.*+)}")
+     @Produces(MediaType.APPLICATION_OCTET_STREAM)
      @Operation(
-             description = "Retrieve job's output files list for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
+             description = "Download job's output files for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
                            + "The caller must be the job owner, creator or a tenant administrator.\n"
-            		       + "/ must be appended after list end-point even if there is no outputPath is specified "
+            		       + "/ must be appended after download end-point even if there is no outputPath is specified "
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job's output files list retrieved.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobOutputList.class))),
+                  @ApiResponse(responseCode = "200", description = "Job's output files downloaded.",content = 
+                          @Content(mediaType = "application/octet-stream", schema = @Schema(type = "string", format = "binary"))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -136,14 +137,14 @@ public class JobOutputListingResource extends AbstractResource{
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
-    		 						  @QueryParam("limit") int limit,	@QueryParam("skip") int skip,
+     public Response getJobOutputDownload(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
+    		 						  @DefaultValue("false") @QueryParam("compress") boolean compress,	@DefaultValue("zip") @QueryParam("format") String format,
     		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
      {
        // Trace this request.
        if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobOutputList", 
+         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobOutputDownload", 
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
@@ -204,7 +205,7 @@ public class JobOutputListingResource extends AbstractResource{
        }
         
        // ------------------------- Check the Job's status -----------------------------
-       // If job is still running and not in terminal state then output listing cannot be performed.
+       // If job is still running and not in terminal state then output download cannot be performed.
        
        if(!job.getStatus().isTerminal()) {
     	   ResultName missingName = new ResultName();
@@ -214,38 +215,91 @@ public class JobOutputListingResource extends AbstractResource{
                    MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
        }
        
-       // Set default parameters
-       SearchParameters srchParms = threadContext.getSearchParameters();
-       
-       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
-       
+      // --------------------------- Check if the the path is a file or Directory ---------------
+       // Do a files listing and check FileInfo
        List<FileInfo> filesList = null;
+       
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, srchParms.getLimit(),skip);
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP);
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
+       
+       String contentDisposition;
        if(filesList == null) {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), prettyPrint, r)).build();
+       } else {
+    	   
+    	   // compare outputPath with filesList.get(0).getPath()
+    	   // For directory with single file this path will be different in the suffix.
+    	   // For example, listing on test/ directory returns files on the test directory with their file name
+    	   // appended after the test/ while the outputPath does not have those file names in the path.
+    	   //case I : Empty directory
+    	   if(filesList.size()== 0){
+    		   ResultName missingName = new ResultName();
+               missingName.name = jobUuid;
+               RespName r = new RespName(missingName);
+    		   return Response.status(Status.OK).
+    				   entity(TapisRestUtils.createSuccessResponse(
+    		                   MsgUtils.getMsg("JOBS_EMPTY_DIR_FOR_DOWNLOAD", jobUuid, outputPath,
+    		                		   threadContext.getOboUser(),threadContext.getOboTenantId()), prettyPrint, r)).build();
+    		   }
+    	   // Case II : Directory with one file vs single file
+    	   else if(filesList.size()==1) {
+    		   _log.debug("file type =  " + filesList.get(0).getType());
+        	   _log.debug("file path =  " + filesList.get(0).getPath());
+    		  // get the path for comparison 
+    		  String pathInFileInfo = filesList.get(0).getPath();
+    		  
+    		  // directory with single file
+    		  if((filesList.get(0).getType().equals("dir") || !pathInFileInfo.endsWith(outputPath))
+    			 || (filesList.get(0).getType().equals("file") && filesList.get(0).getSize()> ONE_GB_IN_KB )	  ) {
+    		   compress = true;
+    		  }
+    	     // for single file, default is false
+    	  }
+    	   else {
+    		   compress = true;;
+    	   
+           }
+       }  
+       _log.debug("compress value =  " + compress);
+       
+       // ------------------------- Locate the output download path and download the file/zipped folder --------------------------
+       String mtype = MediaType.APPLICATION_OCTET_STREAM;
+       
+       DataLocator dataLocator = new DataLocator(job);
+       
+       try {
+    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
+    	       	   
+    	  if(jobOutputFilesinfo != null) {
+    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress);
+    	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
+    	       Response response =  Response
+	               .ok(streamFromFiles.getInputStream(), mtype)
+	               .header("content-disposition",contentDisposition)
+	               .header("cache-control", "max-age=3600")
+	               .build();
+    	       return response;
+    		    } 
+       } catch (TapisImplException e) {
+    	   _log.error(e.getMessage(), e);
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        
-       // ------------------------- Process Results --------------------------
-      
        
-       // Success.
-       RespGetJobOutputList r = new RespGetJobOutputList(filesList,srchParms.getLimit(),srchParms.getSkip());
-       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),threadContext.getOboTenantId()), prettyPrint, r)).build();
-     }
+       return Response.status(Status.NOT_FOUND).
+               entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_NO_OUTPUT_FILES_TO_DOWNLOAD", jobUuid,threadContext.getOboTenantId()), 
+                      prettyPrint)).build();
+	}
      
-     
+    
 }
-
-
-
