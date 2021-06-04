@@ -25,7 +25,7 @@ import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
  *     sacct -p -o 'JobID,State,ExitCode' -n -j ${JOBID}
  *
  *  Example of response returned by squeue:
- *       "4213134             R                   0"
+ *       "4213134             RUNNING                   0"
  *       
  *  Relevant compact job state codes can be found in SlurmStatusType enum.
  *
