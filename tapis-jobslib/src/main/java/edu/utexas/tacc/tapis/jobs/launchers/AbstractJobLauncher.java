@@ -9,8 +9,6 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 
 abstract class AbstractJobLauncher
  implements JobLauncher

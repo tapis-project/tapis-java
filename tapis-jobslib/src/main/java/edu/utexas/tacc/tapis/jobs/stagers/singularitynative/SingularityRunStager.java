@@ -76,6 +76,14 @@ public class SingularityRunStager
     }
     
     /* ---------------------------------------------------------------------- */
+    /* getCmdTextWithEnvVars:                                                 */
+    /* ---------------------------------------------------------------------- */
+    protected String getCmdTextWithEnvVars() 
+    {
+        return _singularityCmd.getCmdTextWithEnvVars(_job);
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* getSingularityRunCmd:                                                  */
     /* ---------------------------------------------------------------------- */
     protected SingularityRunCmd getSingularityRunCmd() {return _singularityCmd;}

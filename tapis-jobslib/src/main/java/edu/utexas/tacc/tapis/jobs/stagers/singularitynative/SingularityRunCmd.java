@@ -37,7 +37,7 @@ public final class SingularityRunCmd
         //
         //   singularity run [run options...] <container> [args] > tapisjob.out 2>&1 &
         
-        // Create the command buffer.
+        // ------ Create the command buffer.
         final int capacity = 1024;
         StringBuilder buf = new StringBuilder(capacity);
         
@@ -88,6 +88,52 @@ public final class SingularityRunCmd
         
         // Create the key=value records, one per line.
         return getPairListArgs(getEnv());
+    }
+    
+    /* ********************************************************************** */
+    /*                           Protected Methods                            */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* getCmdTextWithEnvVars:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Create a command string appropriate for used with batch schedulers like
+     * Slurm.  The generated text inlines the environment variables that would
+     * be segregated into an environment file in non-batch executions.
+     * 
+     * @param job the current job.
+     * @return the command text.
+     */
+    protected String getCmdTextWithEnvVars(Job job)
+    {
+        // The generated singularity run command text:
+        //
+        //   singularity run [run options...] <container> [args]
+        
+        // ------ Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // ------ Start the command text.
+        buf.append("singularity run");
+        
+        // ------ Fill in environment variables.
+        buf.append(getEnvArg(getEnv()));
+        
+        // ------ Fill in the common user-specified arguments.
+        addCommonExecArgs(buf);
+        
+        // ------ Fill in command-specific user-specified arguments.
+        addRunSpecificArgs(buf);
+        
+        // ------ Assign image.
+        buf.append(" ");
+        buf.append(getImage());
+
+        // ------ Assign application arguments.
+        if (!StringUtils.isBlank(getAppArguments()))
+            buf.append(getAppArguments()); // begins with space char
+        
+        return buf.toString();
     }
     
     /* ********************************************************************** */
