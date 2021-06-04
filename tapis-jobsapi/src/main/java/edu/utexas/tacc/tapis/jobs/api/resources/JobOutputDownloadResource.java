@@ -119,7 +119,8 @@ public class JobOutputDownloadResource extends AbstractResource{
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job's output files downloaded."),
+                  @ApiResponse(responseCode = "200", description = "Job's output files downloaded.",content = 
+                          @Content(mediaType = "application/octet-stream", schema = @Schema(type = "string", format = "binary"))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -246,8 +247,8 @@ public class JobOutputDownloadResource extends AbstractResource{
                RespName r = new RespName(missingName);
     		   return Response.status(Status.OK).
     				   entity(TapisRestUtils.createSuccessResponse(
-    		                   MsgUtils.getMsg("JOBS_EMPTY_DIR_FOR_DOWNLOAD", jobUuid,threadContext.getOboTenantId(),
-    		                		   threadContext.getOboUser(), job.getStatus()), prettyPrint, r)).build();
+    		                   MsgUtils.getMsg("JOBS_EMPTY_DIR_FOR_DOWNLOAD", jobUuid, outputPath,
+    		                		   threadContext.getOboUser(),threadContext.getOboTenantId()), prettyPrint, r)).build();
     		   }
     	   // Case II : Directory with one file vs single file
     	   else if(filesList.size()==1) {
