@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.AbstractSingularityStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmCmd.TapisSystemProfile;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -87,7 +88,8 @@ public final class SingularityRunSlurmStager
         _cmd.append(_slurmRunCmd.generateExecCmd(_job));
         
         // Add zero or more module load commands.
-        _cmd.append(getModuleLoadCalls(TACC_SINGULARITY_MODULE_LOAD));
+        if (_slurmRunCmd.getTapisProfile() == TapisSystemProfile.TACC)
+            _cmd.append(getModuleLoadCalls(TACC_SINGULARITY_MODULE_LOAD));
         
         // Add the actual singularity run command.
         _cmd.append(_wrappedStager.getCmdTextWithEnvVars());
@@ -635,6 +637,16 @@ public final class SingularityRunSlurmStager
                 slurmCmd.setWckey(value);
                 break;
 
+                
+            case "--tapis-profile":
+                TapisSystemProfile profile;
+                try {profile = TapisSystemProfile.valueOf(value.toUpperCase());}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignCmd", "--tapisProfile", value);
+                        throw new JobException(msg, e);
+                    }
+                slurmCmd.setTapisProfile(profile);
+                break;
             
             // Subsumed options.
             case "--mem":
