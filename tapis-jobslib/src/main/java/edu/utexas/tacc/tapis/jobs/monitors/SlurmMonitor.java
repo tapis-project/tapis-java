@@ -20,17 +20,15 @@ import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
  *
  *  Response is determined using either the primary monitoring squeue command:
  *     squeue --noheader -O 'jobid,state,exit_code' -j${JOBID} 2>/dev/null
+ *
+ *     Example of response returned by squeue:
+ *          "4213134             RUNNING                   0"
  *   
- *   or the backup secondary monitoring sacct command:
+ *  Or by the secondary, post execution monitoring sacct command:
  *     sacct -p -o 'JobID,State,ExitCode' -n -j ${JOBID}
- *
- *  Example of response returned by squeue:
- *       "4213134             RUNNING                   0"
  *       
- *  Relevant compact job state codes can be found in SlurmStatusType enum.
- *
- *  Example of response returned by sacct:
- *       "<jobid>|<state>|<exit_code>|"
+ *     Example of response returned by sacct:
+ *          "<jobid>|<state>|<exit_code>|"
  *
  * NOTE: If info is no longer available using squeue then squeue responds on stderr with:
  *           "slurm_load_jobs error: Invalid job id specified"
@@ -124,7 +122,7 @@ public final class SlurmMonitor
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
         
         // Parse the non-null result.
-        var parsedResponse = parseResponse(result);
+        var parsedResponse = parseResponse(result, active);
         
         // If the state info is missing, the job isn't running (or so we think).
         if (StringUtils.isEmpty(parsedResponse.getStatus())) {
@@ -173,7 +171,7 @@ public final class SlurmMonitor
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status. 
-            updatefinalMessage(parsedResponse);
+            updateFinalMessage(parsedResponse);
             return JobRemoteStatus.FAILED;
         }
         
@@ -186,7 +184,7 @@ public final class SlurmMonitor
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status. 
-            updatefinalMessage(parsedResponse);
+            updateFinalMessage(parsedResponse);
             return JobRemoteStatus.FAILED;
         }
         
@@ -216,12 +214,13 @@ public final class SlurmMonitor
      * if parsing was unsuccessful.
      * 
      * @param schedulerResponse
-     *            the raw, non-null response from the scheduler. Should be in format
+     *            the raw, non-null response from the scheduler. Should be in format:
+     *            
      *            "{@code <job_id>   <state>   <exit_code>}" or
      *            "{@code <job_id>|<state>|<exit_code>|}"
      * @return a parsed response object or null if the response is null or blank
      */
-    private ParsedStatusResponse parseResponse(String schedulerResponse)
+    private ParsedStatusResponse parseResponse(String schedulerResponse, boolean active)
     {
         // Get rid of any leading or trailing whitespace.
         var trimmedResponse = schedulerResponse.trim();
@@ -231,24 +230,10 @@ public final class SlurmMonitor
             return null;
         }
 
-        // If response contains '|' then it came from sacct and we parse it appropriately
+        // Active responses are space delimited, inactive ones are '|' delimited.
         ParsedStatusResponse resp;
-        if (StringUtils.contains(trimmedResponse, '|'))
-        {
-            // ----------------- Inactive Job -----------------
-            // Split the inactive command's response on pipe characters.
-            var parts = _pipeSplitter.split(trimmedResponse);
-            if (parts.length != 3) {
-                String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
-                _log.error(msg);
-                return EMPTY_PARSED_RESP;
-            }
-          
-            // Create response removing any whitespace.
-            resp = new ParsedStatusResponse(parts[0].trim(), parts[1].trim(), parts[2].trim());
-        } 
-        else {
-            // ----------------- Active Job -------------------
+        if (active) {
+           // ----------------- Active Job -------------------
            // Parse the active command's response. 
            var matcher = _spaceDelimited.matcher(trimmedResponse);
            var matches = matcher.matches();
@@ -266,22 +251,35 @@ public final class SlurmMonitor
           
           // Create response.
           resp = new ParsedStatusResponse(matcher.group(1), matcher.group(2), matcher.group(3));
+        } 
+        else {
+          // ----------------- Inactive Job -----------------
+          // Split the inactive command's response on pipe characters.
+          var parts = _pipeSplitter.split(trimmedResponse);
+          if (parts.length != 3) {
+              String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
+              _log.error(msg);
+              return EMPTY_PARSED_RESP;
+          }
+        
+          // Create response removing any whitespace.
+          resp = new ParsedStatusResponse(parts[0].trim(), parts[1].trim(), parts[2].trim());
         }
       
         return resp;
     }
     
     /* ---------------------------------------------------------------------- */
-    /* updatefinalMessage:                                                    */
+    /* updateFinalMessage:                                                    */
     /* ---------------------------------------------------------------------- */
     /** Helper method that updates the finalMessage field with useful messaging 
      * in the jobCtx for certain failure scenarios.  The lastMessage field in 
      * the db will be updated at the end of the job to reflect the finalMessage,
      * if finalMessage is not null. 
      * 
-     * @param parsedResponse monitoring response object
+     * @param parsedResponse monitoring response object for failed jobs
      */
-    private void updatefinalMessage(ParsedStatusResponse parsedResponse) {
+    private void updateFinalMessage(ParsedStatusResponse parsedResponse) {
         String rc = StringUtils.isBlank(parsedResponse.getExitCode()) ? 
                                         "unknown" : parsedResponse.getExitCode();
         String finalMessage = MsgUtils.getMsg("APPS_USER_APP_FAILURE", 
@@ -290,7 +288,6 @@ public final class SlurmMonitor
         _job.getJobCtx().setFinalMessage(finalMessage);
     }
 
-    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -307,8 +304,8 @@ public final class SlurmMonitor
         {jobId = j; status = s; exitCode = e;}
 
         // Accessors.
-        public String getJobId() {return jobId;}
-        public String getStatus() {return status;}
-        public String getExitCode() {return exitCode;}
+        private String getJobId() {return jobId;}
+        private String getStatus() {return status;}
+        private String getExitCode() {return exitCode;}
     }
 }
