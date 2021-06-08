@@ -1,0 +1,63 @@
+{
+	"id": "slurmStampede2",
+	"description": "Systems for testing slurm singularity jobs on stampede2",
+	"systemType": "LINUX",
+	"owner": "cicsvc",
+	"host": "stampede2.tacc.utexas.edu",
+	"enabled": true,
+	"effectiveUserId": "${owner}",
+	"defaultAuthnMethod": "PASSWORD",
+	"authnCredential": {
+	   "password": "<PUT PASSWORD HERE>"
+	},
+	"rootDir": "/",
+	"port": 22,
+	"canExec": true,
+	"jobRuntimes": [{"runtimeType": "SINGULARITY", "version": "0.0.1"}],
+	"jobWorkingDir": "${HOST_EVAL($HOME)}/jobs",
+	"batchLogicalQueues": [
+	   {
+	       "name": "tapisNormal",
+	       "hpcQueueName": "normal",
+	       "maxJobs": 50,
+	       "maxJobsPerUser": 10,
+	       "maxNodeCount": 16,
+	       "minNodeCount": 1,
+	       "maxCoresPerNode": 68,
+	       "minCoresPerNode": 1,
+	       "maxMemoryMB": 16384,
+	       "minMemoryMB": 1,
+	       "maxMinutes": 60,
+	       "minMinutes": 1
+	   },	   
+       {
+           "name": "hpcNormal",
+           "hpcQueueName": "normal",
+           "maxJobs": 50,
+           "maxJobsPerUser": 50,
+           "maxNodeCount": 256,
+           "minNodeCount": 1,
+           "maxCoresPerNode": 68,
+           "minCoresPerNode": 1,
+           "maxMemoryMB": 98304,
+           "minMemoryMB": 1,
+           "maxMinutes": 17280,
+           "minMinutes": 1
+       },     
+       {
+           "name": "hpcdev",
+           "hpcQueueName": "development",
+           "maxJobs": 1,
+           "maxJobsPerUser": 1,
+           "maxNodeCount": 16,
+           "minNodeCount": 1,
+           "maxCoresPerNode": 68,
+           "minCoresPerNode": 1,
+           "maxMemoryMB": 98304,
+           "minMemoryMB": 1,
+           "maxMinutes": 120,
+           "minMinutes": 1
+       }     
+	],
+	"batchDefaultLogicalQueue": "tapisNormal"
+}
