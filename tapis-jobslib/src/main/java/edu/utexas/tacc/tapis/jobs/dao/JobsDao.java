@@ -986,7 +986,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          jobEvent = eventMgr.recordStatusEvent(job.getUuid(), job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(job.getUuid(), job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -1012,11 +1012,6 @@ public final class JobsDao
                       String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
                       _log.error(msg, e);
                   }
-        }
-        
-        // Send a notification after event has been committed.
-        if (jobEvent != null) {
-            // TODO: send notification
         }
 	}
 	
@@ -1138,7 +1133,7 @@ public final class JobsDao
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record or null
      * @return the last update time saved in the job record
-     * @throws JobException if the status could not be updated
+     * @throws TapisException 
      */
     public Instant setStatus(Job job, JobStatusType newStatus, String message)
      throws JobException
@@ -1156,15 +1151,9 @@ public final class JobsDao
         
         // ------------------------- Change Status ----------------------
         // Call the real method.
+        var oldStatus = job.getStatus();
         Instant now = Instant.now();
         setStatus(job, newStatus, message, true, now);
-
-        // ------------------------- Send Event -------------------------
-        // TODO: SEND EVENTS
-        // Create and sent a job event indicating the status change.
-//        JobExecutionContext jobCtx = getJobContextSafe(job);
-//        try {jobCtx.getJobEventProcessor().processNewStatus(jobCtx, newStatus);}
-//            catch (Exception e) {/* already logged */}
 
         // Return the timestamp that's been saved to the database.
         return now;
@@ -2017,6 +2006,10 @@ public final class JobsDao
             // methods also update the in-memory job object.
             if (newStatus == JobStatusType.RUNNING) updateRemoteStarted(conn, job, ts);
             else if (newStatus.isTerminal()) updateEnded(conn, job, ts);
+            
+            // Write the event table and optionally send notifications (asynchronously).
+            var eventMgr = JobEventManager.getInstance();
+            eventMgr.recordStatusEvent(job.getUuid(), newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();
