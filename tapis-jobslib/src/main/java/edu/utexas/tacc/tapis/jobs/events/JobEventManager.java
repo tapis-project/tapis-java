@@ -13,6 +13,14 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 
+/** This class records noteworthy job events and asynchronously send notifications
+ * to subscribers.  The threads that call a record method synchronously write to the
+ * event table but only queue up events for notification transmission.  No remote
+ * notification processing should ever take place on a thread calling a record  
+ * method since that thread may be in the middle of a database transaction.
+ * 
+ * @author rcardone
+ */
 public final class JobEventManager 
 {
     /* ********************************************************************** */
