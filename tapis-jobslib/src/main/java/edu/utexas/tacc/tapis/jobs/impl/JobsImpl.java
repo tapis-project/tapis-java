@@ -1,37 +1,46 @@
 package edu.utexas.tacc.tapis.jobs.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.ws.rs.core.StreamingOutput;
-
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
+import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobQueue;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.tokens.client.gen.model.BasicResponse.StatusEnum;
 
 public final class JobsImpl 
  extends BaseImpl
@@ -41,6 +50,7 @@ public final class JobsImpl
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobsImpl.class);
+    
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -438,7 +448,59 @@ public final class JobsImpl
     }
     
     
-   
+    /* ---------------------------------------------------------------------- */
+    /* getJobEventByUuid:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public List<JobEvent> getJobEventByJobUuid(String jobUuid, String user, String tenant) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        if (StringUtils.isBlank(jobUuid)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobEventByUuid", "jobUuid");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        
+        // ----- Get the job events.
+        List<JobEvent> jobEvents = null;
+        try {
+        	jobEvents = getJobEventsDao().getJobEventsByJobUUID(jobUuid);
+        }
+        catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        
+              
+        // Could be null if not found.
+        return jobEvents;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobEventsSummary:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public List<JobHistoryDisplayDTO> getJobEventsSummary(List<JobEvent> jobEvents, String user, String tenant) 
+     throws TapisImplException
+    {   
+    	
+		 
+		 Gson gson = TapisGsonUtils.getGson();
+		 ArrayList<JobHistoryDisplayDTO> eventsSummary = new ArrayList<JobHistoryDisplayDTO>();
+        for(JobEvent jobEvent: jobEvents ) {
+        	JobHistoryDisplayDTO historyObj = new JobHistoryDisplayDTO(jobEvent, user, tenant);
+        	eventsSummary.add(historyObj);
+        }
+       
+        
+              
+        // Could be null if not found.
+        return eventsSummary;
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* queryDB:                                                               */
     /* ---------------------------------------------------------------------- */
@@ -506,4 +568,6 @@ public final class JobsImpl
             throw new JobException(msg, e);
         }
     }
+    
+  
 }
