@@ -24,7 +24,7 @@ public class KubeConnect
         CoreV1Api coreApi = new CoreV1Api(apiClient);
         
         // Do some read-only command.
-        V1PodList podList = coreApi.listNamespacedPod(kubeNS,  null, true, null, null, null, null, null, null, null);
+        V1PodList podList = coreApi.listNamespacedPod(kubeNS,  null, true, null, null, null, null, null, null, null, null);
         if (podList == null) {
             System.out.println("Null pod list returned.");
             return;
