@@ -2,8 +2,11 @@ package edu.utexas.tacc.tapis.jobs.monitors.parsers;
 
 public enum SlurmStatusType 
 {
+   // These are the possible states returned by squeue and sacct.  squeue can return any of
+   // them, sacct will only return a subset of them.
+    
    BOOT_FAIL("BF","Job terminated due to launch failure, typically due to a hardware failure "
-           + "(e.g. unable to boot the node or block and the job can not be requeued)."),
+             + "(e.g. unable to boot the node or block and the job can not be requeued)."),
    
    CANCELLED("CA","Job was explicitly cancelled by the user or system administrator. The job may or may not have been initiated."),
    COMPLETED("CD","Job has terminated all processes on all nodes with an exit code of zero."),

@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularityslurm;
 
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -116,6 +115,12 @@ public final class SingularityRunSlurmCmd
     private String  waitAllNodes;          // wait to begin execution until all nodes are ready for use
     private String  wckey;                 // specify wckey to be used with job
     
+    // Temporary --tapis-profile switch for TACC support.  Assign that switch the value 
+    // TACC when running a job on TACC HPC systems.  This will avoid passing the --mem 
+    // option to slurm and will load the singularity module before calling sbatch.
+    public enum TapisSystemProfile {GENERIC, TACC}
+    private TapisSystemProfile tapisProfile = TapisSystemProfile.GENERIC;          
+    
     // Slurm options not supported.
     //
     //  --chdir, --help, --parsable, --quiet, --test-only
@@ -211,6 +216,9 @@ public final class SingularityRunSlurmCmd
      */
     private boolean skipSlurmOption(String option)
     {
+        // No special filtering unless using tacc profile.
+        if (tapisProfile == TapisSystemProfile.GENERIC) return false;
+        
         // TODO: Hardcode TACC policy here for now.
         if (option.equals("--mem")) return true;
         
@@ -1029,5 +1037,13 @@ public final class SingularityRunSlurmCmd
     public void setWckey(String wckey) {
         this.wckey = wckey;
         _directives.put("--wckey", wckey);
+    }
+
+    public TapisSystemProfile getTapisProfile() {
+        return tapisProfile;
+    }
+
+    public void setTapisProfile(TapisSystemProfile tapisProfile) {
+        this.tapisProfile = tapisProfile;
     }
 }
