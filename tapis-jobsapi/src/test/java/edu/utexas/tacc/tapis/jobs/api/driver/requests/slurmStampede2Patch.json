@@ -1,0 +1,3 @@
+{
+	"jobWorkingDir": "HOST_EVAL($HOME)/jobs/${JobUUID}"
+}

@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.driver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.client.JobsClient;
@@ -23,12 +24,6 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  */
 public class SubmitJob 
 {
-    // ***************** Configuration Parameters *****************
-    private String BASE_URL   = "http://localhost:8080/v3";
-    private static final String userJWT = 
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIxOTVhNzU2YS1hZWRhLTQ2NjQtODFhMS1hODg1ZDZhZmJiNDMiLCJpc3MiOiJodHRwczovL2Rldi5kZXZlbG9wLnRhcGlzLmlvL3YzL3Rva2VucyIsInN1YiI6InRlc3R1c2VyMkBkZXYiLCJ0YXBpcy90ZW5hbnRfaWQiOiJkZXYiLCJ0YXBpcy90b2tlbl90eXBlIjoiYWNjZXNzIiwidGFwaXMvZGVsZWdhdGlvbiI6ZmFsc2UsInRhcGlzL2RlbGVnYXRpb25fc3ViIjpudWxsLCJ0YXBpcy91c2VybmFtZSI6InRlc3R1c2VyMiIsInRhcGlzL2FjY291bnRfdHlwZSI6InVzZXIiLCJleHAiOjE5MjU4MzgyMzF9.wbyeWa6PQpROtnPWpykKc9ln2TQj04cD_uwjS40UeF5PMDJ7jd5u8GJ0JPyaH-qj9R3H9-J4H9vQGPnKQg7Wqj9_QIja9t5g5WM7Vz70TaXmu91EO3_rbJkmguXZMRFdBS0YFDYGLccO2i50NVyt3i-nVRAp3nFCn5-eB6UEoU_KEe5MiFnMmuzF6kUIGDi6Cw_26DxI_SsY-zcpjCmX0jx5cM0xqLv8XNv1RIVr8o9fKGuvGupdT0ZdTCp_MiMBPi11OE7OCYo7iwp-yglcpOMlQF8LOCJe9txzJGqcCZSGbQBi4mNLasyYn0cstVak9ToGQpEpiSdz4FvQtSKT9A";
-    // ***************** End Configuration Parameters *************
-    
     // Subdirectory relative to current directory where request files are kept.
     private static final String REQUEST_SUBDIR = "requests";
     
@@ -57,26 +52,31 @@ public class SubmitJob
         String reqDir = curDir + "/" + REQUEST_SUBDIR;
         
         // Check the input.
-        if (args.length < 1) {
-            System.out.println("Supply the name of a request file in directory " + reqDir + ".");
+        if (args.length < 2) {
+            System.out.println("Supply the name of a request file in directory " + reqDir + " and the profile name.");
+            System.out.println("Generated profile path: " + TestUtils.getProfilePathTemplate());
             return;
         }
-        if (args.length > 1) BASE_URL = args[1]; // optional jobs service base url.
         
         // Read the file into a string.
         Path reqFile = Path.of(reqDir, args[0]);
         String reqString = Files.readString(reqFile);
         
+        // Read base url and jwt from file.
+        Properties props = TestUtils.getTestProfile(args[1]);
+        String url = props.getProperty("BASE_URL");
+        if (!url.endsWith("/v3")) url += "/v3";
+        
         // Informational message.
         System.out.println("Processing " + reqFile.toString() + ".");
-        System.out.println("Contacting Jobs Service at " + BASE_URL + ".");
+        System.out.println("Contacting Jobs Service at " + url + ".");
         // System.out.println(reqString);
         
         // Convert json string into a job submission request.
         ReqSubmitJob submitReq = TapisGsonUtils.getGson().fromJson(reqString, ReqSubmitJob.class);
         
         // Create a job client.
-        var jobClient = new JobsClient(BASE_URL, userJWT);
+        var jobClient = new JobsClient(url, props.getProperty("USER_JWT"));
         Job job = jobClient.submitJob(submitReq);
         System.out.println(TapisGsonUtils.getGson(true).toJson(job));
         

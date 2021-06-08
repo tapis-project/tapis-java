@@ -5,12 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.ReqCreateApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqUpdateSystem;
 
-public class CreateApp 
+public class PatchSystem
 {
     // Subdirectory relative to current directory where request files are kept.
     private static final String REQUEST_SUBDIR = "requests";
@@ -23,7 +23,7 @@ public class CreateApp
     public static void main(String[] args) throws Exception
     {
         // Try to submit a job.
-        var creator = new CreateApp();
+        var creator = new PatchSystem();
         creator.create(args);
     }
     
@@ -40,8 +40,8 @@ public class CreateApp
         String reqDir = curDir + "/" + REQUEST_SUBDIR;
         
         // Check the input.
-        if (args.length < 2) {
-            System.out.println("Supply the name of a request file in directory " + reqDir + " and the profile name.");
+        if (args.length < 3) {
+            System.out.println("Supply the name of a request file in directory " + reqDir + " and system id and the profile name.");
             System.out.println("Generated profile path: " + TestUtils.getProfilePathTemplate());
             return;
         }
@@ -55,14 +55,14 @@ public class CreateApp
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        ReqCreateApp appReq = TapisGsonUtils.getGson().fromJson(reqString, ReqCreateApp.class);
+        ReqUpdateSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqUpdateSystem.class);
         
         // Read base url and jwt from file.
-        Properties props = TestUtils.getTestProfile(args[1]);
+        Properties props = TestUtils.getTestProfile(args[2]);
         
-        // Create the app.
-        var appsClient = new AppsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
-        appsClient.createApp(appReq);
-        System.out.println("Finished processing " + reqFile.toString() + ".");
+        // Create the system.
+        var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
+        sysClient.updateSystem(args[1], sysReq);
+        sysClient.close();
     }
 }
