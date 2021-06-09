@@ -1,3 +1,4 @@
 {
-	"jobWorkingDir": "HOST_EVAL($HOME)/jobs/${JobUUID}"
+	"batchScheduler": "SLURM",
+	"jobIsBatch": true
 }

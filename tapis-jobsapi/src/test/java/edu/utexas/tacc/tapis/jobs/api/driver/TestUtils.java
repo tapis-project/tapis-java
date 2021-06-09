@@ -15,10 +15,14 @@ public class TestUtils
     // Profile file name extension.
     public static String PROFILE_EXT = ".properties";
     
-    /** Load the contents of the properties file into memory.
+    /** Load the contents of the properties file into memory.  The property file
+     * is expected to contain two key/value pairs:
+     * 
+     *      BASE_URL=<the base url of the jobs service>
+     *      USER_JWT=<the requestor's JWT>
      * 
      * @param profileName the file name without extension
-     * @return the populated properties file
+     * @return the properties object populated from file
      * @throws IOException on error
      */
     public static Properties getTestProfile(String profileName) throws IOException
