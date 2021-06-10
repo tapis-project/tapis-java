@@ -9,7 +9,10 @@
       "archiveFilter": {
         "includes": ["Sleep*", "tapisjob.*"],
         "includeLaunchFiles": true
-      }
+      },
+      "schedulerOptions": [
+        {"arg": "--tapis-profile TACC"} 
+      ]
     },
     "execSystemInputDir":  "HOST_EVAL($STRATCH)/jobs/${JobUUID}",
     "archiveSystemId" : "slurmStampede2",

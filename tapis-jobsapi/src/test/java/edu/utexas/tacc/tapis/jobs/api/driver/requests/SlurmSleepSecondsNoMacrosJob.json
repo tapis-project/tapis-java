@@ -9,7 +9,10 @@
       "archiveFilter": {
         "includes": ["Sleep*", "tapisjob.*"],
         "includeLaunchFiles": true
-      }
+      },
+      "schedulerOptions": [
+        {"arg": "--tapis-profile TACC"} 
+      ]
     },
     "execSystemId": "slurmStampede2NoMacros",
     "execSystemInputDir":  "/scratch/05747/cicsvc/jobs/${JobUUID}",
