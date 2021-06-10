@@ -11,7 +11,8 @@
         "includeLaunchFiles": true
       },
       "schedulerOptions": [
-        {"arg": "--tapis-profile TACC"} 
+        {"arg": "--tapis-profile TACC"},
+        {"arg": "--account TACC-ACI-CIC"} 
       ]
     },
     "execSystemInputDir":  "HOST_EVAL($STRATCH)/jobs/${JobUUID}",
