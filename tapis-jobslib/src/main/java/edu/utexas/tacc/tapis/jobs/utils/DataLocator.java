@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -18,8 +16,6 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 
 public class DataLocator {
 	/* ********************************************************************** */

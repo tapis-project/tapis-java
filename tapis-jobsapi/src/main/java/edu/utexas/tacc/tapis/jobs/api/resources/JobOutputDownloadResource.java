@@ -113,7 +113,7 @@ public class JobOutputDownloadResource extends AbstractResource{
      @Operation(
              description = "Download job's output files for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
                            + "The caller must be the job owner, creator or a tenant administrator.\n"
-            		       + "/ must be appended after download end-point even if there is no outputPath is specified "
+            		       + "The URL must ends with '/' even if there is no outputPath is specified. "
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
