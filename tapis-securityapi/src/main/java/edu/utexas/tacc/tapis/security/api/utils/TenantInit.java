@@ -204,6 +204,18 @@ public final class TenantInit
     private void initializeAuthenticators(String tenant, String siteAdminTenant,
     		                              List<String> tokgenServices)
     {
+        // Check input.
+        if (tokgenServices == null) {
+            String msg = MsgUtils.getMsg("SK_TENANT_NO_TOKEN_GEN_SERVICES", "null", tenant);
+            _log.warn(msg);
+            return;
+        }
+        if (tokgenServices.isEmpty()) {
+            String msg = MsgUtils.getMsg("SK_TENANT_NO_TOKEN_GEN_SERVICES", "empty", tenant);
+            _log.warn(msg);
+            return;
+        }
+        
         // The role is always owned by tokens@<site-admin>, always defined in the
         // site-admin tenant, and always assigned to services in the site-admin tenant.
         final String tokgenRoleTenant = siteAdminTenant;
