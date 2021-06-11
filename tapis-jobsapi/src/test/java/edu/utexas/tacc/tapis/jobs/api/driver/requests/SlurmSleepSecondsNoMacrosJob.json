@@ -15,7 +15,8 @@
         {"arg": "--account TACC-ACI-CIC"} 
       ]
     },
-    "execSystemInputDir":  "HOST_EVAL($STRATCH)/jobs/${JobUUID}",
-    "archiveSystemId" : "slurmStampede2",
-    "archiveSystemDir": "${JobWorkingDir}/jobs/${JobUUID}/archive"
+    "execSystemId": "slurmStampede2NoMacros",
+    "execSystemInputDir":  "/scratch/05747/cicsvc/jobs/${JobUUID}",
+    "archiveSystemId" : "slurmStampede2NoMacros",
+    "archiveSystemDir": "/work2/05747/cicsvc/stampede2/jobs/${JobUUID}/archive"
 }

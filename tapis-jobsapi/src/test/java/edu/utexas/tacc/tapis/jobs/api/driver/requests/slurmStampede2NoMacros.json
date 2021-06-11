@@ -1,5 +1,5 @@
 {
-	"id": "slurmStampede2",
+	"id": "slurmStampede2NoMacros",
 	"description": "Systems for testing slurm singularity jobs on stampede2",
 	"systemType": "LINUX",
 	"owner": "cicsvc",
@@ -16,7 +16,7 @@
 	"jobIsBatch": true,
 	"batchScheduler": "SLURM",
 	"jobRuntimes": [{"runtimeType": "SINGULARITY", "version": "0.0.1"}],
-	"jobWorkingDir": "HOST_EVAL($WORK2)",
+	"jobWorkingDir": "/work2/05747/cicsvc/stampede2",
 	"batchLogicalQueues": [
 	   {
 	       "name": "tapisNormal",
