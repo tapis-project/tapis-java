@@ -23,15 +23,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.files.client.FilesClient.StreamedFile;
-import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespJobHistory;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
-import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
-import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
@@ -44,17 +44,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
-public class JobOutputDownloadResource extends AbstractResource{
+public class JobHistoryResource extends AbstractResource {
 	/* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // Local logger.
-    private static final Logger _log = LoggerFactory.getLogger(JobOutputDownloadResource.class);
-    
-    private static final int ONE_GB_IN_KB = 1000000;
-    private static final int DEFAULT_LIMIT = 100;
-    private static final int DEFAULT_SKIP = 0;
-    
+    private static final Logger _log = LoggerFactory.getLogger(JobHistoryResource.class);
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -104,23 +99,22 @@ public class JobOutputDownloadResource extends AbstractResource{
      /*                                Public Methods                                */
      /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
-     /* getJobOutputDownload:                                                         */
+     /* getJobStatus:                                                                      */
      /* ---------------------------------------------------------------------------- */
-    
      @GET
-     @Path("/{jobUuid}/output/download/{outputPath: (.*+)}")
-     @Produces(MediaType.APPLICATION_OCTET_STREAM)
+     @Path("/{jobUuid}/history")
+     @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Download job's output files for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator.\n"
-            		       + "The URL must ends with '/' even if there is no outputPath is specified. "
+             description = "Retrieve history of a previously submitted job by its UUID.\n\n"
+                           + "The caller must be the job owner, creator or a tenant administrator."
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job's output files downloaded.",content = 
-                          @Content(mediaType = "application/octet-stream", schema = @Schema(type = "string", format = "binary"))),
+                  @ApiResponse(responseCode = "200", description = "Job's history retrieved.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobHistory.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -137,14 +131,13 @@ public class JobOutputDownloadResource extends AbstractResource{
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getJobOutputDownload(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
-    		 						  @DefaultValue("false") @QueryParam("compress") boolean compress,	@DefaultValue("zip") @QueryParam("format") String format,
-    		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getJobHistory(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit, 
+				@QueryParam("skip") int skip, @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
      {
        // Trace this request.
        if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobOutputDownload", 
+         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobHistory", 
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
@@ -167,13 +160,19 @@ public class JobOutputDownloadResource extends AbstractResource{
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
        
-       // ------------------------- Retrieve Job -----------------------------
-       Job job = null;
-       var jobsImpl = JobsImpl.getInstance();
+       // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
+       // ThreadContext designed to never return null for SearchParameters
+       SearchParameters srchParms = threadContext.getSearchParameters();
+        
+       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
+       int totalCount = -1; 
        
+       // ------------------------- Retrieve Job Status-----------------------------
+       JobStatusDTO jobstatus = null;
+       var jobsImpl = JobsImpl.getInstance();
        try {
-           
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
+           //var jobsImpl = JobsImpl.getInstance();
+           jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
                                        threadContext.getOboTenantId());
        }
        catch (TapisImplException e) {
@@ -186,120 +185,60 @@ public class JobOutputDownloadResource extends AbstractResource{
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
-       
-       if (job == null) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
-           _log.warn(msg);
+
+       // ------------------------- Process Results --------------------------
+       // Adjust status based on whether we found the job.
+       if (jobstatus == null) {
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
-           
-       } else if(!job.isVisible()) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
-           _log.warn(msg);
-           return Response.status(Status.NOT_FOUND).
-                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid,threadContext.getOboTenantId()), 
-                          prettyPrint)).build();
-       }
-        
-       // ------------------------- Check the Job's status -----------------------------
-       // If job is still running and not in terminal state then output download cannot be performed.
        
-       if(!job.getStatus().isTerminal()) {
-    	   ResultName missingName = new ResultName();
-           missingName.name = jobUuid;
-           RespName r = new RespName(missingName);
-    	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                   MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
+       } else if(!jobstatus.getVisible()) {
+    	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+       	   _log.warn(msg);
+       	   ResultName missingName = new ResultName();
+       	   missingName.name = jobUuid;
+       	   RespName r = new RespName(missingName);
+       	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
+            msg, prettyPrint, r)).build();
        }
        
-      // --------------------------- Check if the the path is a file or Directory ---------------
-       // Do a files listing and check FileInfo
-       List<FileInfo> filesList = null;
-       
+       List<JobEvent> events = null;
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP);
-	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
-           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	   }
-       
-       String contentDisposition;
-       if(filesList == null) {
-    	   ResultName missingName = new ResultName();
-           missingName.name = jobUuid;
-           RespName r = new RespName(missingName);
-           return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), prettyPrint, r)).build();
-       } else {
-    	   
-    	   // compare outputPath with filesList.get(0).getPath()
-    	   // For directory with single file this path will be different in the suffix.
-    	   // For example, listing on test/ directory returns files on the test directory with their file name
-    	   // appended after the test/ while the outputPath does not have those file names in the path.
-    	   //case I : Empty directory
-    	   if(filesList.size()== 0){
-    		   ResultName missingName = new ResultName();
-               missingName.name = jobUuid;
-               RespName r = new RespName(missingName);
-    		   return Response.status(Status.OK).
-    				   entity(TapisRestUtils.createSuccessResponse(
-    		                   MsgUtils.getMsg("JOBS_EMPTY_DIR_FOR_DOWNLOAD", jobUuid, outputPath,
-    		                		   threadContext.getOboUser(),threadContext.getOboTenantId()), prettyPrint, r)).build();
-    		   }
-    	   // Case II : Directory with one file vs single file
-    	   else if(filesList.size()==1) {
-    		   _log.debug("file type =  " + filesList.get(0).getType());
-        	   _log.debug("file path =  " + filesList.get(0).getPath());
-    		  // get the path for comparison 
-    		  String pathInFileInfo = filesList.get(0).getPath();
-    		  
-    		  // directory with single file
-    		  if((filesList.get(0).getType().equals("dir") || !pathInFileInfo.endsWith(outputPath))
-    			 || (filesList.get(0).getType().equals("file") && filesList.get(0).getSize()> ONE_GB_IN_KB )	  ) {
-    		   compress = true;
-    		  }
-    	     // for single file, default is false
-    	  }
-    	   else {
-    		   compress = true;;
-    	   
-           }
-       }  
-       _log.debug("compress value =  " + compress);
-       
-       // ------------------------- Locate the output download path and download the file/zipped folder --------------------------
-       String mtype = MediaType.APPLICATION_OCTET_STREAM;
-       
-       DataLocator dataLocator = new DataLocator(job);
-       
-       try {
-    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
-    	       	   
-    	  if(jobOutputFilesinfo != null) {
-    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress);
-    	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
-    	       Response response =  Response
-	               .ok(streamFromFiles.getInputStream(), mtype)
-	               .header("content-disposition",contentDisposition)
-	               .header("cache-control", "max-age=3600")
-	               .build();
-    	       return response;
-    		    } 
-       } catch (TapisImplException e) {
+		 events =jobsImpl.getJobEventsByJobUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),srchParms.getLimit(), srchParms.getSkip() );
+        _log.debug("number of events: " + events.size());
+       	} catch (TapisImplException e) {
     	   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       	} catch (Exception e) {
+           _log.error(e.getMessage(), e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        
-       
-       return Response.status(Status.NOT_FOUND).
-               entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_NO_OUTPUT_FILES_TO_DOWNLOAD", jobUuid,threadContext.getOboTenantId()), 
-                      prettyPrint)).build();
-	}
-     
-    
+       List<JobHistoryDisplayDTO> jobHists = null;
+       if(events != null) {
+    	  try {
+			jobHists = jobsImpl.getJobEventsSummary(events, threadContext.getOboUser(), threadContext.getOboTenantId());
+		} catch (TapisImplException e) {
+			_log.error(e.getMessage(), e);
+	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	       	} catch (Exception e) {
+	           _log.error(e.getMessage(), e);
+	           return Response.status(Status.INTERNAL_SERVER_ERROR).
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	       }
+       }
+       // Success.
+       // TODO OrderBy, limit
+       RespJobHistory r = new RespJobHistory(jobHists, srchParms.getLimit(), srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
+	     
+       return Response.status(Status.OK).entity(TapisRestUtils
+    		   .createSuccessResponse(
+               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), prettyPrint, r)).build();
+     }
 }

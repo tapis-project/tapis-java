@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.dao.JobEventsDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.security.client.SKClient;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -22,6 +23,7 @@ abstract class BaseImpl
     /* **************************************************************************** */
     // We share all dao's among all instances of this class.
     private static JobsDao           _jobsDao;
+    private static JobEventsDao       _jobEventsDao;
     
     /* **************************************************************************** */
     /*                             Protected Methods                                */
@@ -45,7 +47,25 @@ abstract class BaseImpl
             
         return _jobsDao;
     }
-    
+    /* ---------------------------------------------------------------------------- */
+    /* getJobEventsDao:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static JobEventsDao getJobEventsDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_jobEventsDao == null) 
+            synchronized (BaseImpl.class) {
+                if (_jobEventsDao == null) _jobEventsDao = new JobEventsDao();
+           }
+            
+        return _jobEventsDao;
+    }
     /* ---------------------------------------------------------------------------- */
     /* isAdmin:                                                                     */
     /* ---------------------------------------------------------------------------- */

@@ -256,5 +256,10 @@ public class SqlStatements
     public static final String SELECT_JOBEVENTS =
         "SELECT id, event, created, job_uuid, job_status, oth_uuid, description"
         + " FROM job_events ORDER BY id";
+    public static final String SELECT_JOBEVENTS_BY_JOB_UUID =
+            "SELECT id, event, created, job_uuid, job_status, oth_uuid, description"
+            + " FROM job_events "
+            + " WHERE job_uuid = ? "		
+            + " ORDER BY id  LIMIT ? OFFSET ?";
     
 }

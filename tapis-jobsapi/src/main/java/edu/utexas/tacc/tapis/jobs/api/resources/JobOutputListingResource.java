@@ -109,9 +109,9 @@ public class JobOutputListingResource extends AbstractResource{
      @Path("/{jobUuid}/output/list/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Retrieve job's output files list for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
+             description = "Retrieve job's output files list for previously submitted job by its UUID. The job must be in a terminal state (FINISHED or FAILED or CANCELLED)  \n\n"
                            + "The caller must be the job owner, creator or a tenant administrator.\n"
-            		       + "/ must be appended after list end-point even if there is no outputPath is specified "
+            		       + "The URL must ends with '/' even if there is no outputPath is specified. "
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
