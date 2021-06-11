@@ -260,6 +260,6 @@ public class SqlStatements
             "SELECT id, event, created, job_uuid, job_status, oth_uuid, description"
             + " FROM job_events "
             + " WHERE job_uuid = ? "		
-            + " ORDER BY id";
+            + " ORDER BY id  LIMIT ? OFFSET ?";
     
 }

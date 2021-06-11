@@ -15,23 +15,20 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
-import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobHistory;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
-import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDisplay;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -115,9 +112,9 @@ public class JobHistoryResource extends AbstractResource {
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job history retrieved.",
+                  @ApiResponse(responseCode = "200", description = "Job's history retrieved.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobStatus.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobHistory.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -134,8 +131,8 @@ public class JobHistoryResource extends AbstractResource {
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getJobHistory(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getJobHistory(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit, 
+				@QueryParam("skip") int skip, @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
      {
        // Trace this request.
@@ -162,6 +159,7 @@ public class JobHistoryResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
+       
        // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
        // ThreadContext designed to never return null for SearchParameters
        SearchParameters srchParms = threadContext.getSearchParameters();
@@ -171,8 +169,9 @@ public class JobHistoryResource extends AbstractResource {
        
        // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
+       var jobsImpl = JobsImpl.getInstance();
        try {
-           var jobsImpl = JobsImpl.getInstance();
+           //var jobsImpl = JobsImpl.getInstance();
            jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
                                        threadContext.getOboTenantId());
        }
@@ -205,14 +204,19 @@ public class JobHistoryResource extends AbstractResource {
        	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
             msg, prettyPrint, r)).build();
        }
-       var jobsImpl = JobsImpl.getInstance();
+       
        List<JobEvent> events = null;
        try {
-		 events =jobsImpl.getJobEventByJobUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
+		 events =jobsImpl.getJobEventsByJobUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),srchParms.getLimit(), srchParms.getSkip() );
         _log.debug("number of events: " + events.size());
-       } catch (TapisImplException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+       	} catch (TapisImplException e) {
+    	   _log.error(e.getMessage(), e);
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       	} catch (Exception e) {
+           _log.error(e.getMessage(), e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        
        List<JobHistoryDisplayDTO> jobHists = null;
@@ -220,15 +224,21 @@ public class JobHistoryResource extends AbstractResource {
     	  try {
 			jobHists = jobsImpl.getJobEventsSummary(events, threadContext.getOboUser(), threadContext.getOboTenantId());
 		} catch (TapisImplException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			_log.error(e.getMessage(), e);
+	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	       	} catch (Exception e) {
+	           _log.error(e.getMessage(), e);
+	           return Response.status(Status.INTERNAL_SERVER_ERROR).
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	       }
        }
        // Success.
-       RespJobHistory r = new RespJobHistory(jobHists,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+       // TODO OrderBy, limit
+       RespJobHistory r = new RespJobHistory(jobHists, srchParms.getLimit(), srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
 	     
        return Response.status(Status.OK).entity(TapisRestUtils
     		   .createSuccessResponse(
-               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), prettyPrint, r)).build();
      }
 }

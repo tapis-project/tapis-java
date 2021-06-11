@@ -120,7 +120,7 @@ public final class JobEventsDao
   /* ---------------------------------------------------------------------- */
   /* getJobEventsByJobUuid:                                                 */
   /* ---------------------------------------------------------------------- */
-  public List<JobEvent> getJobEventsByJobUUID(String jobUuid) 
+  public List<JobEvent> getJobEventsByJobUUID(String jobUuid, int limit, int skip) 
     throws TapisException
   {
       // Initialize result.
@@ -139,6 +139,8 @@ public final class JobEventsDao
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, jobUuid);
+          pstmt.setInt(2, limit);
+          pstmt.setInt(3, skip);
          
                       
           // Issue the call for the 1 row result set.
@@ -162,7 +164,7 @@ public final class JobEventsDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "JobEvents", "allUUIDs", e.getMessage());
+          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "JobEvents", jobUuid, e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }

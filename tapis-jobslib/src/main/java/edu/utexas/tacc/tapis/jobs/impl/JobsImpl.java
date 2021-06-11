@@ -451,7 +451,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobEventByUuid:                                                          */
     /* ---------------------------------------------------------------------- */
-    public List<JobEvent> getJobEventByJobUuid(String jobUuid, String user, String tenant) 
+    public List<JobEvent> getJobEventsByJobUuid(String jobUuid, String user, String tenant, int limit, int skip) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -464,14 +464,14 @@ public final class JobsImpl
         // ----- Get the job events.
         List<JobEvent> jobEvents = null;
         try {
-        	jobEvents = getJobEventsDao().getJobEventsByJobUUID(jobUuid);
+        	jobEvents = getJobEventsDao().getJobEventsByJobUUID(jobUuid, limit, skip);
         }
         catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", tenant, user, jobUuid, e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", tenant, user, jobUuid, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         
@@ -487,9 +487,7 @@ public final class JobsImpl
      throws TapisImplException
     {   
     	
-		 
-		 Gson gson = TapisGsonUtils.getGson();
-		 ArrayList<JobHistoryDisplayDTO> eventsSummary = new ArrayList<JobHistoryDisplayDTO>();
+		ArrayList<JobHistoryDisplayDTO> eventsSummary = new ArrayList<JobHistoryDisplayDTO>();
         for(JobEvent jobEvent: jobEvents ) {
         	JobHistoryDisplayDTO historyObj = new JobHistoryDisplayDTO(jobEvent, user, tenant);
         	eventsSummary.add(historyObj);

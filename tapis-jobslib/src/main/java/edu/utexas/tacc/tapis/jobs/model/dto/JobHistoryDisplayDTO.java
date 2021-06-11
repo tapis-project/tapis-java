@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
@@ -27,7 +26,6 @@ public class JobHistoryDisplayDTO {
     
     private String        event;
     private Instant       created;
-    private String        jobUuid;
     private String        jobStatus;
     private String        description;
     private String        transferTaskUuid;
@@ -45,14 +43,16 @@ public class JobHistoryDisplayDTO {
  		
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
     	 transferSummary = gson.fromJson(TapisConstants.EMPTY_JSON, JsonObject.class);
-    	if(jobEvent.getOthUuid()!= null) {
+    	
+    	 if(jobEvent.getOthUuid()!= null) {
     		TransferTask transferTask = null;
     		
     		try {
     			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid());
 			} catch (TapisClientException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				String msg = MsgUtils.getMsg("FILES_TRANSFER_HISTORY_RETRIEVE_ERROR", 
+						jobEvent.getOthUuid(), jobEvent.getJobUuid(),e.getCode());
+	            throw new TapisImplException(msg, e, e.getCode());
 			}
     		if (transferTask!= null) {
     			transferSummary.addProperty("uuid",jobEvent.getOthUuid());
@@ -71,8 +71,6 @@ public class JobHistoryDisplayDTO {
     		
     	}
     	
-    	//summary.add("transferSummary", transferSummary);
-    	//eventsSummary.add(summary);
    }
     
 /* ---------------------------------------------------------------------------- */
