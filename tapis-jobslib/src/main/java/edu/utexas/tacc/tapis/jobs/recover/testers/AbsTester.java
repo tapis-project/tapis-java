@@ -13,8 +13,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnectionJsch;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnectionJsch.AuthMethod;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.AuthnEnum;
@@ -73,7 +73,7 @@ public abstract class AbsTester
     /* ---------------------------------------------------------------------- */
     /* getSSHConnection:                                                      */
     /* ---------------------------------------------------------------------- */
-    protected SSHConnection getSSHConnection(String username, String systemId, 
+    protected SSHConnectionJsch getSSHConnection(String username, String systemId, 
                                              AuthMethod authMethod) 
      throws JobRecoveryAbortException
     {
@@ -114,13 +114,13 @@ public abstract class AbsTester
         // and username from system even though they are also in the tester
         // parameters.  They should be the same, but ones in the system are
         // the ones that will be used during job processing.
-        SSHConnection conn = null;
+        SSHConnectionJsch conn = null;
         try {
             if (system.getDefaultAuthnMethod() == AuthnEnum.PASSWORD) 
-                conn = new SSHConnection(system.getHost(), system.getPort(), 
+                conn = new SSHConnectionJsch(system.getHost(), system.getPort(), 
                                      system.getEffectiveUserId(), cred.getPassword());
             else 
-                conn = new SSHConnection(system.getHost(), system.getEffectiveUserId(), 
+                conn = new SSHConnectionJsch(system.getHost(), system.getEffectiveUserId(), 
                                      system.getPort(), cred.getPublicKey(), cred.getPrivateKey());
         } catch (TapisRecoverableException e) {
             // The error condition has not cleared,

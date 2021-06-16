@@ -10,7 +10,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnectionJsch;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
@@ -141,7 +141,7 @@ public class DockerNativeMonitor
     /* ---------------------------------------------------------------------- */
     /* removeContainer:                                                       */
     /* ---------------------------------------------------------------------- */
-    private void removeContainer(TapisSystem execSystem, SSHConnection conn)
+    private void removeContainer(TapisSystem execSystem, SSHConnectionJsch conn)
     {
         // Get the command object.
         var runCmd = new TapisRunCommand(execSystem, conn);

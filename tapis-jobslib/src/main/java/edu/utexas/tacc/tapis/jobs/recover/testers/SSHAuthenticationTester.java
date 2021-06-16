@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryAbortException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnectionJsch.AuthMethod;
 
 public class SSHAuthenticationTester 
  extends AbsTester

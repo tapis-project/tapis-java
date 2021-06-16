@@ -28,7 +28,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.SSHConnectionJsch;
 import edu.utexas.tacc.tapis.shared.ssh.system.TapisAbstractConnection;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
@@ -70,7 +70,7 @@ public final class JobExecutionContext
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
-    private SSHConnection            _execSysConn; // always use accessor
+    private SSHConnectionJsch            _execSysConn; // always use accessor
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -328,7 +328,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------------- */
     /* getExecSystemConnection:                                                     */
     /* ---------------------------------------------------------------------------- */
-    public SSHConnection getExecSystemConnection() throws JobException 
+    public SSHConnectionJsch getExecSystemConnection() throws JobException 
     {
         if (_execSysConn == null) 
             try {_execSysConn = TapisAbstractConnection.createNewConnection(_executionSystem);}
