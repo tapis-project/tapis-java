@@ -6,7 +6,7 @@ import java.nio.file.Path;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ReqCreateApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.ReqUpdateApp;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ReqPatchApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
@@ -57,7 +57,7 @@ public class PatchApp
         // Read the file into a string.
         Path reqFile = Path.of(reqDir, args[0]);
         String reqString = Files.readString(reqFile);
-        ReqUpdateApp payload = TapisGsonUtils.getGson().fromJson(reqString, ReqUpdateApp.class);
+        ReqPatchApp payload = TapisGsonUtils.getGson().fromJson(reqString, ReqPatchApp.class);
         
         // Get the application id and version from the command line.
         String appId = args[1];
