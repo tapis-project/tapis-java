@@ -8,7 +8,7 @@ import java.util.Properties;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
-import edu.utexas.tacc.tapis.systems.client.gen.model.ReqUpdateSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqPatchSystem;
 
 public class PatchSystem
 {
@@ -55,14 +55,14 @@ public class PatchSystem
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        ReqUpdateSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqUpdateSystem.class);
+        ReqPatchSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqPatchSystem.class);
         
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[2]);
         
         // Create the system.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
-        sysClient.updateSystem(args[1], sysReq);
+        sysClient.patchSystem(args[1], sysReq);
         sysClient.close();
     }
 }
