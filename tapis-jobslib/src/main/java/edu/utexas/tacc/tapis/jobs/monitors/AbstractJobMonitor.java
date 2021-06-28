@@ -73,17 +73,7 @@ abstract class AbstractJobMonitor
     @Override
     public void closeConnection() 
     {
-        // Is there anything to do?
-        if (!_jobCtx.existsExecSystemConnection()) return;
-        try {
-            // Only delete sessions with at most a single channel,
-            // the channel used for monitoring.
-            var conn = _jobCtx.getExecSystemConnection();
-            if (conn.getChannelCount() <= 1) _jobCtx.closeExecSystemConnection();
-        } catch (Exception e) {
-            // Just log the problem.
-            _log.error(e.getMessage(), e);
-        }
+        _jobCtx.closeExecSystemConnection();
     }
     
     /* ********************************************************************** */

@@ -8,7 +8,6 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
 /** Launch a job using singularity run from a wrapper script that returns the
  * PID of the spawned background process.
@@ -55,28 +54,24 @@ public final class SingularityRunLauncher
             _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
                                        _job.getUuid(), cmd));
         
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Start the container and retrieve the pid.
-        String result  = runCmd.execute(cmd);
-        int exitStatus = runCmd.getExitStatus();
+        int exitCode  = runCmd.execute(cmd);
+        String result = runCmd.getOutAsString();
         
         // Let's see what happened.
-        if (exitStatus != 0) {
+        if (exitCode != 0) {
             String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
-                                         _job.getUuid(), cmd, result, exitStatus);
+                                         _job.getUuid(), cmd, result, exitCode);
             throw new JobException(msg);
         }
 
         // Note success.
         if (_log.isDebugEnabled()) {
             String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
-                                         _job.getUuid(), result, exitStatus);
+                                         _job.getUuid(), result, exitCode);
             _log.debug(msg);
         }
         

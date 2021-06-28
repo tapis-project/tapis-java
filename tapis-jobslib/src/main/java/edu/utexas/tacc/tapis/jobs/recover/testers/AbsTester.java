@@ -13,11 +13,11 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection.AuthMethod;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
-import edu.utexas.tacc.tapis.systems.client.gen.model.AuthnEnum;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public abstract class AbsTester 
@@ -101,27 +101,14 @@ public abstract class AbsTester
                 throw new JobRecoveryAbortException(msg, e);
             }
         
-        // Get the credentials.
-        var cred = system.getAuthnCredential();
-        if (cred == null) {
-            String msg = MsgUtils.getMsg("SYSTEMS_MISSING_CREDENTIALS", 
-                                         getSystemHostMessage(system), 
-                                         system.getTenant());
-            throw new JobRecoveryAbortException(msg);
-        }
-
         // Try to connect to the system.  Note that we use the host, port
         // and username from system even though they are also in the tester
         // parameters.  They should be the same, but ones in the system are
         // the ones that will be used during job processing.
         SSHConnection conn = null;
         try {
-            if (system.getDefaultAuthnMethod() == AuthnEnum.PASSWORD) 
-                conn = new SSHConnection(system.getHost(), system.getPort(), 
-                                     system.getEffectiveUserId(), cred.getPassword());
-            else 
-                conn = new SSHConnection(system.getHost(), system.getEffectiveUserId(), 
-                                     system.getPort(), cred.getPublicKey(), cred.getPrivateKey());
+            var runCmd = new TapisRunCommand(system);
+            conn = runCmd.getConnection();
         } catch (TapisRecoverableException e) {
             // The error condition has not cleared,
             // but we live to fight another day.

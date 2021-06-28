@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 
 public class SingularityStartMonitor 
  extends AbstractSingularityMonitor
@@ -76,23 +76,23 @@ public class SingularityStartMonitor
             throw new JobException(msg);
         }
         
-        // Get the ssh connection used by this job to
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
         String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
         
         // Query the container.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-                return JobRemoteStatus.NULL;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return JobRemoteStatus.NULL;
+        }
         
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
@@ -128,12 +128,8 @@ public class SingularityStartMonitor
     {
         // Best effort, no noise.
         try {
-            // Get the ssh connection used by this job to
-            // communicate with the execution system.
-            var conn = _jobCtx.getExecSystemConnection();
-            
             // Get the command object.
-            var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+            var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
             
             // Unconditionally remove the singularity instance container.
             removeContainer(runCmd);
@@ -155,15 +151,19 @@ public class SingularityStartMonitor
         
         // Stop the instance.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                String execSysId = null;
-                try {execSysId = _jobCtx.getExecutionSystem().getId();} catch (Exception e1) {}
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
-                                             _job.getUuid(), execSysId, result, cmd);
-                _log.error(msg, e);
-                return;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            String execSysId = null;
+            try {execSysId = _jobCtx.getExecutionSystem().getId();} catch (Exception e1) {}
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
+                                         _job.getUuid(), execSysId, result, cmd);
+            _log.error(msg, e);
+            return;
+        }
         
         // Record the successful removal of the instance.
         if (_log.isDebugEnabled()) 

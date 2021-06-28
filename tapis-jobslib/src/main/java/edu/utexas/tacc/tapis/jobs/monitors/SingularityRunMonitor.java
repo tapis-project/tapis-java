@@ -11,7 +11,6 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
 public class SingularityRunMonitor 
  extends AbstractSingularityMonitor
@@ -76,23 +75,23 @@ public class SingularityRunMonitor
             throw new JobException(msg);
         }
         
-        // Get the ssh connection used by this job to
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
         String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
         
         // Query the container.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-                return JobRemoteStatus.NULL;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return JobRemoteStatus.NULL;
+        }
         
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;

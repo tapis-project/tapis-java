@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class MacroResolver 
@@ -216,7 +216,9 @@ public final class MacroResolver
         // Run the command on the host system and cache results.
         String cmd = "echo " + varName;
         var runCmd = new TapisRunCommand(_execSystem);
-        result = runCmd.execute(cmd, true); // connection automatically closed
+        int rc = runCmd.execute(cmd, true); // connection automatically closed
+        runCmd.logNonZeroExitCode();
+        result = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) 
             if (!StringUtils.isBlank(defaultPath)) result = defaultPath;
               else {

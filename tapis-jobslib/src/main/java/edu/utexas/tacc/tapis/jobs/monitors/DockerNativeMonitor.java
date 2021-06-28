@@ -10,8 +10,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public class DockerNativeMonitor 
@@ -77,23 +76,24 @@ public class DockerNativeMonitor
         // one did not return a result.
         if (!active) return JobRemoteStatus.NULL;
         
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
         String cmd = JobExecutionUtils.getDockerStatusCommand(_job.getUuid());
         
         // Query the container.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-                return JobRemoteStatus.NULL;
-            }
+        try {
+            // Issue the command and get the result.
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return JobRemoteStatus.NULL;
+        }
         
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
@@ -104,7 +104,7 @@ public class DockerNativeMonitor
         
         // Has the container terminated?  If so, we always set the application
         // exit code and return the status from within this block.  We also
-        // remote the container from the execution system.
+        // remove the container from the execution system.
         if (result.startsWith(JobExecutionUtils.DOCKER_INACTIVE_STATUS_PREFIX)) 
         {
             // The status that will be returned.
@@ -126,7 +126,7 @@ public class DockerNativeMonitor
             }
             
             // Remove the container from the execution system.
-            removeContainer(_jobCtx.getExecutionSystem(), conn);
+            removeContainer(_jobCtx.getExecutionSystem(), runCmd);
             
             return status;
         }
@@ -141,23 +141,28 @@ public class DockerNativeMonitor
     /* ---------------------------------------------------------------------- */
     /* removeContainer:                                                       */
     /* ---------------------------------------------------------------------- */
-    private void removeContainer(TapisSystem execSystem, SSHConnection conn)
+    private void removeContainer(TapisSystem execSystem, TapisRunCommand runCmd)
     {
-        // Get the command object.
-        var runCmd = new TapisRunCommand(execSystem, conn);
-        
         // Get the command text for this job's container.
         String cmd = JobExecutionUtils.getDockerRmCommand(_job.getUuid());
         
         // Query the container.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                String cid = _job.getRemoteJobId();
-                if (!StringUtils.isBlank(cid) && cid.length() >= 12) cid = cid.substring(0, 12);
-                String msg = MsgUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
-                                             _job.getUuid(), execSystem.getId(), cid, result, cmd);
-                _log.error(msg, e);
-            }
+        try {
+            int exitCode = runCmd.execute(cmd);
+            if (exitCode != 0 && _log.isWarnEnabled()) 
+                _log.warn(MsgUtils.getMsg("TAPIS_SSH_CMD_ERROR", cmd, 
+                                          runCmd.getConnection().getHost(), 
+                                          runCmd.getConnection().getUsername(), 
+                                          exitCode));
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            String cid = _job.getRemoteJobId();
+            if (!StringUtils.isBlank(cid) && cid.length() >= 12) cid = cid.substring(0, 12);
+            String msg = MsgUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
+                                         _job.getUuid(), execSystem.getId(), cid, result, cmd);
+            _log.error(msg, e);
+        }
     }
 }

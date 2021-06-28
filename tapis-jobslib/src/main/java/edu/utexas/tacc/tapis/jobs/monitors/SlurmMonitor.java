@@ -14,7 +14,6 @@ import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
 /** Slurm job monitoring class.
  *
@@ -98,12 +97,8 @@ public final class SlurmMonitor
             throw new JobException(msg);
         }
         
-        // Get the ssh connection used by this job to
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
         String cmd;
@@ -112,11 +107,15 @@ public final class SlurmMonitor
         
         // Query the container.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-                return JobRemoteStatus.NULL;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return JobRemoteStatus.NULL;
+        }
         
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;

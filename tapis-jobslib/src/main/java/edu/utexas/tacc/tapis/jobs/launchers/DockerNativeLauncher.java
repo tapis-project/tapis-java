@@ -8,7 +8,6 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
 
 public final class DockerNativeLauncher 
  extends AbstractJobLauncher
@@ -41,13 +40,6 @@ public final class DockerNativeLauncher
     @Override
     public void launch() throws TapisException
     {
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
-        // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
-        
         // Subclasses can override default implementation.
         String cmd = getLaunchCommand();
         
@@ -57,8 +49,10 @@ public final class DockerNativeLauncher
                                        _job.getUuid(), cmd));
         
         // Start the container.
-        String result  = runCmd.execute(cmd);
-        int exitStatus = runCmd.getExitStatus();
+        var runCmd     = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        runCmd.logNonZeroExitCode();
+        String result  = runCmd.getOutAsString();
         
         // Let's see what happened.
         String cid = UNKNOWN_CONTAINER_ID;       

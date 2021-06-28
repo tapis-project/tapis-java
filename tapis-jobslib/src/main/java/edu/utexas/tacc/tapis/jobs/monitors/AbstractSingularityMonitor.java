@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 
 public abstract class AbstractSingularityMonitor 
  extends AbstractJobMonitor
@@ -81,11 +81,15 @@ public abstract class AbstractSingularityMonitor
         
         // Issue the command.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                _log.error(e.getMessage(), e);
-                return exitcode;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return exitcode;
+        }
         
         // See if we even found the file.
         if (StringUtils.isBlank(result)) return exitcode;

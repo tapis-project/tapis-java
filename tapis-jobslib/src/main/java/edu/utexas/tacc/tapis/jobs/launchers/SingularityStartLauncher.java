@@ -11,7 +11,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 
 /** Launch a job using singularity instance start and singularity instance list
  * to retrieve the root PID of the spawned process.
@@ -64,19 +64,15 @@ public final class SingularityStartLauncher
             _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
                                        _job.getUuid(), cmd));
         
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
         // Get the command object.
-        var runCmd = new TapisRunCommand(_jobCtx.getExecutionSystem(), conn);
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // -------------------- Rollback Area -----------------------
         boolean killContainer = false; // set when exceptions are thrown
         try {
             // Start the container.
-            String result  = runCmd.execute(cmd);
-            int exitStatus = runCmd.getExitStatus();
+            int exitStatus = runCmd.execute(cmd);
+            String result  = runCmd.getOutAsString();
         
             // Let's see what happened.
             if (!StringUtils.isBlank(result)) result = result.trim();
@@ -97,8 +93,8 @@ public final class SingularityStartLauncher
             // -------------------- Get PID -----------------------------
             // Run the singularity list command for this container.
             String idCmd = getRemoteIdCommand();
-            result = runCmd.execute(idCmd);
-            exitStatus = runCmd.getExitStatus();
+            exitStatus = runCmd.execute(idCmd);
+            result = runCmd.getOutAsString();
             if (exitStatus != 0) {
                 // Issue a warning here, we'll determine if the problem is fatal below.
                 String msg = MsgUtils.getMsg("JOBS_SINGULARITY_LIST_PID_WARN", getClass().getSimpleName(), 
@@ -180,15 +176,19 @@ public final class SingularityStartLauncher
         
         // Stop the instance.
         String result = null;
-        try {result = runCmd.execute(cmd);}
-            catch (Exception e) {
-                String execSysId = null;
-                try {execSysId = _jobCtx.getExecutionSystem().getId();} catch (Exception e1) {}
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
-                                             _job.getUuid(), execSysId, result, cmd);
-                _log.error(msg, e);
-                return;
-            }
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            String execSysId = null;
+            try {execSysId = _jobCtx.getExecutionSystem().getId();} catch (Exception e1) {}
+            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RM_CONTAINER_ERROR", 
+                                         _job.getUuid(), execSysId, result, cmd);
+            _log.error(msg, e);
+            return;
+        }
         
         // Record the successful removal of the instance.
         if (_log.isDebugEnabled()) 

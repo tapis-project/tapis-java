@@ -271,8 +271,9 @@ public final class RecoveryUtils
     /* ---------------------------------------------------------------------- */
     /* updateJobActivity:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** If it is a recoverable exception then update state to indicate the activity in progress
-     *    when the exception occurred.
+    /** If it is a recoverable exception then update state to indicate the 
+     * activity in progress  when the exception occurred.
+     * 
      *  If state is null then initialize it.
      *  If activity has already been recorded then do not change it.
      *

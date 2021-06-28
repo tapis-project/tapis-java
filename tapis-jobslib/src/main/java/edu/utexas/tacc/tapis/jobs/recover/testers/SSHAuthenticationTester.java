@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryAbortException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection.AuthMethod;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection.AuthMethod;
 
 public class SSHAuthenticationTester 
  extends AbsTester
@@ -88,7 +88,7 @@ public class SSHAuthenticationTester
         if (conn == null) return false;
         
         // An established connection means the condition has cleared.
-        conn.closeSession();
+        conn.close();
         return true;
     }
     

@@ -1,9 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
-import java.io.ByteArrayInputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +33,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisSftp;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHScpClient;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -52,8 +52,8 @@ public final class JobFileManager
     public static final String REGEX_FILTER_PREFIX = "REGEX:";
     
     // Various useful posix permission settings.
-    public static final int RWRW   = TapisSftp.RWRW;
-    public static final int RWXRWX = TapisSftp.RWXRWX;
+    public static final List<PosixFilePermission> RWRW   = SSHScpClient.RWRW_PERMS;
+    public static final List<PosixFilePermission> RWXRWX = SSHScpClient.RWXRWX_PERMS;
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -289,28 +289,20 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* installExecFile:                                                       */
     /* ---------------------------------------------------------------------- */
-    public void installExecFile(String content, String fileName, int mod) 
+    public void installExecFile(String content, String fileName, 
+                                List<PosixFilePermission> mod) 
       throws TapisException
     {
-        // Get the ssh connection used by this job 
-        // communicate with the execution system.
-        var conn = _jobCtx.getExecSystemConnection();
-        
-        // Put the wrapperScript text into a stream.
-        var in = new ByteArrayInputStream(content.getBytes());
-        
         // Calculate the destination file path.
         String destPath = makePath(_jobCtx.getExecutionSystem().getRootDir(), 
                                    _job.getExecSystemExecDir(),
                                    fileName);
         
-        // Initialize the sftp transporter.
-        var sftp = new TapisSftp(_jobCtx.getExecutionSystem(), conn);
-        
         // Transfer the wrapper script.
         try {
-            sftp.put(in, destPath);
-            sftp.chmod(mod, destPath);
+            // Initialize a scp client.
+            var scpClient = _jobCtx.getExecSystemTapisSSH().getScpClient();
+            scpClient.uploadBytesToFile(content.getBytes(), destPath, mod, null);
         } 
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_SFTP_CMD_ERROR", 
@@ -322,8 +314,6 @@ public final class JobFileManager
                                          destPath, e.getMessage());
             throw new JobException(msg, e);
         } 
-        // Always close the channel but keep the connection open.
-        finally {sftp.closeChannel();} 
     }
     
     /* ---------------------------------------------------------------------- */

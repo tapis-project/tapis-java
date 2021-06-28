@@ -28,8 +28,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectio
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
-import edu.utexas.tacc.tapis.shared.ssh.SSHConnection;
-import edu.utexas.tacc.tapis.shared.ssh.system.TapisAbstractConnection;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -70,13 +69,13 @@ public final class JobExecutionContext
     private LogicalQueue             _logicalQueue;
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
-    private SSHConnection            _execSysConn; // always use accessor
+    private TapisSSH                 _execSysTapisSSH; // always use accessor
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
     
     // Treat authentication errors on the initial connection attempt specially.
-    private boolean                  _execSysConnFirstAttempt = true;
+    private boolean                  _execSysSSHFirstAttempt = true;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -324,49 +323,45 @@ public final class JobExecutionContext
 
         return client;
     }
-    
+
     /* ---------------------------------------------------------------------------- */
-    /* getExecSystemConnection:                                                     */
+    /* getExecSystemTapisSSH:                                                       */
     /* ---------------------------------------------------------------------------- */
-    public SSHConnection getExecSystemConnection() throws JobException 
+    public TapisSSH getExecSystemTapisSSH() throws JobException
     {
-        if (_execSysConn == null) 
-            try {_execSysConn = TapisAbstractConnection.createNewConnection(_executionSystem);}
-                catch (Exception e) {
-                    // Add the job activity to auth exceptions on first attempt only.
-                    if (e instanceof TapisSSHAuthException) 
-                        if (_execSysConnFirstAttempt) {
-                            String activity = JobRecoveryDefinitions.BlockedJobActivity.CHECK_SYSTEMS.name();
-                            RecoveryUtils.updateJobActivity(e, activity);
-                            _execSysConnFirstAttempt = false;
-                        }
-                    
-                    // Create the informative message.
-                    String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
-                                                 _executionSystem.getId(),
-                                                 _executionSystem.getHost(),
-                                                 _executionSystem.getEffectiveUserId(),
-                                                 _executionSystem.getTenant(),
-                                                 _executionSystem.getDefaultAuthnMethod().name(),
-                                                 _job.getUuid(),
-                                                 e.getMessage());
-                    // Always wrap the exception.
-                    throw new JobException(msg, e);
-                }
+        if (_execSysTapisSSH == null) {
+            try {
+                // Establish a connection to the execution system.
+                _execSysTapisSSH = new TapisSSH(_executionSystem);
+                _execSysTapisSSH.getConnection();
+            } 
+            catch (Exception e) {
+                // Add the job activity to auth exceptions on first attempt only.
+                if (e instanceof TapisSSHAuthException) 
+                    if (_execSysSSHFirstAttempt) {
+                        String activity = JobRecoveryDefinitions.BlockedJobActivity.CHECK_SYSTEMS.name();
+                        RecoveryUtils.updateJobActivity(e, activity);
+                        _execSysSSHFirstAttempt = false;
+                    }
+                   
+                // Create the informative message.
+                String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
+                                             _executionSystem.getId(),
+                                             _executionSystem.getHost(),
+                                             _executionSystem.getEffectiveUserId(),
+                                             _executionSystem.getTenant(),
+                                             _executionSystem.getDefaultAuthnMethod().name(),
+                                             _job.getUuid(),
+                                             e.getMessage());
+                // Always wrap the exception.
+                throw new JobException(msg, e);
+            }
+        }
         
         // Record that we have connected to the exec system at least once.
-        _execSysConnFirstAttempt = false;
-        return _execSysConn;
+        _execSysSSHFirstAttempt = false;
+        return _execSysTapisSSH;
     }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* existsExecSystemConnection:                                                  */
-    /* ---------------------------------------------------------------------------- */
-    /** Test if the connection exists with no side-effects.  
-     * 
-     * @return true is the connection exist, false otherwise
-     */
-    public boolean existsExecSystemConnection() {return _execSysConn != null;}
     
     /* ---------------------------------------------------------------------------- */
     /* closeExecSystemConnection:                                                   */
@@ -375,9 +370,9 @@ public final class JobExecutionContext
     public void closeExecSystemConnection()
     {
         // Close the ssh session.
-        if (_execSysConn != null) {
-            _execSysConn.closeSession();
-            _execSysConn = null;
+        if (_execSysTapisSSH != null) {
+            _execSysTapisSSH.closeConnection();
+            _execSysTapisSSH = null;
             
             // Log the action.
             if (_log.isInfoEnabled())
