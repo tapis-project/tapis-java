@@ -52,107 +52,6 @@ public class ShiroExtPermissionTest
       implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx"));
       Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx");
       
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests without trailing slashes (read:*:):              */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my:file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my:file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my,file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my,file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my*file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my*file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/*,:"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/*,:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/:xx"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/:xx");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests without trailing slashes (read,write):           */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/*,:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/:xx");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests without trailing slashes (write):                */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/myfile"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my:file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my:file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my,file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my,file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my*file"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my*file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/*,:"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/*,:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/:xx"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/:xx");
       
       /* ---------------------------------------------------------------------- */
       /* New True Tenant Tests with trailing slashes (read):                    */
@@ -182,118 +81,6 @@ public class ShiroExtPermissionTest
       implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx/"));
       Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx/");
       
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests with trailing slashes (read:*:):                 */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my:file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my,file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my*file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/*,:/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/:xx/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/:xx/");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests with trailing slashes (read,write):              */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/:xx/");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests with trailing slashes (read,write):              */
-      /* ---------------------------------------------------------------------- */
-     
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/:xx/");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New True Tenant Tests with trailing slashes (write):                   */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/myfile/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my:file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my,file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my*file/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/*,:/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/:xx/"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/:xx/");
-      
       
     }
 
@@ -303,11 +90,15 @@ public class ShiroExtPermissionTest
     @Test(enabled=true)
     public void pathTest()
     {
+      // wcPerm being checked must be a prefix of the string being passed in. Absence of a trailing slash marks access to the directory
+      // as well as sub-directories. Presence of a trailing slash only gives access to the resources under the directory, not the 
+      // directory itself
+    	
       // The required permission spec.
-      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud");
+      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/");
       
-      boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud"));
-      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud");
+      boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/"));
+      Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/");
       
       implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/"));
       Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/");
@@ -387,93 +178,9 @@ public class ShiroExtPermissionTest
       implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile"));
       Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/mydir/myfile");
       
-      /* ---------------------------------------------------------------------- */
-      /* New False Path Tests with trailing slashes for read,write:             */
-      /* ---------------------------------------------------------------------- */
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/myfile/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir,myfile"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/mydir,myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir,myfile/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/mydir,myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my:file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my:file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my:file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my,file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my,file");
-
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my,file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my*file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my*file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/my*file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/*,:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/:xx");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read,write:stampede2:/home/bud/:xx/");
       
       /* ---------------------------------------------------------------------- */
-      /* New False Path Tests with trailing slashes for read:*                  */
-      /* ---------------------------------------------------------------------- */
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/myfile/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir,myfile"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/mydir,myfile");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir,myfile/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/mydir,myfile/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my:file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my:file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my:file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my:file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my,file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my,file");
-
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my,file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my,file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my*file"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my*file");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/my*file/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/my*file/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/*,:"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/*,:");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/*,:/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/*,:/");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/:xx"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/:xx");
-      
-      implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/:xx/"));
-      Assert.assertFalse(implies, "Expected " + wcPerm + " to NOT imply files:iplantc.org:read:*:/home/bud/:xx/");
-      
-      /* ---------------------------------------------------------------------- */
-      /* New False Path Tests with trailing slashes for read:*                  */
+      /* New False Path Tests with trailing slashes for write                   */
       /* ---------------------------------------------------------------------- */
       
       implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/myfile/"));
@@ -628,72 +335,6 @@ public class ShiroExtPermissionTest
         Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx");
         
         /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest without trailing slashes (read:*:)               */
-        /* ---------------------------------------------------------------------- */  
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/myfile");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my:file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my:file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my,file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my,file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my*file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my*file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/*,:"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/*,:");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx");
-        
-        /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest without trailing slashes (read,write)            */
-        /* ---------------------------------------------------------------------- */
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/*,:");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/:xx");
-        
-        /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest without trailing slashes (write)                 */
-        /* ---------------------------------------------------------------------- */
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/myfile"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/myfile");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my:file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my:file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my,file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my,file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my*file"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my*file");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/*,:"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/*,:");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/:xx"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/:xx");
-        
-        /* ---------------------------------------------------------------------- */
         /* New True allowAllTest with trailing slashes (read)                     */
         /* ---------------------------------------------------------------------- */
         
@@ -715,71 +356,6 @@ public class ShiroExtPermissionTest
         implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx/"));
         Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx/");
         
-        /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest with trailing slashes (read:*:)                  */
-        /* ---------------------------------------------------------------------- */
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/myfile/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/myfile/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my:file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my:file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my,file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my,file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:*:/home/bud/mydir/my*file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:*:/home/bud/mydir/my*file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/*,:/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/*,:/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/:xx/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/:xx/");
-        
-        /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest with trailing slashes (read,write)               */
-        /* ---------------------------------------------------------------------- */
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/myfile/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my:file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my,file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/mydir/my*file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/*,:/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/*,:/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read,write:stampede2:/home/bud/:xx/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read,write:stampede2:/home/bud/:xx/");
-        
-        /* ---------------------------------------------------------------------- */
-        /* New True allowAllTest with trailing slashes (write)                    */
-        /* ---------------------------------------------------------------------- */
-      
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/myfile/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/myfile/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my:file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my:file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my,file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my,file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/mydir/my*file/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/mydir/my*file/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/*,:/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/*,:/");
-        
-        implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:write:stampede2:/home/bud/:xx/"));
-        Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:write:stampede2:/home/bud/:xx/");
         
     }
 }
