@@ -95,7 +95,7 @@ public class ShiroExtPermissionTest
       // directory itself
     	
       // The required permission spec.
-      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/");
+      ExtWildcardPermission wcPerm = new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud");
       
       boolean implies = wcPerm.implies(new ExtWildcardPermission("files:iplantc.org:read:stampede2:/home/bud/"));
       Assert.assertTrue(implies, "Expected " + wcPerm + " to imply files:iplantc.org:read:stampede2:/home/bud/");
