@@ -306,7 +306,6 @@ public final class ExtWildcardPermission
                 String partString = part.iterator().next();
                 String otherPartString = otherPart.iterator().next();
                 if (otherPartString.equals(partString)) return true;
-                if (otherPartString.startsWith(partString)) return true;
                 if (otherPartString.startsWith(partString + "/")) return true;
                 break;
         }
