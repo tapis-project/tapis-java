@@ -306,7 +306,17 @@ public final class ExtWildcardPermission
                 String partString = part.iterator().next();
                 String otherPartString = otherPart.iterator().next();
                 if (otherPartString.equals(partString)) return true;
-                if (otherPartString.startsWith(partString + "/")) return true;
+                
+                // This check implements directory semantics. If partString ends with 
+                // a "/", then we are implicitly enforcing directory semantics.
+                // If partString does not end with a "/", then we insert a trailing
+                // "/" to enforce directory semantics and avoid false capture.
+                // EX: We do not want "/home/bud" to return true for both "/home/bud"
+                // and "/home/bud2".
+                if (partString.endsWith("/")) {
+                	if (otherPartString.startsWith(partString)) return true;
+                }
+                else if (otherPartString.startsWith(partString + "/")) return true;
                 break;
         }
         
