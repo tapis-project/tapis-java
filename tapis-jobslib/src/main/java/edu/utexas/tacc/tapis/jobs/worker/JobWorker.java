@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
@@ -262,6 +263,9 @@ public final class JobWorker
     {
         // Already initiailized, but assigned for convenience.
         var parms = RuntimeParameters.getInstance();
+        
+        // Enable more detailed SSH logging if the node name is not null.
+        SSHConnection.setLocalNodeName(parms.getLocalNodeName());
         
         // Force runtime initialization of the tenant manager.  This creates the
         // singleton instance of the TenantManager that can then be accessed by

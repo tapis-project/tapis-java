@@ -87,6 +87,9 @@ public final class RuntimeParameters
     
     // Tenant service location.
     private String  tenantBaseUrl;
+    
+    // Local node name.
+    private String  localNodeName;
   
 	// Database configuration.
 	private String  dbConnectionPoolName;
@@ -214,6 +217,12 @@ public final class RuntimeParameters
     // Logging level of the Maverick libary code
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_FILE.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogFile(parm);
+    
+    // Get the local name of the node that we are running on as set
+    // by the deploying framework, such as Kubernetes.  If this set
+    // then more extensive SSH logging will take place.
+    parm = EnvVar.TAPIS_LOCAL_NODE_NAME.getEnvName();
+    if (!StringUtils.isBlank(parm)) setLocalNodeName(parm);
                  
     // Optional test header parameter switch.
     parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName());
@@ -767,6 +776,14 @@ public final class RuntimeParameters
 	public void setSiteId(String siteId) {
 		this.siteId = siteId;
 	}
+
+    public String getLocalNodeName() {
+        return localNodeName;
+    }
+
+    public void setLocalNodeName(String localNodeName) {
+        this.localNodeName = localNodeName;
+    }
 	
 	public String getDbConnectionPoolName() {
 		return dbConnectionPoolName;

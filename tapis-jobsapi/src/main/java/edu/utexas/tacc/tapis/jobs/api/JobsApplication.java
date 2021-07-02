@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
@@ -88,6 +89,9 @@ extends ResourceConfig
            }
        System.out.println("**** SUCCESS:  RuntimeParameters read ****");
        int errors = 0; // cumulative error count
+       
+       // Enable more detailed SSH logging if the node name is not null.
+       SSHConnection.setLocalNodeName(parms.getLocalNodeName());
        
        // ---------------- Initialize Security Filter --------------
        // Required to process any requests.

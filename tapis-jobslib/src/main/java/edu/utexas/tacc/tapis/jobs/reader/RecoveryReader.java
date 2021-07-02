@@ -35,6 +35,7 @@ import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
@@ -371,6 +372,9 @@ public final class RecoveryReader
     {
         // Already initiailized, but assigned for convenience.
         var parms = RuntimeParameters.getInstance();
+        
+        // Enable more detailed SSH logging if the node name is not null.
+        SSHConnection.setLocalNodeName(parms.getLocalNodeName());
         
         // Force runtime initialization of the tenant manager.  This creates the
         // singleton instance of the TenantManager that can then be accessed by
