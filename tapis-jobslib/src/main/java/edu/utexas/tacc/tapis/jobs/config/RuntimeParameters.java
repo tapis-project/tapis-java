@@ -221,7 +221,7 @@ public final class RuntimeParameters
     // Get the local name of the node that we are running on as set
     // by the deploying framework, such as Kubernetes.  If this set
     // then more extensive SSH logging will take place.
-    parm = EnvVar.TAPIS_LOCAL_NODE_NAME.getEnvName();
+    parm = inputProperties.getProperty(EnvVar.TAPIS_LOCAL_NODE_NAME.getEnvName());
     if (!StringUtils.isBlank(parm)) setLocalNodeName(parm);
                  
     // Optional test header parameter switch.
