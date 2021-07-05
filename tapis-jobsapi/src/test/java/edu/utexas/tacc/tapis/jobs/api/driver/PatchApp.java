@@ -72,7 +72,7 @@ public class PatchApp
         
         // Create the app.
         var appsClient = new AppsClient(BASE_URL, userJWT);
-        appsClient.updateApp(appId, appVersion, payload);
+        appsClient.patchApp(appId, appVersion, payload);
         System.out.println("Finished processing " + reqFile.toString() + ".");
     }
 }
