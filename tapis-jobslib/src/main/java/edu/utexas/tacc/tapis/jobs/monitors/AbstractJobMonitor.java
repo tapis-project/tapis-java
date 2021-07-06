@@ -299,13 +299,22 @@ abstract class AbstractJobMonitor
             throw e;
         }
         finally {
+            // Always close the connection to the execution system since under normal
+            // circumstances, this is the last direct contact this job will have with
+            // that system.
+            closeConnection();
+            
             // Make sure the job outcome is set.  If we got here via an exception,
             // the outcome is not set.  We set it so that archiving is not performed
-            // since the timing of the archiving cannot be coordinated with job 
-            // execution if it is or will be executing.  
+            // since the timing of the archiving cannot be coordinated with the job 
+            // if it is or will be executing.  
             if (!recoverableExceptionThrown && _job.getRemoteOutcome() == null) {
                 // An exception could be thrown from here.
-                _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
+                try {_jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);}
+                    catch (Exception e) {
+                        // Log error and continue.
+                        _log.error(e.getMessage(), e);
+                    }
                 
                 // Record the outcome. The remote status parameter reflects the last value set, which could be null.
                 if (_log.isDebugEnabled()) {

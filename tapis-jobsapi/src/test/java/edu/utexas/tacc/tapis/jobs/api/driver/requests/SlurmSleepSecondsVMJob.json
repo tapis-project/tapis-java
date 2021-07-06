@@ -1,0 +1,16 @@
+{
+    "name": "SlurmSleepSeconds",
+    "appId": "SlurmSleepSeconds",
+    "appVersion": "0.0.1",
+    "parameterSet": {
+      "envVariables": [ 
+        {"key": "JOBS_PARMS", "value": "15"}
+      ],
+      "archiveFilter": {
+        "includes": ["Sleep*", "tapisjob.*"],
+        "includeLaunchFiles": true
+      }
+    },
+    "execSystemId": "tapisv3-exec2",
+    "archiveSystemId" : "tapisv3-exec"
+}
