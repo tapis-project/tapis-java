@@ -1,6 +1,6 @@
 {
     "name": "SlurmSleepSeconds",
-    "appId": "SlurmSleepSeconds",
+    "appId": "SlurmSleepSecondsVM",
     "appVersion": "0.0.1",
     "parameterSet": {
       "envVariables": [ 
@@ -11,6 +11,6 @@
         "includeLaunchFiles": true
       }
     },
-    "execSystemId": "tapisv3-exec2",
+    "execSystemId": "tapisv3-exec2-slurm",
     "archiveSystemId" : "tapisv3-exec"
 }

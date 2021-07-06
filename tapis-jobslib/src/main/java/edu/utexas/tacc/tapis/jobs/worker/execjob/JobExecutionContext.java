@@ -131,7 +131,7 @@ public final class JobExecutionContext
                 _archiveSystem = _executionSystem;
             if (_archiveSystem == null)    
                 _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                     _job.getArchiveSystemId(), true, LoadSystemTypes.archive);
+                                     _job.getArchiveSystemId(), false, LoadSystemTypes.archive);
         }
         
         return _archiveSystem;
@@ -149,7 +149,7 @@ public final class JobExecutionContext
         // Load the execution system on first use.
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                             _job.getDtnSystemId(), true, LoadSystemTypes.dtn);
+                             _job.getDtnSystemId(), false, LoadSystemTypes.dtn);
         }
         
         return _dtnSystem;

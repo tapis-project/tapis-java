@@ -1,0 +1,42 @@
+{
+	"id": "tapisv3-exec2-slurm",
+	"description": "Systems for testing jobs",
+	"systemType": "LINUX",
+	"owner": "testuser2",
+	"host": "129.114.17.113",
+	"enabled": true,
+	"effectiveUserId": "testuser2",
+	"defaultAuthnMethod": "PKI_KEYS",
+	"authnCredential": {
+		"privateKey": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
+		"publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDGUFVZ/5k96sWm1Ky4NlGOc0B/mKRTHf7shwyeyKC05aAd0+BG6VfmGYsj0M9MVDHN81iWm1+0Z5S0Kca51T7AXlIctMqpnQcI0PRPTl1rYxKX3u1IM7Z08RoXqeULsTavg1W4BW6wmp9tzW8JjOMACp6WNK6+e9Rtu18Od28b9DoqHTO4zhppFaItjehuEiTAFmrQW5GgwBNCoCCowBY5A5lKT7ok6gedEQZQ45JyFsDlFocOxWExMCmbGoZAW6fRmlh6dz/1wc97hijC+KqqkqPnIrBwVS9CgvwM8W7Dfh2/5eAT411522h1gnzKw3risn7xrT7gbJPM8bffP/HXxsk4K1mdyL4MzyavNtxS0+VmJ5ug5rVij6SyikyEs8/rw5gomV2IWtMG2Gs40SLDyrw2IRJ2bSGQA+LCSWtdOTofyR3BYeAhm64oNzopJ35GgMuSWf+P+8rruziUsV/4w8kAo7z7gEka8wRK2xUAE5LMO8YlcmZjbmXLOLtsbkH9eLf7hDycMgdZLfuf5AgUtA8C31lxyWpgw/Ned0z9ADvxpl0mlxJeFuZl1p5iz8OJ29JGWEGwqqwazzC/A2d9TufO4Zsrp7aPoZ3jBy49AB8CU74zEfXC0qBNOHkO4+BDhJPVICedkIGTXlky4XPOVwrUrTDvfDpda01MA+Q4cw== scblack@scblack-5530"
+	},
+	"rootDir": "/home/testuser2",
+	"transferMethods": [
+	  "SFTP"
+	],
+	"port": 22,
+	"canExec": true,
+	"jobRuntimes": [{"runtimeType": "DOCKER", "version": "0.0.1d"}, {"runtimeType": "SINGULARITY", "version": "0.0.1"}],
+	"jobWorkingDir": "workdir",
+    "jobIsBatch": true,
+    "batchScheduler": "SLURM",
+    "batchLogicalQueues": [
+       {
+           "name": "tapisNormal",
+           "hpcQueueName": "debug",
+           "maxJobs": 50,
+           "maxJobsPerUser": 10,
+           "maxNodeCount": 16,
+           "minNodeCount": 1,
+           "maxCoresPerNode": 68,
+           "minCoresPerNode": 1,
+           "maxMemoryMB": 16384,
+           "minMemoryMB": 1,
+           "maxMinutes": 60,
+           "minMinutes": 1
+       }
+    ],
+    "batchDefaultLogicalQueue": "tapisNormal"
+}
+
