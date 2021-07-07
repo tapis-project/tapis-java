@@ -205,13 +205,17 @@ final class JobQueueProcessor
         // If we get here with a negative ack, we have to fail the job. 
         //
         if (!ack) failJob(job, msg);
-        
-        // Clean up context.
-        jobCtx.close();
     }
     finally {
-      // We always want to check the finalMessage field. 
-      if (jobCtx != null) checkFinalMessageField(jobCtx);
+        
+      // Clean up. 
+      if (jobCtx != null) {
+          // We always want to check the finalMessage field. 
+          checkFinalMessageField(jobCtx);
+          
+          // Clean up context.
+          jobCtx.close();
+      }
     	
       // Always interrupt and clear the job-specific thread 
       // spawned by this thread (if it exists) when we are

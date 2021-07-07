@@ -227,7 +227,7 @@ public final class RecoveryUtils
             state.put("maxSystemUserJobs", Integer.toString(execSys.getJobMaxJobsPerUser()));
           else state.put("maxSystemUserJobs", Integer.toString(DEFAULT_MAX_SYSTEM_JOBS_PER_USER));
 
-        // The batchqueue should never be null, but we check to be safe.
+        // The batchqueue will be null on non-batch jobs, so we check to be safe.
         // In either case we always assign a non-null value to each key.
         if (logicalQueue == null) {
             state.put("maxQueueJobs", Integer.toString(DEFAULT_MAX_JOBS));
