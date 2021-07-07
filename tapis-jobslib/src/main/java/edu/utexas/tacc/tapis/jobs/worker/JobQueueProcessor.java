@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.BlockedJobActivity;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
@@ -675,8 +676,10 @@ final class JobQueueProcessor
       try {jobCtx.archiveOutputs();}
       catch (Exception e) {handleException(job, e, BlockedJobActivity.ARCHIVING);}
 
-      // Advance job to next state.
-      setState(job, JobStatusType.FINISHED);
+      // Advance job to next state depending on what the remote outcome is.
+      if (job.getRemoteOutcome() == JobRemoteOutcome.FINISHED)
+          setState(job, JobStatusType.FINISHED);
+      else setState(job, JobStatusType.FAILED);
       
       // True means continue processing the job.
       return true;

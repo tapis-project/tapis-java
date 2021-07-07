@@ -42,9 +42,12 @@ public final class SlurmMonitor
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SlurmMonitor.class);
     
+    // Placeholder string.
+    private static final String PLACEHOLDER = "${JOBID}";
+    
     // Active query command.
     private static final String ACTIVE_CMD = 
-        "squeue --noheader -O 'jobid,statecompact,exit_code' -j${JOBID} 2>/dev/null";
+        "squeue --noheader -O 'jobid,statecompact,exit_code' -j ${JOBID} 2>/dev/null";
     
     // Active command response parser.
     private static final Pattern _spaceDelimited = 
@@ -62,6 +65,12 @@ public final class SlurmMonitor
     private static final ParsedStatusResponse EMPTY_PARSED_RESP = 
         new ParsedStatusResponse("", "", "");
 
+    /* ********************************************************************** */
+    /*                                 Fields                                 */
+    /* ********************************************************************** */
+    // The response from the current query command or null.
+    private ParsedStatusResponse _parsedStatusResponse;
+    
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
@@ -81,8 +90,8 @@ public final class SlurmMonitor
     /* ---------------------------------------------------------------------- */
     @Override
     public String getExitCode() {
-        // TODO Auto-generated method stub
-        return null;
+        if (_parsedStatusResponse == null) return null;
+        return _parsedStatusResponse.getExitCode();
     }
 
     /* ---------------------------------------------------------------------- */
@@ -97,6 +106,9 @@ public final class SlurmMonitor
             throw new JobException(msg);
         }
         
+        // Reset the response.
+        _parsedStatusResponse = null;
+        
         // Get the command object.
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
@@ -104,6 +116,9 @@ public final class SlurmMonitor
         String cmd;
         if (active) cmd = ACTIVE_CMD;
           else cmd = INACTIVE_CMD;
+        
+        // Substitute the actual remote id.
+        cmd = cmd.replace(PLACEHOLDER, _job.getRemoteJobId());
         
         // Query the container.
         String result = null;
@@ -121,10 +136,10 @@ public final class SlurmMonitor
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
         
         // Parse the non-null result.
-        var parsedResponse = parseResponse(result, active);
+        _parsedStatusResponse = parseResponse(result, active);
         
         // If the state info is missing, the job isn't running (or so we think).
-        if (StringUtils.isEmpty(parsedResponse.getStatus())) {
+        if (StringUtils.isEmpty(_parsedStatusResponse.getStatus())) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_NO_STATUS", 
                                          getClass().getSimpleName(),
                                          _job.getUuid(), _job.getRemoteJobId());
@@ -135,7 +150,7 @@ public final class SlurmMonitor
         // Canonicalize the status.  It should not have embedded spaces,  
         // but we replicate this constraint from Agave out of paranoia.
         String firstStatusWord = 
-            StringUtils.substringBefore(parsedResponse.getStatus(), " ").toUpperCase();
+            StringUtils.substringBefore(_parsedStatusResponse.getStatus(), " ").toUpperCase();
         
         // Get the typed status.
         SlurmStatusType statusType;
@@ -143,7 +158,7 @@ public final class SlurmMonitor
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE",
                                          getClass().getSimpleName(),
-                                         parsedResponse.getJobId(),
+                                         _parsedStatusResponse.getJobId(),
                                          firstStatusWord,
                                          _job.getUuid());
             throw new JobMonitorResponseException(msg, e);
@@ -164,26 +179,26 @@ public final class SlurmMonitor
         // If the job is in an unrecoverable state, throw the exception so the job is cleaned up.
         if (statusType.isUnrecoverable()) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE", 
-                                         getClass().getSimpleName(), parsedResponse.getJobId(), 
-                                         statusType.name(), parsedResponse.getExitCode(),
+                                         getClass().getSimpleName(), _parsedStatusResponse.getJobId(), 
+                                         statusType.name(), _parsedStatusResponse.getExitCode(),
                                          _job.getUuid());
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status. 
-            updateFinalMessage(parsedResponse);
+            updateFinalMessage(_parsedStatusResponse);
             return JobRemoteStatus.FAILED;
         }
         
         // Failures.
         if (statusType.isFailed()) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE", 
-                                         getClass().getSimpleName(), parsedResponse.getJobId(), 
-                                         statusType.name(), parsedResponse.getExitCode(),
+                                         getClass().getSimpleName(), _parsedStatusResponse.getJobId(), 
+                                         statusType.name(), _parsedStatusResponse.getExitCode(),
                                          _job.getUuid());
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status. 
-            updateFinalMessage(parsedResponse);
+            updateFinalMessage(_parsedStatusResponse);
             return JobRemoteStatus.FAILED;
         }
         
@@ -191,8 +206,8 @@ public final class SlurmMonitor
         // in the above conditionals, but if we do get here we note it.
         String msg = MsgUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE", 
                                      getClass().getSimpleName(),
-                                     parsedResponse.getJobId(),
-                                     parsedResponse.getStatus().toUpperCase(),
+                                     _parsedStatusResponse.getJobId(),
+                                     _parsedStatusResponse.getStatus().toUpperCase(),
                                      _job.getUuid());
         _log.warn(msg);
         return JobRemoteStatus.DONE;
@@ -254,8 +269,12 @@ public final class SlurmMonitor
         else {
           // ----------------- Inactive Job -----------------
           // Split the inactive command's response on pipe characters.
+          // The results could look like this (note the embedded newline):
+          //
+          //    65|FAILED|127:0|\n65.batch|FAILED|127:0|
+          //
           var parts = _pipeSplitter.split(trimmedResponse);
-          if (parts.length != 3) {
+          if (parts.length < 3) {
               String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
               _log.error(msg);
               return EMPTY_PARSED_RESP;
