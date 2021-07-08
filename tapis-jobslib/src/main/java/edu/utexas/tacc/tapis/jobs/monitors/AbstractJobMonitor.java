@@ -14,6 +14,13 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
+/** This clas implements the main monitoring loop when the job is both in the 
+ * QUEUE and RUNNING states.  Connections to the execution system are closed
+ * if the policy so dictates or if the remote job has reached a terminal state
+ * and no more monitoring will occur. 
+ * 
+ * @author rcardone
+ */
 abstract class AbstractJobMonitor
  implements JobMonitor
 {
@@ -299,16 +306,11 @@ abstract class AbstractJobMonitor
             throw e;
         }
         finally {
-            // Always close the connection to the execution system since under normal
-            // circumstances, this is the last direct contact this job will have with
-            // that system.
-            closeConnection();
-            
             // Make sure the job outcome is set.  If we got here via an exception,
             // the outcome is not set.  We set it so that archiving is not performed
             // since the timing of the archiving cannot be coordinated with the job 
             // if it is or will be executing.  
-            if (!recoverableExceptionThrown && _job.getRemoteOutcome() == null) {
+            if (exceptionThrown && !recoverableExceptionThrown && _job.getRemoteOutcome() == null) {
                 // An exception could be thrown from here.
                 try {_jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);}
                     catch (Exception e) {
@@ -324,6 +326,9 @@ abstract class AbstractJobMonitor
                     _log.debug(msg);
                 }
             }
+            
+            // Close the connection if the job has terminated.
+            if (_job.getRemoteOutcome() != null) closeConnection();
             
             // Give the specific monitor a chance to clean up.
             if (exceptionThrown || initialStatus == JobStatusType.RUNNING) cleanUpRemoteJob();

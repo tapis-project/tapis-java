@@ -93,7 +93,7 @@ public final class SingularityRunSlurmStager
         
         // Add the actual singularity run command.
         _cmd.append(_wrappedStager.getCmdTextWithEnvVars());
-        _cmd.append("/n");
+        _cmd.append("\n");
         
         return _cmd.toString();
     }

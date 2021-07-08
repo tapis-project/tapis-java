@@ -367,7 +367,7 @@ public final class JobExecutionContext
     /* closeExecSystemConnection:                                                   */
     /* ---------------------------------------------------------------------------- */
     /** Close the ssh session to the execution system if one exists. */
-    public void closeExecSystemConnection()
+    public synchronized void closeExecSystemConnection()
     {
         // Close the ssh session.
         if (_execSysTapisSSH != null) {

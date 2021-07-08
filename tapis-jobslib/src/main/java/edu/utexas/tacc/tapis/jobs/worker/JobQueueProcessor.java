@@ -641,6 +641,10 @@ final class JobQueueProcessor
           try {jobCtx.monitorRunningJob();}
           catch (Exception e) {handleException(job, e, BlockedJobActivity.RUNNING);}
 
+      // The connection to the execution system will already 
+      // be closed if we monitored the running job.
+      jobCtx.closeExecSystemConnection();
+      
       // Advance job to next state.
       setState(job, JobStatusType.ARCHIVING);
       
