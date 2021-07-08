@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,6 +227,11 @@ public final class MacroResolver
                   throw new TapisException(msg);
               }
         
+        // Remove leading and trailing whitespace and retain only 
+        // the last line in multi-line value.  This removes any 
+        // login banner message that the host might display.
+        result = getLastLine(result.trim());
+        
         // Cache the result.
         _hostVariables.put(varName, result);
         
@@ -346,5 +352,18 @@ public final class MacroResolver
             
         // Substitute the value in for the macro.
         return prefix + mvalue + suffix;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getLastLine:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    private String getLastLine(String s)
+    {
+        // The input is a non-null, trimmed string so
+        // a non-negative index must be at least one
+        // character from the end of the string.
+        int index = s.lastIndexOf('\n');
+        if (index < 0) return s;
+        return s.substring(index + 1);
     }
 }
