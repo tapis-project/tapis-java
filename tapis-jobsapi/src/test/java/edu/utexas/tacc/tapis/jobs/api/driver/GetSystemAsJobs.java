@@ -41,10 +41,10 @@ public class GetSystemAsJobs
         
         // Get the system.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
-//        sysClient.addDefaultHeader("X-TAPIS-USER", "cicsvc");
-//        sysClient.addDefaultHeader("X-TAPIS-TENANT", "tacc");
-        sysClient.addDefaultHeader("X-TAPIS-USER", "testuser2");
-        sysClient.addDefaultHeader("X-TAPIS-TENANT", "dev");
+        sysClient.addDefaultHeader("X-TAPIS-USER", "cicsvc");
+        sysClient.addDefaultHeader("X-TAPIS-TENANT", "tacc");
+//        sysClient.addDefaultHeader("X-TAPIS-USER", "testuser2");
+//        sysClient.addDefaultHeader("X-TAPIS-TENANT", "dev");
         Boolean returnCreds = Boolean.TRUE;
         Boolean checkExec   = Boolean.FALSE;
         AuthnMethod  defaultAuthMethod = null;

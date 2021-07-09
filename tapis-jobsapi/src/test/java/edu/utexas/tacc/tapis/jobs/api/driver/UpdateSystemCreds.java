@@ -8,9 +8,11 @@ import java.util.Properties;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.gen.model.AuthnEnum;
+import edu.utexas.tacc.tapis.systems.client.gen.model.Credential;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqPatchSystem;
 
-public class PatchSystem
+public class UpdateSystemCreds
 {
     // Subdirectory relative to current directory where request files are kept.
     private static final String REQUEST_SUBDIR = "requests";
@@ -23,7 +25,7 @@ public class PatchSystem
     public static void main(String[] args) throws Exception
     {
         // Try to submit a job.
-        var creator = new PatchSystem();
+        var creator = new UpdateSystemCreds();
         creator.create(args);
     }
     
@@ -40,8 +42,8 @@ public class PatchSystem
         String reqDir = curDir + "/" + REQUEST_SUBDIR;
         
         // Check the input.
-        if (args.length < 3) {
-            System.out.println("Supply the name of a request file in directory " + reqDir + " and system id and the profile name.");
+        if (args.length < 4) {
+            System.out.println("Supply the name of a request file in directory " + reqDir + " and system id, user id, and the profile name.");
             System.out.println("Generated profile path: " + TestUtils.getProfilePathTemplate());
             return;
         }
@@ -55,15 +57,14 @@ public class PatchSystem
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        ReqPatchSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqPatchSystem.class);
+        Credential creds = TapisGsonUtils.getGson().fromJson(reqString, Credential.class);
         
         // Read base url and jwt from file.
-        Properties props = TestUtils.getTestProfile(args[2]);
+        Properties props = TestUtils.getTestProfile(args[3]);
         
-        // Create the system.
+        // Update the credentials.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
-        var result = sysClient.patchSystem(args[1], sysReq);
+        sysClient.updateUserCredential(args[1], args[2], creds);
         sysClient.close();
-        System.out.println(result);
     }
 }
