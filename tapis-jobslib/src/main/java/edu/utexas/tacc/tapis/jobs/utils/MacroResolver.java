@@ -230,9 +230,9 @@ public final class MacroResolver
         // Remove leading and trailing whitespace and retain only 
         // the last line in multi-line value.  This removes any 
         // login banner message that the host might display.
-System.out.println("*********** Before: " + result); 
+_log.debug("*********** Before: " + result); 
         result = getLastLine(result.trim());
-System.out.println("*********** After: " + result); 
+_log.debug("*********** After: " + result); 
         
         // Cache the result.
         _hostVariables.put(varName, result);

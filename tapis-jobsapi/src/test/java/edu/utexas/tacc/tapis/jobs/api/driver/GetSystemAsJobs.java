@@ -39,8 +39,10 @@ public class GetSystemAsJobs
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[1]);
         
-        // Create the app.
+        // Get the system.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
+//        sysClient.addDefaultHeader("X-TAPIS-USER", "cicsvc");
+//        sysClient.addDefaultHeader("X-TAPIS-TENANT", "tacc");
         sysClient.addDefaultHeader("X-TAPIS-USER", "testuser2");
         sysClient.addDefaultHeader("X-TAPIS-TENANT", "dev");
         Boolean returnCreds = Boolean.TRUE;
