@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputDefinition;
+import edu.utexas.tacc.tapis.apps.client.gen.model.FileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
@@ -673,7 +673,7 @@ public final class SubmitContext
     private void resolveFileInputs() throws TapisImplException
     {
         // Get the application's input file definitions.
-        List<FileInputDefinition> appInputs = _app.getJobAttributes().getFileInputDefinitions();
+        List<FileInput> appInputs = _app.getJobAttributes().getFileInputs();
         if (appInputs == null) appInputs = Collections.emptyList();
         var processedAppInputNames = new HashSet<String>(1 + appInputs.size() * 2);
         
@@ -708,7 +708,7 @@ public final class SubmitContext
                 // Get the app definition for this named file input.  Iterate through
                 // the list of definitions looking for a name match.
                 String inputName = meta.getName();
-                FileInputDefinition appInputDef = null;
+                FileInput appInputDef = null;
                 for (var def : appInputs) {
                     String defName = null;
                     if (def.getMeta() != null) defName = def.getMeta().getName();
@@ -777,7 +777,7 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* mergeFileInput:                                                              */
     /* ---------------------------------------------------------------------------- */
-    private void mergeFileInput(InputSpec reqInput, FileInputDefinition appDef)
+    private void mergeFileInput(InputSpec reqInput, FileInput appDef)
      throws TapisImplException
     {
         // Assign the source if necessary.
