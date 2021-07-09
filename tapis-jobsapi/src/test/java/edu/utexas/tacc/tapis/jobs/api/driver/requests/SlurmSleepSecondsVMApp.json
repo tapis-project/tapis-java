@@ -17,7 +17,7 @@
         {"key": "MAIN_CLASS", "value": "edu.utexas.tacc.testapps.tapis.SleepSecondsSy"}
       ]
   },
-  "fileInputDefinitions": [
+  "fileInputs": [
     {
       "sourceUrl": "tapis://tapisv3-exec/jobs/input/empty.txt",
       "targetPath": "empty.txt",
