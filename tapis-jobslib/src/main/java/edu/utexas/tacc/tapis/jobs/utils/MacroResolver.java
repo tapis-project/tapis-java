@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,6 +173,7 @@ public final class MacroResolver
     /* ---------------------------------------------------------------------------- */
     private String replaceHostEval(String text) throws TapisException
     {
+_log.debug("*********** replaceHostEval text: " + text); 
         // Do we need to evaluate a host environment variable?
         if (_execSystem == null || !text.startsWith(HOST_EVAL_PREFIX)) return text;
         
@@ -226,12 +226,13 @@ public final class MacroResolver
                   String msg = MsgUtils.getMsg("JOBS_RESOLVE_HOST_EVAL_ERROR", text, varName);
                   throw new TapisException(msg);
               }
+        result = result.strip(); // Always remove leading and trailing ws
         
         // Remove leading and trailing whitespace and retain only 
         // the last line in multi-line value.  This removes any 
         // login banner message that the host might display.
 _log.debug("*********** Before: " + result); 
-        result = getLastLine(result.trim());
+        result = getLastLine(result);
 _log.debug("*********** After: " + result); 
         
         // Cache the result.
@@ -299,7 +300,7 @@ _log.debug("*********** After: " + result);
      * 
      * Cycles are detected during any recursive call chain, but since this method
      * only replaces the first (leftmost) macro in any string, it is possible for
-     * replacement strings containing multiple macro to escape cycle detection.  It
+     * replacement strings containing multiple macros to escape cycle detection.  It
      * is the caller's responsibility to detect such cycles or, at least, limit
      * the number of times it calls this method to avoid infinite loops. 
      * 
