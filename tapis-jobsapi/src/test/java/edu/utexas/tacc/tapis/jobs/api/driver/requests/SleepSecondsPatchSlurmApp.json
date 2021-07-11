@@ -1,0 +1,35 @@
+{
+"jobAttributes": {
+  "fileInputs": [
+    {
+      "sourceUrl": "tapis://tapisv3-exec-slurm/jobs/input/empty.txt",
+      "targetPath": "empty.txt",
+      "meta": {
+          "name": "empty",
+          "description": "An empty file",
+          "required": true
+        }
+    },
+    {
+      "sourceUrl": "tapis://tapisv3-exec-slurm/jobs/input/file1.txt",
+      "targetPath": "file1.txt",
+      "meta": {
+          "name": "file1",
+          "description": "A random text file",
+          "required": true
+        }
+    },
+    {
+      "sourceUrl": "tapis://tapisv3-exec-slurm/jobs/input/file2.txt",
+      "targetPath": "file2.txt",
+      "meta": {
+          "name": "file2",
+          "description": "Another random text file",
+          "required": true
+        }
+    }
+  ],
+  "maxMinutes": 10,
+  "tags": [ "test", "sleep" ]
+  }
+}

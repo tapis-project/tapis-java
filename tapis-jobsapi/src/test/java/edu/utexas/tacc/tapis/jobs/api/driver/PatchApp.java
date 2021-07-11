@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.driver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ReqCreateApp;
@@ -47,10 +48,11 @@ public class PatchApp
         
         // Check the input.
         if (args.length < 3) {
-            System.out.println("Please supply 3 parameters in order:\n\n"
+            System.out.println("Please supply the 3 required parameters in order:\n\n"
                                + "  - the name of a request file in directory " + reqDir + "\n"
                                + "  - the application id\n"
-                               + "  - the application version");
+                               + "  - the application version\n"
+                               + "  - (optional) security profile");
             return;
         }
         
@@ -70,8 +72,19 @@ public class PatchApp
         // Convert json string into an app create request.
         ReqCreateApp appReq = TapisGsonUtils.getGson().fromJson(reqString, ReqCreateApp.class);
         
+        // Load the security profile if one is provided, otherwise, use the static values.
+        String url, jwt;
+        if (args.length > 3) {
+            Properties props = TestUtils.getTestProfile(args[3]);
+            url = props.getProperty("BASE_URL");
+            jwt = props.getProperty("USER_JWT");
+        } else {
+            url = BASE_URL;
+            jwt = userJWT;
+        }
+        
         // Create the app.
-        var appsClient = new AppsClient(BASE_URL, userJWT);
+        var appsClient = new AppsClient(url, jwt);
         appsClient.patchApp(appId, appVersion, payload);
         System.out.println("Finished processing " + reqFile.toString() + ".");
     }

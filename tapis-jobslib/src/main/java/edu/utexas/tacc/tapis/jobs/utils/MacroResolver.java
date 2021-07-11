@@ -89,6 +89,10 @@ public final class MacroResolver
      */
     public String resolve(String text) throws TapisException
     {
+        // Tracing.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("TAPIS_JOBS_RESOLVING_MACRO_EXPR", text, _execSystem.getId()));
+        
         // Resolve the host function and then all macros.
         return replaceAllMacros(replaceHostEval(text));
     }
@@ -173,7 +177,6 @@ public final class MacroResolver
     /* ---------------------------------------------------------------------------- */
     private String replaceHostEval(String text) throws TapisException
     {
-_log.debug("*********** replaceHostEval text: " + text); 
         // Do we need to evaluate a host environment variable?
         if (_execSystem == null || !text.startsWith(HOST_EVAL_PREFIX)) return text;
         
@@ -231,9 +234,7 @@ _log.debug("*********** replaceHostEval text: " + text);
         // Remove leading and trailing whitespace and retain only 
         // the last line in multi-line value.  This removes any 
         // login banner message that the host might display.
-_log.debug("*********** Before: " + result); 
         result = getLastLine(result);
-_log.debug("*********** After: " + result); 
         
         // Cache the result.
         _hostVariables.put(varName, result);
@@ -360,6 +361,12 @@ _log.debug("*********** After: " + result);
     /* ---------------------------------------------------------------------------- */
     /* getLastLine:                                                                 */
     /* ---------------------------------------------------------------------------- */
+    /** Get all characters after the last newline character is a string.  The string
+     * must be non-null and must already be trimmed of leading and trailing whitespace. 
+     * 
+     * @param s the remote result string
+     * @return the last line of the string
+     */
     private String getLastLine(String s)
     {
         // The input is a non-null, trimmed string so
