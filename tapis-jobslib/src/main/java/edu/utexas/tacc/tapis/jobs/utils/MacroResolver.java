@@ -90,8 +90,10 @@ public final class MacroResolver
     public String resolve(String text) throws TapisException
     {
         // Tracing.
-        if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("TAPIS_JOBS_RESOLVING_MACRO_EXPR", text, _execSystem.getId()));
+        if (_log.isDebugEnabled()) {
+            var id = _execSystem == null ? "null" : _execSystem.getId();
+            _log.debug(MsgUtils.getMsg("TAPIS_JOBS_RESOLVING_MACRO_EXPR", text, id));
+        }
         
         // Resolve the host function and then all macros.
         return replaceAllMacros(replaceHostEval(text));
