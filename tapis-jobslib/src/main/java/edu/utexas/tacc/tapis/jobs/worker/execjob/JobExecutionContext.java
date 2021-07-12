@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class JobExecutionContext
@@ -361,6 +362,24 @@ public final class JobExecutionContext
         // Record that we have connected to the exec system at least once.
         _execSysSSHFirstAttempt = false;
         return _execSysTapisSSH;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* usesEnvFile:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    public boolean usesEnvFile()
+    {
+        // Get the execution system safely.
+        TapisSystem execSys;
+        try {execSys = getExecutionSystem();} catch (Exception e) {return true;}
+        
+        // Detect the runtimes that don't use a separate environment variable file.
+        if (execSys.getJobIsBatch() && 
+            execSys.getBatchScheduler() == SchedulerTypeEnum.SLURM)
+            return false;
+        
+        // All others use an environment variable file.
+        return true;
     }
     
     /* ---------------------------------------------------------------------------- */

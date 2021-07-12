@@ -561,10 +561,12 @@ public final class JobFileManager
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
         tasks.addElementsItem(task);
-        task = new TransferTaskRequestElement().
+        if (_jobCtx.usesEnvFile()) {
+            task = new TransferTaskRequestElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
-        tasks.addElementsItem(task);
+            tasks.addElementsItem(task);
+        }
     }
     
     /* ---------------------------------------------------------------------- */
