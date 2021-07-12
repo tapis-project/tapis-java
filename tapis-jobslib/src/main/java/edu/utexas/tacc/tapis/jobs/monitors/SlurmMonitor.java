@@ -120,6 +120,10 @@ public final class SlurmMonitor
         
         // Substitute the actual remote id.
         cmd = cmd.replace(PLACEHOLDER, _job.getRemoteJobId());
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_MONITOR_COMMAND", _job.getUuid(), 
+                                       _jobCtx.getExecutionSystem().getHost(), 
+                                       _jobCtx.getExecutionSystem().getPort(), cmd));
         
         // Query the container.
         String result = null;
@@ -254,14 +258,18 @@ public final class SlurmMonitor
            var matcher = _spaceDelimited.matcher(trimmedResponse);
            var matches = matcher.matches();
            if (!matches) {
-               String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
-               _log.error(msg);
+               if (_log.isDebugEnabled()) {
+                   String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", trimmedResponse);
+                   _log.debug(msg);
+               }
                return EMPTY_PARSED_RESP;
            }
            var groupCount = matcher.groupCount();
            if (groupCount != 3) {
-               String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
-               _log.error(msg);
+               if (_log.isDebugEnabled()) {
+                   String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", trimmedResponse);
+                   _log.debug(msg);
+               }
                return EMPTY_PARSED_RESP;
            }
           
@@ -278,8 +286,10 @@ public final class SlurmMonitor
           trimmedResponse = removeBannerFromInactive(trimmedResponse);
           var parts = _pipeSplitter.split(trimmedResponse);
           if (parts.length < 3) {
-              String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
-              _log.error(msg);
+              if (_log.isDebugEnabled()) {
+                  String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", trimmedResponse);
+                  _log.debug(msg);
+              }
               return EMPTY_PARSED_RESP;
           }
         
