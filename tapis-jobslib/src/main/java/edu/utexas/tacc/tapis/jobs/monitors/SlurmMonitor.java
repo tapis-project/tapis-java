@@ -11,6 +11,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobMonitorResponseException;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.SlurmStatusType;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -249,6 +250,7 @@ public final class SlurmMonitor
         if (active) {
            // ----------------- Active Job -------------------
            // Parse the active command's response. 
+           trimmedResponse = JobUtils.getLastLine(trimmedResponse);
            var matcher = _spaceDelimited.matcher(trimmedResponse);
            var matches = matcher.matches();
            if (!matches) {
@@ -273,6 +275,7 @@ public final class SlurmMonitor
           //
           //    65|FAILED|127:0|\n65.batch|FAILED|127:0|
           //
+          trimmedResponse = removeBannerFromInactive(trimmedResponse);
           var parts = _pipeSplitter.split(trimmedResponse);
           if (parts.length < 3) {
               String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", schedulerResponse);
@@ -304,6 +307,25 @@ public final class SlurmMonitor
                                               parsedResponse.getStatus(), 
                                               rc); 
         _job.getJobCtx().setFinalMessage(finalMessage);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* removeBannerFromInactive:                                              */
+    /* ---------------------------------------------------------------------- */
+    /** Remove any gorp that might appear before the actual command response.
+     * We can't use JobUtils.getLastLine(response) here because the response 
+     * might container more than one line.  Instead we look for the first place
+     * the job id appears with a pipe character immediately following it. 
+     * 
+     * @param response the raw response from an inactive monitor query
+     * @return the possibly decluttered response
+     */
+    private String removeBannerFromInactive(String response)
+    {
+        String start = _job.getRemoteJobId() + "|";
+        int index = response.indexOf(start);
+        if (index < 1) return response;
+          else return response.substring(index); 
     }
 
     /* ********************************************************************** */
