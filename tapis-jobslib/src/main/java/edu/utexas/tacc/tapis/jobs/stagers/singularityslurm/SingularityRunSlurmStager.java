@@ -27,9 +27,9 @@ public final class SingularityRunSlurmStager
     // Temporary hardcoded TACC module load command.
     private static final String TACC_SINGULARITY_MODULE_LOAD = "module load tacc-singularity";
     
-    // Create the pattern for a list of one or more comma or semi-colon separated 
-    // names with no embedded whitespace.
-    private static final Pattern _namePattern = Pattern.compile("[,;\\s]");
+    // Create the pattern for a list of one or more comma or semi-colon separated.
+    // Embedded whitespace is allowed.
+    private static final Pattern _namePattern = Pattern.compile("[,;]");
     
     /* ********************************************************************** */
     /*                                Fields                                  */

@@ -595,7 +595,8 @@ public final class SingularityRunSlurmCmd
 
     public void setJobName(String jobName) {
         this.jobName = jobName;
-        _directives.put("--job-name", jobName);
+        // Local (i.e., TACC) policies may not allow colons in name.
+        _directives.put("--job-name", jobName.replace(':', '-'));
     }
 
     public String getKillOnInvalidDep() {
