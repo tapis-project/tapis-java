@@ -123,4 +123,26 @@ public final class JobUtils
         // Never null.
         return recoveryException;
     }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getLastLine:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Get all characters after the last newline character is a string.  The string
+     * must be non-null and must already be trimmed of leading and trailing whitespace.
+     * This method is useful in stripping the banner information from the output of
+     * remote commands. 
+     * 
+     * @param s the remote result string
+     * @return the last line of the string
+     */
+    public static String getLastLine(String s)
+    {
+        // The input is a non-null, trimmed string so
+        // a non-negative index must be at least one
+        // character from the end of the string.
+        int index = s.lastIndexOf('\n');
+        if (index < 0) return s;
+        return s.substring(index + 1);
+    }
+
 }

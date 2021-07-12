@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -125,6 +126,9 @@ public final class SingularityRunSlurmLauncher
                                          _job.getUuid(), cmd);
             throw new JobException(msg);
         }
+        
+        // Strip any banner information from the remote result.
+        output = JobUtils.getLastLine(output.strip());
         
         // Look for the success message
         Matcher m = _resultPattern.matcher(output);

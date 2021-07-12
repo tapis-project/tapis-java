@@ -236,7 +236,7 @@ public final class MacroResolver
         // Remove leading and trailing whitespace and retain only 
         // the last line in multi-line value.  This removes any 
         // login banner message that the host might display.
-        result = getLastLine(result);
+        result = JobUtils.getLastLine(result);
         
         // Cache the result.
         _hostVariables.put(varName, result);
@@ -358,24 +358,5 @@ public final class MacroResolver
             
         // Substitute the value in for the macro.
         return prefix + mvalue + suffix;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* getLastLine:                                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /** Get all characters after the last newline character is a string.  The string
-     * must be non-null and must already be trimmed of leading and trailing whitespace. 
-     * 
-     * @param s the remote result string
-     * @return the last line of the string
-     */
-    private String getLastLine(String s)
-    {
-        // The input is a non-null, trimmed string so
-        // a non-negative index must be at least one
-        // character from the end of the string.
-        int index = s.lastIndexOf('\n');
-        if (index < 0) return s;
-        return s.substring(index + 1);
     }
 }
