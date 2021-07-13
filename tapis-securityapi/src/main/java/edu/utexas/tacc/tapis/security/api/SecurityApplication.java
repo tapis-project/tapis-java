@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.security.api;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import javax.ws.rs.ApplicationPath;
@@ -89,10 +90,12 @@ public class SecurityApplication
                 // We don't depend on the logging subsystem.
                 System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi RuntimeParameters [ABORTING] ****");
                 e.printStackTrace();
-                throw e;
+                System.exit(1);
             }
         System.out.println("**** SUCCESS:  RuntimeParameters read ****");
-        int errors = 0; // cumulative error count
+        
+        // Initialize local error list.
+        var errors = new ArrayList<String>(); // cumulative error count
         
         // ---------------- Initialize Security Filter --------------
         // Required to process any requests.
@@ -106,8 +109,7 @@ public class SecurityApplication
         try {VaultManager.getInstance(parms); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
-            	errors++;
-                System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi VaultManager ****");
+                errors.add("**** FAILURE TO INITIALIZE: tapis-securityapi VaultManager ****\n" + e.getMessage());
                 e.printStackTrace();
             }
         if (success) System.out.println("**** SUCCESS:  VaultManager initialized ****");
@@ -116,8 +118,7 @@ public class SecurityApplication
         success = false;
         try {RoleImpl.getInstance().queryDB("sk_role"); success = true;}
          catch (Exception e) {
-             errors++;
-             System.out.println("**** FAILURE TO INITIALIZE: tapis-securitysapi Database ****");
+             errors.add("**** FAILURE TO INITIALIZE: tapis-securitysapi Database ****\n" + e.getMessage());
              e.printStackTrace();
          }
         if (success) System.out.println("**** SUCCESS:  PostgreSQL Database initialized ****");
@@ -136,8 +137,7 @@ public class SecurityApplication
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
             // We don't depend on the logging subsystem.
-        	errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager ****");
+            errors.add("**** FAILURE TO INITIALIZE: tapis-securityapi TenantManager ****\n" + e.getMessage());
             e.printStackTrace();
         }
         if (tenantMap != null) {
@@ -154,15 +154,21 @@ public class SecurityApplication
         try {TenantInit.initializeTenants(tenantMap); success = true;}
             catch (Exception e) {
                 // We don't depend on the logging subsystem.
-            	errors++;
-                System.out.println("**** FAILURE TO INITIALIZE: tapis-securityapi TenantInit ****");
+                errors.add("**** FAILURE TO INITIALIZE: tapis-securityapi TenantInit ****\n" + e.getMessage());
                 e.printStackTrace();
             }
         if (success) System.out.println("**** SUCCESS:  Tenant admins initialized ****");
         
         // We're done.
         System.out.println("\n**************************************************");
-        System.out.println("**** tapis-securityapi Initialized [errors=" + errors + "] ****");
+        System.out.println("**** tapis-securityapi Initialized [errors=" + errors.size() + "] ****");
         System.out.println("**************************************************\n");
-    }
+
+        // This is an effective but somewhat crude way to abort.
+        if (!errors.isEmpty()) {
+            System.out.println("\n");
+            for (var s : errors) System.out.println(s);
+            System.exit(1);
+        }
+}
 }

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import javax.ws.rs.ApplicationPath;
@@ -85,10 +86,12 @@ extends ResourceConfig
                // We don't depend on the logging subsystem.
                System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi RuntimeParameters [ABORTING] ****");
                e.printStackTrace();
-               throw e;
+               System.exit(1);
            }
        System.out.println("**** SUCCESS:  RuntimeParameters read ****");
-       int errors = 0; // cumulative error count
+       
+       // Initialize local error list.
+       var errors = new ArrayList<String>(); // cumulative error count
        
        // Enable more detailed SSH logging if the node name is not null.
        SSHConnection.setLocalNodeName(parms.getLocalNodeName());
@@ -113,8 +116,7 @@ extends ResourceConfig
            tenantMap = TenantManager.getInstance(url).getTenants();
        } catch (Exception e) {
            // We don't depend on the logging subsystem.
-    	   errors++;
-           System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager ****");
+           errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi TenantManager ****\n" + e.getMessage());
            e.printStackTrace();
        }
        if (tenantMap != null) {
@@ -132,8 +134,7 @@ extends ResourceConfig
     	    	                          parms.getServicePassword());
     	}
        	catch (Exception e) {
-       		errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceContext ****");
+            errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi ServiceContext ****\n" + e.getMessage());
             e.printStackTrace();
        	}
        if (serviceCxt.getServiceJWT() != null) {
@@ -150,8 +151,7 @@ extends ResourceConfig
        // ----- Database Initialization
        try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
 	    catch (Exception e) {
-       		errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****");
+            errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****\n" + e.getMessage());
 	    	e.printStackTrace();
 	    }
        
@@ -163,15 +163,21 @@ extends ResourceConfig
        // but there's room for improvement.
        try {initializeJobQueueManager();} // called for side effect
         catch (Exception e) {
-            errors++;
-            System.out.println("**** FAILURE TO INITIALIZE: tapis-jobsapi JobQueueManager ****");
+            errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi JobQueueManager ****\n" + e.getMessage());
             e.printStackTrace();
         }
         
        // We're done.
        System.out.println("\n**********************************************");
-       System.out.println("**** tapis-jobsapi Initialized [errors=" + errors + "] ****");
+       System.out.println("**** tapis-jobsapi Initialized [errors=" + errors.size() + "] ****");
        System.out.println("**********************************************\n");
+       
+       // This is an effective but somewhat crude way to abort.
+       if (!errors.isEmpty()) {
+           System.out.println("\n");
+           for (var s : errors) System.out.println(s);
+           System.exit(1);
+       }
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization

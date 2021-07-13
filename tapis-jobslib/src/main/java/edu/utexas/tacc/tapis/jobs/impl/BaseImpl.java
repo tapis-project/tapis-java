@@ -23,7 +23,7 @@ abstract class BaseImpl
     /* **************************************************************************** */
     // We share all dao's among all instances of this class.
     private static JobsDao           _jobsDao;
-    private static JobEventsDao       _jobEventsDao;
+    private static JobEventsDao      _jobEventsDao;
     
     /* **************************************************************************** */
     /*                             Protected Methods                                */
