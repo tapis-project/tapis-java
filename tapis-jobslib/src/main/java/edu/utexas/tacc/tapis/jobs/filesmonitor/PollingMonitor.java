@@ -109,7 +109,8 @@ public final class PollingMonitor
             
             // Unsuccessful termination.
             if (status == StatusEnum.FAILED || status == StatusEnum.CANCELLED) {
-                String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, status);
+                String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
+                                             status, task.getErrorMessage());
                 throw new JobException(msg);
             }
             
