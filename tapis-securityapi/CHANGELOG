@@ -1,0 +1,12 @@
+Tapis Security Kernel Web Application
+=====================================
+
+Version 1.0.0
+
+New Features
+------------
+1. Authorization engine based on an extension of Apache Shiro semantics.
+2. Authorization API for roles, permissions and users.
+3. Secret support using Hashicorp Vault backend.
+4. Secrets API with custom handling of system, database credentials, JWT signing keys
+   service password and user secret types.

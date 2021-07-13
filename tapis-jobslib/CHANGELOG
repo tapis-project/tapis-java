@@ -1,0 +1,8 @@
+Tapis Jobs Service Library
+==========================
+
+Version 1.0.0
+
+New Features
+------------
+1. Backend implementation of Jobs Service database, queuing, networking and job lifecycle execution. 

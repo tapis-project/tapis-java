@@ -1,0 +1,8 @@
+Tapis Security Kernel Library
+=============================
+
+Version 1.0.0
+
+New Features
+------------
+1. Backend implementation of Security Kernel authorization database and secrets vault. 

@@ -1,0 +1,8 @@
+Tapis Jobs Service Database Schema Support
+==========================================
+
+Version 1.0.0
+
+New Features
+------------
+1. Job Service database schema definition and Flyway-based migration utilities. 
