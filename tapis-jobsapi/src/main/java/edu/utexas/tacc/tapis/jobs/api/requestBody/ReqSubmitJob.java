@@ -79,6 +79,7 @@ public class ReqSubmitJob
 	    else consolidatedConstraints = null;
 	}
 	
+	@Schema(required = true)
 	public String getName() {
 		return name;
 	}
@@ -111,6 +112,7 @@ public class ReqSubmitJob
 		this.description = description;
 	}
 
+	@Schema(required = true)
 	public String getAppId() {
 		return appId;
 	}
@@ -119,6 +121,7 @@ public class ReqSubmitJob
 		this.appId = appId;
 	}
 
+	@Schema(required = true)
 	public String getAppVersion() {
 		return appVersion;
 	}
