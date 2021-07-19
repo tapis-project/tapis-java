@@ -182,7 +182,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	       }
-	       if(jobList.isEmpty()) {
+	       
+	      
+	       if(jobList == null) {
                String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboUser(), threadContext.getOboTenantId());
                RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
                return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
