@@ -17,7 +17,10 @@ import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
+import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
@@ -27,6 +30,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+
 
 public final class JobsImpl 
  extends BaseImpl
@@ -483,6 +488,54 @@ public final class JobsImpl
               
         // Could be null if not found.
         return eventsSummary;
+    }
+    
+    
+    /* ---------------------------------------------------------------------------- */
+    /* doCancelJob:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Perform the cancellation operation and return whether we succeeded or not.
+     * 
+     * @param jobUuid the job to be cancelled
+     * @param prettyPrint whether to pretty print the response
+     * @param threadContext the previously retrieved thread context
+     * @return true for success or false if an error was encountered 
+     */
+    public boolean doCancelJob(String jobUuid, TapisThreadContext threadContext)
+      {
+        // Initialized to success.
+        boolean result = true;
+        
+        try {
+            // get a JobQueueManager instance and prep a JobCancelMsg
+            JobQueueManager queueManager = JobQueueManager.getInstance();
+          
+            // set correlation id and sender
+            JobCancelMsg jobCancelMsg = new JobCancelMsg();
+            jobCancelMsg.jobuuid = jobUuid;
+            jobCancelMsg.correlationId = jobUuid;
+            jobCancelMsg.senderId = this.getClass().getSimpleName() + "-cancelCmdStatus";
+          
+            // post a cmd to our job to cancel
+            queueManager.postCmdToJob(jobCancelMsg, jobUuid);
+            
+            //TODO How do we know if a job is in recovery queue?
+            JobCancelRecoverMsg jobCancelRecoverMsg = new JobCancelRecoverMsg();
+            jobCancelRecoverMsg.jobUuid = jobUuid;
+            jobCancelRecoverMsg.tenantId = threadContext.getOboTenantId();
+            jobCancelRecoverMsg.setSenderId(this.getClass().getSimpleName() + "-cancelCmdStatus");
+        
+            // post a cmd to a job that is in recovery
+            queueManager.postRecoveryQueue(jobCancelRecoverMsg);
+
+          } catch (JobException e) {
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid);
+            _log.error(msg, e);
+            result = false; // failure 
+          }
+          
+        // Return result code.
+        return result;
     }
     
     /* ---------------------------------------------------------------------- */

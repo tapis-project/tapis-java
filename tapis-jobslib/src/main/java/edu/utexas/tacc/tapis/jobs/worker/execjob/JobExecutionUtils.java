@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
+import edu.utexas.tacc.tapis.jobs.cancellers.JobCanceler;
+import edu.utexas.tacc.tapis.jobs.cancellers.JobCancelerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.killers.JobKiller;
 import edu.utexas.tacc.tapis.jobs.killers.JobKillerFactory;
@@ -113,9 +115,12 @@ public final class JobExecutionUtils
         // Best effort to kill the job on cancel.
         if (newStatus.isTerminal())
             try {
+            	JobCanceler canceler = JobCancelerFactory.getInstance(jobCtx);
+            	canceler.cancel();
                 // We never know if the attack worked.
-                JobKiller killer = JobKillerFactory.getInstance(jobCtx);
+                /*JobKiller killer = JobKillerFactory.getInstance(jobCtx);
                 killer.attack();
+                */
             } catch (Exception e) {
                 _log.warn(MsgUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
             }
