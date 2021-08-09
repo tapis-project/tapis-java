@@ -57,6 +57,12 @@ public final class JobExecutionUtils
     // Stop the detached singularity instance.
     public static final String SINGULARITY_STOP = "singularity instance stop ";
     
+    // Kill the process started using singularity run
+    public static final String SINGULARITY_RUN_KILL = "kill -n 9 ";
+    
+    // Cancel Slurm Job
+    public static final String SLURM_CANCEL = "scancel ";
+    
     // Get select information about all processes running on the system.
     public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 

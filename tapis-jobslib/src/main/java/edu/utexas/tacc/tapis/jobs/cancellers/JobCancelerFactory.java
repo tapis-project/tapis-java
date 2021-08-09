@@ -1,13 +1,20 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.launchers.JobLauncher;
+import edu.utexas.tacc.tapis.jobs.launchers.SingularityRunLauncher;
+import edu.utexas.tacc.tapis.jobs.launchers.SingularityStartLauncher;
 import edu.utexas.tacc.tapis.jobs.monitors.DockerNativeMonitor;
 import edu.utexas.tacc.tapis.jobs.monitors.JobMonitor;
+import edu.utexas.tacc.tapis.jobs.monitors.SlurmMonitor;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 
 public class JobCancelerFactory {
 
@@ -36,7 +43,7 @@ public class JobCancelerFactory {
        if (appType == AppTypeEnum.FORK) {
     	   canceler = switch (runtime) {
                 case DOCKER      -> new DockerNativeCanceler(jobCtx);
-                //case SINGULARITY -> getSingularityOption(jobCtx, policy, app);
+                case SINGULARITY -> getSingularityOption(jobCtx, app);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobCancelerFactory");
@@ -45,7 +52,7 @@ public class JobCancelerFactory {
             };
         }
         // ------------------------- BATCH ------------------------
-       /* else if (appType == AppTypeEnum.BATCH) {
+        else if (appType == AppTypeEnum.BATCH) {
             // Get the scheduler under which containers were launched.
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
@@ -58,9 +65,9 @@ public class JobCancelerFactory {
             }
             
             // Get the canceler for each supported runtime/scheduler combination.
-            monitor = switch (runtime) {
-                //case DOCKER      -> getBatchDockerCanceler(jobCtx, scheduler);
-                //case SINGULARITY -> getBatchSingularityCanceler(jobCtx, policy, scheduler);
+            canceler = switch (runtime) {
+                case DOCKER      -> getBatchDockerCanceler(jobCtx, scheduler);
+                case SINGULARITY -> getBatchSingularityCanceler(jobCtx, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobCancelerFactory");
@@ -71,9 +78,67 @@ public class JobCancelerFactory {
         else {
             String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobCancelerFactory");
             throw new JobException(msg);
-        }*/
+        }
 		return canceler;
     	
+    }
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityOption:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static JobCanceler getSingularityOption(JobExecutionContext jobCtx,
+                                                    TapisApp app)
+     throws TapisException
+    {
+        // We are only interested in the singularity options.  These have
+        // been validated in JobExecStageFactory, so no need to repeat here.
+        var opts = app.getRuntimeOptions();
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        
+        // Create the specified canceler.
+        if (start) return new SingularityStartCanceler(jobCtx);
+          else return new SingularityRunCanceler(jobCtx);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getBatchDockerMonitor:                                                 */
+    /* ---------------------------------------------------------------------- */
+    private static JobCanceler getBatchDockerCanceler(JobExecutionContext jobCtx,
+                                                      SchedulerTypeEnum scheduler) 
+     throws TapisException
+    {
+        // Get the scheduler's docker monitor. 
+    	JobCanceler canceler = switch (scheduler) {
+            case SLURM -> null; // not implemented
+            
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                                             scheduler.name(), "JobCancelerFactory");
+                throw new JobException(msg);
+            }
+        };
+        
+        return canceler;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchSingularityMonitor:                                            */
+    /* ---------------------------------------------------------------------- */
+    private static JobCanceler getBatchSingularityCanceler(JobExecutionContext jobCtx,
+                                                           SchedulerTypeEnum scheduler) 
+     throws TapisException
+    {
+        // Get the scheduler's slurm canceler. 
+        JobCanceler canceler = switch (scheduler) {
+            case SLURM -> new SlurmCanceler(jobCtx);
+        
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                                             scheduler.name(), "JobMonitorFactory");
+                throw new JobException(msg);
+            }
+        };
+        
+        return canceler;
     }
 
 }

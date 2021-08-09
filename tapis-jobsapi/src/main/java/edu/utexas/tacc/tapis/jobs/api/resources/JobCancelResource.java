@@ -204,11 +204,11 @@ public class JobCancelResource extends AbstractResource {
        
        //------------------------- Cancel the Job  -----------------------------
        // initiate the cancellation.
-       /*if (!jobsImpl.doCancelJob(jobUuid, threadContext))
+       if (!jobsImpl.doCancelJob(jobUuid, threadContext))
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid),
                        prettyPrint)).build();
-                       */
+                       
        // ---------------------------- Success -------------------------------
        // Success.
        //RespSubmitJob r = new RespSubmitJob(job);
