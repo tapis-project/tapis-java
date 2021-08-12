@@ -75,7 +75,7 @@ public final class SubmitContext
     private final Job                _job;
     
     // The raw sources of job information.
-    private TapisApp     _app;
+    private TapisApp    _app;
     private TapisSystem _execSystem;
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
