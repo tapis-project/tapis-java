@@ -36,7 +36,7 @@ public class DockerNativeCanceler extends AbstractJobCanceler{
     /*                           Protected Methods                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* launch:                                                                */
+    /* cancel:                                                                */
     /* ---------------------------------------------------------------------- */
     @Override
 	public void cancel() throws JobException, TapisException {

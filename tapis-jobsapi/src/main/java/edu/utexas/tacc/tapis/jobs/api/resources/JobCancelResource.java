@@ -2,9 +2,7 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -23,14 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
-import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
-import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
-import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -128,6 +121,9 @@ public class JobCancelResource extends AbstractResource {
                   @ApiResponse(responseCode = "404", description = "Job not found.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
+                  @ApiResponse(responseCode = "409", description = "Job is already in Terminal State (CANCELLED, FINISHED or FAILED). Job state conflicts with the cancel request. No action taken",
+                  content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
@@ -211,7 +207,6 @@ public class JobCancelResource extends AbstractResource {
                        
        // ---------------------------- Success -------------------------------
        // Success.
-       //RespSubmitJob r = new RespSubmitJob(job);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid), prettyPrint)).build();
      }

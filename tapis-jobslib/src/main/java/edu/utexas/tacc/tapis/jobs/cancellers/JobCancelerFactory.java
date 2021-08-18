@@ -4,13 +4,6 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.launchers.JobLauncher;
-import edu.utexas.tacc.tapis.jobs.launchers.SingularityRunLauncher;
-import edu.utexas.tacc.tapis.jobs.launchers.SingularityStartLauncher;
-import edu.utexas.tacc.tapis.jobs.monitors.DockerNativeMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.JobMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.SlurmMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -21,12 +14,12 @@ public class JobCancelerFactory {
 	/* ---------------------------------------------------------------------- */
     /* getInstance:                                                           */
     /* ---------------------------------------------------------------------- */
-    /** Create a launcher based on the type of job and its execution environment.
-     * This method either returns the appropriate luuncher or throws an exception.
+    /** Create a Canceler based on the type of job and its execution environment.
+     * This method either returns the appropriate Canceler or throws an exception.
      * 
      * @param jobCtx job context
-     * @return the launcher designated for the current job type and environment
-     * @throws TapisException when no launcher is found or a network error occurs
+     * @return the Canceler designated for the current job type and environment
+     * @throws TapisException when no canceler is found or a network error occurs
      */
     public static JobCanceler getInstance(JobExecutionContext jobCtx) 
      throws TapisException 
@@ -57,7 +50,7 @@ public class JobCancelerFactory {
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
             
-            // Doublecheck that a scheduler is assigned.
+            // Double check that a scheduler is assigned.
             if (scheduler == null) {
                 String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
                                               jobCtx.getJob().getUuid());
@@ -100,13 +93,13 @@ public class JobCancelerFactory {
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getBatchDockerMonitor:                                                 */
+    /* getBatchDockerCanceler:                                                 */
     /* ---------------------------------------------------------------------- */
     private static JobCanceler getBatchDockerCanceler(JobExecutionContext jobCtx,
                                                       SchedulerTypeEnum scheduler) 
      throws TapisException
     {
-        // Get the scheduler's docker monitor. 
+        // Get the scheduler's docker canceler. 
     	JobCanceler canceler = switch (scheduler) {
             case SLURM -> null; // not implemented
             
@@ -121,7 +114,7 @@ public class JobCancelerFactory {
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getBatchSingularityMonitor:                                            */
+    /* getBatchSingularityCanceler:                                            */
     /* ---------------------------------------------------------------------- */
     private static JobCanceler getBatchSingularityCanceler(JobExecutionContext jobCtx,
                                                            SchedulerTypeEnum scheduler) 
@@ -133,7 +126,7 @@ public class JobCancelerFactory {
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
-                                             scheduler.name(), "JobMonitorFactory");
+                                             scheduler.name(), "JobCancelerFactory");
                 throw new JobException(msg);
             }
         };

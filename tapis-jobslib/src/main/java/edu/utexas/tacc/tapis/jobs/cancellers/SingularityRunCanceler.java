@@ -15,7 +15,7 @@ public class SingularityRunCanceler extends AbstractJobCanceler{
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(SingularityStartCanceler.class);
+    private static final Logger _log = LoggerFactory.getLogger(SingularityRunCanceler.class);
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -25,7 +25,7 @@ public class SingularityRunCanceler extends AbstractJobCanceler{
     /* ---------------------------------------------------------------------- */
     public SingularityRunCanceler(JobExecutionContext jobCtx)     
     {
-        // Create and populate the docker command.
+        
         super(jobCtx);
     }
 

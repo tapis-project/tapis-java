@@ -26,7 +26,7 @@ public class SingularityStartCanceler extends AbstractJobCanceler{
     /* ---------------------------------------------------------------------- */
     public SingularityStartCanceler(JobExecutionContext jobCtx)     
     {
-        // Create and populate the docker command.
+        
         super(jobCtx);
     }
 
