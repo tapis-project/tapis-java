@@ -648,7 +648,7 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /** Check the assigned directory pathnames for prohibited path traversal 
      * characters
-     * 
+     * @throws TapisImplException
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
