@@ -21,9 +21,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobCancelDisplay;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -108,7 +110,7 @@ public class JobCancelResource extends AbstractResource {
                  {
                   @ApiResponse(responseCode = "200", description = "Job Cancellation Initiated.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJob.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -207,8 +209,13 @@ public class JobCancelResource extends AbstractResource {
                        
        // ---------------------------- Success -------------------------------
        // Success.
+       JobCancelDisplay cancelMsg = new JobCancelDisplay();
+       String msg = MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid);
+       cancelMsg.setMessage(msg);
+       
+       RespCancelJob r = new RespCancelJob(cancelMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid), prettyPrint)).build();
+               MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED_DETAILS", jobUuid), prettyPrint,r)).build();
      }
      
      
