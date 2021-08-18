@@ -44,6 +44,7 @@ import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
@@ -586,9 +587,10 @@ public final class SubmitContext
      *  - execSystemExecDir
      *  - execSystemOutputDir
      *  - archiveSystemDir
+     * @throws TapisImplException 
      * 
      */
-    private void resolveDirectoryPathNames()
+    private void resolveDirectoryPathNames() throws TapisImplException
     {
         // Are we using a DTN?
         final boolean useDTN = _dtnSystem != null;
@@ -637,6 +639,39 @@ public final class SubmitContext
                 // When the archive system is different from the exec system,
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
+        
+        sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* sanitizeDirectoryPathnames:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Check the assigned directory pathnames for prohibited path traversal 
+     * characters
+     * 
+     */
+    private void sanitizeDirectoryPathnames() throws TapisImplException
+    {
+    	// --------------------- Sanitizing ExecSystemInputDir -----------------
+        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemInputDir())){
+        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // --------------------- Sanitizing ExecSystemExecDir ------------------
+        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemExecDir())){
+        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // --------------------- Sanitizing ExecSystemOutputDir ----------------
+        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemOutputDir())){
+        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // --------------------- Sanitizing ArchiveSystemDir -------------------
+        if(PathSanitizer.hasParentTraversal(_submitReq.getArchiveSystemDir())){
+        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
