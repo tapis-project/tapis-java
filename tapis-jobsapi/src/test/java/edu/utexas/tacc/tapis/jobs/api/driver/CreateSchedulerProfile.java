@@ -62,7 +62,7 @@ public class CreateSchedulerProfile
         System.out.println("Processing " + reqFile.toString() + ".");
         // System.out.println(reqString);
         
-        // Convert json string into an app create request.
+        // Convert json string into a profile create request.
         var gsonBuilder = TapisGsonUtils.getGsonBuilder(false);
         Type HIDDEN_OPTION = new TypeToken<SchedulerHiddenOptionEnum>(){}.getType();
         gsonBuilder.registerTypeAdapter(HIDDEN_OPTION, new HiddenOptionAdapter());
@@ -72,7 +72,7 @@ public class CreateSchedulerProfile
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[1]);
         
-        // Create the app.
+        // Create the profile.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
         sysClient.createSchedulerProfile(profileReq);
         System.out.println("Finished processing " + reqFile.toString() + ".");
