@@ -31,7 +31,7 @@ public class TransferSecretsParms
             usage = "target Vault URL (including port)")
     public String turl;
     
-    @Option(name = "-dry", required = true, aliases = {"--dryrun"}, 
+    @Option(name = "-dry", required = false, aliases = {"--dryrun"}, 
             usage = "read source secrets but don't write to target")
     public boolean dryRun = false;
     

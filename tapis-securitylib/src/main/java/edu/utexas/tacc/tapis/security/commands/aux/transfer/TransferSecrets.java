@@ -249,9 +249,11 @@ public class TransferSecrets
         // Make the request.
         HttpRequest request;
         HttpResponse<String> resp;
+        URI uri = null;
         try {
+            uri = new URI(_parms.turl + "v1/secret/data/" + secretPath);
             request = HttpRequest.newBuilder()
-                .uri(new URI(_parms.turl + "v1/secret/data/" + secretPath))
+                .uri(uri)
                 .headers("X-Vault-Token", _parms.ttok, "Accept", "application/json", 
                          "Content-Type", "application/json")
                 .POST(BodyPublishers.ofString(secretText))
@@ -276,10 +278,13 @@ public class TransferSecrets
         int rc = resp.statusCode();
         if (rc >= 300) {
             // Looks like an error.
-            recordFailedWrite(_parms.turl + "v1/secret/data/" + secretPath);
+            recordFailedWrite(uri.toString());
             System.out.println("Received http status code " + rc + " on WRITE request to " + 
                                "target vault: " + request.uri().toString() + ".");
         } 
+        
+        // Update the success list.
+        _successWrites.add(uri.toString());
     }
     
     /* ---------------------------------------------------------------------- */
