@@ -42,6 +42,10 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
+import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
+import edu.utexas.tacc.tapis.search.parser.ASTLeaf;
+import edu.utexas.tacc.tapis.search.parser.ASTNode;
+import edu.utexas.tacc.tapis.search.parser.ASTUnaryExpression;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -440,9 +444,101 @@ public final class JobsDao
 	    return count;
     }
 	
+	
+	/* ********************************************************************** */
+	/* getJobsSearchListCountByUsername:                                      */
+	/* ********************************************************************** */
+	@SuppressWarnings("rawtypes")
+	public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, List<OrderBy> orderByList) 
+			  throws TapisException
+	{
+		int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	   
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchAST != null) {
+      		Condition astCondition = createConditionFromAst(searchAST);
+            if (astCondition != null) whereCondition = whereCondition.and(astCondition);
+            
+      	}
+        /*if(searchList != null) {
+      		whereCondition = addSearchListToWhere(whereCondition, searchList);
+      	}*/
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+      		
+        
+	 
+      	// ------------------------- Build and execute SQL ----------------------------
+      	int count = 0;
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including orderByAttrList, startAfter
+	          count = db.selectCount().from(Tables.JOBS).where(whereCondition).fetchOne(0,int.class);
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	    return count;
+    }
 	/* ---------------------------------------------------------------------- */
 	/* getJobsSearchByUsername:                                               */
-	/*  summary attributes                                                                       */
+	/*  summary attributes                                                    */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
@@ -579,6 +675,145 @@ public final class JobsDao
 	}
 	
 	/* ---------------------------------------------------------------------- */
+	/* getJobSearchListByUsernameUsingSqlSearchStr:                           */
+	/* summary attributes  post end-point                                              */
+	/* ---------------------------------------------------------------------- */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
+			List<OrderBy> orderByList,Integer limit, Integer skip) 
+			throws TapisException{
+		
+		 // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchAST != null) {
+      		Condition astCondition = createConditionFromAst(searchAST);
+            if (astCondition != null) whereCondition = whereCondition.and(astCondition);
+            
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+      		
+        
+	 
+     // Build list of attributes we will be returning.
+        List<TableField> fieldList = new ArrayList<>();
+        fieldList.add(Tables.JOBS.UUID);
+        fieldList.add(Tables.JOBS.TENANT);
+        fieldList.add(Tables.JOBS.NAME);
+        fieldList.add(Tables.JOBS.OWNER);
+        fieldList.add(Tables.JOBS.STATUS);
+        fieldList.add(Tables.JOBS.CREATED);
+        fieldList.add(Tables.JOBS.ENDED);
+        fieldList.add(Tables.JOBS.LAST_UPDATED);
+        fieldList.add(Tables.JOBS.APP_ID);
+        fieldList.add(Tables.JOBS.APP_VERSION);
+        fieldList.add(Tables.JOBS.EXEC_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.ARCHIVE_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.REMOTE_STARTED);
+    
+	    
+	    // ------------------------- Build and execute SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including limit, orderByAttrList, skip and startAfter
+	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
+	          //       Jooq claims to handle it well.
+	          Result<JobsRecord> results;
+	          org.jooq.SelectConditionStep condStep = db.select(fieldList).from(Tables.JOBS).where(whereCondition);
+	          if(orderByList != null && limit >= 0) {
+	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
+	          } else if (limit >= 0) {
+	            // We are limiting but not ordering
+	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          }
+	          else
+	          {
+	            // We are not limiting and not ordering
+	            results = condStep.fetchInto(Tables.JOBS);
+	          }
+
+	          if (results == null || results.isEmpty()) return jobList;
+
+	          // Create SystemBasic objects from TSystem objects.
+	          for (JobsRecord r : results)
+	          {
+	            JobListDTO job = r.into(JobListDTO.class);
+	            jobList.add(job);
+	          }
+	          
+	          
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	        return jobList;
+		
+	}
+	/* ---------------------------------------------------------------------- */
 	/* getJobsSearchByUsername:                                               */
 	/*  all attributes                                                                       */
 	/* ---------------------------------------------------------------------- */
@@ -700,6 +935,129 @@ public final class JobsDao
 	}
 	
    
+	
+	/* ---------------------------------------------------------------------- */
+	/* getJobsSearchByUsername:                                               */
+	/*  all attributes                                                        */
+	/* ---------------------------------------------------------------------- */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<Job> getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws TapisException
+	{
+	    // Initialize result.
+	    ArrayList<Job> jobs = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+       	Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchAST != null) {
+      		Condition astCondition = createConditionFromAst(searchAST);
+            if (astCondition != null) whereCondition = whereCondition.and(astCondition);
+            
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+   
+	    // ------------------------- Build and execute SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including limit, orderByAttrList, skip and startAfter
+	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
+	          //       Jooq claims to handle it well.
+	          Result<JobsRecord> results;
+	          org.jooq.SelectConditionStep condStep = db.select(DSL.asterisk()).from(Tables.JOBS).where(whereCondition);
+	          if(orderByList != null && limit >= 0) {
+	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
+	          } else if (limit >= 0) {
+	            // We are limiting but not ordering
+	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          }
+	          else
+	          {
+	            // We are not limiting and not ordering
+	            results = condStep.fetchInto(Tables.JOBS);
+	          }
+	          if (results == null || results.isEmpty()) return jobs;
+
+	          // Create Job object from Job objects.
+	          for (JobsRecord r : results)
+	          {
+	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
+	        	 //  r.setTags(Arrays.asList(r.getTags()));
+	        	 
+	            Job job = r.into(Job.class);
+	            jobs.add(job);
+	          }
+	          
+	          
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	        return jobs;
+	          
+	        
+	}
 	
 
 	/* ---------------------------------------------------------------------- */  
@@ -2682,7 +3040,117 @@ public final class JobsDao
 		    }
 		  }
 			
+     
+		/**
+		   * Create a condition for abstract syntax tree nodes by recursively walking the tree
+		   * @param astNode Abstract syntax tree node to add to the base condition
+		   * @return resulting condition
+		   * @throws TapisException on error
+		   */
+		  private  Condition createConditionFromAst(ASTNode astNode) throws TapisException
+		  {
+		    if (astNode == null || astNode instanceof ASTLeaf)
+		    {
+		      // A leaf node is a column name or value. Nothing to process since we only process a complete condition
+		      //   having the form column_name.op.value. We should never make it to here
+		      String msg = "";//LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST1", (astNode == null ? "null" : astNode.toString()));
+		      throw new TapisException(msg);
+		    }
+		    else if (astNode instanceof ASTUnaryExpression)
+		    {
+		      // A unary node should have no operator and contain a binary node with two leaf nodes.
+		      // NOTE: Currently unary operators not supported. If support is provided for unary operators (such as NOT) then
+		      //   changes will be needed here.
+		      ASTUnaryExpression unaryNode = (ASTUnaryExpression) astNode;
+		      if (!StringUtils.isBlank(unaryNode.getOp()))
+		      {
+		        String msg = "";//LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_UNARY_OP", unaryNode.getOp(), unaryNode.toString());
+		        throw new TapisException(msg);
+		      }
+		      // Recursive call
+		      return createConditionFromAst(unaryNode.getNode());
+		    }
+		    else if (astNode instanceof ASTBinaryExpression)
+		    {
+		      // It is a binary node
+		      ASTBinaryExpression binaryNode = (ASTBinaryExpression) astNode;
+		      // Recursive call
+		      return createConditionFromBinaryExpression(binaryNode);
+		    }
+		    return null;
+		  }
+		  
+		  /**
+		   * Create a condition from an abstract syntax tree binary node
+		   * @param binaryNode Abstract syntax tree binary node to add to the base condition
+		   * @return resulting condition
+		   * @throws TapisException on error
+		   */
+		  private  Condition createConditionFromBinaryExpression(ASTBinaryExpression binaryNode) throws TapisException
+		  {
+		    // If we are given a null then something went very wrong.
+		    if (binaryNode == null)
+		    {
+		      throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST2")*/);
+		    }
+		    // If operator is AND or OR then make recursive call for each side and join together
+		    // For other operators build the condition left.op.right and add it
+		    String op = binaryNode.getOp();
+		    ASTNode leftNode = binaryNode.getLeft();
+		    ASTNode rightNode = binaryNode.getRight();
+		    if (StringUtils.isBlank(op))
+		    {
+		      throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST3", binaryNode.toString())*/);
+		    }
+		    else if (op.equalsIgnoreCase("AND"))
+		    {
+		      // Recursive calls
+		      Condition cond1 = createConditionFromAst(leftNode);
+		      Condition cond2 = createConditionFromAst(rightNode);
+		      if (cond1 == null || cond2 == null)
+		      {
+		        throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST4", binaryNode.toString())*/);
+		      }
+		      return cond1.and(cond2);
 
+		    }
+		    else if (op.equalsIgnoreCase("OR"))
+		    {
+		      // Recursive calls
+		      Condition cond1 = createConditionFromAst(leftNode);
+		      Condition cond2 = createConditionFromAst(rightNode);
+		      if (cond1 == null || cond2 == null)
+		      {
+		        throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST4", binaryNode.toString())*/);
+		      }
+		      return cond1.or(cond2);
+
+		    }
+		    else
+		    {
+		      // End of recursion. Create a single condition.
+		      // Since operator is not an AND or an OR we should have 2 unary nodes or a unary and leaf node
+		      String lValue;
+		      String rValue;
+		      if (leftNode instanceof ASTLeaf) lValue = ((ASTLeaf) leftNode).getValue();
+		      else if (leftNode instanceof ASTUnaryExpression) lValue =  ((ASTLeaf) ((ASTUnaryExpression) leftNode).getNode()).getValue();
+		      else
+		      {
+		        throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST5", binaryNode.toString())*/);
+		      }
+		      if (rightNode instanceof ASTLeaf) rValue = ((ASTLeaf) rightNode).getValue();
+		      else if (rightNode instanceof ASTUnaryExpression) rValue =  ((ASTLeaf) ((ASTUnaryExpression) rightNode).getNode()).getValue();
+		      else
+		      {
+		        throw new TapisException(""/*LibUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_AST6", binaryNode.toString())*/);
+		      }
+		      // Build the string for the search condition, left.op.right
+		      String condStr = String.format("%s.%s.%s", lValue, binaryNode.getOp(), rValue);
+		      // Validate and create a condition from the string
+		      return addSearchCondStrToWhere(null, condStr, null);
+		    }
+		  }
+		  
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
     /* ********************************************************************** */
