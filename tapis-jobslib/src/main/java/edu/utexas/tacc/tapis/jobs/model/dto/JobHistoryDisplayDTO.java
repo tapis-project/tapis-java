@@ -33,11 +33,11 @@ public class JobHistoryDisplayDTO {
     
     public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant) throws TapisImplException{
     	
-    	event =  jobEvent.getEvent().name();
-    	jobStatus = jobEvent.getJobStatus().name();
-    	created = jobEvent.getCreated();
-    	description = jobEvent.getDescription();
-    	transferTaskUuid = jobEvent.getOthUuid();
+    	setEvent(jobEvent.getEvent().name());
+    	setJobStatus(jobEvent.getJobStatus().name());
+    	setCreated(jobEvent.getCreated());
+    	setDescription(jobEvent.getDescription());
+    	setTransferTaskUuid(jobEvent.getOthUuid());
     	Gson gson = TapisGsonUtils.getGson();
     	FilesClient filesClient = null;
  		
@@ -98,6 +98,46 @@ public <T> T getServiceClient(Class<T> cls,  String user, String tenant) throws 
     }
 
     return client;
+}
+
+public String getEvent() {
+	return event;
+}
+
+public void setEvent(String event) {
+	this.event = event;
+}
+
+public Instant getCreated() {
+	return created;
+}
+
+public void setCreated(Instant created) {
+	this.created = created;
+}
+
+public String getJobStatus() {
+	return jobStatus;
+}
+
+public void setJobStatus(String jobStatus) {
+	this.jobStatus = jobStatus;
+}
+
+public String getDescription() {
+	return description;
+}
+
+public void setDescription(String description) {
+	this.description = description;
+}
+
+public String getTransferTaskUuid() {
+	return transferTaskUuid;
+}
+
+public void setTransferTaskUuid(String transferTaskUuid) {
+	this.transferTaskUuid = transferTaskUuid;
 }
 }
 
