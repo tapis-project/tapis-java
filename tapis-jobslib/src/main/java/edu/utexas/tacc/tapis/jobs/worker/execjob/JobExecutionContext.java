@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
@@ -71,6 +72,7 @@ public final class JobExecutionContext
     private JobFileManager           _jobFileManager;
     private JobIOTargets             _jobIOTargets;
     private TapisSSH                 _execSysTapisSSH; // always use accessor
+    private SchedulerProfile         _schedulerProfile;
     
     // Last message to be written to job record when job terminates.
     private String                   _finalMessage; 
@@ -380,6 +382,46 @@ public final class JobExecutionContext
         
         // All others use an environment variable file.
         return true;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getSchedulerProfile:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Return the named scheduler profile, which may be cached.  Once the profile
+     * is set for a running job it cannot be changed.
+     * 
+     * @param profileName the target profile
+     * @return null or the named profile
+     */
+    public SchedulerProfile getSchedulerProfile(String profileName)
+     throws JobException
+    {
+        // Shouldn't happen.
+        if (StringUtils.isBlank(profileName)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getSchedulerProfile", "profileName");
+            throw new JobException(msg);
+        }
+        
+        // Use the cached profile if it exists.
+        if (_schedulerProfile == null) {
+            try {_schedulerProfile = getServiceClient(SystemsClient.class).getSchedulerProfile(profileName);}
+                catch (Exception e) {
+                    // Not found error.
+                    if ((e instanceof TapisClientException) && 
+                        ((TapisClientException)e).getCode() == 404) 
+                    { 
+                        String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_NOT_FOUND",
+                                _job.getOwner(), _job.getTenant(), profileName);
+                        throw new JobException(msg, e);
+                    }
+                
+                    // All other error cases.
+                    String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_ACCESS_ERROR",
+                                _job.getOwner(), _job.getTenant(), profileName, e.getMessage());
+                    throw new JobException(msg, e);
+                }
+        }
+        return _schedulerProfile;
     }
     
     /* ---------------------------------------------------------------------------- */

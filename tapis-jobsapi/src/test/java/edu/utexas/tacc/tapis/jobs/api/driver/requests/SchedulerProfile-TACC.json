@@ -1,8 +1,8 @@
 {
-    "name": "tacc-slurm",
+    "name": "TACC",
     "owner": "cicsvc",
     "description": "Test profile for TACC Slurm",
     "moduleLoadCommand": "module load",
     "modulesToLoad": ["tacc-singularity"],
-    "hiddenOptions": ["_MEM"]
+    "hiddenOptions": ["MEM"]
 }

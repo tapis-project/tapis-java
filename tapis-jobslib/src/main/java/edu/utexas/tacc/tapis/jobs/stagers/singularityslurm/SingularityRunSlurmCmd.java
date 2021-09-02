@@ -1,13 +1,20 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularityslurm;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 
 public final class SingularityRunSlurmCmd 
  implements JobExecCmd
@@ -15,11 +22,22 @@ public final class SingularityRunSlurmCmd
     /* ********************************************************************** */
     /*                              Constants                                 */
     /* ********************************************************************** */
+    // Local logger.
+    private static final Logger _log = LoggerFactory.getLogger(SingularityRunSlurmCmd.class);
+    
+    // Slurm directive.
     private static final String DIRECTIVE_PREFIX = "#SBATCH ";
     
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
+    // Backpointer to job's current information.
+    private final JobExecutionContext _jobCtx;
+    
+    // List of slurm options to be ignored.  The options are always take the 
+    // long form (--nodes rather than -N).
+    private List<String>              _skipList;
+    
     // SBATCH directive mapping used to ease wrapper script generation.
     private TreeMap<String,String> _directives = new TreeMap<>();
     
@@ -115,11 +133,11 @@ public final class SingularityRunSlurmCmd
     private String  waitAllNodes;          // wait to begin execution until all nodes are ready for use
     private String  wckey;                 // specify wckey to be used with job
     
-    // Temporary --tapis-profile switch for TACC support.  Assign that switch the value 
+    // --tapis-profile switch for customized data center support.  The profile can be used
+    // to skip outputting specific slurm optionss.  For example, Assign that switch the value 
     // TACC when running a job on TACC HPC systems.  This will avoid passing the --mem 
     // option to slurm and will load the singularity module before calling sbatch.
-    public enum TapisSystemProfile {GENERIC, TACC}
-    private TapisSystemProfile tapisProfile = TapisSystemProfile.GENERIC;          
+    private String tapisProfile;          
     
     // Slurm options not supported.
     //
@@ -130,6 +148,14 @@ public final class SingularityRunSlurmCmd
     //
     //  --mem, --nodes (-N), --ntasks (-n), --partition (-p), --time (-t)
     
+    /* ********************************************************************** */
+    /*                             Constructors                               */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* SingularityRunSlurmCmd:                                                */
+    /* ---------------------------------------------------------------------- */
+    public SingularityRunSlurmCmd(JobExecutionContext jobCtx) {_jobCtx = jobCtx;}
+
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
@@ -161,7 +187,7 @@ public final class SingularityRunSlurmCmd
     @Override
     public String generateEnvVarFileContent() {
         // We pass environment variables to singularity from the command line
-        // so that they are enbedded in the wrapper script sent to Slurm. 
+        // so that they are embedded in the wrapper script sent to Slurm. 
         //
         // This method should not be called.
         String msg = MsgUtils.getMsg("JOBS_SCHEDULER_GENERATE_ERROR", "slurm");
@@ -217,13 +243,55 @@ public final class SingularityRunSlurmCmd
     private boolean skipSlurmOption(String option)
     {
         // No special filtering unless using tacc profile.
-        if (tapisProfile == TapisSystemProfile.GENERIC) return false;
+        if (StringUtils.isBlank(getTapisProfile())) return false;
         
-        // TODO: Hardcode TACC policy here for now.
-        if (option.equals("--mem")) return true;
+        // Initialize the skip list.
+        initializeSkipList();
+        
+        // Check the current option against each skipable option.
+        if (_skipList.contains(option)) return true;
         
         // Allow option.
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* initializeSkipList:                                                    */
+    /* ---------------------------------------------------------------------- */
+    private void initializeSkipList()
+    {
+        // Only initialize once.
+        if (_skipList != null) return;
+        
+        // Always create the skip list.
+        _skipList = new ArrayList<String>();
+        
+        // If we don't receive the profile we just continue from here.
+        // Other attempts to retrieve the profile will cause the job to
+        // abort.  If no exception is thrown, the profile is not null.
+        SchedulerProfile profile = null;
+        try {profile = _jobCtx.getSchedulerProfile(getTapisProfile());}
+            catch (Exception e) {
+                _log.error(e.getMessage(), e);
+                return;
+            }
+        
+        // Assign all skip values from the profile to the list.  The auto-generated
+        // client code makes it difficult to have values that exactly match the 
+        // long form slurm options, so we explicitly code the mapping in the 
+        // client code.  This mapping is only available in the Java client.
+        var hiddenOpts = profile.getHiddenOptions();
+        if (hiddenOpts != null && !hiddenOpts.isEmpty()) 
+            for (var opt : hiddenOpts) { 
+                String value = SystemsClient.getSchedulerHiddenOptionValue(opt);
+                if (StringUtils.isNotBlank(value)) _skipList.add(value);
+                  else {
+                      String msg = MsgUtils.getMsg("JOBS_SCHEDULER_NO_HIDDEN_OPTION_VALUE",
+                                   profile.getOwner(), _jobCtx.getJob().getTenant(), 
+                                   profile.getName(), opt.name());
+                      _log.error(msg);
+                  }
+            }
     }
     
     /* ********************************************************************** */
@@ -1040,11 +1108,11 @@ public final class SingularityRunSlurmCmd
         _directives.put("--wckey", wckey);
     }
 
-    public TapisSystemProfile getTapisProfile() {
+    public String getTapisProfile() {
         return tapisProfile;
     }
 
-    public void setTapisProfile(TapisSystemProfile tapisProfile) {
+    public void setTapisProfile(String tapisProfile) {
         this.tapisProfile = tapisProfile;
     }
 }

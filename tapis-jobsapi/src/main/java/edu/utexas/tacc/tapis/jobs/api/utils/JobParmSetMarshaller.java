@@ -100,9 +100,6 @@ public final class JobParmSetMarshaller
         if (appParmSet.getContainerArgs() != null) reqParmSet.getContainerArgs().addAll(appParmSet.getContainerArgs());
         if (appParmSet.getSchedulerOptions() != null) reqParmSet.getSchedulerOptions().addAll(appParmSet.getSchedulerOptions());
         
-        // Validate the profile scheduler option if it's set.
-        validateSchedulerProfile(reqParmSet.getSchedulerOptions());
-        
         // Validate that the request environment variables contains no duplicate keys.
         var reqEnvVars = reqParmSet.getEnvVariables();
         HashSet<String> origReqEnvKeys = new HashSet<String>(1 + reqEnvVars.size() * 2);
@@ -286,35 +283,5 @@ public final class JobParmSetMarshaller
         }
         
         return kvList;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* validateSchedulerProfile:                                                    */
-    /* ---------------------------------------------------------------------------- */
-    private void validateSchedulerProfile(List<ArgSpec> schedulerOptions)
-    {
-        // Guard.
-        if (schedulerOptions == null || schedulerOptions.isEmpty()) return;
-        
-        // Argument search spec.
-        final String searchSpec = "--tapis-profile";
-        
-        // See if a profile is specified.
-        for (var opt : schedulerOptions) {
-            String arg = opt.getArg().strip();
-            if (!arg.startsWith(searchSpec)) continue;
-            if (arg.equals(searchSpec)) {
-                // Error: needs specify a profile name
-            }
-            // Skip other arguments that start with the same prefix.
-            if (arg.charAt(searchSpec.length()) != ' ') continue;
-            
-            // Get the profile name that is expected to follow 
-            // the argument specifier.
-            String profileName = arg.substring(searchSpec.length()+1).strip();
-            
-            // The profile exists if we can retrieve it.
-            
-        }
     }
 }
