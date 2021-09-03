@@ -1337,7 +1337,7 @@ public final class SubmitContext
                                 _submitReq.getOwner(), _submitReq.getTenant(), profileName, e.getMessage());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
-            _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _job.getTenant()));
+            _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _submitReq.getTenant()));
         }
     }
     
