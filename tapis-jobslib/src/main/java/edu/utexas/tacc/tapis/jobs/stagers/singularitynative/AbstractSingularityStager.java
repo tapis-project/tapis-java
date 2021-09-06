@@ -52,9 +52,10 @@ public abstract class AbstractSingularityStager
     /* ---------------------------------------------------------------------- */
     /* assignCmd:                                                             */
     /* ---------------------------------------------------------------------- */
-    /** Save the user-specified singularity parameter.
+    /** Save the user-specified singularity parameter.  This method set the 
+     * singularity options that are common to both singularity run and start.
      * 
-     * @param singularityCmd the start command
+     * @param singularityCmd the start or run command
      * @param option the singularity argument
      * @param value the argument's non-null value
      */

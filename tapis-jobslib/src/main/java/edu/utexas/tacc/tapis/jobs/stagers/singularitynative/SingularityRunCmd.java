@@ -15,6 +15,7 @@ public final class SingularityRunCmd
     private boolean         ipc;      // run container in a new IPC namespace
     private boolean         noNet;    // disable VM network handling
     private boolean         pid;      // run container in a new PID namespace
+    private String          pwd;      // initial working directory for payload process inside the container
     private boolean         vm;       // enable VM support
     private String          vmCPU;    // number of CPU cores to allocate to Virtual Machine
     private boolean         vmErr;    // enable attaching stderr from VM
@@ -156,8 +157,13 @@ public final class SingularityRunCmd
         if (isIpc()) buf.append(" --ipc");
         if (isNoNet()) buf.append(" --nonet");
         if (isPid()) buf.append(" --pid");
-        if (isVm()) buf.append(" --vm");
 
+        if (StringUtils.isNotBlank(getPwd())) {
+            buf.append(" --pwd ");
+            buf.append(getPwd());
+        }
+ 
+        if (isVm()) buf.append(" --vm");
         if (StringUtils.isNotBlank(getVmCPU())) {
             buf.append(" --vm-cpu ");
             buf.append(getVmCPU());
@@ -199,13 +205,21 @@ public final class SingularityRunCmd
     public void setNoNet(boolean noNet) {
         this.noNet = noNet;
     }
-
+    
     public boolean isPid() {
         return pid;
     }
 
     public void setPid(boolean pid) {
         this.pid = pid;
+    }
+
+    public String getPwd() {
+        return pwd;
+    }
+
+    public void setPwd(String pwd) {
+        this.pwd = pwd;
     }
 
     public boolean isVm() {
