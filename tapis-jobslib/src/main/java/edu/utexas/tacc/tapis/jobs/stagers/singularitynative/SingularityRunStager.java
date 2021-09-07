@@ -213,6 +213,9 @@ public class SingularityRunStager
      * it will be set here.  If the parameter is not run only, then the command
      * parameter assignment method in the superclass will be called.
      * 
+     * Note that this method overloads but does not override the superclass
+     * method with the name.
+     * 
      * @param singularityCmd the run command
      * @param option the singularity argument
      * @param value the argument's non-null value
@@ -224,36 +227,36 @@ public class SingularityRunStager
             // Run common options.
             case "--app":
                 singularityCmd.setApp(value);
-                return;
+                break;
             case "--ipc":
             case "-i":
                 singularityCmd.setIpc(true);
-                return;
+                break;
             case "--nonet":
                 singularityCmd.setNoNet(true);
-                return;
+                break;
             case "--pid":
             case "-p":
                 singularityCmd.setPid(true);
-                return;
+                break;
             case "--pwd":
                 singularityCmd.setPwd(value);
-                return;
+                break;
             case "--vm":
                 singularityCmd.setVm(true);
-                return;
+                break;
             case "--vm-cpu":
                 singularityCmd.setVmCPU(value);
-                return;
+                break;
             case "--vm-err":
                 singularityCmd.setVmErr(true);
-                return;
+                break;
             case "--vm-ip":
                 singularityCmd.setVmIP(value);
-                return;
+                break;
             case "--vm-ram":
                 singularityCmd.setVmRAM(value);
-                return;
+                break;
         
             // It's either a common option or invalid.
             default: super.assignCmd(singularityCmd, option, value);
