@@ -683,6 +683,9 @@ public final class JobFileManager
         var prefix = getOutputPathPrefix();
         if (absPath.startsWith(prefix))
             return absPath.substring(prefix.length());
+        // Special case if Files strips leading slash from output.
+        if (!absPath.startsWith("/") && prefix.startsWith("/"))
+            return absPath.substring(prefix.length()-1);
         return absPath;
     }
     
