@@ -313,7 +313,8 @@ public final class SlurmMonitor
     private void updateFinalMessage(ParsedStatusResponse parsedResponse) {
         String rc = StringUtils.isBlank(parsedResponse.getExitCode()) ? 
                                         "unknown" : parsedResponse.getExitCode();
-        String finalMessage = MsgUtils.getMsg("JOBS_USER_APP_FAILURE", 
+        String finalMessage = MsgUtils.getMsg("JOBS_USER_APP_FAILURE",
+                                              parsedResponse.getJobId(),
                                               parsedResponse.getStatus(), 
                                               rc); 
         _job.getJobCtx().setFinalMessage(finalMessage);
