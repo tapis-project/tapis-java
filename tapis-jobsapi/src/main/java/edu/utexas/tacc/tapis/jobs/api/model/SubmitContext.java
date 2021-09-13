@@ -302,6 +302,8 @@ public final class SubmitContext
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
             _submitReq.setDescription(_app.getJobAttributes().getDescription());
+        if (StringUtils.isBlank(_submitReq.getDescription()))
+            _submitReq.setDescription(getDefaultDescription());
         
         // Merge archive flag.
         if (_submitReq.getArchiveOnAppError() == null)
@@ -345,6 +347,20 @@ public final class SubmitContext
         
         // Merge and validate input files.
         resolveFileInputs();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getDefaultDescription:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** This method should only be called after the tenant, owner, and application
+     * have been resolved.
+     * 
+     * @return a default job descriptions
+     */
+    private String getDefaultDescription()
+    {
+        return _app.getId() + "-" + _app.getVersion() + " submitted by " + 
+               _submitReq.getOwner() + "@" + _submitReq.getTenant(); 
     }
     
     /* ---------------------------------------------------------------------------- */
