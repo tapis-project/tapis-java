@@ -72,8 +72,8 @@ extends ResourceConfig
        
        // We specify what packages JAX-RS should recursively scan
        // to find annotations.  By setting the value to the top-level
-       // aloe directory in all projects, we can use JAX-RS annotations
-       // in any aloe class.  In particular, the filter classes in 
+       // tapis directory in all projects, we can use JAX-RS annotations
+       // in any tapis class.  In particular, the filter classes in 
        // tapis-sharedapi will be discovered whenever that project is
        // included as a maven dependency.
        packages("edu.utexas.tacc.tapis");
