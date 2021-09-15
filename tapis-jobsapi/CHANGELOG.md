@@ -10,6 +10,28 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.0.1 - 2021-09-15
+
+Incremental improvement and bug fix release.
+
+### Breaking Changes:
+- Initial release.
+
+### New features:
+1. Provided a default job description if one is not specified on job submission.
+
+### Bug fixes:
+1. Quoted environment variable values when they appear on command line
+   for job submission to Slurm scheduler.
+2. Account for file listing output pathnames that don't preserve the
+   input specification's leading slash.
+3. Fixed empty job listing case.
+4. Added support for the singularity run --pwd option.
+5. Added missing error message. 
+
+
+-----------------------
+
 ## 1.0.0 - 2021-07-16
 
 Initial release supporting basic CRUD operations on Tapis Job resources
