@@ -21,10 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
@@ -37,6 +37,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
+import edu.utexas.tacc.tapis.shared.model.ArgSpec;
 import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
@@ -51,6 +52,7 @@ import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class SubmitContext 
@@ -300,6 +302,8 @@ public final class SubmitContext
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
             _submitReq.setDescription(_app.getJobAttributes().getDescription());
+        if (StringUtils.isBlank(_submitReq.getDescription()))
+            _submitReq.setDescription(getDefaultDescription());
         
         // Merge archive flag.
         if (_submitReq.getArchiveOnAppError() == null)
@@ -346,6 +350,20 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* getDefaultDescription:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** This method should only be called after the tenant, owner, and application
+     * have been resolved.
+     * 
+     * @return a default job descriptions
+     */
+    private String getDefaultDescription()
+    {
+        return _app.getId() + "-" + _app.getVersion() + " submitted by " + 
+               _submitReq.getOwner() + "@" + _submitReq.getTenant(); 
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* resolveParameterSet:                                                         */
     /* ---------------------------------------------------------------------------- */
     /** Resolve the contents of each object in the request parameter set by consulting
@@ -373,6 +391,7 @@ public final class SubmitContext
         // Validate parameter set components.
         validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getIncludes(), "includes");
         validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getExcludes(), "excludes");
+        validateSchedulerProfile(_submitReq.getParameterSet().getSchedulerOptions());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1278,6 +1297,66 @@ public final class SubmitContext
         }
     }
 
+    /* ---------------------------------------------------------------------------- */
+    /* validateSchedulerProfile:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** This method validates the existence of a scheduler profile if one is specified
+     * with the --tapis-profile argument.  If the argument is not specified or if it is
+     * specified and the profile exists, this method simply returns.  If the argument
+     * is specified and the profile cannot be retrieved for any reason, this method
+     * throws an expection.
+     * 
+     * @param schedulerOptions a list of scheduler options
+     * @throws TapisImplException if a specified scheduler profile is inaccessible
+     */
+    private void validateSchedulerProfile(List<ArgSpec> schedulerOptions) 
+     throws TapisImplException
+    {
+        // Guard.
+        if (schedulerOptions == null || schedulerOptions.isEmpty()) return;
+        
+        // Argument search spec.
+        final String searchSpec = "--tapis-profile";
+        
+        // See if a profile is specified.
+        for (var opt : schedulerOptions) {
+            String arg = opt.getArg().strip();
+            if (!arg.startsWith(searchSpec)) continue;
+            if (arg.equals(searchSpec)) {
+                String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_NO_NAME",
+                                             _submitReq.getOwner(), _submitReq.getTenant());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+            // Skip other arguments that start with the same prefix.
+            if (arg.charAt(searchSpec.length()) != ' ') continue;
+            
+            // Get the profile name that is expected to follow 
+            // the argument specifier.
+            String profileName = arg.substring(searchSpec.length()+1).strip();
+            
+            // The profile exists if we can retrieve it.
+            var client = getSystemsClient();
+            SchedulerProfile profile = null;
+            try {profile = client.getSchedulerProfile(profileName);}
+                catch (Exception e) {
+                    // Not found error.
+                    if ((e instanceof TapisClientException) && 
+                        ((TapisClientException)e).getCode() == 404) 
+                    { 
+                        String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_NOT_FOUND",
+                                _submitReq.getOwner(), _submitReq.getTenant(), profileName);
+                        throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
+                    }
+                    
+                    // All other error cases.
+                    String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_ACCESS_ERROR",
+                                _submitReq.getOwner(), _submitReq.getTenant(), profileName, e.getMessage());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+            _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _submitReq.getTenant()));
+        }
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* populateJob:                                                                 */
     /* ---------------------------------------------------------------------------- */

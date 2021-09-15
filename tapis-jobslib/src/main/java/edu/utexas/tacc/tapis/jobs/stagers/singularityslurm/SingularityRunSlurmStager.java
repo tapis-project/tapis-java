@@ -1,14 +1,11 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularityslurm;
 
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.AbstractSingularityStager;
-import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmCmd.TapisSystemProfile;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -24,13 +21,6 @@ public final class SingularityRunSlurmStager
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SingularityRunSlurmStager.class);
 
-    // Temporary hardcoded TACC module load command.
-    private static final String TACC_SINGULARITY_MODULE_LOAD = "module load tacc-singularity";
-    
-    // Create the pattern for a list of one or more comma or semi-colon separated.
-    // Embedded whitespace is allowed.
-    private static final Pattern _namePattern = Pattern.compile("[,;]");
-    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -88,8 +78,7 @@ public final class SingularityRunSlurmStager
         _cmd.append(_slurmRunCmd.generateExecCmd(_job));
         
         // Add zero or more module load commands.
-        if (_slurmRunCmd.getTapisProfile() == TapisSystemProfile.TACC)
-            _cmd.append(getModuleLoadCalls(TACC_SINGULARITY_MODULE_LOAD));
+        appendModuleLoadCalls();
         
         // Add the actual singularity run command.
         _cmd.append(_wrappedStager.getCmdTextWithEnvVars());
@@ -112,30 +101,34 @@ public final class SingularityRunSlurmStager
     /*                            Private Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* getModuleLoadCalls:                                                    */
+    /* appendModuleLoadCalls:                                                 */
     /* ---------------------------------------------------------------------- */
-    /** Create a list of module load calls, each on it own line, from the 
-     * input string.  The input can be a comma or semicolon separated list,
-     * whitespace is allowed between calls. 
-     * 
-     * @param calls string containing zero or more comma or semicolon separated calls
-     * @return the list of calls on separate lines
-     */
-    private String getModuleLoadCalls(String calls)
+    private void appendModuleLoadCalls()
+     throws JobException
     {
-        // The result string.
-        if (StringUtils.isBlank(calls)) return "";
-        String result = "";
+        // There's nothing to do unless a profile was specified.
+        if (StringUtils.isBlank(_slurmRunCmd.getTapisProfile())) return;
         
-        // Split the calls into separate lines.
-        String[] lines = _namePattern.split(calls);
-        if (lines == null || lines.length == 0) return result;
-        for (var line : lines) 
-            if (StringUtils.isNotBlank(line)) result += line + "\n"; 
-        result += "\n";
+        // Make sure we retrieve the profile.
+        var profile = _jobCtx.getSchedulerProfile(_slurmRunCmd.getTapisProfile());
+
+        // Check that we have work to do.
+        String loadCmd = profile.getModuleLoadCommand();
+        var modules = profile.getModulesToLoad();
+        if (StringUtils.isBlank(loadCmd) || 
+            (modules == null) || 
+            modules.isEmpty())
+           return;
         
-        // Each call on its own line.
-        return result;
+        // Put in the required spacing.
+        if (!loadCmd.endsWith(" ")) loadCmd += " ";
+        
+        // Add each module to the command string
+        // and end with a blank line.
+        for (var module : modules)
+            if (StringUtils.isNotBlank(module)) 
+                _cmd.append(loadCmd + module + "\n");
+        _cmd.append("\n");
     }
     
     /* ---------------------------------------------------------------------- */
@@ -152,7 +145,7 @@ public final class SingularityRunSlurmStager
      throws TapisException
     {
         // Populate the slurm command with user specified options.
-        var slurmCmd = new SingularityRunSlurmCmd();
+        var slurmCmd = new SingularityRunSlurmCmd(_jobCtx);
         setUserSlurmOptions(slurmCmd);
         setTapisOptionsForSlurm(slurmCmd);
         return slurmCmd;
@@ -637,15 +630,9 @@ public final class SingularityRunSlurmStager
                 slurmCmd.setWckey(value);
                 break;
 
-                
+            // Tapis extended arguments.    
             case "--tapis-profile":
-                TapisSystemProfile profile;
-                try {profile = TapisSystemProfile.valueOf(value.toUpperCase());}
-                    catch (Exception e) {
-                        String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "assignCmd", "--tapisProfile", value);
-                        throw new JobException(msg, e);
-                    }
-                slurmCmd.setTapisProfile(profile);
+                slurmCmd.setTapisProfile(value);
                 break;
             
             // Subsumed options.

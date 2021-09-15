@@ -14,11 +14,12 @@ public final class RespGetJobList extends RespAbstract{
    public List<JobListDTO> result;
    public RespGetJobList(List<JobListDTO> jobList,int limit, String orderBy, int skip, String startAfter, int totalCount)  {
 	    result = new ArrayList<>();
-	    for (JobListDTO job : jobList)
-	    {
-	      result.add(job);
+	    if(jobList == null) {
+		    for (JobListDTO job : jobList)
+		    {
+		      result.add(job);
+		    }
 	    }
-
 	    ResultListMetadata meta = new ResultListMetadata();
 	    meta.recordCount = result.size();
 	    meta.recordLimit = limit;

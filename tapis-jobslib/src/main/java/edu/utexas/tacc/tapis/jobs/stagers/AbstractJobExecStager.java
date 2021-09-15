@@ -29,7 +29,7 @@ public abstract class AbstractJobExecStager
     // Command line option parser.  This regex captures 3 groups:
     //
     //   0 - the complete value unparsed
-    //   1 - the docker option starting with 1 or 2 hypens (-e, --env, etc.)
+    //   1 - the option starting with 1 or 2 hypens (-e, --env, etc.)
     //   2 - the value assigned to the option, which may be empty
     //
     // Leading and trailing whitespace is ignored, as is any whitespace between

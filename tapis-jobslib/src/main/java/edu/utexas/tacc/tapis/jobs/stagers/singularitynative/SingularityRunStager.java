@@ -204,4 +204,62 @@ public class SingularityRunStager
             assignCmd(singularityCmd, option, value);
         }
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* assignCmd:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Save the user-specified singularity run parameter.  If the parameter
+     * pertains to run only--that is it's not a paramter also used by start--then
+     * it will be set here.  If the parameter is not run only, then the command
+     * parameter assignment method in the superclass will be called.
+     * 
+     * Note that this method overloads but does not override the superclass
+     * method with the name.
+     * 
+     * @param singularityCmd the run command
+     * @param option the singularity argument
+     * @param value the argument's non-null value
+     */
+    protected void assignCmd(SingularityRunCmd singularityCmd, String option, String value)
+     throws JobException
+    {
+        switch (option) {
+            // Run common options.
+            case "--app":
+                singularityCmd.setApp(value);
+                break;
+            case "--ipc":
+            case "-i":
+                singularityCmd.setIpc(true);
+                break;
+            case "--nonet":
+                singularityCmd.setNoNet(true);
+                break;
+            case "--pid":
+            case "-p":
+                singularityCmd.setPid(true);
+                break;
+            case "--pwd":
+                singularityCmd.setPwd(value);
+                break;
+            case "--vm":
+                singularityCmd.setVm(true);
+                break;
+            case "--vm-cpu":
+                singularityCmd.setVmCPU(value);
+                break;
+            case "--vm-err":
+                singularityCmd.setVmErr(true);
+                break;
+            case "--vm-ip":
+                singularityCmd.setVmIP(value);
+                break;
+            case "--vm-ram":
+                singularityCmd.setVmRAM(value);
+                break;
+        
+            // It's either a common option or invalid.
+            default: super.assignCmd(singularityCmd, option, value);
+        }
+    }
 }
