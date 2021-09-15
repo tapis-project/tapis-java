@@ -209,7 +209,7 @@ abstract class AbstractSingularityExecCmd
               else buf.append(",");
             buf.append(v.getLeft());
             buf.append("=");
-            buf.append(v.getRight());
+            buf.append("\"" + v.getRight() + "\"");
         }
         return buf.toString();
     }
