@@ -247,7 +247,7 @@ public final class StepwiseBackoffPolicy
            
         // Determine if the duration of a series of consecutive
         // failures has exceeded its time limit.
-        if (_firstFailureInSeries.plus(_maxConsecutiveFailureMinutes, ChronoUnit.MINUTES).isAfter(now))
+        if (_firstFailureInSeries.plus(_maxConsecutiveFailureMinutes, ChronoUnit.MINUTES).isBefore(now))
             return true;
         
         // We're still ok.
