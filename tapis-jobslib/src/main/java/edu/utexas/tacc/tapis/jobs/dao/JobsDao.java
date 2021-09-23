@@ -239,7 +239,7 @@ public final class JobsDao
 	    // ------------------------- Call SQL ----------------------------
 	    Connection conn = null;
 	    try
-	      {
+	    {
 	          // Get a database connection.
 	          conn = getConnection();
 	          
@@ -294,40 +294,38 @@ public final class JobsDao
 	  	    	  throw new TapisJDBCException(msg, e);
 	  	      }
 	  	      
-	    
-	            // JobList for specific user.
-	            JobListDTO jobListObject ;
-	            do {
-	                jobListObject = new JobListDTO();
-	                jobListObject.setUuid(rs.getString(1));
-	                jobListObject.setTenant(tenant);
-	                jobListObject.setName(rs.getString(3));
-	                jobListObject.setOwner(rs.getString(4));
-	                jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
-	                Timestamp ts = rs.getTimestamp(6);
-	                if (ts != null) 
-	                    jobListObject.setCreated(ts.toInstant());
-	                
-	                ts = rs.getTimestamp(7);
-	                if (ts != null) jobListObject.setEnded(ts.toInstant());
-	                
-	                ts = rs.getTimestamp(8);
-	                if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
-	                
-	                jobListObject.setAppId(rs.getString(9));
-	                jobListObject.setAppVersion(rs.getString(10));
-	                jobListObject.setExecSystemId(rs.getString(11));
-	                jobListObject.setArchiveSystemId(rs.getString(11));
-	                ts = rs.getTimestamp(13);
-	                
-	                if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
-	                
-	                jobList.add(jobListObject);
-	                
-	            } while(rs.next()) ;
-	                     
-	          
-	          // Close the result and statement.
+	          // JobList for specific user.
+	  	      JobListDTO jobListObject ;
+	  	      do {
+                jobListObject = new JobListDTO();
+                jobListObject.setUuid(rs.getString(1));
+                jobListObject.setTenant(tenant);
+                jobListObject.setName(rs.getString(3));
+                jobListObject.setOwner(rs.getString(4));
+                jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
+                Timestamp ts = rs.getTimestamp(6);
+                if (ts != null) 
+                    jobListObject.setCreated(ts.toInstant());
+                
+                ts = rs.getTimestamp(7);
+                if (ts != null) jobListObject.setEnded(ts.toInstant());
+                
+                ts = rs.getTimestamp(8);
+                if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
+                
+                jobListObject.setAppId(rs.getString(9));
+                jobListObject.setAppVersion(rs.getString(10));
+                jobListObject.setExecSystemId(rs.getString(11));
+                jobListObject.setArchiveSystemId(rs.getString(11));
+                ts = rs.getTimestamp(13);
+                
+                if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
+                
+                jobList.add(jobListObject);
+                
+             } while(rs.next()) ;
+                     
+              // Close the result and statement.
 	          rs.close();
 	          pstmt.close();
 	    
@@ -358,9 +356,9 @@ public final class JobsDao
 	      return jobList;
 	}
 	
-	/* ********************************************************************** */
+	/* ---------------------------------------------------------------------- */
 	/* getJobsSearchListCountByUsername:                                      */
-	/* ********************************************************************** */
+	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings("rawtypes")
 	public int getJobsSearchListCountByUsername(String username, String tenant, List<String> searchList, List<OrderBy> orderByList) 
 			  throws TapisException
@@ -399,11 +397,9 @@ public final class JobsDao
             	}
           	}
             	
-            }
+          }
       		
-        
-	 
-      	// ------------------------- Build and execute SQL ----------------------------
+        // ------------------------- Build and execute SQL ----------------------------
       	int count = 0;
 	    Connection conn = null;
 	    try
@@ -445,9 +441,9 @@ public final class JobsDao
     }
 	
 	
-	/* ********************************************************************** */
-	/* getJobsSearchListCountByUsername:                                      */
-	/* ********************************************************************** */
+	/* ---------------------------------------------------------------------- */
+	/* getJobsSearchListCountByUsernameUsingSqlSearchStr                      */
+	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings("rawtypes")
 	public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, List<OrderBy> orderByList) 
 			  throws TapisException
@@ -473,9 +469,7 @@ public final class JobsDao
             if (astCondition != null) whereCondition = whereCondition.and(astCondition);
             
       	}
-        /*if(searchList != null) {
-      		whereCondition = addSearchListToWhere(whereCondition, searchList);
-      	}*/
+       
       	List<OrderField> orderList = new ArrayList<OrderField>();
       	if(orderByList != null) {
       		for(int i = 0;i < listsize; i++) {
@@ -491,11 +485,7 @@ public final class JobsDao
             		orderList.add(colOrderBy.desc());
             	}
           	}
-            	
-            }
-      		
-        
-	 
+        }
       	// ------------------------- Build and execute SQL ----------------------------
       	int count = 0;
 	    Connection conn = null;
@@ -536,6 +526,7 @@ public final class JobsDao
 	        }
 	    return count;
     }
+	
 	/* ---------------------------------------------------------------------- */
 	/* getJobsSearchByUsername:                                               */
 	/*  summary attributes                                                    */
@@ -676,7 +667,7 @@ public final class JobsDao
 	
 	/* ---------------------------------------------------------------------- */
 	/* getJobSearchListByUsernameUsingSqlSearchStr:                           */
-	/* summary attributes  post end-point                                              */
+	/* summary attributes  post end-point                                     */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
@@ -731,7 +722,7 @@ public final class JobsDao
       		
         
 	 
-     // Build list of attributes we will be returning.
+        // Build list of attributes we will be returning.
         List<TableField> fieldList = new ArrayList<>();
         fieldList.add(Tables.JOBS.UUID);
         fieldList.add(Tables.JOBS.TENANT);
@@ -814,11 +805,12 @@ public final class JobsDao
 		
 	}
 	/* ---------------------------------------------------------------------- */
-	/* getJobsSearchByUsername:                                               */
-	/*  all attributes                                                                       */
+	/* getJobSearchAllAttributesByUsername:                                   */
+	/*  all attributes                                                        */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, 
+			List<OrderBy> orderByList,Integer limit, Integer skip) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -895,10 +887,7 @@ public final class JobsDao
 	          // Create Job object from Job objects.
 	          for (JobsRecord r : results)
 	          {
-	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
-	        	 //  r.setTags(Arrays.asList(r.getTags()));
-	        	 
-	            Job job = r.into(Job.class);
+	        	Job job = r.into(Job.class);
 	            jobs.add(job);
 	          }
 	          
@@ -937,11 +926,12 @@ public final class JobsDao
    
 	
 	/* ---------------------------------------------------------------------- */
-	/* getJobsSearchByUsername:                                               */
+	/* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
 	/*  all attributes                                                        */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<Job> getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	public List<Job> getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
+			List<OrderBy> orderByList,Integer limit, Integer skip) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -988,7 +978,7 @@ public final class JobsDao
             	}
           	}
             	
-            }
+          }
    
 	    // ------------------------- Build and execute SQL ----------------------------
 	    Connection conn = null;
@@ -1020,15 +1010,9 @@ public final class JobsDao
 	          // Create Job object from Job objects.
 	          for (JobsRecord r : results)
 	          {
-	        	 // _log.debug("tags field: " + Arrays.asList(r.getTags()).toString());
-	        	 //  r.setTags(Arrays.asList(r.getTags()));
-	        	 
-	            Job job = r.into(Job.class);
+	        	Job job = r.into(Job.class);
 	            jobs.add(job);
 	          }
-	          
-	          
-
 	          // Close out and commit
 	          if ((conn !=null)) conn.commit();
 	        }
@@ -1055,10 +1039,7 @@ public final class JobsDao
 		            }
 	        }
 	        return jobs;
-	          
-	        
-	}
-	
+	}	
 
 	/* ---------------------------------------------------------------------- */  
     /* getJobByUUID:                                                          */
