@@ -187,7 +187,8 @@ public final class JobParmSetMarshaller
         // both can be null or empty.
         IncludeExcludeFilter filter = new IncludeExcludeFilter();
         filter.setIncludes(appFilter.getIncludes());
-        filter.setExcludes(filter.getExcludes());
+        filter.setExcludes(appFilter.getExcludes());
+        filter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
         
         return filter;
     }
