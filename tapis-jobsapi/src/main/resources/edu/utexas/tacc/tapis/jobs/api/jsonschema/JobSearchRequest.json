@@ -1,0 +1,16 @@
+{
+  "$id": "https://tapis.tacc.utexas.edu/JobSearchRequest",
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Schema for a request to search for jobs",
+  "additionalProperties": false,
+
+  "type": "object",
+  "required": [ "search" ],
+  "properties": {
+    "search": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"}
+    }
+  }
+}
