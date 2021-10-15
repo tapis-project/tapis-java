@@ -24,6 +24,8 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.search.parser.ASTNode;
+import edu.utexas.tacc.tapis.search.parser.ASTParser;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -75,7 +77,7 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getJobListByUsername:                                                          */
+    /* getJobListByUsername:                                                  */
     /* ---------------------------------------------------------------------- */
     public List<JobListDTO> getJobListByUsername(String user, String tenant, List<OrderBy> orderByList, Integer limit,Integer skip) 
      throws TapisImplException
@@ -156,11 +158,51 @@ public final class JobsImpl
       return count;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* getJobsSearchListCountByUsernameUsingSqlSearchStr:                     */
+    /* ---------------------------------------------------------------------- */
+   
+    public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String user, String tenant, 
+    		String sqlSearchStr, List<OrderBy> orderByList) 
+    		throws TapisImplException
+    {
+    	// ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobsSearchListCountByUsernameUsingSqlSearchStr", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobsSearchListCountByUsernameUsingSqlSearchStr", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+     
+        ASTNode searchAST;
+        try { 
+        	searchAST = ASTParser.parse(sqlSearchStr); 
+        } catch (Exception e){
+           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+           _log.error(msg, e);
+           throw new IllegalArgumentException(msg);
+        }
+
+       int count= 0;
+
+       // Count all allowed jobs matching the search conditions
+       try {
+		 count =  getJobsDao().getJobsSearchListCountByUsernameUsingSqlSearchStr(user, tenant, searchAST, orderByList) ;
+	   } catch (TapisException e) {
+		 String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
+         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+	   }
+       return count;
+    }
     
     /* ---------------------------------------------------------------------- */
     /* getJobSearchListByUsername:                                            */
     /* ---------------------------------------------------------------------- */
-    public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
+    public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, 
+    		List<OrderBy> orderByList, Integer limit,Integer skip) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -207,9 +249,54 @@ public final class JobsImpl
     
     
     /* ---------------------------------------------------------------------- */
+    /* getJobSearchListByUsernameUsingSqlSearchStr:                           */
+    /* ---------------------------------------------------------------------- */
+    public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(String user, String tenant, 
+    		String sqlSearchStr, List<OrderBy> orderByList, Integer limit,Integer skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        if (StringUtils.isBlank(sqlSearchStr)) {
+        	return getJobSearchListByUsername(user, tenant, null,  orderByList, limit, skip) ;
+        } 
+        
+        ASTNode searchAST;
+        try { searchAST = ASTParser.parse(sqlSearchStr); }
+        catch (Exception e)
+        {
+          String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());;//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+          _log.error(msg, e);
+          throw new IllegalArgumentException(msg);
+        }
+       
+        // ----- Get the job list.
+        List<JobListDTO> jobList = null;
+        try {jobList = getJobsDao().getJobSearchListByUsernameUsingSqlSearchStr(user, tenant, searchAST,
+        		orderByList, limit, skip);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobList;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
     /* getJobSearchAllAttributesByUsername:                                   */
     /* ---------------------------------------------------------------------- */
-    public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList, List<OrderBy> orderByList, Integer limit,Integer skip) 
+    public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList,
+    		List<OrderBy> orderByList, Integer limit,Integer skip) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -253,6 +340,45 @@ public final class JobsImpl
         // Could be null if not found.
         return jobList;
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
+    /* ---------------------------------------------------------------------- */
+    public List<Job>  getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String user, String tenant,
+    		String sqlSearchStr , List<OrderBy> orderByList, Integer limit,Integer skip) 
+     throws TapisImplException
+    {
+        // ----- Check input.
+        
+        if (StringUtils.isBlank(user)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "user");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        if (StringUtils.isBlank(tenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobSearchListByUsername", "tenant");
+            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+        }
+        
+        ASTNode searchAST;
+        try { searchAST = ASTParser.parse(sqlSearchStr); }
+        catch (Exception e)
+        {
+          String msg =  MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+          _log.error(msg, e);
+          throw new IllegalArgumentException(msg);
+        }
+     
+        // ----- Get the job list.
+        List<Job> jobList = null;
+        try {jobList = getJobsDao().getJobSearchAllAttributesByUsernameUsingSqlSearchStr(user, tenant, searchAST,orderByList,limit,skip);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobList;
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* getJobByUuid:                                                          */
     /* ---------------------------------------------------------------------- */
@@ -304,7 +430,7 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getJobStatusByUuid:                                                          */
+    /* getJobStatusByUuid:                                                    */
     /* ---------------------------------------------------------------------- */
     public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant) 
      throws TapisImplException
@@ -397,7 +523,7 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getJobOutputDownloadInfo:                                                      */
+    /* getJobOutputDownloadInfo:                                              */
     /* ---------------------------------------------------------------------- */
     public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) throws TapisImplException
     {
@@ -440,7 +566,7 @@ public final class JobsImpl
     
     
     /* ---------------------------------------------------------------------- */
-    /* getJobEventByUuid:                                                          */
+    /* getJobEventByUuid:                                                     */
     /* ---------------------------------------------------------------------- */
     public List<JobEvent> getJobEventsByJobUuid(String jobUuid, String user, String tenant, int limit, int skip) 
      throws TapisImplException

@@ -12,9 +12,11 @@ public final class RespJobSearchAllAttributes extends RespAbstract{
 	public List<Job> result;
 	public RespJobSearchAllAttributes(List<Job> jobList, int limit, String orderBy, int skip, String startAfter, int totalCount) {
 		result = new ArrayList<>();
-	    for (Job job : jobList)
-	    {
-	      result.add(job);
+	    if(jobList != null) {
+			for (Job job : jobList)
+		    {
+		      result.add(job);
+		    }
 	    }
 
 	    ResultListMetadata meta = new ResultListMetadata();
