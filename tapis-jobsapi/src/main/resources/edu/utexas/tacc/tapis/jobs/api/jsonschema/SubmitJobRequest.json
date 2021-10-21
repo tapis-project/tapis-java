@@ -54,7 +54,6 @@
           },
           "execSystemExecDir": {
             "$comment": "Directory into which application assets are staged, default=${jobWorkingDir}/jobs/${jobID} where ${jobWorkingDir} = execution system working directory and ${jobID} = uuid of job assigned by Jobs service",
-            
             "type": "string",
             "maxLength": 4096
           },
@@ -104,7 +103,13 @@
           "fileInputs": {
             "$comment": "Input files staged for the application",
             "type": "array",
-            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/InputSpec"},
+            "items": {"$ref": "#/$defs/JobFileInput"},
+            "uniqueItems": true
+          },
+          "fileInputsArray": {
+            "$comment": "Input files staged for the application",
+            "type": "array",
+            "items": {"$ref": "#/$defs/JobFileInputArray"},
             "uniqueItems": true
           },
           "parameterSet": {
@@ -142,19 +147,19 @@
                     "appArgs": {
                         "$comment": "Command line arguments passed to the user application",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "#/$defs/JobArgSpec"},
                         "uniqueItems": true
                     },
                     "containerArgs": {
                         "$comment": "Command line arguments passed to the container runtime when running a container",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "#/$defs/JobArgSpec"},
                         "uniqueItems": true
                     },
                     "schedulerOptions": {
                         "$comment": "Arguments passed to the HPC batch scheduler",
                         "type": "array",
-                        "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/ArgSpec"},
+                        "items": {"$ref": "#/$defs/JobArgSpec"},
                         "uniqueItems": true
                     },
                     "envVariables": {
@@ -175,6 +180,38 @@
                     }
                 },
                 "additionalProperties": false
+        },
+        "JobFileInput": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
+                "autoMountLocal": { "type": "boolean"},
+                "sourceUrl": { "type": "string", "minLength": 1, "format": "uri" },
+                "targetPath": { "type": "string", "minLength": 0}
+            }
+        },
+        "JobFileInputArray": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "description": { "type": "string", "minLength": 1, "maxLength": 8096},
+                "sourceUrls": { "type": ["array", "null"], "items": { "type": "string", "format": "uri", "minLength": 1 } },       
+                "targetDir": { "type": "string", "minLength": 1 }
+            }
+        },
+        "JobArgSpec": {
+            "type": "object",
+            "required": [ "arg" ],     
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+                "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
+                "include": { "type": "boolean" },
+                "arg": { "type": "string", "minLength": 1 }
+            }
         }
     }
 }

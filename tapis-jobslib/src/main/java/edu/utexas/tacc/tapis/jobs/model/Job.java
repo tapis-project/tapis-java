@@ -145,7 +145,7 @@ public final class Job
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
     // asynchronous commands to a job is indeterminate anyway. The field
-    // contains last asynchronous message sent to this job that hasn't been read.
+    // contains the last unread asynchronous message sent to this job.
     @Schema(hidden = true)
     private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null);
     

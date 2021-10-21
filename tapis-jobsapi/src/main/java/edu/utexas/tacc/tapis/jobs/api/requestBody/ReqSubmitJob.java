@@ -3,8 +3,9 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.shared.model.InputSpec;
-import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -14,33 +15,34 @@ public class ReqSubmitJob
     /* **************************************************************************** */
     /*                                   Fields                                     */
     /* **************************************************************************** */
-    private String   			name;
-    private String   			owner;
-    private String   			tenant;
-    private String   			description;
-    private String   			appId;
-    private String   			appVersion;
-    private Boolean  			archiveOnAppError;  // not assigned by default
-    private Boolean             dynamicExecSystem;  // not assigned by default
-    private String   			execSystemId;
-    private String   			execSystemExecDir;
-    private String   			execSystemInputDir;
-    private String   			execSystemOutputDir;
-    private String              execSystemLogicalQueue;  // can be null
-    private String   			archiveSystemId;
-    private String   			archiveSystemDir;
-    private Integer   			nodeCount;
-    private Integer      		coresPerNode;
-    private Integer      		memoryMB;
-    private Integer      		maxMinutes;
-    private List<InputSpec>  	fileInputs;
-    private JobParameterSet 	parameterSet;             // assigned on first get
-    private List<String>        execSystemConstraints;    // don't call--used internally only
-    private List<String>        tags;                     // assigned on first get
+    private String   			    name;
+    private String   			    owner;
+    private String   			    tenant;
+    private String   			    description;
+    private String   			    appId;
+    private String   			    appVersion;
+    private Boolean  			    archiveOnAppError;  // not assigned by default
+    private Boolean                 dynamicExecSystem;  // not assigned by default
+    private String   			    execSystemId;
+    private String   			    execSystemExecDir;
+    private String   		     	execSystemInputDir;
+    private String   			    execSystemOutputDir;
+    private String                  execSystemLogicalQueue;  // can be null
+    private String   			    archiveSystemId;
+    private String   			    archiveSystemDir;
+    private Integer   			    nodeCount;
+    private Integer      		    coresPerNode;
+    private Integer      		    memoryMB;
+    private Integer      		    maxMinutes;
+    private List<JobFileInput>      fileInputs;
+    private List<JobFileInputArray> fileInputArrays;
+    private JobParameterSet 	    parameterSet;             // assigned on first get
+    private List<String>            execSystemConstraints;    // don't call--used internally only
+    private List<String>            tags;                     // assigned on first get
     private List<NotificationSubscription> subscriptions; // assigned on first get
     
     // Constraints flattened and aggregated from app and job request.
-    private transient String    consolidatedConstraints;          
+    private transient String        consolidatedConstraints;          
     
 
 	@Override
@@ -234,14 +236,23 @@ public class ReqSubmitJob
 		this.maxMinutes = maxMinutes;
 	}
 
-	public List<InputSpec> getFileInputs() {
-	    if (fileInputs == null) fileInputs = new ArrayList<InputSpec>();
+	public List<JobFileInput> getFileInputs() {
+	    if (fileInputs == null) fileInputs = new ArrayList<JobFileInput>();
 		return fileInputs;
 	}
 
-	public void setFileInputs(List<InputSpec> inputs) {
+	public void setFileInputs(List<JobFileInput> inputs) {
 		this.fileInputs = inputs;
 	}
+
+    public List<JobFileInputArray> getFileInputArrays() {
+        if (fileInputArrays == null) fileInputArrays = new ArrayList<JobFileInputArray>();
+        return fileInputArrays;
+    }
+
+    public void setFileInputArrays(List<JobFileInputArray> inputs) {
+        this.fileInputArrays = inputs;
+    }
 
 	public JobParameterSet getParameterSet() {
 	    // Create parameter set on demand if needed.
