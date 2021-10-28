@@ -1,5 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.model.submit;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
+import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+
 public class JobFileInput 
 {
     private String  name;
@@ -7,6 +10,21 @@ public class JobFileInput
     private Boolean autoMountLocal;
     private String  sourceUrl;
     private String  targetPath;
+    private boolean optional = false;
+    
+    // Import an app input into a request input.
+    public static JobFileInput importAppInput(AppFileInput appInput)
+    {
+        var reqInput = new JobFileInput();
+        reqInput.setName(appInput.getName());
+        reqInput.setDescription(appInput.getDescription());
+        reqInput.setAutoMountLocal(appInput.getAutoMountLocal());
+        reqInput.setSourceUrl(appInput.getSourceUrl());
+        reqInput.setTargetPath(appInput.getTargetPath());
+        if (appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
+            reqInput.setOptional(true);
+        return reqInput;
+    }
     
     public String getName() {
         return name;
@@ -37,5 +55,11 @@ public class JobFileInput
     }
     public void setTargetPath(String targetPath) {
         this.targetPath = targetPath;
+    }
+    public boolean isOptional() {
+        return optional;
+    }
+    public void setOptional(boolean optional) {
+        this.optional = optional;
     }
 }

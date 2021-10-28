@@ -13,10 +13,11 @@ import com.google.gson.reflect.TypeToken;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -136,11 +137,15 @@ public final class Job
     
     // The parsed version of the fileInputs json string cached for future use. 
     @Schema(hidden = true)
-    private List<InputSpec>    _fileInputsSpec;
+    private List<JobFileInput>      _fileInputsSpec;
+    
+    // The parsed version of the fileInputArrays json string cached for future use. 
+    @Schema(hidden = true)
+    private List<JobFileInputArray> _fileInputArraysSpec;
     
     // The parsed version of the parameterSet json string cached for future use. 
     @Schema(hidden = true)
-    private JobParameterSet    _parameterSetModel;
+    private JobParameterSet         _parameterSetModel;
     
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
@@ -217,11 +222,11 @@ public final class Job
     /* getFileInputsSpec:                                                           */
     /* ---------------------------------------------------------------------------- */
     @Schema(hidden = true)
-    public List<InputSpec> getFileInputsSpec() 
+    public List<JobFileInput> getFileInputsSpec() 
     {
         // Cache a version of the input spec if it doesn't exist.
         if (_fileInputsSpec == null) {
-            Type listType = new TypeToken<List<InputSpec>>(){}.getType();
+            Type listType = new TypeToken<List<JobFileInput>>(){}.getType();
             _fileInputsSpec = TapisGsonUtils.getGson().fromJson(fileInputs, listType);
         }
         
