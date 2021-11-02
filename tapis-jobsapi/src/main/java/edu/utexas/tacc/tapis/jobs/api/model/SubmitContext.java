@@ -825,7 +825,15 @@ public final class SubmitContext
     /* mergeFileInput:                                                              */
     /* ---------------------------------------------------------------------------- */
     /** Merge the application definition input values into the request input according
-     * to established precedence rules.
+     * to established precedence rules.  This method is called when an input in 
+     * the request has the same name as one in the application.  If the application
+     * definition specifies a FIXED inputMode, then the request is not allowed to make
+     * any changes to it.
+     * 
+     * The OPTIONAL inputMode means that it's ok for the input not to be staged for
+     * any reason.  Reasons include (1) not having a complete definition as statically 
+     * determined here, and (2) the source not exist as dynamically determined at
+     * runtime by the Files service.
      * 
      * @param reqInput non-null request input
      * @param appDef non-null application definition input
@@ -839,6 +847,7 @@ public final class SubmitContext
         // inputs do not cause an error, but return false so they can be ignored. 
         final var inputMode = appDef.getInputMode();
         
+        // ---- FIXED Inputs
         // Assign app values when the inputMode is FIXED.
         if (inputMode == FileInputModeEnum.FIXED) {
             assignFixedFileInput(reqInput, appDef);
@@ -861,6 +870,8 @@ public final class SubmitContext
             reqInput.setTargetPath(appDef.getTargetPath());
         if (StringUtils.isBlank(reqInput.getTargetPath()))
             reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         if (StringUtils.isBlank(reqInput.getTargetPath())) {
             if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
             var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
@@ -868,15 +879,12 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used (just like missing target case). 
-        if ("*".equals(reqInput.getTargetPath()))
-            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
             reqInput.setAutoMountLocal(appDef.getAutoMountLocal());
         if (reqInput.getAutoMountLocal() == null) 
-            reqInput.setAutoMountLocal(Boolean.TRUE); // *** TEMP until AppsClient changes.
+            reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
 
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -932,15 +940,14 @@ public final class SubmitContext
                                          "targetPath", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         // The app definition should not allow this, but we doublecheck.
         if (StringUtils.isBlank(reqInput.getTargetPath())) {
             String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used (just like missing target case). 
-        if ("*".equals(reqInput.getTargetPath()))
-            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -965,10 +972,12 @@ public final class SubmitContext
     /* completeRequestFileInput:                                                    */
     /* ---------------------------------------------------------------------------- */
     /** This method is called when a request file input does not match the name
-     * of any file input specified in the application definition.  It's also called
-     * when request inputs are created by importing an unreferenced app input.
+     * of any file input specified in the application definition, such as when the
+     * request input is anonymous or when a request input is created by importing an 
+     * unreferenced app input.  In both cases, the sourceUrl must be set before 
+     * calling this method.
      * 
-     * This method is not appropriate for optional inputs that cannot be completed. 
+     * This method is not appropriate for optional inputs that are allowed to be incomplete. 
      * 
      * @param reqInput a file input from the job request
      * @throws TapisImplException when source or target cannot be assigned
@@ -985,19 +994,18 @@ public final class SubmitContext
         // Set the target path if it's not set.
         if (StringUtils.isBlank(reqInput.getTargetPath()))
             reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         if (StringUtils.isBlank(reqInput.getTargetPath())) {
             var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
             String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
                                          reqInput.getSourceUrl(), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used (just like missing target case). 
-        if ("*".equals(reqInput.getTargetPath()))
-            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
 
         // Set the automount default value if needed.
         if (reqInput.getAutoMountLocal() == null) 
-            reqInput.setAutoMountLocal(Boolean.TRUE); // *** TEMP until AppsClient changes.
+            reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1090,8 +1098,8 @@ public final class SubmitContext
             if (processedAppInputNames.contains(appInputDef.getName())) continue;
             
             // Create a new request input from the REQUIRED or FIXED app input.
-            var reqInput = JobFileInput.importAppInput(appInputDef);
-            completeRequestFileInput(reqInput);
+            var reqInput = JobFileInputArray.importAppInputArray(appInputDef);
+            completeRequestFileInputArray(reqInput);
             processedAppInputNames.add(appInputDef.getName());
         }
     }
@@ -1100,7 +1108,15 @@ public final class SubmitContext
     /* mergeFileInputArray:                                                         */
     /* ---------------------------------------------------------------------------- */
     /** Merge the application definition input values into the request input according
-     * to established precedence rules.
+     * to established precedence rules.  This method is called when an input array in
+     * the request has the same name as one in the application.  If the application
+     * definition specifies a FIXED inputMode, then the request is not allowed to make
+     * any changes to it. 
+     * 
+     * The OPTIONAL inputMode means that it's ok for the input not to be staged for
+     * any reason.  Reasons include (1) not having a complete definition as statically 
+     * determined here, and (2) the source not exist as dynamically determined at
+     * runtime by the Files service.
      * 
      * @param reqInput non-null request input array
      * @param appDef non-null application definition input array
@@ -1114,6 +1130,7 @@ public final class SubmitContext
         // inputs do not cause an error, but return false so they can be ignored. 
         final var inputMode = appDef.getInputMode();
         
+        // ---- FIXED Inputs
         // Assign app values when the inputMode is FIXED.
         if (inputMode == FileInputModeEnum.FIXED) {
             assignFixedFileInputArray(reqInput, appDef);
@@ -1122,9 +1139,9 @@ public final class SubmitContext
         
         // ---- REQUIRED or OPTIONAL Inputs
         // Assign the source if necessary.
-        if (StringUtils.isBlank(reqInput.getSourceUrl()))
-            reqInput.setSourceUrl(appDef.getSourceUrl());
-        if (StringUtils.isBlank(reqInput.getSourceUrl())) {
+        if (reqInput.emptySourceUrls())
+            reqInput.setSourceUrls(appDef.getSourceUrls());
+        if (reqInput.emptySourceUrls()) {
             if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
             var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), name);
@@ -1132,27 +1149,20 @@ public final class SubmitContext
         }
         
         // Calculate the target if necessary.
-        if (StringUtils.isBlank(reqInput.getTargetPath()))
-            reqInput.setTargetPath(appDef.getTargetPath());
-        if (StringUtils.isBlank(reqInput.getTargetPath()))
-            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
-        if (StringUtils.isBlank(reqInput.getTargetPath())) {
+        if (StringUtils.isBlank(reqInput.getTargetDir()))
+            reqInput.setTargetDir(appDef.getTargetDir());
+        if (StringUtils.isBlank(reqInput.getTargetDir()))
+            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
+        if ("*".equals(reqInput.getTargetDir())) // assign default for asterisk
+            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
+        if (StringUtils.isBlank(reqInput.getTargetDir())) {
             if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
             var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
             String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
-                                         reqInput.getSourceUrl(), name);
+                                         reqInput.getSourceUrls().get(0), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used (just like missing target case). 
-        if ("*".equals(reqInput.getTargetPath()))
-            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         
-        // Fill in the automount flag.
-        if (reqInput.getAutoMountLocal() == null)
-            reqInput.setAutoMountLocal(appDef.getAutoMountLocal());
-        if (reqInput.getAutoMountLocal() == null) 
-            reqInput.setAutoMountLocal(Boolean.TRUE); // *** TEMP until AppsClient changes.
-
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
             reqInput.setDescription(appDef.getDescription());
@@ -1207,15 +1217,14 @@ public final class SubmitContext
                                          "targetDir", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        if ("*".equals(reqInput.getTargetDir())) // assign default for asterisk
+            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
         // The app definition should not allow this, but we doublecheck.
         if (StringUtils.isBlank(reqInput.getTargetDir())) {
             String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used. 
-        if ("*".equals(reqInput.getTargetDir()))
-            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1231,10 +1240,12 @@ public final class SubmitContext
     /* completeRequestFileInputArray:                                               */
     /* ---------------------------------------------------------------------------- */
     /** This method is called when a request file input array does not match the name
-     * of any file input specified in the application definition.  It's also called
-     * when request inputs are created by importing an unreferenced app input array.
+     * of any file input specified in the application definition, such as when the the
+     * request input is anonymous or when when a request input is created by importing 
+     * an unreferenced app input array.  In both cases, the sourceUrls must be set before 
+     * calling this method.
      * 
-     * This method is not appropriate for optional input arrays that cannot be completed. 
+     * This method is not appropriate for optional input arrays that are allowed to be incomplete. 
      * 
      * @param reqInput a file input array from the job request
      * @throws TapisImplException when source or target cannot be assigned
@@ -1252,15 +1263,14 @@ public final class SubmitContext
         // always be set by now, but we check anyway to provide an extra firewall.
         if (StringUtils.isBlank(reqInput.getTargetDir()))
             reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
+        if ("*".equals(reqInput.getTargetDir())) // assign default for asterisk
+            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
         if (StringUtils.isBlank(reqInput.getTargetDir())) {
             var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
             String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
                                          reqInput.getSourceUrls().get(0), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // Assign default target when a single asterisk is used (just like missing target case). 
-        if ("*".equals(reqInput.getTargetDir()))
-            reqInput.setTargetDir(_submitReq.getExecSystemInputDir());
     }
     
     /* ---------------------------------------------------------------------------- */

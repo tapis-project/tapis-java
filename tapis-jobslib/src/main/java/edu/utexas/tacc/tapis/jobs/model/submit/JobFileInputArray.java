@@ -2,12 +2,16 @@ package edu.utexas.tacc.tapis.jobs.model.submit;
 
 import java.util.List;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
+import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+
 public class JobFileInputArray 
 {
     private String       name;
     private String       description;
     private List<String> sourceUrls;
     private String       targetDir;
+    private boolean      optional = false;
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
@@ -35,6 +39,19 @@ public class JobFileInputArray
         return true;
     }
     
+    // Import an app input into a request input.
+    public static JobFileInputArray importAppInputArray(AppFileInputArray appInput)
+    {
+        var reqInput = new JobFileInputArray();
+        reqInput.setName(appInput.getName());
+        reqInput.setDescription(appInput.getDescription());
+        reqInput.setSourceUrls(appInput.getSourceUrls());
+        reqInput.setTargetDir(appInput.getTargetDir());
+        if (appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
+            reqInput.setOptional(true);
+        return reqInput;
+    }
+    
     public String getName() {
         return name;
     }
@@ -58,5 +75,11 @@ public class JobFileInputArray
     }
     public void setTargetDir(String targetDir) {
         this.targetDir = targetDir;
+    }
+    public boolean isOptional() {
+        return optional;
+    }
+    public void setOptional(boolean optional) {
+        this.optional = optional;
     }
 }
