@@ -18,9 +18,12 @@ public class JobFileInput
         var reqInput = new JobFileInput();
         reqInput.setName(appInput.getName());
         reqInput.setDescription(appInput.getDescription());
+
         reqInput.setAutoMountLocal(appInput.getAutoMountLocal());
+        
         reqInput.setSourceUrl(appInput.getSourceUrl());
         reqInput.setTargetPath(appInput.getTargetPath());
+        
         if (appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
             reqInput.setOptional(true);
         return reqInput;

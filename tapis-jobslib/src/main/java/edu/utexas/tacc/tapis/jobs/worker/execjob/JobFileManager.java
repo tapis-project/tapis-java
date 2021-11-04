@@ -25,6 +25,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -32,8 +33,9 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
-import edu.utexas.tacc.tapis.shared.model.InputSpec;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHScpClient;
+import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
+import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
@@ -409,19 +411,14 @@ public final class JobFileManager
         // Assign each input task.
         for (var fileInput : fileInputs) {
             // Skip files that are already in-place. 
-            if (fileInput.getInPlace() != null && fileInput.getInPlace()) continue;
-            
-            // Determine the optional value.
-            Boolean optional = Boolean.FALSE;
-            if (fileInput.getMeta() != null && 
-                fileInput.getMeta().getRequired() == Boolean.FALSE)
-                optional = Boolean.TRUE;
+            if (fileInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
+                continue;
             
             // Assign the task.
             var task = new TransferTaskRequestElement().
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
-            task.setOptional(optional);;
+            task.setOptional(fileInput.isOptional());;
             tasks.addElementsItem(task);
         }
         
@@ -821,7 +818,7 @@ public final class JobFileManager
      * @param fileInput a file input spec
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysInputUrl(InputSpec fileInput)
+    private String makeExecSysInputUrl(JobFileInput fileInput)
     {
         return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemInputDir(), 
                               fileInput.getTargetPath());
@@ -901,7 +898,7 @@ public final class JobFileManager
     private String makeSystemUrl(String systemId, String basePath, String pathName)
     {
         // Start with the system id.
-        String url = "tapis://" + systemId;
+        String url = TapisUrl.TAPIS_PROTOCOL_PREFIX + systemId;
         
         // Add the job's put input path.
         if (basePath.startsWith("/")) url += basePath;
