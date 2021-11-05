@@ -43,8 +43,10 @@ public final class Job
 	// paths and required on absolute paths.  When the full path names of relative 
 	// paths are constructed, double slashes at the point of concatenation are prevented.
 	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
+	public static final String DEFAULT_EXEC_SYSTEM_EXEC_DIR    = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
 	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
 	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${DtnMountPoint}/jobs/${JobUUID}";
+	public static final String DEFAULT_DTN_SYSTEM_EXEC_DIR     = DEFAULT_DTN_SYSTEM_INPUT_DIR;
 	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
@@ -174,44 +176,6 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     @Override
     public String toString() {return TapisUtils.toString(this);}
-
-    /* ---------------------------------------------------------------------------- */
-    /* constructDefaultExecSystemExecDir:                                           */
-    /* ---------------------------------------------------------------------------- */
-    /** Construct the default path name for the exec system exec directory given the
-     * specified input directory.  If the input directory is null, then the exec
-     * directory path name is constructed relative to the default input directory.
-     * 
-     * @param inputDir the path name relative to which the exec directory path name 
-     *                 is constructed or null 
-     * @return the constructed exec directory path name
-     */
-    public static String constructDefaultExecSystemExecDir(String inputDir, boolean useDTN)
-    {
-        if (StringUtils.isBlank(inputDir)) 
-            if (useDTN) return DEFAULT_DTN_SYSTEM_INPUT_DIR;
-              else return DEFAULT_EXEC_SYSTEM_INPUT_DIR;
-        return inputDir;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* constructDefaultExecSystemOutputDir:                                         */
-    /* ---------------------------------------------------------------------------- */
-    /** Construct the default path name for the exec system output directory given the
-     * specified input directory.  If the input directory is null, then the exec
-     * directory path name is constructed relative to the default input directory.
-     * 
-     * @param inputDir the path name relative to which the output directory path name 
-     *                 is constructed or null 
-     * @return the constructed output directory path name
-     */
-    public static String constructDefaultExecSystemOutputDir(String inputDir, boolean useDTN)
-    {
-        if (StringUtils.isBlank(inputDir)) 
-            if (useDTN) return DEFAULT_DTN_SYSTEM_OUTPUT_DIR;
-              else return DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
-        return StringUtils.removeEnd(inputDir, "/") + "/output";
-    }
 
     /* ---------------------------------------------------------------------------- */
     /* getFileInputsSpec:                                                           */

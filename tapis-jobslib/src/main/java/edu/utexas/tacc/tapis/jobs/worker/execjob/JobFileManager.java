@@ -378,6 +378,22 @@ public final class JobFileManager
                         components);
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* makeAbsExecSysTapisLocalPath:                                          */
+    /* ---------------------------------------------------------------------- */
+    /** Construct the absolute path on the execution system where the pre-positioned
+     * tapislocal input resides.
+     * 
+     * @param execSystemRootDir the root directory of the execution system
+     * @param sourceUrl the path under the root directory where the input resides
+     * @return the absolute path on the execution system where the input resides 
+     */
+    public String makeAbsExecSysTapisLocalPath(String execSystemRootDir, 
+                                               String sourceUrl)
+    {
+        return makePath(execSystemRootDir, TapisUtils.extractFilename(sourceUrl));
+    }
+    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

@@ -649,15 +649,19 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
-            _submitReq.setExecSystemExecDir(
-                Job.constructDefaultExecSystemExecDir(_submitReq.getExecSystemInputDir(), useDTN));
+            if (useDTN)
+                _submitReq.setExecSystemExecDir(Job.DEFAULT_DTN_SYSTEM_EXEC_DIR);
+            else
+                _submitReq.setExecSystemExecDir(Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR);
         
         // Output path.
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
-            _submitReq.setExecSystemOutputDir(
-                Job.constructDefaultExecSystemOutputDir(_submitReq.getExecSystemInputDir(), useDTN));
+            if (useDTN)
+                _submitReq.setExecSystemOutputDir(Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR);
+            else
+                _submitReq.setExecSystemOutputDir(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR);
       
         // --------------------- Archive System ------------------
         // Set the archive system directory.
@@ -676,6 +680,7 @@ public final class SubmitContext
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
+        // Remove ".." segments in path. 
         sanitizeDirectoryPathnames();
     }
     

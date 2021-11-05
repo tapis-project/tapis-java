@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.model.submit;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 
 public class JobFileInput 
 {
@@ -27,6 +28,12 @@ public class JobFileInput
         if (appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
             reqInput.setOptional(true);
         return reqInput;
+    }
+    
+    public boolean isTapisLocal() {
+        if (sourceUrl == null) return false;
+        if (sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX)) return true;
+        return false;
     }
     
     public String getName() {
