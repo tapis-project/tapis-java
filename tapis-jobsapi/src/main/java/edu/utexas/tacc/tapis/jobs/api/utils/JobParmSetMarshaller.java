@@ -9,7 +9,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppArgSpec;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppInputModeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ArgInputModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
@@ -112,7 +112,7 @@ public final class JobParmSetMarshaller
                 // Args that originate from the application definition
                 // always get a non-null inputMode. 
                 var inputMode = appArg.getInputMode();
-                if (inputMode == null) inputMode = AppInputModeEnum.INCLUDE_ON_DEMAND;
+                if (inputMode == null) inputMode = ArgInputModeEnum.INCLUDE_ON_DEMAND;
                 
                 // Process the application argument.
                 switch (inputMode) {
@@ -245,7 +245,7 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* makeScratchArg:                                                              */
     /* ---------------------------------------------------------------------------- */
-    private ScratchArgSpec makeScratchArg(AppArgSpec appArg, AppInputModeEnum inputMode)
+    private ScratchArgSpec makeScratchArg(AppArgSpec appArg, ArgInputModeEnum inputMode)
     {
         return new ScratchArgSpec(convertToJobArgSpec(appArg), inputMode);
     }
@@ -415,7 +415,7 @@ public final class JobParmSetMarshaller
         while (it.hasNext()) {
             var elem = it.next();
             if (StringUtils.isBlank(elem._jobArg.getArg()))
-                if (elem._inputMode == AppInputModeEnum.INCLUDE_BY_DEFAULT) {
+                if (elem._inputMode == ArgInputModeEnum.INCLUDE_BY_DEFAULT) {
                     it.remove();
                 }
                 else {
@@ -541,10 +541,10 @@ public final class JobParmSetMarshaller
     // Simple record for internal use only.
     private static final class ScratchArgSpec
     {
-        private AppInputModeEnum _inputMode;
+        private ArgInputModeEnum _inputMode;
         private JobArgSpec       _jobArg;
         
-        private ScratchArgSpec(JobArgSpec jobArg, AppInputModeEnum inputMode) 
+        private ScratchArgSpec(JobArgSpec jobArg, ArgInputModeEnum inputMode) 
         {_jobArg = jobArg; _inputMode = inputMode;}
     }
 }
