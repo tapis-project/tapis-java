@@ -3,7 +3,7 @@ package edu.utexas.tacc.tapis.jobs.model.submit;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
+import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 
 /** This is the java model for the parameterSet JSON value defined in 
@@ -31,8 +31,7 @@ public class JobParameterSet
         if (containerArgs == null) containerArgs = new ArrayList<JobArgSpec>();
         if (schedulerOptions == null) schedulerOptions = new ArrayList<JobArgSpec>();
         if (envVariables == null) envVariables = new ArrayList<KeyValuePair>();
-        if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter();
-        archiveFilter.initAll();
+        if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter(); // initAll called
     }
     
     public List<JobArgSpec> getAppArgs() {

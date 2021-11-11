@@ -47,7 +47,8 @@ public class JobFileInputArray
         reqInput.setDescription(appInput.getDescription());
         reqInput.setSourceUrls(appInput.getSourceUrls());
         reqInput.setTargetDir(appInput.getTargetDir());
-        if (appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
+        if (appInput.getInputMode() == null ||
+            appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
             reqInput.setOptional(true);
         return reqInput;
     }

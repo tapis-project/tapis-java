@@ -10,12 +10,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppArgSpec;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ArgInputModeEnum;
+import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 
 public final class JobParmSetMarshaller 
@@ -447,11 +447,13 @@ public final class JobParmSetMarshaller
         if (appFilter == null) return null;
         
         // Populate each of the filter lists.  Either or
-        // both can be null or empty.
-        IncludeExcludeFilter filter = new IncludeExcludeFilter();
+        // both input lists can be null or empty; we 
+        // initialize null lists after all assignments.
+        IncludeExcludeFilter filter = new IncludeExcludeFilter(false);
         filter.setIncludes(appFilter.getIncludes());
         filter.setExcludes(appFilter.getExcludes());
         filter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
+        filter.initAll(); // assign empty lists if null
         
         return filter;
     }
