@@ -106,7 +106,7 @@
             "items": {"$ref": "#/$defs/JobFileInput"},
             "uniqueItems": true
           },
-          "fileInputsArray": {
+          "fileInputArrays": {
             "$comment": "Input files staged for the application",
             "type": "array",
             "items": {"$ref": "#/$defs/JobFileInputArray"},

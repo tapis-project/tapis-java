@@ -127,6 +127,9 @@ public final class SubmitContext
         // Substitute values for tapis macros.
         assignMacros();
         
+        // Canonicalize paths.
+        finalizePaths();
+        
         // Assign validated values to all job fields.
         populateJob();
         
@@ -350,7 +353,7 @@ public final class SubmitContext
         mergeSubscriptions();
         
         // Merge and validate input files. Array inputs should be processed 
-        // after the single inputs.Array inputs get expanded into single 
+        // after the single inputs.  Array inputs get expanded into single 
         // input objects and added to the inputs list.
         resolveFileInputs();
         resolveFileInputArrays();
@@ -680,15 +683,33 @@ public final class SubmitContext
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
-        // Remove ".." segments in path. 
+        // Detect ".." segments in path early. 
         sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* finalizePaths:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** This method does the final checking and normalizing of paths.  The path 
+     * sanitizer is called a second time in case ".." was introduced via macro
+     * substitution.  We then contract multiple slashes and remove trailing slashes.  
+     * 
+     * @throws TapisImplException
+     */
+    private void finalizePaths() throws TapisImplException
+    {
+        // Detect ".." segments in macro-expanded paths.
+        sanitizeDirectoryPathnames();
+        
+        // Canonicalize path.
+        canonicalizeDirectoryPathnames();
     }
     
     /* ---------------------------------------------------------------------------- */
     /* sanitizeDirectoryPathnames:                                                  */
     /* ---------------------------------------------------------------------------- */
-    /** Check the assigned directory pathnames for prohibited path traversal 
-     * characters
+    /** Check the assigned directory pathnames for prohibited path traversal characters.
+     * 
      * @throws TapisImplException
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
@@ -713,6 +734,48 @@ public final class SubmitContext
         	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
         	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* canonicalizeDirectoryPathnames:                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Replace multiple slashes with a single slash and remove trailing slashes.
+     * This method is called after all macro substitution.
+     * 
+     * This method is intended to work on posix path names only (not uri's).
+     * 
+     * @throws TapisImplException if canonicalization fails
+     */
+    private void canonicalizeDirectoryPathnames() throws TapisImplException
+    {
+        // --------------------- Canonicalize ExecSystemInputDir -----------------
+        try {_submitReq.setExecSystemInputDir(Path.of(_submitReq.getExecSystemInputDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ExecSystemExecDir ------------------
+        try {_submitReq.setExecSystemExecDir(Path.of(_submitReq.getExecSystemExecDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ExecSystemOutputDir ----------------
+        try {_submitReq.setExecSystemOutputDir(Path.of(_submitReq.getExecSystemOutputDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ArchiveSystemDir -------------------
+        try {_submitReq.setArchiveSystemDir(Path.of(_submitReq.getArchiveSystemDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1343,7 +1406,9 @@ public final class SubmitContext
                 
                 // Assign paths.
                 reqInput.setSourceUrl(curArray.getSourceUrls().get(j));
-                reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+                String target = Path.of(curArray.getTargetDir(), 
+                                        TapisUtils.extractFilename(reqInput.getSourceUrl())).toString();
+                reqInput.setTargetPath(target);
             
                 // Save the new object in the 
                 _submitReq.getFileInputs().add(reqInput);
