@@ -477,6 +477,8 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_WORKING_DIR", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        // Make sure the working directory is clean.
+        sanitizePath(_execSystem.getJobWorkingDir(), "jobWorkingDir");
         // Make sure at least one job runtime is defined.
         if (_execSystem.getJobRuntimes() == null || _execSystem.getJobRuntimes().isEmpty()) {
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_RUNTIME", _execSystem.getId());
@@ -714,25 +716,21 @@ public final class SubmitContext
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
-    	// --------------------- Sanitizing ExecSystemInputDir -----------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemInputDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        // --------------------- Sanitizing ExecSystemExecDir ------------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemExecDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        // --------------------- Sanitizing ExecSystemOutputDir ----------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemOutputDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        // --------------------- Sanitizing ArchiveSystemDir -------------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getArchiveSystemDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        // Check each of the user specified directories.
+        sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
+        sanitizePath(_submitReq.getExecSystemExecDir(),   "ExecSystemExecDir");
+        sanitizePath(_submitReq.getExecSystemOutputDir(), "ExecSystemOutputDir");
+        sanitizePath(_submitReq.getArchiveSystemDir(),    "ArchiveSystemDir");
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* sanitizePath:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    private void sanitizePath(String path, String displayName) throws TapisImplException
+    {
+        if (PathSanitizer.hasParentTraversal(path)) {
+            String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", displayName, path);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
     
@@ -1077,6 +1075,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        sanitizePath(reqInput.getTargetPath(), "fileInputs.targetPath");
 
         // Set the automount default value if needed.
         if (reqInput.getAutoMountLocal() == null) 
@@ -1342,7 +1341,7 @@ public final class SubmitContext
         
         // Set the target directory if it's not set.  The default is to designate
         // the execSystemInputDir as the target directory.  An asterisk is an
-        // alternate way of specifying the execSystemInputDir
+        // alternate way of specifying the execSystemInputDir.
         if (StringUtils.isBlank(reqInput.getTargetDir())) reqInput.setTargetDir("/");
         if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
         if (StringUtils.isBlank(reqInput.getTargetDir())) {
@@ -1351,6 +1350,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), name);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        sanitizePath(reqInput.getTargetDir(), "fileInputArrays.targetDir");
     }
     
     /* ---------------------------------------------------------------------------- */
