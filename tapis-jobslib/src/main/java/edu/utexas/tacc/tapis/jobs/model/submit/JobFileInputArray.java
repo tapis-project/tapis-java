@@ -4,6 +4,7 @@ import java.util.List;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class JobFileInputArray 
 {
@@ -11,6 +12,8 @@ public class JobFileInputArray
     private String       description;
     private List<String> sourceUrls;
     private String       targetDir;
+    
+    @Schema(hidden = true)
     private boolean      optional = false;
     
     public boolean emptySourceUrls()
@@ -77,9 +80,11 @@ public class JobFileInputArray
     public void setTargetDir(String targetDir) {
         this.targetDir = targetDir;
     }
+    @Schema(hidden = true)
     public boolean isOptional() {
         return optional;
     }
+    @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
     }
