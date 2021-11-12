@@ -48,6 +48,7 @@ import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -894,6 +895,17 @@ public final class SubmitContext
             reqInputs.add(reqInput);
             processedAppInputNames.add(appInput.getName());
         }
+        
+        // Standardize the system name on tapislocal sources to be "exec.tapis" 
+        // if the user specified some other systemId.  This replace is done on a best 
+        // effort basis since the systemId is ignored when tapislocal is used.
+        for (var reqInput : reqInputs) {
+            String sourceUrl = reqInput.getSourceUrl();
+            if (sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX) &&
+                !sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_FULL_PREFIX))
+               try {reqInput.setSourceUrl(TapisLocalUrl.makeTapisLocalUrl(sourceUrl).toString());}
+                    catch (Exception e) {}
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1366,6 +1378,7 @@ public final class SubmitContext
      * @param arrays non-null list of input array objects
      */
     private void marshallFileInputArrays(List<JobFileInputArray> arrays)
+     throws TapisImplException
     {
         // Process each array.
         for (int i = 0; i < arrays.size(); i++) {
@@ -1404,8 +1417,16 @@ public final class SubmitContext
                 reqInput.setAutoMountLocal(Boolean.FALSE);
                 reqInput.setOptional(curArray.isOptional());
                 
-                // Assign paths.
+                // Assign source path and prohibit tapislocal urls.
                 reqInput.setSourceUrl(curArray.getSourceUrls().get(j));
+                if (reqInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX)) {
+                    String arrayName = StringUtils.isBlank(curArray.getName()) ? "unnamed" : curArray.getName();
+                    String msg = MsgUtils.getMsg("JOBS_TAPISLOCAL_NOT_ALLOWED", 
+                                                 reqInput.getSourceUrl(), arrayName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Assign target path.
                 String target = Path.of(curArray.getTargetDir(), 
                                         TapisUtils.extractFilename(reqInput.getSourceUrl())).toString();
                 reqInput.setTargetPath(target);
