@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.model.submit;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class JobFileInput 
 {
@@ -11,6 +12,8 @@ public class JobFileInput
     private Boolean autoMountLocal;
     private String  sourceUrl;
     private String  targetPath;
+    
+    @Schema(hidden = true)
     private boolean optional = false;
     
     // Import an app input into a request input.
@@ -32,6 +35,7 @@ public class JobFileInput
         return reqInput;
     }
     
+    @Schema(hidden = true)
     public boolean isTapisLocal() {
         if (sourceUrl == null) return false;
         if (sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX)) return true;
@@ -68,9 +72,11 @@ public class JobFileInput
     public void setTargetPath(String targetPath) {
         this.targetPath = targetPath;
     }
+    @Schema(hidden = true)
     public boolean isOptional() {
         return optional;
     }
+    @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
     }

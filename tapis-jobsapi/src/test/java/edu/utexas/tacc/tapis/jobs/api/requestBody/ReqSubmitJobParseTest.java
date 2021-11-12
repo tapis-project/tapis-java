@@ -165,7 +165,7 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
-		           + "\"fileInputsArray\": [{\"name\": \"bananas\", "
+		           + "\"fileInputArrays\": [{\"name\": \"bananas\", "
 				   + "                      \"sourceUrls\": [\"https:host1/path1\", \"https:host2/path2/cows\"], " 
 		           +                       "\"targetDir\": \"*\"}] ,"
 				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
