@@ -1680,7 +1680,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Do we even need a queue?
-        if (!_execSystem.getJobIsBatch()) return;
+        if (!_execSystem.getCanRunBatch()) return;
         
         // We need a queue.
         if (StringUtils.isBlank(logicalQueueName)) {
@@ -1718,7 +1718,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Does this job even use a queue?
-        if (!_execSystem.getJobIsBatch()) return;
+        if (!_execSystem.getCanRunBatch()) return;
         
         // Get the queue definition which is guaranteed to exist.
         var queueName = _submitReq.getExecSystemLogicalQueue();
