@@ -1,9 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -24,16 +24,16 @@ public class JobCancelerFactory {
     public static JobCanceler getInstance(JobExecutionContext jobCtx) 
      throws TapisException 
     {
-    	 // Extract required information from app.
+    	 // Extract required information from app and job.
         var app = jobCtx.getApp();
-        var appType = app.getAppType();
         var runtime = app.getRuntime();
+        var jobType = jobCtx.getJob().getJobType();
         
         // The result.
         JobCanceler canceler = null;
         
         // ------------------------- FORK -------------------------
-       if (appType == AppTypeEnum.FORK) {
+       if (jobType == JobType.FORK) {
     	   canceler = switch (runtime) {
                 case DOCKER      -> new DockerNativeCanceler(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
@@ -45,7 +45,7 @@ public class JobCancelerFactory {
             };
         }
         // ------------------------- BATCH ------------------------
-        else if (appType == AppTypeEnum.BATCH) {
+        else if (jobType == JobType.BATCH) {
             // Get the scheduler under which containers were launched.
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
@@ -69,7 +69,7 @@ public class JobCancelerFactory {
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobCancelerFactory");
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobCancelerFactory");
             throw new JobException(msg);
         }
 		return canceler;

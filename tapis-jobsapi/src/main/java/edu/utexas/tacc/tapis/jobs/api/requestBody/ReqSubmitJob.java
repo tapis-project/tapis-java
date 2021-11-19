@@ -21,6 +21,7 @@ public class ReqSubmitJob
     private String   			    description;
     private String   			    appId;
     private String   			    appVersion;
+    private String                  jobType;
     private Boolean  			    archiveOnAppError;  // not assigned by default
     private Boolean                 dynamicExecSystem;  // not assigned by default
     private String   			    execSystemId;
@@ -131,6 +132,14 @@ public class ReqSubmitJob
 	public void setAppVersion(String appVersion) {
 		this.appVersion = appVersion;
 	}
+
+    public String getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
+    }
 
 	public Boolean getArchiveOnAppError() {
 		return archiveOnAppError;

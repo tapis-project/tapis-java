@@ -13,6 +13,7 @@ import com.google.gson.reflect.TypeToken;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
@@ -127,6 +128,8 @@ public final class Job
     private String   			createdby;
     private String   			createdbyTenant;
     private TreeSet<String>     tags;
+    
+    private JobType             jobType; // should never be null after db migration
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -410,6 +413,10 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "createdbyTenant");
             throw new JobException(msg);
         }
+        if (jobType == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
+            throw new JobException(msg);
+        }
     }
     
     /* ---------------------------------------------------------------------- */
@@ -536,6 +543,14 @@ public final class Job
 	public void setAppVersion(String appVersion) {
 		this.appVersion = appVersion;
 	}
+
+    public JobType getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(JobType jobType) {
+        this.jobType = jobType;
+    }
 
 	public boolean isArchiveOnAppError() {
 		return archiveOnAppError;

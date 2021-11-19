@@ -1,9 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicyParameters;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.StepwiseBackoffPolicy;
@@ -51,14 +51,14 @@ public class JobMonitorFactory
     {
         // Extract required information from app.
         var app = jobCtx.getApp();
-        var appType = app.getAppType();
         var runtime = app.getRuntime();
+        var jobType = jobCtx.getJob().getJobType();
         
         // The result.
         JobMonitor monitor = null;
         
         // ------------------------- FORK -------------------------
-        if (appType == AppTypeEnum.FORK) {
+        if (jobType == JobType.FORK) {
             monitor = switch (runtime) {
                 case DOCKER      -> new DockerNativeMonitor(jobCtx, policy);
                 case SINGULARITY -> getSingularityOption(jobCtx, policy, app);
@@ -70,7 +70,7 @@ public class JobMonitorFactory
             };
         }
         // ------------------------- BATCH ------------------------
-        else if (appType == AppTypeEnum.BATCH) {
+        else if (jobType == JobType.BATCH) {
             // Get the scheduler under which containers will be launched.
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
@@ -94,7 +94,7 @@ public class JobMonitorFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobMonitorFactory");
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobMonitorFactory");
             throw new JobException(msg);
         }
         

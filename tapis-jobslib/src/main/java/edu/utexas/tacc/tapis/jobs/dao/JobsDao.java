@@ -39,6 +39,7 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
@@ -1317,6 +1318,7 @@ public final class JobsDao
                 tagsArray = conn.createArrayOf("text", sarray);
             }
           pstmt.setArray(35, tagsArray);
+          pstmt.setString(36, job.getJobType().name());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -2883,7 +2885,11 @@ public final class JobsDao
 	                for (String s1 : stringArray) tagsSet.add(s1);
 	                obj.setTags(tagsSet);
 	            }
-	        } 
+	        }
+	        
+	        // Could be null until databases are migrated.
+	        String jobType = rs.getString(56);
+	        if (jobType != null) obj.setJobType(JobType.valueOf(jobType));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

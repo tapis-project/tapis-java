@@ -1,9 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
 import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
@@ -29,16 +29,16 @@ public final class JobExecStageFactory
     public static JobExecStager getInstance(JobExecutionContext jobCtx) 
      throws TapisException 
     {
-        // Extract required information from app.
+        // Extract required information from app and job.
         var app     = jobCtx.getApp();
-        var appType = app.getAppType();
         var runtime = app.getRuntime();
+        var jobType = jobCtx.getJob().getJobType();
         
         // The result.
         JobExecStager stager = null;
         
         // ------------------------- FORK -------------------------
-        if (appType == AppTypeEnum.FORK) {
+        if (jobType == JobType.FORK) {
             stager = switch (runtime) {
                 case DOCKER      -> new DockerNativeStager(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
@@ -50,7 +50,7 @@ public final class JobExecStageFactory
             };
         }
         // ------------------------- BATCH ------------------------
-        else if (appType == AppTypeEnum.BATCH) {
+        else if (jobType == JobType.BATCH) {
             // Get the scheduler under which containers will be launched.
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
@@ -74,7 +74,7 @@ public final class JobExecStageFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobExecStageFactory");
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobExecStageFactory");
             throw new JobException(msg);
         }
         

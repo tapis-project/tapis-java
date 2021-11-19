@@ -39,6 +39,11 @@
             "minLength": 1,
             "maxLength": 64
           },
+          "jobType": {
+            "$comment": "The type of job to be run",
+            "type": "string",
+            "enum": [ "FORK", "BATCH" ]
+          },
           "archiveOnAppError": {
             "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"

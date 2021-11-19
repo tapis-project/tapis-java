@@ -9,11 +9,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -426,8 +425,7 @@ public final class StepwiseBackoffPolicy
         
         // See if the execution system specifies a remote scheduler.
         try {
-            TapisApp app = jobCtx.getApp();
-            if (app.getAppType() == AppTypeEnum.BATCH) return true;
+            if (jobCtx.getJob().getJobType() == JobType.BATCH) return true;;
         }
         catch (Exception e) {
             _log.error(MsgUtils.getMsg("JOBS_EXEC_SYSTEM_RETRIEVAL_ERROR", _job.getExecSystemId(),

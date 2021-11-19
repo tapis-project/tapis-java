@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
@@ -292,6 +293,9 @@ public final class SubmitContext
         
         // Resolve all systems.
         resolveSystems();
+        
+        // Resolve job type.
+        resolveJobType();
         
         // Combine various components that make up the job's parameterSet from
         // from the system, app and request definitions.
@@ -615,6 +619,48 @@ public final class SubmitContext
         // hardcoded random policy.  This will change in future releases.
         _execSystem = execSystems.get(new Random().nextInt(execSystems.size()));
         _submitReq.setExecSystemId(_execSystem.getId());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveJobType:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Resolve the job type using the request, application and execution system if
+     * necessary.  The job type is always valid when this method completes normally.
+     * 
+     * @throws TapisImplException invalid job type
+     */
+    private void resolveJobType() throws TapisImplException
+    {
+        // Explicitly assigned in app.
+        if (StringUtils.isBlank(_submitReq.getJobType())) {
+            // Check app assignment.
+            var appJobType = _app.getJobType();
+            if (appJobType != null) {
+                try {JobType.valueOf(appJobType.name());}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("JOBS_INVALID_APP_JOBTYPE", 
+                                       _app.getId(), _app.getVersion(), appJobType);
+                        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                    }
+                _submitReq.setJobType(appJobType.name());
+            }
+        } else {
+            // Validate request job type.
+            try {JobType.valueOf(_submitReq.getJobType());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("JOBS_INVALID_JOBTYPE", 
+                                             _submitReq.getJobType());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
+        
+        // Automatically assign according to exec system configuration. 
+        if (StringUtils.isBlank(_submitReq.getJobType())) {
+            var canRunBatch = _execSystem.getCanRunBatch();
+            if (canRunBatch == null) canRunBatch = Boolean.FALSE; // default
+            if (canRunBatch) _submitReq.setJobType(JobType.BATCH.name());
+              else _submitReq.setJobType(JobType.FORK.name());
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
