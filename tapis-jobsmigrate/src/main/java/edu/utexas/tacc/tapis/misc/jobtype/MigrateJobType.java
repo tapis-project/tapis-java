@@ -16,6 +16,23 @@ import com.zaxxer.hikari.HikariDataSource;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shareddb.datasource.HikariDSGenerator;
 
+/** This class provides a human-in-the-loop migration of the Jobs database schema
+ * defined in V002__AddJobType.sql.  After the flyway migration runs and the job_type
+ * column has been added to the jobs table, job_type=FORK for all jobs.  Run this
+ * program to update the job_type to BATCH based on the App.appType field that used
+ * to maintain this information.  The process is as follows:
+ * 
+ *  1. Issue this call against the Apps database and export the results:
+ *      SELECT DISTINCT tenant, id, latest_version, app_type FROM apps
+ *      ORDER BY tenant, id, latest_version, app_type;
+ *      
+ *  2. Import the information from Apps by manually assigning elements in the
+ *     _appVer2JobType map in the initAppVer2JobType() method.
+ *  3. Run this program and point it at the target Jobs database using command-line
+ *     arguments defined in MigrateJobTypeParms.
+ * 
+ * @author rcardone
+ */
 public class MigrateJobType 
 {
     /* **************************************************************************** */
@@ -330,19 +347,45 @@ public class MigrateJobType
     /* ---------------------------------------------------------------------------- */
     /* initAppVer2JobType:                                                          */
     /* ---------------------------------------------------------------------------- */
+    /** This method hardcodes application information for job type in the target
+     * environment.  
+     * 
+     * ============================================================================
+     *   CHANGE THE HARDCODED VALUES HERE TO MATCH THE TARGET ENVIRONMENT APPS
+     * ============================================================================
+     * 
+     * @return the filled in map
+     */
     private HashMap<AppVer,String> initAppVer2JobType()
     {
         var map = new HashMap<AppVer,String>();
         
         // Manually enter each application/version's record.
         map.put(new AppVer("dev", "JobApp1", "0.0.1"), BATCH);
-        map.put(new AppVer("dev", "JobAppWithInput", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "JobAppWithInput", "0.0.1"), BATCH);
+        
         map.put(new AppVer("dev", "SleepSeconds", "0.0.1"), FORK);
-        map.put(new AppVer("tacc", "SlurmSleepSeconds", "0.0.1"), BATCH);
+        map.put(new AppVer("dev", "SleepSeconds-demo-final", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SleepSeconds-demo-test", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SleepSeconds-J", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SleepSeconds-tutorial", "0.0.1"), FORK);
+        
         map.put(new AppVer("dev", "SlurmSleepSecondsVM", "0.0.1"), BATCH);
+        map.put(new AppVer("dev", "SlurmWordCountTestVM", "0.0.1"), BATCH);
+        
         map.put(new AppVer("dev", "SyRunSleepSeconds", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SyRunSleepSecondsNoIPFiles-2", "0.0.1"), FORK);
+        
         map.put(new AppVer("dev", "SyStartSleepSeconds", "0.0.1"), FORK);
-        map.put(new AppVer("dev", "txBlend-jdm-test", "0.1"), FORK);
+        map.put(new AppVer("dev", "SyStartSleepSecondsNoIPFiles", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SyStartSleepSecondsNoIPFiles-1", "0.0.1"), FORK);
+        map.put(new AppVer("dev", "SyStartSleepSecondsNoIPFiles-2", "0.0.1"), FORK);
+        
+        map.put(new AppVer("dev", "tacc-sample-app-testuser2", "0.1"), FORK);
+        map.put(new AppVer("dev", "tacc-sample-app-userid", "0.1"), FORK);
+        map.put(new AppVer("dev", "TestApp1", "0.0.1"), BATCH);
+        
+        map.put(new AppVer("tacc", "SlurmSleepSeconds-jdm-test", "0.0.1"), BATCH);
         
         return map;
     }
