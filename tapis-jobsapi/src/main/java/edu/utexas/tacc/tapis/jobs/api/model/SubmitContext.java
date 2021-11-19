@@ -633,7 +633,7 @@ public final class SubmitContext
     {
         // Explicitly assigned in app.
         if (StringUtils.isBlank(_submitReq.getJobType())) {
-            // Check app assignment.
+            // Check app assignment if it exists.
             var appJobType = _app.getJobType();
             if (appJobType != null) {
                 try {JobType.valueOf(appJobType.name());}
@@ -644,15 +644,7 @@ public final class SubmitContext
                     }
                 _submitReq.setJobType(appJobType.name());
             }
-        } else {
-            // Validate request job type.
-            try {JobType.valueOf(_submitReq.getJobType());}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_INVALID_JOBTYPE", 
-                                             _submitReq.getJobType());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-        }
+        } 
         
         // Automatically assign according to exec system configuration. 
         if (StringUtils.isBlank(_submitReq.getJobType())) {
@@ -660,6 +652,15 @@ public final class SubmitContext
             if (canRunBatch == null) canRunBatch = Boolean.FALSE; // default
             if (canRunBatch) _submitReq.setJobType(JobType.BATCH.name());
               else _submitReq.setJobType(JobType.FORK.name());
+        }
+        
+        // The submitReq's job type is not null if we get here,
+        // but we still need to validate its value in some cases.
+        try {JobType.valueOf(_submitReq.getJobType());}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_JOBTYPE", 
+                                         _submitReq.getJobType());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
     
@@ -1974,11 +1975,12 @@ public final class SubmitContext
         _job.setTenant(_submitReq.getTenant());
         _job.setDescription(replaceMacros(_submitReq.getDescription()));
         
+        // The conversion was already tested, so no risk of a runtime exception.
+        _job.setJobType(JobType.valueOf(_submitReq.getJobType()));
+        
         // Creator fields already validated.
         _job.setCreatedby(_threadContext.getOboUser());
         _job.setCreatedbyTenant(_threadContext.getOboTenantId());
-        
-        // TODO: JobType and JobExecClass are not implemented yet. *********
         
         // Already validated.
         _job.setAppId(_submitReq.getAppId());

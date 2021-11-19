@@ -2683,6 +2683,10 @@ public final class JobsDao
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "status");
 	          throw new TapisException(msg);
 		}
+		if (job.getJobType() == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "jobType");
+            throw new TapisException(msg);
+		}
 		
 		if (StringUtils.isBlank(job.getUuid())) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "uuid");
