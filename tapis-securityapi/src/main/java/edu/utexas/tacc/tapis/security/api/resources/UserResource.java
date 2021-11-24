@@ -275,7 +275,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> roles = null;
-         try {roles = getUserImpl().getUserRoles(tenant, user);}
+         try {roles = getUserImpl().getUserRoleNames(tenant, user);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
