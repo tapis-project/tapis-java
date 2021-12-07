@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
-import edu.utexas.tacc.tapis.files.client.gen.api.HealthApi;
-import edu.utexas.tacc.tapis.files.client.gen.model.HealthCheckResponse;
+import edu.utexas.tacc.tapis.files.client.gen.api.GeneralApi;
+import edu.utexas.tacc.tapis.files.client.gen.model.RespBasic;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryAbortException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -117,8 +117,8 @@ extends AbsTester
    {
        boolean healthy = false;
        try {
-           HealthApi api = client.health();
-           HealthCheckResponse resp = api.healthCheck();
+           GeneralApi api = client.health();
+           RespBasic resp = api.healthCheck();
            if (SUCCESS.equals(resp.getStatus())) healthy = true;
        } catch (Exception e) {}
        return healthy;

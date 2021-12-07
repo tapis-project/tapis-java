@@ -275,7 +275,7 @@ public final class UserResource
          // ------------------------ Request Processing ------------------------
          // Get the names.
          List<String> roles = null;
-         try {roles = getUserImpl().getUserRoles(tenant, user);}
+         try {roles = getUserImpl().getUserRoleNames(tenant, user);}
              catch (Exception e) {
                  return getExceptionResponse(e, null, prettyPrint);
              }
@@ -305,10 +305,9 @@ public final class UserResource
                      + "optionally filtered by the one or both of the query "
                      + "parameters: implies and impliedBy.\n\n"
                      + ""
-                     + "The implied parameter removes permissions from the result list "
-                     + "that the specified permission do not imply. The impliedBy parameter "
-                     + "removes permissions from the result list that the specified permission "
-                     + "are not implied by. Below are some examples."
+                     + "When implies is set, the filter _implies_ each entry in the result set. "
+                     + "When impliedBy is set, each entry in the result set is _implied by_ the filter. "
+                     + "Below are some examples.\n\n"
                      + ""
                      + "Consider a user that is assigned these permissions:\n\n"
                      + ""

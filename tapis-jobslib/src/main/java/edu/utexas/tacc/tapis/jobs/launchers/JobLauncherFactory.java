@@ -1,13 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.monitors.JobMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.SingularityRunMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.SingularityStartMonitor;
-import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -29,16 +25,16 @@ public class JobLauncherFactory
     public static JobLauncher getInstance(JobExecutionContext jobCtx) 
      throws TapisException 
     {
-        // Extract required information from app.
+        // Extract required information from app and job.
         var app = jobCtx.getApp();
-        var appType = app.getAppType();
         var runtime = app.getRuntime();
+        var jobType = jobCtx.getJob().getJobType();
         
         // The result.
         JobLauncher launcher = null;
         
         // ------------------------- FORK -------------------------
-        if (appType == AppTypeEnum.FORK) {
+        if (jobType == JobType.FORK) {
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
@@ -50,7 +46,7 @@ public class JobLauncherFactory
             };
         }
         // ------------------------- BATCH ------------------------
-        else if (appType == AppTypeEnum.BATCH) {
+        else if (jobType == JobType.BATCH) {
             // Get the scheduler under which containers will be launched.
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
@@ -74,7 +70,7 @@ public class JobLauncherFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", appType, "JobLauncherFactory");
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
             throw new JobException(msg);
         }
         

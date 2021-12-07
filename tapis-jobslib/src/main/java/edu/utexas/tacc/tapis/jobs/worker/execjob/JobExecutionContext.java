@@ -376,7 +376,7 @@ public final class JobExecutionContext
         try {execSys = getExecutionSystem();} catch (Exception e) {return true;}
         
         // Detect the runtimes that don't use a separate environment variable file.
-        if (execSys.getJobIsBatch() && 
+        if (execSys.getCanRunBatch() && 
             execSys.getBatchScheduler() == SchedulerTypeEnum.SLURM)
             return false;
         

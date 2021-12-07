@@ -155,7 +155,7 @@ public class ReqSubmitJobParseTest
 				   + "\"description\": \"myJob\", "
 				   + "\"fileInputs\": ["
 				   + "{\"sourceUrl\": \"tapis://host.com/path\", \"targetPath\": \"newFileName\"}, "
-				   + "{\"sourceUrl\": \"sftp://host.com/path\", \"targetPath\": \"\"}, "
+				   + "{\"sourceUrl\": \"sftp://host.com/path\", \"targetPath\": \"\", \"autoMountLocal\": false}, "
 				   + "{\"sourceUrl\": \"https://host.com/path\"} "
 				   + "]}"; 
 		return s;
@@ -165,11 +165,11 @@ public class ReqSubmitJobParseTest
 	{
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
+		           + "\"fileInputArrays\": [{\"name\": \"bananas\", "
+				   + "                      \"sourceUrls\": [\"https:host1/path1\", \"https:host2/path2/cows\"], " 
+		           +                       "\"targetDir\": \"*\"}] ,"
 				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
-				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
-				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
-				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
-				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}]"
+				   + "                \"containerArgs\": [{\"arg\": \"-v 3\"}]"
 				   + "}}"; 
 		return s;
 	}
@@ -179,10 +179,7 @@ public class ReqSubmitJobParseTest
 		String s = "{\"name\": \"mary\", \"appId\": \"app1\", \"appVersion\": \"v6\", "
 				   + "\"description\": \"myJob\", "
 				   + "\"parameterSet\": {\"appArgs\": [{\"arg\": \"x\"}, {\"arg\": \"-f y.txt\"}], "
-				   + "                \"containerArgs\": [{\"arg\": \"-v 3\", "
-				   + "                                     \"meta\": {\"name\": \"bud\", \"required\": true, "
-				   + "                                        \"kv\": [{\"key\": \"k1\", \"value\": \"v1\"}, "
-				   + "                                                 {\"key\": \"k2\", \"value\": \"v2\"}]}}], "
+				   + "                \"containerArgs\": [{\"arg\": \"-v 3\"}], "
 				   + "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
 				   + "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}], "
 				   + "                \"archiveFilter\": {"

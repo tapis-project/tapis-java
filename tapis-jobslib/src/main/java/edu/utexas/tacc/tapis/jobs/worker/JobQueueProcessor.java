@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.BuiltinExchangeType;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppTypeEnum;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -16,6 +15,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
@@ -700,9 +700,9 @@ final class JobQueueProcessor
   private void validateBatchParameters(JobExecutionContext jobCtx) 
    throws TapisException
   {
-      // Get the application type.
+      // Get the application type if we are running a batch job.
+      if (jobCtx.getJob().getJobType() != JobType.BATCH) return;
       var app = jobCtx.getApp();
-      if (app.getAppType() != AppTypeEnum.BATCH) return;
       
       // The job better have a queue at this point.
       var logicalQueue = jobCtx.getLogicalQueue();

@@ -13,11 +13,12 @@ import com.google.gson.reflect.TypeToken;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.InputSpec;
-import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
@@ -43,8 +44,10 @@ public final class Job
 	// paths and required on absolute paths.  When the full path names of relative 
 	// paths are constructed, double slashes at the point of concatenation are prevented.
 	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
+	public static final String DEFAULT_EXEC_SYSTEM_EXEC_DIR    = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
 	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
 	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${DtnMountPoint}/jobs/${JobUUID}";
+	public static final String DEFAULT_DTN_SYSTEM_EXEC_DIR     = DEFAULT_DTN_SYSTEM_INPUT_DIR;
 	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
     public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
@@ -126,6 +129,8 @@ public final class Job
     private String   			createdbyTenant;
     private TreeSet<String>     tags;
     
+    private JobType             jobType; // should never be null after db migration
+    
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
     
@@ -136,16 +141,16 @@ public final class Job
     
     // The parsed version of the fileInputs json string cached for future use. 
     @Schema(hidden = true)
-    private List<InputSpec>    _fileInputsSpec;
+    private List<JobFileInput>      _fileInputsSpec;
     
     // The parsed version of the parameterSet json string cached for future use. 
     @Schema(hidden = true)
-    private JobParameterSet    _parameterSetModel;
+    private JobParameterSet         _parameterSetModel;
     
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
     // asynchronous commands to a job is indeterminate anyway. The field
-    // contains last asynchronous message sent to this job that hasn't been read.
+    // contains the last unread asynchronous message sent to this job.
     @Schema(hidden = true)
     private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null);
     
@@ -176,52 +181,14 @@ public final class Job
     public String toString() {return TapisUtils.toString(this);}
 
     /* ---------------------------------------------------------------------------- */
-    /* constructDefaultExecSystemExecDir:                                           */
-    /* ---------------------------------------------------------------------------- */
-    /** Construct the default path name for the exec system exec directory given the
-     * specified input directory.  If the input directory is null, then the exec
-     * directory path name is constructed relative to the default input directory.
-     * 
-     * @param inputDir the path name relative to which the exec directory path name 
-     *                 is constructed or null 
-     * @return the constructed exec directory path name
-     */
-    public static String constructDefaultExecSystemExecDir(String inputDir, boolean useDTN)
-    {
-        if (StringUtils.isBlank(inputDir)) 
-            if (useDTN) return DEFAULT_DTN_SYSTEM_INPUT_DIR;
-              else return DEFAULT_EXEC_SYSTEM_INPUT_DIR;
-        return inputDir;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* constructDefaultExecSystemOutputDir:                                         */
-    /* ---------------------------------------------------------------------------- */
-    /** Construct the default path name for the exec system output directory given the
-     * specified input directory.  If the input directory is null, then the exec
-     * directory path name is constructed relative to the default input directory.
-     * 
-     * @param inputDir the path name relative to which the output directory path name 
-     *                 is constructed or null 
-     * @return the constructed output directory path name
-     */
-    public static String constructDefaultExecSystemOutputDir(String inputDir, boolean useDTN)
-    {
-        if (StringUtils.isBlank(inputDir)) 
-            if (useDTN) return DEFAULT_DTN_SYSTEM_OUTPUT_DIR;
-              else return DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
-        return StringUtils.removeEnd(inputDir, "/") + "/output";
-    }
-
-    /* ---------------------------------------------------------------------------- */
     /* getFileInputsSpec:                                                           */
     /* ---------------------------------------------------------------------------- */
     @Schema(hidden = true)
-    public List<InputSpec> getFileInputsSpec() 
+    public List<JobFileInput> getFileInputsSpec() 
     {
         // Cache a version of the input spec if it doesn't exist.
         if (_fileInputsSpec == null) {
-            Type listType = new TypeToken<List<InputSpec>>(){}.getType();
+            Type listType = new TypeToken<List<JobFileInput>>(){}.getType();
             _fileInputsSpec = TapisGsonUtils.getGson().fromJson(fileInputs, listType);
         }
         
@@ -446,6 +413,10 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "createdbyTenant");
             throw new JobException(msg);
         }
+        if (jobType == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
+            throw new JobException(msg);
+        }
     }
     
     /* ---------------------------------------------------------------------- */
@@ -572,6 +543,14 @@ public final class Job
 	public void setAppVersion(String appVersion) {
 		this.appVersion = appVersion;
 	}
+
+    public JobType getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(JobType jobType) {
+        this.jobType = jobType;
+    }
 
 	public boolean isArchiveOnAppError() {
 		return archiveOnAppError;

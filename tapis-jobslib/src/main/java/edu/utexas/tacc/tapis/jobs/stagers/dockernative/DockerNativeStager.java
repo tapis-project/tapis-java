@@ -122,6 +122,9 @@ public class DockerNativeStager
         // Set the standard bind mounts.
         setStandardBindMounts(dockerRunCmd);
         
+        // Set any tapislocal mounts.
+        setTapisLocalBindMounts(dockerRunCmd);
+        
         // Set the image.
         dockerRunCmd.setImage(_jobCtx.getApp().getContainerImage());
         
@@ -206,6 +209,39 @@ public class DockerNativeStager
         mount.setSource(fm.makeAbsExecSysExecPath());
         mount.setTarget(Job.DEFAULT_EXEC_SYSTEM_EXEC_MOUNTPOINT);
         dockerRunCmd.getMount().add(mount.toString());
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* setTapisLocalBindMounts:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Tapis mounts the user-specified tapislocal inputs when automount is on.
+     * 
+     * @param dockerRunCmd the run command to be updated
+     * @throws TapisImplException 
+     * @throws TapisServiceConnectionException 
+     */
+    private void setTapisLocalBindMounts(DockerRunCmd dockerRunCmd) 
+     throws TapisException
+    {
+        // Let the file manager make paths.
+        var fm = _jobCtx.getJobFileManager();
+        
+        for (var reqInput : _job.getFileInputsSpec()) {
+            // We only process tapislocal input with automount set.
+            if (!reqInput.isTapisLocal() || !reqInput.getAutoMountLocal())
+                continue;
+            
+            // Set tapislocal bind mount from a file or directory under the execution
+            // system's rootDir to the absolute targetPath in the container.
+            var mount = new BindMount();
+            mount.setSource(fm.makeAbsExecSysTapisLocalPath(
+                _jobCtx.getExecutionSystem().getRootDir(), reqInput.getSourceUrl()));
+            String targetPath = reqInput.getTargetPath();
+            if (!targetPath.startsWith("/")) targetPath = "/" + targetPath;
+            mount.setTarget(targetPath);
+            mount.setReadOnly(true);
+            dockerRunCmd.getMount().add(mount.toString());
+        }
     }
     
     /* ---------------------------------------------------------------------- */

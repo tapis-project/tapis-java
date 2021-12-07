@@ -1,10 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -21,30 +21,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.FileInput;
+import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
+import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
+import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
+import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.ArgMetaSpec;
-import edu.utexas.tacc.tapis.shared.model.ArgSpec;
-import edu.utexas.tacc.tapis.shared.model.InputSpec;
-import edu.utexas.tacc.tapis.shared.model.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -62,6 +67,7 @@ public final class SubmitContext
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SubmitContext.class);
+    private static final int MAX_INPUT_NAME_LEN = 80;
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -122,6 +128,9 @@ public final class SubmitContext
         
         // Substitute values for tapis macros.
         assignMacros();
+        
+        // Canonicalize paths.
+        finalizePaths();
         
         // Assign validated values to all job fields.
         populateJob();
@@ -285,6 +294,9 @@ public final class SubmitContext
         // Resolve all systems.
         resolveSystems();
         
+        // Resolve job type.
+        resolveJobType();
+        
         // Combine various components that make up the job's parameterSet from
         // from the system, app and request definitions.
         resolveParameterSet();
@@ -345,8 +357,11 @@ public final class SubmitContext
         // Merge app subscriptions into request subscription list.
         mergeSubscriptions();
         
-        // Merge and validate input files.
+        // Merge and validate input files. Array inputs should be processed 
+        // after the single inputs.  Array inputs get expanded into single 
+        // input objects and added to the inputs list.
         resolveFileInputs();
+        resolveFileInputArrays();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -377,21 +392,31 @@ public final class SubmitContext
     private void resolveParameterSet() 
      throws TapisImplException
     {
-        // Copy the application's parameterSet into a shared library parameterSet.
-        // Also included are any environment variables set in the system definition.
-        // The returned parmSet is never null.
+        // Get convenient access to the two parameter sets.
+        // Make sure the request set it initialized.
         var appParmSet = _app.getJobAttributes().getParameterSet();
-        var sysEnv = _execSystem.getJobEnvVariables();
+        var reqParmSet = _submitReq.getParameterSet(); // fully initialized
+        
+        // Merge the argSpecs.
         var marshaller = new JobParmSetMarshaller();
+        marshaller.mergeArgSpecList(reqParmSet.getAppArgs(), appParmSet.getAppArgs(), ArgTypeEnum.APP_ARGS);
+        marshaller.mergeArgSpecList(reqParmSet.getContainerArgs(), appParmSet.getContainerArgs(), ArgTypeEnum.CONTAINER_ARGS);
+        marshaller.mergeArgSpecList(reqParmSet.getSchedulerOptions(), appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
+        
+        // Copy the remaining application's parameterSet fields into a jobs 
+        // parameterSet. Also include any environment variables set in the 
+        // system definition.  The returned parmSet is never null, but may
+        // contain uninitialized (null) components.
+        var sysEnv = _execSystem.getJobEnvVariables();
         JobParameterSet appSysParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
         
         // Parameters set in the job submission request have the highest precedence.
-        marshaller.mergeParmSets(_submitReq.getParameterSet(), appSysParmSet);
+        marshaller.mergeNonArgParms(reqParmSet, appSysParmSet);
         
         // Validate parameter set components.
-        validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getIncludes(), "includes");
-        validateArchiveFilters(_submitReq.getParameterSet().getArchiveFilter().getExcludes(), "excludes");
-        validateSchedulerProfile(_submitReq.getParameterSet().getSchedulerOptions());
+        validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
+        validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
+        validateSchedulerProfile(reqParmSet.getSchedulerOptions());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -457,6 +482,8 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_WORKING_DIR", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        // Make sure the working directory is clean.
+        sanitizePath(_execSystem.getJobWorkingDir(), "jobWorkingDir");
         // Make sure at least one job runtime is defined.
         if (_execSystem.getJobRuntimes() == null || _execSystem.getJobRuntimes().isEmpty()) {
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_RUNTIME", _execSystem.getId());
@@ -595,6 +622,49 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* resolveJobType:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Resolve the job type using the request, application and execution system if
+     * necessary.  The job type is always valid when this method completes normally.
+     * 
+     * @throws TapisImplException invalid job type
+     */
+    private void resolveJobType() throws TapisImplException
+    {
+        // Explicitly assigned in app.
+        if (StringUtils.isBlank(_submitReq.getJobType())) {
+            // Check app assignment if it exists.
+            var appJobType = _app.getJobType();
+            if (appJobType != null) {
+                try {JobType.valueOf(appJobType.name());}
+                    catch (Exception e) {
+                        String msg = MsgUtils.getMsg("JOBS_INVALID_APP_JOBTYPE", 
+                                       _app.getId(), _app.getVersion(), appJobType);
+                        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                    }
+                _submitReq.setJobType(appJobType.name());
+            }
+        } 
+        
+        // Automatically assign according to exec system configuration. 
+        if (StringUtils.isBlank(_submitReq.getJobType())) {
+            var canRunBatch = _execSystem.getCanRunBatch();
+            if (canRunBatch == null) canRunBatch = Boolean.FALSE; // default
+            if (canRunBatch) _submitReq.setJobType(JobType.BATCH.name());
+              else _submitReq.setJobType(JobType.FORK.name());
+        }
+        
+        // The submitReq's job type is not null if we get here,
+        // but we still need to validate its value in some cases.
+        try {JobType.valueOf(_submitReq.getJobType());}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_JOBTYPE", 
+                                         _submitReq.getJobType());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* resolveDirectoryPathNames:                                                   */
     /* ---------------------------------------------------------------------------- */
     /** Assign the directories of each of the systems participating in this job 
@@ -632,15 +702,19 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
-            _submitReq.setExecSystemExecDir(
-                Job.constructDefaultExecSystemExecDir(_submitReq.getExecSystemInputDir(), useDTN));
+            if (useDTN)
+                _submitReq.setExecSystemExecDir(Job.DEFAULT_DTN_SYSTEM_EXEC_DIR);
+            else
+                _submitReq.setExecSystemExecDir(Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR);
         
         // Output path.
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
-            _submitReq.setExecSystemOutputDir(
-                Job.constructDefaultExecSystemOutputDir(_submitReq.getExecSystemInputDir(), useDTN));
+            if (useDTN)
+                _submitReq.setExecSystemOutputDir(Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR);
+            else
+                _submitReq.setExecSystemOutputDir(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR);
       
         // --------------------- Archive System ------------------
         // Set the archive system directory.
@@ -659,38 +733,95 @@ public final class SubmitContext
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
+        // Detect ".." segments in path early. 
         sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* finalizePaths:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** This method does the final checking and normalizing of paths.  The path 
+     * sanitizer is called a second time in case ".." was introduced via macro
+     * substitution.  We then contract multiple slashes and remove trailing slashes.  
+     * 
+     * @throws TapisImplException
+     */
+    private void finalizePaths() throws TapisImplException
+    {
+        // Detect ".." segments in macro-expanded paths.
+        sanitizeDirectoryPathnames();
+        
+        // Canonicalize path.
+        canonicalizeDirectoryPathnames();
     }
     
     /* ---------------------------------------------------------------------------- */
     /* sanitizeDirectoryPathnames:                                                  */
     /* ---------------------------------------------------------------------------- */
-    /** Check the assigned directory pathnames for prohibited path traversal 
-     * characters
+    /** Check the assigned directory pathnames for prohibited path traversal characters.
+     * 
      * @throws TapisImplException
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
-    	// --------------------- Sanitizing ExecSystemInputDir -----------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemInputDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        // Check each of the user specified directories.
+        sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
+        sanitizePath(_submitReq.getExecSystemExecDir(),   "ExecSystemExecDir");
+        sanitizePath(_submitReq.getExecSystemOutputDir(), "ExecSystemOutputDir");
+        sanitizePath(_submitReq.getArchiveSystemDir(),    "ArchiveSystemDir");
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* sanitizePath:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    private void sanitizePath(String path, String displayName) throws TapisImplException
+    {
+        if (PathSanitizer.hasParentTraversal(path)) {
+            String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", displayName, path);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // --------------------- Sanitizing ExecSystemExecDir ------------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemExecDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        // --------------------- Sanitizing ExecSystemOutputDir ----------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getExecSystemOutputDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
-        // --------------------- Sanitizing ArchiveSystemDir -------------------
-        if(PathSanitizer.hasParentTraversal(_submitReq.getArchiveSystemDir())){
-        	String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* canonicalizeDirectoryPathnames:                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Replace multiple slashes with a single slash and remove trailing slashes.
+     * This method is called after all macro substitution.
+     * 
+     * This method is intended to work on posix path names only (not uri's).
+     * 
+     * @throws TapisImplException if canonicalization fails
+     */
+    private void canonicalizeDirectoryPathnames() throws TapisImplException
+    {
+        // --------------------- Canonicalize ExecSystemInputDir -----------------
+        try {_submitReq.setExecSystemInputDir(Path.of(_submitReq.getExecSystemInputDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ExecSystemExecDir ------------------
+        try {_submitReq.setExecSystemExecDir(Path.of(_submitReq.getExecSystemExecDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ExecSystemOutputDir ----------------
+        try {_submitReq.setExecSystemOutputDir(Path.of(_submitReq.getExecSystemOutputDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        // --------------------- Canonicalize ArchiveSystemDir -------------------
+        try {_submitReq.setArchiveSystemDir(Path.of(_submitReq.getArchiveSystemDir()).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -722,12 +853,11 @@ public final class SubmitContext
      *  - fileInputs
      *  
      * @throws TapisImplException 
-     * 
      */
     private void resolveFileInputs() throws TapisImplException
     {
         // Get the application's input file definitions.
-        List<FileInput> appInputs = _app.getJobAttributes().getFileInputs();
+        List<AppFileInput> appInputs = _app.getJobAttributes().getFileInputs();
         if (appInputs == null) appInputs = Collections.emptyList();
         var processedAppInputNames = new HashSet<String>(1 + appInputs.size() * 2);
         
@@ -739,41 +869,38 @@ public final class SubmitContext
         
         // Process each request file input.
         var reqInputs = _submitReq.getFileInputs();  // forces list creation
-        for (var reqInput : reqInputs) {
-            var meta = reqInput.getMeta();
-            if (meta == null || StringUtils.isBlank(meta.getName())) {
+        var it = reqInputs.listIterator();
+        while (it.hasNext()) {
+            // Current request input to process.
+            var reqInput = it.next();
+            
+            // Process named and unnamed separately.
+            if (StringUtils.isBlank(reqInput.getName())) {
                 // ---------------- Unnamed Input ----------------
-                // Are unnamed input file allowed by the application?
+                // Are unnamed input files allowed by the application?
                 if (strictInputs) {
                     String msg = MsgUtils.getMsg("JOBS_UNNAMED_FILE_INPUT", _app.getId(), reqInput.getSourceUrl());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
                 
-                // Set the target path if it's not set.
-                if (StringUtils.isBlank(reqInput.getTargetPath()))
-                    reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
-                if (StringUtils.isBlank(reqInput.getTargetPath())) {
-                    String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), reqInput.getSourceUrl());
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
+                // Fill in any missing fields.
+                completeRequestFileInput(reqInput);
             }
             else {
                 // ----------------- Named Input -----------------
-                // Get the app definition for this named file input.  Iterate through
-                // the list of definitions looking for a name match.
-                String inputName = meta.getName();
-                FileInput appInputDef = null;
+                // Get the app definition for this named file input.  Iterate 
+                // through the list of definitions looking for a name match.
+                String inputName = reqInput.getName();
+                AppFileInput appInputDef = null;
                 for (var def : appInputs) {
-                    String defName = null;
-                    if (def.getMeta() != null) defName = def.getMeta().getName();
-                    if (inputName.equals(defName)) {
+                    if (inputName.equals(def.getName())) {
                         appInputDef = def;
                         break;
                     }
                 }
                 
-                // Make sure we found a matching definition.
-                if (appInputDef == null) {
+                // Make sure we found a matching definition when processing strictly.
+                if (strictInputs && appInputDef == null) {
                     String msg = MsgUtils.getMsg("JOBS_NO_FILE_INPUT_DEFINITION", _app.getId(), inputName);
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
@@ -785,60 +912,89 @@ public final class SubmitContext
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
                 
-                // Merge the application definition values into the request input. 
-                mergeFileInput(reqInput, appInputDef);
+                // When possible merge the application definition values into the request input. 
+                if (appInputDef == null) completeRequestFileInput(reqInput);
+                  else {
+                      // Incomplete optional inputs are removed from the request.
+                      var merged = mergeFileInput(reqInput, appInputDef);
+                      if (!merged) it.remove();
+                  }
             }
         }
         
-        // Add in any inputs that are designated in the application 
-        // with a sourceUrl and not already accounted for.
-        for (var def : appInputs) {
-            if (def.getMeta() == null) continue;  // should never happen
-            String defName = def.getMeta().getName();
-            if (processedAppInputNames.contains(defName)) continue;
-            if (StringUtils.isBlank(def.getSourceUrl())) continue;
+        // By this point, all inputs specified in the request are accounted for and complete.
+        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
+        // any REQUIRED and FIXED app inputs that were not referenced by the request input and
+        // add them to the request.  This will guarantee that all non-optional app inputs
+        // are included.
+        for (var appInput : appInputs) {
+            // Skip already merged inputs or, in the case of incomplete optional inputs,
+            // already removed inputs.
+            if (processedAppInputNames.contains(appInput.getName())) continue;
             
-            // Only add in if required.
-            Boolean required = def.getMeta().getRequired();
-            if (required == null) required = AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED; 
-            if (!required) continue;  
+            // Create a new request input from the REQUIRED or FIXED app input.
+            var reqInput = JobFileInput.importAppInput(appInput);
+            completeRequestFileInput(reqInput);
             
-            // Create and save the new request input object.
-            var inputSpec = new InputSpec();
-            mergeFileInput(inputSpec, def);
-            reqInputs.add(inputSpec);
-            
-            // Bookkeeping.
-            processedAppInputNames.add(defName);
+            // Add the input object to the request and record its name.
+            // Recording the name will avoid processing duplicates, though
+            // apps should disallow duplicates from the beginning.
+            reqInputs.add(reqInput);
+            processedAppInputNames.add(appInput.getName());
         }
         
-        // Make sure all required inputs were provided.
-        for (var def : appInputs) {
-            if (def.getMeta() == null) continue;  // should never happen
-            Boolean required = def.getMeta().getRequired();
-            if (required == null) required = AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED;
-            if (!required) continue;
-            
-            // Make sure we've processed this named input.
-            String defName = def.getMeta().getName();
-            if (!processedAppInputNames.contains(defName)) {
-                String msg = MsgUtils.getMsg("JOBS_MISSING_FILE_INPUT", _app.getId(), defName);
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
+        // Standardize the system name on tapislocal sources to be "exec.tapis" 
+        // if the user specified some other systemId.  This replace is done on a best 
+        // effort basis since the systemId is ignored when tapislocal is used.
+        for (var reqInput : reqInputs) {
+            String sourceUrl = reqInput.getSourceUrl();
+            if (sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX) &&
+                !sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_FULL_PREFIX))
+               try {reqInput.setSourceUrl(TapisLocalUrl.makeTapisLocalUrl(sourceUrl).toString());}
+                    catch (Exception e) {}
         }
     }
     
     /* ---------------------------------------------------------------------------- */
     /* mergeFileInput:                                                              */
     /* ---------------------------------------------------------------------------- */
-    private void mergeFileInput(InputSpec reqInput, FileInput appDef)
+    /** Merge the application definition input values into the request input according
+     * to established precedence rules.  This method is called when an input in 
+     * the request has the same name as one in the application.  If the application
+     * definition specifies a FIXED inputMode, then the request is not allowed to make
+     * any changes to it.
+     * 
+     * The OPTIONAL inputMode means that it's ok for the input not to be staged for
+     * any reason.  Reasons include (1) not having a complete definition as statically 
+     * determined here, and (2) the source does not exist as dynamically determined at
+     * runtime by the Files service.
+     * 
+     * @param reqInput non-null request input
+     * @param appDef non-null application definition input
+     * @return true if merge succeeded, false if optional input should be discarded
+     * @throws TapisImplException
+     */
+    private boolean mergeFileInput(JobFileInput reqInput, AppFileInput appDef)
      throws TapisImplException
     {
+        // Get the input mode to enforce merge semantics.  Incomplete OPTIONAL
+        // inputs do not cause an error, but return false so they can be ignored. 
+        final var inputMode = appDef.getInputMode();
+        
+        // ---- FIXED Inputs
+        // Assign app values when the inputMode is FIXED.
+        if (inputMode == FileInputModeEnum.FIXED) {
+            assignFixedFileInput(reqInput, appDef);
+            return true;
+        }
+        
+        // ---- REQUIRED or OPTIONAL Inputs
         // Assign the source if necessary.
         if (StringUtils.isBlank(reqInput.getSourceUrl()))
             reqInput.setSourceUrl(appDef.getSourceUrl());
         if (StringUtils.isBlank(reqInput.getSourceUrl())) {
-            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId());
+            if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
@@ -847,39 +1003,484 @@ public final class SubmitContext
             reqInput.setTargetPath(appDef.getTargetPath());
         if (StringUtils.isBlank(reqInput.getTargetPath()))
             reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         if (StringUtils.isBlank(reqInput.getTargetPath())) {
-            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), reqInput.getSourceUrl());
+            if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
-        // Fill in the rest of the top-level fields.
-        reqInput.setInPlace(appDef.getInPlace());
-        if (reqInput.getInPlace() == null) 
-            reqInput.setInPlace(AppsClient.DEFAULT_FILE_INPUT_IN_PLACE);
+        // Fill in the automount flag.
+        if (reqInput.getAutoMountLocal() == null)
+            reqInput.setAutoMountLocal(appDef.getAutoMountLocal());
+        if (reqInput.getAutoMountLocal() == null) 
+            reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
+
+        // Merge the descriptions if both exist.
+        if (StringUtils.isBlank(reqInput.getDescription()))
+            reqInput.setDescription(appDef.getDescription());
+          else 
+            reqInput.setDescription(
+                appDef.getDescription() + "\n\n" + reqInput.getDescription());
         
-        // Set up the meta objects.
-        var appMeta = appDef.getMeta();
-        if (appMeta == null) return;
-        ArgMetaSpec reqMeta = new ArgMetaSpec();
-        reqInput.setMeta(reqMeta);
+        // Set the optional flag in the request input.
+        if (inputMode == FileInputModeEnum.OPTIONAL) reqInput.setOptional(true);
         
-        // Populate the request meta object.
-        reqMeta.setName(appMeta.getName());
-        reqMeta.setDescription(appMeta.getDescription());
-        reqMeta.setRequired(appMeta.getRequired());  
-        if (reqMeta.getRequired() == null) 
-            reqMeta.setRequired(AppsClient.DEFAULT_FILE_INPUT_META_REQUIRED);
+        // Successfully merged into a complete request.
+        return true;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignFixedFileInput:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    /** This method assigns the app definition's FIXED values to request fields if 
+     * those fields are unassigned.  If the request fields are already assigned,
+     * then they must have the exact same value as in the app definition.
+     * 
+     * This method can only be called if the inputMode is FIXED.
+     * 
+     * @param reqInput request input
+     * @param appDef app definition input
+     * @throws TapisImplException on attempt to override a FIXED field value
+     */
+    private void assignFixedFileInput(JobFileInput reqInput, AppFileInput appDef) 
+     throws TapisImplException
+    {
+        // Assign app values unless request field already has same value.
         
-        // Populate the key/value list.
-        var appKvPairs = appMeta.getKeyValuePairs();
-        if (appKvPairs == null) return;
-        var reqKv = new ArrayList<KeyValuePair>();
-        reqMeta.setKv(reqKv);
-        for (var pair : appKvPairs) {
-            var kv = new KeyValuePair();
-            kv.setKey(pair.getKey());
-            kv.setValue(pair.getValue());
-            reqKv.add(kv);
+        // ---- sourceUrl
+        if (StringUtils.isBlank(reqInput.getSourceUrl()))
+            reqInput.setSourceUrl(appDef.getSourceUrl());
+        else if (!reqInput.getSourceUrl().equals(appDef.getSourceUrl())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "sourceUrl", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // The app definition should not allow this, but we doublecheck.
+        if (StringUtils.isBlank(reqInput.getSourceUrl())) {
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---- targetPath
+        if (StringUtils.isBlank(reqInput.getTargetPath()))
+            reqInput.setTargetPath(appDef.getTargetPath());
+        else if (!reqInput.getTargetPath().equals(appDef.getTargetPath())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "targetPath", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        // The app definition should not allow this, but we doublecheck.
+        if (StringUtils.isBlank(reqInput.getTargetPath())) {
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrl(), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---- description
+        if (StringUtils.isBlank(reqInput.getDescription()))
+            reqInput.setDescription(appDef.getDescription());
+        else if (!reqInput.getDescription().equals(appDef.getDescription())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "destination", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---- autoMountLocal
+        if (reqInput.getAutoMountLocal() == null)
+            reqInput.setAutoMountLocal(appDef.getAutoMountLocal());
+        else if (reqInput.getAutoMountLocal() != appDef.getAutoMountLocal()) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "autoMountLocal", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* completeRequestFileInput:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** This method is called when a request file input does not match the name
+     * of any file input specified in the application definition, such as when the
+     * request input is anonymous or when a request input is created by importing an 
+     * unreferenced app input.  In both cases, the sourceUrl must be set before 
+     * calling this method.
+     * 
+     * This method is not appropriate for optional inputs that are allowed to be incomplete. 
+     * 
+     * @param reqInput a file input from the job request
+     * @throws TapisImplException when source or target cannot be assigned
+     */
+    private void completeRequestFileInput(JobFileInput reqInput) throws TapisImplException
+    {
+        // Make sure we have a source path.
+        if (StringUtils.isBlank(reqInput.getSourceUrl())) {
+            var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), name);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Set the target path if it's not set.
+        if (StringUtils.isBlank(reqInput.getTargetPath()))
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
+            reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
+        if (StringUtils.isBlank(reqInput.getTargetPath())) {
+            var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrl(), name);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        sanitizePath(reqInput.getTargetPath(), "fileInputs.targetPath");
+
+        // Set the automount default value if needed.
+        if (reqInput.getAutoMountLocal() == null) 
+            reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveFileInputArrays:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    private void resolveFileInputArrays() throws TapisImplException
+    {
+        // Get the application's input file definitions.
+        List<AppFileInputArray> appArrays = _app.getJobAttributes().getFileInputArrays();
+        if (appArrays == null) appArrays = Collections.emptyList();
+        var processedAppInputNames = new HashSet<String>(1 + appArrays.size() * 2);
+        
+        // Get the app's input strictness setting.
+        boolean strictInputs;
+        if (_app.getStrictFileInputs() == null)
+            strictInputs = AppsClient.DEFAULT_STRICT_FILE_INPUTS;  
+          else strictInputs = _app.getStrictFileInputs();
+        
+        // Process each request file input.
+        var reqArrays = _submitReq.getFileInputArrays();  // forces list creation
+        var it = reqArrays.listIterator();
+        while (it.hasNext()) {
+            // Current request input to process.
+            var reqArray = it.next();
+            
+            // Process named and unnamed separately.
+            if (StringUtils.isBlank(reqArray.getName())) {
+                // ---------------- Unnamed Input ----------------
+                // Are unnamed input files allowed by the application?
+                if (strictInputs) {
+                    var sources = reqArray.getSourceUrls();
+                    var firstSource = sources == null ? null : sources.get(0);
+                    String msg = MsgUtils.getMsg("JOBS_UNNAMED_FILE_INPUT", _app.getId(), firstSource);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Ignore and remove empty unnamed arrays.
+                if (reqArray.emptySourceUrls()) {
+                    it.remove();
+                    continue;
+                }
+                
+                // Fill in any missing fields.
+                completeRequestFileInputArray(reqArray);
+            }
+            else {
+                // ----------------- Named Input -----------------
+                // Get the app definition for this named file input.  Iterate 
+                // through the list of definitions looking for a name match.
+                String inputName = reqArray.getName();
+                AppFileInputArray appArray = null;
+                for (var array : appArrays) 
+                    if (inputName.equals(array.getName())) {
+                        appArray = array;
+                        break;
+                    }
+                
+                // Make sure we found a matching definition when processing strictly.
+                if (strictInputs && appArray == null) {
+                    String msg = MsgUtils.getMsg("JOBS_NO_FILE_INPUT_DEFINITION", _app.getId(), inputName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Make sure this isn't a duplicate use of the same name.
+                boolean added = processedAppInputNames.add(inputName);
+                if (!added) {
+                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_FILE_INPUT", _app.getId(), inputName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // When possible merge the application definition values into the request input. 
+                if (appArray == null) completeRequestFileInputArray(reqArray);
+                  else {
+                      // Incomplete optional inputs are removed from the request.
+                      var merged = mergeFileInputArray(reqArray, appArray);
+                      if (!merged) it.remove();
+                  }
+            }
+        }
+        
+        // By this point, all inputs specified in the request are accounted for and complete.
+        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
+        // any REQUIRED and FIXED app inputs that were not referenced by a request input and
+        // add them to the request.  This will guarantee that all non-optional app inputs
+        // are included.
+        for (var appArray : appArrays) {
+            // Skip already merged inputs or, in the case of incomplete optional inputs,
+            // already removed inputs.
+            if (processedAppInputNames.contains(appArray.getName())) continue;
+            
+            // Create a new request input from the REQUIRED or FIXED app input.
+            var reqArray = JobFileInputArray.importAppInputArray(appArray);
+            completeRequestFileInputArray(reqArray);
+            
+            // Add the request to the list and update list of processed names.
+            // We rely on Apps to not allow duplicate named input arrays.
+            reqArrays.add(reqArray);
+            processedAppInputNames.add(appArray.getName());
+        }
+        
+        // Add the array inputs to the JobFileInput list, which is the only list saved
+        // in the job record.  This method also calculates the path name of each target
+        // file/directory based on each source url.
+        if (!reqArrays.isEmpty()) marshallFileInputArrays(reqArrays);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeFileInputArray:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Merge the application definition input values into the request input according
+     * to established precedence rules.  This method is called when an input array in
+     * the request has the same name as one in the application.  If the application
+     * definition specifies a FIXED inputMode, then the request is not allowed to make
+     * any changes to it. 
+     * 
+     * The OPTIONAL inputMode means that it's ok for the input not to be staged for
+     * any reason.  Reasons include (1) not having a complete definition as statically 
+     * determined here, and (2) the source does not exist as dynamically determined at
+     * runtime by the Files service.
+     * 
+     * @param reqInput non-null request input array
+     * @param appDef non-null application definition input array
+     * @return true if merge succeeded, false if optional input should be discarded
+     * @throws TapisImplException
+     */
+    private boolean mergeFileInputArray(JobFileInputArray reqInput, AppFileInputArray appDef)
+     throws TapisImplException
+    {
+        // Get the input mode to enforce merge semantics.  Incomplete OPTIONAL
+        // inputs do not cause an error, but return false so they can be ignored. 
+        final var inputMode = appDef.getInputMode();
+        
+        // ---- FIXED Inputs
+        // Assign app values when the inputMode is FIXED.
+        if (inputMode == FileInputModeEnum.FIXED) {
+            assignFixedFileInputArray(reqInput, appDef);
+            return true;
+        }
+        
+        // ---- REQUIRED or OPTIONAL Inputs
+        // Assign the source if necessary.
+        if (reqInput.emptySourceUrls())
+            reqInput.setSourceUrls(appDef.getSourceUrls());
+        if (reqInput.emptySourceUrls()) {
+            if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Calculate the target if necessary.
+        if (StringUtils.isBlank(reqInput.getTargetDir()))
+            reqInput.setTargetDir(appDef.getTargetDir());
+        if (StringUtils.isBlank(reqInput.getTargetDir()))
+            reqInput.setTargetDir("/"); // indicates execSystemInputDir
+        if ("*".equals(reqInput.getTargetDir())) // assign default for asterisk
+            reqInput.setTargetDir("/"); // indicates execSystemInputDir
+        if (StringUtils.isBlank(reqInput.getTargetDir())) {
+            if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrls().get(0), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Merge the descriptions if both exist.
+        if (StringUtils.isBlank(reqInput.getDescription()))
+            reqInput.setDescription(appDef.getDescription());
+          else 
+            reqInput.setDescription(
+                appDef.getDescription() + "\n\n" + reqInput.getDescription());
+        
+        // Set the optional flag in the request input.
+        if (inputMode == FileInputModeEnum.OPTIONAL) reqInput.setOptional(true);
+        
+        // Successfully merged into a complete request.
+        return true;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignFixedFileInput:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    /** This method assigns the app definition's FIXED values to request fields if 
+     * those fields are unassigned.  If the request fields are already assigned,
+     * then they must have the exact same value as in the app definition.
+     * 
+     * This method can only be called if the inputMode is FIXED. 
+     * 
+     * @param reqInput request input array
+     * @param appDef app definition input array
+     * @throws TapisImplException on attempt to override a FIXED field value
+     */
+    private void assignFixedFileInputArray(JobFileInputArray reqInput, AppFileInputArray appDef) 
+     throws TapisImplException
+    {
+        // Assign app values unless request field already has same value.
+        
+        // ---- sourceUrls
+        if (reqInput.emptySourceUrls())
+            reqInput.setSourceUrls(appDef.getSourceUrls());
+        else if (!reqInput.getSourceUrls().equals(appDef.getSourceUrls())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "sourceUrl", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // The app definition should not allow this, but we doublecheck.
+        if (reqInput.emptySourceUrls()) {
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---- targetDir
+        if (StringUtils.isBlank(reqInput.getTargetDir()))
+            reqInput.setTargetDir(appDef.getTargetDir());
+        else if (!reqInput.getTargetDir().equals(appDef.getTargetDir())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "targetDir", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        // Designate the execSystemInputDir as the default when asterisk is used.
+        if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
+        // The app definition should not allow this, but we doublecheck.
+        if (StringUtils.isBlank(reqInput.getTargetDir())) {
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrls().get(0), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // ---- description
+        if (StringUtils.isBlank(reqInput.getDescription()))
+            reqInput.setDescription(appDef.getDescription());
+        else if (!reqInput.getDescription().equals(appDef.getDescription())) {
+            String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                         "destination", reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* completeRequestFileInputArray:                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** This method is called when a request file input array does not match the name
+     * of any file input specified in the application definition, such as when the the
+     * request input is anonymous or when when a request input is created by importing 
+     * an unreferenced app input array.  In both cases, the sourceUrls must be set before 
+     * calling this method.
+     * 
+     * This method is not appropriate for optional input arrays that are allowed to be incomplete. 
+     * 
+     * @param reqInput a file input array from the job request
+     * @throws TapisImplException when source or target cannot be assigned
+     */
+    private void completeRequestFileInputArray(JobFileInputArray reqInput) throws TapisImplException
+    {
+        // Make sure we have at least one element in the source url list.
+        if (reqInput.emptySourceUrls()) {
+            var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName(); 
+            String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), name);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Set the target directory if it's not set.  The default is to designate
+        // the execSystemInputDir as the target directory.  An asterisk is an
+        // alternate way of specifying the execSystemInputDir.
+        if (StringUtils.isBlank(reqInput.getTargetDir())) reqInput.setTargetDir("/");
+        if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
+        if (StringUtils.isBlank(reqInput.getTargetDir())) {
+            var name = StringUtils.isBlank(reqInput.getName()) ? "unnamed" : reqInput.getName();
+            String msg = MsgUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 
+                                         reqInput.getSourceUrls().get(0), name);
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        sanitizePath(reqInput.getTargetDir(), "fileInputArrays.targetDir");
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* marshallFileInputArrays:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** Each of the sourceUrls in each of the input arrays is marshalled into a 
+     * JobFileInput object and added to the submission request's JobFileInput list.
+     * 
+     * The goal is for the generated JobFileInput objects so contain as little 
+     * redundancy as possible while maintaining traceability back to their original
+     * user-specified array. 
+     * 
+     * @param arrays non-null list of input array objects
+     */
+    private void marshallFileInputArrays(List<JobFileInputArray> arrays)
+     throws TapisImplException
+    {
+        // Process each array.
+        for (int i = 0; i < arrays.size(); i++) {
+            // Get the current array and check for work.
+            var curArray = arrays.get(i);
+            if (curArray.emptySourceUrls()) continue;
+            
+            // Calculate the full name for the 1st item.  Handle 3 cases:
+            //  - unnamed array
+            //  - name + suffix is too big
+            //  - name + suffix is not too big
+            String name1;
+            final String suffix = "_" + (i+1) + ".";
+            if (StringUtils.isBlank(curArray.getName())) name1 = suffix + "1";
+            else if (curArray.getName().length() + suffix.length() > MAX_INPUT_NAME_LEN) {
+                int subtrahend = curArray.getName().length() + suffix.length() + 1 - MAX_INPUT_NAME_LEN;
+                name1 = curArray.getName().substring(0, curArray.getName().length() - subtrahend) + 
+                        suffix + "1"; // example: 1st item in 1st array ends with "_1.1"
+            }
+            else name1 = curArray.getName() + suffix + "1"; 
+            
+            // Iterate through the source urls.
+            for (int j = 0; j < curArray.getSourceUrls().size(); j++) {
+                // Create a new input object.
+                var reqInput = new JobFileInput();
+                
+                // Populate a new input object.  The first array object gets full 
+                // name and description information; the rest get an abbreviated name
+                // and no description.  
+                //
+                // There is the possibility that users specify the same names that 
+                // we generate, but that shouldn't be a problem because all name 
+                // uniqueness checking has already been performed.
+                reqInput.setName(j == 0 ? name1 : (suffix + (j+1)));
+                reqInput.setDescription(j == 0 ? curArray.getDescription() : null);
+                reqInput.setAutoMountLocal(Boolean.FALSE);
+                reqInput.setOptional(curArray.isOptional());
+                
+                // Assign source path and prohibit tapislocal urls.
+                reqInput.setSourceUrl(curArray.getSourceUrls().get(j));
+                if (reqInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX)) {
+                    String arrayName = StringUtils.isBlank(curArray.getName()) ? "unnamed" : curArray.getName();
+                    String msg = MsgUtils.getMsg("JOBS_TAPISLOCAL_NOT_ALLOWED", 
+                                                 reqInput.getSourceUrl(), arrayName);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+                
+                // Assign target path.
+                String target = Path.of(curArray.getTargetDir(), 
+                                        TapisUtils.extractFilename(reqInput.getSourceUrl())).toString();
+                reqInput.setTargetPath(target);
+            
+                // Save the new object in the 
+                _submitReq.getFileInputs().add(reqInput);
+            }
         }
     }
     
@@ -1126,7 +1727,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Do we even need a queue?
-        if (!_execSystem.getJobIsBatch()) return;
+        if (!_execSystem.getCanRunBatch()) return;
         
         // We need a queue.
         if (StringUtils.isBlank(logicalQueueName)) {
@@ -1164,7 +1765,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Does this job even use a queue?
-        if (!_execSystem.getJobIsBatch()) return;
+        if (!_execSystem.getCanRunBatch()) return;
         
         // Get the queue definition which is guaranteed to exist.
         var queueName = _submitReq.getExecSystemLogicalQueue();
@@ -1309,7 +1910,7 @@ public final class SubmitContext
      * @param schedulerOptions a list of scheduler options
      * @throws TapisImplException if a specified scheduler profile is inaccessible
      */
-    private void validateSchedulerProfile(List<ArgSpec> schedulerOptions) 
+    private void validateSchedulerProfile(List<JobArgSpec> schedulerOptions) 
      throws TapisImplException
     {
         // Guard.
@@ -1374,11 +1975,12 @@ public final class SubmitContext
         _job.setTenant(_submitReq.getTenant());
         _job.setDescription(replaceMacros(_submitReq.getDescription()));
         
+        // The conversion was already tested, so no risk of a runtime exception.
+        _job.setJobType(JobType.valueOf(_submitReq.getJobType()));
+        
         // Creator fields already validated.
         _job.setCreatedby(_threadContext.getOboUser());
         _job.setCreatedbyTenant(_threadContext.getOboTenantId());
-        
-        // TODO: JobType and JobExecClass are not implemented yet. *********
         
         // Already validated.
         _job.setAppId(_submitReq.getAppId());

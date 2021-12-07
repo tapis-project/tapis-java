@@ -103,33 +103,6 @@ public final class UserImpl
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getUserRoles:                                                          */
-    /* ---------------------------------------------------------------------- */
-    public List<String> getUserRoles(String tenant, String user) throws TapisImplException
-    {
-        // Get the dao.
-        SkUserRoleDao dao = null;
-        try {dao = getSkUserRoleDao();}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "userRoles");
-                _log.error(msg, e);
-                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-            }
-
-        // Get the names.
-        List<String> roles = null;
-        try {roles = dao.getUserRoleNames(tenant, user);}
-            catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_USER_GET_ROLE_NAMES_ERROR", 
-                                             tenant, user, e.getMessage());
-                _log.error(msg, e);
-                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
-            }
-
-        return roles;
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* getUserPerms:                                                          */
     /* ---------------------------------------------------------------------- */
     public List<String> getUserPerms(String tenant, String user, String implies,
