@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.AbstractSingularityStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
@@ -630,7 +631,7 @@ public final class SingularityRunSlurmStager
                 slurmCmd.setWckey(value);
                 break;
 
-            // Tapis extended arguments.    
+            // Tapis extended arguments (Job.TAPIS_PROFILE_KEY).    
             case "--tapis-profile":
                 slurmCmd.setTapisProfile(value);
                 break;

@@ -36,6 +36,41 @@ public final class JobParmSetMarshaller
     /*                               Public Methods                                 */
     /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
+    /* mergeTapisProfileFromSystem:                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** This method inserts a tapis-profile scheduler option in the request 
+     * schedulerOptions list if (1) the option isn't already present and (2) it was 
+     * specified in the execution system definition.
+     * 
+     * @param schedulerOptions the request scheduler option AFTER merging with app
+     *                         scheduler options.
+     * @param batchSchedulerProfile the tapis-profile specified by the execution system
+     */
+    public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions,
+                                            String batchSchedulerProfile)
+    {
+        // Maybe there's nothing to merge.
+        if (StringUtils.isBlank(batchSchedulerProfile)) return;
+        final String key = Job.TAPIS_PROFILE_KEY + " ";
+        
+        // See if tapis-profile is already specified as a job request option.
+        // The scheduler option list is never null.  If tapis-profile is found, 
+        // we ignore the value defined in the system and immediately return.
+        for (var opt : schedulerOptions) 
+            if (opt.getArg().startsWith(key)) return;
+        
+        // If we get here then a tapis-profile option was not specified in
+        // neither the app definition nor the job request, so the one in 
+        // system wins the day.
+        var spec = new JobArgSpec();
+        spec.setArg(key + batchSchedulerProfile);
+        spec.setDescription("The tapis-profile value set in execution system.");
+        spec.setName("synthetic_tapis_profile");
+        spec.setInclude(Boolean.TRUE);
+        schedulerOptions.add(spec);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* marshalAppParmSet:                                                           */
     /* ---------------------------------------------------------------------------- */
     /** Populate the standard sharedlib version of ParameterSet with the generated

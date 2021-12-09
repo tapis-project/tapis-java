@@ -59,6 +59,9 @@ public final class Job
 	
     // Prefix for reserved template variables (macros).
     public static final String TAPIS_ENV_VAR_PREFIX = "_tapis";
+    
+    // Tapis-specific scheduler option.
+    public static final String TAPIS_PROFILE_KEY = "--tapis-profile";
 	
 	// Fields
     private int      			id;

@@ -402,6 +402,7 @@ public final class SubmitContext
         marshaller.mergeArgSpecList(reqParmSet.getAppArgs(), appParmSet.getAppArgs(), ArgTypeEnum.APP_ARGS);
         marshaller.mergeArgSpecList(reqParmSet.getContainerArgs(), appParmSet.getContainerArgs(), ArgTypeEnum.CONTAINER_ARGS);
         marshaller.mergeArgSpecList(reqParmSet.getSchedulerOptions(), appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
+        marshaller.mergeTapisProfileFromSystem(reqParmSet.getSchedulerOptions(), _execSystem.getBatchSchedulerProfile());
         
         // Copy the remaining application's parameterSet fields into a jobs 
         // parameterSet. Also include any environment variables set in the 
@@ -1917,7 +1918,7 @@ public final class SubmitContext
         if (schedulerOptions == null || schedulerOptions.isEmpty()) return;
         
         // Argument search spec.
-        final String searchSpec = "--tapis-profile";
+        final String searchSpec = Job.TAPIS_PROFILE_KEY;
         
         // See if a profile is specified.
         for (var opt : schedulerOptions) {
