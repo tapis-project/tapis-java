@@ -1424,6 +1424,91 @@ public final class JobsDao
 	      return result;
 	}
 	
+	/* ---------------------------------------------------------------------- */
+    /* setJobVisibility:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Set the visibility of the job; meaning some requests for job info
+     * may exclude this job if visible is set to false.
+     *
+     * @param jobUuid
+     * @param tenant
+     * @param user
+     * @param isVisible
+     * @throws TapisException 
+     */
+    public void setJobVisibility(String jobUuid, String tenant, String user, boolean isVisible)
+        throws TapisException
+    {
+    	// ------------------------- Check Input -------------------------
+	      if (StringUtils.isBlank(jobUuid)) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "setJobVisibility", "jobUuid");
+	          throw new TapisException(msg);
+	      }
+        
+        // ------------------------- Call SQL ----------------------------
+        Connection conn = null;
+        try
+        {
+            // Get a database connection.
+            conn = getConnection();
+
+            // Set the sql command.
+            String sql = SqlStatements.SET_JOB_VISIBLE;
+
+            // Calculate the new values.
+            Instant now = Instant.now();
+            Timestamp ts = Timestamp.from(now);
+
+            // Prepare the statement and fill in the placeholders.
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setBoolean(1, isVisible);
+            pstmt.setTimestamp(2, ts);
+            pstmt.setString(3, jobUuid);
+
+            // Issue the call.
+            int rows = pstmt.executeUpdate();
+            if (rows != 1) {
+                String parms = StringUtils.joinWith(", ", "visible", jobUuid);
+                String msg = MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", 1, rows, sql, parms);
+                _log.error(msg);
+                throw new JobException(msg);
+            }
+
+            // Commit the transaction.
+            conn.commit();
+
+        } catch(Exception e)
+       
+         {
+            // Rollback transaction.
+            try {if (conn != null) conn.rollback();}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+            
+            // Close and null out the connection here. This overrides the finally block logic and
+            // guarantees that we will not interfere with another thread's use of the connection. 
+            try {if (conn != null) conn.close(); conn = null;}
+                catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e1);}
+            
+            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+                _log.error(msg, e);
+                throw new JobException(msg, e);
+        }
+        finally {
+        	
+        	// Conditionally return the connection back to the connection pool.
+            if (conn != null)
+                try {conn.close();}
+                catch (Exception e)
+                {
+                    // If commit worked, we can swallow the exception.
+                    // If not, the commit exception will be thrown.
+                    String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                    _log.error(msg, e);
+               }
+        	
+             }
+    }
+	
     /* ---------------------------------------------------------------------- */
     /* setStatus:                                                             */
     /* ---------------------------------------------------------------------- */

@@ -467,7 +467,7 @@ public final class JobsImpl
 	        if (!user.equals(jobstatus.getOwner()) && 
 	            !user.equals(jobstatus.getCreatedBy()) && 
 	            !isAdminSafe(user, tenant) &&
-	        	!user.equals(jobstatus.getCreatedByTenant()))
+	        	!user.equals(jobstatus.getCreatedByTenant())) //TODO tenant
 	        {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -662,6 +662,46 @@ public final class JobsImpl
           
         // Return result code.
         return result;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* doHideJob:                                                             */
+    /* ---------------------------------------------------------------------- */
+    
+    public boolean doHideJob(String jobUuid, String tenant, String user) 
+    {
+            
+        try { 
+        	getJobsDao().setJobVisibility(jobUuid, tenant, user,false);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user, tenant,e);
+            _log.error(msg, e);
+           
+        }
+        
+        // Could be null if not found.
+        return true;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* doHideJob:                                                             */
+    /* ---------------------------------------------------------------------- */
+    public boolean doUnHideJob(String jobUuid, String tenant, String user) 
+    {
+            
+        try { 
+        	getJobsDao().setJobVisibility(jobUuid, tenant, user,true);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user,
+            		tenant,e);
+            _log.error(msg, e);
+           
+        }
+        
+        // Could be null if not found.
+        return true;
     }
     
     /* ---------------------------------------------------------------------- */

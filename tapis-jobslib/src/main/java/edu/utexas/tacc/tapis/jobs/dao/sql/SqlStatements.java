@@ -163,8 +163,11 @@ public class SqlStatements
         "UPDATE jobs SET remote_outcome = ?::job_remote_outcome_enum, remote_result_info = ?, last_updated = ?, remote_ended = ?"
         + " WHERE id = ?";
 
-    
-	/* ---------------------------------------------------------------------- */
+    //-------------------- Job Actions  ----------------------
+    public static final String SET_JOB_VISIBLE =
+        "UPDATE jobs SET visible = ?, last_updated = ? WHERE uuid = ?";
+	
+    /* ---------------------------------------------------------------------- */
 	/* job_resubmit table:                                                    */
 	/* ---------------------------------------------------------------------- */
     public static final String SELECT_JOBRESUBMIT =
