@@ -667,6 +667,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */
     /* ---------------------------------------------------------------------- */
+    
     public boolean doHideJob(String jobUuid, String tenant, String user) 
     {
             
@@ -680,7 +681,7 @@ public final class JobsImpl
         }
         
         // Could be null if not found.
-        return false;
+        return true;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -693,14 +694,16 @@ public final class JobsImpl
         	getJobsDao().setJobVisibility(jobUuid, tenant, user,true);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user, tenant,e);
+            String msg = MsgUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user,
+            		tenant,e);
             _log.error(msg, e);
            
         }
         
         // Could be null if not found.
-        return false;
+        return true;
     }
+    
     /* ---------------------------------------------------------------------- */
     /* queryDB:                                                               */
     /* ---------------------------------------------------------------------- */

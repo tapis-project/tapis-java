@@ -20,12 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
-import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.dto.JobCancelDisplay;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHideDisplay;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -98,7 +95,7 @@ public class JobActionResource extends AbstractResource {
      /*                                Public Methods                                */
      /* **************************************************************************** */
      /* ---------------------------------------------------------------------------- */
-     /* hideJob:                                                                      */
+     /* hideJob:                                                                     */
      /* ---------------------------------------------------------------------------- */
      @POST
      @Path("/{jobUuid}/hide")
@@ -111,9 +108,9 @@ public class JobActionResource extends AbstractResource {
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job was hide.",
+                  @ApiResponse(responseCode = "200", description = "Hide the job successfully",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -205,10 +202,13 @@ public class JobActionResource extends AbstractResource {
        }
        // Don't change visibility if already set to hidden
        if(!jobstatus.getVisible()) {
+    	   JobHideDisplay hideMsg = new JobHideDisplay();
     	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden");
-       	  
-       	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-            msg, prettyPrint)).build();
+    	   hideMsg.setMessage(msg);
+    	   RespHideJob r = new RespHideJob(hideMsg);
+       	   
+    	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden"), prettyPrint,r)).build();
        }
        
        //------------------------- Change the visibility  -----------------------------
@@ -238,16 +238,16 @@ public class JobActionResource extends AbstractResource {
      @Path("/{jobUuid}/unhide")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Hide a job by its UUID.\n\n"
+             description = "Un-hide a job by its UUID.\n\n"
                            + "The caller must be the job owner, creator or a tenant administrator."
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job was hide.",
+                  @ApiResponse(responseCode = "200", description = "Unhide the job successfuly.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob.class))),
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
@@ -340,10 +340,15 @@ public class JobActionResource extends AbstractResource {
        }
        // Don't change visibility if already set to unhidden
        if(jobstatus.getVisible()) {
+    	   
+    	   JobHideDisplay hideMsg = new JobHideDisplay();
     	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden");
-       	  
-       	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-            msg, prettyPrint)).build();
+    	   hideMsg.setMessage(msg);
+    	   RespHideJob r = new RespHideJob(hideMsg);
+       	   
+    	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden"), prettyPrint,r)).build();
+    	   
        }
        
        //------------------------- Change the visibility  -----------------------------
