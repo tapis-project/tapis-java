@@ -75,6 +75,9 @@ public abstract class AbstractSingularityStager
             case "-e":
                 singularityCmd.setCleanEnv(true);
                 break;
+            case "--compat":
+                singularityCmd.setCompat(true);
+                break;
             case "--contain":
             case "-c":
                 singularityCmd.setContain(true);
@@ -92,12 +95,20 @@ public abstract class AbstractSingularityStager
             case "--drop-caps":
                 singularityCmd.setDropCapabilities(value);
                 break;
+            case "--fusemount":
+                isAssigned("singularity", option, value);
+                singularityCmd.getFusemount().add(value);
+                break;
             case "--home":
             case "-H":
                 singularityCmd.setHome(value); 
                 break;
             case "--hostname":
                 singularityCmd.setHostname(value);
+                break;
+            case "--mount":
+                isAssigned("singularity", option, value);
+                singularityCmd.getMount().add(value);
                 break;
             case "--net":
             case "-n":
@@ -131,6 +142,9 @@ public abstract class AbstractSingularityStager
                 break;
             case "--nv":
                 singularityCmd.setNv(true);
+                break;
+            case "--nvcli":
+                singularityCmd.setNvcli(true);
                 break;
             case "--overlay":
             case "-O":

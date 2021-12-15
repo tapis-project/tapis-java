@@ -19,6 +19,7 @@ abstract class AbstractSingularityExecCmd
     private String                    capabilities; // comma separated list
     private String                    bind;         // comma separated list of src[:dest[:opts]]
     private boolean                   cleanEnv;     // clean environment before running container
+    private boolean                   compat;       // apply settings for increased OCI/Docker compatibility. Infers --containall, --no-init, --no-umask, --writable-tmpfs.
     private boolean                   contain;      // use minimal /dev and empty other directories
     private boolean                   containAll;   // contain file systems and also PID, IPC, and environment
     private boolean                   disableCache; // don't read or write cache
@@ -26,9 +27,11 @@ abstract class AbstractSingularityExecCmd
     private String                    dropCapabilities; // a comma separated capability list to drop
     private List<Pair<String,String>> env;          // pass environment variable to contained process
     private String                    envFile;      // file of key=value environment assignments
+    private List<String>              fusemount;    // A FUSE filesystem mount specification of the form '<type>:<fuse command> <mountpoint>' - where <type> is 'container' or 'host', specifying where the mount will be performed ('container-daemon' or 'host-daemon' will run the FUSE process detached). <fuse command> is the path to the FUSE executable, plus options for the mount. <mountpoint> is the location in the container to which the FUSE mount will be attached. E.g. 'container:sshfs 10.0.0.1:/ /sshfs'. Implies --pid.
     private String                    home;         // either be a src path or src:dest pair
     private String                    hostname;     // set container host name
     private String                    image;        // the full image specification
+    private List<String>              mount;        // a mount specification e.g. 'type=bind,source=/opt,destination=/hostopt'.
     private boolean                   net;          // run container in a new network namespace
     private String                    network;      // network type separated by commas
     private List<String>              networkArgs;  // network arguments to pass to CNI plugins
@@ -39,6 +42,7 @@ abstract class AbstractSingularityExecCmd
     private boolean                   noUMask;      // do not propagate umask to the container, set default 0022 umask
     private boolean                   noHTTPS;      // do NOT use HTTPS with the docker:// transport
     private boolean                   nv;           // enable experimental Nvidia support
+    private boolean                   nvcli;        // use nvidia-container-cli for GPU setup (experimental)
     private List<String>              overlay;      // use an overlayFS image for persistent data storage
     private String                    pemPath;      // enter an path to a PEM formated RSA key for an encrypted container
     private boolean                   rocm;         // enable experimental Rocm support
@@ -85,6 +89,7 @@ abstract class AbstractSingularityExecCmd
             buf.append(getBind());
         }
         if (isCleanEnv()) buf.append(" --cleanenv");
+        if (isCompat()) buf.append(" --compat");
         if (isContain()) buf.append(" --contain");
         if (isContainAll()) buf.append(" --containall");
         if (isDisableCache()) buf.append(" --disable-cache");
@@ -98,6 +103,9 @@ abstract class AbstractSingularityExecCmd
             buf.append(getDropCapabilities());
         }
         
+        if (!fusemountIsNull() && !getFusemount().isEmpty()) 
+            buf.append(getStringListArgs(" --fusemount ", getNetworkArgs()));
+        
         if (StringUtils.isNotBlank(getHome())) {
             buf.append(" --home ");
             buf.append(getHome());
@@ -106,6 +114,9 @@ abstract class AbstractSingularityExecCmd
             buf.append(" --hostname ");
             buf.append(getHostname());
         }
+        
+        if (!mountIsNull() && !getMount().isEmpty()) 
+            buf.append(getStringListArgs(" --mount ", getNetworkArgs()));
         
         if (isNet()) buf.append(" --net");
         if (StringUtils.isNotBlank(getNetwork())) {
@@ -123,6 +134,7 @@ abstract class AbstractSingularityExecCmd
         if (isNoUMask()) buf.append(" --no-umask");
         if (isNoHTTPS()) buf.append(" --nohttps");
         if (isNv()) buf.append(" --nv");
+        if (isNvcli()) buf.append(" --nvcli");
         
         if (!overlayIsNull() && !getOverlay().isEmpty()) 
             buf.append(getStringListArgs(" --overlay ", getOverlay()));
@@ -219,6 +231,8 @@ abstract class AbstractSingularityExecCmd
     /* ********************************************************************** */
     // List null checks.
     public boolean envIsNull()         {return env == null;}
+    public boolean fusemountIsNull()   {return fusemount == null;}
+    public boolean mountIsNull()       {return mount == null;}
     public boolean networkArgsIsNull() {return networkArgs == null;}
     public boolean noMountsIsNull()    {return noMounts == null;}
     public boolean overlayIsNull()     {return overlay == null;}
@@ -242,6 +256,12 @@ abstract class AbstractSingularityExecCmd
     }
     public void setCleanEnv(boolean cleanEnv) {
         this.cleanEnv = cleanEnv;
+    }
+    public boolean isCompat() {
+        return compat;
+    }
+    public void setCompat(boolean compat) {
+        this.compat = compat;
     }
     public boolean isContain() {
         return contain;
@@ -286,6 +306,13 @@ abstract class AbstractSingularityExecCmd
     public void setEnvFile(String envFile) {
         this.envFile = envFile;
     }
+    public List<String> getFusemount() {
+        if (fusemount == null) fusemount = new ArrayList<String>();
+        return fusemount;
+    }
+    public void setFusemount(List<String> fusemount) {
+        this.fusemount = fusemount;
+    }
     public String getHome() {
         return home;
     }
@@ -303,6 +330,13 @@ abstract class AbstractSingularityExecCmd
     }
     public void setImage(String image) {
         this.image = image;
+    }
+    public List<String> getMount() {
+        if (mount == null) mount = new ArrayList<String>();
+        return mount;
+    }
+    public void setMount(List<String> mount) {
+        this.mount = mount;
     }
     public boolean isNet() {
         return net;
@@ -365,6 +399,12 @@ abstract class AbstractSingularityExecCmd
     }
     public void setNv(boolean nv) {
         this.nv = nv;
+    }
+    public boolean isNvcli() {
+        return nvcli;
+    }
+    public void setNvcli(boolean nvcli) {
+        this.nvcli = nvcli;
     }
     public List<String> getOverlay() {
         if (overlay == null) overlay = new ArrayList<String>();
