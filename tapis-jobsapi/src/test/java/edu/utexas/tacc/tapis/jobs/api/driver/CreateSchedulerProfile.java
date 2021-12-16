@@ -15,7 +15,7 @@ import com.google.gson.reflect.TypeToken;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
-import edu.utexas.tacc.tapis.systems.client.gen.model.ReqCreateSchedulerProfile;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqPostSchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerHiddenOptionEnum;
 
 public class CreateSchedulerProfile 
@@ -67,7 +67,7 @@ public class CreateSchedulerProfile
         Type HIDDEN_OPTION = new TypeToken<SchedulerHiddenOptionEnum>(){}.getType();
         gsonBuilder.registerTypeAdapter(HIDDEN_OPTION, new HiddenOptionAdapter());
         var gson = gsonBuilder.create();
-        ReqCreateSchedulerProfile profileReq = gson.fromJson(reqString, ReqCreateSchedulerProfile.class);
+        ReqPostSchedulerProfile profileReq = gson.fromJson(reqString, ReqPostSchedulerProfile.class);
         
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[1]);

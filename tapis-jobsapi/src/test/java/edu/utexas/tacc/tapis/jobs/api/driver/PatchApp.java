@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.ReqCreateApp;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ReqPostApp;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ReqPatchApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -70,7 +70,7 @@ public class PatchApp
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        ReqCreateApp appReq = TapisGsonUtils.getGson().fromJson(reqString, ReqCreateApp.class);
+        ReqPostApp appReq = TapisGsonUtils.getGson().fromJson(reqString, ReqPostApp.class);
         
         // Load the security profile if one is provided, otherwise, use the static values.
         String url, jwt;

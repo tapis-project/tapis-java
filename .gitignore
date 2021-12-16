@@ -47,13 +47,13 @@ test-output
 *.iws
 # Include IntelliJ runConfigurations and some
 # other config files to help troubleshoot IDE issues
-!.idea/compiler.xml
-!.idea/misc.xml
-!.idea/modules.xml
-!.idea/sqldialects.xml
-!.idea/tapis-java.iml
-!tapis-systemsapi/*.iml
-!tapis-systemslib/*.iml
+# !.idea/compiler.xml
+# !.idea/misc.xml
+# !.idea/modules.xml
+# !.idea/sqldialects.xml
+# !.idea/tapis-java.iml
+# !tapis-systemsapi/*.iml
+# !tapis-systemslib/*.iml
 
 # Eclipse metadata files
 .project

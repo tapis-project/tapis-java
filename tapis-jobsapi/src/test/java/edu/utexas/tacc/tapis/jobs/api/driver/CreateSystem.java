@@ -8,7 +8,7 @@ import java.util.Properties;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
-import edu.utexas.tacc.tapis.systems.client.gen.model.ReqCreateSystem;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqPostSystem;
 
 public class CreateSystem
 {
@@ -55,7 +55,7 @@ public class CreateSystem
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        ReqCreateSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqCreateSystem.class);
+        ReqPostSystem sysReq = TapisGsonUtils.getGson().fromJson(reqString, ReqPostSystem.class);
         
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[1]);
