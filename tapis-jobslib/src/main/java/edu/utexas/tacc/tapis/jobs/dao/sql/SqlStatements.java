@@ -30,8 +30,9 @@ public class SqlStatements
         	+ "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
         	+ "remote_checks_failed, remote_last_status_check, "
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
-        	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type"
-        + " FROM jobs ORDER BY id";
+        	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
+        	+ "is_mpi, mpi_cmd, cmd_prefix"
+            + " FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_USERNAME =
         "SELECT uuid, tenant, name, owner, status, "
@@ -56,7 +57,8 @@ public class SqlStatements
             + "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
             + "remote_checks_failed, remote_last_status_check, "
             + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
-            + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type"
+            + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
+            + "is_mpi, mpi_cmd, cmd_prefix"
             + " FROM jobs"
             + " WHERE uuid = ?";
     
@@ -82,14 +84,16 @@ public class SqlStatements
             + "dtn_system_id, dtn_mount_source_path, dtn_mount_point, "
             + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
-            + "tapis_queue, createdby, createdby_tenant, tags, job_type) "
+            + "tapis_queue, createdby, createdby_tenant, tags, job_type, "
+            + "is_mpi, mpi_cmd, cmd_prefix) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
     		+ "?, ?, ?, "
     		+ "?, ?, "
     		+ "?, ?, ?, "
-    		+ "?, ?, ?, ?, ?::json, ?::json, ?, ?::json, ?, ?, ?, ?, ?)"; 
+    		+ "?, ?, ?, ?, ?::json, ?::json, ?, ?::json, ?, ?, ?, ?, ?, "
+    		+ "?, ?, ?)"; 
 
     public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
         "SELECT status FROM jobs WHERE tenant = ? AND uuid = ? FOR UPDATE";

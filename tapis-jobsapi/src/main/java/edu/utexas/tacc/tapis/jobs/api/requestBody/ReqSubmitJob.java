@@ -40,7 +40,10 @@ public class ReqSubmitJob
     private JobParameterSet 	    parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
-    private List<NotificationSubscription> subscriptions; // assigned on first get
+    private List<NotificationSubscription> subscriptions;     // assigned on first get
+    private Boolean                 isMpi;
+    private String                  mpiCmd;
+    private String                  cmdPrefix;
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
@@ -297,6 +300,30 @@ public class ReqSubmitJob
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public Boolean getIsMpi() {
+        return isMpi;
+    }
+
+    public void setIsMpi(Boolean isMpi) {
+        this.isMpi = isMpi;
+    }
+
+    public String getMpiCmd() {
+        return mpiCmd;
+    }
+
+    public void setMpiCmd(String mpiCmd) {
+        this.mpiCmd = mpiCmd;
+    }
+
+    public String getCmdPrefix() {
+        return cmdPrefix;
+    }
+
+    public void setCmdPrefix(String cmdPrefix) {
+        this.cmdPrefix = cmdPrefix;
     }
 
     @Schema(hidden = true)

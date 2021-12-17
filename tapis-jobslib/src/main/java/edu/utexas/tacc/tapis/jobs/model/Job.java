@@ -133,6 +133,9 @@ public final class Job
     private TreeSet<String>     tags;
     
     private JobType             jobType; // should never be null after db migration
+    private boolean             isMpi;
+    private String              mpiCmd;
+    private String              cmdPrefix;
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -264,6 +267,24 @@ public final class Job
         
         // Not the same.
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getMpiOrCmdPrefixPadded:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** Either one or zero of the mpiCmd and cmdPrefix are in effect at any time.  The
+     * mpiCmd can only be in effect if isMpi is set.  Prior validation assures that 
+     * mpiCmd and cmdPrefix cannot be in effect at the same time.  If neither are in
+     * effect, the empty string is returned.  Null is never returned.
+     * 
+     * @return the empty string or either the mpiCmd or cmdPrefix with a trailing space
+     */
+    @Schema(hidden = true)
+    public String getMpiOrCmdPrefixPadded()
+    {
+        if (isMpi) return mpiCmd + " ";
+        if (!StringUtils.isBlank(cmdPrefix)) return cmdPrefix + " ";
+        return "";
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -419,6 +440,20 @@ public final class Job
         if (jobType == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
             throw new JobException(msg);
+        }
+        
+        // MPI and command prefix checks.
+        if (isMpi) {
+            // MPI command must be specified.
+            if (StringUtils.isBlank(mpiCmd)) {
+                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "mpiCmd");
+                throw new JobException(msg);
+            }
+            // No command prefix can be specified.
+            if (StringUtils.isNotBlank(cmdPrefix)) {
+                String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateForExecution", "cmdPrefix-conflict", cmdPrefix);
+                throw new JobException(msg);
+            }
         }
     }
     
@@ -893,6 +928,30 @@ public final class Job
 
     public void setArchiveCorrelationId(String archiveCorrelationId) {
         this.archiveCorrelationId = archiveCorrelationId;
+    }
+
+    public boolean isMpi() {
+        return isMpi;
+    }
+
+    public void setMpi(boolean isMpi) {
+        this.isMpi = isMpi;
+    }
+
+    public String getMpiCmd() {
+        return mpiCmd;
+    }
+
+    public void setMpiCmd(String mpiCmd) {
+        this.mpiCmd = mpiCmd;
+    }
+
+    public String getCmdPrefix() {
+        return cmdPrefix;
+    }
+
+    public void setCmdPrefix(String cmdPrefix) {
+        this.cmdPrefix = cmdPrefix;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.

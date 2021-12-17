@@ -138,6 +138,23 @@
             "type": "array",
             "items": {"type": "string", "minLength": 1, "maxLength": 126},
             "uniqueItems": true
+          },
+          "isMpi": {
+            "$comment": "Indicate whether this job is an MPI job.",
+            "type": "boolean",
+            "default": false
+          },
+          "mpiCmd": {
+            "$comment": "Specify the MPI launch command.  Conflicts with cmdPrefix if isMpi is set.",
+            "type": ["string", "null"],
+            "minLength": 1,
+            "maxLength": 126
+          },
+          "cmdPrefix": {
+            "$comment": "String prepended to the application invocation command.  Conflicts with mpiCmd if isMpi is set.",
+            "type": ["string", "null"],
+            "minLength": 1,
+            "maxLength": 126
           }
         },
     "required": [

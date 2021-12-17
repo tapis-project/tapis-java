@@ -304,6 +304,9 @@ public final class SubmitContext
         // Resolve directory assignments.
         resolveDirectoryPathNames();
         
+        // Resolve MPI and command prefix values.
+        resolveMpiAndCmdPrefix();
+        
         // Merge tapis-defined logical queue value, which can ultimately be null.
         if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
             _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
@@ -736,6 +739,49 @@ public final class SubmitContext
         
         // Detect ".." segments in path early. 
         sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveMpiAndCmdPrefix:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    private void resolveMpiAndCmdPrefix() throws TapisImplException
+    {
+        // Determine whether MPI is indicated.
+        if (_submitReq.getIsMpi() == null) {
+            if (_app.getJobAttributes().getIsMpi() != null)
+                _submitReq.setIsMpi(_app.getJobAttributes().getIsMpi());
+            else 
+                _submitReq.setIsMpi(Boolean.FALSE);
+        }
+        
+        // Set the MPI command or leave as null.
+        if (StringUtils.isBlank(_submitReq.getMpiCmd())) {
+            if (StringUtils.isNotBlank(_app.getJobAttributes().getMpiCmd()))
+                _submitReq.setMpiCmd(_app.getJobAttributes().getMpiCmd());
+            else if (StringUtils.isNotBlank(_execSystem.getMpiCmd()))
+                _submitReq.setMpiCmd(_execSystem.getMpiCmd());
+        }
+        
+        // Set the command prefix or leave as null.
+        if (StringUtils.isBlank(_submitReq.getCmdPrefix())) 
+            if (StringUtils.isNotBlank(_app.getJobAttributes().getCmdPrefix()))
+                _submitReq.setCmdPrefix(_app.getJobAttributes().getCmdPrefix());
+        
+        // Canonicalize by replacing empty strings with null.
+        _submitReq.setMpiCmd(StringUtils.stripToNull(_submitReq.getMpiCmd()));
+        _submitReq.setCmdPrefix(StringUtils.stripToNull(_submitReq.getCmdPrefix()));
+        
+        // Validate when MPI is indicated.
+        if (_submitReq.getIsMpi()) {
+            if (_submitReq.getMpiCmd() == null) {
+                String msg = MsgUtils.getMsg("JOBS_MISSING_MPI_CMD");
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+            if (_submitReq.getCmdPrefix() != null) {
+                String msg = MsgUtils.getMsg("JOBS_MPI_CMD_CONFLICT");
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2039,6 +2085,11 @@ public final class SubmitContext
         var tags = new TreeSet<String>();
         tags.addAll(_submitReq.getTags());
         _job.setTags(tags);
+        
+        // MPI and command prefix.
+        _job.setMpi(_submitReq.getIsMpi());
+        _job.setMpiCmd(_submitReq.getMpiCmd());
+        _job.setCmdPrefix(_submitReq.getCmdPrefix());
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));

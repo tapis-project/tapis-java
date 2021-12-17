@@ -35,7 +35,8 @@ public final class SingularityStartCmd
         buf.append("# Issue singularity instance start command and write PID to file.\n");
         buf.append("# Format: singularity instance start [options] <container path> <instance name> [app args]\n");
         
-        buf.append("singularity instance start");
+        var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
+        buf.append(p + "singularity instance start");
         buf.append(" --env-file ");
         buf.append(getEnvFile());
         buf.append(" --pid-file ");

@@ -1319,6 +1319,11 @@ public final class JobsDao
             }
           pstmt.setArray(35, tagsArray);
           pstmt.setString(36, job.getJobType().name());
+          
+          // MPI and command prefix.
+          pstmt.setBoolean(37, job.isMpi());
+          pstmt.setString(38,  job.getMpiCmd());                // could be null
+          pstmt.setString(39,  job.getCmdPrefix());             // could be null
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -2979,6 +2984,11 @@ public final class JobsDao
 	        // Could be null until databases are migrated.
 	        String jobType = rs.getString(56);
 	        if (jobType != null) obj.setJobType(JobType.valueOf(jobType));
+	        
+	        // MPI and command prefix.
+	        obj.setMpi(rs.getBoolean(57));
+	        obj.setMpiCmd(rs.getString(58));
+	        obj.setCmdPrefix(rs.getString(59));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

@@ -115,7 +115,8 @@ public final class SingularityRunCmd
         StringBuilder buf = new StringBuilder(capacity);
         
         // ------ Start the command text.
-        buf.append("singularity run");
+        var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
+        buf.append(p + "singularity run");
         
         // ------ Fill in environment variables.
         buf.append(getEnvArg(getEnv()));

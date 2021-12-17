@@ -77,7 +77,8 @@ public final class DockerRunCmd
         buf.append("# Issue docker run command and write container ID to file.\n");
         buf.append("# Format: docker run [options] image[:tag|@digest] [app args]\n");
         
-        buf.append("docker run -d --name ");
+        var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
+        buf.append(p + "docker run -d --name ");
         buf.append(name);
         buf.append(" --user ");
         buf.append(user);
