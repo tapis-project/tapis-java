@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask.StatusEnum;
+import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -65,7 +65,7 @@ public final class PollingMonitor
      * completes successfully or fails with an exception.
      * 
      * @param job the job that initiated the transfer
-     * @param the uuid assigned to this task by Files
+     * @param transferId uuid assigned to this task by Files
      * @param corrId the correlation id (or tag) associated with the transfer
      * @throws TapisException when the transfer does not complete successfully
      */
@@ -99,16 +99,16 @@ public final class PollingMonitor
                 String msg = MsgUtils.getMsg("JOBS_INVALID_TRANSFER_RESULT", job.getUuid(), transferId, corrId);
                 throw new JobException(msg);
             }
-            StatusEnum status = task.getStatus();
+            TransferStatusEnum status = task.getStatus();
             
             // Successful termination, we don't need to poll anymore.
-            if (status == StatusEnum.COMPLETED) {
+            if (status == TransferStatusEnum.COMPLETED) {
                 _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));
                 break;
             }
             
             // Unsuccessful termination.
-            if (status == StatusEnum.FAILED || status == StatusEnum.CANCELLED) {
+            if (status == TransferStatusEnum.FAILED || status == TransferStatusEnum.CANCELLED) {
                 String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
                                              status, task.getErrorMessage());
                 throw new JobException(msg);
