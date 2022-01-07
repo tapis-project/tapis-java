@@ -22,6 +22,9 @@ public class DockerNativeMonitor
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(DockerNativeMonitor.class);
     
+    // Distinguished error strings.
+    private static final String ERROR_PERMISSION_DENIED = "permission denied";
+    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -84,9 +87,10 @@ public class DockerNativeMonitor
         
         // Query the container.
         String result = null;
+        int rc;
         try {
             // Issue the command and get the result.
-            int rc = runCmd.execute(cmd);
+            rc = runCmd.execute(cmd);
             runCmd.logNonZeroExitCode();
             result = runCmd.getOutAsString();
         }
@@ -94,6 +98,9 @@ public class DockerNativeMonitor
             _log.error(e.getMessage(), e);
             return JobRemoteStatus.NULL;
         }
+        
+        // Determine if there's no point in going on.
+        detectFatalCondition(rc, result);
         
         // We should have gotten something.
         if (StringUtils.isBlank(result)) return JobRemoteStatus.EMPTY;
@@ -136,6 +143,41 @@ public class DockerNativeMonitor
                                      _job.getUuid(), result, cmd);
         _log.error(msg);
         return JobRemoteStatus.EMPTY;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* detectFatalCondition:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /** Fail fast under certain conditions, otherwise let the monitoring policy 
+     * play out.  
+     * 
+     * We take a conservative approach to ending the job due to a monitoring
+     * call error because we don't want transient errors to kill a job.  Under
+     * this approach, we'll add particular conditions that we know are 
+     * unrecoverable as we encounter them.  At some point we might decide that 
+     * any error whose result string contains "docker: " are always 
+     * unrecoverable.
+     * 
+     * @param rc the return code from the remote command
+     * @param result error message, possibly null
+     * @throws TapisException 
+     */
+    private void detectFatalCondition(int rc, String result) 
+     throws TapisException
+    {
+        // No error or we don't have any information on which to
+        // choose whether or not to handle the error condition.
+        if (rc == 0 || result == null) return;
+        
+        // Unable to talk to docker daemon, probably due to the authenticated user
+        // on the execution system not able to write the daemon's unix socket.
+        if (result.contains(ERROR_PERMISSION_DENIED)) {
+            String host = "<unknown>";
+            try {host = _jobCtx.getExecutionSystem().getHost();} catch (Exception e) {}
+            String msg = MsgUtils.getMsg("JOBS_DOCKER_PERM_DENIED", rc, 
+                                         _job.getOwner(), _job.getUuid(), host);
+            throw new TapisException(msg);
+        }
     }
     
     /* ---------------------------------------------------------------------- */

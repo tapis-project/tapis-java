@@ -53,24 +53,28 @@ public final class DockerNativeLauncher
         int exitStatus = runCmd.execute(cmd);
         runCmd.logNonZeroExitCode();
         String result  = runCmd.getOutAsString();
+        if (StringUtils.isBlank(result)) result = "";
         
         // Let's see what happened.
         String cid = UNKNOWN_CONTAINER_ID;       
-        if (exitStatus == 0 && !StringUtils.isBlank(result)) {
+        if (exitStatus == 0) {
             cid = result.trim();
+            if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
             if (_log.isDebugEnabled()) {
                 String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
                                              _job.getUuid(), cid, exitStatus);
                 _log.debug(msg);
             }
         } else {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_WARN", getClass().getSimpleName(), 
+            // Our one chance at launching the container failed with a non-communication
+            // error, which we assume is unrecoverable so we abort the job now.
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd, result, exitStatus);
-            _log.warn(msg);
+            _log.error(msg);
+            throw new TapisException(msg);
         }
 
         // Save the container id or the unknown id string.
-        if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
         _jobCtx.getJobsDao().setRemoteJobId(_job, cid);
     }
     

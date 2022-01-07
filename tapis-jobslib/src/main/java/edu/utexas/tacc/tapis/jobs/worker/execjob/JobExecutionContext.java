@@ -330,7 +330,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------------- */
     /* getExecSystemTapisSSH:                                                       */
     /* ---------------------------------------------------------------------------- */
-    public TapisSSH getExecSystemTapisSSH() throws JobException
+    public synchronized TapisSSH getExecSystemTapisSSH() throws JobException
     {
         if (_execSysTapisSSH == null) {
             try {

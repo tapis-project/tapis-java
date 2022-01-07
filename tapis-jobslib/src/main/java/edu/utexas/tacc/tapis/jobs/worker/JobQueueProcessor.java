@@ -636,7 +636,7 @@ final class JobQueueProcessor
       jobCtx.checkCmdMsg();
     
       // Check the remote running job unless it has already reached a terminal
-      // state, in which case there's not need for further monitoring.
+      // state, in which case there's no need for further monitoring.
       if (job.getRemoteOutcome() == null)
           try {jobCtx.monitorRunningJob();}
           catch (Exception e) {handleException(job, e, BlockedJobActivity.RUNNING);}
