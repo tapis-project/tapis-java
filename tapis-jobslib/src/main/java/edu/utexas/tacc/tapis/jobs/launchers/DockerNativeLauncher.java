@@ -70,7 +70,6 @@ public final class DockerNativeLauncher
             // error, which we assume is unrecoverable so we abort the job now.
             String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd, result, exitStatus);
-            _log.error(msg);
             throw new TapisException(msg);
         }
 
