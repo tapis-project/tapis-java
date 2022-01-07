@@ -10,12 +10,110 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.0 - 2022-01-07
+
+New minor release.
+
+### Breaking Changes:
+- none
+
+### New features:
+1. Fail-fast support for jobs that experience unrecoverable Docker errors.
+2. Support for renamed task status enum in Apps client. 
+
+-----------------------
+
+## 1.0.6 - 2021-12-17
+
+MPI and command prefix support.
+
+### Breaking Changes:
+- none
+
+### New features:
+1. MPI support.
+2. Command prefix support.
+3. Support for latest App and Systems interfaces.
+
+### Bug fixes:
+1. Hide/unhide flag fix.
+
+-----------------------
+
+## 1.0.5 - 2021-12-09
+
+New job request interface release.
+
+### Breaking Changes:
+- JobType migration may be required.
+
+### New features:
+1. Job request args and inputs tweaks.
+2. Use updated TapisSystem.getCanRunBatch() call.
+3. Implemented JobType support.
+4. Implemented batchSchedulerProfile support.
+5. Implemented hide/unhide apis.
+
+### Bug fixes:
+1. Fix jobType assignment.
+2. Fix openapi specification generation.
+
+-----------------------
+
+## 1.0.4 - 2021-11-10
+
+New job request interface release.
+
+### Breaking Changes:
+- Job request interface changed.
+
+### New features:
+1. Added JSON schema for search request.
+2. Support for new FileInputs design and interface.
+3. Support for new FileInputArrays design and interface.
+4. Support for new JobArgsSpec design and interface.
+5. Support for new tapisLocal design and interface.
+6. Updated job request tests.
+7. Support for ArgInputModeEnum name change.
+
+-----------------------
+
+## 1.0.3 - 2021-10-12
+
+Bug fix release.
+
+### Breaking Changes:
+- none
+
+### New features:
+1. Added ListFiles2 test program.
+
+### Bug fixes:
+1. Fix version in non-standard POM files.
+2. Fixes to job search along with code clean up.
+3. Fix includeLaunchFiles bug.
+
+-----------------------
+
+## 1.0.2 - 2021-09-17
+
+Bug fix release.
+
+### Breaking Changes:
+- none
+
+### Bug fixes:
+1. Fix job listing conditional statement.
+2. Fix TooManyFailures problem. 
+
+-----------------------
+
 ## 1.0.1 - 2021-09-15
 
 Incremental improvement and bug fix release.
 
 ### Breaking Changes:
-- Initial release.
+- none
 
 ### New features:
 1. Provided a default job description if one is not specified on job submission.

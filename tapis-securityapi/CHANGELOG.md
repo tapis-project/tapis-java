@@ -10,6 +10,39 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.0 - 2022-01-07
+
+New minor release, no changes.
+
+-----------------------
+
+## 1.0.5 - 2021-12-09
+
+Bug fix release
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Improved getUserPerm endpoint livedocs documentation.
+
+### Bug fixes:
+1 Removed duplicate code.
+
+-----------------------
+
+## 1.0.3 - 2021-10-12
+
+Bug fix release
+
+### Breaking Changes:
+- none.
+
+### Bug fixes:
+1 Fix version in non-standard POM files.
+
+-----------------------
+
 ## 1.0.0 - 2021-07-16
 
 Initial release supporting basic CRUD operations on Tapis authorization 

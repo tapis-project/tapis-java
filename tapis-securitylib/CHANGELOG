@@ -5,4 +5,7 @@ Version 1.0.0
 
 New Features
 ------------
-1. Backend implementation of Security Kernel authorization database and secrets vault. 
+1. Backend implementation of Security Kernel authorization database and secrets vault.
+
+All Subsequent Versions
+    ** See CHANGELOG.md in the tapis-securityapi project 
