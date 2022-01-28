@@ -48,6 +48,8 @@ public class ReqSubmitJob
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
     
+    // Temporary storage for hpc queue name during request processing.
+    private transient String        hpcQueueName;
 
 	@Override
 	public String validate() 
@@ -329,5 +331,14 @@ public class ReqSubmitJob
     @Schema(hidden = true)
     public String getConsolidatedConstraints() {
         return consolidatedConstraints;
+    }
+
+    @Schema(hidden = true)
+    public String getHpcQueueName() {
+        return hpcQueueName;
+    }
+
+    public void setHpcQueueName(String hpcQueueName) {
+        this.hpcQueueName = hpcQueueName;
     }
 }

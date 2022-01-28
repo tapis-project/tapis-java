@@ -211,22 +211,18 @@ public final class RecoveryUtils
      */
     public static TreeMap<String,String> captureQuotaState(TapisSystem execSys,
                                                            Job job, 
-                                                           LogicalQueue logicalQueue)
+                                                           LogicalQueue logicalQueue,
+                                                           int maxSystemJobs,
+                                                           int maxSystemJobsPerUser)
     {
         TreeMap<String,String> state = new TreeMap<>();
         state.put("tenantId", execSys.getTenant());
         state.put("systemId", execSys.getId());
         state.put("jobOwner", job.getOwner());
-        state.put("remoteQueue", job.getRemoteQueue());
+        state.put("execSystemLogicalQueue", job.getExecSystemLogicalQueue());
+        state.put("maxSystemJobs", Integer.toString(maxSystemJobs));
+        state.put("maxSystemUserJobs", Integer.toString(maxSystemJobsPerUser));
         
-        // Capture or dummy up the execution system limits.
-        if (execSys.getJobMaxJobs() != null)
-        	state.put("maxSystemJobs", Integer.toString(execSys.getJobMaxJobs()));
-          else state.put("maxSystemJobs", Integer.toString(DEFAULT_MAX_SYSTEM_JOBS));
-        if (execSys.getJobMaxJobsPerUser() != null)
-            state.put("maxSystemUserJobs", Integer.toString(execSys.getJobMaxJobsPerUser()));
-          else state.put("maxSystemUserJobs", Integer.toString(DEFAULT_MAX_SYSTEM_JOBS_PER_USER));
-
         // The batchqueue will be null on non-batch jobs, so we check to be safe.
         // In either case we always assign a non-null value to each key.
         if (logicalQueue == null) {

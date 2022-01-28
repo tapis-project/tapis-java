@@ -35,7 +35,7 @@ extends AbsTester
    private String _tenantId;
    private String _systemId;
    private String _jobOwner;
-   private String _remoteQueue;
+   private String _execSystemLogicalQueue;
    private int    _maxSystemJobs;
    private int    _maxSystemUserJobs;
    private long   _maxQueueJobs;
@@ -84,18 +84,22 @@ extends AbsTester
            if (cnt <= 0) return NO_RESUBMIT_BATCHSIZE;
              else unblock = Math.min(unblock, cnt);
            
-           cnt = blockedByMaxSystemQueueJobs();
-           if (cnt <= 0) return NO_RESUBMIT_BATCHSIZE;
-             else unblock = Math.min(unblock, cnt);
+           // Only on scheduler batch jobs.
+           if (!StringUtils.isBlank(_execSystemLogicalQueue)) 
+           {
+               cnt = blockedByMaxSystemQueueJobs();
+               if (cnt <= 0) return NO_RESUBMIT_BATCHSIZE;
+                 else unblock = Math.min(unblock, cnt);
            
-           cnt = blockedByMaxSystemUserQueueJobs();
-           if (cnt <= 0) return NO_RESUBMIT_BATCHSIZE;
-             else unblock = Math.min(unblock, cnt);
+               cnt = blockedByMaxSystemUserQueueJobs();
+               if (cnt <= 0) return NO_RESUBMIT_BATCHSIZE;
+                 else unblock = Math.min(unblock, cnt);
+           }
        } 
        catch (Exception e) {
            String msg = MsgUtils.getMsg("JOBS_RECOVERY_QUOTA_TEST_ERROR", 
                                         _jobRecovery.getId(), _tenantId, _systemId,
-                                        _jobOwner, _remoteQueue, e.getMessage());
+                                        _jobOwner, _execSystemLogicalQueue, e.getMessage());
            _log.error(msg, e);
            throw new JobRecoveryAbortException(msg, e);
        }
@@ -150,7 +154,7 @@ extends AbsTester
    {
        // Enforce the quota.
        int jobCount = getJobsDao().countActiveSystemQueueJobs(_tenantId, _systemId,
-                                                              _remoteQueue);
+                                                              _execSystemLogicalQueue);
        return (int) (_maxQueueJobs - jobCount);
    }
    
@@ -167,7 +171,7 @@ extends AbsTester
    {
        // Enforce the quota.
        int jobCount = getJobsDao().countActiveSystemUserQueueJobs(_tenantId, _systemId,
-                                                                  _jobOwner, _remoteQueue);
+                                                                  _jobOwner, _execSystemLogicalQueue);
        return (int) (_maxUserQueueJobs - jobCount);
    }
    
@@ -212,14 +216,9 @@ extends AbsTester
            _log.error(msg);
            throw new JobRecoveryAbortException(msg);
        }
-
-       _remoteQueue = testerParameters.get("remoteQueue");
-       if (StringUtils.isBlank(_remoteQueue)) {
-           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
-                                        "remoteQueue");
-           _log.error(msg);
-           throw new JobRecoveryAbortException(msg);
-       }
+       
+       // Can be null.
+       _execSystemLogicalQueue = testerParameters.get("execSystemLogicalQueue");
 
        // ------- Validate and Assign Numeric Fields
        try {_maxSystemJobs = Integer.valueOf(testerParameters.get("maxSystemJobs"));}

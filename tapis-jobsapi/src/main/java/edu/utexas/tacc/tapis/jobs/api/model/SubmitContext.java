@@ -307,12 +307,17 @@ public final class SubmitContext
         // Resolve MPI and command prefix values.
         resolveMpiAndCmdPrefix();
         
-        // Merge tapis-defined logical queue value, which can ultimately be null.
-        if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
-            _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
-        if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
-            _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
-        validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
+        // Merge tapis-defined logical queue value only when we are running in batch mode.
+        if (!_execSystem.getCanRunBatch() || 
+            !JobType.BATCH.name().equals(_submitReq.getJobType())) 
+        {
+            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+                _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
+            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+                _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
+            var hpcQueueName = validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
+            if (hpcQueueName != null) _submitReq.setHpcQueueName(hpcQueueName);
+        }
         
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
@@ -1770,12 +1775,19 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateExecSystemLogicalQueue:                                              */
     /* ---------------------------------------------------------------------------- */
-    private void validateExecSystemLogicalQueue(String logicalQueueName) 
+    /** Validate that the logical queue name is defined in the execution system when
+     * in BATCH mode.  If so, return the actual queue name on the hpc system associated
+     * with tapis logical queue.
+     * 
+     * We should only get here if we are running in batch mode.
+     * 
+     * @param logicalQueueName name of the tapis queue defined in the exec system
+     * @return null or the remote hpc queue name defined in logical queue
+     * @throws TapisImplException
+     */
+    private String validateExecSystemLogicalQueue(String logicalQueueName) 
      throws TapisImplException
     {
-        // Do we even need a queue?
-        if (!_execSystem.getCanRunBatch()) return;
-        
         // We need a queue.
         if (StringUtils.isBlank(logicalQueueName)) {
             String msg = MsgUtils.getMsg("JOBS_NO_LOGICAL_QUEUE", _app.getId(), 
@@ -1785,7 +1797,7 @@ public final class SubmitContext
         
         // Validation will check that the named logical queue has been defined.
         for (var q : _execSystem.getBatchLogicalQueues()) 
-            if (logicalQueueName.equals(q.getName())) return;
+            if (logicalQueueName.equals(q.getName())) return q.getHpcQueueName();
 
         // Queue not defined on exec system.
         String queues = null;
@@ -2093,6 +2105,9 @@ public final class SubmitContext
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));
+        
+        // Set the hpc queue name which is only non-null on batch jobs.
+        _job.setRemoteQueue(_submitReq.getHpcQueueName());
     }
     
     /* **************************************************************************** */

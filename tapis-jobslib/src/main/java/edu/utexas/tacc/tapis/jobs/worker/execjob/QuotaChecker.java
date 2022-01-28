@@ -3,12 +3,11 @@ package edu.utexas.tacc.tapis.jobs.worker.execjob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisQuotaException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
@@ -80,31 +79,31 @@ public final class QuotaChecker
     /* ---------------------------------------------------------------------- */
     private void checkMaxSystemJobs() throws TapisException
     {
-        // Does the exec system have a hard limit on the number of jobs?
-        TapisSystem execSys = _jobCtx.getExecutionSystem();
-        Integer maxSystemJobs = execSys.getJobMaxJobs();
-        if (maxSystemJobs == null || maxSystemJobs <= 0) return;
+        // Get the effective maximum number of jobs for this app on this system.
+        int maxJobs = getMaxJobs();
         
         // Enforce the quota.
-        int curSystemJobs = 
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
+        int curJobs = 
             _jobCtx.getJobsDao().countActiveSystemJobs(execSys.getTenant(), execSys.getId());
         
         // Test.
-        if (curSystemJobs > maxSystemJobs) 
+        if (curJobs >= maxJobs) 
         {
             // Recoverable error.
             String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
-                                         maxSystemJobs);
+                                         maxJobs);
             _log.warn(msg);
             throw new TapisQuotaException(msg, 
-                RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue()));        
+                RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue(),
+                                                maxJobs, getMaxJobsPerUser()));        
         }
         
         // Tracing.
         if (_log.isDebugEnabled()) 
             _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_JOBS", _job.getUuid(),
-                       execSys.getTenant(), execSys.getId(), curSystemJobs));
+                       execSys.getTenant(), execSys.getId(), curJobs));
     }
     
     /* ---------------------------------------------------------------------- */
@@ -112,33 +111,33 @@ public final class QuotaChecker
     /* ---------------------------------------------------------------------- */
     private void checkMaxSystemUserJobs() throws TapisException
     {
-        // Does the exec system have a hard limit on the number of jobs?
-        TapisSystem execSys = _jobCtx.getExecutionSystem();
-        Integer maxSystemJobsPerUser = execSys.getJobMaxJobsPerUser();
-        if (maxSystemJobsPerUser == null || maxSystemJobsPerUser <= 0) return;
+        // Get the effective maximum number of jobs per user for this app on this system.
+        int maxJobsPerUser = getMaxJobsPerUser();
         
         // Enforce the quota.
-        int curSystemJobsForUser = 
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
+        int curJobsForUser = 
             _jobCtx.getJobsDao().countActiveSystemUserJobs(execSys.getTenant(), 
                                                            execSys.getId(),
                                                            _job.getOwner());
         
         // Test.
-        if (curSystemJobsForUser > maxSystemJobsPerUser) 
+        if (curJobsForUser >= maxJobsPerUser) 
         {
             // Recoverable error.
             String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_USER_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
-                                         maxSystemJobsPerUser, _job.getOwner());
+                                         maxJobsPerUser, _job.getOwner());
             _log.warn(msg);
             throw new TapisQuotaException(msg, 
-                RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue()));        
+                RecoveryUtils.captureQuotaState(execSys, _job, _jobCtx.getLogicalQueue(),
+                                                getMaxJobs(), maxJobsPerUser));        
         }
         
         // Tracing.
         if (_log.isDebugEnabled()) 
             _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_JOBS", _job.getUuid(),
-                       execSys.getTenant(), execSys.getId(), curSystemJobsForUser, 
+                       execSys.getTenant(), execSys.getId(), curJobsForUser, 
                        _job.getOwner()));
     }
     
@@ -164,7 +163,7 @@ public final class QuotaChecker
                                                             logicalQueue.getName());
         
         // Test.
-        if (curQueueJobs > maxQueueJobs) 
+        if (curQueueJobs >= maxQueueJobs) 
         {
             // Recoverable error.
             String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_QUEUE_JOBS", _job.getUuid(),
@@ -172,7 +171,8 @@ public final class QuotaChecker
                                          maxQueueJobs, logicalQueue.getName());
             _log.warn(msg);
             throw new TapisQuotaException(msg, 
-                RecoveryUtils.captureQuotaState(execSys, _job, logicalQueue));        
+                RecoveryUtils.captureQuotaState(execSys, _job, logicalQueue,
+                                                getMaxJobs(), getMaxJobsPerUser()));        
         }
         
         // Tracing.
@@ -206,7 +206,7 @@ public final class QuotaChecker
                                                                 logicalQueue.getName());
         
         // Test.
-        if (curUserQueueJobs > maxUserQueueJobs) 
+        if (curUserQueueJobs >= maxUserQueueJobs) 
         {
             // Recoverable error.
             String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_USER_QUEUE_JOBS", _job.getUuid(),
@@ -214,7 +214,8 @@ public final class QuotaChecker
                                          maxUserQueueJobs, _job.getOwner(), logicalQueue.getName());
             _log.warn(msg);
             throw new TapisQuotaException(msg, 
-                RecoveryUtils.captureQuotaState(execSys, _job, logicalQueue));
+                RecoveryUtils.captureQuotaState(execSys, _job, logicalQueue,
+                                                getMaxJobs(), getMaxJobsPerUser()));
         }
         
         // Tracing.
@@ -222,5 +223,45 @@ public final class QuotaChecker
             _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_QUEUE_JOBS", _job.getUuid(),
                        execSys.getTenant(), execSys.getId(), curUserQueueJobs, 
                        _job.getOwner(), logicalQueue.getName()));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getMaxJobs:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private int getMaxJobs() throws TapisException
+    {
+        // Does the app hard limit on the number of jobs?
+        TapisApp app = _jobCtx.getApp();
+        Integer maxAppJobs = app.getMaxJobs();
+        if (maxAppJobs == null || maxAppJobs <= 0) maxAppJobs = Integer.MAX_VALUE;
+        
+        // Does the exec system have a hard limit on the number of jobs?
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
+        Integer maxSystemJobs = execSys.getJobMaxJobs();
+        if (maxSystemJobs == null || maxSystemJobs <= 0) maxSystemJobs = Integer.MAX_VALUE;
+        
+        // Get the effective maximum number of jobs for this app on this system.
+        return Math.min(maxAppJobs, maxSystemJobs);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getMaxJobsPerUser:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private int getMaxJobsPerUser() throws TapisException 
+    {
+        // Does the app hard limit on the number of jobs per user?
+        TapisApp app = _jobCtx.getApp();
+        Integer maxAppJobsPerUser = app.getMaxJobsPerUser();
+        if (maxAppJobsPerUser == null || maxAppJobsPerUser <= 0) 
+            maxAppJobsPerUser = Integer.MAX_VALUE;
+        
+        // Does the exec system have a hard limit on the number of jobs per user?
+        TapisSystem execSys = _jobCtx.getExecutionSystem();
+        Integer maxSystemJobsPerUser = execSys.getJobMaxJobsPerUser();
+        if (maxSystemJobsPerUser == null || maxSystemJobsPerUser <= 0) 
+            maxSystemJobsPerUser = Integer.MAX_VALUE;
+        
+        // Get the effective maximum number of jobs per user for this app on this system.
+        return Math.min(maxAppJobsPerUser, maxSystemJobsPerUser);
     }
 }

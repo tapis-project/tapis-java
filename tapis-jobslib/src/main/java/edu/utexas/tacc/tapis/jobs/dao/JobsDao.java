@@ -1856,22 +1856,22 @@ public final class JobsDao
      * 
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
-     * @param remoteQueue non-null remote queue
+     * @param logicalQueue non-null remote queue
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
     public int countActiveSystemQueueJobs(String tenantId, String systemId, 
-                                          String remoteQueue) 
+                                          String logicalQueue) 
      throws JobException
     {
         // Only call this method with non-null parms.
-        if (StringUtils.isBlank(remoteQueue)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemQueueJobs", "remoteQueue");
+        if (StringUtils.isBlank(logicalQueue)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemQueueJobs", "logicalQueue");
             _log.error(msg);
             throw new JobException(msg);
         }
         
-        return countActiveJobs(tenantId, systemId, null, remoteQueue);
+        return countActiveJobs(tenantId, systemId, null, logicalQueue);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -1883,12 +1883,12 @@ public final class JobsDao
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
      * @param owner non-null job owner
-     * @param remoteQueue non-null remote queue
+     * @param logicalQueue non-null remote queue
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
     public int countActiveSystemUserQueueJobs(String tenantId, String systemId, 
-                                              String owner, String remoteQueue) 
+                                              String owner, String logicalQueue) 
      throws JobException
     {
         // Only call this method with non-null parms.
@@ -1897,13 +1897,13 @@ public final class JobsDao
             _log.error(msg);
             throw new JobException(msg);
         }
-        if (StringUtils.isBlank(remoteQueue)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemUserQueueJobs", "remoteQueue");
+        if (StringUtils.isBlank(logicalQueue)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "countActiveSystemUserQueueJobs", "logicalQueue");
             _log.error(msg);
             throw new JobException(msg);
         }
         
-        return countActiveJobs(tenantId, systemId, owner, remoteQueue);
+        return countActiveJobs(tenantId, systemId, owner, logicalQueue);
     }
     
 	/* ---------------------------------------------------------------------- */
@@ -2559,12 +2559,12 @@ public final class JobsDao
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
      * @param owner job owner or null for any owner
-     * @param remoteQueue remote queue or null for any queue
+     * @param logicalQueue remote queue or null for any queue
      * @return the number of tapis jobs active on the specified system
      * @throws JobException 
      */
     private int countActiveJobs(String tenantId, String systemId, String owner, 
-                                String remoteQueue) 
+                                String logicalQueue) 
      throws JobException
     {
         // ------------------------- Check Input -------------------------
@@ -2579,16 +2579,16 @@ public final class JobsDao
             throw new JobException(msg);
         }
         
-        // Select the query case based on the owner and remoteQueue values.  
+        // Select the query case based on the owner and logicalQueue values.  
         int queryCase;
         String sql;
-        if (owner == null && remoteQueue == null) {
+        if (owner == null && logicalQueue == null) {
             queryCase = 1;
             sql = SqlStatements.COUNT_ACTIVE_SYSTEM_JOBS;
-        } else if (owner != null && remoteQueue == null) {
+        } else if (owner != null && logicalQueue == null) {
             queryCase = 2;
             sql = SqlStatements.COUNT_ACTIVE_SYSTEM_USER_JOBS;
-        } else if (owner == null && remoteQueue != null) {
+        } else if (owner == null && logicalQueue != null) {
             queryCase = 3;
             sql = SqlStatements.COUNT_ACTIVE_SYSTEM_QUEUE_JOBS;
         } else {
@@ -2618,10 +2618,10 @@ public final class JobsDao
             // Conditional value assignments.
             if (queryCase == 1) {/* do nothing */}
             else if (queryCase == 2) pstmt.setString(3, owner);
-            else if (queryCase == 3) pstmt.setString(3, remoteQueue);
+            else if (queryCase == 3) pstmt.setString(3, logicalQueue);
             else if (queryCase == 4) {
                 pstmt.setString(3, owner);
-                pstmt.setString(4, remoteQueue);
+                pstmt.setString(4, logicalQueue);
             }
                         
             // Issue the call for the 1 row result set.
@@ -2642,9 +2642,9 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             String ownerMsg = owner == null ? "*" : owner;
-            String remoteQueueMsg = remoteQueue == null ? "*" : remoteQueue;
+            String logicalQueueMsg = logicalQueue == null ? "*" : logicalQueue;
             String msg = MsgUtils.getMsg("JOBS_COUNT_ACTIVE_SYSTEM_JOBS", tenantId, systemId, 
-                                         ownerMsg, remoteQueueMsg, e.getMessage());
+                                         ownerMsg, logicalQueueMsg, e.getMessage());
             _log.error(msg, e);
             throw new JobException(msg, e);
         }
