@@ -56,7 +56,7 @@ public enum JobStatusType
 	// Construct the string on non-active to be used 
 	// SQL IN clauses.  Note PENDING is considered non
 	// active in this context.
-	public static String getNonActiveSQLString()
+	public static String getNonActiveWithPendingSQLString()
 	{
 	    // Construct the quoted string with commas.
 	    return "'" + FINISHED.name()  + "', '"
@@ -66,6 +66,19 @@ public enum JobStatusType
 	               + BLOCKED.name()   + "', '" 
 	               + PAUSED.name()    + "'";
 	}
+
+    // Construct the string on non-active to be used 
+    // SQL IN clauses.  Note PENDING is considered 
+    // active in this context.
+    public static String getNonActiveWithoutPendingSQLString()
+    {
+        // Construct the quoted string with commas.
+        return "'" + FINISHED.name()  + "', '"
+                   + FAILED.name()    + "', '"
+                   + CANCELLED.name() + "', '"
+                   + BLOCKED.name()   + "', '" 
+                   + PAUSED.name()    + "'";
+    }
 
 	// Construct the string on terminal to be used
 	// SQL IN clauses.

@@ -121,7 +121,8 @@ extends AbsTester
    private int blockedByMaxSystemJobs() throws TapisException
    {
        // Enforce the quota.
-       int jobCount = getJobsDao().countActiveSystemJobs(_tenantId, _systemId);
+       final boolean pendingActive = true;
+       int jobCount = getJobsDao().countActiveSystemJobs(_tenantId, _systemId, pendingActive);
        return _maxSystemJobs - jobCount;
    }
    
@@ -136,8 +137,9 @@ extends AbsTester
    private int blockedByMaxSystemUserJobs() throws TapisException
    {
        // Enforce the quota.
+       final boolean pendingActive = true;
        int jobCount = getJobsDao().countActiveSystemUserJobs(_tenantId, _systemId,
-                                                             _jobOwner);
+                                                             _jobOwner, pendingActive);
        return _maxSystemUserJobs - jobCount;
    }
    
@@ -153,8 +155,10 @@ extends AbsTester
    private int blockedByMaxSystemQueueJobs() throws TapisException
    {
        // Enforce the quota.
-       int jobCount = getJobsDao().countActiveSystemQueueJobs(_tenantId, _systemId,
-                                                              _execSystemLogicalQueue);
+       final boolean pendingActive = true;
+       int jobCount = 
+           getJobsDao().countActiveSystemQueueJobs(_tenantId, _systemId,
+                                                   _execSystemLogicalQueue, pendingActive);
        return (int) (_maxQueueJobs - jobCount);
    }
    
@@ -170,8 +174,10 @@ extends AbsTester
    private int blockedByMaxSystemUserQueueJobs() throws TapisException
    {
        // Enforce the quota.
-       int jobCount = getJobsDao().countActiveSystemUserQueueJobs(_tenantId, _systemId,
-                                                                  _jobOwner, _execSystemLogicalQueue);
+       final boolean pendingActive = true;
+       int jobCount = 
+           getJobsDao().countActiveSystemUserQueueJobs(_tenantId, _systemId, _jobOwner, 
+                                                       _execSystemLogicalQueue, pendingActive);
        return (int) (_maxUserQueueJobs - jobCount);
    }
    

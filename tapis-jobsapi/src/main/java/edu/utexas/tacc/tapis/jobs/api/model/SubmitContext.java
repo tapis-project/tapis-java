@@ -308,8 +308,7 @@ public final class SubmitContext
         resolveMpiAndCmdPrefix();
         
         // Merge tapis-defined logical queue value only when we are running in batch mode.
-        if (!_execSystem.getCanRunBatch() || 
-            !JobType.BATCH.name().equals(_submitReq.getJobType())) 
+        if (JobType.BATCH.name().equals(_submitReq.getJobType())) 
         {
             if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
                 _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());

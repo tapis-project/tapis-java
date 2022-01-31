@@ -128,7 +128,10 @@ public final class JobsDao
 	private static final String JOB_CREATE_MSG = "Job created";
 	  
     // Comma-separated string of non active statuses ready for sql query.
-    private final static String _nonActiveJobStatuses = JobStatusType.getNonActiveSQLString();
+    private final static String _nonActiveWithPendingJobStatuses = JobStatusType.getNonActiveWithPendingSQLString();
+    
+    // Comma-separated string of non active statuses ready for sql query.
+    private final static String _nonActiveWithoutPendingJobStatuses = JobStatusType.getNonActiveWithoutPendingSQLString();
     
     // Comma-separated string of terminal statuses ready for sql query.
     private final static String _terminalStatuses = JobStatusType.getTerminalSQLString();
@@ -1805,37 +1808,47 @@ public final class JobsDao
                   }
         }
     }
-
+    
     /* ---------------------------------------------------------------------- */
     /* countActiveSystemJobs:                                                 */
     /* ---------------------------------------------------------------------- */
+    public int countActiveSystemJobs(String tenantId, String systemId) 
+     throws JobException
+    {return countActiveSystemJobs(tenantId, systemId, false);}
+    
     /** Retrieve the number of jobs in active state on the specified execution
      * system.
      * 
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
+     * @param pendingActive true means Pending is considered an active state, false means inactive
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
-    public int countActiveSystemJobs(String tenantId, String systemId) 
+    public int countActiveSystemJobs(String tenantId, String systemId, boolean pendingActive) 
      throws JobException
     {
-        return countActiveJobs(tenantId, systemId, null, null);
+        return countActiveJobs(tenantId, systemId, null, null, pendingActive);
     }
     
     /* ---------------------------------------------------------------------- */
     /* countActiveSystemUserJobs:                                             */
     /* ---------------------------------------------------------------------- */
+    public int countActiveSystemUserJobs(String tenantId, String systemId, String owner) 
+     throws JobException
+    {return countActiveSystemUserJobs(tenantId, systemId, owner, false);}
+    
     /** Retrieve the number of jobs in active state on the specified execution
      * system.
      * 
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
      * @param owner non-null job owner
+     * @param pendingActive true means Pending is considered an active state, false means inactive
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
-    public int countActiveSystemUserJobs(String tenantId, String systemId, String owner) 
+    public int countActiveSystemUserJobs(String tenantId, String systemId, String owner, boolean pendingActive) 
      throws JobException
     {
         // Only call this method with non-null parms.
@@ -1845,23 +1858,29 @@ public final class JobsDao
             throw new JobException(msg);
         }
         
-        return countActiveJobs(tenantId, systemId, owner, null);
+        return countActiveJobs(tenantId, systemId, owner, null, pendingActive);
     }
     
     /* ---------------------------------------------------------------------- */
     /* countActiveSystemQueueJobs:                                            */
     /* ---------------------------------------------------------------------- */
+    public int countActiveSystemQueueJobs(String tenantId, String systemId, 
+                                          String logicalQueue) 
+     throws JobException
+    {return countActiveSystemQueueJobs(tenantId, systemId, logicalQueue, false);}
+    
     /** Retrieve the number of jobs in active state on the specified execution
      * system.
      * 
      * @param tenantId the non-null execution system's tenant id
      * @param systemId the non-null execution system's unique id
      * @param logicalQueue non-null remote queue
+     * @param pendingActive true means Pending is considered an active state, false means inactive
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
     public int countActiveSystemQueueJobs(String tenantId, String systemId, 
-                                          String logicalQueue) 
+                                          String logicalQueue, boolean pendingActive) 
      throws JobException
     {
         // Only call this method with non-null parms.
@@ -1871,12 +1890,17 @@ public final class JobsDao
             throw new JobException(msg);
         }
         
-        return countActiveJobs(tenantId, systemId, null, logicalQueue);
+        return countActiveJobs(tenantId, systemId, null, logicalQueue, pendingActive);
     }
     
     /* ---------------------------------------------------------------------- */
     /* countActiveSystemUserQueueJobs:                                        */
     /* ---------------------------------------------------------------------- */
+    public int countActiveSystemUserQueueJobs(String tenantId, String systemId, String owner, 
+                                              String logicalQueue) 
+     throws JobException
+    {return countActiveSystemUserQueueJobs(tenantId, systemId, owner, logicalQueue, false);}
+
     /** Retrieve the number of jobs in active state on the specified execution
      * system.
      * 
@@ -1884,11 +1908,12 @@ public final class JobsDao
      * @param systemId the non-null execution system's unique id
      * @param owner non-null job owner
      * @param logicalQueue non-null remote queue
+     * @param pendingActive true means Pending is considered an active state, false means inactive
      * @return the number of aloe jobs active on the specified system
      * @throws JobException 
      */
-    public int countActiveSystemUserQueueJobs(String tenantId, String systemId, 
-                                              String owner, String logicalQueue) 
+    public int countActiveSystemUserQueueJobs(String tenantId, String systemId, String owner, 
+                                              String logicalQueue, boolean pendingActive) 
      throws JobException
     {
         // Only call this method with non-null parms.
@@ -1903,7 +1928,7 @@ public final class JobsDao
             throw new JobException(msg);
         }
         
-        return countActiveJobs(tenantId, systemId, owner, logicalQueue);
+        return countActiveJobs(tenantId, systemId, owner, logicalQueue, pendingActive);
     }
     
 	/* ---------------------------------------------------------------------- */
@@ -2560,11 +2585,12 @@ public final class JobsDao
      * @param systemId the non-null execution system's unique id
      * @param owner job owner or null for any owner
      * @param logicalQueue remote queue or null for any queue
+     * @param pendingActive true means Pending is considered an active state, false means inactive
      * @return the number of tapis jobs active on the specified system
      * @throws JobException 
      */
     private int countActiveJobs(String tenantId, String systemId, String owner, 
-                                String logicalQueue) 
+                                String logicalQueue, boolean pendingActive) 
      throws JobException
     {
         // ------------------------- Check Input -------------------------
@@ -2598,7 +2624,9 @@ public final class JobsDao
 
         // Substitute the comma-separated non-active 
         // status list for the placeholder text.
-        sql = sql.replace(":statusList", _nonActiveJobStatuses);
+        String nonActiveJobStatuses = 
+            pendingActive ? _nonActiveWithoutPendingJobStatuses : _nonActiveWithPendingJobStatuses;
+        sql = sql.replace(":statusList", nonActiveJobStatuses);
         
         // The result.
         int count = 0;
