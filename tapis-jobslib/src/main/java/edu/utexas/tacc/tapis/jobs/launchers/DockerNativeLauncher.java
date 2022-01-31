@@ -56,7 +56,7 @@ public final class DockerNativeLauncher
         if (StringUtils.isBlank(result)) result = "";
         
         // Let's see what happened.
-        String cid = UNKNOWN_CONTAINER_ID;       
+        String cid = UNKNOWN_CONTAINER_ID;
         if (exitStatus == 0) {
             cid = result.trim();
             if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
