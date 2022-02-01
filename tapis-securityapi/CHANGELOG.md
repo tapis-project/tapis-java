@@ -10,6 +10,12 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.1 - 2022-02-01
+
+No changes
+
+-----------------------
+
 ## 1.1.0 - 2022-01-07
 
 New minor release, no changes.
@@ -27,7 +33,7 @@ Bug fix release
 1. Improved getUserPerm endpoint livedocs documentation.
 
 ### Bug fixes:
-1 Removed duplicate code.
+1. Removed duplicate code.
 
 -----------------------
 
@@ -39,7 +45,7 @@ Bug fix release
 - none.
 
 ### Bug fixes:
-1 Fix version in non-standard POM files.
+1. Fix version in non-standard POM files.
 
 -----------------------
 

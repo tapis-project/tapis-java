@@ -10,6 +10,20 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.1 - 2022-02-01
+
+Bug fix release
+
+### Breaking Changes:
+- none.
+
+### Bug fixes:
+1. Applied application limits to recovery as intended.
+2. Adjusted how PENDING jobs are accounted for during recovery.
+3. Fixed singularity --mount and --fusemount assignements.
+
+-----------------------
+
 ## 1.1.0 - 2022-01-07
 
 New minor release.
