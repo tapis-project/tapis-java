@@ -104,7 +104,7 @@ abstract class AbstractSingularityExecCmd
         }
         
         if (!fusemountIsNull() && !getFusemount().isEmpty()) 
-            buf.append(getStringListArgs(" --fusemount ", getNetworkArgs()));
+            buf.append(getStringListArgs(" --fusemount ", getFusemount()));
         
         if (StringUtils.isNotBlank(getHome())) {
             buf.append(" --home ");
@@ -116,7 +116,7 @@ abstract class AbstractSingularityExecCmd
         }
         
         if (!mountIsNull() && !getMount().isEmpty()) 
-            buf.append(getStringListArgs(" --mount ", getNetworkArgs()));
+            buf.append(getStringListArgs(" --mount ", getMount()));
         
         if (isNet()) buf.append(" --net");
         if (StringUtils.isNotBlank(getNetwork())) {
