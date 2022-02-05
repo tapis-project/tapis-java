@@ -72,7 +72,7 @@ public final class SecretPathMapper
     /*                                 Enums                                  */
     /* ********************************************************************** */
     // The valid types as expected on input.
-    public enum KeyType {sshkey, password, accesskey, cert}
+    public enum KeyType {sshkey, password, accesskey, token, cert}
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -255,6 +255,11 @@ public final class SecretPathMapper
             return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
                     "/user/" + _parms.getSysUser() + "/accesskey/" +
                     _parms.getSecretName();
+        } else if (keyType == KeyType.token) {
+          // Token pair case.
+          return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
+                  "/user/" + _parms.getSysUser() + "/token/" +
+                  _parms.getSecretName();
         } else if (keyType == KeyType.cert){
             // Trusted CA case.
             return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
