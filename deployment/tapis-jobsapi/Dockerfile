@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM tomcat:9.0.41-jdk15-openjdk-oracle
+FROM tomcat:9.0.58-jdk17-openjdk-bullseye
 
 ARG VER
 ARG SRVC_ROOT
@@ -36,7 +36,7 @@ COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
 ENV CATALINA_HOME /usr/local/tomcat
 
 # Set most Java options here.
-ENV CATALINA_OPTS -Xms6g -Xmx6g
+ENV CATALINA_OPTS -Xms6g -Xmx6g --add-opens java.base/java.lang=ALL-UNNAMED,java.base/java.time=ALL-UNNAMED,java.base/java.util=ALL-UNNAMED
 
 # Debug port and http port
 EXPOSE 8000

@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM openjdk:15-jdk-oracle
+FROM openjdk:17-jdk-bullseye
 
 ARG VER
 ARG SRVC_JAR
