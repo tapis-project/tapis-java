@@ -36,7 +36,7 @@ COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
 ENV CATALINA_HOME /usr/local/tomcat
 
 # Set most Java options here.
-ENV CATALINA_OPTS -Xms6g -Xmx6g --add-opens java.base/java.lang=ALL-UNNAMED,java.base/java.time=ALL-UNNAMED,java.base/java.util=ALL-UNNAMED
+ENV CATALINA_OPTS -Xms6g -Xmx6g
 
 # Debug port and http port
 EXPOSE 8000
