@@ -363,7 +363,8 @@ public final class JobWorker
     /* ---------------------------------------------------------------------- */
     /** Initialize the number of jobs that we start executing in a short time
      * interval.  This throttle allows us to pace job SSH calls when a large
-     * number of jobs are submitted at once.
+     * number of jobs are submitted at once.  Delayed jobs have have a good
+     * chance of reading accurate quota statuses from the database. 
      * 
      * @return the configured throttle
      */
