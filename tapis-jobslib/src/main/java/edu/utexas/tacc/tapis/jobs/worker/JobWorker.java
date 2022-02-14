@@ -41,6 +41,8 @@ public final class JobWorker
     // Thread throttling settings.
     private static final int JOB_THREAD_RESTART_SECONDS = 300;
     private static final int JOB_THREAD_RESTART_LIMIT = 50;
+    private static final int JOB_START_SECONDS = 2;
+    private static final int JOB_START_LIMIT = 10;
     
     // Thread group name suffixes.
     private static final String WORKER_THREADGROUP_SUFFIX = "-workerTG";
@@ -70,6 +72,9 @@ public final class JobWorker
     // The thread restart throttle limits the number 
     // of threads started within a time window.
     private final Throttle      _threadRestartThrottle = initThreadRestartThrottle();
+    
+    // Limit the number of jobs immediately started within a short time period.
+    private final Throttle      _jobStartThrottle = initJobStartThrottle();
     
     // The thread group for all explicitly spawned worker threads in this program.
     private ThreadGroup         _workerThreadGroup;
@@ -252,6 +257,11 @@ public final class JobWorker
         return resp;
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* getJobStartThrottle:                                                   */
+    /* ---------------------------------------------------------------------- */
+    Throttle getJobStartThrottle() {return _jobStartThrottle;}
+    
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */
@@ -346,6 +356,20 @@ public final class JobWorker
     {
         return new Throttle(JOB_THREAD_RESTART_SECONDS, 
                             JOB_THREAD_RESTART_LIMIT);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* initJobStartThrottle:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /** Initialize the number of jobs that we start executing in a short time
+     * interval.  This throttle allows us to pace job SSH calls when a large
+     * number of jobs are submitted at once.
+     * 
+     * @return the configured throttle
+     */
+    private Throttle initJobStartThrottle()
+    {
+        return new Throttle(JOB_START_SECONDS, JOB_START_LIMIT);
     }
     
     /* ---------------------------------------------------------------------- */
