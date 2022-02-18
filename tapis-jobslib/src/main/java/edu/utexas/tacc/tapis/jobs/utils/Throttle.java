@@ -98,13 +98,15 @@ public final class Throttle
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                            Package Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* removeExpiredElements:                                                 */
     /* ---------------------------------------------------------------------- */
-    /** Remove time records that fall outside the sliding window. */
-    private void removeExpiredElements()
+    /** Remove time records that fall outside the sliding window. Package access
+     * for testing.
+     */
+    void removeExpiredElements()
     {
         // Maybe there's nothing to check.
         if (_times.isEmpty()) return;
