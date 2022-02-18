@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobQueue;
+import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
@@ -702,6 +703,26 @@ public final class JobsImpl
         
         // Could be null if not found.
         return true;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* createShareJob:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void createShareJob(JobShared jobShared) 
+    
+    {
+       try { 
+        	getJobSharedDao().createSharedJob(jobShared);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_INSERT_ERROR", jobShared.getJobUuid(), jobShared.getCreatedby(),
+            		jobShared.getJobResource(),e);
+            _log.error(msg, e);
+           
+        }
+        
+        
     }
     
     /* ---------------------------------------------------------------------- */

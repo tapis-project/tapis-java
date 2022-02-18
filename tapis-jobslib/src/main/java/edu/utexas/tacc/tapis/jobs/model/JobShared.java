@@ -16,7 +16,7 @@ public final class JobShared
     private String   			createdby;
     private String   			jobUuid;
     private String   			userSharedWith;
-    private JobResourceShare   	jobResource ;
+    private JobResourceShare  	jobResource ;
     private JobTapisPermission  jobPermission;
     private Instant  			created;
     private Instant  			lastUpdated;

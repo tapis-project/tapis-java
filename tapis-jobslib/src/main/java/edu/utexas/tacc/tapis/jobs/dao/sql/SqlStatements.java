@@ -1,5 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.dao.sql;
 
+import java.time.Instant;
+
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
+
 public class SqlStatements 
 {
 	/* ---------------------------------------------------------------------- */
@@ -269,4 +274,31 @@ public class SqlStatements
             + " WHERE job_uuid = ? "		
             + " ORDER BY id  LIMIT ? OFFSET ?";
     
-}
+    /* ---------------------------------------------------------------------- */
+    /* jobs_shared table:                                                     */
+    /* ---------------------------------------------------------------------- */
+     
+	public static final String CREATE_JOB_SHARED = 
+		"INSERT INTO jobs_shared ("
+		+ "tenant, createdby,jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
+		+ "VALUES (?, ?, ?, ?, ?::job_resource_enum, ?::job_permission_enum, ?, ? "
+		+ " )";
+	
+	public static final String SELECT_JOBS_SHARED_BY_JOB_UUID = 
+			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
+			+ " FROM jobs_shared "
+		    + " job_uuid = ? ";
+			
+	public static final String SELECT_JOBS_SHARED_WITH_USER = 
+			
+			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
+			+ " FROM jobs_shared "
+		    + " tenant = ? AND user_share_with = ? ";
+    public static final String SELECT_JOBS_SHARED_BY_USER = 
+			
+			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
+			+ " FROM jobs_shared "
+		    + " tenant = ? AND createdby = ? ";		
+    
+}	
+	
