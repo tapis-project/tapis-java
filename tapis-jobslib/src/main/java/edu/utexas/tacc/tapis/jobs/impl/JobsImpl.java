@@ -564,7 +564,6 @@ public final class JobsImpl
        
     }
     
-    
     /* ---------------------------------------------------------------------- */
     /* getJobEventByUuid:                                                     */
     /* ---------------------------------------------------------------------- */
@@ -576,7 +575,6 @@ public final class JobsImpl
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobEventByUuid", "jobUuid");
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
-        
         
         // ----- Get the job events.
         List<JobEvent> jobEvents = null;
@@ -591,7 +589,6 @@ public final class JobsImpl
             String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", tenant, user, jobUuid, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
-        
               
         // Could be null if not found.
         return jobEvents;
@@ -609,13 +606,10 @@ public final class JobsImpl
         	JobHistoryDisplayDTO historyObj = new JobHistoryDisplayDTO(jobEvent, user, tenant);
         	eventsSummary.add(historyObj);
         }
-       
-        
               
         // Could be null if not found.
         return eventsSummary;
     }
-    
     
     /* ---------------------------------------------------------------------------- */
     /* doCancelJob:                                                                 */
@@ -667,10 +661,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */
     /* ---------------------------------------------------------------------- */
-    
     public boolean doHideJob(String jobUuid, String tenant, String user) 
     {
-            
         try { 
         	getJobsDao().setJobVisibility(jobUuid, tenant, user,false);
         }
@@ -689,7 +681,6 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     public boolean doUnHideJob(String jobUuid, String tenant, String user) 
     {
-            
         try { 
         	getJobsDao().setJobVisibility(jobUuid, tenant, user,true);
         }

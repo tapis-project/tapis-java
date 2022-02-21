@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.jobs.model;
 import java.time.Instant;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobEvent
@@ -12,7 +11,7 @@ public final class JobEvent
     private JobEventType  event;
     private Instant       created;
     private String        jobUuid;
-    private JobStatusType jobStatus;
+    private String        eventDetail;
     private String        othUuid;
     private String        description;
 
@@ -67,11 +66,11 @@ public final class JobEvent
 		this.description = description;
 	}
 
-    public JobStatusType getJobStatus() {
-        return jobStatus;
+    public String getEventDetail() {
+        return eventDetail;
     }
 
-    public void setJobStatus(JobStatusType jobStatus) {
-        this.jobStatus = jobStatus;
+    public void setEventDetail(String eventDetail) {
+        this.eventDetail = eventDetail;
     }
 }
