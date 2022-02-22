@@ -230,10 +230,25 @@ public final class VaultImpl
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
        }
-       if (secretMap == null) {
+       if (secretMap == null || secretMap.isEmpty()) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "secretWrite", "secretMap");
            _log.error(msg);
            throw new TapisImplException(msg, Condition.BAD_REQUEST);
+       }
+       
+       // Disallow null, empty or no secrets.
+       for (var entry : secretMap.entrySet()) {
+           var value = entry.getValue();
+           if (value == null) {
+               String msg = MsgUtils.getMsg("SK_VAULT_NULL_SECRET_VALUE", entry.getKey());
+               _log.error(msg);
+               throw new TapisImplException(msg, Condition.BAD_REQUEST);
+           }
+           if (!(value instanceof String)) {
+               String msg = MsgUtils.getMsg("SK_VAULT_INVALID_SECRET_VALUE", entry.getKey());
+               _log.error(msg);
+               throw new TapisImplException(msg, Condition.BAD_REQUEST);
+           }
        }
        
        // ------------------------ Secret Generation -------------------------
