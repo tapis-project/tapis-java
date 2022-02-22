@@ -30,8 +30,8 @@ public class Indexes {
     public static final Index JOB_BLOCKED_JOB_UUID_IDX = Internal.createIndex(DSL.name("job_blocked_job_uuid_idx"), JobBlocked.JOB_BLOCKED, new OrderField[] { JobBlocked.JOB_BLOCKED.JOB_UUID }, true);
     public static final Index JOB_BLOCKED_RECOVERY_ID_IDX = Internal.createIndex(DSL.name("job_blocked_recovery_id_idx"), JobBlocked.JOB_BLOCKED, new OrderField[] { JobBlocked.JOB_BLOCKED.RECOVERY_ID }, false);
     public static final Index JOB_EVENTS_CREATED_IDX = Internal.createIndex(DSL.name("job_events_created_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.CREATED }, false);
+    public static final Index JOB_EVENTS_EVENT_DETAIL_IDX = Internal.createIndex(DSL.name("job_events_event_detail_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.EVENT_DETAIL }, false);
     public static final Index JOB_EVENTS_EVENT_IDX = Internal.createIndex(DSL.name("job_events_event_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.EVENT }, false);
-    public static final Index JOB_EVENTS_JOB_STATUS_IDX = Internal.createIndex(DSL.name("job_events_job_status_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.JOB_STATUS }, false);
     public static final Index JOB_EVENTS_JOB_UUID_IDX = Internal.createIndex(DSL.name("job_events_job_uuid_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.JOB_UUID }, false);
     public static final Index JOB_QUEUES_NAME_IDX = Internal.createIndex(DSL.name("job_queues_name_idx"), JobQueues.JOB_QUEUES, new OrderField[] { JobQueues.JOB_QUEUES.NAME }, true);
     public static final Index JOB_QUEUES_PRIORITY_IDX = Internal.createIndex(DSL.name("job_queues_priority_idx"), JobQueues.JOB_QUEUES, new OrderField[] { JobQueues.JOB_QUEUES.PRIORITY.desc() }, true);

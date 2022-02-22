@@ -16,7 +16,6 @@ import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -205,8 +204,8 @@ public final class JobEventsDao
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "event");
           throw new JobException(msg);
       }
-      if (jobEvent.getJobStatus() == null) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "status");
+      if (jobEvent.getEventDetail() == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "eventDetail");
           throw new JobException(msg);
       }
       if (jobEvent.getEvent() == JobEventType.JOB_INPUT_TRANSACTION_ID ||
@@ -235,7 +234,7 @@ public final class JobEventsDao
         pstmt.setString(1, jobEvent.getEvent().name());
         pstmt.setTimestamp(2, Timestamp.from(jobEvent.getCreated()));
         pstmt.setString(3, jobEvent.getJobUuid());
-        pstmt.setString(4, jobEvent.getJobStatus().name());
+        pstmt.setString(4, jobEvent.getEventDetail());
         pstmt.setString(5, jobEvent.getOthUuid());  // can be null
         pstmt.setString(6, jobEvent.getDescription());
         
@@ -315,7 +314,7 @@ public final class JobEventsDao
         obj.setEvent(JobEventType.valueOf(rs.getString(2)));
         obj.setCreated(rs.getTimestamp(3).toInstant());
         obj.setJobUuid(rs.getString(4));
-        obj.setJobStatus(JobStatusType.valueOf(rs.getString(5)));
+        obj.setEventDetail(rs.getString(5));
         obj.setOthUuid(rs.getString(6)); // can be null
         obj.setDescription(rs.getString(7));
     } 
