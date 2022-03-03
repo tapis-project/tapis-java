@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,9 @@ public final class DockerNativeLauncher
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(DockerNativeLauncher.class);
+
+    // Regex to test docker container id.
+    private static final Pattern _nonEmptyAlphaNumeric = Pattern.compile("[a-zA-Z0-9]+");
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -40,6 +45,9 @@ public final class DockerNativeLauncher
     @Override
     public void launch() throws TapisException
     {
+        // Throttling adds a randomized delay on heavily used hosts.
+        throttleLaunch();
+        
         // Subclasses can override default implementation.
         String cmd = getLaunchCommand();
         
@@ -55,7 +63,24 @@ public final class DockerNativeLauncher
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
         
-        // Let's see what happened.
+        // Exit code fix up.
+        if (exitStatus == -1  && !StringUtils.isBlank(result)) {
+            // Maybe it actually did work but the networking code couldn't retrieve the proper exit
+            // code.  If the result is a 64 character string of alphanumerics, we assume the launch 
+            // was successful and reset the exitStatus to zero.
+            String temp = result.trim();
+            if (temp.length() == 64 && _nonEmptyAlphaNumeric.matcher(temp).matches()) {
+                if (_log.isWarnEnabled()) {
+                    String msg = MsgUtils.getMsg("JOBS_LAUNCH_EXITCODE_FIXUP", getClass().getSimpleName(), 
+                                                 _job.getUuid(), exitStatus);
+                    _log.warn(msg);
+                }
+                // Let's go forward as if we got a zero return code.
+                exitStatus = 0;
+            }
+        }
+        
+        // Inspect the actual or fixed up exit code.
         String cid = UNKNOWN_CONTAINER_ID;
         if (exitStatus == 0) {
             cid = result.trim();

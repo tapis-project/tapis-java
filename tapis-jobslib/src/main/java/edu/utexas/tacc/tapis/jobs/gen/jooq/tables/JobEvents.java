@@ -8,10 +8,8 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.Indexes;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Keys;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Public;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobEventEnum;
-import edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobEventsRecord;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -77,9 +75,9 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
     public final TableField<JobEventsRecord, String> JOB_UUID = createField(DSL.name("job_uuid"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
-     * The column <code>public.job_events.job_status</code>.
+     * The column <code>public.job_events.event_detail</code>.
      */
-    public final TableField<JobEventsRecord, JobStatusType> JOB_STATUS = createField(DSL.name("job_status"), SQLDataType.VARCHAR.nullable(false).asEnumDataType(edu.utexas.tacc.tapis.jobs.gen.jooq.enums.JobStatusEnum.class), this, "", new EnumConverter<JobStatusEnum, JobStatusType>(JobStatusEnum.class, JobStatusType.class));
+    public final TableField<JobEventsRecord, String> EVENT_DETAIL = createField(DSL.name("event_detail"), SQLDataType.VARCHAR(64).nullable(false), this, "");
 
     /**
      * The column <code>public.job_events.oth_uuid</code>.
@@ -131,7 +129,7 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_EVENTS_CREATED_IDX, Indexes.JOB_EVENTS_EVENT_IDX, Indexes.JOB_EVENTS_JOB_STATUS_IDX, Indexes.JOB_EVENTS_JOB_UUID_IDX);
+        return Arrays.<Index>asList(Indexes.JOB_EVENTS_CREATED_IDX, Indexes.JOB_EVENTS_EVENT_DETAIL_IDX, Indexes.JOB_EVENTS_EVENT_IDX, Indexes.JOB_EVENTS_JOB_UUID_IDX);
     }
 
     @Override
@@ -180,7 +178,7 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Row7<Long, JobEventType, LocalDateTime, String, JobStatusType, String, String> fieldsRow() {
+    public Row7<Long, JobEventType, LocalDateTime, String, String, String, String> fieldsRow() {
         return (Row7) super.fieldsRow();
     }
 }

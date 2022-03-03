@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,10 @@ final class JobQueueProcessor
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(JobQueueProcessor.class);
+  
+  // Job start delay when throttling is required.
+  private static final int JOB_START_DELAY_MS    = 1000;
+  private static final int JOB_START_MAX_SKEW_MS = 2000;
   
   /* ********************************************************************** */
   /*                                 Fields                                 */
@@ -353,6 +359,9 @@ final class JobQueueProcessor
           _log.warn(msg);
           return false;
       }
+      
+      // Delay job execution during high loads.
+      throttleJobStart(job);
       
       // Batch job validation
       try {validateBatchParameters(jobCtx);}
@@ -718,6 +727,28 @@ final class JobQueueProcessor
                                        app.getId(), logicalQueue.getName());
           throw new TapisException(msg);
       }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* throttleJobStart:                                                      */
+  /* ---------------------------------------------------------------------- */
+  private void throttleJobStart(Job job)
+  {
+      // If a new timestamp was recorded, then we haven't exceeded the 
+      // limit of job starts in the sliding window interval.  Otherwise, 
+      // we should delay this job's execution for a few seconds.
+      if (_jobWorker.getJobStartThrottle().record()) return;
+      
+      // Calculate a randomized but short delay in milliseconds.
+      var skewMs = ThreadLocalRandom.current().nextInt(JOB_START_MAX_SKEW_MS);
+      skewMs += JOB_START_DELAY_MS;
+      
+      // Log the delay.
+      if (_log.isDebugEnabled())
+          _log.debug(MsgUtils.getMsg("JOBS_DELAYED_START", job.getUuid(), skewMs));
+      
+      // Delay for the randomized period.
+      try {Thread.sleep(skewMs);} catch (InterruptedException e) {}
   }
   
   /* ---------------------------------------------------------------------- */
