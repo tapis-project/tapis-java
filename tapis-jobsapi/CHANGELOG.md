@@ -10,6 +10,23 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.2 - 2022-03-04
+
+Java 17 upgrade
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Upgrade code and images to Java 17.0.2.
+2. Generalized job event table to handle non-status events.
+3. Added more throttling to Jobs service to better withstand job request bursts.
+4. Tighten SK write secret endpoint validation.
+
+### Bug fixes:
+
+-----------------------
+
 ## 1.1.1 - 2022-02-01
 
 Bug fix release
