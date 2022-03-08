@@ -21,6 +21,19 @@ public final class SkShare
         return resourceId2 == null ? resourceId1 : resourceId1 + ":" + resourceId2;
     }
     
+    public String dumpContent() {
+        return "id=" + id + ", " +
+               "tenant=" + tenant + ", " +
+               "grantor=" + grantor + ", " +
+               "grantee=" + grantee + ", " +
+               "resourceType=" + resourceType + ", " +
+               "resourceId=" + printResource() + ", " +
+               "privilege=" + privilege + ", " +
+               "created=" + created.toString() + ", " +
+               "createdBy=" + createdBy + ", " +
+               "createdByTenant=" + createdByTenant;
+    }
+    
     public int getId() {
         return id;
     }

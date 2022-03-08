@@ -282,6 +282,11 @@ public class SqlStatements
       + "resource_id2, privilege, created, createdby, createdby_tenant "
       + "FROM sk_shared WHERE tenant = ? AND id = ?";
   
+  public static final String SHARE_SELECT_DYNAMIC = 
+          "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
+          + "resource_id2, privilege, created, createdby, createdby_tenant "
+          + "FROM sk_shared :where ORDER BY ID";
+  
   public static final String SHARE_SELECT_BY_UNIQUE_KEY = 
       "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
       + "resource_id2, privilege, created, createdby, createdby_tenant "
