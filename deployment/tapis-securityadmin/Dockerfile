@@ -11,7 +11,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM openjdk:15-jdk-oracle
+FROM openjdk:17-jdk-bullseye
 
 ARG VER
 ARG SRVC_JAR
@@ -28,5 +28,8 @@ LABEL "BUILD_TIME"=$BUILD_TIME
 # add
 COPY shaded-securitylib.jar /usr/local/bin/shaded-securitylib.jar
 
+# Java module commands that are always needed.
+ENV JAVA_MODULE_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED
+
 # Launch the migration script. The tls directive is to avoid a jvm bug involving certificates.
-CMD java -Djdk.tls.client.protocols=TLSv1.2 -cp /usr/local/bin/shaded-securitylib.jar edu.utexas.tacc.tapis.security.commands.SkAdmin $SKADMIN_PARMS 
+CMD java ${JAVA_MODULE_OPTS} -Djdk.tls.client.protocols=TLSv1.2 -cp /usr/local/bin/shaded-securitylib.jar edu.utexas.tacc.tapis.security.commands.SkAdmin $SKADMIN_PARMS 
