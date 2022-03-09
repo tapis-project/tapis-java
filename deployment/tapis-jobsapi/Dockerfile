@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM tomcat:9.0.58-jdk17-openjdk-bullseye
+FROM tomcat:9.0.58-jdk17-openjdk
 
 ARG VER
 ARG SRVC_ROOT
