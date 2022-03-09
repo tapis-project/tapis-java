@@ -37,7 +37,7 @@ ENV CATALINA_HOME /usr/local/tomcat
 
 # Set most Java options here.  CATALINA.sh specifies a number of --all-opens
 # parameters, the one added is not included in that script.
-ENV CATALINA_OPTS -Xms6g -Xmx6g --add-opens java.base/java.time=ALL-UNNAMED
+ENV CATALINA_OPTS -Xms1g -Xmx3g --add-opens java.base/java.time=ALL-UNNAMED
 
 # Debug port and http port
 EXPOSE 8000
