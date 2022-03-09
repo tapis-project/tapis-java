@@ -7,8 +7,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.jcajce.provider.symmetric.TEA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,14 @@ public final class SkShareDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SkShareDao.class);
+  
+  /* ********************************************************************** */
+  /*                                 Enums                                  */
+  /* ********************************************************************** */
+  // Enum used for dynamic filtering.
+  public enum ShareFilter {TENANT, GRANTOR, GRANTEE, RESOURCE_TYPE, RESOURCE_ID1, 
+                           RESOURCE_ID2, PRIVILEGE, CREATEDBY, CREATEDBY_TENANT, 
+                           ID, INCLUDE_PUBLIC_GRANTEES, REQUIRE_NULL_ID2};
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -222,20 +232,47 @@ public final class SkShareDao
   /* ---------------------------------------------------------------------- */
   /* getShares:                                                             */
   /* ---------------------------------------------------------------------- */
-  public List<SkShare> getShares(String tenant, 
-                                 String grantor, 
-                                 String grantee,
-                                 String resourceType, 
-                                 String resourceId1, 
-                                 String resourceId2,
-                                 String privilege, 
-                                 String createdBy, 
-                                 String createdByTenant,
-                                 Integer id,
-                                 Boolean includePublicGrantees,
-                                 boolean forceId2ToBeNull)  // null or don't care
+  /** Select a set of shares that conform to the values in the filter map.  
+   * The keys enumerations include most share fields plus two flags.  The 
+   * TENANT value must always be set.  If the ID value is set, then all other
+   * values are ignored and getShare(tenant, id) is called.  
+   * 
+   * If the INCLUDE_PUBLIC_GRANTEES is true (the default), then the result list 
+   * can contain ~public and ~public_no_authn grantees.
+   * 
+   * If the REQUIRE_NULL_ID2 is true (the default), then only shares that have
+   * a resourceId2 == null will be included in the result list.  If the 
+   * RESOURCE_ID2 value is non-null, then REQUIRE_NULL_ID2 is ignored.
+   * 
+   * @param filter the key/value pairs used to filter the result list.
+   * @return the non-null list of 0 or more shares
+   * @throws TapisException on error
+   */
+  public List<SkShare> getShares(Map<ShareFilter, Object> filter) 
    throws TapisException
   {
+      
+      // ------------------------- Unpack Input ------------------------
+      // Don't blow up.
+      if (filter == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getShares", "filter");
+          throw new TapisException(msg);
+      }
+      
+      // Unpack each possible value.
+      String tenant = (String) filter.get(ShareFilter.TENANT); 
+      String grantor = (String) filter.get(ShareFilter.GRANTOR); 
+      String grantee = (String) filter.get(ShareFilter.GRANTEE);
+      String resourceType = (String) filter.get(ShareFilter.RESOURCE_TYPE); 
+      String resourceId1 = (String) filter.get(ShareFilter.RESOURCE_ID1); 
+      String resourceId2 = (String) filter.get(ShareFilter.RESOURCE_ID2);
+      String privilege = (String) filter.get(ShareFilter.PRIVILEGE); 
+      String createdBy = (String) filter.get(ShareFilter.CREATEDBY); 
+      String createdByTenant = (String) filter.get(ShareFilter.CREATEDBY_TENANT);
+      Integer id = (Integer) filter.get(ShareFilter.ID);
+      Boolean includePublicGrantees = (Boolean) filter.get(ShareFilter.INCLUDE_PUBLIC_GRANTEES);
+      Boolean requireNullId2 = (Boolean) filter.get(ShareFilter.REQUIRE_NULL_ID2);
+      
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
       if (StringUtils.isBlank(tenant)) {
@@ -254,8 +291,9 @@ public final class SkShareDao
           return list;
       }
       
-      // Set default public treatment.
+      // Set defaults for unspecified values.
       if (includePublicGrantees == null) includePublicGrantees = Boolean.TRUE;
+      if (requireNullId2 == null) requireNullId2 = Boolean.TRUE;
       
       // ------------------------- Calculate Where ---------------------
       // Where clause set up.
@@ -271,7 +309,7 @@ public final class SkShareDao
       if (resourceType != null) {whereParms.add("resourceType"); buf.append("AND resource_type = ? ");}
       if (resourceId1 != null) {whereParms.add("resourceId1"); buf.append("AND resource_id1 = ? ");}
       if (resourceId2 != null) {whereParms.add("resourceId2"); buf.append("AND resource_id2 = ? ");}
-        else if (forceId2ToBeNull) buf.append("AND resource_id2 IS NULL ");
+        else if (requireNullId2) buf.append("AND resource_id2 IS NULL ");
       if (privilege != null) {whereParms.add("privilege"); buf.append("AND privilege = ? ");}
       if (createdBy != null) {whereParms.add("createdBy"); buf.append("AND createdby = ? ");}
       if (createdByTenant != null) {whereParms.add("createdByTenant"); buf.append("AND createdby_tenant = ? ");}
