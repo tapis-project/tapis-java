@@ -160,8 +160,8 @@ public final class SkShareDao
       }
       
       // ------------------------- Get ID ------------------------------
-      // Get id for new shares and created, createdBy and createdByTenant 
-      // for pre-existing shares. 
+      // On a best effort basis, get id, created, createdBy and createdByTenant 
+      // for new and pre-existing shares. 
       refreshShare(skshare);
       
       return rows;
@@ -253,7 +253,6 @@ public final class SkShareDao
   public List<SkShare> getShares(Map<ShareFilter, Object> filter) 
    throws TapisException
   {
-      
       // ------------------------- Unpack Input ------------------------
       // Don't blow up.
       if (filter == null) {
@@ -283,9 +282,9 @@ public final class SkShareDao
       }
       
       // ------------------------- ID Query ----------------------------
-      // If an id is given it takes precedence over everything else 
-      // except tenant and short circuits processing.
-      if (id != null) {
+      // If a valid id is given it takes precedence over everything  
+      // else to short circuits processing.
+      if (id != null && id > 0) {
           // Call the get-by-id method and return.
           var skshare = getShare(tenant, id);
           var list = new ArrayList<SkShare>(1);
@@ -298,16 +297,16 @@ public final class SkShareDao
       if (requireNullId2 == null) requireNullId2 = Boolean.TRUE;
       
       // ------------------------- Calculate Where ---------------------
-      // Where clause set up.
-      final int maxParms = 10;
+      // Where clause set up.  The whereParms list contains all the optional
+      // parameter names the might appear in the where clause.
+      final int maxParms = 8; // maximal optional parms
       var whereParms = new ArrayList<String>(maxParms);
       var buf = new StringBuilder();
       
       // Construct the where clause based on the user's arguments.
-      whereParms.add("tenant");
-      buf.append("WHERE tenant = ? ");
+      buf.append("WHERE tenant = ? "); // Mandatory first clause.
       if (grantor != null) {whereParms.add("grantor"); buf.append("AND grantor = ? ");}
-      if (grantee != null) {whereParms.add("grantee"); buf.append("AND grantee = ? ");}
+      appendGranteeClause(buf, grantee, whereParms, includePublicGrantees);
       if (resourceType != null) {whereParms.add("resourceType"); buf.append("AND resource_type = ? ");}
       if (resourceId1 != null) {whereParms.add("resourceId1"); buf.append("AND resource_id1 = ? ");}
       if (resourceId2 != null) {whereParms.add("resourceId2"); buf.append("AND resource_id2 = ? ");}
@@ -315,16 +314,6 @@ public final class SkShareDao
       if (privilege != null) {whereParms.add("privilege"); buf.append("AND privilege = ? ");}
       if (createdBy != null) {whereParms.add("createdBy"); buf.append("AND createdby = ? ");}
       if (createdByTenant != null) {whereParms.add("createdByTenant"); buf.append("AND createdby_tenant = ? ");}
-      
-      // We only add a clause when we need to exclude public sharing. If the grantee
-      // is one of the public types, however, we just exclude the other public type.
-      if (!includePublicGrantees) 
-          if (grantee == null || (!PUBLIC_GRANTEE.equals(grantee) && !PUBLIC_NO_AUTHN_GRANTEE.equals(grantee)))
-              buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
-          else if (PUBLIC_GRANTEE.equals(grantee))
-              buf.append("AND grantee != \"~public_no_authn\") ");
-          else
-              buf.append("AND grantee != \"~public\") ");
       
       // Generate the WHERE clause
       var whereClause = buf.toString();
@@ -402,6 +391,47 @@ public final class SkShareDao
   /*                             Private Methods                            */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
+  /* appendGranteeClause:                                                   */
+  /* ---------------------------------------------------------------------- */
+  /** Special case logic that assigns the grantee clause based on the grantee
+   * and includePublicGrantees values.
+   * 
+   * @param buf the where clause being constructed
+   * @param grantee the user specified grantee or null
+   * @param whereParms the list of placeholder parameters
+   * @param includePublicGrantees the user specified public grantee filter
+   */
+  private void appendGranteeClause(StringBuilder buf, 
+                                   String grantee, 
+                                   List<String> whereParms, 
+                                   Boolean includePublicGrantees)
+  {
+      // Process based on whether a grantee was specified.
+      if (grantee == null) {
+          // No restrictions on grantee mean no clause is appended at all.
+          // Otherwise, we filter out the public pseudo-grantees.
+          if (!includePublicGrantees)
+              buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
+      } else {
+          // A grantee is specified, so we determine the exact filter required.
+          if (includePublicGrantees) {
+              // Handle the special case when the user specifies a public grantee.
+              if (PUBLIC_GRANTEE.equals(grantee) || PUBLIC_NO_AUTHN_GRANTEE.equals(grantee))
+                  buf.append("AND grantee IN (\"~public\", \"~public_no_authn\") ");
+              else {
+                  buf.append("AND grantee IN (?, \"~public\", \"~public_no_authn\") ");
+                  whereParms.add("grantee"); // Make sure the ? gets replaced.
+              }
+          } else {
+              // Only search for the grantee and exclude the public grantees 
+              // (unless the grantee is specified as one of the public grantees).
+              buf.append("AND grantee = ? ");
+              whereParms.add("grantee"); // Make sure the ? gets replaced.
+          }
+      }
+  }
+  
+  /* ---------------------------------------------------------------------- */
   /* populateSkShare:                                                       */
   /* ---------------------------------------------------------------------- */
   /** Populate a new SkShare object with a record retrieved from the 
@@ -464,30 +494,32 @@ public final class SkShareDao
   /* ---------------------------------------------------------------------- */
   /** Update an in-memory share object with the latest information from the
    * database.  This method allows the id to be retrieved for just created 
-   * shares and the created, createdBy and createdByTenant to be retrieved
+   * shares and also the created, createdBy and createdByTenant to be retrieved
    * for previously existing shares.
    * 
-   * The skshare parameter is used for both input and output.
+   * The skshare parameter is used for both input and output. Exactly one record
+   * is expected to be returned since all seven values are provided that make up 
+   * a unique index in sk_shared.
    * 
    * @param skshare the in-memory share updated with database information
    */
   private void refreshShare(SkShare skshare)
   {
+      // Use the input share's values to retrieve its database record.
+      // The first 7 values define a unique key; the last value eliminates
+      // public grantees from the result that are different than the 
+      // specified grantee.
+      var map = new HashMap<ShareFilter,Object>();
+      map.put(ShareFilter.TENANT, skshare.getTenant());
+      map.put(ShareFilter.GRANTOR, skshare.getGrantor());
+      map.put(ShareFilter.GRANTEE, skshare.getGrantee());
+      map.put(ShareFilter.RESOURCE_TYPE, skshare.getResourceType());
+      map.put(ShareFilter.RESOURCE_ID1, skshare.getResourceId1());
+      map.put(ShareFilter.RESOURCE_ID2, skshare.getResourceId2());
+      map.put(ShareFilter.PRIVILEGE, skshare.getPrivilege());
+      map.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, Boolean.FALSE);
+      
       try {
-          // Use the input share's values to retrieve its database record.
-          // The first 7 values define a unique key; the last value eliminates
-          // public grantees from the result that are different than the 
-          // specified grantee.
-          var map = new HashMap<ShareFilter,Object>();
-          map.put(ShareFilter.TENANT, skshare.getTenant());
-          map.put(ShareFilter.GRANTOR, skshare.getTenant());
-          map.put(ShareFilter.GRANTEE, skshare.getTenant());
-          map.put(ShareFilter.RESOURCE_TYPE, skshare.getTenant());
-          map.put(ShareFilter.RESOURCE_ID1, skshare.getTenant());
-          map.put(ShareFilter.RESOURCE_ID2, skshare.getTenant());
-          map.put(ShareFilter.PRIVILEGE, skshare.getTenant());
-          map.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, Boolean.FALSE);
-          
           // Retrieve from the database. There should be 
           // exactly one share returned.
           var list = getShares(map);
@@ -498,9 +530,15 @@ public final class SkShareDao
               skshare.setCreatedBy(dbShare.getCreatedBy());
               skshare.setCreatedByTenant(dbShare.getCreatedByTenant());
           }
-          else throw new TapisException("xx");
-      } catch (Exception e) {
-          _log.warn(e.getMessage(), e);
-      }
+          else _log.warn(MsgUtils.getMsg("JOBS_SHARE_LIST_LEN", 1, list.size(),
+                                         skshare.getTenant(),
+                                         skshare.getGrantor(),
+                                         skshare.getGrantee(),
+                                         skshare.getResourceType(),
+                                         skshare.getResourceId1(),
+                                         skshare.getResourceId2(),
+                                         skshare.getPrivilege()));
+      } 
+      catch (Exception e) {_log.warn(e.getMessage(), e);} // log then swallow exception
   }
 }

@@ -1,11 +1,14 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -19,13 +22,17 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqShareResource;
+import edu.utexas.tacc.tapis.security.api.responses.RespShareList;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
+import edu.utexas.tacc.tapis.security.authz.dao.SkShareDao.ShareFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
@@ -107,16 +114,25 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Share a Tapis resource using a request body.  "
-                          + "Role names are case sensitive, alpha-numeric "
-                          + "strings that can also contain underscores.  Role names must "
-                          + "start with an alphbetic character and can be no more than 58 "
-                          + "characters in length.  The desciption can be no more than "
-                          + "2048 characters long.  If the role already exists, this "
-                          + "request has no effect.\n\n"
+                          + "Shared resources allow services to tell other services "
+                          + "to relax their Tapis authorization checking in certain "
+                          + "contexts where a grantee has been given shared access. "
+                          + "The distinguished ~public and ~public_no_authn grantees "
+                          + "are used to grant different types of public access to a "
+                          + "resource.\n\n"
                           + ""
+                          + "The payload for this includes these values, with all "
+                          + "except resourceId2 required:\n\n"
+                          + ""
+                          + "   - grantee\n"
+                          + "   - resourceType\n"
+                          + "   - resourceId1\n"
+                          + "   - resourceId2\n"
+                          + "   - privilege\n\n"
+                          + ""
+                          + "If the share already exists, then this call has no effect. "
                           + "For the request to be authorized, the requestor must be "
-                          + "either an administrator or a service allowed to perform "
-                          + "updates in the new role's tenant."
+                          + "a Tapis service."
                           + "",
             tags = "share",
             security = {@SecurityRequirement(name = "TapisJWT")},
@@ -193,8 +209,9 @@ public class ShareResource
         if (resp != null) return resp;
         
         // ------------------------ Request Processing ------------------------
-        // Create the share in the database.  The share object's id and timestamp
-        // are updated by the called code.
+        // Create the share in the database.  The share object's id, created, 
+        // createdBy and createdByTenant are updated by the called code.  This
+        // includes cases where the share existed or not.
         int rows = 0;
         try {rows = getShareImpl().shareResource(skShare);}
         catch (Exception e) {
@@ -219,5 +236,140 @@ public class ShareResource
         else 
             return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
                 MsgUtils.getMsg("TAPIS_CREATED", "Share", skShare.printResource()), prettyPrint, r)).build();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getShares:                                                                   */
+    /* ---------------------------------------------------------------------------- */
+    @GET
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            description = "Get a filtered list of shared resources. "
+                          + "Query parameters are used to restrict the returned shares. "
+                          + "The *grantor*, *grantee*, *resourceType*, *resourceId1*, "
+                          + "*resourceId2*, *privilege*, *createdBy* and *createdByTenant* "
+                          + "parameters are used to match values in shared resource objects. "
+                          + "The other parameters are used to control how matching is "
+                          + "performed.\n\n"
+                          + ""
+                          + "Specifying the *id* parameter causes the other filtering "
+                          + "parameters to be ignored. The result list will contain at "
+                          + "most one entry.\n\n"
+                          + ""
+                          + "The *includePublicGrantees* flag, true by default, controls "
+                          + "whether resources granted to **~public** and **~public_no_authn** "
+                          + "that meet all other constraints are included in the results.\n\n"
+                          + ""
+                          + "The *requireNullId2* flag, true by default, applies only when no "
+                          + "*resourceId2* value is provided. By default, only resources granted "
+                          + "with no *resourceId2* value and meet all other constraints "
+                          + "are included in the results. By setting this flag to false the caller "
+                          + "indicates \"don't care\" designation on the *resourceId2* values, "
+                          + "allowing shares with any *resourceId2* value that meet all other "
+                          + "constraints to be included in the results."
+                          + ""
+                          + "For the request to be authorized, the requestor must be "
+                          + "a Tapis service."
+                          + "",
+            tags = "share",
+            security = {@SecurityRequirement(name = "TapisJWT")},
+            responses = 
+                {@ApiResponse(responseCode = "200", description = "List of shares returned.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.security.api.responses.RespShareList.class))),
+                 @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+        )
+    public Response getShares(@DefaultValue("") @QueryParam("grantor")         String grantor,
+                              @DefaultValue("") @QueryParam("grantee")         String grantee,
+                              @DefaultValue("") @QueryParam("resourceType")    String resourceType,
+                              @DefaultValue("") @QueryParam("resourceId1")     String resourceId1,
+                              @DefaultValue("") @QueryParam("resourceId2")     String resourceId2,
+                              @DefaultValue("") @QueryParam("privilege")       String privilege,
+                              @DefaultValue("") @QueryParam("createdBy")       String createdBy,
+                              @DefaultValue("") @QueryParam("createdByTenant") String createdByTenant,
+                              @DefaultValue("true")  @QueryParam("includePublicGrantees") boolean includePublicGrantees,
+                              @DefaultValue("true")  @QueryParam("requireNullId2")        boolean requireNullId2,
+                              @DefaultValue("0")     @QueryParam("id")         int id,
+                              @DefaultValue("false") @QueryParam("pretty")     boolean prettyPrint)
+    {
+        // Trace this request.
+        if (_log.isTraceEnabled()) {
+            String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                         "getShares", _request.getRequestURL());
+            _log.trace(msg);
+        }
+        
+        // ------------------------- Input Processing -------------------------
+        // Convert empty strings to null and sanitize input.
+        grantor         = StringUtils.stripToNull(grantor);
+        grantee         = StringUtils.stripToNull(grantee);
+        resourceType    = StringUtils.stripToNull(resourceType);
+        resourceId1     = StringUtils.stripToNull(resourceId1);
+        resourceId2     = StringUtils.stripToNull(resourceId2);
+        privilege       = StringUtils.stripToNull(privilege);
+        createdBy       = StringUtils.stripToNull(createdBy);
+        createdByTenant = StringUtils.stripToNull(createdByTenant);
+        
+        // Get obo information.
+        var threadContext = TapisThreadLocal.tapisThreadContext.get();
+        var oboTenant = threadContext.getOboTenantId();
+        var oboUser   = threadContext.getOboUser();
+        
+        // ------------------------- Check Authz ------------------------------
+        // Authorization passed if a null response is returned.
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
+                            .setCheckIsService()
+                            .check(prettyPrint);
+        if (resp != null) return resp;
+        
+        // ------------------------ Parameter Set Up --------------------------
+        // Populate the query map which always contains the obo tenant.
+        var filter = new HashMap<ShareFilter,Object>();
+        filter.put(ShareFilter.TENANT, oboTenant);
+        
+        // Optional query parameters.
+        if (grantor != null) filter.put(ShareFilter.GRANTOR, grantor);
+        if (grantee != null) filter.put(ShareFilter.GRANTEE, grantee);
+        if (resourceType != null) filter.put(ShareFilter.RESOURCE_TYPE, resourceType);
+        if (resourceId1 != null) filter.put(ShareFilter.RESOURCE_ID1, resourceId1);
+        if (resourceId2 != null) filter.put(ShareFilter.RESOURCE_ID2, resourceId2);
+        if (privilege != null) filter.put(ShareFilter.PRIVILEGE, privilege);
+        if (createdBy != null) filter.put(ShareFilter.CREATEDBY, createdBy);
+        if (createdByTenant != null) filter.put(ShareFilter.CREATEDBY_TENANT, createdByTenant);
+        
+        // These query parameters are always non-null.
+        filter.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, includePublicGrantees);
+        filter.put(ShareFilter.REQUIRE_NULL_ID2, requireNullId2);
+        if (id > 0) filter.put(ShareFilter.ID, id); // valid seqno's only
+        
+        // ------------------------ Request Processing ------------------------
+        // Retrieve the shared resource objects that meet the filter criteria.
+        // A non-null list is always returned unless there's an exception.
+        List<SkShare> list = null;
+        try {list = getShareImpl().getShares(filter);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+            return getExceptionResponse(e, msg, prettyPrint);
+        }
+        
+        // Package the list for the response.
+        var skShares = new SkShareList();
+        skShares.shares = list;
+        
+        // ---------------------------- Success ------------------------------- 
+        // Success means zero or more shares were found. 
+        RespShareList r = new RespShareList(skShares);
+        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_FOUND", "Shares", skShares.shares.size()), prettyPrint, r)).build();
     }
 }
