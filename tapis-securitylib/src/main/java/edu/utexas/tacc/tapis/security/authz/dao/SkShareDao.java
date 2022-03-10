@@ -6,11 +6,11 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.jcajce.provider.symmetric.TEA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +33,10 @@ public final class SkShareDao
   /* ********************************************************************** */
   // Tracing.
   private static final Logger _log = LoggerFactory.getLogger(SkShareDao.class);
+  
+  // Public pseudo-grantees.
+  public static final String PUBLIC_GRANTEE = "~public";
+  public static final String PUBLIC_NO_AUTHN_GRANTEE = "~public_no_authn";
   
   /* ********************************************************************** */
   /*                                 Enums                                  */
@@ -156,12 +160,9 @@ public final class SkShareDao
       }
       
       // ------------------------- Get ID ------------------------------
-      try {
-//          var skshares = getShares();
-      }
-      catch (Exception e) {
-          
-      }
+      // Get id for new shares and created, createdBy and createdByTenant 
+      // for pre-existing shares. 
+      refreshShare(skshare);
       
       return rows;
   }
@@ -238,7 +239,8 @@ public final class SkShareDao
    * values are ignored and getShare(tenant, id) is called.  
    * 
    * If the INCLUDE_PUBLIC_GRANTEES is true (the default), then the result list 
-   * can contain ~public and ~public_no_authn grantees.
+   * can contain ~public and ~public_no_authn grantees in addition to any specified
+   * grantee.
    * 
    * If the REQUIRE_NULL_ID2 is true (the default), then only shares that have
    * a resourceId2 == null will be included in the result list.  If the 
@@ -314,9 +316,15 @@ public final class SkShareDao
       if (createdBy != null) {whereParms.add("createdBy"); buf.append("AND createdby = ? ");}
       if (createdByTenant != null) {whereParms.add("createdByTenant"); buf.append("AND createdby_tenant = ? ");}
       
-      // We only add a clause when we need to exclude public sharing.
+      // We only add a clause when we need to exclude public sharing. If the grantee
+      // is one of the public types, however, we just exclude the other public type.
       if (!includePublicGrantees) 
-          buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
+          if (grantee == null || (!PUBLIC_GRANTEE.equals(grantee) && !PUBLIC_NO_AUTHN_GRANTEE.equals(grantee)))
+              buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
+          else if (PUBLIC_GRANTEE.equals(grantee))
+              buf.append("AND grantee != \"~public_no_authn\") ");
+          else
+              buf.append("AND grantee != \"~public\") ");
       
       // Generate the WHERE clause
       var whereClause = buf.toString();
@@ -449,5 +457,50 @@ public final class SkShareDao
     }
       
     return obj;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* refreshShare:                                                          */
+  /* ---------------------------------------------------------------------- */
+  /** Update an in-memory share object with the latest information from the
+   * database.  This method allows the id to be retrieved for just created 
+   * shares and the created, createdBy and createdByTenant to be retrieved
+   * for previously existing shares.
+   * 
+   * The skshare parameter is used for both input and output.
+   * 
+   * @param skshare the in-memory share updated with database information
+   */
+  private void refreshShare(SkShare skshare)
+  {
+      try {
+          // Use the input share's values to retrieve its database record.
+          // The first 7 values define a unique key; the last value eliminates
+          // public grantees from the result that are different than the 
+          // specified grantee.
+          var map = new HashMap<ShareFilter,Object>();
+          map.put(ShareFilter.TENANT, skshare.getTenant());
+          map.put(ShareFilter.GRANTOR, skshare.getTenant());
+          map.put(ShareFilter.GRANTEE, skshare.getTenant());
+          map.put(ShareFilter.RESOURCE_TYPE, skshare.getTenant());
+          map.put(ShareFilter.RESOURCE_ID1, skshare.getTenant());
+          map.put(ShareFilter.RESOURCE_ID2, skshare.getTenant());
+          map.put(ShareFilter.PRIVILEGE, skshare.getTenant());
+          map.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, Boolean.FALSE);
+          
+          // Retrieve from the database. There should be 
+          // exactly one share returned.
+          var list = getShares(map);
+          if (list.size() == 1) {
+              var dbShare = list.get(0);
+              skshare.setId(dbShare.getId());
+              skshare.setCreated(dbShare.getCreated());
+              skshare.setCreatedBy(dbShare.getCreatedBy());
+              skshare.setCreatedByTenant(dbShare.getCreatedByTenant());
+          }
+          else throw new TapisException("xx");
+      } catch (Exception e) {
+          _log.warn(e.getMessage(), e);
+      }
   }
 }
