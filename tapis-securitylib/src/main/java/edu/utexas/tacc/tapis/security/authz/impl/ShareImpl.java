@@ -61,11 +61,11 @@ public class ShareImpl
      * 
      * 1 is returned if a new row was inserted, otherwise 0 is returned.
      * 
-     * @param skshare a new share object
+     * @param skShare a new share object
      * @return the number of rows inserted (0 or 1) and an updated share object
      * @throws TapisImplException 
      */
-    public int shareResource(SkShare skshare) throws TapisImplException
+    public int shareResource(SkShare skShare) throws TapisImplException
     {
         // Get the dao.
         SkShareDao dao = null;
@@ -78,9 +78,9 @@ public class ShareImpl
         
         // Create the role.
         int rows = 0;
-        try {rows = dao.shareResource(skshare);}
+        try {rows = dao.shareResource(skShare);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_SHARE_DB_INSERT_ERROR", skshare.dumpContent());
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_INSERT_ERROR", skShare.dumpContent());
                 _log.error(msg, e);
                 throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
             }
@@ -89,16 +89,47 @@ public class ShareImpl
     }
 
     /* ---------------------------------------------------------------------- */
-    /* shareResource:                                                         */
+    /* getShare:                                                              */
     /* ---------------------------------------------------------------------- */
-    /** This method insert a new share into the share table if it doesn't already
-     * exist.  It also updates the id field and created fields with values from
-     * the database.
+    /** This method retrieves a single shared resource object by ID.  If no
+     * record exists with that ID, null is returned.
      * 
-     * 1 is returned if a new row was inserted, otherwise 0 is returned.
+     * @param tenant the obo tenant
+     * @param id the id of the share
+     * @return the share object or null
+     * @throws TapisImplException 
+     */
+    public SkShare getShare(String tenant, int id) throws TapisImplException
+    {
+        // Get the dao.
+        SkShareDao dao = null;
+        try {dao = getSkShareDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "share");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        SkShare skShare = null;
+        try {skShare = dao.getShare(tenant, id);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_SELECT_ERROR", tenant);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
+            }
+        
+        return skShare;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getShares:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** This method retrieve zero or more shared resource objects depending on
+     * the filter values.  
      * 
-     * @param skshare a new share object
-     * @return the number of rows inserted (0 or 1) and an updated share object
+     * @param filter the search criteria
+     * @return a non-null list of shares
      * @throws TapisImplException 
      */
     public List<SkShare> getShares(SkShareInputFilter filter) throws TapisImplException

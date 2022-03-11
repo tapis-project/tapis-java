@@ -10,6 +10,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.api.requestBody.ReqShareResource;
+import edu.utexas.tacc.tapis.security.api.responses.RespShare;
 import edu.utexas.tacc.tapis.security.api.responses.RespShareList;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
@@ -34,6 +36,7 @@ import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -231,10 +234,10 @@ public class ShareResource
         // No new rows means the role exists. 
         if (rows == 0)
             return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                MsgUtils.getMsg("TAPIS_EXISTED", "Share", skShare.printResource()), prettyPrint, r)).build();
+                MsgUtils.getMsg("TAPIS_EXISTED", "Share", skShare.getId()), prettyPrint, r)).build();
         else 
             return Response.status(Status.CREATED).entity(TapisRestUtils.createSuccessResponse(
-                MsgUtils.getMsg("TAPIS_CREATED", "Share", skShare.printResource()), prettyPrint, r)).build();
+                MsgUtils.getMsg("TAPIS_CREATED", "Share", skShare.getId()), prettyPrint, r)).build();
     }
 
     /* ---------------------------------------------------------------------------- */
@@ -266,7 +269,7 @@ public class ShareResource
                           + "are included in the results. By setting this flag to false the caller "
                           + "indicates \"don't care\" designation on the *resourceId2* values, "
                           + "allowing shares with any *resourceId2* value that meet all other "
-                          + "constraints to be included in the results."
+                          + "constraints to be included in the results.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
                           + "a Tapis service."
@@ -355,5 +358,92 @@ public class ShareResource
         RespShareList r = new RespShareList(skShares);
         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
             MsgUtils.getMsg("TAPIS_FOUND", "Shares", skShares.shares.size()), prettyPrint, r)).build();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getShares:                                                                   */
+    /* ---------------------------------------------------------------------------- */
+    @GET
+    @Path("/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            description = "Get a shared resource by ID.\n\n"
+                          + ""
+                          + "For the request to be authorized, the requestor must be "
+                          + "a Tapis service."
+                          + "",
+            tags = "share",
+            security = {@SecurityRequirement(name = "TapisJWT")},
+            responses = 
+                {@ApiResponse(responseCode = "200", description = "A share returned.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.security.api.responses.RespShare.class))),
+                 @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "404", description = "Not found.",
+                 content = @Content(schema = @Schema(
+                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+        )
+    public Response getShare(@PathParam("id") int id,
+                             @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+    {
+        // Trace this request.
+        if (_log.isTraceEnabled()) {
+            String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                         "getShares", _request.getRequestURL());
+            _log.trace(msg);
+        }
+        
+        // ------------------------- Input Processing -------------------------
+        // The id must be greater than zero.
+        if (id <= 0) {
+            var r = new RespBasic("Invalid share id: " + id + ".");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+        }
+        
+        // Get obo information.
+        var threadContext = TapisThreadLocal.tapisThreadContext.get();
+        var oboTenant = threadContext.getOboTenantId();
+        var oboUser   = threadContext.getOboUser();
+
+        // ------------------------- Check Authz ------------------------------
+        // Authorization passed if a null response is returned.
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
+                            .setCheckIsService()
+                            .check(prettyPrint);
+        if (resp != null) return resp;
+        
+        // ------------------------ Request Processing ------------------------
+        // Retrieve the shared resource objects that meet the filter criteria.
+        // A non-null list is always returned unless there's an exception.
+        SkShare skShare = null;
+        try {skShare = getShareImpl().getShare(oboTenant, id);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+            return getExceptionResponse(e, msg, prettyPrint);
+        }
+        
+        // Surface not found as an error.
+        if (skShare == null) {
+            var r = new RespBasic("No share with id " + id + " was found.");
+            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+        }
+                
+        // ---------------------------- Success ------------------------------- 
+        // Success means zero or more shares were found. 
+        RespShare r = new RespShare(skShare);
+        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_FOUND", "Shares", id), prettyPrint, r)).build();
     }
 }
