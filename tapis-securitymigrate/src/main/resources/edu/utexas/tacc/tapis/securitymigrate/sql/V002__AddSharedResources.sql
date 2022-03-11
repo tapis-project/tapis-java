@@ -25,7 +25,7 @@ CREATE TABLE sk_shared
   grantee          character varying(60) NOT NULL,
   resource_type    character varying(24) NOT NULL, 
   resource_id1     character varying(2048) NOT NULL,
-  resource_id2     character varying(2048),
+  resource_id2     character varying(2048) NOT NULL,
   privilege        character varying(64) NOT NULL,
   created          timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby        character varying(60) NOT NULL,  

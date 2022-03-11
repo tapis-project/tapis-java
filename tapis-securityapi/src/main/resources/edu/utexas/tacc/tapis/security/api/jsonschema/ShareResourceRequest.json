@@ -11,7 +11,7 @@
           "resourceType": {
             "type": "string"
           },
-          "resourceType": {
+          "resourceId1": {
             "type": "string"
           },
           "resourceId2": {

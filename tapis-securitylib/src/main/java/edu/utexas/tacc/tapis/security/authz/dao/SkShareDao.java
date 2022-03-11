@@ -37,6 +37,13 @@ public final class SkShareDao
   public static final String PUBLIC_GRANTEE = "~public";
   public static final String PUBLIC_NO_AUTHN_GRANTEE = "~public_no_authn";
   
+  // String used in database to indicate null in non-null columns.
+  // This is an easy way to avoid problems involving unique indexes 
+  // on nullable columns.  The string value must always replace null
+  // just before writing to the database and be replaced by null 
+  // just after reading from the database.
+  private static final String TAPIS_NULL = "[TAPIS-NULL]";
+  
   /* ********************************************************************** */
   /*                              Constructors                              */
   /* ********************************************************************** */
@@ -105,6 +112,9 @@ public final class SkShareDao
           
           // Set the sql command.
           String sql = SqlStatements.SHARE_INSERT;
+          
+          // Use our null substitute for id2.
+          var id2 = skshare.getResourceId2() == null ? TAPIS_NULL : skshare.getResourceId2();
 
           // Prepare the statement and fill in the placeholders.
           PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -113,7 +123,7 @@ public final class SkShareDao
           pstmt.setString(3, skshare.getGrantee());
           pstmt.setString(4, skshare.getResourceType());
           pstmt.setString(5, skshare.getResourceId1());
-          pstmt.setString(6, skshare.getResourceId2());
+          pstmt.setString(6, id2);
           pstmt.setString(7, skshare.getPrivilege());
           pstmt.setTimestamp(8, Timestamp.from(skshare.getCreated()));
           pstmt.setString(9, skshare.getCreatedBy());
@@ -297,7 +307,7 @@ public final class SkShareDao
       if (resourceType != null) {whereParms.add("resourceType"); buf.append("AND resource_type = ? ");}
       if (resourceId1 != null) {whereParms.add("resourceId1"); buf.append("AND resource_id1 = ? ");}
       if (resourceId2 != null) {whereParms.add("resourceId2"); buf.append("AND resource_id2 = ? ");}
-        else if (requireNullId2) buf.append("AND resource_id2 IS NULL ");
+        else if (requireNullId2) buf.append("AND resource_id2 = '" + TAPIS_NULL + "' ");
       if (privilege != null) {whereParms.add("privilege"); buf.append("AND privilege = ? ");}
       if (createdBy != null) {whereParms.add("createdBy"); buf.append("AND createdby = ? ");}
       if (createdByTenant != null) {whereParms.add("createdByTenant"); buf.append("AND createdby_tenant = ? ");}
@@ -391,7 +401,7 @@ public final class SkShareDao
   private void appendGranteeClause(StringBuilder buf, 
                                    String grantee, 
                                    List<String> whereParms, 
-                                   Boolean includePublicGrantees)
+                                   boolean includePublicGrantees)
   {
       // Process based on whether a grantee was specified.
       if (grantee == null) {
@@ -472,6 +482,9 @@ public final class SkShareDao
       _log.error(msg, e);
       throw new TapisJDBCException(msg, e);
     }
+    
+    // Replace internal representation of null with real null.
+    if (TAPIS_NULL.equals(obj.getResourceId2())) obj.setResourceId2(null);
       
     return obj;
   }
@@ -510,21 +523,25 @@ public final class SkShareDao
           // Retrieve from the database. There should be 
           // exactly one share returned.
           var list = getShares(filter);
-          if (list.size() == 1) {
+          if (list != null && list.size() == 1) {
               var dbShare = list.get(0);
               skshare.setId(dbShare.getId());
               skshare.setCreated(dbShare.getCreated());
               skshare.setCreatedBy(dbShare.getCreatedBy());
               skshare.setCreatedByTenant(dbShare.getCreatedByTenant());
           }
-          else _log.warn(MsgUtils.getMsg("JOBS_SHARE_LIST_LEN", 1, list.size(),
+          else {
+              int size = list == null ? 0 : list.size();
+              var id2 = skshare.getResourceId2() == null ? "null" : skshare.getResourceId2();
+              _log.warn(MsgUtils.getMsg("JOBS_SHARE_LIST_LEN", 1, size,
                                          skshare.getTenant(),
                                          skshare.getGrantor(),
                                          skshare.getGrantee(),
                                          skshare.getResourceType(),
                                          skshare.getResourceId1(),
-                                         skshare.getResourceId2(),
+                                         id2,
                                          skshare.getPrivilege()));
+          }
       } 
       catch (Exception e) {_log.warn(e.getMessage(), e);} // log then swallow exception
   }
