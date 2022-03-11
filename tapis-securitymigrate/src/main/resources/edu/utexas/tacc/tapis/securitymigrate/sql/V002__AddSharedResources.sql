@@ -29,15 +29,15 @@ CREATE TABLE sk_shared
   privilege        character varying(64) NOT NULL,
   created          timestamp without time zone NOT NULL DEFAULT (now() at time zone 'utc'),       
   createdby        character varying(60) NOT NULL,  
-  createdby_tenant character varying(24) NOT NULL,
+  createdby_tenant character varying(24) NOT NULL
 );
 ALTER TABLE sk_shared OWNER TO tapis;
 ALTER SEQUENCE sk_shared_id_seq RESTART WITH 1;
 
-CREATE UNIQUE INDEX shared_t_r1_r2_g_p_idx ON shared (tenant, resource_type, resource_id1, resource_id2, grantor, grantee, privilege);
-CREATE INDEX shared_t_grantor_idx ON shared (tenant, grantor);
-CREATE INDEX shared_t_grantee_idx ON shared (tenant, grantee);
-CREATE INDEX shared_ct_c_idx ON shared (createdby_tenant, createdby); 
+CREATE UNIQUE INDEX shared_t_r1_r2_g_p_idx ON sk_shared (tenant, resource_type, resource_id1, resource_id2, grantor, grantee, privilege);
+CREATE INDEX shared_t_grantor_idx ON sk_shared (tenant, grantor);
+CREATE INDEX shared_t_grantee_idx ON sk_shared (tenant, grantee);
+CREATE INDEX shared_ct_c_idx ON sk_shared (createdby_tenant, createdby); 
 
 COMMENT ON COLUMN sk_shared.id IS 'Unique shared id';
 COMMENT ON COLUMN sk_shared.tenant IS 'Shared tenant';
@@ -92,7 +92,7 @@ CREATE OR REPLACE FUNCTION audit_sk_shared() RETURNS TRIGGER AS $$
         IF (TG_OP = 'DELETE') THEN
             INSERT INTO sk_shared_audit (refid, refname, refcol, change, oldvalue) 
                 VALUES (OLD.id, OLD.grantee, 'ALL', 'delete', 
-                        substring(concat(OLD.resource_type, '|', OLD.resource_id1, ':', OLD.resource_id2)) from 1 for 512));
+                        substring(concat(OLD.resource_type, '|', OLD.resource_id1, ':', OLD.resource_id2) from 1 for 512));
             RETURN OLD;
         ELSIF (TG_OP = 'UPDATE') THEN
             -- We always use the OLD id and, when applicable, OLD name in update audit records, 
@@ -151,7 +151,7 @@ CREATE OR REPLACE FUNCTION audit_sk_shared() RETURNS TRIGGER AS $$
         ELSIF (TG_OP = 'INSERT') THEN
             INSERT INTO sk_shared_audit (refid, refname, refcol, change, newvalue) 
                 VALUES (NEW.id, NEW.grantee, 'ALL', 'insert', 
-                        substring(concat(NEW.resource_type, '|', NEW.resource_id1, ':', NEW.resource_id2)) from 1 for 512));
+                        substring(concat(NEW.resource_type, '|', NEW.resource_id1, ':', NEW.resource_id2) from 1 for 512));
             RETURN NEW;
         END IF;
         RETURN NULL; -- result is ignored since this is an AFTER trigger
