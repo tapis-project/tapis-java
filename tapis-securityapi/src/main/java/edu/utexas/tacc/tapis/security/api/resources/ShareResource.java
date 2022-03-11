@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.security.api.resources;
 
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -30,8 +29,8 @@ import edu.utexas.tacc.tapis.security.api.requestBody.ReqShareResource;
 import edu.utexas.tacc.tapis.security.api.responses.RespShareList;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
-import edu.utexas.tacc.tapis.security.authz.dao.SkShareDao.ShareFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -309,21 +308,26 @@ public class ShareResource
         }
         
         // ------------------------- Input Processing -------------------------
-        // Convert empty strings to null and sanitize input.
-        grantor         = StringUtils.stripToNull(grantor);
-        grantee         = StringUtils.stripToNull(grantee);
-        resourceType    = StringUtils.stripToNull(resourceType);
-        resourceId1     = StringUtils.stripToNull(resourceId1);
-        resourceId2     = StringUtils.stripToNull(resourceId2);
-        privilege       = StringUtils.stripToNull(privilege);
-        createdBy       = StringUtils.stripToNull(createdBy);
-        createdByTenant = StringUtils.stripToNull(createdByTenant);
-        
         // Get obo information.
         var threadContext = TapisThreadLocal.tapisThreadContext.get();
         var oboTenant = threadContext.getOboTenantId();
         var oboUser   = threadContext.getOboUser();
         
+        // Convert empty strings to null and sanitize input.
+        var inputFilter = new SkShareInputFilter();
+        inputFilter.setTenant(oboTenant); // should never be null
+        inputFilter.setGrantor(StringUtils.stripToNull(grantor));
+        inputFilter.setGrantee(StringUtils.stripToNull(grantee));
+        inputFilter.setResourceType(StringUtils.stripToNull(resourceType));
+        inputFilter.setResourceId1(StringUtils.stripToNull(resourceId1));
+        inputFilter.setResourceId2(StringUtils.stripToNull(resourceId2));
+        inputFilter.setPrivilege(StringUtils.stripToNull(privilege));
+        inputFilter.setCreatedBy(StringUtils.stripToNull(createdBy));
+        inputFilter.setCreatedByTenant(StringUtils.stripToNull(createdByTenant));
+        inputFilter.setIncludePublicGrantees(includePublicGrantees);
+        inputFilter.setRequireNullId2(requireNullId2);
+        inputFilter.setId(id);
+
         // ------------------------- Check Authz ------------------------------
         // Authorization passed if a null response is returned.
         Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
@@ -331,31 +335,11 @@ public class ShareResource
                             .check(prettyPrint);
         if (resp != null) return resp;
         
-        // ------------------------ Parameter Set Up --------------------------
-        // Populate the query map which always contains the obo tenant.
-        var filter = new HashMap<ShareFilter,Object>();
-        filter.put(ShareFilter.TENANT, oboTenant);
-        
-        // Optional query parameters.
-        if (grantor != null) filter.put(ShareFilter.GRANTOR, grantor);
-        if (grantee != null) filter.put(ShareFilter.GRANTEE, grantee);
-        if (resourceType != null) filter.put(ShareFilter.RESOURCE_TYPE, resourceType);
-        if (resourceId1 != null) filter.put(ShareFilter.RESOURCE_ID1, resourceId1);
-        if (resourceId2 != null) filter.put(ShareFilter.RESOURCE_ID2, resourceId2);
-        if (privilege != null) filter.put(ShareFilter.PRIVILEGE, privilege);
-        if (createdBy != null) filter.put(ShareFilter.CREATEDBY, createdBy);
-        if (createdByTenant != null) filter.put(ShareFilter.CREATEDBY_TENANT, createdByTenant);
-        
-        // These query parameters are always non-null.
-        filter.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, includePublicGrantees);
-        filter.put(ShareFilter.REQUIRE_NULL_ID2, requireNullId2);
-        if (id > 0) filter.put(ShareFilter.ID, id); // valid seqno's only
-        
         // ------------------------ Request Processing ------------------------
         // Retrieve the shared resource objects that meet the filter criteria.
         // A non-null list is always returned unless there's an exception.
         List<SkShare> list = null;
-        try {list = getShareImpl().getShares(filter);}
+        try {list = getShareImpl().getShares(inputFilter);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
                                          threadContext.getJwtTenantId(), threadContext.getJwtUser());

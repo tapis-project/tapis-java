@@ -6,9 +6,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -16,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -37,14 +36,6 @@ public final class SkShareDao
   // Public pseudo-grantees.
   public static final String PUBLIC_GRANTEE = "~public";
   public static final String PUBLIC_NO_AUTHN_GRANTEE = "~public_no_authn";
-  
-  /* ********************************************************************** */
-  /*                                 Enums                                  */
-  /* ********************************************************************** */
-  // Enum used for dynamic filtering.
-  public enum ShareFilter {TENANT, GRANTOR, GRANTEE, RESOURCE_TYPE, RESOURCE_ID1, 
-                           RESOURCE_ID2, PRIVILEGE, CREATEDBY, CREATEDBY_TENANT, 
-                           ID, INCLUDE_PUBLIC_GRANTEES, REQUIRE_NULL_ID2};
   
   /* ********************************************************************** */
   /*                              Constructors                              */
@@ -250,7 +241,7 @@ public final class SkShareDao
    * @return the non-null list of 0 or more shares
    * @throws TapisException on error
    */
-  public List<SkShare> getShares(Map<ShareFilter, Object> filter) 
+  public List<SkShare> getShares(SkShareInputFilter filter) 
    throws TapisException
   {
       // ------------------------- Unpack Input ------------------------
@@ -260,19 +251,19 @@ public final class SkShareDao
           throw new TapisException(msg);
       }
       
-      // Unpack each possible value.
-      String tenant = (String) filter.get(ShareFilter.TENANT); 
-      String grantor = (String) filter.get(ShareFilter.GRANTOR); 
-      String grantee = (String) filter.get(ShareFilter.GRANTEE);
-      String resourceType = (String) filter.get(ShareFilter.RESOURCE_TYPE); 
-      String resourceId1 = (String) filter.get(ShareFilter.RESOURCE_ID1); 
-      String resourceId2 = (String) filter.get(ShareFilter.RESOURCE_ID2);
-      String privilege = (String) filter.get(ShareFilter.PRIVILEGE); 
-      String createdBy = (String) filter.get(ShareFilter.CREATEDBY); 
-      String createdByTenant = (String) filter.get(ShareFilter.CREATEDBY_TENANT);
-      Integer id = (Integer) filter.get(ShareFilter.ID);
-      Boolean includePublicGrantees = (Boolean) filter.get(ShareFilter.INCLUDE_PUBLIC_GRANTEES);
-      Boolean requireNullId2 = (Boolean) filter.get(ShareFilter.REQUIRE_NULL_ID2);
+      // Unpack filter for convenience. All strings except tenant can be null.
+      String tenant = filter.getTenant(); 
+      String grantor = filter.getGrantor(); 
+      String grantee = filter.getGrantee();
+      String resourceType = filter.getResourceType(); 
+      String resourceId1 = filter.getResourceId1(); 
+      String resourceId2 = filter.getResourceId2();
+      String privilege = filter.getPrivilege();
+      String createdBy = filter.getCreatedBy(); 
+      String createdByTenant = filter.getCreatedByTenant();
+      int id = filter.getId();
+      boolean includePublicGrantees = filter.isIncludePublicGrantees();
+      boolean requireNullId2 = filter.isRequireNullId2();
       
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
@@ -284,17 +275,13 @@ public final class SkShareDao
       // ------------------------- ID Query ----------------------------
       // If a valid id is given it takes precedence over everything  
       // else to short circuits processing.
-      if (id != null && id > 0) {
+      if (id > 0) {
           // Call the get-by-id method and return.
           var skshare = getShare(tenant, id);
           var list = new ArrayList<SkShare>(1);
           if (skshare != null) list.add(skshare);
           return list;
       }
-      
-      // Set defaults for unspecified values.
-      if (includePublicGrantees == null) includePublicGrantees = Boolean.TRUE;
-      if (requireNullId2 == null) requireNullId2 = Boolean.TRUE;
       
       // ------------------------- Calculate Where ---------------------
       // Where clause set up.  The whereParms list contains all the optional
@@ -509,20 +496,20 @@ public final class SkShareDao
       // The first 7 values define a unique key; the last value eliminates
       // public grantees from the result that are different than the 
       // specified grantee.
-      var map = new HashMap<ShareFilter,Object>();
-      map.put(ShareFilter.TENANT, skshare.getTenant());
-      map.put(ShareFilter.GRANTOR, skshare.getGrantor());
-      map.put(ShareFilter.GRANTEE, skshare.getGrantee());
-      map.put(ShareFilter.RESOURCE_TYPE, skshare.getResourceType());
-      map.put(ShareFilter.RESOURCE_ID1, skshare.getResourceId1());
-      map.put(ShareFilter.RESOURCE_ID2, skshare.getResourceId2());
-      map.put(ShareFilter.PRIVILEGE, skshare.getPrivilege());
-      map.put(ShareFilter.INCLUDE_PUBLIC_GRANTEES, Boolean.FALSE);
+      var filter = new SkShareInputFilter();
+      filter.setTenant(skshare.getTenant());
+      filter.setGrantor(skshare.getGrantor());
+      filter.setGrantee(skshare.getGrantee());
+      filter.setResourceType(skshare.getResourceType());
+      filter.setResourceId1(skshare.getResourceId1());
+      filter.setResourceId2(skshare.getResourceId2());
+      filter.setPrivilege(skshare.getPrivilege());
+      filter.setIncludePublicGrantees(false);
       
       try {
           // Retrieve from the database. There should be 
           // exactly one share returned.
-          var list = getShares(map);
+          var list = getShares(filter);
           if (list.size() == 1) {
               var dbShare = list.get(0);
               skshare.setId(dbShare.getId());
