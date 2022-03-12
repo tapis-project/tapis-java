@@ -154,4 +154,38 @@ public class ShareImpl
         
         return list;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* deleteShare:                                                           */
+    /* ---------------------------------------------------------------------- */
+    /** This method deletes a single shared resource object by ID.  If no
+     * record exists with that ID, null is returned.
+     * 
+     * @param tenant the obo tenant
+     * @param id the id of the share
+     * @return the share object or null
+     * @throws TapisImplException 
+     */
+    public int deleteShare(String tenant, int id) throws TapisImplException
+    {
+        // Get the dao.
+        SkShareDao dao = null;
+        try {dao = getSkShareDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "share");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.deleteShare(tenant, id);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_DELETE_ERROR", tenant, id);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
+            }
+        
+        return rows;
+    }
 }

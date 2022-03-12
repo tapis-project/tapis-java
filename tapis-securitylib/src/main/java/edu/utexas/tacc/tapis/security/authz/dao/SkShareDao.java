@@ -210,7 +210,7 @@ public final class SkShareDao
           try {if (conn != null) conn.rollback();}
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_shared");
+          String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "sk_shared", e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -364,7 +364,7 @@ public final class SkShareDao
           try {if (conn != null) conn.rollback();}
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("DB_INSERT_FAILURE", "sk_shared");
+          String msg = MsgUtils.getMsg("DB_QUERY_ERROR", "sk_shared", e.getMessage());
           _log.error(msg, e);
           throw new TapisException(msg, e);
       }
@@ -382,6 +382,68 @@ public final class SkShareDao
       }
       
       return list;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* deleteShare:                                                           */
+  /* ---------------------------------------------------------------------- */
+  public int deleteShare(String tenant, int id)  throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (StringUtils.isBlank(tenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getShare", "tenant");
+          throw new TapisException(msg);
+      }
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Set the sql command.
+          String sql = SqlStatements.SHARE_DELETE_BY_ID;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, tenant);
+          pstmt.setInt(2, id);
+
+          // Issue the call for the 1 row result set.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_shared");
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      // Could be null.
+      return rows;
   }
 
   /* ********************************************************************** */

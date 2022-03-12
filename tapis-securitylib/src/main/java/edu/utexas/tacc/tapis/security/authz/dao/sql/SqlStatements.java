@@ -294,4 +294,7 @@ public class SqlStatements
       + "WHERE tenant = ? AND grantor = ? AND grantee = ? "
       + " AND resource_type = ? AND resource_id1 = ? AND resource_id2 = ? "
       + " AND privilege = ?";
+
+  public static final String SHARE_DELETE_BY_ID = 
+          "DELETE FROM sk_shared WHERE tenant = ? AND id = ?";
 }

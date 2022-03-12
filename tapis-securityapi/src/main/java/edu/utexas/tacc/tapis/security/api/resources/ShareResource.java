@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -37,7 +38,9 @@ import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -361,14 +364,16 @@ public class ShareResource
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* getShares:                                                                   */
+    /* getShare:                                                                    */
     /* ---------------------------------------------------------------------------- */
     @GET
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
-            description = "Get a shared resource by ID.\n\n"
+            description = "Get a shared resource by ID. "
+                          + "The shared resource is returned only if it's in the tenant "
+                          + "on whose behalf the service is making the call.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
                           + "a Tapis service."
@@ -443,6 +448,102 @@ public class ShareResource
         // ---------------------------- Success ------------------------------- 
         // Success means zero or more shares were found. 
         RespShare r = new RespShare(skShare);
+        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_FOUND", "Shares", id), prettyPrint, r)).build();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* deleteShare:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    @DELETE
+    @Path("/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            description = "Delete a shared resource by ID. "
+                          + "The shared resource is deleted only if it's in the tenant "
+                          + "on whose behalf the service is making the call. If no share "
+                          + "with the specified ID is found, a success response code is "
+                          + "returned but with the number of changes equal to zero.\n\n"
+                          + ""
+                          + "For the request to be authorized, the requestor must be "
+                          + "a Tapis service."
+                          + "",
+            tags = "share",
+            security = {@SecurityRequirement(name = "TapisJWT")},
+            responses = 
+                {@ApiResponse(responseCode = "200", description = "A share returned.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                 @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "404", description = "Not found.",
+                 content = @Content(schema = @Schema(
+                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+        )
+    public Response deleteShare(@PathParam("id") int id,
+                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+    {
+        // Trace this request.
+        if (_log.isTraceEnabled()) {
+            String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                         "getShares", _request.getRequestURL());
+            _log.trace(msg);
+        }
+        
+        // ------------------------- Input Processing -------------------------
+        // The id must be greater than zero.
+        if (id <= 0) {
+            var r = new RespBasic("Invalid share id: " + id + ".");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+        }
+        
+        // Get obo information.
+        var threadContext = TapisThreadLocal.tapisThreadContext.get();
+        var oboTenant = threadContext.getOboTenantId();
+        var oboUser   = threadContext.getOboUser();
+
+        // ------------------------- Check Authz ------------------------------
+        // Authorization passed if a null response is returned.
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
+                            .setCheckIsService()
+                            .check(prettyPrint);
+        if (resp != null) return resp;
+        
+        // ------------------------ Request Processing ------------------------
+        // Retrieve the shared resource objects that meet the filter criteria.
+        // A non-null list is always returned unless there's an exception.
+        int rows = 0;
+        try {rows = getShareImpl().deleteShare(oboTenant, id);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_SHARE_DELETE_ERROR", oboTenant, oboUser,
+                              threadContext.getJwtTenantId(), threadContext.getJwtUser(), id);
+            return getExceptionResponse(e, msg, prettyPrint);
+        }
+        
+        // Package the count.
+        var resultCount = new ResultChangeCount();
+        resultCount.changes = rows;
+        var r = new RespChangeCount(resultCount);
+        
+        // This call is idempotent but returns a different response message when ID not found.
+        if (rows < 1) {
+            r.message = "No share with id " + id + " found. Nothing changed.";
+            return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+        }
+                
+        // ---------------------------- Success ------------------------------- 
+        // Success means zero or more shares were found. 
+        r.message = "Share with id " + id + " found and deleted.";
         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
             MsgUtils.getMsg("TAPIS_FOUND", "Shares", id), prettyPrint, r)).build();
     }
