@@ -484,9 +484,6 @@ public class ShareResource
                  @ApiResponse(responseCode = "401", description = "Not authorized.",
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "404", description = "Not found.",
-                 content = @Content(schema = @Schema(
-                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
                  @ApiResponse(responseCode = "500", description = "Server error.",
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
@@ -576,9 +573,6 @@ public class ShareResource
                  @ApiResponse(responseCode = "401", description = "Not authorized.",
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "404", description = "Not found.",
-                 content = @Content(schema = @Schema(
-                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBoolean.class))),
                  @ApiResponse(responseCode = "500", description = "Server error.",
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
