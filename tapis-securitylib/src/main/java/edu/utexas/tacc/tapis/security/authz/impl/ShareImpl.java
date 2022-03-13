@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.dao.SkShareDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
+import edu.utexas.tacc.tapis.security.authz.model.SkSharePrivilegeSelector;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -187,5 +188,31 @@ public class ShareImpl
             }
         
         return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* hasPrivilege:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public boolean hasPrivilege(SkSharePrivilegeSelector sel) throws TapisImplException
+    {
+        // Get the dao.
+        SkShareDao dao = null;
+        try {dao = getSkShareDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "share");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        boolean hasPrivilege = false;
+        try {hasPrivilege = dao.hasPrivilege(sel);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_SELECT_ERROR", sel.getTenant());
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
+            }
+        
+        return hasPrivilege;
     }
 }

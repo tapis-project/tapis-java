@@ -35,11 +35,14 @@ import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
+import edu.utexas.tacc.tapis.security.authz.model.SkSharePrivilegeSelector;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBoolean;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
+import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultBoolean;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -503,7 +506,7 @@ public class ShareResource
         if (id <= 0) {
             var r = new RespBasic("Invalid share id: " + id + ".");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
-                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "deleteShare", id), prettyPrint, r)).build();
         }
         
         // Get obo information.
@@ -536,15 +539,129 @@ public class ShareResource
         
         // This call is idempotent but returns a different response message when ID not found.
         if (rows < 1) {
-            r.message = "No share with id " + id + " found. Nothing changed.";
             return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "deleteShare", id), prettyPrint, r)).build();
         }
                 
         // ---------------------------- Success ------------------------------- 
         // Success means zero or more shares were found. 
-        r.message = "Share with id " + id + " found and deleted.";
         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-            MsgUtils.getMsg("TAPIS_FOUND", "Shares", id), prettyPrint, r)).build();
+            MsgUtils.getMsg("TAPIS_FOUND", "deleteShare", id), prettyPrint, r)).build();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* hasPrivilege:                                                                */
+    /* ---------------------------------------------------------------------------- */
+    @GET
+    @Path("/hasPrivilege")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            description = "Get a shared resource by ID. "
+                          + "The shared resource is returned only if it's in the tenant "
+                          + "on whose behalf the service is making the call.\n\n"
+                          + ""
+                          + "For the request to be authorized, the requestor must be "
+                          + "a Tapis service."
+                          + "",
+            tags = "share",
+            security = {@SecurityRequirement(name = "TapisJWT")},
+            responses = 
+                {@ApiResponse(responseCode = "200", description = "A share returned.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBoolean.class))),
+                 @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "404", description = "Not found.",
+                 content = @Content(schema = @Schema(
+                    implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBoolean.class))),
+                 @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+        )
+    public Response hasPrivilege(@DefaultValue("") @QueryParam("resourceType") String resourceType,
+                                 @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
+                                 @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
+                                 @DefaultValue("") @QueryParam("privilege")    String privilege,
+                                 @DefaultValue("false") @QueryParam("excludePublic") boolean excludePublic,
+                                 @DefaultValue("false") @QueryParam("excludePublicNoAuthn") boolean excludePublicNoAuthn,
+                                 @DefaultValue("false") @QueryParam("pretty")  boolean prettyPrint)
+    {
+        // Trace this request.
+        if (_log.isTraceEnabled()) {
+            String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                         "hasPrivilege", _request.getRequestURL());
+            _log.trace(msg);
+        }
+        
+        // ------------------------- Input Processing -------------------------        
+        // Get obo information.
+        var threadContext = TapisThreadLocal.tapisThreadContext.get();
+        var oboTenant = threadContext.getOboTenantId();
+        var oboUser   = threadContext.getOboUser();
+
+        // Package input parameters. 
+        var sel = new SkSharePrivilegeSelector();
+        sel.setTenant(oboTenant);
+        sel.setGrantee(oboUser);
+        sel.setResourceType(StringUtils.stripToNull(resourceType));
+        sel.setResourceId1(StringUtils.stripToNull(resourceId1));
+        sel.setResourceId2(StringUtils.stripToNull(resourceId2)); 
+        sel.setPrivilege(StringUtils.stripToNull(privilege));
+        
+        // Validate inputs. Only id2 can be null.
+        if (sel.getResourceType() == null) {
+            var r = new RespBasic("Missing input parameter: resourceType");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "resourceType"), prettyPrint, r)).build();
+        }
+        if (sel.getResourceId1() == null) {
+            var r = new RespBasic("Missing input parameter: resourceId1");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "resourceId1"), prettyPrint, r)).build();
+        }
+        if (sel.getPrivilege() == null) {
+            var r = new RespBasic("Missing input parameter: privilege");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "privilege"), prettyPrint, r)).build();
+        }
+        
+        // ------------------------- Check Authz ------------------------------
+        // Authorization passed if a null response is returned.
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
+                            .setCheckIsService()
+                            .check(prettyPrint);
+        if (resp != null) return resp;
+        
+        // ------------------------ Request Processing ------------------------
+        // Retrieve the shared resource objects that meet the filter criteria.
+        // A non-null list is always returned unless there's an exception.
+        boolean hasPrivilege = false;
+        try {hasPrivilege = getShareImpl().hasPrivilege(sel);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+            return getExceptionResponse(e, msg, prettyPrint);
+        }
+        
+        // Create the response.
+        var resultBoolean = new ResultBoolean();
+        resultBoolean.aBool = hasPrivilege;
+        var r = new RespBoolean(resultBoolean);
+        
+        // Surface not found as an error.
+        if (!hasPrivilege) {
+            return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", sel.getPrivilege()), prettyPrint, r)).build();
+        }
+                
+        // ---------------------------- Success ------------------------------- 
+        // Success means zero or more shares were found. 
+        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_FOUND", "hasPrivilege", sel.getPrivilege()), prettyPrint, r)).build();
     }
 }

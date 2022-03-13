@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.security.authz.model;
 
-public class SkShareInputFilter 
+public final class SkShareInputFilter 
 {
     private String  tenant;
     private String  grantor;         
