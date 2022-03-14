@@ -296,7 +296,8 @@ public class SqlStatements
       + " AND privilege = ?";
 
   public static final String SHARE_DELETE_BY_ID = 
-      "DELETE FROM sk_shared WHERE tenant = ? AND id = ?";
+      "DELETE FROM sk_shared WHERE tenant = ? AND id = ? "
+      + " AND createdby_tenant = ? AND createdby = ?";
   
   public static final String SHARE_HAS_PRIVILEGE =
       "SELECT 1 FROM sk_shared "    

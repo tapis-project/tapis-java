@@ -164,10 +164,13 @@ public class ShareImpl
      * 
      * @param tenant the obo tenant
      * @param id the id of the share
+     * @param jwtTenant tenant of the calling service
+     * @param jwtUser the calling service
      * @return the share object or null
      * @throws TapisImplException 
      */
-    public int deleteShare(String tenant, int id) throws TapisImplException
+    public int deleteShare(String tenant, int id, String jwtTenant, String jwtUser) 
+     throws TapisImplException
     {
         // Get the dao.
         SkShareDao dao = null;
@@ -180,7 +183,7 @@ public class ShareImpl
         
         // Create the role.
         int rows = 0;
-        try {rows = dao.deleteShare(tenant, id);}
+        try {rows = dao.deleteShare(tenant, id, jwtTenant, jwtUser);}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("SK_SHARE_DB_DELETE_ERROR", tenant, id);
                 _log.error(msg, e);

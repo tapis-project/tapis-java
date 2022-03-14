@@ -390,12 +390,21 @@ public final class SkShareDao
   /* ---------------------------------------------------------------------- */
   /* deleteShare:                                                           */
   /* ---------------------------------------------------------------------- */
-  public int deleteShare(String tenant, int id) throws TapisException
+  public int deleteShare(String tenant, int id, String jwtTenant, String jwtUser) 
+   throws TapisException
   {
       // ------------------------- Check Input -------------------------
       // Exceptions can be throw from here.
       if (StringUtils.isBlank(tenant)) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "tenant");
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(jwtTenant)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "jwtTenant");
+          throw new TapisException(msg);
+      }
+      if (StringUtils.isBlank(jwtUser)) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "jwtUser");
           throw new TapisException(msg);
       }
       
@@ -414,6 +423,8 @@ public final class SkShareDao
           PreparedStatement pstmt = conn.prepareStatement(sql);
           pstmt.setString(1, tenant);
           pstmt.setInt(2, id);
+          pstmt.setString(3, jwtTenant);
+          pstmt.setString(4, jwtUser);
 
           // Issue the call for the 1 row result set.
           rows = pstmt.executeUpdate();
@@ -481,7 +492,7 @@ public final class SkShareDao
           throw new TapisException(msg);
       }
       
-      // Assign resourceId2 if necessary. This fully qualifies
+      // Assign resourceId2 if necessary to fully qualify
       // the resource selection criteria. 
       if (StringUtils.isBlank(sel.getResourceId2()))
           sel.setResourceId2(TAPIS_NULL);;

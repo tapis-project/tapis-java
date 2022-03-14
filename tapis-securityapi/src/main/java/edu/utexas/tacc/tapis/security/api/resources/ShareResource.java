@@ -465,9 +465,14 @@ public class ShareResource
     @Operation(
             description = "Delete a shared resource by ID. "
                           + "The shared resource is deleted only if it's in the tenant "
-                          + "on whose behalf the service is making the call. If no share "
-                          + "with the specified ID is found, a success response code is "
-                          + "returned but with the number of changes equal to zero.\n\n"
+                          + "on whose behalf the service is making the call. The "
+                          + "calling service/tenant must also be the same as the orginal "
+                          + "creator service/tenant.\n\n"
+                          + ""
+                          + "This call is idempotent.  If no share satisfies the above "
+                          + "constraints, a success response code is returned and the "
+                          + "indicated number of changes is set to zero.  When a share "
+                          + "is deleted, the indicated number of changes is one.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
                           + "a Tapis service."
@@ -510,6 +515,8 @@ public class ShareResource
         var threadContext = TapisThreadLocal.tapisThreadContext.get();
         var oboTenant = threadContext.getOboTenantId();
         var oboUser   = threadContext.getOboUser();
+        var jwtTenant = threadContext.getJwtTenantId();
+        var jwtUser   = threadContext.getJwtUser();
 
         // ------------------------- Check Authz ------------------------------
         // Authorization passed if a null response is returned.
@@ -522,7 +529,7 @@ public class ShareResource
         // Retrieve the shared resource objects that meet the filter criteria.
         // A non-null list is always returned unless there's an exception.
         int rows = 0;
-        try {rows = getShareImpl().deleteShare(oboTenant, id);}
+        try {rows = getShareImpl().deleteShare(oboTenant, id, jwtTenant, jwtUser);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_DELETE_ERROR", oboTenant, oboUser,
                               threadContext.getJwtTenantId(), threadContext.getJwtUser(), id);
