@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.SkShareDao;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareDeleteSelector;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkSharePrivilegeSelector;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -194,6 +195,45 @@ public class ShareImpl
     }
     
     /* ---------------------------------------------------------------------- */
+    /* deleteShare:                                                           */
+    /* ---------------------------------------------------------------------- */
+    /** This method deletes a single shared resource object by ID.  If no
+     * record exists with that ID, null is returned.
+     * 
+     * @param tenant the obo tenant
+     * @param id the id of the share
+     * @param jwtTenant tenant of the calling service
+     * @param jwtUser the calling service
+     * @return the share object or null
+     * @throws TapisImplException 
+     */
+    public int deleteShare(SkShareDeleteSelector sel) 
+     throws TapisImplException
+    {
+        // Get the dao.
+        SkShareDao dao = null;
+        try {dao = getSkShareDao();}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("DB_DAO_ERROR", "share");
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+        
+        // Create the role.
+        int rows = 0;
+        try {rows = dao.deleteShare(sel);}
+            catch (Exception e) {
+                var tenant = sel == null ? "" : sel.getTenant();
+                var type   = sel == null ? "" : sel.getResourceType();
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_DELETE_ERROR", tenant, type);
+                _log.error(msg, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
+            }
+        
+        return rows;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* hasPrivilege:                                                          */
     /* ---------------------------------------------------------------------- */
     public boolean hasPrivilege(SkSharePrivilegeSelector sel) throws TapisImplException
@@ -211,7 +251,8 @@ public class ShareImpl
         boolean hasPrivilege = false;
         try {hasPrivilege = dao.hasPrivilege(sel);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("SK_SHARE_DB_SELECT_ERROR", sel.getTenant());
+                var tenant = sel == null ? "" : sel.getTenant();
+                String msg = MsgUtils.getMsg("SK_SHARE_DB_SELECT_ERROR", tenant);
                 _log.error(msg, e);
                 throw new TapisImplException(msg, e, Condition.BAD_REQUEST);         
             }

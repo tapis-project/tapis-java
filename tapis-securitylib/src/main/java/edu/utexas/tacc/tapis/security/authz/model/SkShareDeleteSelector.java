@@ -5,38 +5,52 @@ import org.apache.commons.lang3.StringUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SkSharePrivilegeSelector 
+public final class SkShareDeleteSelector 
 {
     private String  tenant;
+    private String  grantor;
     private String  grantee;         
     private String  resourceType;    
     private String  resourceId1;     
     private String  resourceId2;     
-    private String  privilege;    
-    private boolean excludePublic;
-    private boolean excludePublicNoAuthn;
+    private String  privilege;
+    private String  createdBy;
+    private String  createdByTenant;
     
+    // Validate
     public void validate() throws TapisException
     {
         // Exceptions can be throw from here.
         if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "tenant");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "tenant");
+            throw new TapisException(msg);
+        }
+        if (StringUtils.isBlank(grantor)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "grantor");
             throw new TapisException(msg);
         }
         if (StringUtils.isBlank(grantee)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "grantee");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "grantee");
             throw new TapisException(msg);
         }
         if (StringUtils.isBlank(resourceType)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "resourceType");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "resourceType");
             throw new TapisException(msg);
         }
         if (StringUtils.isBlank(resourceId1)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "resourceId1");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "resourceId1");
             throw new TapisException(msg);
         }
         if (StringUtils.isBlank(privilege)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "privilege");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "privilege");
+            throw new TapisException(msg);
+        }
+        if (StringUtils.isBlank(createdBy)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "createdBy");
+            throw new TapisException(msg);
+        }
+        if (StringUtils.isBlank(createdByTenant)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "createdByTenant");
             throw new TapisException(msg);
         }
     }
@@ -47,6 +61,12 @@ public final class SkSharePrivilegeSelector
     }
     public void setTenant(String tenant) {
         this.tenant = tenant;
+    }
+    public String getGrantor() {
+        return grantor;
+    }
+    public void setGrantor(String grantor) {
+        this.grantor = grantor;
     }
     public String getGrantee() {
         return grantee;
@@ -78,16 +98,16 @@ public final class SkSharePrivilegeSelector
     public void setPrivilege(String privilege) {
         this.privilege = privilege;
     }
-    public boolean isExcludePublic() {
-        return excludePublic;
+    public String getCreatedBy() {
+        return createdBy;
     }
-    public void setExcludePublic(boolean excludePublic) {
-        this.excludePublic = excludePublic;
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
-    public boolean isExcludePublicNoAuthn() {
-        return excludePublicNoAuthn;
+    public String getCreatedByTenant() {
+        return createdByTenant;
     }
-    public void setExcludePublicNoAuthn(boolean excludePublicNoAuthn) {
-        this.excludePublicNoAuthn = excludePublicNoAuthn;
+    public void setCreatedByTenant(String createdByTenant) {
+        this.createdByTenant = createdByTenant;
     }
 }

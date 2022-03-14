@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.security.authz.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareDeleteSelector;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkSharePrivilegeSelector;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -461,6 +462,82 @@ public final class SkShareDao
   }
   
   /* ---------------------------------------------------------------------- */
+  /* deleteShare:                                                           */
+  /* ---------------------------------------------------------------------- */
+  public int deleteShare(SkShareDeleteSelector sel) 
+   throws TapisException
+  {
+      // ------------------------- Check Input -------------------------
+      // Exceptions can be throw from here.
+      if (sel == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "deleteShare", "sel");
+          throw new TapisException(msg);
+      }
+      
+      // Make sure all fields are set.
+      sel.validate();
+      
+      // Assign resourceId2 if necessary to fully qualify the selection criteria. 
+      if (StringUtils.isBlank(sel.getResourceId2())) sel.setResourceId2(TAPIS_NULL);
+      
+      // ------------------------- Call SQL ----------------------------
+      Connection conn = null;
+      int rows = 0;
+      try
+      {
+          // Get a database connection.
+          conn = getConnection();
+          
+          // Set the sql command.
+          String sql = SqlStatements.SHARE_DELETE_BY_SELECTOR;
+
+          // Prepare the statement and fill in the placeholders.
+          PreparedStatement pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, sel.getTenant());
+          pstmt.setString(2, sel.getGrantor());
+          pstmt.setString(3, sel.getGrantee());
+          pstmt.setString(4, sel.getResourceType());
+          pstmt.setString(5, sel.getResourceId1());
+          pstmt.setString(6, sel.getResourceId2());
+          pstmt.setString(7, sel.getPrivilege());
+          pstmt.setString(8, sel.getCreatedByTenant());
+          pstmt.setString(9, sel.getCreatedBy());
+
+          // Issue the call for the 1 row result set.
+          rows = pstmt.executeUpdate();
+
+          // Commit the transaction.
+          pstmt.close();
+          conn.commit();
+      }
+      catch (Exception e)
+      {
+          // Rollback transaction.
+          try {if (conn != null) conn.rollback();}
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+          
+          String msg = MsgUtils.getMsg("DB_DELETE_FAILURE", "sk_shared");
+          _log.error(msg, e);
+          throw new TapisException(msg, e);
+      }
+      finally {
+          // Conditionally return the connection back to the connection pool.
+          if (conn != null)
+              try {conn.close();}
+              catch (Exception e)
+              {
+                  // If commit worked, we can swallow the exception.
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+              }
+      }
+      
+      // Could be null.
+      return rows;
+  }
+  
+  /* ---------------------------------------------------------------------- */
   /* hasPrivilege:                                                          */
   /* ---------------------------------------------------------------------- */
   public boolean hasPrivilege(SkSharePrivilegeSelector sel) throws TapisException
@@ -471,31 +548,12 @@ public final class SkShareDao
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "sel");
           throw new TapisException(msg);
       }
-      if (StringUtils.isBlank(sel.getTenant())) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "tenant");
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(sel.getGrantee())) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "grantee");
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(sel.getResourceType())) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "resourceType");
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(sel.getResourceId1())) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "resourceId1");
-          throw new TapisException(msg);
-      }
-      if (StringUtils.isBlank(sel.getPrivilege())) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "hasPrivilege", "privilege");
-          throw new TapisException(msg);
-      }
       
-      // Assign resourceId2 if necessary to fully qualify
-      // the resource selection criteria. 
-      if (StringUtils.isBlank(sel.getResourceId2()))
-          sel.setResourceId2(TAPIS_NULL);;
+      // Make sure all mandatory fields are not empty.
+      sel.validate();
+      
+      // Assign resourceId2 if necessary to fully qualify the selection criteria. 
+      if (StringUtils.isBlank(sel.getResourceId2())) sel.setResourceId2(TAPIS_NULL);
       
       // ------------------------- Calculate Grantees ------------------
       // Construct the grantee list always starting off with the user

@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.security.api.responses.RespShareList;
 import edu.utexas.tacc.tapis.security.api.utils.SKApiUtils;
 import edu.utexas.tacc.tapis.security.api.utils.SKCheckAuthz;
 import edu.utexas.tacc.tapis.security.authz.model.SkShare;
+import edu.utexas.tacc.tapis.security.authz.model.SkShareDeleteSelector;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareInputFilter;
 import edu.utexas.tacc.tapis.security.authz.model.SkShareList;
 import edu.utexas.tacc.tapis.security.authz.model.SkSharePrivilegeSelector;
@@ -456,7 +457,7 @@ public class ShareResource
     }
 
     /* ---------------------------------------------------------------------------- */
-    /* deleteShare:                                                                 */
+    /* deleteShareById:                                                             */
     /* ---------------------------------------------------------------------------- */
     @DELETE
     @Path("/{id}")
@@ -480,7 +481,7 @@ public class ShareResource
             tags = "share",
             security = {@SecurityRequirement(name = "TapisJWT")},
             responses = 
-                {@ApiResponse(responseCode = "200", description = "A share returned.",
+                {@ApiResponse(responseCode = "200", description = "A share deleted if it exists.",
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
                  @ApiResponse(responseCode = "400", description = "Input error.",
@@ -493,13 +494,13 @@ public class ShareResource
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
-    public Response deleteShare(@PathParam("id") int id,
-                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+    public Response deleteShareById(@PathParam("id") int id,
+                                    @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
     {
         // Trace this request.
         if (_log.isTraceEnabled()) {
             String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
-                                         "getShares", _request.getRequestURL());
+                                         "deleteSharesById", _request.getRequestURL());
             _log.trace(msg);
         }
         
@@ -531,8 +532,8 @@ public class ShareResource
         int rows = 0;
         try {rows = getShareImpl().deleteShare(oboTenant, id, jwtTenant, jwtUser);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("SK_SHARE_DELETE_ERROR", oboTenant, oboUser,
-                              threadContext.getJwtTenantId(), threadContext.getJwtUser(), id);
+            String msg = MsgUtils.getMsg("SK_SHARE_DELETE_BY_ID_ERROR", oboTenant, oboUser,
+                                         jwtTenant, jwtUser, id);
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
@@ -551,6 +552,141 @@ public class ShareResource
         // Success means zero or more shares were found. 
         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
             MsgUtils.getMsg("TAPIS_FOUND", "deleteShare", id), prettyPrint, r)).build();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* deleteShare:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    @DELETE
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            description = "Delete a single shared resource by unique attribute selection. "
+                          + "The *grantee*, *resourceType*, "
+                          + "*resourceId1* and *privilege* parameters are mandatory; "
+                          + "*resourceId2* is optional and assumed to be NULL if not "
+                          + "provided.\n\n"
+                          + ""
+                          + "The shared resource is deleted only if it's in the tenant "
+                          + "on whose behalf the service is making the call. The "
+                          + "calling service/tenant must also be the same as the orginal "
+                          + "creator service/tenant.\n\n"
+                          + ""
+                          + "This call is idempotent.  If no share satisfies the above "
+                          + "constraints, a success response code is returned and the "
+                          + "indicated number of changes is set to zero.  When a share "
+                          + "is deleted, the indicated number of changes is one.\n\n"
+                          + ""
+                          + "For the request to be authorized, the requestor must be "
+                          + "a Tapis service."
+                          + "",
+            tags = "share",
+            security = {@SecurityRequirement(name = "TapisJWT")},
+            responses = 
+                {@ApiResponse(responseCode = "200", description = "A share deleted if it exists.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount.class))),
+                 @ApiResponse(responseCode = "400", description = "Input error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "401", description = "Not authorized.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                 @ApiResponse(responseCode = "500", description = "Server error.",
+                     content = @Content(schema = @Schema(
+                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+        )
+    public Response deleteShare(@DefaultValue("") @QueryParam("grantee") String grantee,
+                                @DefaultValue("") @QueryParam("resourceType") String resourceType,
+                                @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
+                                @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
+                                @DefaultValue("") @QueryParam("privilege")    String privilege,
+                                @DefaultValue("false") @QueryParam("excludePublic") boolean excludePublic,
+                                @DefaultValue("false") @QueryParam("excludePublicNoAuthn") boolean excludePublicNoAuthn,
+                                @DefaultValue("false") @QueryParam("pretty")  boolean prettyPrint)
+    {
+        // Trace this request.
+        if (_log.isTraceEnabled()) {
+            String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), 
+                                         "deleteShares", _request.getRequestURL());
+            _log.trace(msg);
+        }
+        
+        // ------------------------- Input Processing -------------------------        
+        // Get obo information.
+        var threadContext = TapisThreadLocal.tapisThreadContext.get();
+        var oboTenant = threadContext.getOboTenantId();
+        var oboUser   = threadContext.getOboUser();
+        var jwtTenant = threadContext.getJwtTenantId();
+        var jwtUser   = threadContext.getJwtUser();
+
+        // Package input parameters. 
+        var sel = new SkShareDeleteSelector();
+        sel.setTenant(oboTenant);
+        sel.setGrantor(oboUser);
+        sel.setGrantee(StringUtils.stripToNull(grantee));
+        sel.setResourceType(StringUtils.stripToNull(resourceType));
+        sel.setResourceId1(StringUtils.stripToNull(resourceId1));
+        sel.setResourceId2(StringUtils.stripToNull(resourceId2)); 
+        sel.setPrivilege(StringUtils.stripToNull(privilege));
+        sel.setCreatedBy(jwtUser);
+        sel.setCreatedByTenant(jwtTenant);
+        
+        // Validate inputs. Only id2 can be null.
+        if (sel.getGrantee() == null) {
+            var r = new RespBasic("Missing input parameter: grantee");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "grantee"), prettyPrint, r)).build();
+        }
+        if (sel.getResourceType() == null) {
+            var r = new RespBasic("Missing input parameter: resourceType");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "resourceType"), prettyPrint, r)).build();
+        }
+        if (sel.getResourceId1() == null) {
+            var r = new RespBasic("Missing input parameter: resourceId1");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "resourceId1"), prettyPrint, r)).build();
+        }
+        if (sel.getPrivilege() == null) {
+            var r = new RespBasic("Missing input parameter: privilege");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "privilege"), prettyPrint, r)).build();
+        }
+        
+        // ------------------------- Check Authz ------------------------------
+        // Authorization passed if a null response is returned.
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
+                            .setCheckIsService()
+                            .check(prettyPrint);
+        if (resp != null) return resp;
+        
+        // ------------------------ Request Processing ------------------------
+        // Retrieve the shared resource objects that meet the filter criteria.
+        // A non-null list is always returned unless there's an exception.
+        int rows = 0;
+        try {rows = getShareImpl().deleteShare(sel);}
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("SK_SHARE_DELETE_ERROR", oboTenant, oboUser,
+                                         jwtTenant, jwtUser, grantee);
+            return getExceptionResponse(e, msg, prettyPrint);
+        }
+        
+        // Package the count.
+        var resultCount = new ResultChangeCount();
+        resultCount.changes = rows;
+        var r = new RespChangeCount(resultCount);
+        
+        // This call is idempotent but returns a different response message when ID not found.
+        if (rows < 1) {
+            return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "deleteShare", grantee), prettyPrint, r)).build();
+        }
+                
+        // ---------------------------- Success ------------------------------- 
+        // Success means zero or more shares were found. 
+        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+            MsgUtils.getMsg("TAPIS_FOUND", "deleteShare", grantee), prettyPrint, r)).build();
     }
 
     /* ---------------------------------------------------------------------------- */
