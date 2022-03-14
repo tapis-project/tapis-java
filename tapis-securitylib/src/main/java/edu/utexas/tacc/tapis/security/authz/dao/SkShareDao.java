@@ -563,7 +563,7 @@ public final class SkShareDao
               }
       }
       
-      // Did we find a record that satified the constraints?
+      // Did we find a record that satisfied the constraints?
       if (count == 0) return false;
         else return true;
   }

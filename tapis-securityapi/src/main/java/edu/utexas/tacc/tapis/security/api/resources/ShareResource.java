@@ -562,11 +562,11 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Determine if a user has been granted a specific privilege "
-                          + "on a resource. The *resourceType*, *resourceId1* and *privilege* "
-                          + "parameters are mandatory; *resourceId2* is optional and "
-                          + "assumed to be NULL if not provided. Privilege matching is "
-                          + "performed for the user and tenant on behalf of whom the "
-                          + "call is being made.\n\n"
+                          + "on a resource. The *grantee*, *resourceType*, *resourceId1* "
+                          + "and *privilege* parameters are mandatory; "
+                          + "*resourceId2* is optional and assumed to be NULL if not "
+                          + "provided. Privilege matching is performed for the user and "
+                          + "tenant on behalf of whom the call is being made.\n\n"
                           + ""
                           + "True is returned if the user has been granted the privilege, "
                           + "false otherwise.\n\n"
@@ -602,7 +602,8 @@ public class ShareResource
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
-    public Response hasPrivilege(@DefaultValue("") @QueryParam("resourceType") String resourceType,
+    public Response hasPrivilege(@DefaultValue("") @QueryParam("grantee") String grantee,
+                                 @DefaultValue("") @QueryParam("resourceType") String resourceType,
                                  @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
                                  @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
                                  @DefaultValue("") @QueryParam("privilege")    String privilege,
@@ -626,13 +627,18 @@ public class ShareResource
         // Package input parameters. 
         var sel = new SkSharePrivilegeSelector();
         sel.setTenant(oboTenant);
-        sel.setGrantee(oboUser);
+        sel.setGrantee(StringUtils.stripToNull(grantee));
         sel.setResourceType(StringUtils.stripToNull(resourceType));
         sel.setResourceId1(StringUtils.stripToNull(resourceId1));
         sel.setResourceId2(StringUtils.stripToNull(resourceId2)); 
         sel.setPrivilege(StringUtils.stripToNull(privilege));
         
         // Validate inputs. Only id2 can be null.
+        if (sel.getGrantee() == null) {
+            var r = new RespBasic("Missing input parameter: grantee");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "grantee"), prettyPrint, r)).build();
+        }
         if (sel.getResourceType() == null) {
             var r = new RespBasic("Missing input parameter: resourceType");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
