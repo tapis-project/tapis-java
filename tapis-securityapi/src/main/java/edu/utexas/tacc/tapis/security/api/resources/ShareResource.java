@@ -123,12 +123,16 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Share a Tapis resource using a request body.  "
-                          + "Shared resources allow services to tell other services "
-                          + "to relax their Tapis authorization checking in certain "
-                          + "contexts where a grantee has been given shared access. "
-                          + "The distinguished ~public and ~public_no_authn grantees "
-                          + "are used to grant different types of public access to a "
-                          + "resource.\n\n"
+                          + "Shared resources allow services to indicate that other services "
+                          + "should relax their Tapis authorization checking in certain, "
+                          + "well-defined contexts.\n\n"
+                          + ""
+                          + "Grantees can be given shared access "
+                          + "to a resource on an individual basis or by "
+                          + "using the public granting mechanism. Grants to the "
+                          + "distinguished **~public** and **~public_no_authn** "
+                          + "pseudo-grantees allow access to a resource to authenticated "
+                          + "users or to any user, respectively.\n\n"
                           + ""
                           + "The payload for this includes these values, with all "
                           + "except resourceId2 required:\n\n"
@@ -259,7 +263,7 @@ public class ShareResource
                           + "The *grantor*, *grantee*, *resourceType*, *resourceId1*, "
                           + "*resourceId2*, *privilege*, *createdBy* and *createdByTenant* "
                           + "parameters are used to match values in shared resource objects. "
-                          + "The other parameters are used to control how matching is "
+                          + "Other query parameters are used to control how matching is "
                           + "performed.\n\n"
                           + ""
                           + "Specifying the *id* parameter causes the other filtering "
@@ -268,15 +272,15 @@ public class ShareResource
                           + ""
                           + "The *includePublicGrantees* flag, true by default, controls "
                           + "whether resources granted to **~public** and **~public_no_authn** "
-                          + "that meet all other constraints are included in the results.\n\n"
+                          + "are also considered for inclusion in the result list.\n\n"
                           + ""
                           + "The *requireNullId2* flag, true by default, applies only when no "
-                          + "*resourceId2* value is provided. By default, only resources granted "
-                          + "with no *resourceId2* value and meet all other constraints "
-                          + "are included in the results. By setting this flag to false the caller "
-                          + "indicates \"don't care\" designation on the *resourceId2* values, "
-                          + "allowing shares with any *resourceId2* value that meet all other "
-                          + "constraints to be included in the results.\n\n"
+                          + "*resourceId2* value is provided. When set, only shared resources "
+                          + "that do not specify a *resourceId2* value are considered for "
+                          + "inclusion in the result list. By setting this flag to false the caller "
+                          + "indicates a \"don't care\" designation on the *resourceId2* value, "
+                          + "allowing shares with any *resourceId2* value to be considered for "
+                          + "inclusion in the result list.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
                           + "a Tapis service."
@@ -467,8 +471,8 @@ public class ShareResource
             description = "Delete a shared resource by ID. "
                           + "The shared resource is deleted only if it's in the tenant "
                           + "on whose behalf the service is making the call. The "
-                          + "calling service/tenant must also be the same as the orginal "
-                          + "creator service/tenant.\n\n"
+                          + "calling service must also be the same as the orginal "
+                          + "service that created the share.\n\n"
                           + ""
                           + "This call is idempotent.  If no share satisfies the above "
                           + "constraints, a success response code is returned and the "
@@ -476,7 +480,7 @@ public class ShareResource
                           + "is deleted, the indicated number of changes is one.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
-                          + "a Tapis service."
+                          + "the Tapis service that originally granted the share."
                           + "",
             tags = "share",
             security = {@SecurityRequirement(name = "TapisJWT")},
@@ -569,8 +573,8 @@ public class ShareResource
                           + ""
                           + "The shared resource is deleted only if it's in the tenant "
                           + "on whose behalf the service is making the call. The "
-                          + "calling service/tenant must also be the same as the orginal "
-                          + "creator service/tenant.\n\n"
+                          + "calling service must also be the same as the orginal service "
+                          + "that granted the share.\n\n"
                           + ""
                           + "This call is idempotent.  If no share satisfies the above "
                           + "constraints, a success response code is returned and the "
@@ -578,7 +582,7 @@ public class ShareResource
                           + "is deleted, the indicated number of changes is one.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
-                          + "a Tapis service."
+                          + "the Tapis service that originally granted the share."
                           + "",
             tags = "share",
             security = {@SecurityRequirement(name = "TapisJWT")},
@@ -601,8 +605,6 @@ public class ShareResource
                                 @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
                                 @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
                                 @DefaultValue("") @QueryParam("privilege")    String privilege,
-                                @DefaultValue("false") @QueryParam("excludePublic") boolean excludePublic,
-                                @DefaultValue("false") @QueryParam("excludePublicNoAuthn") boolean excludePublicNoAuthn,
                                 @DefaultValue("false") @QueryParam("pretty")  boolean prettyPrint)
     {
         // Trace this request.
@@ -698,8 +700,8 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Determine if a user has been granted a specific privilege "
-                          + "on a resource. The *grantee*, *resourceType*, *resourceId1* "
-                          + "and *privilege* parameters are mandatory; "
+                          + "on a specific resource. The *grantee*, *resourceType*, "
+                          + "*resourceId1* and *privilege* parameters are mandatory; "
                           + "*resourceId2* is optional and assumed to be NULL if not "
                           + "provided. Privilege matching is performed for the user and "
                           + "tenant on behalf of whom the call is being made.\n\n"
@@ -710,13 +712,12 @@ public class ShareResource
                           + "By default, both authenticated and unauthenticated "
                           + "public privileges are included in the calculation. For "
                           + "example, if a privilege on a resource has been granted "
-                          + "to all authenticated users in a tenant, then true will "
-                          + "be returned for all users in the tenant.\n\n"
+                          + "to all authenticated users in a tenant (~public), "
+                          + "then true will be returned for all users in the tenant.\n\n"
                           + ""
                           + "The *excludePublic* and *excludePublicNoAuthn* parameters "
                           + "can be used to change the default handling of public "
-                          + "grants. The on-behalf-of user is always included in the"
-                          + "calculation, but either or both of the public grants can "
+                          + "grants. Either or both types of public grants can "
                           + "be excluded.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
