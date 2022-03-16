@@ -157,7 +157,7 @@ public final class RoleImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* createRole:                                                            */
+    /* deleteRoleByName:                                                      */
     /* ---------------------------------------------------------------------- */
     public int deleteRoleByName(String tenant, String roleName) throws TapisImplException
     {

@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/ShareResourceRequest",
+    "description": "Top-level schema for a share resource request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "grantee": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId1": {
+            "type": "string"
+          },
+          "resourceId2": {
+            "type": "string"
+          },
+          "privilege": {
+            "type": "string"
+          }
+        },
+    "required": [
+        "grantee",
+        "resourceType",
+        "resourceId1",
+        "privilege"
+    ]
+}
+
+

@@ -26,7 +26,7 @@ public class JobHistoryDisplayDTO {
     
     private String        event;
     private Instant       created;
-    private String        jobStatus;
+    private String        eventDetail;
     private String        description;
     private String        transferTaskUuid;
     private JsonObject 	  transferSummary;
@@ -34,7 +34,7 @@ public class JobHistoryDisplayDTO {
     public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant) throws TapisImplException{
     	
     	setEvent(jobEvent.getEvent().name());
-    	setJobStatus(jobEvent.getJobStatus().name());
+    	setEventDetail(jobEvent.getEventDetail());
     	setCreated(jobEvent.getCreated());
     	setDescription(jobEvent.getDescription());
     	setTransferTaskUuid(jobEvent.getOthUuid());
@@ -116,14 +116,6 @@ public void setCreated(Instant created) {
 	this.created = created;
 }
 
-public String getJobStatus() {
-	return jobStatus;
-}
-
-public void setJobStatus(String jobStatus) {
-	this.jobStatus = jobStatus;
-}
-
 public String getDescription() {
 	return description;
 }
@@ -138,6 +130,14 @@ public String getTransferTaskUuid() {
 
 public void setTransferTaskUuid(String transferTaskUuid) {
 	this.transferTaskUuid = transferTaskUuid;
+}
+
+public String getEventDetail() {
+    return eventDetail;
+}
+
+public void setEventDetail(String eventDetail) {
+    this.eventDetail = eventDetail;
 }
 }
 

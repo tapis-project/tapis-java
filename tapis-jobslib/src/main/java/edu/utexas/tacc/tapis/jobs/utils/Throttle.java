@@ -12,7 +12,22 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * 
  * This class is constructed with a duration in seconds that defines the sliding
  * window period and a limit of the number of times record() can be called
- * within that window.  
+ * within that window.
+ * 
+ * Design Note
+ * -----------
+ * The use of a concurrent double ended queue (dequeue) without further 
+ * synchronization does not guarantee that the sequence of timestamps are in perfect
+ * descending order from head to tail.  The removeExpiredElements() assumes that
+ * timestamps later in time appear closer to the head, but this may not be true
+ * when multiple threads call record() at nearly the same time.  
+ * 
+ * The actual consequence of out of order timestamps should not be significant since
+ * race conditions would place temporally close timestamps near each other in the
+ * dequeue.  removeExpiredElements() might not remove all possible timestamps
+ * on a given call, but would with all likelihood make up for it on its next
+ * invocation.  The use of an ordered set such as a ConcurrentSkipListSet would 
+ * avoid this phenomenon but incur a higher insertion cost.      
  * 
  * @author rcardone
  */
@@ -41,7 +56,7 @@ public final class Throttle
      * the past.
      * 
      * @param seconds the number of seconds in the sliding window
-     * @param limit the maximum number of time record() can be called in the window
+     * @param limit the maximum number of times record() can be called in the window
      */
     public Throttle(int seconds, int limit)
     {
@@ -56,6 +71,7 @@ public final class Throttle
     public int getSeconds(){return _seconds;}
     public int getLimit(){return _limit;}
     public int getQueueLength() {return _times.size();} // Beware of overhead 
+    public boolean isEmpty() {return _times.isEmpty();}
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -82,13 +98,15 @@ public final class Throttle
     }
     
     /* ********************************************************************** */
-    /*                            Private Methods                             */
+    /*                            Package Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* removeExpiredElements:                                                 */
     /* ---------------------------------------------------------------------- */
-    /** Remove time records that fall outside the sliding window. */
-    private void removeExpiredElements()
+    /** Remove time records that fall outside the sliding window. Package access
+     * for testing.
+     */
+    void removeExpiredElements()
     {
         // Maybe there's nothing to check.
         if (_times.isEmpty()) return;

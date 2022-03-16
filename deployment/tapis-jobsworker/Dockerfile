@@ -25,7 +25,7 @@
 #   docker run --name RecoveryReader -e 'MAIN_CLASS=edu.utexas.tacc.tapis.jobs.reader.RecoveryReader' tapis/jobsworker:dev
 #
 ##########################################################################
-FROM openjdk:15-jdk-oracle
+FROM openjdk:17-jdk-bullseye
 
 # Build-time arguments
 ARG VER
@@ -42,7 +42,10 @@ LABEL "GIT_COMMIT"=$GIT_COMMIT
 LABEL "VERSION"=$VER
 LABEL "BUILD_TIME"=$BUILD_TIME
 
+# Java module commands that are always needed.
+ENV JAVA_MODULE_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED
+
 # Launch the class and parameters specified in the environment. 
 # Add the following tls directive to avoid a jvm bug involving certificates.
 #  -Djdk.tls.client.protocols=TLSv1.2 
-CMD java -cp /usr/local/bin/shaded-jobslib.jar ${JAVA_OPTS} ${MAIN_CLASS} ${JOBS_PARMS} 
+CMD java -cp /usr/local/bin/shaded-jobslib.jar ${JAVA_OPTS} ${JAVA_MODULE_OPTS} ${MAIN_CLASS} ${JOBS_PARMS} 
