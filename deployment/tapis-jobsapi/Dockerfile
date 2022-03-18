@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM tomcat:9.0.41-jdk15-openjdk-oracle
+FROM tomcat:9.0.58-jdk17-openjdk-bullseye
 
 ARG VER
 ARG SRVC_ROOT
@@ -35,8 +35,9 @@ COPY $SRVC_ROOT /usr/local/tomcat/webapps/v3
 # Set environment and turn on remote debug
 ENV CATALINA_HOME /usr/local/tomcat
 
-# Set most Java options here.
-ENV CATALINA_OPTS -Xms6g -Xmx6g
+# Set most Java options here.  CATALINA.sh specifies a number of --all-opens
+# parameters, the one added is not included in that script.
+ENV CATALINA_OPTS -Xms1g -Xmx3g --add-opens java.base/java.time=ALL-UNNAMED
 
 # Debug port and http port
 EXPOSE 8000

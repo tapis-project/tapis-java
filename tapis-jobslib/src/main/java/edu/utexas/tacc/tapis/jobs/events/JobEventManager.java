@@ -92,7 +92,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);
         jobEvent.setJobUuid(jobUuid);
-        jobEvent.setJobStatus(newStatus);
+        jobEvent.setEventDetail(newStatus.name());
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription() + newStatus.name() + ".";
@@ -126,7 +126,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_INPUT_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
-        jobEvent.setJobStatus(status);
+        jobEvent.setEventDetail(status.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
@@ -161,7 +161,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ARCHIVE_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
-        jobEvent.setJobStatus(status);
+        jobEvent.setEventDetail(status.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
@@ -196,7 +196,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
         jobEvent.setJobUuid(jobUuid);
-        jobEvent.setJobStatus(status);
+        jobEvent.setEventDetail(status.name());
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();

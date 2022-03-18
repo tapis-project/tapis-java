@@ -336,6 +336,26 @@ public class Jobs extends TableImpl<JobsRecord> {
      */
     public final TableField<JobsRecord, TreeSet> TAGS = createField(DSL.name("tags"), SQLDataType.CLOB.getArrayDataType(), this, "", new TagsConverter());
 
+    /**
+     * The column <code>public.jobs.job_type</code>.
+     */
+    public final TableField<JobsRecord, String> JOB_TYPE = createField(DSL.name("job_type"), SQLDataType.VARCHAR(32).nullable(false).defaultValue(DSL.field("'FORK'::character varying", SQLDataType.VARCHAR)), this, "");
+
+    /**
+     * The column <code>public.jobs.is_mpi</code>.
+     */
+    public final TableField<JobsRecord, Boolean> IS_MPI = createField(DSL.name("is_mpi"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("false", SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.jobs.mpi_cmd</code>.
+     */
+    public final TableField<JobsRecord, String> MPI_CMD = createField(DSL.name("mpi_cmd"), SQLDataType.VARCHAR(126), this, "");
+
+    /**
+     * The column <code>public.jobs.cmd_prefix</code>.
+     */
+    public final TableField<JobsRecord, String> CMD_PREFIX = createField(DSL.name("cmd_prefix"), SQLDataType.VARCHAR(126), this, "");
+
     private Jobs(Name alias, Table<JobsRecord> aliased) {
         this(alias, aliased, null);
     }

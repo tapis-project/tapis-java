@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRolePermissionDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkRoleTreeDao;
+import edu.utexas.tacc.tapis.security.authz.dao.SkShareDao;
 import edu.utexas.tacc.tapis.security.authz.dao.SkUserRoleDao;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -29,6 +30,7 @@ abstract class BaseImpl
     private static SkRoleTreeDao       _roleTreeDao;
     private static SkRolePermissionDao _rolePermissionDao;
     private static SkUserRoleDao       _userRoleDao;
+    private static SkShareDao          _shareDao;
     
     /* **************************************************************************** */
     /*                             Protected Methods                                */
@@ -111,6 +113,26 @@ abstract class BaseImpl
            }
             
         return _userRoleDao;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSkShareDao:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** Create the shared dao on first reference.
+     * 
+     * @return the dao
+     * @throws TapisException on error
+     */
+    protected static SkShareDao getSkShareDao() 
+     throws TapisException
+    {
+        // Avoid synchronizing exception for initialization.
+        if (_shareDao == null) 
+            synchronized (BaseImpl.class) {
+                if (_shareDao == null) _shareDao = new SkShareDao();
+           }
+            
+        return _shareDao;
     }
 
     /* ---------------------------------------------------------------------------- */

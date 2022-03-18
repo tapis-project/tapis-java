@@ -262,4 +262,53 @@ public class SqlStatements
           "AND r.id = u.role_id AND r.id = pm.role_id " +
           "AND r.tenant = ? AND pm.permission :op ? " +
           "ORDER BY u.user_name";
+
+  /* ---------------------------------------------------------------------- */
+  /* sk_shared:                                                             */
+  /* ---------------------------------------------------------------------- */
+  // Get all rows.
+  public static final String SELECT_SKSHARED =
+      "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
+      + "resource_id2, privilege, created, createdby, createdby_tenant "
+      + "FROM sk_shared ORDER BY id";
+  
+  public static final String SHARE_INSERT = 
+      "INSERT INTO sk_shared (tenant, grantor, grantee, resource_type, resource_id1, "
+      + "resource_id2, privilege, created, createdby, createdby_tenant) "
+      + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING";
+  
+  public static final String SHARE_SELECT_BY_ID = 
+      "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
+      + "resource_id2, privilege, created, createdby, createdby_tenant "
+      + "FROM sk_shared WHERE tenant = ? AND id = ?";
+  
+  public static final String SHARE_SELECT_DYNAMIC = 
+      "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
+      + "resource_id2, privilege, created, createdby, createdby_tenant "
+      + "FROM sk_shared :where ORDER BY ID";
+  
+  public static final String SHARE_SELECT_BY_UNIQUE_KEY = 
+      "SELECT id, tenant, grantor, grantee, resource_type, resource_id1, "
+      + "resource_id2, privilege, created, createdby, createdby_tenant "
+      + "FROM sk_shared "
+      + "WHERE tenant = ? AND grantor = ? AND grantee = ? "
+      + " AND resource_type = ? AND resource_id1 = ? AND resource_id2 = ? "
+      + " AND privilege = ?";
+
+  public static final String SHARE_DELETE_BY_ID = 
+      "DELETE FROM sk_shared WHERE tenant = ? AND id = ? "
+      + " AND createdby_tenant = ? AND createdby = ?";
+  
+  public static final String SHARE_DELETE_BY_SELECTOR = 
+      "DELETE FROM sk_shared WHERE tenant = ? AND grantor = ? "
+      + " AND grantee = ? AND resource_type = ? AND resource_id1 = ? "
+      + " AND resource_id2 = ? AND privilege = ? "
+      + " AND createdby_tenant = ? AND createdby = ?";
+      
+  public static final String SHARE_HAS_PRIVILEGE =
+      "SELECT 1 FROM sk_shared "    
+      + "WHERE tenant = ? AND grantee IN (:grantees) "
+      + " AND resource_type = ? AND resource_id1 = ? AND resource_id2 = ? "
+      + " AND privilege = ? "
+      + "LIMIT 1";
 }

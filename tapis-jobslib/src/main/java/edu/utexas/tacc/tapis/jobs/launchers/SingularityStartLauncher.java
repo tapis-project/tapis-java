@@ -55,6 +55,9 @@ public final class SingularityStartLauncher
     @Override
     public void launch() throws TapisException
     {
+        // Throttling adds a randomized delay on heavily used hosts.
+        throttleLaunch();
+        
         // -------------------- Launch Container --------------------
         // Subclasses can override default implementation.
         String cmd = getLaunchCommand();

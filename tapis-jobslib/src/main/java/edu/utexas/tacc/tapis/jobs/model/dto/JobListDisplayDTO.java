@@ -18,7 +18,7 @@ public final class JobListDisplayDTO {
 	// Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobListDisplayDTO.class);
     
- // Tenant base url when the tenant is misconfigured or non-existant.
+    // Tenant base url when the tenant is misconfigured or non-existant.
     private static final String DUMMY_TENANT_BASE_URL = "https://dummy-tenant-url.fixme/";
     
 	public String uuid; //uuid of the job

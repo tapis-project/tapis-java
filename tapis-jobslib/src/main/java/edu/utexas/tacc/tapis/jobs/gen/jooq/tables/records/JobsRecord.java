@@ -796,6 +796,62 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         return (TreeSet) get(54);
     }
 
+    /**
+     * Setter for <code>public.jobs.job_type</code>.
+     */
+    public void setJobType(String value) {
+        set(55, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.job_type</code>.
+     */
+    public String getJobType() {
+        return (String) get(55);
+    }
+
+    /**
+     * Setter for <code>public.jobs.is_mpi</code>.
+     */
+    public void setIsMpi(Boolean value) {
+        set(56, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.is_mpi</code>.
+     */
+    public Boolean getIsMpi() {
+        return (Boolean) get(56);
+    }
+
+    /**
+     * Setter for <code>public.jobs.mpi_cmd</code>.
+     */
+    public void setMpiCmd(String value) {
+        set(57, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.mpi_cmd</code>.
+     */
+    public String getMpiCmd() {
+        return (String) get(57);
+    }
+
+    /**
+     * Setter for <code>public.jobs.cmd_prefix</code>.
+     */
+    public void setCmdPrefix(String value) {
+        set(58, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.cmd_prefix</code>.
+     */
+    public String getCmdPrefix() {
+        return (String) get(58);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -819,7 +875,7 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Create a detached, initialised JobsRecord
      */
-    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags) {
+    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix) {
         super(Jobs.JOBS);
 
         setId(id);
@@ -877,5 +933,9 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         setCreatedby(createdby);
         setCreatedbyTenant(createdbyTenant);
         setTags(tags);
+        setJobType(jobType);
+        setIsMpi(isMpi);
+        setMpiCmd(mpiCmd);
+        setCmdPrefix(cmdPrefix);
     }
 }
