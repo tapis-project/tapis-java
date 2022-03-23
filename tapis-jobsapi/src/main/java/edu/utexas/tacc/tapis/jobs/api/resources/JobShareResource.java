@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +32,7 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqShareJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespShareJob;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobShareDisplay;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -220,30 +223,44 @@ public class JobShareResource
          
          // ------------------------- Populate JobShared  -----------------------
          // Initialize jobShared with calculated effective parameters.
-         JobShared jobShared = null;
+         ArrayList<JobShared> jobsSharedArray = new ArrayList<JobShared>();
          
-         jobShared = new JobShared(threadContext.getOboTenantId(), threadContext.getOboUser(), jobUuid, payload.getUserSharedWith(),
-        			   JobResourceShare.valueOf(payload.getJobResource()), JobTapisPermission.valueOf(payload.getJobPermission()));
+         List<String> resourceTypeList = payload.getJobResource();
          
-       
+         
+         for(String resourceType: resourceTypeList) { 	 
+        	 JobShared jobShared = null;
+        	 jobShared = new JobShared(threadContext.getOboTenantId(), threadContext.getOboUser(), jobUuid, payload.getGrantee(),
+        			   JobResourceShare.valueOf(resourceType), JobTapisPermission.valueOf(payload.getJobPermission()));
+             
+        	 jobsSharedArray.add(jobShared);
+         }
+         
          // ------------------------- Save Job ---------------------------------
          // Write the job share information to the database.
-         try {
-        	 var jobsImpl = JobsImpl.getInstance();
-             jobsImpl.createShareJob(jobShared);
-         }
-         catch (Exception e) {
-             _log.error(e.getMessage(), e);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-         }
+         for(JobShared jshare : jobsSharedArray ) {
+	         try {
+	        	 var jobsImpl = JobsImpl.getInstance();
+	             jobsImpl.createShareJob(jshare);
+	         }
+	         catch (Exception e) {
+	             _log.error(e.getMessage(), e);
+	             return Response.status(Status.INTERNAL_SERVER_ERROR).
+	                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	         }
         
-         
+         }
         
          // Success.
-         RespShareJob r = new RespShareJob(jobShared);
+         
+         // Success.
+         JobShareDisplay shareMsg = new JobShareDisplay();
+         String msg = MsgUtils.getMsg("JOBS_JOB_SHARED", jobUuid, "shared");
+         shareMsg.setMessage(msg);
+       
+         RespShareJob r = new RespShareJob(shareMsg);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("JOBS_JOB_SHARED", jobShared.getJobUuid()), prettyPrint, r)).build();
+                 MsgUtils.getMsg("JOBS_JOB_SHARED", jobUuid), prettyPrint, r)).build();
      }
      
     

@@ -7,6 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
@@ -27,11 +29,14 @@ import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTParser;
+import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqShareResource;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 
@@ -44,6 +49,7 @@ public final class JobsImpl
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobsImpl.class);
+    public static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     
     
     /* ********************************************************************** */
@@ -700,20 +706,36 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* createShareJob:                                                        */
     /* ---------------------------------------------------------------------- */
-    public void createShareJob(JobShared jobShared) 
+    public void createShareJob(JobShared jobShared) throws TapisException 
     
     {
-       try { 
-        	getJobSharedDao().createSharedJob(jobShared);
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_INSERT_ERROR", jobShared.getJobUuid(), jobShared.getCreatedby(),
-            		jobShared.getJobResource(),e);
-            _log.error(msg, e);
-           
-        }
-        
-        
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, jobShared.getCreatedby(), jobShared.getTenant());
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", jobShared.getTenant(), jobShared.getCreatedby());
+             throw new TapisException(msg, e);
+         };
+         
+         validateNewSharedJob(jobShared);
+         
+         ReqShareResource resourceShared = new ReqShareResource();
+         resourceShared.setGrantee(jobShared.getGrantee());
+         resourceShared.setResourceType(jobShared.getJobResource().name());
+         resourceShared.setResourceId1(jobShared.getJobUuid());
+         resourceShared.setResourceId2(null);
+         resourceShared.setPrivilege(jobShared.getJobPermission().name());
+     
+         
+        try {
+			skClient.shareResource(resourceShared);
+		} catch (TapisClientException e) {
+			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_INSERT_ERROR", jobShared.getJobUuid(), jobShared.getCreatedby(),
+	            		jobShared.getJobResource(),e);
+	         _log.error(msg, e);
+	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+		}
     }
     
     /* ---------------------------------------------------------------------- */
@@ -784,5 +806,67 @@ public final class JobsImpl
         }
     }
     
+    /* -----------------------------------------------------------------------------*/
+    /* getServiceClient:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Service client.  This can only be called after
+     * the request tenant and owner have be assigned.
+     * 
+     * @return the client
+     * @throws TapisImplException
+     */
+    public <T> T getServiceClient(Class<T> cls,  String user, String tenant) throws TapisImplException
+    {
+        // Get the application client for this user@tenant.
+        T client = null;
+        try {
+            client = ServiceClients.getInstance().getClient(
+                   user, tenant, cls);
+        }
+        catch (Exception e) {
+            var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", serviceName, 
+                                         tenant, user);
+            throw new TapisImplException(msg, e,  HTTP_INTERNAL_SERVER_ERROR );
+        }
+
+        return client;
+    }
+
+    /* ********************************************************************** */
+	  /*                             Private Methods                            */
+	  /* ********************************************************************** */
+
+     private  void validateNewSharedJob(JobShared jobShared) throws TapisException
+  	
+     {
+     
+  	   if (StringUtils.isBlank(jobShared.getJobUuid())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobUuid");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getTenant())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "tenant");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getCreatedby())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "createdBy");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getGrantee())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "userSharedWith");
+	          throw new JobException(msg);
+	      }
+	     
+	      if (jobShared.getJobResource() == null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobResource");
+	          throw new JobException(msg);
+	      }
+	      
+	      if (jobShared.getJobPermission()== null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobPermission");
+	          throw new JobException(msg);
+	      }
+     }
   
 }

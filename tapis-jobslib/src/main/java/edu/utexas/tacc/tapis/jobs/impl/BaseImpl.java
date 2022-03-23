@@ -25,7 +25,7 @@ abstract class BaseImpl
     // We share all dao's among all instances of this class.
     private static JobsDao           _jobsDao;
     private static JobEventsDao      _jobEventsDao;
-    private static JobSharedDao      _jobSharedDao;
+    //private static JobSharedDao      _jobSharedDao;
     
     /* **************************************************************************** */
     /*                             Protected Methods                                */
@@ -77,7 +77,7 @@ abstract class BaseImpl
      * @return the dao
      * @throws TapisException on error
      */
-    protected static JobSharedDao getJobSharedDao() 
+   /* protected static JobSharedDao getJobSharedDao() 
      throws TapisException
     {
         // Avoid synchronizing exception for initialization.
@@ -87,7 +87,7 @@ abstract class BaseImpl
            }
             
         return _jobSharedDao;
-    }
+    }*/
     /* ---------------------------------------------------------------------------- */
     /* isAdmin:                                                                     */
     /* ---------------------------------------------------------------------------- */

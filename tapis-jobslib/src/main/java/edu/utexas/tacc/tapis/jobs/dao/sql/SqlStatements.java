@@ -278,7 +278,7 @@ public class SqlStatements
     /* jobs_shared table:                                                     */
     /* ---------------------------------------------------------------------- */
      
-	public static final String CREATE_JOB_SHARED = 
+	/*public static final String CREATE_JOB_SHARED = 
 		"INSERT INTO jobs_shared ("
 		+ "tenant, createdby,jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
 		+ "VALUES (?, ?, ?, ?, ?::job_resource_enum, ?::job_permission_enum, ?, ? "
@@ -299,6 +299,6 @@ public class SqlStatements
 			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
 			+ " FROM jobs_shared "
 		    + " tenant = ? AND createdby = ? ";		
-    
+    */
 }	
 	

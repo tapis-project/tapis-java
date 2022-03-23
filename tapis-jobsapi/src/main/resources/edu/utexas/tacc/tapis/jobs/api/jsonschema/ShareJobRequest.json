@@ -5,18 +5,18 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
-          "jobResource":{
-             "$comment": "The job resource that can be shared",
-              "type": "string",
-              "enum": [ "JOB_HISTORY", "JOB_RESUBMIT_REQUEST", "JOB_OUTPUT", "JOB_INPUT" ]
-            },
-          
+            "jobResource": {
+            "$comment":  "The job resource that can be shared",
+            "type": "array",
+            "items": {"type": "string","enum": [ "JOB_HISTORY", "JOB_RESUBMIT_REQUEST", "JOB_OUTPUT", "JOB_INPUT" ]},
+            "uniqueItems": true
+          },
           "jobTapisPermission":{
              "$comment": " Tapis permission on the job. Default is READ",
               "type": "string",
               "enum": [ "READ" ]
             },
-            "userSharedWith":{
+            "grantee":{
                "$comment": "User ID under who shares the job",
             	"type": "string",
             	"maxLength": 64
@@ -25,7 +25,7 @@
     "required": [
         "jobResource",
         "jobTapisPermission",
-        "userSharedWith"
+        "grantee"
     ]
     
     

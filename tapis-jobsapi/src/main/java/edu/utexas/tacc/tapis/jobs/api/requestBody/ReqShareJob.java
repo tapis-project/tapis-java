@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
+import java.util.List;
+
 public class ReqShareJob 
  implements IReqBody
 {
@@ -8,8 +10,8 @@ public class ReqShareJob
     /* **************************************************************************** */
 	// Fields
    
-    private String   			userSharedWith;
-    private String           	jobResource ;
+    private String   			grantee;
+    private List<String>        jobResource ;
     private String              jobPermission;
     
     
@@ -22,19 +24,19 @@ public class ReqShareJob
 	
 	
 
-	public String getUserSharedWith() {
-		return userSharedWith;
+	public String getGrantee() {
+		return grantee;
 	}
 
-	public void setUserSharedWith(String userSharedWith) {
-		this.userSharedWith = userSharedWith;
+	public void setGrantee(String grantee) {
+		this.grantee = grantee;
 	}
 
-	public String getJobResource() {
+	public List<String> getJobResource() {
 		return jobResource;
 	}
 
-	public void setJobResource(String jobResource) {
+	public void setJobResource(List<String> jobResource) {
 		this.jobResource = jobResource;
 	}
 
