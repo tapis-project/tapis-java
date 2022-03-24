@@ -29,6 +29,8 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -173,7 +175,7 @@ public class JobHistoryResource extends AbstractResource {
        try {
            //var jobsImpl = JobsImpl.getInstance();
            jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId());
+                                       threadContext.getOboTenantId(),JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
