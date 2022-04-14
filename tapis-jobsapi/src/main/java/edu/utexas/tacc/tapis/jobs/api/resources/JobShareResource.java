@@ -34,6 +34,7 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqShareJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobShareList;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespShareJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobShareDisplay;
@@ -212,11 +213,25 @@ public class JobShareResource
          
          // ------------------------- Save Job ---------------------------------
          // Write the job share information to the database.
+         var jobsImpl = JobsImpl.getInstance();
          for(JobShared jshare : jobsSharedArray ) {
 	         try {
-	        	 var jobsImpl = JobsImpl.getInstance();
-	             jobsImpl.createShareJob(jshare);
+	        	 jobsImpl.createShareJob(jshare);
+	             }
+	         catch (Exception e) {
+	             _log.error(e.getMessage(), e);
+	             return Response.status(Status.INTERNAL_SERVER_ERROR).
+	                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	         }
+	         
+	        try {
+	             // Write the event table and issue the notification.
+	             jobsImpl.createShareEvent(jshare);
+	            }
+	         /*try {
+	             // Write the event table and issue the notification.
+	             jobsImpl.createShareEvents(jobsSharedArray );
+	             }*/
 	         catch (Exception e) {
 	             _log.error(e.getMessage(), e);
 	             return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -355,6 +370,7 @@ public class JobShareResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
+        
          RespGetJobShareList r = new RespGetJobShareList(shareList, srchParms.getLimit(), srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
          
          if(shareList.isEmpty()) {
@@ -366,6 +382,8 @@ public class JobShareResource
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), prettyPrint, r)).build();
     } 
+     
+     
 }
      
 

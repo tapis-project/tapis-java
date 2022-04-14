@@ -28,6 +28,8 @@ import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -173,8 +175,10 @@ public class JobOutputDownloadResource extends AbstractResource{
        
        try {
            
+           //job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
+           //                            threadContext.getOboTenantId());
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId());
+                   threadContext.getOboTenantId(), JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);

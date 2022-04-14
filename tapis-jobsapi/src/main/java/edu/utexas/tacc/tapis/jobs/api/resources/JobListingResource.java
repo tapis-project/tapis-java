@@ -48,7 +48,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    // Local logger.
 	    private static final Logger _log = LoggerFactory.getLogger(JobListingResource.class);
 	    
-	    
 	    /* **************************************************************************** */
 	    /*                                    Fields                                    */
 	    /* **************************************************************************** */
@@ -134,6 +133,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    		 				@QueryParam("startAfter") int startAfter,
 	    		 				@QueryParam("orderBy") String OrderBy,
 	    		 				@QueryParam("computeTotal")  boolean computeTotal,
+	    		 				@DefaultValue("false") @QueryParam("sharedWithMe") boolean sharedWithMe,
 	    		 				@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
 	                               
 	     {
@@ -162,6 +162,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
 	       int totalCount = -1; 
 	       computeTotal = srchParms.getComputeTotal(); 
+	       
 	       
 	       // ------------------------- Retrieve Job List -----------------------------
 	       List<JobListDTO> jobList = null;

@@ -11,7 +11,7 @@
             "items": {"type": "string","enum": [ "JOB_HISTORY", "JOB_RESUBMIT_REQUEST", "JOB_OUTPUT", "JOB_INPUT" ]},
             "uniqueItems": true
           },
-          "jobTapisPermission":{
+          "jobPermission":{
              "$comment": " Tapis permission on the job. Default is READ",
               "type": "string",
               "enum": [ "READ" ]
@@ -24,7 +24,7 @@
         },
     "required": [
         "jobResource",
-        "jobTapisPermission",
+        "jobPermission",
         "grantee"
     ]
     

@@ -82,8 +82,9 @@ public class DataLocator {
 		
        
         try {
-			outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true);
-		} catch (TapisClientException e) {
+			//outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true);
+			outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true, true);
+        } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
             		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), limit, skip,_job.getOwner(),
             	   _job.getTenant(), e.getCode());
@@ -109,7 +110,7 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		 StreamedFile streamFromFiles = null;
 		 try {
-			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress);
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, true);
 			
 		} catch (TapisClientException e) {
 			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 

@@ -15,8 +15,15 @@ public class JobShareListDTO {
 	    private Instant  			created;
 	    private Instant  			lastUpdated;
 	      
-     JobShareListDTO(JobShared js){
-    	 
+     public JobShareListDTO(JobShared js){
+    	 tenant = js.getTenant();
+    	 createdby = js.getCreatedby();
+    	 jobUuid = js.getJobUuid();
+    	 grantee = js.getGrantee();
+    	 jobResource = js.getJobResource().name();
+    	 jobPermission = js.getJobPermission().name();
+    	 created = js.getCreated();
+    	 lastUpdated = js.getLastUpdated();
      }
 
 	public String getTenant() {

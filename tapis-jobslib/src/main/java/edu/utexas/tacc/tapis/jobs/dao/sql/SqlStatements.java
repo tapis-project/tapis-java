@@ -186,7 +186,7 @@ public class SqlStatements
     public static final String SELECT_JOBRESUBMIT_BY_UUID =
         "SELECT id, job_uuid, job_definition"
         + " FROM job_resubmit"
-        + " WHERE uuid = ?";
+        + " WHERE job_uuid = ?";
         
     public static final String CREATE_JOBRESUBMIT =
         "INSERT INTO job_resubmit (job_uuid, job_definition) "

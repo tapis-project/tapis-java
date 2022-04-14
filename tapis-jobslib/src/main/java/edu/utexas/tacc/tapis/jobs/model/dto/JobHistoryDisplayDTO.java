@@ -49,6 +49,7 @@ public class JobHistoryDisplayDTO {
     		
     		try {
     			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid());
+    			
 			} catch (TapisClientException e) {
 				String msg = MsgUtils.getMsg("FILES_TRANSFER_HISTORY_RETRIEVE_ERROR", 
 						jobEvent.getOthUuid(), jobEvent.getJobUuid(),e.getCode());
