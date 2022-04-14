@@ -173,9 +173,9 @@ public class JobHistoryResource extends AbstractResource {
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
-           //var jobsImpl = JobsImpl.getInstance();
            jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId(),JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+                       threadContext.getOboTenantId(),JobResourceShare.JOB_HISTORY.name(),
+                       JobTapisPermission.READ.name());
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);

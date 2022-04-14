@@ -256,19 +256,18 @@ public class JobSubmitResource
      
      
      /* ---------------------------------------------------------------------------- */
-     /* getResubmitRequestJson:                                                          */
+     /* getResubmitRequestJson:                                                      */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/{jobuuid}/resubmit_req")
-     //@Consumes(MediaType.APPLICATION_JSON)
+     @Path("/{jobuuid}/resubmit_request")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Get Resubmit request for of a job.  ",
+             description = "Get Resubmit request for of a job in JSON format.  ",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
-                  @ApiResponse(responseCode = "200", description = "Job created.",
+                  @ApiResponse(responseCode = "200", description = "Resumbit request for the job is retrieved sucessfully.",
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
@@ -289,7 +288,7 @@ public class JobSubmitResource
      {
     	 // Trace this request.
     	 if (_log.isTraceEnabled()) {
-    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hideJob",
+    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getResubmitRequestJson",
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
@@ -351,7 +350,7 @@ public class JobSubmitResource
        //RespSubmitJob r = new RespSubmitJob();
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_RETRIEVED", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
      }
      
      

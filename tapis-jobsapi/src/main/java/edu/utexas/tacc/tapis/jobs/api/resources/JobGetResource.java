@@ -165,17 +165,13 @@ public class JobGetResource
        Job job = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
-           //job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-           //                            threadContext.getOboTenantId());
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                   threadContext.getOboTenantId(), JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
-       }
-       catch (TapisImplException e) {
+           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
+        		 JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+       } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
+       } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();

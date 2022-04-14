@@ -174,50 +174,45 @@ public final class JobEventManager
         return jobEvent;
     }
     
-    
-    public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
-	            String grantor, Connection conn)
-	            		throws TapisException
-	{
-	// Create the Job event.
-	var jobEvent = new JobEvent();
-	jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);// JobEventType.JOB_SHARE_EVENT
-	jobEvent.setJobUuid(jobUuid);
-	jobEvent.setEventDetail(event);//"SHARE_JOB_HISTORY_READ"
-	//jobEvent.setOthUuid("");
-	
-	// Can we augment the standard event description?
-	var desc = jobEvent.getEvent().getDescription();
-	desc += "Grantor " + grantor + " shares the job resource" + resourceType + " with grantee" + grantee + ".";
-	jobEvent.setDescription(desc);
-	
-	// Save in db.
-	_jobEventsDao.createEvent(jobEvent, conn);
-	return jobEvent;
-	}
-    
-    
-    public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
-            String grantor)
-            		throws TapisException
+   public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
+            String grantor)	throws TapisException
    {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);// JobEventType.JOB_SHARE_EVENT
 		jobEvent.setJobUuid(jobUuid);
-		jobEvent.setEventDetail(event);//"SHARE_JOB_HISTORY_READ"
+		jobEvent.setEventDetail(event);// ex."SHARE_JOB_HISTORY_READ"
 		//jobEvent.setOthUuid("");
 		
 		// Can we augment the standard event description?
 		var desc = jobEvent.getEvent().getDescription();
-		desc += "Grantor " + grantor + " shares the job resource" + resourceType + " with grantee" + grantee + ".";
+		desc += " Grantor " + grantor + " shares the job resource " + resourceType + " with grantee " + grantee + ".";
 		jobEvent.setDescription(desc);
 		
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent);
 		return jobEvent;
     }
-
+  
+   public JobEvent recordUnShareEvent(String jobUuid, String grantee, String event, String tenant, String grantor)
+		   throws TapisException
+  {
+		// Create the Job event.
+		var jobEvent = new JobEvent();
+		jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);// JobEventType.JOB_SHARE_EVENT
+		jobEvent.setJobUuid(jobUuid);
+		jobEvent.setEventDetail(event);// ex."UNSHARE_Tenant_Jobuuid"
+		//jobEvent.setOthUuid("");
+		
+		// Can we augment the standard event description?
+		var desc = jobEvent.getEvent().getDescription();
+		desc += " Grantor " + grantor + " unshares the job  " + jobUuid + " with grantee " + grantee + " in tenant "+tenant +".";
+		jobEvent.setDescription(desc);
+		
+		// Save in db.
+		_jobEventsDao.createEvent(jobEvent);
+		return jobEvent;
+   }
     /* ---------------------------------------------------------------------- */
     /* recordErrorEvent:                                                      */
     /* ---------------------------------------------------------------------- */

@@ -164,8 +164,6 @@ public class JobStatusResource
        JobStatusDTO jobstatus = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
-          // jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
-          //                             threadContext.getOboTenantId());
            jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
                    threadContext.getOboTenantId(),JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
        }

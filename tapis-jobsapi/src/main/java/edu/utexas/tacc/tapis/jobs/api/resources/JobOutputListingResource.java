@@ -173,18 +173,13 @@ public class JobOutputListingResource extends AbstractResource{
        var jobsImpl = JobsImpl.getInstance();
        
        try {
-           
-           //job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-           //                            threadContext.getOboTenantId());
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
                    threadContext.getOboTenantId(), JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
-       }
-       catch (TapisImplException e) {
+       } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
+       } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
