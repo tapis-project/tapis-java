@@ -472,8 +472,18 @@ public class JobShareResource
          }
          
          // --------------------- Delete Job's Share Information -------------------
+         List<JobShared> getSharedList= null;
          try {
-	        	 jobsImpl.deleteShareJob(jobUuid,user,threadContext.getOboTenantId(), threadContext.getOboUser());
+        	 getSharedList = jobsImpl.getSharesJob(user, threadContext.getOboUser(), threadContext.getOboTenantId());
+         } catch(Exception e) {
+        	 _log.error(e.getMessage(), e);
+             return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+         }
+         
+         for(JobShared js: getSharedList) {
+        	 try {
+	        	 jobsImpl.deleteShareJob(js,threadContext.getOboTenantId(), threadContext.getOboUser());
 	         } catch (Exception e) {
 	             _log.error(e.getMessage(), e);
 	             return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -482,13 +492,16 @@ public class JobShareResource
 	         
 	        try {
 	             // Write to the event table
-	             jobsImpl.createUnShareEvent(jobUuid, user,threadContext.getOboTenantId(), threadContext.getOboUser());
+	             jobsImpl.createUnShareEvent(js);
 	        } catch (Exception e) {
 	             _log.error(e.getMessage(), e);
 	             return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	         }
         
+         
+         }
+         
          
         
 	     JobUnShareDisplay unshareMsg = new JobUnShareDisplay();

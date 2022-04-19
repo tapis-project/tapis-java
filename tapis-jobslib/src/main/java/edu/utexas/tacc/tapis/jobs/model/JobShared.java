@@ -19,7 +19,7 @@ public final class JobShared
     private JobResourceShare  	jobResource ;
     private JobTapisPermission  jobPermission;
     private Instant  			created;
-    private Instant  			lastUpdated;
+    private Instant  			lastUpdated; //TODO remove
       
     /* **************************************************************************** */
     /*                                 Constructors                                 */

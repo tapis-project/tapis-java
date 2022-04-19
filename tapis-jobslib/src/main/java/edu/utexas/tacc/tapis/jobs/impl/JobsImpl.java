@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.impl;
 
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
-import edu.utexas.tacc.tapis.jobs.dao.JobEventsDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
@@ -45,7 +43,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
-import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
@@ -838,7 +835,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* deleteShareJob:                                                        */
     /* ---------------------------------------------------------------------- */
-    public void deleteShareJob(String jobUuid, String grantee, String tenant, String grantor) throws TapisException 
+    public void deleteShareJob(JobShared js, String tenant, String grantor) throws TapisException 
     
     {
     	 SKClient skClient = null;
@@ -851,14 +848,16 @@ public final class JobsImpl
          
         
          SKShareDeleteShareParms param = new SKShareDeleteShareParms();
-         param.setGrantee(grantee);
-         param.setResourceId1(jobUuid);
+         param.setGrantee(js.getGrantee());
+         param.setResourceId1(js.getJobUuid());
+         param.setResourceType(js.getJobResource().name());
+         param.setPrivilege(JobTapisPermission.READ.name());
          
          try {
 			int i = skClient.deleteShare(param);
 			_log.debug("Resource share is sucessfully revoked: " + i);
 		 } catch (TapisClientException e) {
-			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_SK_CLIENT_DELETE_ERROR", jobUuid, tenant,
+			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_SK_CLIENT_DELETE_ERROR", js.getJobUuid(), tenant,
 	            		grantor,e);
 	         _log.error(msg, e);
 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -889,21 +888,23 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* createUnShareEvent:                                                      */
     /* ---------------------------------------------------------------------- */
-    public void createUnShareEvent(String jobUuid, String grantee, String tenant, String grantor) throws TapisException 
+    public void createUnShareEvent(JobShared js) throws TapisException 
     
     {
     
     	var eventMgr = JobEventManager.getInstance();
 	   
 	    try {
-	     
-	      eventMgr.recordUnShareEvent(jobUuid,grantee, "UNSHARE_"+ tenant+ "_" + jobUuid + "_" , tenant, grantor);
+	      String event = "UNSHARE_"+ js.getJobResource().name() + "_" + js.getJobPermission().name();
+	      eventMgr.recordUnShareEvent(js,event);
 	      
 	    } catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SHARE_EVENT_CREATE_ERROR", jshare.getTenant(), jshare.getCreatedby(), jshare.getJobUuid(), e);
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_UNSHARE_EVENT_CREATE_ERROR", js.getTenant(), js.getCreatedby(), 
+            		js.getGrantee(), js.getJobResource(), e);
             throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jshare.getTenant(), jshare.getCreatedby(), jshare.getJobUuid(), e);
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", js.getTenant(), js.getCreatedby(), 
+            		js.getGrantee(), js.getJobResource(), e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
     }
@@ -946,6 +947,54 @@ public final class JobsImpl
         	 js.setTenant(sks.getTenant());
         	 js.setUserSharedWith(sks.getGrantee());
         	 jobShareList.add(new JobShareListDTO(js));
+         }
+         
+       return jobShareList; 
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSharesJob:                                                           */
+    /* ---------------------------------------------------------------------- */
+    public  List<JobShared> getSharesJob(String grantee, String grantor, String tenant) throws TapisImplException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, grantor, tenant);
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, grantor);
+             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+         };
+         
+         SKShareGetSharesParms params = new SKShareGetSharesParms();
+         params.setGrantee(grantee);
+         params.setGrantor(grantor);
+         
+         SkShareList skShareList = null;
+       
+         try {
+ 			skShareList = skClient.getShares(params);
+ 		 } catch (TapisClientException e) {
+ 			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARED_RETRIEVE_ERROR" ,e);
+ 	         _log.error(msg, e);
+ 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+ 		}
+        
+         List<JobShared> jobShareList = new ArrayList<JobShared>();
+         for(SkShare sks: skShareList.getShares()) {
+        	 JobShared js = new JobShared();
+           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
+        	 js.setCreated(sks.getCreated().toInstant());
+        	 js.setJobUuid(sks.getResourceId1());
+        	 js.setCreatedby(sks.getGrantor());
+        	 js.setLastUpdated(sks.getCreated().toInstant()); //TODO Last Updated
+        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
+        	 js.setTenant(sks.getTenant());
+        	 js.setUserSharedWith(sks.getGrantee());
+        	 js.setId(sks.getId());
+        	 jobShareList.add(js);
          }
          
        return jobShareList; 
