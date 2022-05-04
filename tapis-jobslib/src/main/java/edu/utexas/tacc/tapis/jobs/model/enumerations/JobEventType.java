@@ -16,7 +16,7 @@ public enum JobEventType
     JOB_NEW_STATUS("The job has transitioned to a new status: "),
     JOB_INPUT_TRANSACTION_ID("A request to stage job input files has been submitted."),
     JOB_ARCHIVE_TRANSACTION_ID("A request to archive job output files has been submitted."),
-    //JOB_SHARE_EVENT("A request to share job has been submitted"),
+    JOB_SHARE_EVENT("A request to share/unshare a job has been submitted"),
     JOB_ERROR_MESSAGE("The job experienced an error.");
 	
     

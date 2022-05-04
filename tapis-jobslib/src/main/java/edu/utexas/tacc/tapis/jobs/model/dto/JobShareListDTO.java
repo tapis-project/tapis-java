@@ -11,9 +11,9 @@ public class JobShareListDTO {
 	    private String   			jobUuid;
 	    private String   			grantee;
 	    private String          	jobResource ;
-	    private String               jobPermission;
+	    private String              jobPermission;
 	    private Instant  			created;
-	    private Instant  			lastUpdated;
+	   
 	      
      public JobShareListDTO(JobShared js){
     	 tenant = js.getTenant();
@@ -23,7 +23,7 @@ public class JobShareListDTO {
     	 jobResource = js.getJobResource().name();
     	 jobPermission = js.getJobPermission().name();
     	 created = js.getCreated();
-    	 lastUpdated = js.getLastUpdated();
+    	
      }
 
 	public String getTenant() {
@@ -82,12 +82,5 @@ public class JobShareListDTO {
 		this.created = created;
 	}
 
-	public Instant getLastUpdated() {
-		return lastUpdated;
-	}
-
-	public void setLastUpdated(Instant lastUpdated) {
-		this.lastUpdated = lastUpdated;
-	}
      
 }

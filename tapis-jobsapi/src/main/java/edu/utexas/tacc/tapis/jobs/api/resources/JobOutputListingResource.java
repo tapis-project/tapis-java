@@ -220,7 +220,7 @@ public class JobOutputListingResource extends AbstractResource{
        
        List<FileInfo> filesList = null;
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, srchParms.getLimit(),skip);
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, srchParms.getLimit(),skip, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).

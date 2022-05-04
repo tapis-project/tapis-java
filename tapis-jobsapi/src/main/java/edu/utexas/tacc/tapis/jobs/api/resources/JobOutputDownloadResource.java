@@ -221,7 +221,7 @@ public class JobOutputDownloadResource extends AbstractResource{
        List<FileInfo> filesList = null;
        
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP);
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -276,12 +276,20 @@ public class JobOutputDownloadResource extends AbstractResource{
        String mtype = MediaType.APPLICATION_OCTET_STREAM;
        
        DataLocator dataLocator = new DataLocator(job);
+       boolean skipTapisAuthorization = false;
+	   try {
+			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
+					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+	   } catch (TapisImplException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+	   }
        
        try {
     	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
     	       	   
     	  if(jobOutputFilesinfo != null) {
-    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress);
+    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress,skipTapisAuthorization);
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
+import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -183,8 +184,44 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	       }
+	       int totalJobListSize = 0;
+	       // if jobList is not null then total count = less than
+	       if(jobList != null) {
+	    	   totalJobListSize = jobList.size();
+	       }
+	       // if jobs are shared with the user, list the shared job as well
+	       int sharedCount = 0;
+	       List<JobShared> getSharedList= null;
+	       if(sharedWithMe) {
+	    	   try {
+	          	 getSharedList = jobsImpl.getSharesJob(threadContext.getOboUser(), threadContext.getOboTenantId());
+	           } catch(Exception e) {
+	          	 _log.error(e.getMessage(), e);
+	               return Response.status(Status.INTERNAL_SERVER_ERROR).
+	                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	           }
+	       }
+	       JobListDTO jsListDTO = null;
+	       int tcount = 0;
+	        
+	       for(JobShared js : getSharedList) {
+	      	   if(js.getJobResource().name().contains("JOB_")) {
+	      		   tcount = sharedCount + totalJobListSize;
+	      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 
+	      				   || srchParms.getLimit() <= 0 ) {  
+		    		   try {
+						jobsImpl.getJobListDTObyUuid(js.getGrantee(), js.getTenant(), js.getJobUuid());
+		    		   } catch (TapisImplException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+		    		   }
+		    		   jobList.add(jsListDTO) ;
+	      		   
+		    		   sharedCount = sharedCount + 1 ;
+		    	   }
+	          }  
+	       }
 	       
-	      
 	       if(jobList == null) {
                String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboUser(), threadContext.getOboTenantId());
                RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
@@ -206,9 +243,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 					}
-				
+				   totalCount = totalCount + sharedCount;
 		    } else if (computeTotal && srchParms.getLimit() <= 0) {
-		    	totalCount = jobList.size();
+		    	totalCount =  tcount;//jobList.size(); // No limit
 		    } else {
 		    	totalCount = -1;
 		    	

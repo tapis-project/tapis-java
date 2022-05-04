@@ -19,7 +19,7 @@ public final class JobShared
     private JobResourceShare  	jobResource ;
     private JobTapisPermission  jobPermission;
     private Instant  			created;
-    private Instant  			lastUpdated; //TODO remove
+   
       
     /* **************************************************************************** */
     /*                                 Constructors                                 */
@@ -42,7 +42,7 @@ public final class JobShared
   	    // Set the initial time.
     	Instant now = Instant.now();
     	setCreated(now);
-   	    setLastUpdated(now);
+   	    
    }
     
     /* **************************************************************************** */
@@ -128,14 +128,5 @@ public final class JobShared
 	}
 
 	
-
-	@Schema(type = "string")
-	public Instant getLastUpdated() {
-		return lastUpdated;
-	}
-
-	public void setLastUpdated(Instant lastUpdated) {
-		this.lastUpdated = lastUpdated;
-	}
  
 }

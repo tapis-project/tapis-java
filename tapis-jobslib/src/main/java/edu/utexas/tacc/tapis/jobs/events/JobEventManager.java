@@ -191,7 +191,8 @@ public final class JobEventManager
 		jobEvent.setDescription(desc);
 		
 		// Save in db.
-		_jobEventsDao.createEvent(jobEvent);
+		//_jobEventsDao.createEvent(jobEvent);
+		_jobEventsDao.createEvent(jobEvent, null);
 		return jobEvent;
     }
   
@@ -211,7 +212,8 @@ public final class JobEventManager
 		jobEvent.setDescription(desc);
 		
 		// Save in db.
-		_jobEventsDao.createEvent(jobEvent);
+		//_jobEventsDao.createEvent(jobEvent);
+		_jobEventsDao.createEvent(jobEvent, null);
 		return jobEvent;
    }
     /* ---------------------------------------------------------------------- */

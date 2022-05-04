@@ -474,7 +474,7 @@ public class JobShareResource
          // --------------------- Delete Job's Share Information -------------------
          List<JobShared> getSharedList= null;
          try {
-        	 getSharedList = jobsImpl.getSharesJob(user, threadContext.getOboUser(), threadContext.getOboTenantId());
+        	 getSharedList = jobsImpl.getSharesJob(user, jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
          } catch(Exception e) {
         	 _log.error(e.getMessage(), e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
