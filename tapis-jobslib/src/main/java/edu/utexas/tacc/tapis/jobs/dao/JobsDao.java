@@ -803,6 +803,148 @@ public final class JobsDao
 	        
 	}
 	
+	
+	
+
+	/* ---------------------------------------------------------------------- */
+	/* getSharedJobsSearch:                                                   */
+	/*  summary attributes                                                    */
+	/* ---------------------------------------------------------------------- */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public List<JobListDTO> getSharedJobsSearch(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	  throws TapisException
+	{
+	    // Initialize result.
+	    ArrayList<JobListDTO> jobList = new ArrayList<>();
+       
+	    // Negative skip indicates no skip
+	    if (skip < 0) skip = 0;
+	    
+	   
+	    
+	    int listsize = orderByList.size();
+	    _log.debug("listsize: " + listsize);
+	    
+	    
+        for(int i = 0;i < listsize; i++) {
+        	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+        	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+        	if(orderByList.get(i)!=null && colOrderBy == null) {
+        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		throw new TapisException(msg);
+        	}
+        	
+        }
+      	 
+        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+      	if(searchList != null) {
+      		whereCondition = addSearchListToWhere(whereCondition, searchList);
+      	}
+      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	if(orderByList != null) {
+      		for(int i = 0;i < listsize; i++) {
+            	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
+            	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
+            	if(orderByList.get(i)!=null && colOrderBy == null) {
+            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		throw new TapisException(msg);
+            	}
+            	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
+            		orderList.add(colOrderBy.asc());
+            	}else {
+            		orderList.add(colOrderBy.desc());
+            	}
+          	}
+            	
+            }
+      		
+        
+	 
+     // Build list of attributes we will be returning.
+        List<TableField> fieldList = new ArrayList<>();
+        fieldList.add(Tables.JOBS.UUID);
+        fieldList.add(Tables.JOBS.TENANT);
+        fieldList.add(Tables.JOBS.NAME);
+        fieldList.add(Tables.JOBS.OWNER);
+        fieldList.add(Tables.JOBS.STATUS);
+        fieldList.add(Tables.JOBS.CREATED);
+        fieldList.add(Tables.JOBS.ENDED);
+        fieldList.add(Tables.JOBS.LAST_UPDATED);
+        fieldList.add(Tables.JOBS.APP_ID);
+        fieldList.add(Tables.JOBS.APP_VERSION);
+        fieldList.add(Tables.JOBS.EXEC_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.ARCHIVE_SYSTEM_ID);
+        fieldList.add(Tables.JOBS.REMOTE_STARTED);
+    
+	    
+	    // ------------------------- Build and execute SQL ----------------------------
+	    Connection conn = null;
+	    try
+	      {
+	          // Get a database connection.
+	          conn = getConnection();
+	          
+	          DSLContext db = DSL.using(conn);
+
+	          // Execute the select including limit, orderByAttrList, skip and startAfter
+	          // NOTE: LIMIT + OFFSET is not standard among DBs and often very difficult to get right.
+	          //       Jooq claims to handle it well.
+	          Result<JobsRecord> results;
+	          org.jooq.SelectConditionStep condStep = db.select(fieldList).from(Tables.JOBS).where(whereCondition);
+	          if(orderByList != null && limit >= 0) {
+	        	  results = condStep.orderBy(orderList).limit(limit).offset(skip).fetchInto(Tables.JOBS);  
+	          } else if (limit >= 0) {
+	            // We are limiting but not ordering
+	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          }
+	          else
+	          {
+	            // We are not limiting and not ordering
+	            results = condStep.fetchInto(Tables.JOBS);
+	          }
+
+	          if (results == null || results.isEmpty()) return jobList;
+
+	          // Create SystemBasic objects from TSystem objects.
+	          for (JobsRecord r : results)
+	          {
+	            JobListDTO job = r.into(JobListDTO.class);
+	            jobList.add(job);
+	          }
+	          
+	          
+
+	          // Close out and commit
+	          if ((conn !=null)) conn.commit();
+	        }
+	        catch (Exception e)
+	        {
+	        	 // Rollback transaction.
+		          try {if (conn != null) conn.rollback();}
+		              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+		          
+		          String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "Jobs", "allUUIDs", e.getMessage());
+		          throw new JobException(msg, e);
+	        }
+	        finally
+	        {
+	          // Always return the connection back to the connection pool.
+	        	 // Always return the connection back to the connection pool.
+		          try {if (conn != null) conn.close();}
+		            catch (Exception e) 
+		            {
+		              // If commit worked, we can swallow the exception.  
+		              // If not, the commit exception will be thrown.
+		              String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+		              _log.error(msg, e);
+		            }
+	        }
+	        return jobList;
+	          
+	        
+	}
+	
+	
 	/* ---------------------------------------------------------------------- */
 	/* getJobSearchListByUsernameUsingSqlSearchStr:                           */
 	/* summary attributes  post end-point                                     */
@@ -948,7 +1090,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, 
-			List<OrderBy> orderByList,Integer limit, Integer skip) 
+			List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -972,8 +1114,12 @@ public final class JobsDao
         	}
         	
         }
-      	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition;
+      	if(shared) {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+      	} else {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
