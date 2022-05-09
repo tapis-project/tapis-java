@@ -635,8 +635,13 @@ public final class SkShareDao
   /* ---------------------------------------------------------------------- */
   /* getWhereClause:                                                        */
   /* ---------------------------------------------------------------------- */
-  /** Determine if the value ends with a wildcard character and, if so, 
+  /** Determine if the value ends with the wildcard character and, if so, 
    * generate a LIKE clause.  Otherwise, generate an equality clause.
+   * 
+   * Note that a degenerate edge case is when the searchValue is contains
+   * only wildcard values.  This has the same effect as "don't care", which
+   * is usually expressed by not assigning any searchValue to the dbField.
+   * We allow the degenerate form because it's harmless.
    * 
    * @param dbField name of a table column
    * @param searchValue a value that may terminate with a wildcard
