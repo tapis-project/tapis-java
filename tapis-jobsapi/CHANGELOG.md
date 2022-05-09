@@ -10,6 +10,21 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.3 - 2022-05-09
+
+Maintenance release
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Adjust JVM memory options and other deployment file clean up.
+2. Improve JWT validation and authentication logging.
+
+### Bug fixes:
+
+-----------------------
+
 ## 1.1.2 - 2022-03-04
 
 Java 17 upgrade

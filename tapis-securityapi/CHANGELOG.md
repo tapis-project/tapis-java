@@ -10,6 +10,32 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.1.3 - 2022-05-09
+
+SK Sharing APIs
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Adjust JVM memory options and other deployment file clean up.
+2. Improve JWT validation and authentication logging.
+3. Implement new SK Sharing APIs including required DB schema changes.
+
+-----------------------
+
+## 1.1.2 - 2022-03-04
+
+Java 17 upgrade
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Upgrade code and images to Java 17.0.2.
+
+-----------------------
+
 ## 1.1.1 - 2022-02-01
 
 No changes
