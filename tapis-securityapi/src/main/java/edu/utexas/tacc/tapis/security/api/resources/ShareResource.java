@@ -269,7 +269,7 @@ public class ShareResource
                           + "If resourceId1 or resourceId2 end with a percent sign (%) "
                           + "wildcard then the search results will include all shares with "
                           + "IDs that begin with the same prefix string.  Percent signs "
-                          + "embedded elsewhere in the string are *not* recognized as wildcards."
+                          + "embedded elsewhere in the string are *not* recognized as wildcards.\n\n"
                           + ""
                           + "Specifying the *id* parameter causes the other filtering "
                           + "parameters to be ignored. The result list will contain at "
