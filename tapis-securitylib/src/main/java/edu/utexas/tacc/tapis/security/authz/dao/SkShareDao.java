@@ -675,15 +675,15 @@ public final class SkShareDao
           // No restrictions on grantee mean no clause is appended at all.
           // Otherwise, we filter out the public pseudo-grantees.
           if (!includePublicGrantees)
-              buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
+              buf.append("AND grantee NOT IN ('~public', '~public_no_authn') ");
       } else {
           // A grantee is specified, so we determine the exact filter required.
           if (includePublicGrantees) {
               // Handle the special case when the user specifies a public grantee.
               if (PUBLIC_GRANTEE.equals(grantee) || PUBLIC_NO_AUTHN_GRANTEE.equals(grantee))
-                  buf.append("AND grantee IN (\"~public\", \"~public_no_authn\") ");
+                  buf.append("AND grantee IN ('~public', '~public_no_authn') ");
               else {
-                  buf.append("AND grantee IN (?, \"~public\", \"~public_no_authn\") ");
+                  buf.append("AND grantee IN (?, '~public', '~public_no_authn') ");
                   whereParms.add("grantee"); // Make sure the ? gets replaced.
               }
           } else {
