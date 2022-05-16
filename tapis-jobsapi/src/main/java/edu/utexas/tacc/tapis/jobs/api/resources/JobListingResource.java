@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -191,7 +192,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       }
 	       // if jobs are shared with the user, list the shared job as well
 	       int sharedCount = 0;
-	       List<JobShared> getSharedList= null;
+	       List<JobShared> getSharedList= new ArrayList<JobShared>();
 	       if(sharedWithMe) {
 	    	   try {
 	          	 getSharedList = jobsImpl.getSharesJob(threadContext.getOboUser(), threadContext.getOboTenantId());
@@ -202,31 +203,43 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	           }
 	       }
 	       JobListDTO jsListDTO = null;
+	       List<JobListDTO> sharedJobListDTO = new ArrayList< JobListDTO>();
 	       int tcount = 0;
-	        
+	       List<String> sharedJobUuidsList = new ArrayList<String>();
 	       for(JobShared js : getSharedList) {
 	      	   if(js.getJobResource().name().contains("JOB_")) {
-	      		   tcount = sharedCount + totalJobListSize;
-	      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 
-	      				   || srchParms.getLimit() <= 0 ) {  
-		    		   try {
-						jobsImpl.getJobListDTObyUuid(js.getGrantee(), js.getTenant(), js.getJobUuid());
-		    		   } catch (TapisImplException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-		    		   }
-		    		   jobList.add(jsListDTO) ;
-	      		   
-		    		   sharedCount = sharedCount + 1 ;
-		    	   }
+	      		   if(!sharedJobUuidsList.contains(js.getJobUuid())) {
+		      		   tcount = sharedCount + totalJobListSize;
+		      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 
+		      				   || srchParms.getLimit() <= 0 ) {  
+			    		   try {
+			    			   jsListDTO = jobsImpl.getJobListDTObyUuid(js.getGrantee(), js.getTenant(), js.getJobUuid());
+			    		   } catch (TapisImplException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+			    		   }
+			    		  
+			    		   sharedJobListDTO.add(jsListDTO) ;
+			    		   sharedJobUuidsList.add(js.getJobUuid());
+		      		   
+			    	   }
+		      		   sharedCount = sharedCount + 1 ;
+	      		   }
 	          }  
 	       }
 	       
-	       if(jobList == null) {
+	       // Merged List
+	       List<JobListDTO> mergedListDTO = new ArrayList<JobListDTO>();
+	       if(jobList!= null)
+	    	   mergedListDTO.addAll(jobList);
+	       if(sharedJobListDTO != null) 
+	    	   mergedListDTO.addAll(sharedJobListDTO);
+	       if(mergedListDTO.isEmpty()) {
                String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboUser(), threadContext.getOboTenantId());
-               RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+               RespGetJobList r = new RespGetJobList(mergedListDTO,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
                return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse( msg,prettyPrint,r)).build(); 
-           }
+            }
+	       
 	        // -------------------- Calculate the total count --------------------
 	      	       
 	       // If we need the count and there was a limit then we need to make a call
@@ -243,7 +256,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 					}
-				   totalCount = totalCount + sharedCount;
+					if(sharedWithMe) {
+						totalCount = totalCount + sharedCount;
+					}
 		    } else if (computeTotal && srchParms.getLimit() <= 0) {
 		    	totalCount =  tcount;//jobList.size(); // No limit
 		    } else {
@@ -254,7 +269,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       // ------------------------- Process Results --------------------------
 	       // Success.
 	      
-	       RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+	       RespGetJobList r = new RespGetJobList(mergedListDTO,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	     
 	       return Response.status(Status.OK).entity(TapisRestUtils
 	    		   .createSuccessResponse(

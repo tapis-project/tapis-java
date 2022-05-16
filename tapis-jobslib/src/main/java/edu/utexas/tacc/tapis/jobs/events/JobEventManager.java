@@ -180,7 +180,7 @@ public final class JobEventManager
    {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
-		jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);// JobEventType.JOB_SHARE_EVENT
+		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(jobUuid);
 		jobEvent.setEventDetail(event);// ex."SHARE_JOB_HISTORY_READ"
 		//jobEvent.setOthUuid("");
@@ -201,7 +201,7 @@ public final class JobEventManager
   {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
-		jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);// JobEventType.JOB_SHARE_EVENT
+		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(js.getJobUuid());
 		jobEvent.setEventDetail(event);// ex."UNSHARE_ResourceType_Priviledge"
 		//jobEvent.setOthUuid("");

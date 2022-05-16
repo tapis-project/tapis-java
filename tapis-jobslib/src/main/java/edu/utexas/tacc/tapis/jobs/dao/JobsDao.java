@@ -404,10 +404,10 @@ public final class JobsDao
 	          
 	          // Prepare the statement and fill in the placeholders.
 	          PreparedStatement pstmt = conn.prepareStatement(sql);
-	          pstmt.setString(1, username);
-	          pstmt.setString(2, tenant);
-	          pstmt.setBoolean(3, true); //visible is set to true
-	          pstmt.setString(4, jobUuid);
+	         // pstmt.setString(1, username);
+	         // pstmt.setString(2, tenant);
+	          pstmt.setBoolean(1, true); //visible is set to true
+	          pstmt.setString(2, jobUuid);
 	          
 	          //pstmt.setInt(4, limit);
 	         // pstmt.setInt(5, skip);

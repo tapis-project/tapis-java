@@ -285,11 +285,15 @@ public class JobOutputDownloadResource extends AbstractResource{
 			e1.printStackTrace();
 	   }
        
+	   String impersonationId = null;
+	   if(skipTapisAuthorization == true) {
+		   impersonationId = job.getOwner();
+	   }
        try {
     	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
     	       	   
     	  if(jobOutputFilesinfo != null) {
-    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress,skipTapisAuthorization);
+    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress,impersonationId);
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)

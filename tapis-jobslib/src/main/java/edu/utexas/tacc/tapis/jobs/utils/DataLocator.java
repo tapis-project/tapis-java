@@ -72,7 +72,7 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      /* getJobOutputListings:                                                  */
      /* ---------------------------------------------------------------------- */
-     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, String user, int limit, int skip, boolean skipTapisAuthorization ) throws TapisImplException{
+     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, String user, int limit, int skip, String impersonationId) throws TapisImplException{
     	 
     	 List<FileInfo> outputList = null;
     	
@@ -82,8 +82,7 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		        
         try {
-			//outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true);
-			outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true, skipTapisAuthorization);
+        	outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true, impersonationId);
         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
             		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), limit, skip,_job.getOwner(),
@@ -102,7 +101,7 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      /* getJobOutputDownload:                                                  */
      /* ---------------------------------------------------------------------- */
-     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, boolean compress, boolean skipTapisAuthorization ) throws TapisImplException{
+     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, boolean compress, String impersonationId) throws TapisImplException{
     	
     	 // Get the File Service client 
          FilesClient filesClient = null;
@@ -110,7 +109,7 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		 StreamedFile streamFromFiles = null;
 		 try {
-			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, skipTapisAuthorization);
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId);
 			
 		} catch (TapisClientException e) {
 			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 

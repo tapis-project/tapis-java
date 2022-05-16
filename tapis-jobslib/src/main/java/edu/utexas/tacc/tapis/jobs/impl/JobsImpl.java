@@ -109,7 +109,7 @@ public final class JobsImpl
         }
         
         // ----- Get the job list.
-        List<JobListDTO> jobList = null;
+        List<JobListDTO> jobList = new ArrayList<JobListDTO>();
         try {jobList =  getJobsDao().getJobsByUsername(user, tenant, orderByList,limit, skip);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SELECT_BY_USERNAME_ERROR", user, tenant,e);
@@ -119,11 +119,11 @@ public final class JobsImpl
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
        
-        if (!isAdminSafe(user, tenant))       	
+        /*if (!isAdminSafe(user, tenant))       	
         {
             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user,"" );
             throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
+        }*/
        
         
         // Could be null if not found.
@@ -159,11 +159,11 @@ public final class JobsImpl
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
        
-        if (!isAdminSafe(user, tenant))       	
-        {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user,"" );
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
+//        if (!isAdminSafe(user, tenant))       	
+//        {
+//            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user,"" );
+//            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+//        }
        
         
         // Could be null if not found.
@@ -501,50 +501,7 @@ public final class JobsImpl
      throws TapisImplException
     {  
     	 return getJobByUuid(jobUuid, user, tenant, null, null);
-    	/*
-        // ----- Check input.
-        if (StringUtils.isBlank(jobUuid)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(user)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        
-        // ----- Get the job.
-        Job job = null;
-        try {job = getJobsDao().getJobByUUID(jobUuid, true);}
-        catch (TapisNotFoundException e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
-            throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
-            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-        }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-        if (!tenant.equals(job.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(job.getOwner()) && 
-	            !user.equals(job.getCreatedby()) && 
-	            !isAdminSafe(user, tenant)) 
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-        
-        // Could be null if not found.
-        return job;
-        */
+    	
     }
     
     /* ---------------------------------------------------------------------- */
@@ -596,7 +553,7 @@ public final class JobsImpl
             throw new TapisImplException(msg, Condition.UNAUTHORIZED);
         }
        
-        if(!(jobResourceShareType == null &&  privilege == null)) {
+        if(!(jobResourceShareType == null &&  privilege == null) && !user.equals(job.getOwner())) {
         	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
         		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -613,48 +570,7 @@ public final class JobsImpl
      throws TapisImplException
     {  
     	return getJobStatusByUuid(jobUuid, user,tenant,null, null);
-    	/*
-        // ----- Check input.
-        if (StringUtils.isBlank(jobUuid)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(user)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        
-        // ----- Get the job status.
-        JobStatusDTO jobstatus = null;
-        try {jobstatus = getJobsDao().getJobStatusByUUID(jobUuid);}
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
-            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-        }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-        if(jobstatus != null) {
-	        if (!tenant.equals(jobstatus.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(jobstatus.getOwner()) && 
-	            !user.equals(jobstatus.getCreatedBy()) && 
-	            !isAdminSafe(user, tenant) &&
-	        	!user.equals(jobstatus.getCreatedByTenant())) //TODO tenant
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-        }
-        
-        // Could be null if not found.
-        return jobstatus;*/
+    	
     }
     
     /* ---------------------------------------------------------------------- */
@@ -701,8 +617,9 @@ public final class JobsImpl
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
-	        
-	        if(!(jobResourceShareType == null &&  privilege == null)) {
+	      
+	        //TODO : Share logic  
+	        if(!(jobResourceShareType == null &&  privilege == null) && !user.equals(jobstatus.getOwner())) {
 	        	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
 	        		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 		            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -762,7 +679,11 @@ public final class JobsImpl
         JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
         
         boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege);
-        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip, skipTapisAuthorization);
+        String impersonationId =  null;
+        if(skipTapisAuthorization == true) {
+        	impersonationId = job.getOwner();
+        }
+        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
                
         return outputList;
     }
@@ -1090,6 +1011,7 @@ public final class JobsImpl
          params.setGrantee(grantee);
          params.setGrantor(grantor);
          params.setResourceId1(jobUuid);
+         //params.setIncludePublicGrantees(false);
         
          SkShareList skShareList = null;
        

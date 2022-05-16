@@ -68,25 +68,7 @@ abstract class BaseImpl
         return _jobEventsDao;
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* getJobSharedDao:                                                             */
-    /* ---------------------------------------------------------------------------- */
-    /** Create the shared dao on first reference.
-     * 
-     * @return the dao
-     * @throws TapisException on error
-     */
-   /* protected static JobSharedDao getJobSharedDao() 
-     throws TapisException
-    {
-        // Avoid synchronizing exception for initialization.
-        if (_jobSharedDao == null) 
-            synchronized (BaseImpl.class) {
-                if (_jobSharedDao == null) _jobSharedDao = new JobSharedDao();
-           }
-            
-        return _jobSharedDao;
-    }*/
+   
     /* ---------------------------------------------------------------------------- */
     /* isAdmin:                                                                     */
     /* ---------------------------------------------------------------------------- */

@@ -54,7 +54,7 @@ public class SqlStatements
                	+ "app_version, exec_system_id, archive_system_id, "
                	+ "remote_started "
                 + " FROM jobs "
-               	+ " WHERE owner = ? AND tenant = ? AND visible = ? AND uuid = ? ";
+               	+ " WHERE visible = ? AND uuid = ? ";
                
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
