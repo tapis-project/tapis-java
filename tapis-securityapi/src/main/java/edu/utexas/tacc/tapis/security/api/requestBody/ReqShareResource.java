@@ -8,6 +8,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 public final class ReqShareResource
  implements IReqBody
 {
+    public String grantor;
     public String grantee;
     public String resourceType;
     public String resourceId1;
@@ -21,14 +22,16 @@ public final class ReqShareResource
     public String validate() 
     {
         // Final checks.
+        if (StringUtils.isBlank(grantor)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "grantor");
         if (StringUtils.isBlank(grantee)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "grantee");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "grantee");
         if (StringUtils.isBlank(resourceType)) 
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "resourceType");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "resourceType");
         if (StringUtils.isBlank(resourceId1))
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "resourceId1");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "resourceId1");
         if (!SKApiUtils.isValidName(privilege))
-            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createRole", "privilege");
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "privilege");
         
         // Success.
         return null;

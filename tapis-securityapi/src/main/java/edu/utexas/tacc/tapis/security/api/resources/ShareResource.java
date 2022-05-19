@@ -134,14 +134,17 @@ public class ShareResource
                           + "pseudo-grantees allow access to a resource to authenticated "
                           + "users or to any user, respectively.\n\n"
                           + ""
-                          + "The payload for this includes these values, with all "
+                          + "The payload for this request includes these values, with all "
                           + "except resourceId2 required:\n\n"
                           + ""
+                          + "   - grantor\n"
                           + "   - grantee\n"
                           + "   - resourceType\n"
                           + "   - resourceId1\n"
                           + "   - resourceId2\n"
                           + "   - privilege\n\n"
+                          + ""
+                          + "The grantor and grantee are always in the OBO tenant.\n\n"
                           + ""
                           + "If the share already exists, then this call has no effect. "
                           + "For the request to be authorized, the requestor must be "
@@ -197,6 +200,7 @@ public class ShareResource
             
         // Fill in the parameter fields.
         var skShare = new SkShare();
+        skShare.setGrantor(payload.grantor);
         skShare.setGrantee(payload.grantee);
         skShare.setResourceType(payload.resourceType);
         skShare.setResourceId1(payload.resourceId1);
@@ -209,7 +213,6 @@ public class ShareResource
         // obo tenant and user are referenced.  JWTValidateRequestFilter guarantees 
         // that service tokens always have both obo values assigned. 
         var threadContext = TapisThreadLocal.tapisThreadContext.get();
-        skShare.setGrantor(threadContext.getOboUser());
         skShare.setTenant(threadContext.getOboTenantId());
         skShare.setCreatedBy(threadContext.getJwtUser());
         skShare.setCreatedByTenant(threadContext.getJwtTenantId());
