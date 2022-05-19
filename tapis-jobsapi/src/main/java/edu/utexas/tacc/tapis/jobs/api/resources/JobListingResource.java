@@ -135,7 +135,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	    		 				@QueryParam("startAfter") int startAfter,
 	    		 				@QueryParam("orderBy") String OrderBy,
 	    		 				@QueryParam("computeTotal")  boolean computeTotal,
-	    		 				@DefaultValue("false") @QueryParam("sharedWithMe") boolean sharedWithMe,
+	    		 				@DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
 	    		 				@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
 	                               
 	     {
@@ -169,32 +169,34 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       // ------------------------- Retrieve Job List -----------------------------
 	       List<JobListDTO> jobList = null;
 	       var jobsImpl = JobsImpl.getInstance();
-	          
-	       try {
-	           
-	           jobList = jobsImpl.getJobListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(),
-	        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
-	       }
-	       catch (TapisImplException e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	       }
-	       catch (Exception e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	       
+	       if(listType.equals("MY_JOBS") || listType.equals("ALL_JOBS")) {
+		       try {
+		           
+		           jobList = jobsImpl.getJobListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(),
+		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());                       
+		       }
+		       catch (TapisImplException e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       catch (Exception e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(Status.INTERNAL_SERVER_ERROR).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
 	       }
 	       int totalJobListSize = 0;
-	       // if jobList is not null then total count = less than
+	       // if jobList is not null then total count = jobList size
 	       if(jobList != null) {
 	    	   totalJobListSize = jobList.size();
 	       }
 	       // if jobs are shared with the user, list the shared job as well
 	       int sharedCount = 0;
 	       List<JobShared> getSharedList= new ArrayList<JobShared>();
-	       if(sharedWithMe) {
-	    	   try {
+	       if(listType.equals("SHARED_JOBS")|| listType.equals("ALL_JOBS")) {
+	    	  try {
 	          	 getSharedList = jobsImpl.getSharesJob(threadContext.getOboUser(), threadContext.getOboTenantId());
 	           } catch(Exception e) {
 	          	 _log.error(e.getMessage(), e);
@@ -256,7 +258,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 					}
-					if(sharedWithMe) {
+					if(listType.equals("SHARED_JOBS") || listType.equals("ALL_JOBS")) {
 						totalCount = totalCount + sharedCount;
 					}
 		    } else if (computeTotal && srchParms.getLimit() <= 0) {

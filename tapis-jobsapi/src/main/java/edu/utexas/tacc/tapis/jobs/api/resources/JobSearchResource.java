@@ -37,6 +37,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.search.SearchUtils;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -249,40 +250,29 @@ public class JobSearchResource extends AbstractResource {
 	       if(jobSummaryList != null) {
 	    	   totalJobListSize = jobSummaryList.size();
 	       }
-	       int sharedCount = 0;
-	       List<JobShared> getSharedList= null;
-	       if(sharedWithMe) {
-	    	   try {
-	          	 getSharedList = jobsImpl.getSharesJob(threadContext.getOboUser(), threadContext.getOboTenantId());
-	           } catch(Exception e) {
-	          	 _log.error(e.getMessage(), e);
-	               return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	           }
-	       }
-	       JobListDTO jsListDTO = null;
-	       int tcount = 0;
-	       List<String> sharedUuidList = new ArrayList<String>();
-	       for(JobShared js : getSharedList) {
-	      	   if(js.getJobResource().name().contains("JOB_")) {
-	      		   tcount = sharedCount + totalJobListSize;
-	      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 
-	      				   || srchParms.getLimit() <= 0 ) {  
-		    		   sharedUuidList.add(js.getJobUuid());
-		    	   }
-	          }  
-	       }
-	       String sharedCond = UUID_ATTR+ "." + SEARCH_OPERATOR + "." + String.join(",",sharedUuidList);
-	       searchList.add(sharedCond);
+	       
+	       List<String> sharedJobUuidsList = new ArrayList<String>();
 	       try {
-			jobSharedSummaryList = jobsImpl.getSharedJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
-					   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());
-		    } catch (TapisImplException e) {
+			sharedJobUuidsList = getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), threadContext.getOboTenantId() );
+	       } catch (TapisException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		    }  
-	        if(!jobSharedSummaryList.isEmpty()) {
-	        	jobSummaryList.addAll(jobSharedSummaryList);
+			e1.printStackTrace();
+	       }
+	       
+	       if(!sharedJobUuidsList.isEmpty()) {
+		       String sharedCond = UUID_ATTR + "." + SEARCH_OPERATOR + "." + String.join(",",sharedJobUuidsList);
+		       
+		       searchList.add(sharedCond);
+		       try {
+				jobSharedSummaryList = jobsImpl.getSharedJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+						   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip());
+			    } catch (TapisImplException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			    }  
+		        if(!jobSharedSummaryList.isEmpty()) {
+		        	jobSummaryList.addAll(jobSharedSummaryList);
+		        }
 	        }
 	       //---------- if the job is shared ends ------//
 	       
@@ -324,32 +314,17 @@ public class JobSearchResource extends AbstractResource {
 	       if(jobs != null) {
 	    	   totalJobListSize = jobs.size();
 	       }
-	       int sharedCount = 0;
-	       List<JobShared> getSharedList= null;
-	       if(sharedWithMe) {
-	    	   try {
-	          	 getSharedList = jobsImpl.getSharesJob(threadContext.getOboUser(), threadContext.getOboTenantId());
-	           } catch(Exception e) {
-	          	 _log.error(e.getMessage(), e);
-	               return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	           }
-	       }
 	      
-	       int tcount = 0;
-	       List<String> sharedUuidList = new ArrayList<String>();
-	       for(JobShared js : getSharedList) {
-	      	   if(js.getJobResource().name().contains("JOB_")) {
-	      		   tcount = sharedCount + totalJobListSize;
-	      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 
-	      				   || srchParms.getLimit() <= 0 ) {  
-		    		   sharedUuidList.add(js.getJobUuid());
-		    	   }
-	          }  
+	       List<String> sharedJobUuidsList = new ArrayList<String>();
+	       try {
+			sharedJobUuidsList = getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), threadContext.getOboTenantId() );
+	       } catch (TapisException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 	       }
-	       if(sharedUuidList.size() > 0) {
+	       if(!sharedJobUuidsList.isEmpty()) {
 	    	   shared = true;
-		       String sharedCond = UUID_ATTR+ "." + SEARCH_OPERATOR + "." + String.join(",",sharedUuidList);
+		       String sharedCond = UUID_ATTR+ "." + SEARCH_OPERATOR + "." + String.join(",",sharedJobUuidsList);
 		       searchList.add(sharedCond);
 		       try {
 				jobsShared = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
@@ -383,7 +358,7 @@ public class JobSearchResource extends AbstractResource {
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 }
-    
+  
     
     /* ---------------------------------------------------------------------------- */
     /* getJobSearchListByPostSqlStr                                                 */
@@ -593,5 +568,38 @@ public class JobSearchResource extends AbstractResource {
 
       
     }
+    
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getSharedJobUuids                                                            */
+    /* ---------------------------------------------------------------------------- */
+    
+    List<String> getSharedJobUuids(boolean sharedWithMe, String user, String tenant) throws TapisException{
+    	// if jobs are shared with the user, list the shared job as well
+	      
+	       //---
+	       List<JobShared> getSharedList= new ArrayList<JobShared>();
+	       var jobsImpl = JobsImpl.getInstance();
+	       if(sharedWithMe) {
+	    	   try {
+	          	 getSharedList = jobsImpl.getSharesJob(user, tenant);
+	           } catch(Exception e) {
+	          	 _log.error(e.getMessage(), e);
+	              throw new TapisException(e.getMessage());
+	           }
+	       }
+	       //---
+	       
+	       List<String> sharedJobUuidsList = new ArrayList<String>();
+	       for(JobShared js : getSharedList) {
+	      	   if(js.getJobResource().name().contains("JOB_")) {
+	      		 if(!sharedJobUuidsList.contains(js.getJobUuid())) {
+	      		    sharedJobUuidsList.add(js.getJobUuid());
+		    	   }
+	  	       }
+	       }
+	       return sharedJobUuidsList;
+	}
+    
 
 }

@@ -221,7 +221,8 @@ public class JobOutputDownloadResource extends AbstractResource{
        List<FileInfo> filesList = null;
        
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath,
+				DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -281,7 +282,7 @@ public class JobOutputDownloadResource extends AbstractResource{
 			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
 					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
 	   } catch (TapisImplException e1) {
-			// TODO Auto-generated catch block
+			// TODO Add message
 			e1.printStackTrace();
 	   }
        
@@ -290,10 +291,12 @@ public class JobOutputDownloadResource extends AbstractResource{
 		   impersonationId = job.getOwner();
 	   }
        try {
-    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
+    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), 
+    			  outputPath);
     	       	   
     	  if(jobOutputFilesinfo != null) {
-    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress,impersonationId);
+    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), 
+    				   threadContext.getOboUser(), compress, impersonationId);
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)

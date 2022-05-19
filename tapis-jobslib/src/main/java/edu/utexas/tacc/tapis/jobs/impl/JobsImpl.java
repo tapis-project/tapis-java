@@ -115,16 +115,7 @@ public final class JobsImpl
             String msg = MsgUtils.getMsg("JOBS_SELECT_BY_USERNAME_ERROR", user, tenant,e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-       
-        /*if (!isAdminSafe(user, tenant))       	
-        {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user,"" );
-            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }*/
-       
+      
         
         // Could be null if not found.
         return jobList;
@@ -155,17 +146,7 @@ public final class JobsImpl
             String msg = MsgUtils.getMsg("JOBS_SELECT_BY_USERNAME_UUID_ERROR", user, tenant,e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-       
-//        if (!isAdminSafe(user, tenant))       	
-//        {
-//            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user,"" );
-//            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-//        }
-       
-        
+               
         // Could be null if not found.
         return jobList;
     }
@@ -506,6 +487,8 @@ public final class JobsImpl
     
     /* ---------------------------------------------------------------------- */
     /* getJobByUuid:                                                          */
+    /* This method includes the case when resourceType and privilege are not  */
+    /* required and hence null                                                */
     /* ---------------------------------------------------------------------- */
     public Job getJobByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
      throws TapisImplException
@@ -542,18 +525,32 @@ public final class JobsImpl
             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
             throw new TapisImplException(msg, Condition.UNAUTHORIZED);
         }
-       
+        
+        /**
+         * If the user is the job owner then 'if' condition is false
+         * If the user is the one who created the job then again 'if' condition is false
+         * If the user is the admin, then 'if' condition is false 
+         * If the tenant is same as created by tenant, again 'if' condition is false. 
+         * If any of the condition is false, then the user is authorized.
+         * Note the negation before each condition.
+         * Most of the time, tenant and createdByTenant are the same. An exception example is tenant is dev, and createdByTenant is admin.
+         * */
+        
         if (!user.equals(job.getOwner()) && 
         	!user.equals(job.getCreatedby()) && 
-        	//!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege) &&
-            !isAdminSafe(user, tenant) &&
+        	!isAdminSafe(user, tenant) &&
         	!tenant.equals(job.getCreatedbyTenant())) 
         {
             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
             throw new TapisImplException(msg, Condition.UNAUTHORIZED);
         }
        
-        if(!(jobResourceShareType == null &&  privilege == null) && !user.equals(job.getOwner())) {
+        /**
+         * When the user is authorized from the above conditions and the user is the job owner, no further authorization checks are required
+         * If the user is not the job owner, we need to check if the job has been shared with the user.
+         * */
+        boolean shareInfoExist = !(jobResourceShareType == null &&  privilege == null); 
+        if(shareInfoExist && !user.equals(job.getOwner())) {
         	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
         		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -575,9 +572,11 @@ public final class JobsImpl
     
     /* ---------------------------------------------------------------------- */
     /* getJobStatusByUuid:                                                    */
+    /* This method includes the case when resourceType and privilege are not  */
+    /* required and hence null                                                */
     /* ---------------------------------------------------------------------- */
-    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
-     throws TapisImplException
+    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant, 
+    		String jobResourceShareType, String privilege) throws TapisImplException
     {
         // ----- Check input.
         if (StringUtils.isBlank(jobUuid)) {
@@ -593,7 +592,7 @@ public final class JobsImpl
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
-        // ----- Get the job status.
+        // ----- Get the job status, job owner, createdby, createdby tenant and visible information
         JobStatusDTO jobstatus = null;
         try {jobstatus = getJobsDao().getJobStatusByUUID(jobUuid);}
         catch (Exception e) {
@@ -608,18 +607,32 @@ public final class JobsImpl
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
+	        /**
+	         * If the user is the job owner then 'if' condition is false
+	         * If the user is the one who created the job then again 'if' condition is false
+	         * If the user is the admin, then 'if' condition is false 
+	         * If the tenant is same as created by tenant, again 'if' condition is false. 
+	         * If any of the condition is false, then the user is authorized.
+	         * If any of the condition is false, then the user is authorized.
+	         * Note the negation before each condition.
+	         * Most of the time, tenant and createdByTenant are the same. An exception example is tenant is dev, and createdByTenant is admin.
+            **/
 	        if (!user.equals(jobstatus.getOwner()) && 
 	        	!user.equals(jobstatus.getCreatedBy()) && 
-	        	//!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege) &&
-	            !isAdminSafe(user, tenant) &&
-	        	!tenant.equals(jobstatus.getCreatedByTenant())) 
+	        	!isAdminSafe(user, tenant) &&
+	        	!tenant.equals(jobstatus.getCreatedByTenant()))  //If all the above condition is true, this condition 
+	        	                                                //would mean the job might be shared.
 	        {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
-	      
-	        //TODO : Share logic  
-	        if(!(jobResourceShareType == null &&  privilege == null) && !user.equals(jobstatus.getOwner())) {
+	        
+	        /**
+	         * When the user is authorized from the above conditions and the user is the job owner, no further authorization checks are required
+	         * If the user is not the job owner, we need to check if the job has been shared with the user.
+	         * */
+	        boolean shareInfoExist = !(jobResourceShareType == null &&  privilege == null); 
+	        if(shareInfoExist && !user.equals(jobstatus.getOwner())) {
 	        	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
 	        		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 		            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -669,7 +682,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobOutputList:                                                      */
     /* ---------------------------------------------------------------------- */
-    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip, String jobResourceShareType, String privilege) 
+    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip, 
+    		String jobResourceShareType, String privilege) 
      throws TapisImplException
     {
         
@@ -677,6 +691,9 @@ public final class JobsImpl
         DataLocator dataLocator = new DataLocator(job);
         
         JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
+        
+        // We checked if the job is shared within the method getJobByUuid(). We never return the value of the check. 
+        // So, we need to check it again here if the job is shared and accordingly set the impersonationId
         
         boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege);
         String impersonationId =  null;
@@ -993,7 +1010,7 @@ public final class JobsImpl
     
     
     /* ---------------------------------------------------------------------- */
-    /* getSharesJob:                                                           */
+    /* getSharesJob:                                                          */
     /* ---------------------------------------------------------------------- */
     public  List<JobShared> getSharesJob(String grantee, String jobUuid,String grantor, String tenant) throws TapisImplException 
     
@@ -1011,8 +1028,7 @@ public final class JobsImpl
          params.setGrantee(grantee);
          params.setGrantor(grantor);
          params.setResourceId1(jobUuid);
-         //params.setIncludePublicGrantees(false);
-        
+               
          SkShareList skShareList = null;
        
          try {
@@ -1023,6 +1039,7 @@ public final class JobsImpl
  	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
  		}
         
+         // Convert from SK representation to local representation
          List<JobShared> jobShareList = new ArrayList<JobShared>();
          for(SkShare sks: skShareList.getShares()) {
         	 JobShared js = new JobShared();

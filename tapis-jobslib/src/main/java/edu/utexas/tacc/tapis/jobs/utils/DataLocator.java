@@ -72,23 +72,26 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      /* getJobOutputListings:                                                  */
      /* ---------------------------------------------------------------------- */
-     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, String user, int limit, int skip, String impersonationId) throws TapisImplException{
+     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, String user, int limit, int skip,
+    		 String impersonationId) throws TapisImplException
+     {
     	 
     	 List<FileInfo> outputList = null;
-    	
+    	 boolean recursiveFlag = true;
+    	 
     	 // Get the File Service client 
          FilesClient filesClient = null;
 		
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		        
-        try {
-        	outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true, impersonationId);
-        } catch (TapisClientException e) {
+         try {
+        	outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, recursiveFlag, impersonationId);
+         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
             		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), limit, skip,_job.getOwner(),
             	   _job.getTenant(), e.getCode());
             throw new TapisImplException(msg, e, e.getCode());
-        }
+         }
 		
 		
         if (outputList == null) {
@@ -96,12 +99,14 @@ public class DataLocator {
          } else {
             _log.debug("Number of Job output files returned: " + outputList.size());
          }
-    	 return outputList;
+    	return outputList;
      }
      /* ---------------------------------------------------------------------- */
      /* getJobOutputDownload:                                                  */
      /* ---------------------------------------------------------------------- */
-     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, boolean compress, String impersonationId) throws TapisImplException{
+     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, 
+    		 boolean compress, String impersonationId) throws TapisImplException
+     {
     	
     	 // Get the File Service client 
          FilesClient filesClient = null;
