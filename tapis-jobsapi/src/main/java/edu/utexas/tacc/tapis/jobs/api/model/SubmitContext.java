@@ -45,7 +45,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
-import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
+import edu.utexas.tacc.tapis.shared.model.NotifSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -889,7 +889,7 @@ public final class SubmitContext
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
         if (_app.getJobAttributes().getSubscriptions() != null) 
             for (var appSub : _app.getJobAttributes().getSubscriptions()) {
-                NotificationSubscription reqSub = new NotificationSubscription(appSub);
+                NotifSubscription reqSub = new NotifSubscription(appSub);
                 subscriptions.add(reqSub);
             }
     }
