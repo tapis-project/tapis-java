@@ -10,6 +10,20 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.2 - 2022-05-31
+
+Maintenance release
+
+### Breaking Changes:
+- Add grantor to create share request.
+
+### New features:
+
+### Bug fixes:
+1. Fix syntax error in generated SQL clause on create share. 
+
+-----------------------
+
 ## 1.1.3 - 2022-05-09
 
 SK Sharing APIs
