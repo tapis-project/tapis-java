@@ -176,7 +176,10 @@ public class JobGetResource
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
-
+        
+       // -------------------------- Check for Share -------------------------
+       /*isUserAuthorizedForShare(JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name(), threadContext.getOboUser(), 
+       		String owner,threadContext.getOboTenantId(), jobUuid )*/
        // ------------------------- Process Results --------------------------
        // Adjust status based on whether we found the job.
        if (job == null) {

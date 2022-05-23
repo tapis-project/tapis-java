@@ -209,7 +209,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 	       int tcount = 0;
 	       List<String> sharedJobUuidsList = new ArrayList<String>();
 	       for(JobShared js : getSharedList) {
-	      	   if(js.getJobResource().name().contains("JOB_")) {
+	      	   if(js.getJobResource().name().contains("JOB_")) { // TODO startswith
 	      		   if(!sharedJobUuidsList.contains(js.getJobUuid())) {
 		      		   tcount = sharedCount + totalJobListSize;
 		      		   if ((tcount < srchParms.getLimit() && srchParms.getLimit() > 0 ) 

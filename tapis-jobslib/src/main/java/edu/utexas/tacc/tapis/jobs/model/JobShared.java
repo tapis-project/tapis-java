@@ -16,6 +16,7 @@ public final class JobShared
     private String   			createdby;
     private String   			jobUuid;
     private String   			grantee;
+    private String              grantor;
     private JobResourceShare  	jobResource ;
     private JobTapisPermission  jobPermission;
     private Instant  			created;
@@ -29,13 +30,14 @@ public final class JobShared
     /* ---------------------------------------------------------------------------- */
     public JobShared() {}
     
-    public JobShared(String tenant, String createdby, String jobUuid, String grantee,
+    public JobShared(String tenant, String createdby, String jobUuid, String grantee, String grantor,
 		   JobResourceShare jobResource, JobTapisPermission  jobPermission )
    {
         this.tenant = tenant;
         this.createdby = createdby;
         this.jobUuid = jobUuid;
         this.grantee = grantee;
+        this.grantor = grantor;
         this.jobResource = jobResource;
         this.jobPermission = jobPermission;
     	
@@ -105,6 +107,14 @@ public final class JobShared
 
 	public String getGrantee() {
 		return grantee;
+	}
+
+	public String getGrantor() {
+		return grantor;
+	}
+
+	public void setGrantor(String grantor) {
+		this.grantor = grantor;
 	}
 
 	public void setUserSharedWith(String grantee) {

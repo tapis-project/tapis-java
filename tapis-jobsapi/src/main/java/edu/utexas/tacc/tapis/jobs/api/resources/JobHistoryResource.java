@@ -169,13 +169,14 @@ public class JobHistoryResource extends AbstractResource {
        if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
        int totalCount = -1; 
        
-       // ------------------------- Retrieve Job Status-----------------------------
+    // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
+           
            jobstatus = jobsImpl.getJobStatusByUuid(jobUuid, threadContext.getOboUser(),
-                       threadContext.getOboTenantId(),JobResourceShare.JOB_HISTORY.name(),
-                       JobTapisPermission.READ.name());
+                   threadContext.getOboTenantId());
+        		  
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
@@ -187,9 +188,7 @@ public class JobHistoryResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
-
-       // ------------------------- Process Results --------------------------
-       // Adjust status based on whether we found the job.
+       
        if (jobstatus == null) {
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
@@ -197,7 +196,41 @@ public class JobHistoryResource extends AbstractResource {
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
        
-       } else if(!jobstatus.getVisible()) {
+       }
+              
+       // ------------------------- Check Authorizations ----------------------
+       boolean authorized = false;
+       boolean authorizedShare = false;
+       
+       //check if the user making the API request is authorized
+       // Default authorize user - job owner, admin, anyone who created the job
+       authorized = jobsImpl.isAuthorized(jobstatus.getOwner(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
+    		   jobstatus.getTenant(), jobstatus.getCreatedBy(), jobstatus.getCreatedByTenant());
+       
+       // check share authorization
+       // if the above authorization fails, then check if the job is shared with the user
+       if(!authorized) {
+	    	try {
+	    		authorizedShare = jobsImpl.checkShareAuthorization(threadContext.getOboUser(), jobstatus.getOwner(), 
+	    				threadContext.getOboTenantId(), jobUuid, JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+			 } catch (TapisImplException e) {
+				 _log.error(e.getMessage(), e);
+		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+			}
+    	   
+       }
+       
+       if(!authorized && !authorizedShare) {
+    	   String msg = "Either " + MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
+    	   msg = " or " + MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
+    	   
+    	   return Response.status(Status.UNAUTHORIZED).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Process Results --------------------------
+       if(!jobstatus.getVisible()) {
     	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
        	   _log.warn(msg);
        	   ResultName missingName = new ResultName();
@@ -236,7 +269,6 @@ public class JobHistoryResource extends AbstractResource {
 	       }
        }
        // Success.
-       // TODO OrderBy, limit
        RespJobHistory r = new RespJobHistory(jobHists, srchParms.getLimit(), srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
 	     
        return Response.status(Status.OK).entity(TapisRestUtils

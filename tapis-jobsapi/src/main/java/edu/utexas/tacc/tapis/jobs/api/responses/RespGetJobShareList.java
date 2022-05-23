@@ -10,7 +10,8 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultListMetadata;
 public class RespGetJobShareList extends RespAbstract{
 
    public List<JobShareListDTO> result;
-   public RespGetJobShareList(List<JobShareListDTO> shareList,int limit, String orderBy, int skip, String startAfter, int totalCount)  {
+   public RespGetJobShareList(List<JobShareListDTO> shareList,int limit, String orderBy, int skip, 
+		   String startAfter, int totalCount)  {
 	    result = new ArrayList<>();
 	    if(shareList != null) {
 		    for (JobShareListDTO js : shareList)
