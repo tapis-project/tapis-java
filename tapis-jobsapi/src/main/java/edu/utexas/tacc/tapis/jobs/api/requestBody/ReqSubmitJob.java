@@ -6,7 +6,7 @@ import java.util.List;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
-import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
+import edu.utexas.tacc.tapis.shared.model.NotifSubscription;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqSubmitJob 
@@ -40,7 +40,7 @@ public class ReqSubmitJob
     private JobParameterSet 	    parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
-    private List<NotificationSubscription> subscriptions;     // assigned on first get
+    private List<NotifSubscription> subscriptions;     // assigned on first get
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
@@ -286,12 +286,12 @@ public class ReqSubmitJob
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public List<NotificationSubscription> getSubscriptions() {
-	    if (subscriptions == null) subscriptions = new ArrayList<NotificationSubscription>();
+	public List<NotifSubscription> getSubscriptions() {
+	    if (subscriptions == null) subscriptions = new ArrayList<NotifSubscription>();
 		return subscriptions;
 	}
 
-	public void setSubscriptions(List<NotificationSubscription> subscriptions) {
+	public void setSubscriptions(List<NotifSubscription> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 

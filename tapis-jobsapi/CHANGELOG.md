@@ -10,6 +10,19 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.2 - 2022-05-31
+
+Maintenance release
+
+### Breaking Changes:
+- Refer to renamed notification subscription classes in shared library.
+
+### New features:
+
+### Bug fixes:
+
+-----------------------
+
 ## 1.1.3 - 2022-05-09
 
 Maintenance release
