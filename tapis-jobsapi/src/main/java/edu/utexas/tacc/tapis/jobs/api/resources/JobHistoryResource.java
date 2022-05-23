@@ -202,10 +202,16 @@ public class JobHistoryResource extends AbstractResource {
        boolean authorized = false;
        boolean authorizedShare = false;
        
+       if (!threadContext.getOboTenantId().equals(jobstatus.getTenant())) {
+           String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
+           return Response.status(Status.UNAUTHORIZED).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();   
+       }
+       
        //check if the user making the API request is authorized
        // Default authorize user - job owner, admin, anyone who created the job
        authorized = jobsImpl.isAuthorized(jobstatus.getOwner(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-    		   jobstatus.getTenant(), jobstatus.getCreatedBy(), jobstatus.getCreatedByTenant());
+    		   jobstatus.getCreatedBy());
        
        // check share authorization
        // if the above authorization fails, then check if the job is shared with the user
@@ -222,9 +228,7 @@ public class JobHistoryResource extends AbstractResource {
        }
        
        if(!authorized && !authorizedShare) {
-    	   String msg = "Either " + MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
-    	   msg = " or " + MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
-    	   
+    	   String msg =  MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
     	   return Response.status(Status.UNAUTHORIZED).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }

@@ -165,8 +165,8 @@ public class JobGetResource
        Job job = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
-        		 JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
+        		 
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -177,9 +177,7 @@ public class JobGetResource
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
         
-       // -------------------------- Check for Share -------------------------
-       /*isUserAuthorizedForShare(JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name(), threadContext.getOboUser(), 
-       		String owner,threadContext.getOboTenantId(), jobUuid )*/
+      
        // ------------------------- Process Results --------------------------
        // Adjust status based on whether we found the job.
        if (job == null) {

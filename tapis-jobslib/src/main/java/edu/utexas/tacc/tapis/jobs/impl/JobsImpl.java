@@ -481,18 +481,7 @@ public final class JobsImpl
     public Job getJobByUuid(String jobUuid, String user, String tenant) 
      throws TapisImplException
     {  
-    	 return getJobByUuid(jobUuid, user, tenant, null, null);
     	
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getJobByUuid:                                                          */
-    /* This method includes the case when resourceType and privilege are not  */
-    /* required and hence null                                                */
-    /* ---------------------------------------------------------------------- */
-    public Job getJobByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
-     throws TapisImplException
-    {
         // ----- Check input.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
@@ -533,29 +522,16 @@ public final class JobsImpl
          * If the tenant is same as created by tenant, again 'if' condition is false. 
          * If any of the condition is false, then the user is authorized.
          * Note the negation before each condition.
-         * Most of the time, tenant and createdByTenant are the same. An exception example is tenant is dev, and createdByTenant is admin.
          * */
         
         if (!user.equals(job.getOwner()) && 
         	!user.equals(job.getCreatedby()) && 
-        	!isAdminSafe(user, tenant) &&
-        	!tenant.equals(job.getCreatedbyTenant())) 
+        	!isAdminSafe(user, tenant)) 
         {
             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
             throw new TapisImplException(msg, Condition.UNAUTHORIZED);
         }
        
-        /**
-         * When the user is authorized from the above conditions and the user is the job owner, no further authorization checks are required
-         * If the user is not the job owner, we need to check if the job has been shared with the user.
-         * */
-        /*boolean shareInfoExist = !(jobResourceShareType == null &&  privilege == null); 
-        if(shareInfoExist && !user.equals(job.getOwner())) {
-        	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
-        		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        	}
-       }*/
         // Could be null if not found.
         return job;
     }
@@ -606,13 +582,11 @@ public final class JobsImpl
 	         * If any of the condition is false, then the user is authorized.
 	         * If any of the condition is false, then the user is authorized.
 	         * Note the negation before each condition.
-	         * Most of the time, tenant and createdByTenant are the same. An exception example is tenant is dev, and createdByTenant is admin.
-            **/
+	        **/
 	       /* if (!user.equals(jobstatus.getOwner()) && 
 	        	!user.equals(jobstatus.getCreatedBy()) && 
 	        	!isAdminSafe(user, tenant) &&
-	        	!tenant.equals(jobstatus.getCreatedByTenant()))  //If all the above condition is true, this condition 
-	        	                                                //would mean the job might be shared.
+	        	
 	        {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
@@ -640,17 +614,10 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /*  Authorization Checks:                                                  */
     /* ---------------------------------------------------------------------- */
-    public boolean isAuthorized(String jobOwner, String user, String tenant, 
-    		String jobTenant, String jobCreatedBy, String jobCreatedByTenant) 
+    public boolean isAuthorized(String jobOwner, String user, String tenant, String jobCreatedBy) 
     {
     	boolean authorizedFlag = false;
     	
-    	if (!tenant.equals(jobTenant)) {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobTenant);
-            _log.error(msg);
-            return authorizedFlag;
-            //throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-        }
         /**
          * If the user is the job owner then 'if' condition is false
          * If the user is the one who created the job then again 'if' condition is false
@@ -659,18 +626,16 @@ public final class JobsImpl
          * If any of the condition is false, then the user is authorized.
          * If any of the condition is false, then the user is authorized.
          * Note the negation before each condition.
-         * Most of the time, tenant and createdByTenant are the same. An exception example is tenant is dev, and createdByTenant is admin.
-        **/
+         **/
         if (!user.equals(jobOwner) && 
         	!user.equals(jobCreatedBy) && 
-        	!isAdminSafe(user, tenant) &&
-        	!tenant.equals(jobCreatedByTenant))  //If all the above condition is true, this condition 
-        	                                                //would mean the job might be shared.
+        	!isAdminSafe(user, tenant))
+        	
         {
             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobOwner);
             _log.error(msg);
             return authorizedFlag;
-            //throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+            
         }
         authorizedFlag = true;
 		return authorizedFlag;

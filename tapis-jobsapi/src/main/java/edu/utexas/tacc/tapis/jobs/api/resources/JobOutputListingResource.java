@@ -174,7 +174,8 @@ public class JobOutputListingResource extends AbstractResource{
        
        try {
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                   threadContext.getOboTenantId(), JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+                   threadContext.getOboTenantId());
+                   //JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
