@@ -417,13 +417,13 @@ public final class JobsImpl
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
-	        if (!user.equals(job.getOwner()) && 
-	            !user.equals(job.getCreatedby()) && 
-	            !isAdminSafe(user, tenant)) 
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
+	    if (!user.equals(job.getOwner()) && 
+	        !user.equals(job.getCreatedby()) && 
+	        !isAdminSafe(user, tenant)) 
+	    {
+	        String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+	        throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	    }
         
         // Could be null if not found.
         return job;

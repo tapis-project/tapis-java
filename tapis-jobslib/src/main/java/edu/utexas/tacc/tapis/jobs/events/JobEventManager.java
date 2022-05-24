@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobEventsDao;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 
@@ -99,8 +100,9 @@ public final class JobEventManager
         if (oldStatus != null) desc += OLD_STATUS_ADDENDUM + oldStatus.name() + ".";
         jobEvent.setDescription(desc);
         
-        // Save in db.
+        // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
         return jobEvent;
     }
 
@@ -134,8 +136,9 @@ public final class JobEventManager
         desc += STAGING_TRANS_ADDENDUM + transactionId + ".";
         jobEvent.setDescription(desc);
         
-        // Save in db.
+        // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
         return jobEvent;
     }
 
@@ -169,8 +172,9 @@ public final class JobEventManager
         desc += STAGING_TRANS_ADDENDUM + transactionId + ".";
         jobEvent.setDescription(desc);
         
-        // Save in db.
+        // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
         return jobEvent;
     }
 
@@ -215,12 +219,26 @@ public final class JobEventManager
         desc += NEW_ERROR_ADDENDUM + stackMessages.toString();
         jobEvent.setDescription(desc);
         
-        // Save in db.
+        // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
         return jobEvent;
     }
     
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* postEventToNotificationService:                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Best effort attempt to post event to the event reader's queue.
+     * 
+     * @param jobEvent the event ultimately destined for notifications
+     */
+    private void postEventToNotificationService(JobEvent jobEvent)
+    {
+        // Error already logged.
+        try {JobQueueManager.getInstance().postEventQueue(jobEvent);}
+            catch (Exception e) {}
+    }
 }

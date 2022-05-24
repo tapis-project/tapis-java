@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobQueueException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.queue.messages.JobSubmitMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
@@ -212,7 +213,9 @@ public final class JobQueueManager
       message.setCreated(job.getCreated().toString());
       message.setUuid(job.getUuid());
       var jsonMessage = TapisGsonUtils.getGson().toJson(message);
-      postSubmitQueue(job.getTapisQueue(), jsonMessage);
+      var queueName    = job.getTapisQueue();
+      var exchangeName = JobQueueManagerNames.getSubmitExchangeName();
+      postToQueue(queueName, exchangeName, jsonMessage, queueName);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -264,73 +267,6 @@ public final class JobQueueManager
   }
   
   /* ---------------------------------------------------------------------- */
-  /* postSubmitQueue:                                                       */
-  /* ---------------------------------------------------------------------- */
-  /** Write a json message to the named tenant queue.  The queue name is used 
-   * as the routing key on the direct exchange.
-   * 
-   * @param queueName the target queue name
-   * @param message a json string
-   */
-  public void postSubmitQueue(String queueName, String message)
-    throws JobException
-  {
-    // Create a temporary channel.
-    Channel channel = null;
-    boolean abortChannel = false;
-    try {
-      // Create a temporary channel.
-      try {channel = getNewOutChannel();}
-        catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
-          throw new JobException(msg, e);
-        }
-    
-      // Get the tenant exchange name.
-      String exchangeName = JobQueueManagerNames.getSubmitExchangeName(); 
-      
-      // Publish the message to the queue.
-      try {
-        // Write the job to the selected tenant worker queue.
-        channel.basicPublish(exchangeName, queueName, JobQueueManagerNames.PERSISTENT_JSON, 
-                             message.getBytes("UTF-8"));
-        
-        // Tracing.
-        if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
-            _log.debug(msg);
-        }
-      }
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName, 
-                                       getOutConnectionName(), channel.getChannelNumber(), 
-                                       e.getMessage());
-          throw new JobQueueException(msg, e);
-      }
-    } 
-    catch (Exception e) {
-      // Affect the way we close the channel and then rethrow exception.
-      abortChannel = true;
-      throw new JobException(e.getMessage(), e);
-    }
-    finally {
-      // Channel clean up
-      if (channel != null) {
-        try {
-          // Close the channel one way or the other.
-          if (abortChannel) channel.abort();
-            else channel.close();
-        } 
-          catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
-                                         e.getMessage());
-            _log.error(msg, e);
-          }
-      }
-    }
-  }
-
-  /* ---------------------------------------------------------------------- */
   /* postTopic:                                                             */
   /* ---------------------------------------------------------------------- */
   /** Write a json message to the named topic.  The the routing key
@@ -363,74 +299,6 @@ public final class JobQueueManager
       }
       catch (Exception e) {
           String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName,  
-                                       getOutConnectionName(), channel.getChannelNumber(), 
-                                       e.getMessage());
-          throw new JobQueueException(msg, e);
-      }
-    } 
-    catch (Exception e) {
-      // Affect the way we close the channel and then rethrow exception.
-      abortChannel = true;
-      throw new JobException(e.getMessage(), e);
-    }
-    finally {
-      // Channel clean up
-      if (channel != null) {
-        try {
-          // Close the channel one way or the other.
-          if (abortChannel) channel.abort();
-            else channel.close();
-        } 
-          catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
-                                         e.getMessage());
-            _log.error(msg, e);
-          }
-      }
-    }
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* postRecoveryQueue:                                                     */
-  /* ---------------------------------------------------------------------- */
-  /** Write a json message to the named tenant queue.  The queue name is used 
-   * as the routing key on the direct exchange.
-   * 
-   * @param queueName the target queue name
-   * @param message a json string
-   */
-  public void postRecoveryQueue(String message)
-    throws JobException
-  {
-    // Get the exchange and queuenames.
-    String queueName    = JobQueueManagerNames.getRecoveryQueueName();
-    String exchangeName = JobQueueManagerNames.getRecoveryExchangeName(); 
-    
-    // Create a temporary channel.
-    Channel channel = null;
-    boolean abortChannel = false;
-    try {
-      // Create a temporary channel.
-      try {channel = getNewOutChannel();}
-        catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
-          throw new JobException(msg, e);
-        }
-    
-      // Publish the message to the queue.
-      try {
-        // Write the job to the tenant recovery queue.
-        channel.basicPublish(exchangeName, DEFAULT_BINDING_KEY, JobQueueManagerNames.PERSISTENT_JSON, 
-                             message.getBytes("UTF-8"));
-        
-        // Tracing.
-        if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
-            _log.debug(msg);
-        }
-      }
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName, 
                                        getOutConnectionName(), channel.getChannelNumber(), 
                                        e.getMessage());
           throw new JobQueueException(msg, e);
@@ -540,7 +408,29 @@ public final class JobQueueManager
       String json = TapisGsonUtils.getGson().toJson(recoverMsg);
       
       // Call the actual post routine.
-      postRecoveryQueue(json);
+      String queueName    = JobQueueManagerNames.getRecoveryQueueName();
+      String exchangeName = JobQueueManagerNames.getRecoveryExchangeName(); 
+      postToQueue(queueName, exchangeName, json, DEFAULT_BINDING_KEY);
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* postEventQueue:                                                        */
+  /* ---------------------------------------------------------------------- */
+  /** Post a job event to the event queue.
+   * 
+   * @param jobEvent the event
+   * @throws JobException on error
+   */
+  public void postEventQueue(JobEvent jobEvent)
+    throws JobException
+  {
+      // Convert command object to a json string.
+      String json = TapisGsonUtils.getGson().toJson(jobEvent);
+      
+      // Call the actual post routine.
+      String queueName    = JobQueueManagerNames.getEventQueueName();
+      String exchangeName = JobQueueManagerNames.getEventExchangeName(); 
+      postToQueue(queueName, exchangeName, json, DEFAULT_BINDING_KEY);
   }
   
   /* ---------------------------------------------------------------------- */
@@ -669,6 +559,12 @@ public final class JobQueueManager
                                  JobQueueManagerNames.getRecoveryExchangeName(), BuiltinExchangeType.FANOUT, 
                                  JobQueueManagerNames.getRecoveryQueueName(), DEFAULT_BINDING_KEY, 
                                  (HashMap<String, Object>) exchangeArgs.clone());
+          
+          // Create the event exchange and queue and bind them together.
+          createExchangeAndQueue(channel, service, 
+                                 JobQueueManagerNames.getEventExchangeName(), BuiltinExchangeType.FANOUT, 
+                                 JobQueueManagerNames.getEventQueueName(), DEFAULT_BINDING_KEY, 
+                                 (HashMap<String, Object>) exchangeArgs.clone());
       }
       finally {
           // Close the channel if it exists and hasn't already been aborted.
@@ -738,4 +634,73 @@ public final class JobQueueManager
                 }
       }
   }
+  
+  /* ---------------------------------------------------------------------- */
+  /* postToQueue:                                                           */
+  /* ---------------------------------------------------------------------- */
+  /** Write a json message to a queue.  The queue name is used as the routing 
+   * key on the direct exchange for job submission, otherwise its the default
+   * routing key.
+   * 
+   * @param queueName the target queue name
+   * @param exchangeName the target exchange
+   * @param message a json string
+   * @param routingKey the queue name or default routing key
+   */
+  private void postToQueue(String queueName, String exchangeName, String message,
+                           String routingKey)
+    throws JobException
+  {
+    // Create a temporary channel.
+    Channel channel = null;
+    boolean abortChannel = false;
+    try {
+      // Create a temporary channel.
+      try {channel = getNewOutChannel();}
+        catch (Exception e) {
+          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
+          throw new JobException(msg, e);
+        }
+    
+      // Publish the message to the queue.
+      try {
+        // Write the job to the tenant recovery queue.
+        channel.basicPublish(exchangeName, routingKey, JobQueueManagerNames.PERSISTENT_JSON, 
+                             message.getBytes("UTF-8"));
+        
+        // Tracing.
+        if (_log.isDebugEnabled()) {
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
+            _log.debug(msg);
+        }
+      }
+      catch (Exception e) {
+          String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName, 
+                                       getOutConnectionName(), channel.getChannelNumber(), 
+                                       e.getMessage());
+          throw new JobQueueException(msg, e);
+      }
+    } 
+    catch (Exception e) {
+      // Affect the way we close the channel and then rethrow exception.
+      abortChannel = true;
+      throw new JobException(e.getMessage(), e);
+    }
+    finally {
+      // Channel clean up
+      if (channel != null) {
+        try {
+          // Close the channel one way or the other.
+          if (abortChannel) channel.abort();
+            else channel.close();
+        } 
+          catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
+                                         e.getMessage());
+            _log.error(msg, e);
+          }
+      }
+    }
+  }
+  
 } 
