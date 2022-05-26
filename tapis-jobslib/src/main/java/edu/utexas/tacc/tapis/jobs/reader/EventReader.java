@@ -177,24 +177,28 @@ public final class EventReader
         event.setType(makeNotifEventType(jobEvent.getEvent(), jobEvent.getEventDetail()));
         event.setSubject(jobEvent.getJobUuid());
         event.setSeriesId(jobEvent.getJobUuid());
-//        event.setData(jobEvent.getDescription()); TODO: uncomment when client's updated
+        event.setData(jobEvent.getDescription()); 
         
         // Get a Notification's client.
         NotificationsClient client = null;
         try {client = JobUtils.getNotificationsClient(_siteAdminTenantId);} 
             catch (Exception e) {
-                
-                
+                String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Notifications",
+                                             _siteAdminTenantId, TapisConstants.SERVICE_NAME_JOBS);
+                _log.error(msg, e);
                 return false;
             }
         
         // Push the event to Notifications.
         try {client.postEvent(event);}
             catch (Exception e) {
-              
+                String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Notifications",
+                                             _siteAdminTenantId, TapisConstants.SERVICE_NAME_JOBS);
+                _log.error(msg, e);
                 return false;
             }
         
+        // Success.
         return true;
     }   
 
@@ -280,6 +284,7 @@ public final class EventReader
         
         // Save the site's administrative tenant id.
         _siteAdminTenantId = TenantManager.getInstance().getSiteAdminTenantId(parms.getSiteId());
+        _log.info("\n--- Admin tenant for site \"" + parms.getSiteId() + "\" is: " + _siteAdminTenantId + "\n");
         
         // ----- Service JWT Initialization
         ServiceContext serviceCxt = ServiceContext.getInstance();
