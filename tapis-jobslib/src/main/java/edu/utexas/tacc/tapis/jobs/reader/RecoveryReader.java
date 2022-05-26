@@ -370,7 +370,7 @@ public final class RecoveryReader
     private void initReaderEnv()
      throws JobException
     {
-        // Already initiailized, but assigned for convenience.
+        // Already initialized, but assigned for convenience.
         var parms = RuntimeParameters.getInstance();
         
         // Enable more detailed SSH logging if the node name is not null.

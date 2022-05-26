@@ -8,9 +8,14 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
+import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobUtils 
@@ -143,6 +148,36 @@ public final class JobUtils
         int index = s.lastIndexOf('\n');
         if (index < 0) return s;
         return s.substring(index + 1);
+    }
+
+
+    /* ---------------------------------------------------------------------------- */
+    /* getNotificationsClient:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Notifications service client.  The input parameter is
+     * the tenant id of the administrator tenant at the local site.    
+     * 
+     * @param siteAdminTenantId - the local site's administrative tenant id
+     * @return the client
+     * @throws TapisImplException
+     */
+    public static NotificationsClient getNotificationsClient(String siteAdminTenantId) 
+     throws TapisException
+    {
+        // Get the application client for this user@tenant.
+        NotificationsClient client = null;
+        var user = TapisConstants.SERVICE_NAME_JOBS;
+        try {
+            client = ServiceClients.getInstance().getClient(
+                     user, siteAdminTenantId, NotificationsClient.class);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Notifications", 
+                                         siteAdminTenantId, user);
+            throw new TapisException(msg, e);
+        }
+
+        return client;
     }
 
 }

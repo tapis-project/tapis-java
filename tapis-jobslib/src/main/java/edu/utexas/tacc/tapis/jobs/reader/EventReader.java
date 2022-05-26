@@ -1,44 +1,45 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import java.util.Map;
+
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.BuiltinExchangeType;
 
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager.ExchangeUse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
+import edu.utexas.tacc.tapis.notifications.client.gen.model.Event;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceContext;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
-/** This class reads the tenant's alternate queue, records the incident and
- * sends an email to the support email address.  RabbitMQ puts messages on 
- * alternate queues when a message is unroutable.
- * 
- * This class services all tenants and thus does not use the tenant id 
- * passed in as a parameter.  For convenience, the main method will supply
- * a pseudo-tenant id so that one does not have to be provided on the 
- * command line.
- * 
- * This class does not currently access the database so it can be started 
- * with the environment setting 'aloe.db.connection.pool.size=0'.  This will
- * cause a runtime exception if any attempt is made to connect to the
- * database.
+/** This class reads serialized JobEvents placed on the event queue by the 
+ * api or worker processes, creates a Notification service event and posts
+ * that event to Notifications.
  * 
  * @author rcardone
  */
-public final class EventQueueReader
+public final class EventReader
  extends AbstractQueueReader
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(EventQueueReader.class);
+    private static final Logger _log = LoggerFactory.getLogger(EventReader.class);
 
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -49,13 +50,15 @@ public final class EventQueueReader
     // Name of the exchange used by this queue.
     private final String _exchangeName;
     
+    private String       _siteAdminTenantId;
+    
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public EventQueueReader(QueueReaderParameters parms) 
+    public EventReader(QueueReaderParameters parms) 
     {
         // Assign superclass field.
         super(parms);
@@ -92,7 +95,7 @@ public final class EventQueueReader
           }
         
         // Start the worker.
-        EventQueueReader reader = new EventQueueReader(parms);
+        EventReader reader = new EventReader(parms);
         reader.start();
     }
 
@@ -107,6 +110,9 @@ public final class EventQueueReader
       if (_log.isInfoEnabled()) 
           _log.info(MsgUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
                                     _queueName, getBindingKey()));
+      
+      // Get our service tokens.
+      initReaderEnv();
       
       // Start reading the queue.
       readQueue();
@@ -165,12 +171,32 @@ public final class EventQueueReader
             return false;
         }
         
-        // Determine the precise command type, populate an object of that type
-        // and then call the command-specific processor.
-        boolean ack = true;
-      
-        return ack;
-    }
+        // Populate a Notifications event.
+        Event event = new Event();
+        event.setSource(TapisConstants.SERVICE_NAME_JOBS);
+        event.setType(makeNotifEventType(jobEvent.getEvent(), jobEvent.getEventDetail()));
+        event.setSubject(jobEvent.getJobUuid());
+        event.setSeriesId(jobEvent.getJobUuid());
+//        event.setData(jobEvent.getDescription()); TODO: uncomment when client's updated
+        
+        // Get a Notification's client.
+        NotificationsClient client = null;
+        try {client = JobUtils.getNotificationsClient(_siteAdminTenantId);} 
+            catch (Exception e) {
+                
+                
+                return false;
+            }
+        
+        // Push the event to Notifications.
+        try {client.postEvent(event);}
+            catch (Exception e) {
+              
+                return false;
+            }
+        
+        return true;
+    }   
 
     /* ---------------------------------------------------------------------- */
     /* getName:                                                               */
@@ -207,4 +233,75 @@ public final class EventQueueReader
     /* ---------------------------------------------------------------------- */
     @Override
     protected String getBindingKey() {return _parms.bindingKey;}
+
+    /* ********************************************************************** */
+    /*                             Private Methods                            */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* makeNotifEventType:                                                    */
+    /* ---------------------------------------------------------------------- */
+    private String makeNotifEventType(JobEventType eventType, String detail)
+    {
+        return TapisConstants.SERVICE_NAME_JOBS + "." + eventType.name() + "." + detail;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* initReaderEnv:                                                         */
+    /* ---------------------------------------------------------------------- */
+    private void initReaderEnv()
+     throws JobException
+    {
+        // Already initialized, but assigned for convenience.
+        var parms = RuntimeParameters.getInstance();
+        
+        // Force runtime initialization of the tenant manager.  This creates the
+        // singleton instance of the TenantManager that can then be accessed by
+        // all subsequent application code--including filters--without reference
+        // to the tenant service base url parameter.
+        Map<String,Tenant> tenantMap = null;
+        try {
+            // The base url of the tenants service is a required input parameter.
+            // We actually retrieve the tenant list from the tenant service now
+            // to fail fast if we can't access the list.
+            String url = parms.getTenantBaseUrl();
+            tenantMap = TenantManager.getInstance(url).getTenants();
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        if (!tenantMap.isEmpty()) {
+            String msg = ("\n--- " + tenantMap.size() + " tenants retrieved:\n");
+            for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
+            _log.info(msg);
+        } else {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            throw new JobException(msg);
+        }
+        
+        // Save the site's administrative tenant id.
+        _siteAdminTenantId = TenantManager.getInstance().getSiteAdminTenantId(parms.getSiteId());
+        
+        // ----- Service JWT Initialization
+        ServiceContext serviceCxt = ServiceContext.getInstance();
+        try {
+                 serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
+                                           parms.getServicePassword());
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            throw new JobException(msg, e);
+        }
+        
+        // Print site info.
+        {
+            var targetSites = serviceCxt.getServiceJWT().getTargetSites();
+            int targetSiteCnt = targetSites != null ? targetSites.size() : 0;
+            String msg = "\n--- " + targetSiteCnt + " target sites retrieved:\n";
+            if (targetSites != null) {
+                for (String site : targetSites) msg += "  " + site + "\n";
+            }
+            _log.info(msg);
+        }
+    }
+    
 }
