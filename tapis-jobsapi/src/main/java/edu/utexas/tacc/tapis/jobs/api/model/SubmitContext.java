@@ -32,6 +32,7 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobSubscription;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
@@ -889,7 +890,7 @@ public final class SubmitContext
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
         if (_app.getJobAttributes().getSubscriptions() != null) 
             for (var appSub : _app.getJobAttributes().getSubscriptions()) {
-                NotifSubscription reqSub = new NotifSubscription(appSub);
+                JobSubscription reqSub = new JobSubscription(appSub);
                 subscriptions.add(reqSub);
             }
     }
