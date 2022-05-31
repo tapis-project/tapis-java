@@ -670,7 +670,8 @@ public final class JobsDao
 	/*  summary attributes                                                    */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,
+			Integer limit, Integer skip, boolean sharedWithMe) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -694,8 +695,12 @@ public final class JobsDao
         	}
         	
         }
-      	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition = null;
+        if(sharedWithMe) {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+        } else {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
@@ -811,7 +816,8 @@ public final class JobsDao
 	/*  summary attributes                                                    */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<JobListDTO> getSharedJobsSearch(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	public List<JobListDTO> getSharedJobsSearch(String username, String tenant, List<String>searchList, 
+			List<OrderBy> orderByList,Integer limit, Integer skip) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -854,9 +860,9 @@ public final class JobsDao
             	}else {
             		orderList.add(colOrderBy.desc());
             	}
-          	}
+          	 }
             	
-            }
+         }
       		
         
 	 

@@ -220,6 +220,9 @@ public class JobShareResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
+         
+         
+         // ------------------------- Process Results --------------------------
          if (jobstatus == null) {
              ResultName missingName = new ResultName();
              missingName.name = jobUuid;
@@ -227,33 +230,7 @@ public class JobShareResource
              return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
          
-         }
-                
-         // ------------------------- Check Authorizations ----------------------
-         boolean authorized = false;
-        
-         if (!threadContext.getOboTenantId().equals(jobstatus.getTenant())) {
-             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
-             return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();   
-         }
-
-         
-         //check if the user making the API request is authorized
-         // Default authorize user - job owner, admin, anyone who created the job
-         authorized = jobsImpl.isAuthorized(jobstatus.getOwner(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-      		   jobstatus.getCreatedBy());
-         
-         if(!authorized) {
-      	   String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
-      	   
-      	   
-      	   return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // ------------------------- Process Results --------------------------
-         if(!jobstatus.getVisible()) {
+         } else if(!jobstatus.getVisible()) {
       	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
@@ -400,6 +377,8 @@ public class JobShareResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
+        
+         // ------------------------- Process Results --------------------------
          if (jobstatus == null) {
              ResultName missingName = new ResultName();
              missingName.name = jobUuid;
@@ -407,32 +386,8 @@ public class JobShareResource
              return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
          
-         }
-                
-         // ------------------------- Check Authorizations ----------------------
-         boolean authorized = false;
-        
-         if (!threadContext.getOboTenantId().equals(jobstatus.getTenant())) {
-             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
-             return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();   
-         }
-
-         
-         //check if the user making the API request is authorized
-         // Default authorize user - job owner, admin, anyone who created the job
-         authorized = jobsImpl.isAuthorized(jobstatus.getOwner(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-      		   jobstatus.getCreatedBy());
-         
-         if(!authorized) {
-      	   String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
-      	   return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // ------------------------- Process Results --------------------------
-         if(!jobstatus.getVisible()) {
-      	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+         } else if(!jobstatus.getVisible()) {
+      	   	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -554,6 +509,9 @@ public class JobShareResource
              return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
+        
+                
+         // ------------------------- Process Results --------------------------
          
          if (jobstatus == null) {
              ResultName missingName = new ResultName();
@@ -562,32 +520,7 @@ public class JobShareResource
              return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
          
-         }
-                
-         // ------------------------- Check Authorizations ----------------------
-         boolean authorized = false;
-         
-         if (!threadContext.getOboTenantId().equals(jobstatus.getTenant())) {
-             String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getOboTenantId(), jobstatus.getTenant());
-             return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();   
-         }
-        
-         //check if the user making the API request is authorized
-         // Default authorize user - job owner, admin, anyone who created the job
-         authorized = jobsImpl.isAuthorized(jobstatus.getOwner(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-      		   jobstatus.getCreatedBy());
-         
-         if(!authorized) {
-      	   String msg =  MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", threadContext.getOboUser(), jobstatus.getOwner());
-      	  
-      	   
-      	   return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
-         // ------------------------- Process Results --------------------------
-         if(!jobstatus.getVisible()) {
+         } else if(!jobstatus.getVisible()) {
       	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();

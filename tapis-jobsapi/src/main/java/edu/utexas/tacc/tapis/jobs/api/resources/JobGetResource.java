@@ -165,7 +165,8 @@ public class JobGetResource
        Job job = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
+           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
+        		   JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
         		 
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);

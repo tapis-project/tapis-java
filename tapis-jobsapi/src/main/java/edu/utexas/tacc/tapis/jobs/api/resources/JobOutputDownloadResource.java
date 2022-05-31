@@ -174,7 +174,7 @@ public class JobOutputDownloadResource extends AbstractResource{
        var jobsImpl = JobsImpl.getInstance();
        
        try {
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(), 
+    	   job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
         		   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        }
        catch (TapisImplException e) {

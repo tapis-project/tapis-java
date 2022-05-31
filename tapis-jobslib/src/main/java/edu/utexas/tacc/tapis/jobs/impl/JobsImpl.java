@@ -248,7 +248,7 @@ public final class JobsImpl
     /* getJobSearchListByUsername:                                            */
     /* ---------------------------------------------------------------------- */
     public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, 
-    		List<OrderBy> orderByList, Integer limit,Integer skip) 
+    		List<OrderBy> orderByList, Integer limit,Integer skip, boolean sharedWithMe) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -284,7 +284,7 @@ public final class JobsImpl
         }
         // ----- Get the job list.
         List<JobListDTO> jobList = null;
-        try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+        try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip, sharedWithMe);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -334,7 +334,7 @@ public final class JobsImpl
         }
         // ----- Get the job list.
         List<JobListDTO> jobList = null;
-        try {jobList = getJobsDao().getSharedJobsSearch(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+        try {jobList = getJobsDao().getSharedJobsSearch(user, tenant, verifiedSearchList, orderByList,limit,skip);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -516,12 +516,8 @@ public final class JobsImpl
         }
         
         /**
-         * If the user is the job owner then 'if' condition is false
-         * If the user is the one who created the job then again 'if' condition is false
-         * If the user is the admin, then 'if' condition is false 
-         * If the tenant is same as created by tenant, again 'if' condition is false. 
-         * If any of the condition is false, then the user is authorized.
-         * Note the negation before each condition.
+         * Check if the user is the job owner, or the tenant admin or the one who created the job
+         * If none of the above is true, then the user is not authorized
          * */
         
         if (!user.equals(job.getOwner()) && 
@@ -537,6 +533,41 @@ public final class JobsImpl
     }
     
    
+    /* ---------------------------------------------------------------------- */
+    /* getJobByUuid:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public Job getJobByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
+     throws TapisImplException
+    {  
+    	
+    	boolean checkShare = false;
+    	Job job = null;
+        try {job =getJobByUuid(jobUuid, user, tenant);}
+        catch (Exception e) {
+        	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
+        		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+               checkShare = true;
+            }
+           
+        
+        // ----- Share Authorization checks.
+        // Make sure the user and tenant are authorized.
+       if(job != null && checkShare) {
+	       
+	        /**
+	         * 
+	         * If the user is not the job owner or not admin or not the one who created the job, we need to check if the job has been shared with the user.
+	         * */
+    	    if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
+       		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+       		 _log.error(msg);
+       		throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+       		
+	        }
+	    }
+        // Could be null if not found.
+        return job;
+    }
     
     /* ---------------------------------------------------------------------- */
     /* getJobStatusByUuid:                                                    */
@@ -569,91 +600,71 @@ public final class JobsImpl
         
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
-       /* if(jobstatus != null) {
+       if(jobstatus != null) {
 	        if (!tenant.equals(jobstatus.getTenant())) {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
+	        
 	        /**
-	         * If the user is the job owner then 'if' condition is false
-	         * If the user is the one who created the job then again 'if' condition is false
-	         * If the user is the admin, then 'if' condition is false 
-	         * If the tenant is same as created by tenant, again 'if' condition is false. 
-	         * If any of the condition is false, then the user is authorized.
-	         * If any of the condition is false, then the user is authorized.
-	         * Note the negation before each condition.
-	        **/
-	       /* if (!user.equals(jobstatus.getOwner()) && 
+	         * Check if the user is the job owner, or the tenant admin or the one who created the job
+	         * If none of the above is true, then the user is not authorized
+	         * */
+	        
+	        if (!user.equals(jobstatus.getOwner()) && 
 	        	!user.equals(jobstatus.getCreatedBy()) && 
-	        	!isAdminSafe(user, tenant) &&
+	        	!isAdminSafe(user, tenant))
 	        	
 	        {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
 	        
-	        /**
-	         * When the user is authorized from the above conditions and the user is the job owner, no further authorization checks are required
-	         * If the user is not the job owner, we need to check if the job has been shared with the user.
-	         * */
-	        /*boolean shareInfoExist = !(jobResourceShareType == null &&  privilege == null); 
-	        if(shareInfoExist && !user.equals(jobstatus.getOwner())) {
-	        	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
-	        		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
-		            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        	}
-	       }*/
-	        
-       // }
+	      }
         
         // Could be null if not found.
         return jobstatus;
     }
 
-    
     /* ---------------------------------------------------------------------- */
-    /*  Authorization Checks:                                                  */
+    /* getJobStatusByUuid:                                                    */
     /* ---------------------------------------------------------------------- */
-    public boolean isAuthorized(String jobOwner, String user, String tenant, String jobCreatedBy) 
-    {
-    	boolean authorizedFlag = false;
-    	
-        /**
-         * If the user is the job owner then 'if' condition is false
-         * If the user is the one who created the job then again 'if' condition is false
-         * If the user is the admin, then 'if' condition is false 
-         * If the tenant is same as created by tenant, again 'if' condition is false. 
-         * If any of the condition is false, then the user is authorized.
-         * If any of the condition is false, then the user is authorized.
-         * Note the negation before each condition.
-         **/
-        if (!user.equals(jobOwner) && 
-        	!user.equals(jobCreatedBy) && 
-        	!isAdminSafe(user, tenant))
-        	
-        {
-            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobOwner);
-            _log.error(msg);
-            return authorizedFlag;
-            
-        }
-        authorizedFlag = true;
-		return authorizedFlag;
-    	
-    }
+    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
+     throws TapisImplException
+    {  
     
-     public boolean checkShareAuthorization(String user, String owner, String tenant, String jobUuid, 
-    		 String jobResourceShareType, String privilege ) throws TapisImplException {
-    	    boolean shared = false;
-        	if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
-        		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, owner);
-        		 _log.error(msg);
-        		return shared;
+        
+        // ----- Get the job status, job owner, createdby, createdby tenant and visible information
+        JobStatusDTO jobstatus = null;
+        boolean checkShare = false;
+        try {jobstatus = getJobStatusByUuid(jobUuid, user, tenant);}
+        catch (Exception e) {
+        	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
+        		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+               checkShare = true;
+            }
+           
+        
+        // ----- Share Authorization checks.
+        // Make sure the user and tenant are authorized.
+       if(jobstatus != null && checkShare) {
+	       
+	        /**
+	         * If the user is not the job owner or not admin or not the one who created the job, we need to check if the job has been shared with the user.
+	         * */
+    	    if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
+       		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
+       		 _log.error(msg);
+       		throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+       		
 	        }
-        	shared = true;
-        	return shared;
-       
+	    }
+        
+        // Could be null if not found.
+        return jobstatus;
     }
+
+   
     
     /* ---------------------------------------------------------------------- */
     /* isJobShared:                                                           */
