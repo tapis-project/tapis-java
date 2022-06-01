@@ -34,6 +34,12 @@ public final class JobEventManager
     private static final String OLD_STATUS_ADDENDUM = " The previous job status was ";
     private static final String STAGING_TRANS_ADDENDUM = " The Files service transaction id is ";
     private static final String NEW_ERROR_ADDENDUM = " The error message stack is: ";
+    private static final String SUBSCRIPTION_ADDENDUM = " A subscription was ";
+    
+    /* ********************************************************************** */
+    /*                                Enums                                   */
+    /* ********************************************************************** */
+    public enum SubscriptionActions {added, removed}
     
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -225,6 +231,40 @@ public final class JobEventManager
         return jobEvent;
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* recordSubscriptionEvent:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Write Job subscription event to database.  
+     * 
+     * The connection parameter can be null if the event insertion is not to 
+     * be part of an in-progress transaction. 
+     * 
+     * @param jobUuid the job that generated the event
+     * @param action added or removed
+     * @param conn existing connection or null
+     * @throws TapisException on error
+     */
+    public JobEvent recordSubscriptionEvent(String jobUuid, SubscriptionActions action, 
+                                            Connection conn)
+     throws TapisException
+    {
+        // Create the Job event.
+        var jobEvent = new JobEvent();
+        jobEvent.setEvent(JobEventType.JOB_SUBSCRIPTION);
+        jobEvent.setJobUuid(jobUuid);
+        jobEvent.setEventDetail(action.name());
+        
+        // Can we augment the standard event description?
+        var desc = jobEvent.getEvent().getDescription();
+        desc += SUBSCRIPTION_ADDENDUM + action.name() + ".";
+        jobEvent.setDescription(desc);
+        
+        // Save in db and send to notifications service asynchronously.
+        _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
+        return jobEvent;
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

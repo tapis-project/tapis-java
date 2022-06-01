@@ -1160,7 +1160,7 @@ public final class JobsDao
 	    }
 	     
 	    // Initialize result.
-	    JobStatusDTO jobStatus = new JobStatusDTO();
+	    JobStatusDTO jobStatus = null;
 
 	    // ------------------------- Call SQL ----------------------------
 	    Connection conn = null;
@@ -1193,6 +1193,7 @@ public final class JobsDao
 	  	      }
 	          
 	  	      // Extract the status from the result set.
+	  	      jobStatus = new JobStatusDTO();
 	          jobStatus.setJobUuid(rs.getString(1));
 	          jobStatus.setJobId(rs.getInt(2));
 	          jobStatus.setOwner(rs.getString(3));

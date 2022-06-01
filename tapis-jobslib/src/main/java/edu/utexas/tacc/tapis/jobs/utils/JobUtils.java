@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -179,4 +180,27 @@ public final class JobUtils
         return client;
     }
 
+    /* ---------------------------------------------------------------------------- */
+    /* makeNotifTypeToken:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Create a token that can be used as an event type or a subscription typeFilter.
+     * The generic token contains 3 components:
+     * 
+     *     service.category.eventDetail
+     * 
+     * For job subscriptions, concrete tokens always look like this:
+     * 
+     *     jobs.<jobEventType>.*
+     *     
+     * For job events, the tokens always look like this:
+     * 
+     *     jobs.<jobEventType>.<eventDetail>
+     *     
+     * @param jobEventType the 2nd component in a job subscription type filter
+     * @return the 3 part type filter string
+     */
+    public static String makeNotifTypeToken(JobEventType jobEventType, String detail)
+    {
+        return TapisConstants.JOBS_SERVICE + "." + jobEventType.name() + "." + detail;
+    }
 }

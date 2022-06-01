@@ -130,7 +130,7 @@
           "subscriptions": {
             "$comment": "Subscribe to the job's events",
             "type": "array",
-            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/NotificationSubscription"},
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/jobs/api/jsonschema/JobSubscribeRequest.json"},
             "uniqueItems": true
           },
           "tags": {

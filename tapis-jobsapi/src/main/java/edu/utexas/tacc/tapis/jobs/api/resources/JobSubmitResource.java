@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
@@ -299,7 +300,7 @@ public class JobSubmitResource
          try {payload = getPayload(json, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
          catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "sbumitJob", e.getMessage());
+                                          "submitJob", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -340,7 +341,10 @@ public class JobSubmitResource
          // calculated and non-null by this point. Subscriptions are created before
          // we make any database changes so the caller can access any events generated.  
          if (!reqCtx.getSubmitReq().getSubscriptions().isEmpty()) {
-             // TODO: Subscribe to Notifications.
+             var jobsImpl = JobsImpl.getInstance();
+             for (var subscription : reqCtx.getSubmitReq().getSubscriptions()) {
+                 
+             }
          }
          
          // ------------------------- Save Job ---------------------------------

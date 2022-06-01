@@ -2,11 +2,13 @@ package edu.utexas.tacc.tapis.jobs.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
@@ -23,6 +25,8 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
+import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
+import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTParser;
@@ -31,6 +35,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 
@@ -762,6 +767,18 @@ public final class JobsImpl
             throw new JobException(msg, e);
         }
     }
-    
-  
+
+    /* ---------------------------------------------------------------------- */
+    /* postSubcription:                                                       */
+    /* ---------------------------------------------------------------------- */
+    public String postSubcription(ReqPostSubscription postReq, String user, String tenant) 
+      throws RuntimeException, TapisException, ExecutionException, TapisClientException
+    {
+        // Get the notification client for this user, which may be cached.
+        NotificationsClient notifClient = 
+            ServiceClients.getInstance().getClient(user, tenant, NotificationsClient.class);
+      
+        // Make the call to Notifications.
+        return notifClient.postSubscription(postReq);
+    }
 }
