@@ -154,7 +154,7 @@ public final class JobsImpl
     /* getJobListCountByUsername:                                             */
     /* ---------------------------------------------------------------------- */
    
-    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList, List<OrderBy> orderByList) 
+    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList, List<OrderBy> orderByList, boolean sharedWithMe) 
     		throws TapisImplException
     {
     	// ----- Check input.
@@ -196,7 +196,7 @@ public final class JobsImpl
 
       // Count all allowed jobs matching the search conditions
       try {
-		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList) ;
+		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList, sharedWithMe) ;
 	} catch (TapisException e) {
 		String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -362,7 +362,7 @@ public final class JobsImpl
         }
         
         if (StringUtils.isBlank(sqlSearchStr)) {
-        	return getJobSearchListByUsername(user, tenant, null,  orderByList, limit, skip) ;
+        	return getJobSearchListByUsername(user, tenant, null,  orderByList, limit, skip,false) ;
         } 
         
         ASTNode searchAST;

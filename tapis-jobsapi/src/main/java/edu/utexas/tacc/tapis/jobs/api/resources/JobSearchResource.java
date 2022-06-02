@@ -24,6 +24,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,12 +37,14 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobListType;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidator;
 import edu.utexas.tacc.tapis.shared.schema.JsonValidatorSpec;
+import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -157,8 +160,7 @@ public class JobSearchResource extends AbstractResource {
    		 		@QueryParam("orderBy") String orderBy,
    		 		@QueryParam("computeTotal") boolean computeTotal,
    		 		@QueryParam("select") String select,
-   		 	    //@DefaultValue("false") @QueryParam("sharedWithMe") boolean sharedWithMe,
-   		    	@DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
+   		 	    @DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                               
     {
@@ -182,6 +184,7 @@ public class JobSearchResource extends AbstractResource {
       // ---------------------- Get the Search Query Parameters --------------------
       int totalCount = DEFAULT_TOTAL_COUNT;
       List<String> searchList;
+      List<String> sharedSearchList = new ArrayList<String>();
       
       try
       {
@@ -189,7 +192,7 @@ public class JobSearchResource extends AbstractResource {
       }
       catch (Exception e)
       {
-   	  String msg = MsgUtils.getMsg("JOBS_SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
+   	    String msg = MsgUtils.getMsg("JOBS_SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
         _log.error(msg, e);
         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
       }
@@ -214,34 +217,31 @@ public class JobSearchResource extends AbstractResource {
       computeTotal = srchParms.getComputeTotal();
       
       // Get the listType. Default Type is  MY_JOBS   
-      boolean sharedWithMe = false;
-      if(listType.equals("SHARED_JOBS") || listType.equals("ALL_JOBS" )){
-   	   sharedWithMe = true;
+      if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
+    	  String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
+    			  threadContext.getOboTenantId(),threadContext.getOboUser());
+          _log.error(msg);
+          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
       }
-      
+      boolean sharedWithMe = false;
+      if(listType.equals(JobListType.SHARED_JOBS.name()) || listType.equals(JobListType.ALL_JOBS.name() )){
+   	   sharedWithMe = true;
+       
+      }
+            
       var jobsImpl = JobsImpl.getInstance();
       
       // summary attributes
-      List<JobListDTO> jobSummaryList = null;
-      List<JobListDTO> jobSharedSummaryList = null;
+      List<JobListDTO> jobSummaryList = new ArrayList<JobListDTO>();
+      List<JobListDTO> jobSharedSummaryList = new ArrayList<JobListDTO>();
+      
       // All Attributes
       List<Job> jobs = null; 
       List<Job> jobsShared = null;
-      
-      // If we need the total count and there was a limit then we need to make a call
-      // Note this will return all the jobs that the user is owner, admin or creator of the job.
-      if (computeTotal && srchParms.getLimit() > 0){
-         try {
-		   totalCount = jobsImpl.getJobsSearchListCountByUsername(threadContext.getOboUser(), 
-				   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList());
-		 } catch (TapisImplException e) {
-				_log.error(e.getMessage(), e);
-		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-		 }
-	  }
+     
       
       // Get UUIDs of all jobs shared with the user
+      // Note that if sharedWithMe is false, then sharedJobUuidsList will be empty
       
       List<String> sharedJobUuidsList = new ArrayList<String>();
       try {
@@ -252,49 +252,104 @@ public class JobSearchResource extends AbstractResource {
                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
       }
       String sharedCond = null;
-      // Add the shared jobs UUIDs to the search list
+      // Add the shared jobs UUIDs to the shared searchlist
       if(!sharedJobUuidsList.isEmpty()) {
 	       sharedCond = UUID_ATTR + "." + SEARCH_OPERATOR + "." + String.join(",",sharedJobUuidsList);
-	       searchList.add(sharedCond);
+	       sharedSearchList.addAll(searchList);
+	       sharedSearchList.add(sharedCond);
       }     
       
+      // ----------   Compute Total --------------
+      // If we need the total count and there was a limit then we need to make a call
+      // Note this will return all the jobs that the user is owner, admin or creator of the job.
+      int totalCountOwner = 0;
+      int totalCountShared = 0;
+      //if ((computeTotal && srchParms.getLimit() > 0)){
+      if (computeTotal){	  
+    	  if((listType.equals(JobListType.MY_JOBS.name())) || (listType.equals(JobListType.ALL_JOBS.name()))) {
+    		  try {
+ 	        	 totalCountOwner = computeTotalCount(threadContext.getOboUser(), 
+ 					   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), !SHARED);
+ 			 } catch (TapisImplException e) {
+ 					_log.error(e.getMessage(), e);
+ 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+ 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+ 			 }
+    	  }
+    	  if(sharedWithMe) {
+    		  try {
+    	           totalCountShared = computeTotalCount(threadContext.getOboUser(), 
+    	 				   threadContext.getOboTenantId(), sharedSearchList, srchParms.getOrderByList(), SHARED);
+    	 		 } catch (TapisImplException e) {
+    	 				_log.error(e.getMessage(), e);
+    	 		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+    	 		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+    	 		 }
+    	  } 
+    	  
+    	  if(listType.equals(JobListType.ALL_JOBS.name())){
+    		 totalCount = totalCountOwner +  totalCountShared;
+    	  } else if (listType.equals(JobListType.MY_JOBS.name())){
+    		  totalCount = totalCountOwner;
+    	  } else {
+    		  totalCount = totalCountShared;
+    	  }
+     }
+     // ----------- Compute Total Ends -------------
       
+      int diffLimit = 0;
+      int diffSkip = 0;
       // Case 1. User did not specify allattributes in the select list and select list is empty
       // Default summary attributes will be returned
       if(allAttributesInResponse == false && selectList.isEmpty()){
     	  
     	  // Get the user's jobs in which the user is the owner (no shared jobs)
-	       try {
-	           jobSummaryList = jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
-	        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), !SHARED);                       
-	       }
-	       catch (TapisImplException e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	       }
-	       catch (Exception e) {
-	           _log.error(e.getMessage(), e);
-	           return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-	       }
-	       
+    	  if((listType.equals(JobListType.MY_JOBS.name())) || (listType.equals(JobListType.ALL_JOBS.name()))) {
+		       try {
+		           jobSummaryList = jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
+		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), !SHARED);                       
+		       }
+		       catch (TapisImplException e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+		       catch (Exception e) {
+		           _log.error(e.getMessage(), e);
+		           return Response.status(Status.INTERNAL_SERVER_ERROR).
+		                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+		       }
+    	  }
+    	  // compute limit and skip for shared list
+    	  if(!jobSummaryList.isEmpty()) {
+    		  diffLimit = srchParms.getLimit() - jobSummaryList.size();
+    		  diffSkip = 0;
+    	  } else {
+    		  diffLimit = srchParms.getLimit();
+    		  try {
+  	        	 totalCountOwner = computeTotalCount(threadContext.getOboUser(), 
+  					   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), !SHARED);
+  			 } catch (TapisImplException e) {
+  					_log.error(e.getMessage(), e);
+  			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+  			                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+  			 }
+    		  
+    		  //
+    		  if(totalCountOwner <= srchParms.getSkip()) {
+    			  diffSkip = srchParms.getSkip() - totalCountOwner;
+    		  }
+    	  }
 	       //------- Get the jobs shared with the user--------------------
 	       
-	       // if jobs are shared with the user, list the shared job 
-	       int totalJobListSize = 0;
-	       
-	       if(jobSummaryList != null) {
-	    	   totalJobListSize = jobSummaryList.size();
-	       }
-	    
+	     
 	       // Get the shared jobs
-	       if(sharedWithMe) {
-	    	   
-		       try {
+	       // Note the sharedSearchList has shared jobs uuids
+	       if(sharedWithMe && !sharedJobUuidsList.isEmpty()) {
+	    	 try {
 				jobSharedSummaryList = 
-						jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
-						   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), SHARED);
+						jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), sharedSearchList,
+						   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
 			    } catch (TapisImplException e) {
 			    	 _log.error(e.getMessage(), e);
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -305,7 +360,7 @@ public class JobSearchResource extends AbstractResource {
 		        }
 	       }
 	       
-	       //---------- Get Job shared ends ----------------------------//
+	       //---------- Get Job shared with user ends ----------------------------//
 	       
 	       if(jobSummaryList.isEmpty()) {
               String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
@@ -313,17 +368,19 @@ public class JobSearchResource extends AbstractResource {
               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,prettyPrint,r)).build(); 
            }
       
-      
-	       if (computeTotal && srchParms.getLimit() <= 0) totalCount = jobSummaryList.size();
+	       if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobSummaryList.size();
+	       
+	       
 	       RespJobSearch r = new RespJobSearch(jobSummaryList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
 	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build(); 
+      
       
       } else {
 	   	   // select is provided by the user,
 	   	   // select all attributes in the sql query to db
 	   	   // then select the attributes that the user provides 
-    	 
+    	  if((listType.equals(JobListType.MY_JOBS.name())) || (listType.equals(JobListType.ALL_JOBS.name()))) {
     	   try {
 		   	   jobs = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
 		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), !(SHARED));  // This is the list of all non-shared jobs                     
@@ -336,22 +393,23 @@ public class JobSearchResource extends AbstractResource {
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	       }
-	       
+    	  }
+    	  
+    	// compute limit for shared list
+    	  if(!jobs.isEmpty()) {
+    		  diffLimit = srchParms.getLimit() - jobSummaryList.size();
+    		  diffSkip = 0;
+    	  } else {
+    		  diffLimit = srchParms.getLimit();
+    		  // TODO compute skip from totalcount
+    		  diffSkip = srchParms.getSkip();
+    	  }
 	   	   //----------  Get the jobs shared with the user ---------------------------------------
-	       
-	       // if jobs are shared with the user, list the shared job as well
-	       int totalJobListSize = 0;
-	       // if jobList is not null then total count = less than
-	       if(jobs != null) {
-	    	   totalJobListSize = jobs.size();
-	       }
-	      
-	       if(!sharedJobUuidsList.isEmpty()) {
-	    	   
-		       try {
-				jobsShared = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
-						   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), SHARED);
-			    } catch (TapisImplException e) {
+           if(sharedWithMe && !sharedJobUuidsList.isEmpty()) {
+	    	  try {
+				jobsShared = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), sharedSearchList,
+						   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
+			  } catch (TapisImplException e) {
 			    	 _log.error(e.getMessage(), e);
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
@@ -591,7 +649,18 @@ public class JobSearchResource extends AbstractResource {
 
       
     }
-    
+ 
+    /* ---------------------------------------------------------------------------- */
+    /* computeTotalCount:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    int computeTotalCount(String obouser, String obotenant, List<String>searchList, List<OrderBy> orderByList, boolean shared) 
+    		throws TapisImplException 
+    {
+    	var jobsImpl = JobsImpl.getInstance();
+    	int computeTotalCount = jobsImpl.getJobsSearchListCountByUsername(obouser, 
+			   obotenant, searchList, orderByList, shared);
+    	return computeTotalCount;
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* getSharedJobUuids                                                            */
@@ -601,15 +670,12 @@ public class JobSearchResource extends AbstractResource {
     throws TapisImplException
     {
     	// if jobs are shared with the user, list the shared job as well
-	      
-	       //---
+	     
 	       List<JobShared> getSharedList= new ArrayList<JobShared>();
 	       var jobsImpl = JobsImpl.getInstance();
 	       if(sharedWithMe) {
 	    	 getSharedList = jobsImpl.getSharesJob(user, tenant);
 	       }
-	       //---
-	       
 	       List<String> sharedJobUuidsList = new ArrayList<String>();
 	       for(JobShared js : getSharedList) {
 	      	   if(js.getJobResource().name().startsWith("JOB_")) {
