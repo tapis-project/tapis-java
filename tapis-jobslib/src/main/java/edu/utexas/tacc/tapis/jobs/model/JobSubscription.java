@@ -19,19 +19,19 @@ public class JobSubscription
     
     // Constructors.
     public JobSubscription() {}
-    public JobSubscription(edu.utexas.tacc.tapis.apps.client.gen.model.AppSubscription appSub)
-    {
-        description   = appSub.getDescription();
-        enabled       = appSub.getEnabled() == null ? true : appSub.getEnabled();
-        ttlMinutes    = appSub.getTtlMinutes() == null ? 0 : appSub.getTtlMinutes();
-        typeFilter    = appSub.getTypeFilter();
-        subjectFilter = appSub.getSubjectFilter();
-        if (appSub.getDeliveryTargets() != null)
-            for (var appTarget : appSub.getDeliveryTargets()) {
-                var target = new NotifDeliveryTarget(appTarget);
-                deliveryTargets.add(target);
-            }
-    }
+//    public JobSubscription(edu.utexas.tacc.tapis.apps.client.gen.model.AppSubscription appSub)
+//    {
+//        description   = appSub.getDescription();
+//        enabled       = appSub.getEnabled() == null ? true : appSub.getEnabled();
+//        ttlMinutes    = appSub.getTtlMinutes() == null ? 0 : appSub.getTtlMinutes();
+//        typeFilter    = appSub.getTypeFilter();
+//        subjectFilter = appSub.getSubjectFilter();
+//        if (appSub.getDeliveryTargets() != null)
+//            for (var appTarget : appSub.getDeliveryTargets()) {
+//                var target = new NotifDeliveryTarget(appTarget);
+//                deliveryTargets.add(target);
+//            }
+//    }
     
     // Accessors
     public String getDescription() {

@@ -883,14 +883,23 @@ public final class SubmitContext
      * 
      * Request fields guaranteed to be assigned:
      *  - subscriptions
+     * @throws TapisImplException on conversion failures
      */
-    private void mergeSubscriptions()
+    private void mergeSubscriptions() throws TapisImplException
     {
+        // Add all app subscription requests to the job request's list.
+        // Either or both may be empty. By the end of this method the
+        // job request's subscription's list will be non-null.
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
         if (_app.getJobAttributes().getSubscriptions() != null) 
             for (var appSub : _app.getJobAttributes().getSubscriptions()) {
-          //      var reqSub = new ReqSubscribe(appSub);  // TODO:  *************************
-          //      subscriptions.add(reqSub);
+                ReqSubscribe reqSub ;
+                try {reqSub = new ReqSubscribe(appSub);}
+                    catch (Exception e) {
+                        throw new TapisImplException(e.getMessage(), 
+                                                     Status.BAD_REQUEST.getStatusCode());
+                    }
+                subscriptions.add(reqSub);
             }
     }
     
