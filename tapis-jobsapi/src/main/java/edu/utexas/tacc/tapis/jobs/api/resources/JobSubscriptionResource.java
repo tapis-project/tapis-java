@@ -57,7 +57,7 @@ public class JobSubscriptionResource
     private static final Logger _log = LoggerFactory.getLogger(JobSubscriptionResource.class);
     
     // The wildcard used in notifications subject filters.
-    private static final String TYPE_FILTER_WILDCARD = "*";
+    private static final String TYPE_FILTER_WILDCARD = JobsApiUtils.TYPE_FILTER_WILDCARD;
     
     // Json schema resource files.
     private static final String FILE_JOB_SUBCRIBE_REQUEST = 

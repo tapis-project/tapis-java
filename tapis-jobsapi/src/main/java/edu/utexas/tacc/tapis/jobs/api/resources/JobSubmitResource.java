@@ -33,7 +33,6 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
-import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
@@ -339,13 +338,9 @@ public class JobSubmitResource
          // Subscribe to Notifications service on behalf of user.  The complete list
          // of subscriptions are guaranteed by context initialization to have been
          // calculated and non-null by this point. Subscriptions are created before
-         // we make any database changes so the caller can access any events generated.  
-         if (!reqCtx.getSubmitReq().getSubscriptions().isEmpty()) {
-             var jobsImpl = JobsImpl.getInstance();
-             for (var subscription : reqCtx.getSubmitReq().getSubscriptions()) {
-                 
-             }
-         }
+         // we make any database changes so the caller can access any events generated.
+         var response = createSubscriptions(reqCtx, job, prettyPrint);
+         if (response != null) return response;
          
          // ------------------------- Save Job ---------------------------------
          // Write the job to the database.
@@ -398,6 +393,46 @@ public class JobSubmitResource
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                  MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* createSubscriptions:                                                         */
+     /* ---------------------------------------------------------------------------- */
+     /** Post subscription create messages to Notifications.  Return null on success,
+      * an error Response object when a subscription could not be created.
+      * 
+      * @param reqCtx submit request context
+      * @param job the populated job object
+      * @param prettyPrint user output preference
+      * @return null if ok, a response object on error
+      */
+     private Response createSubscriptions(SubmitContext reqCtx, Job job, boolean prettyPrint)
+     {
+         // Does the job have any subscriptions?
+         if (reqCtx.getSubmitReq().getSubscriptions().isEmpty()) return null;
+         
+         // We assume the subscription requests are validated, so any failure create
+         // a subscription in Notifications is a system problem that aborts the job.
+         for (var req : reqCtx.getSubmitReq().getSubscriptions()) {
+             String url = null;
+             try {url = JobsApiUtils.postSubcriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
+             catch (Exception e) {
+                 String msg = MsgUtils.getMsg("JOBS_SUBCRIPTION_ERROR", job.getUuid(), 
+                                              job.getOwner(), job.getTenant(), e.getMessage());
+                 _log.error(msg, e);
+                 return Response.status(Status.INTERNAL_SERVER_ERROR).
+                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             }
+                 
+             // Log subscriptions created.
+             var typeFilter = JobsApiUtils.getNotifTypeFilter(req.getEventCategoryFilter(), 
+                                                             JobsApiUtils.TYPE_FILTER_WILDCARD);
+             var msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", job.getUuid(), typeFilter);
+             _log.debug(msg);
+         }
+
+         // Success.
+         return null;
      }
      
      /* ---------------------------------------------------------------------------- */

@@ -12,7 +12,6 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.DeliveryMethod;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.DeliveryTarget;
@@ -29,7 +28,7 @@ public class JobsApiUtils
     /*                                   Constants                                  */
     /* **************************************************************************** */
     // The wildcard used in notifications subject filters.
-    private static final String TYPE_FILTER_WILDCARD = "*";
+    public static final String TYPE_FILTER_WILDCARD = "*";
     
     /* **************************************************************************** */
     /*                                Public Methods                                */
