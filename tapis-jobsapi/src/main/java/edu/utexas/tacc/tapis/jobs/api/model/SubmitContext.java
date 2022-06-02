@@ -29,10 +29,10 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.JobSubscription;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
@@ -46,7 +46,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
-import edu.utexas.tacc.tapis.shared.model.NotifSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -890,8 +889,8 @@ public final class SubmitContext
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
         if (_app.getJobAttributes().getSubscriptions() != null) 
             for (var appSub : _app.getJobAttributes().getSubscriptions()) {
-                JobSubscription reqSub = new JobSubscription(appSub);
-                subscriptions.add(reqSub);
+          //      var reqSub = new ReqSubscribe(appSub);  // TODO:  *************************
+          //      subscriptions.add(reqSub);
             }
     }
     

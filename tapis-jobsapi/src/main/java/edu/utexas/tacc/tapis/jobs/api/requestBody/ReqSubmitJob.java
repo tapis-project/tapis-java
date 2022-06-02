@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.jobs.model.JobSubscription;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
@@ -40,7 +39,7 @@ public class ReqSubmitJob
     private JobParameterSet 	    parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
-    private List<JobSubscription>   subscriptions;            // assigned on first get
+    private List<ReqSubscribe>      subscriptions;            // assigned on first get
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
@@ -54,8 +53,12 @@ public class ReqSubmitJob
 	@Override
 	public String validate() 
 	{
+	    // Validate all subscription requests.
+	    if (subscriptions != null) 
+	        for (var req : subscriptions) req.validate();
+	    
 		// Success.
-		return null; // json schema validation is sufficient
+		return null; 
 	}
 	
 	/** --------------- Constraint Processing --------------- 
@@ -286,12 +289,12 @@ public class ReqSubmitJob
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public List<JobSubscription> getSubscriptions() {
-	    if (subscriptions == null) subscriptions = new ArrayList<JobSubscription>();
+	public List<ReqSubscribe> getSubscriptions() {
+	    if (subscriptions == null) subscriptions = new ArrayList<ReqSubscribe>();
 		return subscriptions;
 	}
 
-	public void setSubscriptions(List<JobSubscription> subscriptions) {
+	public void setSubscriptions(List<ReqSubscribe> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 

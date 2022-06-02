@@ -11,6 +11,7 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.DeliveryMethod;
@@ -142,7 +143,7 @@ public class JobsApiUtils
         
         // Fill in the required, non-payload request values. We leave the name and
         // tenant unassigned allowing Notifications to assign them.
-        notifReq.setTypeFilter(getNotifTypeFilter(reqSubscribe.getEventType(), TYPE_FILTER_WILDCARD));
+        notifReq.setTypeFilter(getNotifTypeFilter(reqSubscribe.getEventCategoryFilter(), TYPE_FILTER_WILDCARD));
         notifReq.setOwner(user);
         
         // Send request to Notifications.
@@ -168,9 +169,9 @@ public class JobsApiUtils
      * @param eventDetail specific event or the wildcard character
      * @return the 3 part type filter string
      */
-    public static String getNotifTypeFilter(JobEventType jobEventType, String eventDetail)
+    public static String getNotifTypeFilter(JobEventCategoryFilter filter, String eventDetail)
     {
-        return JobUtils.makeNotifTypeToken(jobEventType, eventDetail);
+        return JobUtils.makeNotifTypeFilter(filter, eventDetail);
     }
 
 }

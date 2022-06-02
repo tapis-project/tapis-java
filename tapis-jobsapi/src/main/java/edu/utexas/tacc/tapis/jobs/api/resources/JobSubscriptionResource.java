@@ -267,7 +267,7 @@ public class JobSubscriptionResource
        // Success.
        RespResourceUrl r = new RespResourceUrl(new ResultResourceUrl());
        r.result.url = url;
-       var typeFilter = JobsApiUtils.getNotifTypeFilter(payload.getEventType(), TYPE_FILTER_WILDCARD);
+       var typeFilter = JobsApiUtils.getNotifTypeFilter(payload.getEventCategoryFilter(), TYPE_FILTER_WILDCARD);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", jobUuid, typeFilter), 
                   prettyPrint, r)).build();
