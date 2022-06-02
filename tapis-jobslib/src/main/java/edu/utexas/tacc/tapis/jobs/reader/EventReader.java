@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import java.time.Instant;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Hex;
@@ -12,6 +13,7 @@ import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager.ExchangeUse;
@@ -177,7 +179,9 @@ public final class EventReader
         event.setType(makeNotifEventType(jobEvent.getEvent(), jobEvent.getEventDetail()));
         event.setSubject(jobEvent.getJobUuid());
         event.setSeriesId(jobEvent.getJobUuid());
-        event.setData(jobEvent.getDescription()); 
+        event.setData(jobEvent.getDescription());
+        event.setTimestamp(Instant.now().toString());
+// TODO:        event.setDeleteSubscriptionsMatchingSubject(isLastEvent(jobEvent.getEvent(), jobEvent.getEventDetail()));
         
         // Get a Notification's client.
         NotificationsClient client = null;
@@ -265,6 +269,32 @@ public final class EventReader
     private String makeNotifEventType(JobEventType eventType, String detail)
     {
         return JobUtils.makeNotifTypeToken(eventType, detail);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* isLastEvent:                                                           */
+    /* ---------------------------------------------------------------------- */
+    /** Determine if this is the last status message that a specific job will
+     * ever receive.  If so, we can tell Notifications to delete all subscriptions
+     * specifically targeting this job.
+     * 
+     * @param eventType the well-defined Jobs event types
+     * @param detail the particular event name
+     * @return true if this is the last event on this subject, false otherwise
+     */
+    private boolean isLastEvent(JobEventType eventType, String detail)
+    {
+        // Only status event signal that subscriptions can be immediately removed.
+        if (eventType != JobEventType.JOB_NEW_STATUS) return false;
+        
+        // Determine if the new job status is a terminal state.
+        try {
+            var status = JobStatusType.valueOf(detail);
+            if (status.isTerminal()) return true;
+        } catch (Exception e) {/* this should not happen */}
+        
+        // Non-terminal statuses.
+        return false;
     }
     
     /* ---------------------------------------------------------------------- */
