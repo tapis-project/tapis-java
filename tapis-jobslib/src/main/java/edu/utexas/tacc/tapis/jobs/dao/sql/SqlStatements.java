@@ -47,7 +47,7 @@ public class SqlStatements
             + " FROM jobs "
            	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
            	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
-    
+   
     public static final String SELECT_JOBS_LIST_DTO_BY_UUID =
             "SELECT uuid, tenant, name, owner, status, "
              	+ "created, ended, last_updated, app_id,"

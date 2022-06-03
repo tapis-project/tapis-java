@@ -295,14 +295,14 @@ public class JobSubmitResource
      
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
-         String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
+         String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).
                  entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
        
        // ------------------------- Get Resubmit -----------------------------
-       // We have a job to resubmit now go lookup the stored job definition
+       // We need resubmit request now go lookup the stored job definition
        JobResubmit jobResubmit = null;
        try {
            var jobResubmitDao = new JobResubmitDao();
@@ -328,7 +328,7 @@ public class JobSubmitResource
        try {payload = getPayload(jobResubmit.getJobDefinition(), FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
        catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                        "sbumitJob", e.getMessage());
+                                        "resubmitrequestjson", e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -343,11 +343,7 @@ public class JobSubmitResource
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
-       
-       // The shared code takes it from here.
-       //return doSubmit(prettyPrint, jobResubmit.getJobDefinition());
-       
-       //RespSubmitJob r = new RespSubmitJob();
+      
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
