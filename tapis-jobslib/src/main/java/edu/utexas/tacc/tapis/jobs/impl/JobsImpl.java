@@ -27,6 +27,7 @@ import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
+import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTParser;
@@ -780,5 +781,51 @@ public final class JobsImpl
       
         // Make the call to Notifications.
         return notifClient.postSubscription(postReq);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSubscriptions:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public RespSubscriptions getSubscriptions(String jobUuid, int limit, int skip,
+                                              String user, String tenant) 
+     throws RuntimeException, TapisException, ExecutionException
+    {
+        // Get the notification client for this user, which may be cached.
+        NotificationsClient notifClient = 
+            ServiceClients.getInstance().getClient(user, tenant, NotificationsClient.class);
+        
+        // TODO: Call getSubscriptionBySubject() **************************
+        
+        return null;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* deleteJobSubscriptions:                                                */
+    /* ---------------------------------------------------------------------- */
+    public RespSubscriptions deleteJobSubscriptions(String jobUuid, String user, String tenant) 
+     throws RuntimeException, TapisException, ExecutionException
+    {
+        // Get the notification client for this user, which may be cached.
+        NotificationsClient notifClient = 
+            ServiceClients.getInstance().getClient(user, tenant, NotificationsClient.class);
+        
+        // TODO: Call deleteSubscriptionsBySubject() **************************
+        
+        return null;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* deleteJobSubscription:                                                 */
+    /* ---------------------------------------------------------------------- */
+    public RespSubscriptions deleteJobSubscription(String uuid, String user, String tenant) 
+     throws RuntimeException, TapisException, ExecutionException
+    {
+        // Get the notification client for this user, which may be cached.
+        NotificationsClient notifClient = 
+            ServiceClients.getInstance().getClient(user, tenant, NotificationsClient.class);
+        
+        // TODO: Call deleteSubscriptionByUUID() **************************
+        
+        return null;
     }
 }

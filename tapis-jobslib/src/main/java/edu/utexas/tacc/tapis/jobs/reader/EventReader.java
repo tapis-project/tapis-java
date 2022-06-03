@@ -181,7 +181,7 @@ public final class EventReader
         event.setSeriesId(jobEvent.getJobUuid());
         event.setData(jobEvent.getDescription());
         event.setTimestamp(Instant.now().toString());
-// TODO:        event.setDeleteSubscriptionsMatchingSubject(isLastEvent(jobEvent.getEvent(), jobEvent.getEventDetail()));
+        event.setDeleteSubscriptionsMatchingSubject(isLastEvent(jobEvent.getEvent(), jobEvent.getEventDetail()));
         
         // Get a Notification's client.
         NotificationsClient client = null;
