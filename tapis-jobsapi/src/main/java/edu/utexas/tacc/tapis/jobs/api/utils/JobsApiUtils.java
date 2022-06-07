@@ -94,7 +94,7 @@ public class JobsApiUtils
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* postSubcriptionRequest:                                                      */
+    /* postSubscriptionRequest:                                                     */
     /* ---------------------------------------------------------------------------- */
     /** Convert a subscribe request into a Notification ReqPostSubscription object
      * and pass that to Notifications to create a subscription.
@@ -109,8 +109,8 @@ public class JobsApiUtils
      * @throws TapisException
      * @throws ExecutionException
      */
-    public static String postSubcriptionRequest(ReqSubscribe reqSubscribe, String user,
-                                                String tenant, String jobUuid) 
+    public static String postSubscriptionRequest(ReqSubscribe reqSubscribe, String user,
+                                                 String tenant, String jobUuid) 
      throws TapisClientException, RuntimeException, TapisException, ExecutionException
     {
         // Populate the request object.  The subjectFilter is always the jobEventType.
@@ -147,7 +147,7 @@ public class JobsApiUtils
         
         // Send request to Notifications.
         var jobsImpl = JobsImpl.getInstance();
-        return jobsImpl.postSubcription(notifReq, user, tenant);
+        return jobsImpl.postSubscription(notifReq, user, tenant);
     }
     
     /* ---------------------------------------------------------------------------- */

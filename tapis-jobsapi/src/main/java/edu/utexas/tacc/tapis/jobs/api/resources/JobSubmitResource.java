@@ -415,9 +415,9 @@ public class JobSubmitResource
          // a subscription in Notifications is a system problem that aborts the job.
          for (var req : reqCtx.getSubmitReq().getSubscriptions()) {
              String url = null;
-             try {url = JobsApiUtils.postSubcriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
+             try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
              catch (Exception e) {
-                 String msg = MsgUtils.getMsg("JOBS_SUBCRIPTION_ERROR", job.getUuid(), 
+                 String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                               job.getOwner(), job.getTenant(), e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.INTERNAL_SERVER_ERROR).
