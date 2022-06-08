@@ -474,6 +474,25 @@ public class JobSubscriptionResource
      }
      
      /* ---------------------------------------------------------------------------- */
+     /* checkSubscriptionTenant:                                                     */
+     /* ---------------------------------------------------------------------------- */
+     private Response checkSubscriptionTenant(String subTenant, String oboTenant, 
+                                              String jobTenant, boolean prettyPrint)
+     {
+         // Make sure the subscription is in the same tenant in which the user is
+         // authenticated and the job resides in.
+         if (!oboTenant.equals(subTenant) || !jobTenant.equals(subTenant)) {
+             var msg = MsgUtils.getMsg("JOBS_MISMATCHED_SUBSCRIPTION_TENANT", subTenant, jobTenant); 
+             _log.error(msg);
+             return Response.status(Status.UNAUTHORIZED).
+                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // Authorization succeeded.
+         return null;
+     }
+     
+     /* ---------------------------------------------------------------------------- */
      /* deleteJobSubscriptions:                                                      */
      /* ---------------------------------------------------------------------------- */
      private Response deleteJobSubscriptions(String jobUuid, boolean prettyPrint)
@@ -550,8 +569,9 @@ public class JobSubscriptionResource
          // We need to get the owner and subject from the subscription.
          String subSubject = null;
          String subOwner   = null;
+         String subTenant  = null;
          try {
-             // Retrieve the subscriptio.
+             // Retrieve the subscription.
              var jobsImpl = JobsImpl.getInstance(); 
              var subscription = jobsImpl.getSubscriptionByUUID(uuid, oboUser, oboTenant);
              
@@ -566,6 +586,7 @@ public class JobSubscriptionResource
              // Extract subscription information.
              subSubject = subscription.getSubjectFilter();
              subOwner   = subscription.getOwner();
+             subTenant  = subscription.getTenant();
          }
          catch (Exception e) {
              var jobref = subSubject == null ? "unknown" : subSubject;
@@ -591,6 +612,10 @@ public class JobSubscriptionResource
          // is the subscription owner, we let processing proceed.
          var response = checkAuthorization(oboTenant, oboUser, subSubject, dto.getOwner(), prettyPrint);
          if (response != null && !oboUser.equals(subOwner)) return response;
+         
+         // Make sure the subscription, job and obo tenants are the same.
+         response = checkSubscriptionTenant(subTenant, oboTenant, dto.getTenant(), prettyPrint);
+         if (response != null) return response;
          
          // ------------------------- Delete Subscription ----------------------
          // Delete the specific subscription.
