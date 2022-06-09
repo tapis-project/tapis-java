@@ -7,6 +7,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
@@ -250,6 +252,100 @@ public class JobSubmitResource
        
        // The shared code takes it from here.
        return doSubmit(prettyPrint, jobResubmit.getJobDefinition());
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* getResubmitRequestJson:                                                      */
+     /* ---------------------------------------------------------------------------- */
+     @GET
+     @Path("/{jobuuid}/resubmit_request")
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Get Resubmit request for of a job in JSON format.  ",
+             tags = "jobs",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             responses = 
+                 {
+                  @ApiResponse(responseCode = "200", description = "Resumbit request for the job is retrieved sucessfully.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+     )
+     public Response getResubmitRequestJson(@PathParam("jobuuid") String jobUuid,
+                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     {
+    	 // Trace this request.
+    	 if (_log.isTraceEnabled()) {
+    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getResubmitRequestJson",
+    				 				      "  " + _request.getRequestURL());
+    		 _log.trace(msg);
+    	 }
+     
+       // ------------------------- Validate Parameter -----------------------
+       if (StringUtils.isAllBlank(jobUuid)) {
+         String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).
+                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Get Resubmit -----------------------------
+       // We need resubmit request now go lookup the stored job definition
+       JobResubmit jobResubmit = null;
+       try {
+           var jobResubmitDao = new JobResubmitDao();
+           jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
+       } catch (Exception e) {
+           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.BAD_REQUEST).
+                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // Make sure we got something.
+       if (jobResubmit == null) {
+           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
+           _log.error(msg);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Input Processing -------------------------
+       // Parse and validate the json in the request payload, which must exist.
+       ReqSubmitJob payload = null;
+       try {payload = getPayload(jobResubmit.getJobDefinition(), FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
+       catch (Exception e) {
+           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
+                                        "resubmitrequestjson", e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+
+       // ------------------------- Create Context ---------------------------
+       // Validate the threadlocal content here so no subsequent code on this request needs to.
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       if (!threadContext.validate()) {
+           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+           _log.error(msg);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+      
+       RespGetResubmit r = new RespGetResubmit(payload);
+       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+               MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
      }
      
      /* **************************************************************************** */

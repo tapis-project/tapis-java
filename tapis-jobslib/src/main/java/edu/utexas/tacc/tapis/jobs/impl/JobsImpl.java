@@ -7,16 +7,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobQueue;
+import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
+import edu.utexas.tacc.tapis.jobs.model.dto.JobShareListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
@@ -26,11 +32,19 @@ import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTParser;
+import edu.utexas.tacc.tapis.security.client.SKClient;
+import edu.utexas.tacc.tapis.security.client.gen.model.ReqShareResource;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkShare;
+import edu.utexas.tacc.tapis.security.client.gen.model.SkShareList;
+import edu.utexas.tacc.tapis.security.client.model.SKShareDeleteShareParms;
+import edu.utexas.tacc.tapis.security.client.model.SKShareGetSharesParms;
+import edu.utexas.tacc.tapis.security.client.model.SKShareHasPrivilegeParms;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 
@@ -43,6 +57,7 @@ public final class JobsImpl
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobsImpl.class);
+    public static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     
     
     /* ********************************************************************** */
@@ -94,21 +109,25 @@ public final class JobsImpl
         }
         
         // ----- Get the job list.
-        List<JobListDTO> jobList = null;
+        List<JobListDTO> jobList = new ArrayList<JobListDTO>();
         try {jobList =  getJobsDao().getJobsByUsername(user, tenant, orderByList,limit, skip);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SELECT_BY_USERNAME_ERROR", user, tenant,e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
+      
+        
         // Could be null if not found.
         return jobList;
     }
+    
     
     /* ---------------------------------------------------------------------- */
     /* getJobListCountByUsername:                                             */
     /* ---------------------------------------------------------------------- */
    
-    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList, List<OrderBy> orderByList) 
+    public int getJobsSearchListCountByUsername(String user, String tenant, List<String> searchList,
+    		List<OrderBy> orderByList, boolean sharedWithMe) 
     		throws TapisImplException
     {
     	// ----- Check input.
@@ -150,7 +169,7 @@ public final class JobsImpl
 
       // Count all allowed jobs matching the search conditions
       try {
-		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList) ;
+		count =  getJobsDao().getJobsSearchListCountByUsername(user, tenant, verifiedSearchList, orderByList, sharedWithMe) ;
 	} catch (TapisException e) {
 		String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -202,7 +221,7 @@ public final class JobsImpl
     /* getJobSearchListByUsername:                                            */
     /* ---------------------------------------------------------------------- */
     public List<JobListDTO> getJobSearchListByUsername(String user, String tenant, List<String>searchList, 
-    		List<OrderBy> orderByList, Integer limit,Integer skip) 
+    		List<OrderBy> orderByList, Integer limit,Integer skip, boolean sharedWithMe) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -238,16 +257,16 @@ public final class JobsImpl
         }
         // ----- Get the job list.
         List<JobListDTO> jobList = null;
-        try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
-        catch (Exception e) {
+        try {jobList = getJobsDao().getJobsSearchByUsername(user, tenant, verifiedSearchList, orderByList, limit,
+        		skip, sharedWithMe);
+        } catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         // Could be null if not found.
         return jobList;
     }
-    
-    
+
     /* ---------------------------------------------------------------------- */
     /* getJobSearchListByUsernameUsingSqlSearchStr:                           */
     /* ---------------------------------------------------------------------- */
@@ -267,7 +286,7 @@ public final class JobsImpl
         }
         
         if (StringUtils.isBlank(sqlSearchStr)) {
-        	return getJobSearchListByUsername(user, tenant, null,  orderByList, limit, skip) ;
+        	return getJobSearchListByUsername(user, tenant, null,  orderByList, limit, skip,false) ;
         } 
         
         ASTNode searchAST;
@@ -296,7 +315,7 @@ public final class JobsImpl
     /* getJobSearchAllAttributesByUsername:                                   */
     /* ---------------------------------------------------------------------- */
     public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList,
-    		List<OrderBy> orderByList, Integer limit,Integer skip) 
+    		List<OrderBy> orderByList, Integer limit,Integer skip, boolean shared) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -332,7 +351,8 @@ public final class JobsImpl
         }
         // ----- Get the job list.
         List<Job> jobList = null;
-        try {jobList = getJobsDao().getJobSearchAllAttributesByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip);}
+       
+        try {jobList = getJobsDao().getJobSearchAllAttributesByUsername(user, tenant, verifiedSearchList,orderByList,limit,skip,shared);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -384,7 +404,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     public Job getJobByUuid(String jobUuid, String user, String tenant) 
      throws TapisImplException
-    {
+    {  
+    	
         // ----- Check input.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
@@ -414,17 +435,61 @@ public final class JobsImpl
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
         if (!tenant.equals(job.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(job.getOwner()) && 
-	            !user.equals(job.getCreatedby()) && 
-	            !isAdminSafe(user, tenant)) 
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
+            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
+            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+        }
         
+        /**
+         * Check if the user is the job owner, or the tenant admin or the one who created the job
+         * If none of the above is true, then the user is not authorized
+         * */
+        
+        if (!user.equals(job.getOwner()) && 
+        	!user.equals(job.getCreatedby()) && 
+        	!isAdminSafe(user, tenant)) 
+        {
+            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+        }
+       
+        // Could be null if not found.
+        return job;
+    }
+    
+   
+    /* ---------------------------------------------------------------------- */
+    /* getJobByUuid:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public Job getJobByUuid(String jobUuid, String user, String tenant, 
+                            String jobResourceShareType, String privilege) 
+     throws TapisImplException
+    {  
+    	
+    	boolean checkShare = false;
+    	Job job = null;
+        try {job = getJobByUuid(jobUuid, user, tenant);}
+        catch (Exception e) {
+        	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
+        		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+               checkShare = true;
+            }
+        
+        // ----- Share Authorization checks.
+        // Make sure the user and tenant are authorized.
+       if (job != null && checkShare) {
+	       
+	        /**
+	         * 
+	         * If the user is not the job owner or not admin or not the one who created the job,
+	         * we need to check if the job has been shared with the user.
+	         * */
+    	    if (!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
+    	        String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+       		     _log.error(msg);
+       		     throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+	        }
+	    }
+       
         // Could be null if not found.
         return job;
     }
@@ -434,7 +499,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant) 
      throws TapisImplException
-    {
+    {  
+    
         // ----- Check input.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "jobUuid");
@@ -449,7 +515,7 @@ public final class JobsImpl
             throw new TapisImplException(msg, Condition.BAD_REQUEST);
         }
         
-        // ----- Get the job status.
+        // ----- Get the job status, job owner, createdby, createdby tenant and visible information
         JobStatusDTO jobstatus = null;
         try {jobstatus = getJobsDao().getJobStatusByUUID(jobUuid);}
         catch (Exception e) {
@@ -459,65 +525,130 @@ public final class JobsImpl
         
         // ----- Authorization checks.
         // Make sure the user and tenant are authorized.
-        if(jobstatus != null) {
+       if(jobstatus != null) {
 	        if (!tenant.equals(jobstatus.getTenant())) {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, jobstatus.getTenant());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
+	        
+	        /**
+	         * Check if the user is the job owner, or the tenant admin or the one who created the job
+	         * If none of the above is true, then the user is not authorized
+	         * */
+	        
 	        if (!user.equals(jobstatus.getOwner()) && 
-	            !user.equals(jobstatus.getCreatedBy()) && 
-	            !isAdminSafe(user, tenant) &&
-	        	!user.equals(jobstatus.getCreatedByTenant())) //TODO tenant
+	        	!user.equals(jobstatus.getCreatedBy()) && 
+	        	!isAdminSafe(user, tenant))
+	        	
 	        {
 	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
 	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
-        }
+	        
+	      }
         
         // Could be null if not found.
         return jobstatus;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* getJobStatusByUuid:                                                    */
+    /* ---------------------------------------------------------------------- */
+    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
+     throws TapisImplException
+    {  
+    
+        
+        // ----- Get the job status, job owner, createdby, createdby tenant and visible information
+        JobStatusDTO jobstatus = null;
+        boolean checkShare = false;
+        try {jobstatus = getJobStatusByUuid(jobUuid, user, tenant);}
+        catch (Exception e) {
+        	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
+        		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+               checkShare = true;
+            }
+           
+        
+        // ----- Share Authorization checks.
+        // Make sure the user and tenant are authorized.
+       if(jobstatus != null && checkShare) {
+	       
+	        /**
+	         * If the user is not the job owner or not admin or not the one who created the job, we need to check if the job has been shared with the user.
+	         * */
+    	    if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
+       		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
+       		 _log.error(msg);
+       		throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+       		
+	        }
+	    }
+        
+        // Could be null if not found.
+        return jobstatus;
+    }
+
+   
+    
+    /* ---------------------------------------------------------------------- */
+    /* isJobShared:                                                           */
+    /* ---------------------------------------------------------------------- */
+    
+    public boolean isJobShared(String jobUuid, String user, String tenant, 
+    		String jobResourceShareType, String privilege ) 
+    		throws TapisImplException 
+    {
+    	 
+    	boolean shareFlag = false;
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, user, tenant);
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, user);
+             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+         };
+         
+         SKShareHasPrivilegeParms skParams = new SKShareHasPrivilegeParms();
+         skParams.setGrantee(user);
+         skParams.setResourceId1(jobUuid);
+         skParams.setResourceType(jobResourceShareType);
+         skParams.setPrivilege(privilege);
+         
+         try {
+				shareFlag = skClient.hasPrivilege(skParams);
+			} catch (TapisClientException e) {
+				String msg = MsgUtils.getMsg("JOBS_SHARE_NO_PRIVILEDGE_ERROR", tenant, user);
+				throw new TapisImplException(msg, e, Condition.UNAUTHORIZED);
+			}
+		return shareFlag;
+    }
+
+   
     
     /* ---------------------------------------------------------------------- */
     /* getJobOutputList:                                                      */
     /* ---------------------------------------------------------------------- */
-    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip) 
+    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip, 
+    		String jobResourceShareType, String privilege) 
      throws TapisImplException
     {
-        // ----- Check input.
-        if (StringUtils.isBlank(job.getUuid())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobOutputList", "jobUuid");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(user)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-        if (!tenant.equals(job.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(job.getOwner()) && 
-	            !user.equals(job.getCreatedby()) && 
-	            !isAdminSafe(user, tenant)) 
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
         
         // ----- Get the job output files list.
         DataLocator dataLocator = new DataLocator(job);
         
         JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
         
-        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip);
+        // We checked if the job is shared within the method getJobByUuid(). We never return the value of the check. 
+        // So, we need to check it again here if the job is shared and accordingly set the impersonationId
+        
+        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege);
+        String impersonationId =  null;
+        if(skipTapisAuthorization == true) {
+        	impersonationId = job.getOwner();
+        }
+        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
                
         return outputList;
     }
@@ -527,33 +658,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) throws TapisImplException
     {
-        // ----- Check input.
-        if (StringUtils.isBlank(job.getUuid())) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobOutputList", "jobUuid");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(user)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "user");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        if (StringUtils.isBlank(tenant)) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobByUuid", "tenant");
-            throw new TapisImplException(msg, Condition.BAD_REQUEST);
-        }
-        
-        // ----- Authorization checks.
-        // Make sure the user and tenant are authorized.
-        if (!tenant.equals(job.getTenant())) {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", tenant, job.getTenant());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
-	        if (!user.equals(job.getOwner()) && 
-	            !user.equals(job.getCreatedby()) && 
-	            !isAdminSafe(user, tenant)) 
-	        {
-	            String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
-	            throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-	        }
+       
         
         // ----- Download Info for the job output files.
         DataLocator dataLocator = new DataLocator(job);
@@ -677,7 +782,7 @@ public final class JobsImpl
     }
     
     /* ---------------------------------------------------------------------- */
-    /* doHideJob:                                                             */
+    /* doUnHideJob:                                                           */
     /* ---------------------------------------------------------------------- */
     public boolean doUnHideJob(String jobUuid, String tenant, String user) 
     {
@@ -693,6 +798,263 @@ public final class JobsImpl
         
         // Could be null if not found.
         return true;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* createShareJob:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void createShareJob(JobShared jobShared) throws TapisException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, jobShared.getCreatedby(), jobShared.getTenant());
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", jobShared.getTenant(), jobShared.getCreatedby());
+             throw new TapisException(msg, e);
+         };
+         
+         validateNewSharedJob(jobShared);
+         
+         ReqShareResource resourceShared = new ReqShareResource();
+         resourceShared.setGrantee(jobShared.getGrantee());
+         resourceShared.setResourceType(jobShared.getJobResource().name());
+         resourceShared.setResourceId1(jobShared.getJobUuid());
+         resourceShared.setResourceId2(null);
+         resourceShared.setPrivilege(jobShared.getJobPermission().name());
+         resourceShared.setGrantor(jobShared.getGrantor());
+         
+         String url = "";
+         
+         try {
+			url = skClient.shareResource(resourceShared);
+			_log.debug("Resource is sucessfully shared: " + url);
+		 } catch (TapisClientException e) {
+			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARE_SK_CLIENT_INSERT_ERROR", jobShared.getJobUuid(), jobShared.getCreatedby(),
+	            		jobShared.getJobResource(),e);
+	         _log.error(msg, e);
+	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+		 }
+    }
+    /* ---------------------------------------------------------------------- */
+    /* deleteShareJob:                                                        */
+    /* ---------------------------------------------------------------------- */
+    public void deleteShareJob(JobShared js, String tenant, String grantor) throws TapisException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, grantor, tenant);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, grantor);
+             throw new TapisException(msg, e);
+         };
+         
+        
+         SKShareDeleteShareParms param = new SKShareDeleteShareParms();
+         param.setGrantee(js.getGrantee());
+         param.setResourceId1(js.getJobUuid());
+         param.setResourceType(js.getJobResource().name());
+         param.setPrivilege(JobTapisPermission.READ.name());
+         
+         try {
+			int i = skClient.deleteShare(param);
+			_log.debug("Resource share is sucessfully revoked: " + i);
+		 } catch (TapisClientException e) {
+			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARE_SK_CLIENT_DELETE_ERROR", js.getJobUuid(), js.getGrantee(),
+					 grantor, tenant,e);
+	         _log.error(msg, e);
+	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+		 }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createShareEvent:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public void createShareEvent(JobShared jshare) throws TapisException 
+    
+    {
+    
+    	var eventMgr = JobEventManager.getInstance();
+	   
+	    try {
+	     
+	      eventMgr.recordShareEvent(jshare.getJobUuid(),jshare.getJobResource().name(), "SHARE_"+ jshare.getJobResource().name() + "_" + jshare.getJobPermission().name(), jshare.getGrantee() , jshare.getCreatedby());
+	      
+	    } catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SHARE_EVENT_CREATE_ERROR", jshare.getJobUuid(), jshare.getTenant(),e);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", jshare.getTenant(), jshare.getCreatedby(), jshare.getJobUuid(), e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* createUnShareEvent:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public void createUnShareEvent(JobShared js) throws TapisException 
+    
+    {
+    
+    	var eventMgr = JobEventManager.getInstance();
+	   
+	    try {
+	      String event = "UNSHARE_"+ js.getJobResource().name() + "_" + js.getJobPermission().name();
+	      eventMgr.recordUnShareEvent(js,event);
+	      
+	    } catch (TapisNotFoundException e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_UNSHARE_EVENT_CREATE_ERROR", js.getJobUuid(),
+            		js.getTenant(), e);
+            throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SELECT_UUID_ERROR", js.getTenant(), js.getCreatedby(), 
+            		js.getGrantee(), js.getJobResource(), e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /* ---------------------------------------------------------------------- */
+    /* getShareJob:                                                           */
+    /* ---------------------------------------------------------------------- */
+    public List<JobShareListDTO> getShareJob(String jobUuid, String grantor, String obouser, String tenant) throws TapisImplException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, obouser, tenant);
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, obouser);
+             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+         };
+         
+         SKShareGetSharesParms params = new SKShareGetSharesParms();
+         params.setResourceId1(jobUuid);
+         SkShareList skShareList = null;
+       
+         try {
+ 			skShareList = skClient.getShares(params);
+ 		 } catch (TapisClientException e) {
+ 			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARE_SK_RETRIEVE_ERROR",jobUuid, grantor, tenant, e);
+ 	         _log.error(msg, e);
+ 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+ 		}
+        
+         List<JobShareListDTO> jobShareList = new ArrayList<JobShareListDTO>();
+         // Convert from SK representation to local representation
+         for(SkShare sks: skShareList.getShares()) {
+        	 JobShared js = new JobShared();
+           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
+        	 js.setCreated(sks.getCreated().toInstant());
+        	 js.setJobUuid(sks.getResourceId1());
+        	 js.setCreatedby(sks.getGrantor());
+        	
+        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
+        	 js.setTenant(sks.getTenant());
+        	 js.setUserSharedWith(sks.getGrantee());
+        	 jobShareList.add(new JobShareListDTO(js));
+         }
+         
+       return jobShareList; 
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSharesJob:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public  List<JobShared> getSharesJob(String grantee, String jobUuid, String obouser, 
+    		String grantor, String tenant) throws TapisImplException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, obouser, tenant);
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, grantor);
+             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+         };
+         
+         SKShareGetSharesParms params = new SKShareGetSharesParms();
+         params.setGrantee(grantee);
+         params.setGrantor(grantor);
+         params.setResourceId1(jobUuid);
+               
+         SkShareList skShareList = null;
+       
+         try {
+ 			skShareList = skClient.getShares(params);
+ 		 } catch (TapisClientException e) {
+ 			 String msg = MsgUtils.getMsg("JOBS_JOB_SHARE_SK_RETRIEVE_ERROR" ,jobUuid, grantor, tenant, e);
+ 	         _log.error(msg, e);
+ 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+ 		}
+        
+         // Convert from SK representation to local representation
+         List<JobShared> jobShareList = new ArrayList<JobShared>();
+         for(SkShare sks: skShareList.getShares()) {
+        	 JobShared js = new JobShared();
+           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
+        	 js.setCreated(sks.getCreated().toInstant());
+        	 js.setJobUuid(sks.getResourceId1());
+        	 js.setCreatedby(sks.getGrantor());
+        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
+        	 js.setTenant(sks.getTenant());
+        	 js.setUserSharedWith(sks.getGrantee());
+        	 js.setId(sks.getId());
+        	 jobShareList.add(js);
+         }
+         
+       return jobShareList; 
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSharesJob:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public  List<JobShared> getSharesJob(String user,String tenant) throws TapisImplException 
+    
+    {
+    	 SKClient skClient = null;
+         try {
+             skClient = getServiceClient(SKClient.class, user, tenant);
+         }
+         catch (Exception e) {
+             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, user);
+             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+         };
+         
+         SKShareGetSharesParms params = new SKShareGetSharesParms();
+         params.setGrantee(user);
+         
+        
+         SkShareList skShareList = null;
+       
+         try {
+ 			skShareList = skClient.getShares(params);
+ 		 } catch (TapisClientException e) {
+ 			 String msg = MsgUtils.getMsg("JOBS_SHARE_SK_RETRIEVE_ERROR" , user, tenant, e);
+ 	         _log.error(msg, e);
+ 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+ 		}
+         
+         // Convert from SK representation to local representation
+         List<JobShared> jobShareList = new ArrayList<JobShared>();
+         for(SkShare sks: skShareList.getShares()) {
+        	 JobShared js = new JobShared();
+           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
+        	 js.setCreated(sks.getCreated().toInstant());
+        	 js.setJobUuid(sks.getResourceId1());
+        	 js.setCreatedby(sks.getGrantor());
+        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
+        	 js.setTenant(sks.getTenant());
+        	 js.setUserSharedWith(sks.getGrantee());
+        	 js.setId(sks.getId());
+        	 jobShareList.add(js);
+         }
+         
+       return jobShareList; 
     }
     
     /* ---------------------------------------------------------------------- */
@@ -763,5 +1125,69 @@ public final class JobsImpl
         }
     }
     
+    /* -----------------------------------------------------------------------------*/
+    /* getServiceClient:                                                            */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Service client.  This can only be called after
+     * the request tenant and owner have be assigned.
+     * 
+     * @return the client
+     * @throws TapisImplException
+     */
+    public <T> T getServiceClient(Class<T> cls,  String user, String tenant) throws TapisImplException
+    {
+        // Get the application client for this user@tenant.
+        T client = null;
+        try {
+            client = ServiceClients.getInstance().getClient(
+                   user, tenant, cls);
+        }
+        catch (Exception e) {
+            var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", serviceName, 
+                                         tenant, user);
+            throw new TapisImplException(msg, e,  HTTP_INTERNAL_SERVER_ERROR );
+        }
+
+        return client;
+    }
+
+    
+   
+    /* ********************************************************************** */
+	  /*                             Private Methods                            */
+	  /* ********************************************************************** */
+
+     private  void validateNewSharedJob(JobShared jobShared) throws TapisException
+  	
+     {
+     
+  	   if (StringUtils.isBlank(jobShared.getJobUuid())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobUuid");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getTenant())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "tenant");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getCreatedby())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "createdBy");
+	          throw new JobException(msg);
+	      }
+	      if (StringUtils.isBlank(jobShared.getGrantee())) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "userSharedWith");
+	          throw new JobException(msg);
+	      }
+	     
+	      if (jobShared.getJobResource() == null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobResource");
+	          throw new JobException(msg);
+	      }
+	      
+	      if (jobShared.getJobPermission()== null) {
+	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createSharedJob", "jobPermission");
+	          throw new JobException(msg);
+	      }
+     }
   
 }

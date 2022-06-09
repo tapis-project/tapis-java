@@ -28,6 +28,8 @@ import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -172,9 +174,8 @@ public class JobOutputDownloadResource extends AbstractResource{
        var jobsImpl = JobsImpl.getInstance();
        
        try {
-           
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId());
+    	   job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
+        		   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
@@ -220,7 +221,8 @@ public class JobOutputDownloadResource extends AbstractResource{
        List<FileInfo> filesList = null;
        
        try {
-		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, DEFAULT_LIMIT,DEFAULT_SKIP);
+		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath,
+				DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -275,12 +277,26 @@ public class JobOutputDownloadResource extends AbstractResource{
        String mtype = MediaType.APPLICATION_OCTET_STREAM;
        
        DataLocator dataLocator = new DataLocator(job);
+       boolean skipTapisAuthorization = false;
+	   try {
+			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
+					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+	   } catch (TapisImplException e1) {
+			// TODO Add message
+			e1.printStackTrace();
+	   }
        
+	   String impersonationId = null;
+	   if(skipTapisAuthorization == true) {
+		   impersonationId = job.getOwner();
+	   }
        try {
-    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath);
+    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), 
+    			  outputPath);
     	       	   
     	  if(jobOutputFilesinfo != null) {
-    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), threadContext.getOboUser(), compress);
+    		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), 
+    				   threadContext.getOboUser(), compress, impersonationId);
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)

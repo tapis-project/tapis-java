@@ -31,7 +31,6 @@ public class DataLocator {
     /*                                 Fields                                 */
     /* ********************************************************************** */
     private final Job _job;
-    
    
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -55,7 +54,10 @@ public class DataLocator {
     	 JobOutputInfo jobOutputInfo = null;
     	
     	 // archiveSytemDir and archiveSystemId always have values set
-    	 if(_job.getStatus() == JobStatusType.FINISHED || (_job.getStatus()== JobStatusType.FAILED && _job.getRemoteOutcome() != JobRemoteOutcome.FAILED_SKIP_ARCHIVE)) {
+    	 if(_job.getStatus() == JobStatusType.FINISHED || 
+    	    (_job.getStatus()== JobStatusType.FAILED && 
+    	     _job.getRemoteOutcome() != JobRemoteOutcome.FAILED_SKIP_ARCHIVE)) 
+    	 {
     		systemId = _job.getArchiveSystemId();
     		systemUrl = makeSystemUrl( _job.getArchiveSystemDir(), pathName);
     		_log.debug("Archive Path URL: " + systemUrl);
@@ -72,44 +74,52 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      /* getJobOutputListings:                                                  */
      /* ---------------------------------------------------------------------- */
-     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, String user, int limit, int skip ) throws TapisImplException{
+     public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, 
+                                                String user, int limit, int skip,
+    		                                    String impersonationId) 
+      throws TapisImplException
+     {
     	 List<FileInfo> outputList = null;
-    	
+    	 boolean recursiveFlag = true;
+    	 
     	 // Get the File Service client 
          FilesClient filesClient = null;
 		
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
-		
-       
-        try {
-			outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), limit, skip, true);
-		} catch (TapisClientException e) {
+		        
+         try {
+        	outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), 
+        	                                   limit, skip, recursiveFlag, impersonationId);
+         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
-            		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), limit, skip,_job.getOwner(),
-            	   _job.getTenant(), e.getCode());
+            		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), 
+            		limit, skip, _job.getOwner(), _job.getTenant(), e.getCode());
             throw new TapisImplException(msg, e, e.getCode());
-        }
-		
+         }
 		
         if (outputList == null) {
         	_log.debug("Null Job output Files list returned!");
          } else {
             _log.debug("Number of Job output files returned: " + outputList.size());
          }
-    	 return outputList;
+    	return outputList;
      }
+     
      /* ---------------------------------------------------------------------- */
      /* getJobOutputDownload:                                                  */
      /* ---------------------------------------------------------------------- */
-     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, String tenant, String user, boolean compress ) throws TapisImplException{
-    	
+     public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, 
+                                              String tenant, String user, 
+    		                                  boolean compress, String impersonationId) 
+      throws TapisImplException
+     {
     	 // Get the File Service client 
          FilesClient filesClient = null;
 		
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		 StreamedFile streamFromFiles = null;
 		 try {
-			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress);
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId);
 			
 		} catch (TapisClientException e) {
 			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 
@@ -126,7 +136,6 @@ public class DataLocator {
          }
     	 return streamFromFiles;
      }
-     
      
      /* ---------------------------------------------------------------------- */
      /* makeSystemUrl:                                                         */
