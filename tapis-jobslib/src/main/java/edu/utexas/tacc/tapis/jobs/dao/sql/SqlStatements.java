@@ -39,27 +39,10 @@ public class SqlStatements
         	+ "is_mpi, mpi_cmd, cmd_prefix"
             + " FROM jobs ORDER BY id";
     
-    public static final String SELECT_JOBS_BY_USERNAME =
-        "SELECT uuid, tenant, name, owner, status, "
-         	+ "created, ended, last_updated, app_id,"
-           	+ "app_version, exec_system_id, archive_system_id, "
-           	+ "remote_started "
-            + " FROM jobs "
-           	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
-           	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
-   
-    public static final String SELECT_JOBS_LIST_DTO_BY_UUID =
-            "SELECT uuid, tenant, name, owner, status, "
-             	+ "created, ended, last_updated, app_id,"
-               	+ "app_version, exec_system_id, archive_system_id, "
-               	+ "remote_started "
-                + " FROM jobs "
-               	+ " WHERE visible = ? AND uuid = ? ";
-               
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
-        	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
-        	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
+            + "last_message, created, ended, last_updated, uuid, app_id, app_version, "
+            + "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
             + "archive_system_id, archive_system_dir, "
             + "dtn_system_id, dtn_mount_source_path, dtn_mount_point, "
@@ -74,7 +57,24 @@ public class SqlStatements
             + "is_mpi, mpi_cmd, cmd_prefix"
             + " FROM jobs"
             + " WHERE uuid = ?";
-    
+        
+    public static final String SELECT_JOBS_BY_USERNAME =
+        "SELECT uuid, tenant, name, owner, status, "
+         	+ "created, ended, last_updated, app_id,"
+           	+ "app_version, exec_system_id, archive_system_id, "
+           	+ "remote_started "
+            + " FROM jobs "
+           	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
+           	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
+   
+    public static final String SELECT_JOBS_LIST_DTO_BY_UUID =
+        "SELECT uuid, tenant, name, owner, status, "
+          	+ "created, ended, last_updated, app_id,"
+          	+ "app_version, exec_system_id, archive_system_id, "
+           	+ "remote_started "
+            + " FROM jobs "
+          	+ " WHERE visible = ? AND uuid = ? ";
+               
     public static final String SELECT_JOBS_STATUS_INFO_BY_UUID =
             "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
             + " FROM jobs"
@@ -282,31 +282,5 @@ public class SqlStatements
             + " WHERE job_uuid = ? "		
             + " ORDER BY id  LIMIT ? OFFSET ?";
     
-    /* ---------------------------------------------------------------------- */
-    /* jobs_shared table:                                                     */
-    /* ---------------------------------------------------------------------- */
-     
-	/*public static final String CREATE_JOB_SHARED = 
-		"INSERT INTO jobs_shared ("
-		+ "tenant, createdby,jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
-		+ "VALUES (?, ?, ?, ?, ?::job_resource_enum, ?::job_permission_enum, ?, ? "
-		+ " )";
-	
-	public static final String SELECT_JOBS_SHARED_BY_JOB_UUID = 
-			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
-			+ " FROM jobs_shared "
-		    + " job_uuid = ? ";
-			
-	public static final String SELECT_JOBS_SHARED_WITH_USER = 
-			
-			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
-			+ " FROM jobs_shared "
-		    + " tenant = ? AND user_share_with = ? ";
-    public static final String SELECT_JOBS_SHARED_BY_USER = 
-			
-			"SELECT id, tenant, createdby, jobUuid, user_share_with, job_resource, job_permission, created, last_updated "
-			+ " FROM jobs_shared "
-		    + " tenant = ? AND createdby = ? ";		
-    */
 }	
 	

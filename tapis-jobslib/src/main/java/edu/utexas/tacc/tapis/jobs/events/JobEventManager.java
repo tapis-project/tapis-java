@@ -182,8 +182,7 @@ public final class JobEventManager
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(jobUuid);
-		jobEvent.setEventDetail(event);// ex."SHARE_JOB_HISTORY_READ"
-		//jobEvent.setOthUuid("");
+		jobEvent.setEventDetail(event); // ex."SHARE_JOB_HISTORY_READ"
 		
 		// Can we augment the standard event description?
 		var desc = jobEvent.getEvent().getDescription();
@@ -191,31 +190,31 @@ public final class JobEventManager
 		jobEvent.setDescription(desc);
 		
 		// Save in db.
-		//_jobEventsDao.createEvent(jobEvent);
 		_jobEventsDao.createEvent(jobEvent, null);
 		return jobEvent;
     }
   
    public JobEvent recordUnShareEvent(JobShared js, String event)
 		   throws TapisException
-  {
+   {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(js.getJobUuid());
 		jobEvent.setEventDetail(event);// ex."UNSHARE_ResourceType_Priviledge"
-		//jobEvent.setOthUuid("");
 		
 		// Can we augment the standard event description?
 		var desc = jobEvent.getEvent().getDescription();
-		desc += " Grantor " + js.getCreatedby() + " unshares the job  " + js.getJobUuid() + " resource " + js.getJobResource().name() + " with grantee " + js.getGrantee() + " in tenant "+ js.getTenant() +".";
+		desc += " Grantor " + js.getCreatedby() + " unshares the job  " 
+		        + js.getJobUuid() + " resource " + js.getJobResource().name() 
+		        + " with grantee " + js.getGrantee() + " in tenant "+ js.getTenant() + ".";
 		jobEvent.setDescription(desc);
 		
 		// Save in db.
-		//_jobEventsDao.createEvent(jobEvent);
 		_jobEventsDao.createEvent(jobEvent, null);
 		return jobEvent;
    }
+   
     /* ---------------------------------------------------------------------- */
     /* recordErrorEvent:                                                      */
     /* ---------------------------------------------------------------------- */

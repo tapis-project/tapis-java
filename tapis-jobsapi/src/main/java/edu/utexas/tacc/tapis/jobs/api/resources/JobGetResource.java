@@ -167,7 +167,6 @@ public class JobGetResource
            var jobsImpl = JobsImpl.getInstance();
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
         		   JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
-        		 
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -178,7 +177,6 @@ public class JobGetResource
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
         
-      
        // ------------------------- Process Results --------------------------
        // Adjust status based on whether we found the job.
        if (job == null) {

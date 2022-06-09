@@ -254,7 +254,6 @@ public class JobSubmitResource
        return doSubmit(prettyPrint, jobResubmit.getJobDefinition());
      }
      
-     
      /* ---------------------------------------------------------------------------- */
      /* getResubmitRequestJson:                                                      */
      /* ---------------------------------------------------------------------------- */
@@ -322,7 +321,7 @@ public class JobSubmitResource
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
        
-    // ------------------------- Input Processing -------------------------
+       // ------------------------- Input Processing -------------------------
        // Parse and validate the json in the request payload, which must exist.
        ReqSubmitJob payload = null;
        try {payload = getPayload(jobResubmit.getJobDefinition(), FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
@@ -348,7 +347,6 @@ public class JobSubmitResource
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
      }
-     
      
      /* **************************************************************************** */
      /*                               Private Methods                                */
