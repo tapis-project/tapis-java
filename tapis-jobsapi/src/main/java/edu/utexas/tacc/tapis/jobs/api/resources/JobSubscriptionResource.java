@@ -133,7 +133,17 @@ public class JobSubscriptionResource
                            + "Like all Job subscription APIs, modifications only "
                            + "affect running jobs and never change the saved job "
                            + "definition. As a consequence, job resubmissions are not "
-                           + "affected by runtime subscription changes."
+                           + "affected by runtime subscription changes.\n\n"
+                           + ""
+                           + "The events to which one can subscribe are:\n\n"
+                           + ""
+                           + "- JOB_NEW_STATUS - the job has transitioned to a new status\n"
+                           + "- JOB_INPUT_TRANSACTION_ID - a request to stage job input files has been submitted\n"
+                           + "- JOB_ARCHIVE_TRANSACTION_ID - a request to archive job output files has been submitted\n"
+                           + "- JOB_SUBSCRIPTION - a change to the job's subscriptions has occurred\n"
+                           + "- JOB_SHARE_EVENT - a job resource has been shared or unshared\n"
+                           + "- JOB_ERROR_MESSAGE - the job experienced an error\n"
+                           + "- ALL - all job event categories\n"
                            + "",
              tags = "subscriptions",
              security = {@SecurityRequirement(name = "TapisJWT")},

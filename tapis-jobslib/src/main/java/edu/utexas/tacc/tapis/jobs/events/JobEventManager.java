@@ -185,9 +185,12 @@ public final class JobEventManager
         return jobEvent;
     }
     
-   public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
+    /* ---------------------------------------------------------------------- */
+    /* recordShareEvent:                                                      */
+    /* ---------------------------------------------------------------------- */
+    public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
             String grantor)	throws TapisException
-   {
+    {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
@@ -201,9 +204,13 @@ public final class JobEventManager
 		
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
+		postEventToNotificationService(jobEvent);
 		return jobEvent;
     }
   
+   /* ---------------------------------------------------------------------- */
+   /* recordUnShareEvent:                                                    */
+   /* ---------------------------------------------------------------------- */
    public JobEvent recordUnShareEvent(JobShared js, String event)
 		   throws TapisException
    {
@@ -222,6 +229,7 @@ public final class JobEventManager
 		
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
+		postEventToNotificationService(jobEvent);
 		return jobEvent;
    }
    
