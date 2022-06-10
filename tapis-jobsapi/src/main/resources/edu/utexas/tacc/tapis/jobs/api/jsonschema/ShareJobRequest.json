@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/ShareJobRequest",
+    "description": "Top-level schema for job share request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+            "jobResource": {
+            "$comment":  "The job resource that can be shared",
+            "type": "array",
+            "items": {"type": "string","enum": [ "JOB_HISTORY", "JOB_RESUBMIT_REQUEST", "JOB_OUTPUT", "JOB_INPUT" ]},
+            "uniqueItems": true
+          },
+          "jobPermission":{
+             "$comment": " Tapis permission on the job. Default is READ",
+              "type": "string",
+              "enum": [ "READ" ]
+            },
+            "grantee":{
+               "$comment": "User ID with whom the job is shared",
+            	"type": "string",
+            	"maxLength": 64
+            }
+        },
+    "required": [
+        "jobResource",
+        "jobPermission",
+        "grantee"
+    ]
+    
+    
+}

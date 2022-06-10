@@ -234,8 +234,10 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobsByUsername:                                                     */
 	/* ---------------------------------------------------------------------- */
-	public List<JobListDTO> getJobsByUsername(String username, String tenant, List<OrderBy> orderByList,Integer limit, Integer skip) 
-	  throws JobException
+	public List<JobListDTO> getJobsByUsername(String username, String tenant, 
+	                                          List<OrderBy> orderByList, 
+	                                          Integer limit, Integer skip)
+	 throws JobException
 	{
 	    // Initialize result.
 	    ArrayList<JobListDTO> jobList = new ArrayList<>();
@@ -252,25 +254,22 @@ public final class JobsDao
 	          String orderBy="";
 	          int listsize = orderByList.size();
 	         
-	          for(int i = 0;i < listsize; i++) {
-	        	  
-	        	  if(orderBy.isBlank()) {
+	          for (int i = 0;i < listsize; i++) {
+	              
+	        	  if (orderBy.isBlank()) {
 	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
 	        		 orderBy = orderBy + " " + SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
-	        		  
 	        	  }
 	        	   orderBy =  orderBy + " " + orderByList.get(i).getOrderByDir().toString() + SUFFIX_COMMA_SPACE;
 	          }
 	          orderBy = StringUtils.stripEnd(orderBy, SUFFIX_COMMA_SPACE);
 	          
-	          if(orderBy.isBlank()) {
+	          if (orderBy.isBlank()) {
 	        	  orderBy = SearchUtils.camelCaseToSnakeCase(DEFAULT_ORDER_BY);
 	          }
 	          
 	          sql = sql.replace(":orderby", orderBy);
-	          
-	          
 	          
 	          // Prepare the statement and fill in the placeholders.
 	          PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -280,7 +279,6 @@ public final class JobsDao
 	          
 	          pstmt.setInt(4, limit);
 	          pstmt.setInt(5, skip);
-	          
 	                      
 	          // Issue the call for the 1 row result set.
 	          ResultSet rs = pstmt.executeQuery();
@@ -364,12 +362,13 @@ public final class JobsDao
 	/* getJobsSearchListCountByUsername:                                      */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings("rawtypes")
-	public int getJobsSearchListCountByUsername(String username, String tenant, List<String> searchList, List<OrderBy> orderByList) 
-			  throws TapisException
+	public int getJobsSearchListCountByUsername(String username, String tenant,
+	                                            List<String> searchList, List<OrderBy> orderByList,
+	                                            boolean sharedWithMe) 
+      throws TapisException
 	{
 		int listsize = orderByList.size();
 	    _log.debug("listsize: " + listsize);
-	   
 	    
         for(int i = 0;i < listsize; i++) {
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
@@ -378,10 +377,13 @@ public final class JobsDao
         		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
-        	
         }
-      	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition = null;
+        if(sharedWithMe) {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true)); // username is not the owner
+        } else {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
@@ -400,7 +402,6 @@ public final class JobsDao
             		orderList.add(colOrderBy.desc());
             	}
           	}
-            	
           }
       		
         // ------------------------- Build and execute SQL ----------------------------
@@ -536,7 +537,9 @@ public final class JobsDao
 	/*  summary attributes                                                    */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, List<String>searchList, List<OrderBy> orderByList,Integer limit, Integer skip) 
+	public List<JobListDTO> getJobsSearchByUsername(String username, String tenant, 
+	                                  List<String>searchList, List<OrderBy> orderByList, 
+	                                  Integer limit, Integer skip, boolean sharedWithMe) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -560,8 +563,12 @@ public final class JobsDao
         	}
         	
         }
-      	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition = null;
+        if(sharedWithMe) {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+        } else {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
@@ -581,11 +588,9 @@ public final class JobsDao
             	}
           	}
             	
-            }
-      		
-        
+         }
 	 
-     // Build list of attributes we will be returning.
+      	// Build list of attributes we will be returning.
         List<TableField> fieldList = new ArrayList<>();
         fieldList.add(Tables.JOBS.UUID);
         fieldList.add(Tables.JOBS.TENANT);
@@ -600,7 +605,6 @@ public final class JobsDao
         fieldList.add(Tables.JOBS.EXEC_SYSTEM_ID);
         fieldList.add(Tables.JOBS.ARCHIVE_SYSTEM_ID);
         fieldList.add(Tables.JOBS.REMOTE_STARTED);
-    
 	    
 	    // ------------------------- Build and execute SQL ----------------------------
 	    Connection conn = null;
@@ -621,6 +625,8 @@ public final class JobsDao
 	          } else if (limit >= 0) {
 	            // We are limiting but not ordering
 	            results = condStep.limit(limit).offset(skip).fetchInto(Tables.JOBS);
+	          } else if(orderByList != null && limit == -1) {
+	        	  results = condStep.orderBy(orderList).offset(skip).fetchInto(Tables.JOBS); 
 	          }
 	          else
 	          {
@@ -665,8 +671,6 @@ public final class JobsDao
 		            }
 	        }
 	        return jobList;
-	          
-	        
 	}
 	
 	/* ---------------------------------------------------------------------- */
@@ -674,10 +678,11 @@ public final class JobsDao
 	/* summary attributes  post end-point                                     */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
-			List<OrderBy> orderByList,Integer limit, Integer skip) 
-			throws TapisException{
-		
+	public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(
+	                         String username, String tenant, ASTNode searchAST, 
+			                 List<OrderBy> orderByList,Integer limit, Integer skip) 
+     throws TapisException
+	{
 		 // Initialize result.
 	    ArrayList<JobListDTO> jobList = new ArrayList<>();
        
@@ -697,7 +702,6 @@ public final class JobsDao
         		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
-        	
         }
       	 
         Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
@@ -723,8 +727,6 @@ public final class JobsDao
           	}
             	
             }
-      		
-        
 	 
         // Build list of attributes we will be returning.
         List<TableField> fieldList = new ArrayList<>();
@@ -741,7 +743,6 @@ public final class JobsDao
         fieldList.add(Tables.JOBS.EXEC_SYSTEM_ID);
         fieldList.add(Tables.JOBS.ARCHIVE_SYSTEM_ID);
         fieldList.add(Tables.JOBS.REMOTE_STARTED);
-    
 	    
 	    // ------------------------- Build and execute SQL ----------------------------
 	    Connection conn = null;
@@ -808,13 +809,14 @@ public final class JobsDao
 	        return jobList;
 		
 	}
+	
 	/* ---------------------------------------------------------------------- */
 	/* getJobSearchAllAttributesByUsername:                                   */
 	/*  all attributes                                                        */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, 
-			List<OrderBy> orderByList,Integer limit, Integer skip) 
+			List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -838,8 +840,12 @@ public final class JobsDao
         	}
         	
         }
-      	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition;
+      	if(shared) {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+      	} else {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
@@ -859,7 +865,7 @@ public final class JobsDao
             	}
           	}
             	
-            }
+       }
    
 	    // ------------------------- Build and execute SQL ----------------------------
 	    Connection conn = null;
@@ -894,8 +900,6 @@ public final class JobsDao
 	        	Job job = r.into(Job.class);
 	            jobs.add(job);
 	          }
-	          
-	          
 
 	          // Close out and commit
 	          if ((conn !=null)) conn.commit();
@@ -923,11 +927,7 @@ public final class JobsDao
 		            }
 	        }
 	        return jobs;
-	          
-	        
 	}
-	
-   
 	
 	/* ---------------------------------------------------------------------- */
 	/* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
@@ -1365,6 +1365,7 @@ public final class JobsDao
         }
 	}
 	
+		   
     /* ---------------------------------------------------------------------- */
     /* getStatusByUUID:                                                       */
     /* ---------------------------------------------------------------------- */

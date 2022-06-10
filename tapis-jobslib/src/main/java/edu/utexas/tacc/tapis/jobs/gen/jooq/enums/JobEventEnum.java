@@ -23,7 +23,9 @@ public enum JobEventEnum implements EnumType {
 
     JOB_ARCHIVE_TRANSACTION_ID("JOB_ARCHIVE_TRANSACTION_ID"),
 
-    JOB_ERROR_MESSAGE("JOB_ERROR_MESSAGE");
+    JOB_ERROR_MESSAGE("JOB_ERROR_MESSAGE"),
+
+    JOB_SHARE_EVENT("JOB_SHARE_EVENT");
 
     private final String literal;
 
