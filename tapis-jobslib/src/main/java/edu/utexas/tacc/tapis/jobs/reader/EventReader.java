@@ -42,7 +42,7 @@ public final class EventReader
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(EventReader.class);
-
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -175,7 +175,7 @@ public final class EventReader
         
         // Populate a Notifications event.
         Event event = new Event();
-        event.setSource(TapisConstants.SERVICE_NAME_JOBS);
+        event.setSource(TapisConstants.JOBS_EVENT_SOURCE);
         event.setType(makeNotifEventType(jobEvent.getEvent(), jobEvent.getEventDetail()));
         event.setSubject(jobEvent.getJobUuid());
         event.setSeriesId(jobEvent.getJobUuid());
