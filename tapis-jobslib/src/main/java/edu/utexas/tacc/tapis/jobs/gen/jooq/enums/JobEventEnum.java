@@ -25,7 +25,9 @@ public enum JobEventEnum implements EnumType {
 
     JOB_ERROR_MESSAGE("JOB_ERROR_MESSAGE"),
 
-    JOB_SHARE_EVENT("JOB_SHARE_EVENT");
+    JOB_SHARE_EVENT("JOB_SHARE_EVENT"),
+
+    JOB_SUBSCRIPTION("JOB_SUBSCRIPTION");
 
     private final String literal;
 
