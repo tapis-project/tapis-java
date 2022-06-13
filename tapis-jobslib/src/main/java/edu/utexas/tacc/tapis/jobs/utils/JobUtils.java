@@ -224,6 +224,6 @@ public final class JobUtils
      */
     public static String makeNotifTypeToken(JobEventType jobEventType, String detail)
     {
-        return TapisConstants.JOBS_SERVICE + "." + jobEventType.name() + "." + detail;
+        return TapisConstants.SERVICE_NAME_JOBS + "." + jobEventType.name() + "." + detail;
     }
 }

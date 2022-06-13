@@ -228,7 +228,7 @@ public final class EventReader
     /* getExchangeUse:                                                              */
     /* ---------------------------------------------------------------------------- */
     @Override
-    protected ExchangeUse getExchangeUse() {return ExchangeUse.ALT;}
+    protected ExchangeUse getExchangeUse() {return ExchangeUse.OTHER;}
     
     /* ---------------------------------------------------------------------- */
     /* getQueueName:                                                          */
