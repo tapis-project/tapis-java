@@ -204,7 +204,7 @@ public final class JobUtils
     {
         String f = filter.name();
         if (f.equals(JobEventCategoryFilter.ALL.name())) f = EVENT_CATEGORY_WILDCARD; 
-        return TapisConstants.JOBS_SERVICE + "." + f + "." + detail;
+        return TapisConstants.SERVICE_NAME_JOBS  + "." + f + "." + detail;
     }
 
     /* ---------------------------------------------------------------------------- */
