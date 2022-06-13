@@ -521,10 +521,12 @@ public class JobSubmitResource
              }
                  
              // Log subscriptions created.
-             var typeFilter = JobsApiUtils.getNotifTypeFilter(req.getEventCategoryFilter(), 
-                                                             JobsApiUtils.TYPE_FILTER_WILDCARD);
-             var msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", job.getUuid(), typeFilter);
-             _log.debug(msg);
+             if (_log.isDebugEnabled()) {
+                 var typeFilter = JobsApiUtils.getNotifTypeFilter(req.getEventCategoryFilter(), 
+                                                                  JobsApiUtils.TYPE_FILTER_WILDCARD);
+                 var msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", job.getUuid(), typeFilter);
+                 _log.debug(msg);
+             }
          }
 
          // Success.
