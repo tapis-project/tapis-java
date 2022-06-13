@@ -923,7 +923,9 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getShareJob:                                                           */
     /* ---------------------------------------------------------------------- */
-    public List<JobShareListDTO> getShareJob(String jobUuid, String grantor, String obouser, String tenant) throws TapisImplException 
+    public List<JobShareListDTO> getShareJob(String jobUuid, String grantor, 
+                                             String obouser, String tenant) 
+     throws TapisImplException 
     
     {
     	 SKClient skClient = null;
@@ -970,8 +972,8 @@ public final class JobsImpl
     /* getSharesJob:                                                          */
     /* ---------------------------------------------------------------------- */
     public  List<JobShared> getSharesJob(String grantee, String jobUuid, String obouser, 
-    		String grantor, String tenant) throws TapisImplException 
-    
+    		                             String grantor, String tenant) 
+     throws TapisImplException 
     {
     	 SKClient skClient = null;
          try {
@@ -1230,8 +1232,6 @@ public final class JobsImpl
 
         return client;
     }
-
-    
    
     /* ********************************************************************** */
 	/*                             Private Methods                            */

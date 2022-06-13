@@ -189,7 +189,6 @@ extends AbstractResource
 		List<String> searchList = new ArrayList<String>();
 		List<String> sharedSearchList = new ArrayList<String>();
 
-
 		// summary attributes
 		List<JobListDTO> jobSharedSummaryList = new ArrayList<JobListDTO>();
 
@@ -198,7 +197,8 @@ extends AbstractResource
 
 		List<String> sharedJobUuidsList = new ArrayList<String>();
 		try {
-			sharedJobUuidsList = JobListUtils.getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), threadContext.getOboTenantId() );
+			sharedJobUuidsList = JobListUtils.getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), 
+			                                                    threadContext.getOboTenantId() );
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 			return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -214,7 +214,8 @@ extends AbstractResource
 
 
 		// ----------   Compute Total Count --------------
-		// If we need the total count and there was a limit then we need to make a call. Default limit is always greater than zero.
+		// If we need the total count and there was a limit then we need to make a call. 
+		// Default limit is always greater than zero.
 		int totalCountOwner = 0;
 		int totalCountShared = 0;
 
@@ -252,7 +253,6 @@ extends AbstractResource
 		}
 
 		// ------------ Retrieve Job List -----------------------------
-
 		List<JobListDTO> jobList = new ArrayList<JobListDTO>();
 		var jobsImpl = JobsImpl.getInstance();
 		if((listType.equals(JobListType.MY_JOBS.name())) || (listType.equals(JobListType.ALL_JOBS.name()))) {
@@ -295,8 +295,6 @@ extends AbstractResource
 		}
 
 		//------- Get the jobs shared with the user--------------------
-
-
 		// Get the shared jobs
 		// Note the sharedSearchList has shared jobs uuids
 		if(sharedWithMe && !sharedJobUuidsList.isEmpty()) {
@@ -314,8 +312,6 @@ extends AbstractResource
 			}
 		}
 
-
-
 		if(jobList.isEmpty()) {
 			String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 			RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
@@ -324,17 +320,14 @@ extends AbstractResource
 
 		if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobList.size();
 
-
 		// ------------------------- Process Results --------------------------
 		// Success.
-
 		RespGetJobList r = new RespGetJobList(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 
 		return Response.status(Status.OK).entity(TapisRestUtils
 				.createSuccessResponse(
 						MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 	}
-
 }
 
 
