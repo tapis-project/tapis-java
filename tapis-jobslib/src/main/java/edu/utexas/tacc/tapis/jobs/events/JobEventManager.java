@@ -87,12 +87,13 @@ public final class JobEventManager
      * be part of an in-progress transaction. 
      * 
      * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
      * @param newStatus required new status
      * @param oldStatus optional previous status
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStatusEvent(String jobUuid, JobStatusType newStatus, 
+    public JobEvent recordStatusEvent(String jobUuid, String tenant, JobStatusType newStatus, 
                                       JobStatusType oldStatus, Connection conn)
      throws TapisException
     {
@@ -100,6 +101,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);
         jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(newStatus.name());
         
         // Can we augment the standard event description?
@@ -122,12 +124,13 @@ public final class JobEventManager
      * be part of an in-progress transaction. 
      * 
      * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
      * @param status current job status
      * @param transactionId transaction id from the Files service
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStagingInputsEvent(String jobUuid, JobStatusType status, 
+    public JobEvent recordStagingInputsEvent(String jobUuid, String tenant, JobStatusType status, 
                                              String transactionId, Connection conn)
      throws TapisException
     {
@@ -135,6 +138,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_INPUT_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(status.name());
         jobEvent.setOthUuid(transactionId);
         
@@ -158,12 +162,13 @@ public final class JobEventManager
      * be part of an in-progress transaction. 
      * 
      * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
      * @param status current job status
      * @param transactionId transaction id from the Files service
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordArchivingEvent(String jobUuid, JobStatusType status, 
+    public JobEvent recordArchivingEvent(String jobUuid, String tenant, JobStatusType status, 
                                          String transactionId, Connection conn)
      throws TapisException
     {
@@ -171,6 +176,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ARCHIVE_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(status.name());
         jobEvent.setOthUuid(transactionId);
         
@@ -188,13 +194,15 @@ public final class JobEventManager
     /* ---------------------------------------------------------------------- */
     /* recordShareEvent:                                                      */
     /* ---------------------------------------------------------------------- */
-    public JobEvent recordShareEvent(String jobUuid, String resourceType, String event, String grantee, 
-            String grantor)	throws TapisException
+    public JobEvent recordShareEvent(String jobUuid, String tenant, String resourceType, 
+                                     String event, String grantee, String grantor)	
+     throws TapisException
     {
 		// Create the Job event.
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(jobUuid);
+		jobEvent.setTenant(tenant);
 		jobEvent.setEventDetail(event); // ex."SHARE_JOB_HISTORY_READ"
 		
 		// Can we augment the standard event description?
@@ -218,6 +226,7 @@ public final class JobEventManager
 		var jobEvent = new JobEvent();
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(js.getJobUuid());
+		jobEvent.setTenant(js.getTenant());
 		jobEvent.setEventDetail(event);// ex."UNSHARE_ResourceType_Priviledge"
 		
 		// Can we augment the standard event description?
@@ -242,12 +251,13 @@ public final class JobEventManager
      * be part of an in-progress transaction. 
      * 
      * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
      * @param status current job status
      * @param messages this of messages from stack trace
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordErrorEvent(String jobUuid, JobStatusType status, 
+    public JobEvent recordErrorEvent(String jobUuid, String tenant, JobStatusType status, 
                                      List<String> messages, Connection conn) 
       throws TapisException
     {
@@ -255,6 +265,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
         jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(status.name());
         
         // Can we augment the standard event description?
@@ -289,11 +300,13 @@ public final class JobEventManager
      * be part of an in-progress transaction. 
      * 
      * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
      * @param action added or removed
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordSubscriptionEvent(String jobUuid, SubscriptionActions action, 
+    public JobEvent recordSubscriptionEvent(String jobUuid, String tenant, 
+                                            SubscriptionActions action, 
                                             Connection conn)
      throws TapisException
     {
@@ -301,6 +314,7 @@ public final class JobEventManager
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_SUBSCRIPTION);
         jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(action.name());
         
         // Can we augment the standard event description?

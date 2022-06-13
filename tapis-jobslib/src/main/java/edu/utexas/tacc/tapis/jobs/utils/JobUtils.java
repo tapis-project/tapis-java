@@ -161,11 +161,11 @@ public final class JobUtils
     /** Get a new or cached Notifications service client.  The input parameter is
      * the tenant id of the administrator tenant at the local site.    
      * 
-     * @param siteAdminTenantId - the local site's administrative tenant id
+     * @param jobTenantId - the tenant id of the job
      * @return the client
      * @throws TapisImplException
      */
-    public static NotificationsClient getNotificationsClient(String siteAdminTenantId) 
+    public static NotificationsClient getNotificationsClient(String jobTenantId) 
      throws TapisException
     {
         // Get the application client for this user@tenant.
@@ -173,11 +173,11 @@ public final class JobUtils
         var user = TapisConstants.SERVICE_NAME_JOBS;
         try {
             client = ServiceClients.getInstance().getClient(
-                     user, siteAdminTenantId, NotificationsClient.class);
+                     user, jobTenantId, NotificationsClient.class);
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Notifications", 
-                                         siteAdminTenantId, user);
+                                         jobTenantId, user);
             throw new TapisException(msg, e);
         }
 

@@ -201,6 +201,10 @@ public final class JobEventsDao
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "description");
           throw new JobException(msg);
       }
+      if (StringUtils.isBlank(jobEvent.getTenant())) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "tenant");
+          throw new JobException(msg);
+      }
       if (jobEvent.getEvent() == null) {
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "createEvent", "event");
           throw new JobException(msg);
@@ -238,6 +242,7 @@ public final class JobEventsDao
         pstmt.setString(4, jobEvent.getEventDetail());
         pstmt.setString(5, jobEvent.getOthUuid());  // can be null
         pstmt.setString(6, jobEvent.getDescription());
+        pstmt.setString(7, jobEvent.getTenant());
         
         // Issue the call and clean up statement.
         int rows = pstmt.executeUpdate();
@@ -318,6 +323,7 @@ public final class JobEventsDao
         obj.setEventDetail(rs.getString(5));
         obj.setOthUuid(rs.getString(6)); // can be null
         obj.setDescription(rs.getString(7));
+        obj.setTenant(rs.getString(8));
     } 
     catch (Exception e) {
       String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

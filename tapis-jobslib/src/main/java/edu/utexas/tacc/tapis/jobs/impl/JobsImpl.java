@@ -886,7 +886,10 @@ public final class JobsImpl
 	   
 	    try {
 	     
-	      eventMgr.recordShareEvent(jshare.getJobUuid(),jshare.getJobResource().name(), "SHARE_"+ jshare.getJobResource().name() + "_" + jshare.getJobPermission().name(), jshare.getGrantee() , jshare.getCreatedby());
+	      eventMgr.recordShareEvent(jshare.getJobUuid(), jshare.getTenant(), 
+	               jshare.getJobResource().name(), 
+	               "SHARE_"+ jshare.getJobResource().name() + "_" + jshare.getJobPermission().name(), 
+	               jshare.getGrantee() , jshare.getCreatedby());
 	      
 	    } catch (TapisNotFoundException e) {
             String msg = MsgUtils.getMsg("JOBS_JOBEVENT_SHARE_EVENT_CREATE_ERROR", jshare.getJobUuid(), jshare.getTenant(),e);

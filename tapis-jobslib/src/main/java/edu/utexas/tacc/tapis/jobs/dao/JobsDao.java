@@ -1336,7 +1336,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          eventMgr.recordStatusEvent(job.getUuid(), job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(job.getUuid(), job.getTenant(), job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -2467,7 +2467,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(job.getUuid(), newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(job.getUuid(), job.getTenant(), newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();

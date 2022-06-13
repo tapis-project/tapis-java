@@ -185,7 +185,7 @@ public final class EventReader
         
         // Get a Notification's client.
         NotificationsClient client = null;
-        try {client = JobUtils.getNotificationsClient(_siteAdminTenantId);} 
+        try {client = JobUtils.getNotificationsClient(jobEvent.getTenant());} 
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Notifications",
                                              _siteAdminTenantId, TapisConstants.SERVICE_NAME_JOBS);
