@@ -36,6 +36,7 @@ public final class JobEventManager
     private static final String STAGING_TRANS_ADDENDUM = " The Files service transaction id is ";
     private static final String NEW_ERROR_ADDENDUM = " The error message stack is: ";
     private static final String SUBSCRIPTION_ADDENDUM = " A subscription was ";
+    private static final String SUBSCRIPTION_ADDENDUM_MULTI = " One or more subscriptions were ";
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -306,8 +307,7 @@ public final class JobEventManager
      * @throws TapisException on error
      */
     public JobEvent recordSubscriptionEvent(String jobUuid, String tenant, 
-                                            SubscriptionActions action, 
-                                            Connection conn)
+                                            SubscriptionActions action)
      throws TapisException
     {
         // Create the Job event.
@@ -319,11 +319,49 @@ public final class JobEventManager
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
-        desc += SUBSCRIPTION_ADDENDUM + action.name() + ".";
+        if (action == SubscriptionActions.added)  
+            desc += SUBSCRIPTION_ADDENDUM + action.name() + ".";
+          else desc += SUBSCRIPTION_ADDENDUM_MULTI + action.name() + ".";
         jobEvent.setDescription(desc);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(jobEvent, null);
+        postEventToNotificationService(jobEvent);
+        return jobEvent;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* recordJobSubmitSubscriptionsEvent:                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Write Job subscription event to database.  
+     * 
+     * The connection parameter can be null if the event insertion is not to 
+     * be part of an in-progress transaction. 
+     * 
+     * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
+     * @param action added or removed
+     * @param conn existing connection or null
+     * @throws TapisException on error
+     */
+    public JobEvent recordJobSubmitSubscriptionsEvent(String jobUuid, String tenant,
+                                                      int numSubscriptions)
+     throws TapisException
+    {
+        // Create the Job event.
+        var jobEvent = new JobEvent();
+        jobEvent.setEvent(JobEventType.JOB_SUBSCRIPTION);
+        jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
+        jobEvent.setEventDetail(SubscriptionActions.added.name().toUpperCase());
+        
+        // Can we augment the standard event description?
+        var desc = jobEvent.getEvent().getDescription();
+        desc += "  " + numSubscriptions + " subscription(s) created with job submission.";
+        jobEvent.setDescription(desc);
+        
+        // Save in db and send to notifications service asynchronously.
+        _jobEventsDao.createEvent(jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }

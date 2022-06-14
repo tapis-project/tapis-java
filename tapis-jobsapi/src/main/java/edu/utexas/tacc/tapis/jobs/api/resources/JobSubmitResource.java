@@ -35,9 +35,11 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
@@ -450,6 +452,9 @@ public class JobSubmitResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
+         // Save and sent any initial subscription events.
+         createSubscriptionEvents(reqCtx, job);
+       
          // -------------------------- Queue Request ---------------------------
          // Submit the job to the worker queue. Exceptions are mapped to HTTP error codes.
          try {JobQueueManager.getInstance().queueJob(job);}
@@ -484,7 +489,7 @@ public class JobSubmitResource
              String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_FAILED_PERSIST", "resubmit", e.getMessage());
              _log.error(msg);
          }
-       
+         
          // Success.
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
@@ -528,9 +533,37 @@ public class JobSubmitResource
                  _log.debug(msg);
              }
          }
-
+         
          // Success.
          return null;
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* createSubscriptionEvents:                                                    */
+     /* ---------------------------------------------------------------------------- */
+     /** Record and post events for the subscriptions that are part of the job
+      * submission, if any.  This is a best-effort calculation that never throws an
+      * exception.
+      * 
+      * @param reqCtx submit request context
+      * @param job the populated job object
+      */
+     private void createSubscriptionEvents(SubmitContext reqCtx, Job job)
+     {
+         // Does the job have any subscriptions?
+         int count = reqCtx.getSubmitReq().getSubscriptions().size();
+         if (count < 1) return;
+         
+         // Record the event in the database and send notifications to the 
+         // just established subscribers.
+         try {
+            JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(
+                                              job.getUuid(), job.getTenant(), count);
+         } catch (Exception e) {
+             String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
+                                          job.getOwner(), job.getTenant(), e.getMessage());
+             _log.error(msg, e);
+         }
      }
      
      /* ---------------------------------------------------------------------------- */

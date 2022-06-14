@@ -32,6 +32,8 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetSubscriptions;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager.SubscriptionActions;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
@@ -256,6 +258,16 @@ public class JobSubscriptionResource
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
+       
+       // ------------------------- Event Processing -------------------------
+       // Best effort processing.
+       var eventMgr = JobEventManager.getInstance();
+       try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.added);}
+           catch (Exception e) {
+               String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
+                                            dto.getTenant(), e.getMessage());
+               _log.error(msg, e);
+           }
 
        // Success.
        RespResourceUrl r = new RespResourceUrl(new ResultResourceUrl());
@@ -547,6 +559,18 @@ public class JobSubscriptionResource
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
 
+         // ------------------------- Event Processing -------------------------
+         // Best effort processing.
+         if (deleted > 0) {
+             var eventMgr = JobEventManager.getInstance();
+             try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed);}
+                 catch (Exception e) {
+                     String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
+                                                  dto.getTenant(), e.getMessage());
+                     _log.error(msg, e);
+             }
+         }
+
          // Success.
          ResultChangeCount count = new ResultChangeCount();
          count.changes = deleted;
@@ -640,6 +664,18 @@ public class JobSubscriptionResource
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+
+         // ------------------------- Event Processing -------------------------
+         // Best effort processing.
+         if (deleted > 0) {
+             var eventMgr = JobEventManager.getInstance();
+             try {eventMgr.recordSubscriptionEvent(dto.getJobUuid(), dto.getTenant(), SubscriptionActions.removed);}
+                 catch (Exception e) {
+                     String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", dto.getJobUuid(), dto.getOwner(),
+                                                  dto.getTenant(), e.getMessage());
+                     _log.error(msg, e);
+                 }
          }
 
          // Success.
