@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.filesmonitor;
 
+import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -13,9 +14,12 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -104,11 +108,13 @@ public final class PollingMonitor
             // Successful termination, we don't need to poll anymore.
             if (status == TransferStatusEnum.COMPLETED) {
                 _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));
+                postEvent(job, status, transferId);
                 break;
             }
             
             // Unsuccessful termination.
             if (status == TransferStatusEnum.FAILED || status == TransferStatusEnum.CANCELLED) {
+                postEvent(job, status, transferId);
                 String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
                                              status, task.getErrorMessage());
                 throw new JobException(msg);
@@ -282,5 +288,35 @@ public final class PollingMonitor
         steps.add(Pair.of(-1,  60000L));  // 1 minute (infinite tries) 
         
         return steps;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* postEvent:                                                             */
+    /* ---------------------------------------------------------------------- */
+    /** Create a job event and write it to the database and the notifications
+     * service.  Only terminal transfer statuses for staging input and archiving
+     * outputs are posted.  
+     * 
+     * This method operates on a best effort basis (no exceptions thrown).  
+     * 
+     * @param job the waiting on the Files service transaction
+     * @param transferStatus a terminal transaction status
+     * @param transferId the transaction id
+     */
+    private void postEvent(Job job, TransferStatusEnum transferStatus, String transferId)
+    {
+        var eventMgr = JobEventManager.getInstance();
+        try {
+            if (job.getStatus() == JobStatusType.STAGING_INPUTS)
+               eventMgr.recordStagingInputsEvent(job.getUuid(), job.getTenant(), 
+                                                 transferStatus, transferId);
+            else if (job.getStatus() == JobStatusType.ARCHIVING)
+                eventMgr.recordArchivingEvent(job.getUuid(), job.getTenant(), 
+                                              transferStatus, transferId);
+        } catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
+                                         job.getOwner(), job.getTenant(), e.getMessage());
+            _log.error(msg, e);
+        }
     }
 }

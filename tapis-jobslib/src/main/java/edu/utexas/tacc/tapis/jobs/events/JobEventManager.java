@@ -6,6 +6,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
 import edu.utexas.tacc.tapis.jobs.dao.JobEventsDao;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
@@ -33,7 +34,6 @@ public final class JobEventManager
     
     // Extended event messages.
     private static final String OLD_STATUS_ADDENDUM = " The previous job status was ";
-    private static final String STAGING_TRANS_ADDENDUM = " The Files service transaction id is ";
     private static final String NEW_ERROR_ADDENDUM = " The error message stack is: ";
     private static final String SUBSCRIPTION_ADDENDUM = " A subscription was ";
     private static final String SUBSCRIPTION_ADDENDUM_MULTI = " One or more subscriptions were ";
@@ -131,8 +131,9 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStagingInputsEvent(String jobUuid, String tenant, JobStatusType status, 
-                                             String transactionId, Connection conn)
+    public JobEvent recordStagingInputsEvent(String jobUuid, String tenant,  
+                                             TransferStatusEnum transferStatus, 
+                                             String transactionId)
      throws TapisException
     {
         // Create the Job event.
@@ -140,16 +141,17 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_INPUT_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(status.name());
+        jobEvent.setEventDetail(transferStatus.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
-        desc += STAGING_TRANS_ADDENDUM + transactionId + ".";
+        desc += " Files service transaction " + transactionId + " in state " +
+                transferStatus.name() + " for job " + jobUuid + " in tenant " + tenant + ".";
         jobEvent.setDescription(desc);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -169,8 +171,9 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordArchivingEvent(String jobUuid, String tenant, JobStatusType status, 
-                                         String transactionId, Connection conn)
+    public JobEvent recordArchivingEvent(String jobUuid, String tenant,  
+                                         TransferStatusEnum transferStatus, 
+                                         String transactionId)
      throws TapisException
     {
         // Create the Job event.
@@ -178,16 +181,17 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_ARCHIVE_TRANSACTION_ID);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(status.name());
+        jobEvent.setEventDetail(transferStatus.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
-        desc += STAGING_TRANS_ADDENDUM + transactionId + ".";
+        desc += " Files service transaction " + transactionId + " in state " +
+                transferStatus.name() + " for job " + jobUuid + " in tenant " + tenant + ".";
         jobEvent.setDescription(desc);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
