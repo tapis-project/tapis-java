@@ -18,8 +18,8 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequest;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequestElement;
+import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransfer;
+import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
@@ -422,7 +422,7 @@ public final class JobFileManager
         if (fileInputs.isEmpty()) return NO_FILE_INPUTS;
         
         // Create the list of elements to send to files.
-        var tasks = new TransferTaskRequest();
+        var tasks = new ReqTransfer();
         
         // Assign each input task.
         for (var fileInput : fileInputs) {
@@ -431,7 +431,7 @@ public final class JobFileManager
                 continue;
             
             // Assign the task.
-            var task = new TransferTaskRequestElement().
+            var task = new ReqTransferElement().
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
             task.setOptional(fileInput.isOptional());;
@@ -469,7 +469,7 @@ public final class JobFileManager
         
         // -------------------- Assign Transfer Tasks --------------------
         // Create the list of elements to send to files.
-        var tasks = new TransferTaskRequest();
+        var tasks = new ReqTransfer();
         
         // Add the tapis generated files to the task.
         if (archiveFilter.getIncludeLaunchFiles()) addLaunchFiles(tasks);
@@ -482,7 +482,7 @@ public final class JobFileManager
             {
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
-                var task = new TransferTaskRequestElement().
+                var task = new ReqTransferElement().
                         sourceURI(makeExecSysOutputUrl("")).
                         destinationURI(makeArchiveSysUrl(""));
                 tasks.addElementsItem(task);
@@ -515,7 +515,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* submitTransferTask:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String submitTransferTask(TransferTaskRequest tasks, String tag, 
+    private String submitTransferTask(ReqTransfer tasks, String tag,
                                       JobTransferPhase phase)
      throws TapisException
     {
@@ -563,19 +563,19 @@ public final class JobFileManager
      * 
      * @param tasks the task collection into which new transfer tasks are inserted
      */
-    private void addLaunchFiles(TransferTaskRequest tasks)
+    private void addLaunchFiles(ReqTransfer tasks)
     {
         // There's nothing to do if the exec and archive 
         // directories are same and on the same system.
         if (_job.isArchiveSameAsExec()) return;
         
         // Assign the tasks for the two generated files.
-        var task = new TransferTaskRequestElement().
+        var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
         tasks.addElementsItem(task);
         if (_jobCtx.usesEnvFile()) {
-            task = new TransferTaskRequestElement().
+            task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
             tasks.addElementsItem(task);
@@ -590,12 +590,12 @@ public final class JobFileManager
      * @param tasks the archive tasks
      * @param fileList the filtered list of files in the job's output directory
      */
-    private void addOutputFiles(TransferTaskRequest tasks, List<FileInfo> fileList)
+    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList)
     {
         // Add each output file as a task element.
         for (var f : fileList) {
             var relativePath = getOutputRelativePath(f.getPath());
-            var task = new TransferTaskRequestElement().
+            var task = new ReqTransferElement().
                     sourceURI(makeExecSysOutputUrl(relativePath)).
                     destinationURI(makeArchiveSysUrl(relativePath));
             tasks.addElementsItem(task);
@@ -772,7 +772,7 @@ public final class JobFileManager
      * @return the new, non-null transfer id generated by Files
      * @throws TapisImplException 
      */
-    private String createTransferTask(FilesClient filesClient, TransferTaskRequest tasks) 
+    private String createTransferTask(FilesClient filesClient, ReqTransfer tasks)
      throws TapisException
     {
         // Tracing.
@@ -945,7 +945,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* printTasks:                                                            */
     /* ---------------------------------------------------------------------- */
-    private String printTasks(TransferTaskRequest tasks)
+    private String printTasks(ReqTransfer tasks)
     {
         var buf = new StringBuilder(1024);
         buf.append("Requesting TransferTask with tag ");

@@ -117,7 +117,7 @@ extends AbsTester
    {
        boolean healthy = false;
        try {
-           GeneralApi api = client.health();
+           GeneralApi api = client.getGeneralApi();
            RespBasic resp = api.healthCheck();
            if (SUCCESS.equals(resp.getStatus())) healthy = true;
        } catch (Exception e) {}
