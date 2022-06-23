@@ -434,7 +434,9 @@ public final class JobFileManager
             var task = new ReqTransferElement().
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
-            task.setOptional(fileInput.isOptional());;
+            task.setOptional(fileInput.isOptional());
+            task.setSrcSharedAppCtx(fileInput.isSrcSharedAppCtx());
+            task.setDestSharedAppCtx(fileInput.isDestSharedAppCtx());
             tasks.addElementsItem(task);
         }
         

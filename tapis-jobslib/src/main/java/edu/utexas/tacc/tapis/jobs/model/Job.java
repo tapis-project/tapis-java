@@ -137,6 +137,8 @@ public final class Job
     private String              mpiCmd;
     private String              cmdPrefix;
     
+    private boolean             sharedAppCtx;
+    
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
     
@@ -952,6 +954,14 @@ public final class Job
 
     public void setCmdPrefix(String cmdPrefix) {
         this.cmdPrefix = cmdPrefix;
+    }
+
+    public boolean isSharedAppCtx() {
+        return sharedAppCtx;
+    }
+
+    public void setSharedAppCtx(boolean sharedAppCtx) {
+        this.sharedAppCtx = sharedAppCtx;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.

@@ -1328,6 +1328,9 @@ public final class JobsDao
           pstmt.setBoolean(37, job.isMpi());
           pstmt.setString(38,  job.getMpiCmd());                // could be null
           pstmt.setString(39,  job.getCmdPrefix());             // could be null
+          
+          // Shared application context.
+          pstmt.setBoolean(40, job.isSharedAppCtx());
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -3018,6 +3021,9 @@ public final class JobsDao
 	        obj.setMpi(rs.getBoolean(57));
 	        obj.setMpiCmd(rs.getString(58));
 	        obj.setCmdPrefix(rs.getString(59));
+	        
+	        // Shared application context.
+	        obj.setSharedAppCtx(rs.getBoolean(60));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -3030,7 +3036,8 @@ public final class JobsDao
 	/* -------------------------------------------------- */
 	/*              Search private methods                */
 	/* -------------------------------------------------- */
-	 private Condition addSearchListToWhere(Condition whereCondition, List<String> searchList) throws TapisException {
+	 private Condition addSearchListToWhere(Condition whereCondition, List<String> searchList) 
+	 throws TapisException {
 	    	if (searchList == null || searchList.isEmpty()) return whereCondition;
 	        // Parse searchList and add conditions to the WHERE clause
 	        for (String condStr : searchList)
@@ -3040,8 +3047,9 @@ public final class JobsDao
 	        return whereCondition;
 		}
 
-		private Condition addSearchCondStrToWhere(Condition whereCondition, String searchStr, String joinOp) throws TapisException {
-			 // If we have no search string then return what we were given
+	 private Condition addSearchCondStrToWhere(Condition whereCondition, String searchStr, String joinOp) 
+		throws TapisException {
+	        // If we have no search string then return what we were given
 		    if (StringUtils.isBlank(searchStr)) return whereCondition;
 		    // If we are given a condition but no indication of how to join new condition to it then return what we were given
 		    if (whereCondition != null && StringUtils.isBlank(joinOp)) return whereCondition;
@@ -3096,8 +3104,8 @@ public final class JobsDao
 		    return newCondition;
 		}
 
-		@SuppressWarnings("unchecked")
-		private Condition createCondition(Field col, SearchOperator op, String val) {
+	@SuppressWarnings("unchecked")
+	private Condition createCondition(Field col, SearchOperator op, String val) {
 			List<String> valList = Collections.emptyList();
 		    if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
 		    switch (op) {
@@ -3129,7 +3137,8 @@ public final class JobsDao
 			return null;
 		}
 
-		private void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) throws TapisException {
+	private void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) 
+	throws TapisException {
 			var dataType = col.getDataType();
 		    int sqlType = dataType.getSQLType();
 		    String sqlTypeName = dataType.getTypeName();
@@ -3367,6 +3376,5 @@ public final class JobsDao
         return jmap;
         
     }
-    
 }
     

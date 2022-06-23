@@ -1,10 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao.sql;
 
-import java.time.Instant;
-
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
-
 public class SqlStatements 
 {
 	/* ---------------------------------------------------------------------- */
@@ -36,7 +31,7 @@ public class SqlStatements
         	+ "remote_checks_failed, remote_last_status_check, "
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-        	+ "is_mpi, mpi_cmd, cmd_prefix"
+        	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx"
             + " FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_UUID =
@@ -54,7 +49,7 @@ public class SqlStatements
             + "remote_checks_failed, remote_last_status_check, "
             + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
             + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-            + "is_mpi, mpi_cmd, cmd_prefix"
+            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx"
             + " FROM jobs"
             + " WHERE uuid = ?";
         
@@ -98,7 +93,7 @@ public class SqlStatements
             + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
             + "exec_system_constraints, subscriptions, "
             + "tapis_queue, createdby, createdby_tenant, tags, job_type, "
-            + "is_mpi, mpi_cmd, cmd_prefix) "
+            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
@@ -106,7 +101,7 @@ public class SqlStatements
     		+ "?, ?, "
     		+ "?, ?, ?, "
     		+ "?, ?, ?, ?, ?::json, ?::json, ?, ?::json, ?, ?, ?, ?, ?, "
-    		+ "?, ?, ?)"; 
+    		+ "?, ?, ?, ?)"; 
 
     public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
         "SELECT status FROM jobs WHERE tenant = ? AND uuid = ? FOR UPDATE";
