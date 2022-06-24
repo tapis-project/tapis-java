@@ -51,6 +51,7 @@ import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
+import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -1042,6 +1043,12 @@ public final class SubmitContext
             var reqInput = JobFileInput.importAppInput(appInput);
             completeRequestFileInput(reqInput);
             
+            // Assign the shared app context flags.  The source flag is set only if
+            // the tapis protocol is used; the destination is always on the execution
+            // system, so it's always set as long as we are executing in a shared ctx.
+            calculateSrcSharedCtx(reqInput, reqInput.getSourceUrl());
+            if (_sharedAppCtx) reqInput.setDestSharedAppCtx(true);
+            
             // Add the input object to the request and record its name.
             // Recording the name will avoid processing duplicates, though
             // apps should disallow duplicates from the beginning.
@@ -1343,6 +1350,15 @@ public final class SubmitContext
             var reqArray = JobFileInputArray.importAppInputArray(appArray);
             completeRequestFileInputArray(reqArray);
             
+            // Always assign the shared app context flags since there is no possibility
+            // that the app definition can be overridden.  The final determination of
+            // the shared context setting for each source file is handled by the 
+            // marshaling method below.
+            if (_sharedAppCtx) {
+                reqArray.setSrcSharedAppCtx(true);
+                reqArray.setDestSharedAppCtx(true);
+            }
+            
             // Add the request to the list and update list of processed names.
             // We rely on Apps to not allow duplicate named input arrays.
             reqArrays.add(reqArray);
@@ -1351,7 +1367,7 @@ public final class SubmitContext
         
         // Add the array inputs to the JobFileInput list, which is the only list saved
         // in the job record.  This method also calculates the path name of each target
-        // file/directory based on each source url.
+        // file/directory based on each source url and the shared ctx flags.
         if (!reqArrays.isEmpty()) marshallFileInputArrays(reqArrays);
     }
     
@@ -1534,7 +1550,10 @@ public final class SubmitContext
      * 
      * The goal is for the generated JobFileInput objects so contain as little 
      * redundancy as possible while maintaining traceability back to their original
-     * user-specified array. 
+     * user-specified array.
+     * 
+     * Final assignment of shared application context settings is performed here
+     * for inputs specified in arrays.
      * 
      * @param arrays non-null list of input array objects
      */
@@ -1591,53 +1610,17 @@ public final class SubmitContext
                 String target = Path.of(curArray.getTargetDir(), 
                                         TapisUtils.extractFilename(reqInput.getSourceUrl())).toString();
                 reqInput.setTargetPath(target);
+                
+                // Set the shared context flags.
+                if (curArray.isSrcSharedAppCtx() &&
+                    reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
+                   reqInput.setSrcSharedAppCtx(true);
+                if (curArray.isDestSharedAppCtx()) reqInput.setDestSharedAppCtx(true);
             
                 // Save the new object in the 
                 _submitReq.getFileInputs().add(reqInput);
             }
         }
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* calculateSrcSharedCtxArray:                                                  */
-    /* ---------------------------------------------------------------------------- */
-    /** Set the source file array shared flag only if we are in a shared app context
-     * and the request's effective source url array is the same as the one specified
-     * in the application.  No action is taken unless both conditions are satisfied.  
-     * 
-     * The request source url must be non-null by the time this method is called.
-     * 
-     * @param reqInput input request with non-null sourceUrl array
-     * @param appSources input source urls from app definition, could be null
-     */
-    private void calculateSrcSharedCtxArray(JobFileInputArray reqArray, List<String> appSources)
-    {
-        // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
-
-        // Only set the shared flag if the app and request sources exactly match.
-        if (reqArray.equalSourceUrls​(appSources)) 
-            reqArray.setSrcSharedAppCtx(true);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* calculateDestSharedCtxArray:                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /**
-     * 
-     * @param reqInput
-     * @param appTarget
-     */
-    private void calculateDestSharedCtxArray(JobFileInputArray reqInput, String appTarget)
-    {
-        // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
-        if (appTarget == null) return;
-        if (reqInput.getTargetDir() == null) return;
-        
-        // Only set the shared flag if the app target is in effect. 
-        if (appTarget.equals(reqInput.getTargetDir()))
-            reqInput.setDestSharedAppCtx(true);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1657,8 +1640,8 @@ public final class SubmitContext
         // Are we in a shared app context?
         if (!_sharedAppCtx) return;
         
-        // The local protocol does not involve a file transfer.
-        if (reqInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
+        // Only tapis urls involve systems and authorization checking.
+        if (!reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
             return;
         
         // Only set the shared flag if the app source is in effect.
@@ -1686,12 +1669,55 @@ public final class SubmitContext
         if (appTarget == null) return;
         if (reqInput.getTargetPath() == null) return;
         
-        // The local protocol does not involve a file transfer.
-        if (reqInput.getTargetPath().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
-            return;
-        
         // Only set the shared flag if the app target is in effect. 
         if (appTarget.equals(reqInput.getTargetPath()))
+            reqInput.setDestSharedAppCtx(true);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateSrcSharedCtxArray:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the source file array shared flag only if we are in a shared app context
+     * and the request's effective source url array is the same as the one specified
+     * in the application.  No action is taken unless both conditions are satisfied.  
+     * 
+     * The request source url must be non-null by the time this method is called.
+     * 
+     * @param reqInput input request with non-null sourceUrl array
+     * @param appSources input source urls from app definition, could be null
+     */
+    private void calculateSrcSharedCtxArray(JobFileInputArray reqArray, List<String> appSources)
+    {
+        // Are we in a shared app context?
+        if (!_sharedAppCtx) return;
+
+        // Only set the shared flag if the app and request sources exactly match.
+        if (reqArray.equalSourceUrls​(appSources)) 
+            reqArray.setSrcSharedAppCtx(true);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateDestSharedCtxArray:                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the destination file array shared flag only if we are in a shared app context
+     * and the request's effective target path is the same as the one specified in
+     * the application.  No action is taken unless both conditions are satisfied.  
+     * 
+     * This method should be called after attempting to copy the the app target path 
+     * to reqInput but before any wildcard substitution is attempted.
+     * 
+     * @param reqInput input request with possibly null targetPath
+     * @param appTarget input target path from app definition, could be null
+     */
+    private void calculateDestSharedCtxArray(JobFileInputArray reqInput, String appTarget)
+    {
+        // Are we in a shared app context?
+        if (!_sharedAppCtx) return;
+        if (appTarget == null) return;
+        if (reqInput.getTargetDir() == null) return;
+        
+        // Only set the shared flag if the app target is in effect. 
+        if (appTarget.equals(reqInput.getTargetDir()))
             reqInput.setDestSharedAppCtx(true);
     }
     
