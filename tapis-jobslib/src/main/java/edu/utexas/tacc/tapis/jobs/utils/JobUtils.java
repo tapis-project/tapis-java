@@ -30,14 +30,6 @@ public final class JobUtils
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
     
-    // Shared application context markers.
-    public static final String SAC_EXEC_SYSTEM_ID         = "execSystemId";
-    public static final String SAC_EXEC_SYSTEM_EXEC_DIR   = "execSystemExecDir";
-    public static final String SAC_EXEC_SYSTEM_INPUT_DIR  = "execSystemInputDir";
-    public static final String SAC_EXEC_SYSTEM_OUTPUT_DIR = "execSystemOutputDir";
-    public static final String SAC_ARCHIVE_SYSTEM_ID      = "archiveSystemId";
-    public static final String SAC_ARCHIVE_SYSTEM_DIR     = "archiveSystemDir";
-
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
