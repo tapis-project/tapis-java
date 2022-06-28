@@ -34,13 +34,14 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.enumerations.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -124,10 +125,8 @@ public final class SubmitContext
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
     
-    // Shared application context flag assigned when app is accessed
-    // and the field set is initialized only when sharing is in effect.
-    private boolean                   _sharedAppCtx;
-    private List<JobSharedAppCtxEnum> _sharedAppCtxResources;
+    // Shared application context is initialized after the application is loaded.
+    private JobSharedAppCtx _sharedAppCtx;
     
     // Macro values.
     private final TreeMap<String,String> _macros = new TreeMap<String,String>();
@@ -305,7 +304,7 @@ public final class SubmitContext
         validateApp(_app);
         
         // Always establish our shared application context.
-        assignSharedAppCtx();
+        _sharedAppCtx = new JobSharedAppCtx(_app);
     }
 
     /* **************************************************************************** */
@@ -348,7 +347,7 @@ public final class SubmitContext
         resolveDirectoryPathNames();
         
         // Mark shared context resources for which Tapis authorization will be skipped.
-        designateSharedAppCtxResources();
+//        designateSharedAppCtxResources();
         
         // Resolve MPI and command prefix values.
         resolveMpiAndCmdPrefix();
@@ -545,11 +544,13 @@ public final class SubmitContext
         }
         
         // --------------------- DTN System ----------------------
-        // Load the dtn system if one is specified.
+        // Load the dtn system if one is specified.  Note that the DTN is defined in the
+        // execution system definition so it inherits the sharing attribute of that system.
         if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                             requireExecPerm, LoadSystemTypes.dtn, _sharedAppCtx);
+                                             requireExecPerm, LoadSystemTypes.dtn, 
+                                             _sharedAppCtx.isSharingExecSystemId()); // exec system sharing
            if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
                                             _dtnSystem.getId());
@@ -573,6 +574,11 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
             _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
         
+        // Determine the shared application context attribute.
+        _sharedAppCtx.calcArchiveSystemId(_submitReq.getArchiveSystemId(), 
+                                          _app.getJobAttributes().getArchiveSystemId(),
+                                          _submitReq.getExecSystemId());
+                
         // Only the last case has an archive system different from the exec system.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) {
             _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
@@ -585,7 +591,7 @@ public final class SubmitContext
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
                                                  requireExecPerm, LoadSystemTypes.archive,
-                                                 _sharedAppCtx); 
+                                                 _sharedAppCtx.isSharingArchiveSystemId()); 
         }
     }
     
@@ -611,6 +617,9 @@ public final class SubmitContext
             execSystemId = _app.getJobAttributes().getExecSystemId();
             _submitReq.setExecSystemId(execSystemId);
         }
+        
+        // Determine the shared application context attribute.
+        _sharedAppCtx.calcExecSystemId(_submitReq.getExecSystemId(), _app.getJobAttributes().getExecSystemId());
                 
         // Abort if we can't determine the exec system id.
         if (StringUtils.isBlank(execSystemId)) {
@@ -621,7 +630,7 @@ public final class SubmitContext
         // Load the system.
         boolean requireExecPerm = true;
         _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, 
-                                           LoadSystemTypes.execution, _sharedAppCtx);
+                                           LoadSystemTypes.execution, _sharedAppCtx.isSharingExecSystemId());
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
@@ -789,8 +798,54 @@ public final class SubmitContext
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
+        // Assign the sharing attributes for all four directories.
+        calculateDirectorySharing(useDTN);
+        
         // Detect ".." segments in path early. 
         sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateDirectorySharing:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    private void calculateDirectorySharing(boolean useDTN)
+    {
+        // Don't waste a lot time...
+        if (!_sharedAppCtx.isSharingEnabled()) return;
+        
+        // Are we accessing the input directory in a shared context?
+        var defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_INPUT_DIR :
+                                  Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR,
+                                         _submitReq.getExecSystemInputDir(),
+                                         _app.getJobAttributes().getExecSystemInputDir(), 
+                                         defaultDir);
+
+        // Are we accessing the exec directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_EXEC_DIR :
+                              Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR,
+                                         _submitReq.getExecSystemExecDir(),
+                                         _app.getJobAttributes().getExecSystemExecDir(), 
+                                         defaultDir);
+        
+        // Are we accessing the input directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR :
+                              Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR,
+                                         _submitReq.getExecSystemOutputDir(),
+                                         _app.getJobAttributes().getExecSystemOutputDir(), 
+                                         defaultDir);
+
+        // Are we accessing the input directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR :
+                              Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
+        _sharedAppCtx.calcArchiveDirSharing(_submitReq.getArchiveSystemDir(),
+                                            _app.getJobAttributes().getArchiveSystemDir(),
+                                            _submitReq.getArchiveSystemId(),
+                                            _app.getJobAttributes().getArchiveSystemId(),
+                                            _submitReq.getExecSystemId(),
+                                            defaultDir);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1740,26 +1795,26 @@ public final class SubmitContext
      * that were set in the application definition and not changed in the job request.  
      * Designation means saving the resource name in the set of shared context resources.  
      */
-    private void designateSharedAppCtxResources()
-    {
-        // There's nothing to do if we're not in a shared app context.
-        if (!_sharedAppCtx) return;
-        
-        // Examine each field that could be shared.
-        var app = getApp();
-        if (_submitReq.getExecSystemId().equals(app.getJobAttributes().getExecSystemId()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);
-        if (_submitReq.getExecSystemExecDir().equals(app.getJobAttributes().getExecSystemExecDir()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR);
-        if (_submitReq.getExecSystemInputDir().equals(app.getJobAttributes().getExecSystemInputDir()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);
-        if (_submitReq.getExecSystemOutputDir().equals(app.getJobAttributes().getExecSystemOutputDir()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR);
-        if (_submitReq.getArchiveSystemId().equals(app.getJobAttributes().getArchiveSystemId()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID);
-        if (_submitReq.getArchiveSystemDir().equals(app.getJobAttributes().getArchiveSystemDir()))
-            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR);
-    }
+//    private void designateSharedAppCtxResources()
+//    {
+//        // There's nothing to do if we're not in a shared app context.
+//        if (!_sharedAppCtx) return;
+//        
+//        // Examine each field that could be shared.
+//        var app = getApp();
+//        if (_submitReq.getExecSystemId().equals(app.getJobAttributes().getExecSystemId()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);
+//        if (_submitReq.getExecSystemExecDir().equals(app.getJobAttributes().getExecSystemExecDir()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR);
+//        if (_submitReq.getExecSystemInputDir().equals(app.getJobAttributes().getExecSystemInputDir()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);
+//        if (_submitReq.getExecSystemOutputDir().equals(app.getJobAttributes().getExecSystemOutputDir()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR);
+//        if (_submitReq.getArchiveSystemId().equals(app.getJobAttributes().getArchiveSystemId()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID);
+//        if (_submitReq.getArchiveSystemDir().equals(app.getJobAttributes().getArchiveSystemDir()))
+//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR);
+//    }
  
     /* ---------------------------------------------------------------------------- */
     /* assignMacros:                                                                */
@@ -2186,20 +2241,6 @@ public final class SubmitContext
         }
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* assignSharedAppCtx:                                                          */
-    /* ---------------------------------------------------------------------------- */
-    /** Lock in whether we will be executing in a shared application context. */
-    private void assignSharedAppCtx()
-    {
-        // No need to do anything when not a shared application.
-        if (_app.getSharedAppCtx() == null) return;
-
-        // Assign the flag and initialize the set if we are sharing.
-        _sharedAppCtx = _app.getSharedAppCtx();
-        if (_sharedAppCtx) _sharedAppCtxResources = new ArrayList<JobSharedAppCtxEnum>();
-    }
-
     /* ---------------------------------------------------------------------------- */
     /* validateSchedulerProfile:                                                    */
     /* ---------------------------------------------------------------------------- */
