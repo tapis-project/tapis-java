@@ -40,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
@@ -1331,6 +1332,18 @@ public final class JobsDao
           
           // Shared application context.
           pstmt.setBoolean(40, job.isSharedAppCtx());
+          
+          // Shared application context attributes.
+          var attribs = job.getSharedAppCtxAttribs();
+          Array attribsArray;
+          if (attribs == null || attribs.isEmpty()) 
+              attribsArray = conn.createArrayOf("text", new String[0]);
+            else {
+                String[] sarray = new String[attribs.size()];
+                for (int i = 0; i < attribs.size(); i++) sarray[i] = attribs.get(i).name();
+                attribsArray = conn.createArrayOf("text", sarray);
+            }
+          pstmt.setArray(41, attribsArray);
               
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
@@ -3024,6 +3037,15 @@ public final class JobsDao
 	        
 	        // Shared application context.
 	        obj.setSharedAppCtx(rs.getBoolean(60));
+	        Array attribArray = rs.getArray(61);
+	        if (attribArray != null) {
+	            var stringArray = (String[])attribArray.getArray();
+                if (stringArray != null && stringArray.length > 0) { 
+                    var attribsList = new ArrayList<JobSharedAppCtxEnum>(6); // max number of elements
+                    for (String s1 : stringArray) attribsList.add(JobSharedAppCtxEnum.valueOf(s1));
+                    obj.setSharedAppCtxAttribs(attribsList);
+                }
+	        }
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -138,6 +139,7 @@ public final class Job
     private String              cmdPrefix;
     
     private boolean             sharedAppCtx;
+    private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -962,6 +964,14 @@ public final class Job
 
     public void setSharedAppCtx(boolean sharedAppCtx) {
         this.sharedAppCtx = sharedAppCtx;
+    }
+
+    public List<JobSharedAppCtxEnum> getSharedAppCtxAttribs() {
+        return sharedAppCtxAttribs;
+    }
+
+    public void setSharedAppCtxAttribs(List<JobSharedAppCtxEnum> sharedAppCtxAttribs) {
+        this.sharedAppCtxAttribs = sharedAppCtxAttribs;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.
