@@ -346,9 +346,6 @@ public final class SubmitContext
         // Resolve directory assignments.
         resolveDirectoryPathNames();
         
-        // Mark shared context resources for which Tapis authorization will be skipped.
-//        designateSharedAppCtxResources();
-        
         // Resolve MPI and command prefix values.
         resolveMpiAndCmdPrefix();
         
@@ -829,7 +826,7 @@ public final class SubmitContext
                                          _app.getJobAttributes().getExecSystemExecDir(), 
                                          defaultDir);
         
-        // Are we accessing the input directory in a shared context?
+        // Are we accessing the output directory in a shared context?
         defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR :
                               Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR,
@@ -837,7 +834,7 @@ public final class SubmitContext
                                          _app.getJobAttributes().getExecSystemOutputDir(), 
                                          defaultDir);
 
-        // Are we accessing the input directory in a shared context?
+        // Are we accessing the archive directory in a shared context?
         defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR :
                               Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
         _sharedAppCtx.calcArchiveDirSharing(_submitReq.getArchiveSystemDir(),
@@ -1098,11 +1095,11 @@ public final class SubmitContext
             // Create a new request input from the REQUIRED or FIXED app input.
             var reqInput = JobFileInput.importAppInput(appInput);
             
-            // Assign the shared app context flags.  The source flag is set only if
-            // the tapis protocol is used; the destination is always on the execution
-            // system, so we just check that the execution system is shared.
+            // Assign the shared app context flags.  The source flag is set only if the
+            // tapis protocol is used; the destination is always on the execution system,
+            // so we just check that the execution system input directory is shared.
             calculateSrcSharedCtx(reqInput, reqInput.getSourceUrl());
-            calculateDestSharedCtx(reqInput, reqInput.getTargetPath());
+            reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
             
             // Canonicalize paths and derive other values.
             completeRequestFileInput(reqInput);
@@ -1173,7 +1170,6 @@ public final class SubmitContext
         // Calculate the target if necessary.
         if (StringUtils.isBlank(reqInput.getTargetPath()))
             reqInput.setTargetPath(appDef.getTargetPath());
-        calculateDestSharedCtx(reqInput, appDef.getTargetPath());
         if (StringUtils.isBlank(reqInput.getTargetPath()))
             reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
@@ -1184,6 +1180,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
@@ -1246,7 +1243,6 @@ public final class SubmitContext
                                          "targetPath", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        calculateDestSharedCtx(reqInput, appDef.getTargetPath());
         if ("*".equals(reqInput.getTargetPath())) // assign default for asterisk
             reqInput.setTargetPath(TapisUtils.extractFilename(reqInput.getSourceUrl()));
         // The app definition should not allow this, but we doublecheck.
@@ -1255,6 +1251,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1412,11 +1409,8 @@ public final class SubmitContext
             // that the app definition can be overridden.  The final determination of
             // the shared context setting for each source file is handled by the 
             // marshaling method below.
-            if (_sharedAppCtx) {
-                reqArray.setSrcSharedAppCtx(true);
-                if (_sharedAppCtxResources.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID))
-                    reqArray.setDestSharedAppCtx(true);
-            }
+            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(true);
+            reqArray.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
             
             // Add the request to the list and update list of processed names.
             // We rely on Apps to not allow duplicate named input arrays.
@@ -1477,7 +1471,6 @@ public final class SubmitContext
         // Calculate the target if necessary.
         if (StringUtils.isBlank(reqInput.getTargetDir()))
             reqInput.setTargetDir(appDef.getTargetDir());
-        calculateDestSharedCtxArray(reqInput, appDef.getTargetDir());
         if (StringUtils.isBlank(reqInput.getTargetDir()))
             reqInput.setTargetDir("/"); // indicates execSystemInputDir
         if ("*".equals(reqInput.getTargetDir())) // assign default for asterisk
@@ -1488,6 +1481,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1544,7 +1538,7 @@ public final class SubmitContext
                                          "targetDir", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        calculateDestSharedCtxArray(reqInput, appDef.getTargetDir());
+        
         // Designate the execSystemInputDir as the default when asterisk is used.
         if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
         // The app definition should not allow this, but we doublecheck.
@@ -1553,6 +1547,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1697,44 +1692,15 @@ public final class SubmitContext
     private void calculateSrcSharedCtx(JobFileInput reqInput, String appSource)
     {
         // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
+        if (!_sharedAppCtx.isSharingEnabled()) return;
         
-        // Only tapis urls involve systems and authorization checking.
+        // Only tapis urls involve systems and share checking.
         if (!reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
             return;
         
         // Only set the shared flag if the app source is in effect.
         if (reqInput.getSourceUrl().equals(appSource)) 
             reqInput.setSrcSharedAppCtx(true);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* calculateDestSharedCtx:                                                      */
-    /* ---------------------------------------------------------------------------- */
-    /** Set the destination file input shared flag only if we are in a shared app context
-     * and the request's effective target path is the same as the one specified in
-     * the application.  No action is taken unless both conditions are satisfied.  
-     * 
-     * This method should be called after attempting to copy the the app target path 
-     * to reqInput but before any wildcard substitution is attempted.
-     * 
-     * @param reqInput input request with possibly null targetPath
-     * @param appTarget input target path from app definition, could be null
-     */
-    private void calculateDestSharedCtx(JobFileInput reqInput, String appTarget)
-    {
-        // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
-        if (appTarget == null) return;
-        if (reqInput.getTargetPath() == null) return;
-        
-        // Make sure we have shared access to the execution system.
-        if (!_sharedAppCtxResources.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID)) 
-            return;
-        
-        // Only set the shared flag if the app target is in effect. 
-        if (appTarget.equals(reqInput.getTargetPath()))
-            reqInput.setDestSharedAppCtx(true);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1752,70 +1718,13 @@ public final class SubmitContext
     private void calculateSrcSharedCtxArray(JobFileInputArray reqArray, List<String> appSources)
     {
         // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
+        if (!_sharedAppCtx.isSharingEnabled()) return;
 
         // Only set the shared flag if the app and request sources exactly match.
         if (reqArray.equalSourceUrls​(appSources)) 
             reqArray.setSrcSharedAppCtx(true);
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* calculateDestSharedCtxArray:                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /** Set the destination file array shared flag only if we are in a shared app context
-     * and the request's effective target path is the same as the one specified in
-     * the application.  No action is taken unless both conditions are satisfied.  
-     * 
-     * This method should be called after attempting to copy the the app target path 
-     * to reqInput but before any wildcard substitution is attempted.
-     * 
-     * @param reqInput input request with possibly null targetPath
-     * @param appTarget input target path from app definition, could be null
-     */
-    private void calculateDestSharedCtxArray(JobFileInputArray reqInput, String appTarget)
-    {
-        // Are we in a shared app context?
-        if (!_sharedAppCtx) return;
-        if (appTarget == null) return;
-        if (reqInput.getTargetDir() == null) return;
-        
-        // Make sure we have shared access to the execution system.
-        if (!_sharedAppCtxResources.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID)) 
-            return;
-        
-        // Only set the shared flag if the app target is in effect. 
-        if (appTarget.equals(reqInput.getTargetDir()))
-            reqInput.setDestSharedAppCtx(true);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* designateSharedAppCtxResources:                                              */
-    /* ---------------------------------------------------------------------------- */
-    /** When running in a shared application context, designate all sharable fields 
-     * that were set in the application definition and not changed in the job request.  
-     * Designation means saving the resource name in the set of shared context resources.  
-     */
-//    private void designateSharedAppCtxResources()
-//    {
-//        // There's nothing to do if we're not in a shared app context.
-//        if (!_sharedAppCtx) return;
-//        
-//        // Examine each field that could be shared.
-//        var app = getApp();
-//        if (_submitReq.getExecSystemId().equals(app.getJobAttributes().getExecSystemId()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);
-//        if (_submitReq.getExecSystemExecDir().equals(app.getJobAttributes().getExecSystemExecDir()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR);
-//        if (_submitReq.getExecSystemInputDir().equals(app.getJobAttributes().getExecSystemInputDir()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);
-//        if (_submitReq.getExecSystemOutputDir().equals(app.getJobAttributes().getExecSystemOutputDir()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR);
-//        if (_submitReq.getArchiveSystemId().equals(app.getJobAttributes().getArchiveSystemId()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID);
-//        if (_submitReq.getArchiveSystemDir().equals(app.getJobAttributes().getArchiveSystemDir()))
-//            _sharedAppCtxResources.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR);
-//    }
- 
     /* ---------------------------------------------------------------------------- */
     /* assignMacros:                                                                */
     /* ---------------------------------------------------------------------------- */

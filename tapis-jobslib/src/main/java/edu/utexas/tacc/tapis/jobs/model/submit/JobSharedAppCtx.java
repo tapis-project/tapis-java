@@ -141,7 +141,6 @@ public final class JobSharedAppCtx
      * This method must be called AFTER the app directory value has been merged into 
      * the job submission request. 
      * 
-     * @param attrib the attribute to be shared
      * @param jobDir the non-null job request directory
      * @param appDir the possibly null application directory
      * @param jobArchiveSystemId non-null archive system id 
@@ -159,16 +158,19 @@ public final class JobSharedAppCtx
         if (!isSharingArchiveSystemId()) return;
         final var attrib = JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR;
         
-        // If application didn't specify an archive system yet we've resolved
-        // to archive on the execution system itself, then the archive 
+        // If application didn't specify an archive system and we've resolved
+        // to archive on the shared execution system itself, then the archive 
         // directory is always shared.
         if (StringUtils.isBlank(appArchiveSystemId))
-            if (jobArchiveSystemId.equals(jobExecSystemId)) {
+            if (jobArchiveSystemId.equals(jobExecSystemId) &&
+                isSharingExecSystemId()) 
+            {
                 _sharedAppCtxAttribs.add(attrib);
                 return;
             }
         
-        // Was the directory defined in the application?
+        // If the job directory was not defined in the application
+        // and is assigned its default value, then it's shared.
         if (StringUtils.isBlank(appDir)) {
             if (jobDir.equals(defaultDir)) _sharedAppCtxAttribs.add(attrib);
             return;
