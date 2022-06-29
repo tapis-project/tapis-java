@@ -73,6 +73,11 @@ public final class JobFileManager
     private final JobExecutionContext _jobCtx;
     private final Job                 _job;
     
+    // Unpack shared context directory settings
+    private final boolean             _execSystemExecDir;
+    private final boolean             _execSystemOutputDir;
+    private final boolean             _archiveSystemDir;
+    
     // Derived path prefix value removed before filtering.
     private String                    _filterIgnorePrefix;
     
@@ -86,6 +91,10 @@ public final class JobFileManager
     {
         _jobCtx = ctx;
         _job = ctx.getJob();
+        
+        _execSystemExecDir   = ctx.getJobSharedAppCtx().isSharingExecSystemExecDir();
+        _execSystemOutputDir = ctx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
+        _archiveSystemDir    = ctx.getJobSharedAppCtx().isSharingArchiveSystemDir();
     }
     
     /* ********************************************************************** */
@@ -115,8 +124,9 @@ public final class JobFileManager
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
         try {
+            var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemExecDir();
             filesClient.mkdir(ioTargets.getExecTarget().systemId, 
-                              ioTargets.getExecTarget().dir);
+                              ioTargets.getExecTarget().dir, sharedAppCtx);
         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                          ioTargets.getExecTarget().host,
@@ -136,8 +146,9 @@ public final class JobFileManager
         if (!createdSet.contains(execSysOutputDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
                 filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
-                                  _job.getExecSystemOutputDir());
+                                  _job.getExecSystemOutputDir(), sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getOutputTarget().host,
@@ -157,8 +168,9 @@ public final class JobFileManager
         if (!createdSet.contains(execSysInputDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemInputDir();
                 filesClient.mkdir(ioTargets.getInputTarget().systemId, 
-                                 ioTargets.getInputTarget().dir);
+                                 ioTargets.getInputTarget().dir, sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
@@ -178,8 +190,9 @@ public final class JobFileManager
         if (!createdSet.contains(archiveSysDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingArchiveSystemDir();
                 filesClient.mkdir(_job.getArchiveSystemId(), 
-                                  _job.getArchiveSystemDir());
+                                  _job.getArchiveSystemDir(), sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              _jobCtx.getArchiveSystem().getHost(),
@@ -430,7 +443,9 @@ public final class JobFileManager
             if (fileInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
                 continue;
             
-            // Assign the task.
+            // Assign the task.  Input files have already been assigned their
+            // sharing attributes during submission.  For details, see
+            // SubmitContext.calculateDirectorySharing().
             var task = new ReqTransferElement().
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
@@ -487,6 +502,8 @@ public final class JobFileManager
                 var task = new ReqTransferElement().
                         sourceURI(makeExecSysOutputUrl("")).
                         destinationURI(makeArchiveSysUrl(""));
+                task.setSrcSharedAppCtx(_execSystemOutputDir);
+                task.setDestSharedAppCtx(_archiveSystemDir);
                 tasks.addElementsItem(task);
             } 
             else 
@@ -575,11 +592,15 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
+        task.setSrcSharedAppCtx(_execSystemExecDir);
+        task.setDestSharedAppCtx(_archiveSystemDir);
         tasks.addElementsItem(task);
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
+            task.setSrcSharedAppCtx(_execSystemExecDir);
+            task.setDestSharedAppCtx(_archiveSystemDir);
             tasks.addElementsItem(task);
         }
     }
@@ -600,6 +621,8 @@ public final class JobFileManager
             var task = new ReqTransferElement().
                     sourceURI(makeExecSysOutputUrl(relativePath)).
                     destinationURI(makeArchiveSysUrl(relativePath));
+            task.setSrcSharedAppCtx(_execSystemOutputDir);
+            task.setDestSharedAppCtx(_archiveSystemDir);
             tasks.addElementsItem(task);
         }
     }

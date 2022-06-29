@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.monitors.JobMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
@@ -59,6 +60,7 @@ public final class JobExecutionContext
     /* ********************************************************************** */
     // The job to run.
     private final Job                _job;
+    private JobSharedAppCtx          _jobSharedAppCtx;
     
 	// Cached dao's used throughout this file and by clients.
     private final JobsDao            _jobsDao;
@@ -98,6 +100,7 @@ public final class JobExecutionContext
             throw new TapisRuntimeException(msg);
         }
         _job = job;
+        _jobSharedAppCtx = new JobSharedAppCtx(job);
         _jobsDao = jobDao;
         
         // Cross reference the job and its context.
@@ -117,7 +120,7 @@ public final class JobExecutionContext
         if (_executionSystem == null) {
             _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                                    _job.getExecSystemId(), true, LoadSystemTypes.execution,
-                                   _job.isSharedAppCtx());
+                                   _jobSharedAppCtx.isSharingExecSystemId());
         }
         
         return _executionSystem;
@@ -136,7 +139,7 @@ public final class JobExecutionContext
             if (_archiveSystem == null)    
                 _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                                      _job.getArchiveSystemId(), false, LoadSystemTypes.archive,
-                                     _job.isSharedAppCtx());
+                                     _jobSharedAppCtx.isSharingArchiveSystemId());
         }
         
         return _archiveSystem;
@@ -155,7 +158,7 @@ public final class JobExecutionContext
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                              _job.getDtnSystemId(), false, LoadSystemTypes.dtn,
-                             _job.isSharedAppCtx());
+                             _jobSharedAppCtx.isSharingExecSystemId());
         }
         
         return _dtnSystem;
@@ -458,6 +461,7 @@ public final class JobExecutionContext
     /*                              Accessors                                 */
     /* ********************************************************************** */
     public Job getJob() {return _job;}
+    public JobSharedAppCtx getJobSharedAppCtx() {return _jobSharedAppCtx;}
     
     public void setExecutionSystem(TapisSystem executionSystem) 
        {_executionSystem = executionSystem;}

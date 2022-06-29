@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 
 public final class JobSharedAppCtx 
 {
@@ -37,6 +37,10 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
     /* ---------------------------------------------------------------------------- */
+    /** Called during job request processing to assign sharing attributes.
+     * 
+     * @param app the application to be run by the new job
+     */
     public JobSharedAppCtx(TapisApp app)
     {
         // No need to do anything when not a shared application.
@@ -48,6 +52,20 @@ public final class JobSharedAppCtx
             final int capacity = 6;
             _sharedAppCtxAttribs = new ArrayList<JobSharedAppCtxEnum>(capacity);
         }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* constructor:                                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Called by workers during job execution to conveniently access sharing attributes.
+     * 
+     * @param job the executing job
+     */
+    public JobSharedAppCtx(Job job)
+    {
+        // Read only access.
+        _sharingEnabled = job.isSharedAppCtx();
+        _sharedAppCtxAttribs = job.getSharedAppCtxAttribs();
     }
     
     /* **************************************************************************** */

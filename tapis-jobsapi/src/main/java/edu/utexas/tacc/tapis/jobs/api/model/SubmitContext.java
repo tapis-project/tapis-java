@@ -333,7 +333,7 @@ public final class SubmitContext
         // Resolve constraints before resolving systems.
         resolveConstraints();
         
-        // Resolve all systems.
+        // Resolve all systems and their sharing attributes.
         resolveSystems();
         
         // Resolve job type.
@@ -343,7 +343,7 @@ public final class SubmitContext
         // from the system, app and request definitions.
         resolveParameterSet();
         
-        // Resolve directory assignments.
+        // Resolve directory assignments and their sharing attributes.
         resolveDirectoryPathNames();
         
         // Resolve MPI and command prefix values.
