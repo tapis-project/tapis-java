@@ -111,8 +111,8 @@ public final class JobSharedAppCtx
         
         // If the application doesn't define an archive system, the assigned
         // system is by default the execution system.  If that is the case, 
-        // we assume the application sharer intended for the default archive system
-        // to be shared.
+        // we assume the application sharer intended for the default archive 
+        // system to be shared.
         if (StringUtils.isBlank(appArchiveSystemId)) {
             if (jobArchiveSystemId.equals(jobExecSystemId))
                 _sharedAppCtxAttribs.add(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID);

@@ -518,6 +518,8 @@ public final class SubmitContext
             _submitReq.setDynamicExecSystem(Job.DEFAULT_DYNAMIC_EXEC_SYSTEM);
         
         // Dynamic execution system selection must be explicitly specified.
+        // The _execSystem field is always filled in after this code block.
+        // Static system selection includes calculating the sharing attribute.
         boolean isDynamicExecSystem = _submitReq.getDynamicExecSystem();
         if (isDynamicExecSystem) resolveDynamicExecSystem(systemsClient);
           else resolveStaticExecSystem(systemsClient);
@@ -571,20 +573,23 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
             _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
         
-        // Determine the shared application context attribute.
+        // Assign the default archive system if it's still blank.
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) 
+            _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
+        
+        // Determine the shared application context attribute.  By this time
+        // the request archive system has been assigned, though that system
+        // may not be loaded yet.
         _sharedAppCtx.calcArchiveSystemId(_submitReq.getArchiveSystemId(), 
                                           _app.getJobAttributes().getArchiveSystemId(),
                                           _submitReq.getExecSystemId());
                 
-        // Only the last case has an archive system different from the exec system.
-        if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) {
-            _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
+        // Assign the archive system object if it's the same as the execution system.
+        if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId()))
             _archiveSystem = _execSystem;
-        }
-        else if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId())) {
-            _archiveSystem = _execSystem;
-        }
         else {
+            // Load the archive system if it's different from the execution system,
+            // which is the same as saying that it hasn't been assigned yet.
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
                                                  requireExecPerm, LoadSystemTypes.archive,
@@ -615,15 +620,15 @@ public final class SubmitContext
             _submitReq.setExecSystemId(execSystemId);
         }
         
-        // Determine the shared application context attribute.
-        _sharedAppCtx.calcExecSystemId(_submitReq.getExecSystemId(), _app.getJobAttributes().getExecSystemId());
-                
         // Abort if we can't determine the exec system id.
         if (StringUtils.isBlank(execSystemId)) {
             String msg = MsgUtils.getMsg("TAPIS_JOBS_MISSING_SYSTEM", "execution");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
+        // Determine the shared application context attribute.
+        _sharedAppCtx.calcExecSystemId(execSystemId, _app.getJobAttributes().getExecSystemId());
+                
         // Load the system.
         boolean requireExecPerm = true;
         _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, 

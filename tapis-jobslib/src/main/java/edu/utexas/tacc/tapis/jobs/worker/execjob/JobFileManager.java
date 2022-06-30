@@ -74,9 +74,9 @@ public final class JobFileManager
     private final Job                 _job;
     
     // Unpack shared context directory settings
-    private final boolean             _execSystemExecDir;
-    private final boolean             _execSystemOutputDir;
-    private final boolean             _archiveSystemDir;
+    private final boolean             _shareExecSystemExecDir;
+    private final boolean             _shareExecSystemOutputDir;
+    private final boolean             _shareArchiveSystemDir;
     
     // Derived path prefix value removed before filtering.
     private String                    _filterIgnorePrefix;
@@ -92,9 +92,9 @@ public final class JobFileManager
         _jobCtx = ctx;
         _job = ctx.getJob();
         
-        _execSystemExecDir   = ctx.getJobSharedAppCtx().isSharingExecSystemExecDir();
-        _execSystemOutputDir = ctx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
-        _archiveSystemDir    = ctx.getJobSharedAppCtx().isSharingArchiveSystemDir();
+        _shareExecSystemExecDir   = ctx.getJobSharedAppCtx().isSharingExecSystemExecDir();
+        _shareExecSystemOutputDir = ctx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
+        _shareArchiveSystemDir    = ctx.getJobSharedAppCtx().isSharingArchiveSystemDir();
     }
     
     /* ********************************************************************** */
@@ -502,8 +502,8 @@ public final class JobFileManager
                 var task = new ReqTransferElement().
                         sourceURI(makeExecSysOutputUrl("")).
                         destinationURI(makeArchiveSysUrl(""));
-                task.setSrcSharedAppCtx(_execSystemOutputDir);
-                task.setDestSharedAppCtx(_archiveSystemDir);
+                task.setSrcSharedAppCtx(_shareExecSystemOutputDir);
+                task.setDestSharedAppCtx(_shareArchiveSystemDir);
                 tasks.addElementsItem(task);
             } 
             else 
@@ -592,15 +592,15 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
-        task.setSrcSharedAppCtx(_execSystemExecDir);
-        task.setDestSharedAppCtx(_archiveSystemDir);
+        task.setSrcSharedAppCtx(_shareExecSystemExecDir);
+        task.setDestSharedAppCtx(_shareArchiveSystemDir);
         tasks.addElementsItem(task);
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
-            task.setSrcSharedAppCtx(_execSystemExecDir);
-            task.setDestSharedAppCtx(_archiveSystemDir);
+            task.setSrcSharedAppCtx(_shareExecSystemExecDir);
+            task.setDestSharedAppCtx(_shareArchiveSystemDir);
             tasks.addElementsItem(task);
         }
     }
@@ -621,8 +621,8 @@ public final class JobFileManager
             var task = new ReqTransferElement().
                     sourceURI(makeExecSysOutputUrl(relativePath)).
                     destinationURI(makeArchiveSysUrl(relativePath));
-            task.setSrcSharedAppCtx(_execSystemOutputDir);
-            task.setDestSharedAppCtx(_archiveSystemDir);
+            task.setSrcSharedAppCtx(_shareExecSystemOutputDir);
+            task.setDestSharedAppCtx(_shareArchiveSystemDir);
             tasks.addElementsItem(task);
         }
     }
