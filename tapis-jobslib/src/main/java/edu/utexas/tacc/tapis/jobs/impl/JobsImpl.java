@@ -473,33 +473,49 @@ public final class JobsImpl
     	
     	boolean checkShare = false;
     	Job job = null;
+    	String jobOwner = "";
         try {job = getJobByUuid(jobUuid, user, tenant);}
         catch (Exception e) {
         	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
         		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+        	   // get jobowner information from the exception message
+        	   String[] parseMsg = e.getMessage().split("\\(");
+        	   jobOwner = parseMsg[2].substring(0,parseMsg[2].length()-2);
+        	   _log.debug("Parsed jobOwner from the message = " + jobOwner);
                checkShare = true;
+               
             }
         
         // ----- Share Authorization checks.
-        // Make sure the user and tenant are authorized.
-       if (job != null && checkShare) {
-	       
+       if (checkShare) {   
 	        /**
 	         * 
 	         * If the user is not the job owner or not admin or not the one who created the job,
 	         * we need to check if the job has been shared with the user.
 	         * */
     	    if (!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
-    	        String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, job.getOwner());
+    	        String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobOwner);
        		     _log.error(msg);
        		     throw new TapisImplException(msg, Condition.UNAUTHORIZED);
 	        }
+    	    
+    	    try {job = getJobsDao().getJobByUUID(jobUuid, true);}
+            catch (TapisNotFoundException e) {
+                String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+                throw new TapisImplException(msg, e, Condition.BAD_REQUEST);
+            }
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant, e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
+            
+    	    
 	    }
-       
+        
         // Could be null if not found.
         return job;
     }
-    
+   
     /* ---------------------------------------------------------------------- */
     /* getJobStatusByUuid:                                                    */
     /* ---------------------------------------------------------------------- */
@@ -568,27 +584,34 @@ public final class JobsImpl
         // ----- Get the job status, job owner, createdby, createdby tenant and visible information
         JobStatusDTO jobstatus = null;
         boolean checkShare = false;
+        String jobOwner = "";
         try {jobstatus = getJobStatusByUuid(jobUuid, user, tenant);}
         catch (Exception e) {
         	   if (!e.getMessage().startsWith("JOBS_MISMATCHED_OWNER")) 
         		   throw new TapisImplException(e.getMessage(), e, Condition.INTERNAL_SERVER_ERROR);
+        	   // get jobowner information from the exception message
+        	   String[] parseMsg = e.getMessage().split("\\(");
+        	   jobOwner = parseMsg[2].substring(0,parseMsg[2].length()-2);
+        	   _log.debug("Parsed jobOwner from the message = " + jobOwner);
                checkShare = true;
-            }
+         }
            
         
         // ----- Share Authorization checks.
-        // Make sure the user and tenant are authorized.
-       if(jobstatus != null && checkShare) {
-	       
+        if(checkShare) {    
 	        /**
 	         * If the user is not the job owner or not admin or not the one who created the job, we need to check if the job has been shared with the user.
 	         * */
     	    if(!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
-       		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobstatus.getOwner());
-       		 _log.error(msg);
-       		throw new TapisImplException(msg, Condition.UNAUTHORIZED);
-       		
-	        }
+	       		String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobOwner);
+	       		 _log.error(msg);
+	       		throw new TapisImplException(msg, Condition.UNAUTHORIZED);
+            }
+    	    try {jobstatus = getJobsDao().getJobStatusByUUID(jobUuid);}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", jobUuid, user, tenant,e);
+                throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+            }
 	    }
         
         // Could be null if not found.
