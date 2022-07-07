@@ -731,13 +731,21 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobEventsSummary:                                                   */
     /* ---------------------------------------------------------------------- */
-    public List<JobHistoryDisplayDTO> getJobEventsSummary(List<JobEvent> jobEvents, String user, String tenant) 
+    public List<JobHistoryDisplayDTO> getJobEventsSummary(List<JobEvent> jobEvents, String user, String tenant, JobStatusDTO jobstatus) 
      throws TapisImplException
     {   
+
+        
+        boolean skipTapisAuthorization = isJobShared(jobstatus.getJobUuid(), user, tenant, 
+     		   JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+        String impersonationId =  null;
+        if(skipTapisAuthorization == true) {
+        	impersonationId = jobstatus.getOwner();
+        }
     	
 		ArrayList<JobHistoryDisplayDTO> eventsSummary = new ArrayList<JobHistoryDisplayDTO>();
         for(JobEvent jobEvent: jobEvents ) {
-        	JobHistoryDisplayDTO historyObj = new JobHistoryDisplayDTO(jobEvent, user, tenant);
+        	JobHistoryDisplayDTO historyObj = new JobHistoryDisplayDTO(jobEvent, user, tenant, impersonationId);
         	eventsSummary.add(historyObj);
         }
               

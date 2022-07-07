@@ -281,9 +281,10 @@ public class JobOutputDownloadResource extends AbstractResource{
 	   try {
 			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
 					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
-	   } catch (TapisImplException e1) {
-			// TODO Add message
-			e1.printStackTrace();
+	   } catch (TapisImplException e) {
+		   _log.error(e.getMessage(), e);
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
        
 	   String impersonationId = null;
