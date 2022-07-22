@@ -260,7 +260,7 @@ public class JobSubmitResource
      /* getResubmitRequestJson:                                                      */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/{jobuuid}/resubmit_request")
+     @Path("/{jobUuid}/resubmit_request")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get Resubmit request for of a job in JSON format.  ",
