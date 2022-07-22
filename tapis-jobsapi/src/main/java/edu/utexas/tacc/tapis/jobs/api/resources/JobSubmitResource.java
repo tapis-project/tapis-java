@@ -284,7 +284,7 @@ public class JobSubmitResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getResubmitRequestJson(@PathParam("jobuuid") String jobUuid,
+     public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
     	 // Trace this request.
