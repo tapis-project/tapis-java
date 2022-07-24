@@ -10,7 +10,20 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
-## 1.2 - 2022-05-31
+## 1.2.1 - 2022-07-25
+
+Maintenance release
+
+### Breaking Changes:
+
+### New features:
+1. Updated 3rd party libraries
+
+### Bug fixes:
+
+-----------------------
+
+## 1.2.0 - 2022-05-31
 
 Maintenance release
 
