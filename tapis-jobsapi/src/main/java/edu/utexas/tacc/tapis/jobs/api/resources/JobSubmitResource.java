@@ -178,7 +178,7 @@ public class JobSubmitResource
      /* resubmitJob:                                                                 */
      /* ---------------------------------------------------------------------------- */
      @POST
-     @Path("/{jobuuid}/resubmit")
+     @Path("/{jobUuid}/resubmit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
@@ -213,12 +213,12 @@ public class JobSubmitResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response resubmitJob(@PathParam("jobuuid") String jobUuid,
+     public Response resubmitJob(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
     	 // Trace this request.
     	 if (_log.isTraceEnabled()) {
-    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hideJob",
+    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "resubmit",
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
@@ -260,7 +260,7 @@ public class JobSubmitResource
      /* getResubmitRequestJson:                                                      */
      /* ---------------------------------------------------------------------------- */
      @GET
-     @Path("/{jobuuid}/resubmit_request")
+     @Path("/{jobUuid}/resubmit_request")
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
              description = "Get Resubmit request for of a job in JSON format.  ",
@@ -284,7 +284,7 @@ public class JobSubmitResource
                       content = @Content(schema = @Schema(
                          implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
      )
-     public Response getResubmitRequestJson(@PathParam("jobuuid") String jobUuid,
+     public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
     	 // Trace this request.

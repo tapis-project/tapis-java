@@ -2022,7 +2022,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Does this job even use a queue?
-        if (!_execSystem.getCanRunBatch()) return;
+        if (!JobType.BATCH.name().equals(_submitReq.getJobType())) return;
         
         // Get the queue definition which is guaranteed to exist.
         var queueName = _submitReq.getExecSystemLogicalQueue();

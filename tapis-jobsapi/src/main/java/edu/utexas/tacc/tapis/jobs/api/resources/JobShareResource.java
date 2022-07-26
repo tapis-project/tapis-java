@@ -131,7 +131,7 @@ public class JobShareResource
              description = "Share a job with a user of the tenant. "
             		 + "The caller must be the job owner, creator or a tenant administrator.",
                      
-             tags = "jobs",
+             tags = "share",
              security = {@SecurityRequirement(name = "TapisJWT")},
              requestBody = 
                  @RequestBody(
@@ -245,15 +245,15 @@ public class JobShareResource
          // Initialize jobShared with calculated effective parameters.
          ArrayList<JobShared> jobsSharedArray = new ArrayList<JobShared>();
          
-         List<String> resourceTypeList = payload.getJobResource();
+         List<JobResourceShare> resourceTypeList = payload.getJobResource();
          
          // Parameters for JobShared construtcor:
          // tenant, createdby, jobUuid, grantee, grantor, jobResource, JobTapisPermission  jobPermission
-         for(String resourceType: resourceTypeList) { 	 
+         for(JobResourceShare resourceType: resourceTypeList) { 	 
         	 JobShared jobShared = null;
         	 jobShared = new JobShared(threadContext.getOboTenantId(), threadContext.getOboUser(), 
-        			 jobUuid, payload.getGrantee(), jobstatus.getOwner(), JobResourceShare.valueOf(resourceType),
-        			 JobTapisPermission.valueOf(payload.getJobPermission()));
+        			 jobUuid, payload.getGrantee(), jobstatus.getOwner(), resourceType,
+        			 payload.getJobPermission());
              
         	 jobsSharedArray.add(jobShared);
          }
@@ -299,7 +299,7 @@ public class JobShareResource
              description = "Retrieve share information of a job by its UUID.\n\n"
                            + "The caller must be the job owner, creator or a tenant administrator.",
                            
-             tags = "jobs",
+             tags = "share",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {
@@ -438,7 +438,7 @@ public class JobShareResource
              description = "Delete all share information of a previously shared job for a specific user\n\n"
                            + "The caller must be the job owner, creator or a tenant administrator."
                            + "",
-             tags = "jobs",
+             tags = "share",
              security = {@SecurityRequirement(name = "TapisJWT")},
              responses = 
                  {

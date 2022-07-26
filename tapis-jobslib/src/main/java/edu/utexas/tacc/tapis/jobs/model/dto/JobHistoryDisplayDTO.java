@@ -31,7 +31,7 @@ public class JobHistoryDisplayDTO {
     private String        transferTaskUuid;
     private JsonObject 	  transferSummary;
     
-    public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant) throws TapisImplException{
+    public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant, String impersonationId) throws TapisImplException{
     	
     	setEvent(jobEvent.getEvent().name());
     	setEventDetail(jobEvent.getEventDetail());
@@ -48,11 +48,11 @@ public class JobHistoryDisplayDTO {
     		TransferTask transferTask = null;
     		
     		try {
-    			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid());
+    			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid(), impersonationId);
     			
 			} catch (TapisClientException e) {
 				String msg = MsgUtils.getMsg("FILES_TRANSFER_HISTORY_RETRIEVE_ERROR", 
-						jobEvent.getOthUuid(), jobEvent.getJobUuid(),e.getCode());
+						jobEvent.getOthUuid(), jobEvent.getJobUuid(),user, tenant,e.getCode());
 	            throw new TapisImplException(msg, e, e.getCode());
 			}
     		if (transferTask!= null) {

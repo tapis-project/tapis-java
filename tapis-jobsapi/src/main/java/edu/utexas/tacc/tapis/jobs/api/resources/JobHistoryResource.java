@@ -188,6 +188,7 @@ public class JobHistoryResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
+      
            
        // ------------------------- Process Results --------------------------
        
@@ -207,7 +208,7 @@ public class JobHistoryResource extends AbstractResource {
        	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
             msg, prettyPrint, r)).build();
        }
-       
+      
        List<JobEvent> events = null;
        try {
 		 events =jobsImpl.getJobEventsByJobUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),srchParms.getLimit(), srchParms.getSkip() );
@@ -222,10 +223,12 @@ public class JobHistoryResource extends AbstractResource {
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
        
+       
+       
        List<JobHistoryDisplayDTO> jobHists = null;
        if(events != null) {
     	  try {
-			jobHists = jobsImpl.getJobEventsSummary(events, threadContext.getOboUser(), threadContext.getOboTenantId());
+			jobHists = jobsImpl.getJobEventsSummary(events, threadContext.getOboUser(), threadContext.getOboTenantId(), jobstatus);
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
