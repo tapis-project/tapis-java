@@ -245,15 +245,15 @@ public class JobShareResource
          // Initialize jobShared with calculated effective parameters.
          ArrayList<JobShared> jobsSharedArray = new ArrayList<JobShared>();
          
-         List<String> resourceTypeList = payload.getJobResource();
+         List<JobResourceShare> resourceTypeList = payload.getJobResource();
          
          // Parameters for JobShared construtcor:
          // tenant, createdby, jobUuid, grantee, grantor, jobResource, JobTapisPermission  jobPermission
-         for(String resourceType: resourceTypeList) { 	 
+         for(JobResourceShare resourceType: resourceTypeList) { 	 
         	 JobShared jobShared = null;
         	 jobShared = new JobShared(threadContext.getOboTenantId(), threadContext.getOboUser(), 
-        			 jobUuid, payload.getGrantee(), jobstatus.getOwner(), JobResourceShare.valueOf(resourceType),
-        			 JobTapisPermission.valueOf(payload.getJobPermission()));
+        			 jobUuid, payload.getGrantee(), jobstatus.getOwner(), resourceType,
+        			 payload.getJobPermission());
              
         	 jobsSharedArray.add(jobShared);
          }

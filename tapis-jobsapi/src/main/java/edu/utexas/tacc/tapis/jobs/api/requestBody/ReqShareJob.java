@@ -2,6 +2,9 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
+
 public class ReqShareJob 
  implements IReqBody
 {
@@ -11,8 +14,8 @@ public class ReqShareJob
 	// Fields
    
     private String   			grantee;
-    private List<String>        jobResource ;
-    private String              jobPermission;
+    private List<JobResourceShare> jobResource;
+    private JobTapisPermission     jobPermission;
     
     
 	@Override
@@ -32,19 +35,18 @@ public class ReqShareJob
 		this.grantee = grantee;
 	}
 
-	public List<String> getJobResource() {
+	public List<JobResourceShare> getJobResource() {
 		return jobResource;
 	}
 
-	public void setJobResource(List<String> jobResource) {
+	public void setJobResource(List<JobResourceShare> jobResource) {
 		this.jobResource = jobResource;
 	}
-
-	public String getJobPermission() {
+	public JobTapisPermission getJobPermission() {
 		return jobPermission;
 	}
 
-	public void setJobPermission(String jobPermission) {
+	public void setJobPermission(JobTapisPermission jobPermission) {
 		this.jobPermission = jobPermission;
 	}
 
