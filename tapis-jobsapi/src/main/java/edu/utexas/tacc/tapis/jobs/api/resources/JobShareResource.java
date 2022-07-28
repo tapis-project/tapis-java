@@ -220,8 +220,6 @@ public class JobShareResource
                      entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
          }
          
-         
-         
          // ------------------------- Process Results --------------------------
          if (jobstatus == null) {
              ResultName missingName = new ResultName();
@@ -572,6 +570,3 @@ public class JobShareResource
     }   
      
 }
-     
-
-
