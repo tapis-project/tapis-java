@@ -57,6 +57,7 @@ public class DockerNativeCanceler extends AbstractJobCanceler{
         String result = null;
         try {
             int exitCode = runCmd.execute(cmd);
+            _log.debug("Canceller: removeContainer exitCode = " + exitCode);
             if (exitCode != 0 && _log.isWarnEnabled()) 
                 _log.warn(MsgUtils.getMsg("TAPIS_SSH_CMD_ERROR", cmd, 
                                           runCmd.getConnection().getHost(), 
