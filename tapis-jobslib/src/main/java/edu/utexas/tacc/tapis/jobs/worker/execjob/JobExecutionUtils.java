@@ -39,7 +39,7 @@ public final class JobExecutionUtils
     // Docker command templates.
     private static final String DOCKER_ID = "docker ps -a --no-trunc -f \"%s\" --format \"{{.ID}}\"";
     private static final String DOCKER_STATUS = "docker ps -a --no-trunc -f \"name=%s\" --format \"{{.Status}}\"";
-    private static final String DOCKER_RM = "docker rm %s";
+    private static final String DOCKER_RM = "docker rm -f %s";
 
     // Docker status return values.
     public static final String DOCKER_ACTIVE_STATUS_PREFIX = "Up ";
