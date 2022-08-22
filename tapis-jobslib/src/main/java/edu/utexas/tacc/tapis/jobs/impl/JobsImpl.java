@@ -648,7 +648,7 @@ public final class JobsImpl
          try {
 				shareFlag = skClient.hasPrivilege(skParams);
 			} catch (TapisClientException e) {
-				String msg = MsgUtils.getMsg("JOBS_SHARE_NO_PRIVILEDGE_ERROR", tenant, user);
+				String msg = MsgUtils.getMsg("JOBS_SHARE_NO_PRIVILEDGE_ERROR", tenant, user, jobUuid);
 				throw new TapisImplException(msg, e, Condition.UNAUTHORIZED);
 			}
 		return shareFlag;
