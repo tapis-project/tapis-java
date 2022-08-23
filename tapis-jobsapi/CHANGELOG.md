@@ -10,6 +10,18 @@ https://tapis-project.github.io/live-docs
 
 -----------------------
 
+## 1.2.2 - 2022-08-23
+
+Fixes and preview feature release
+
+### Breaking Changes:
+
+
+### New features:
+
+### Bug fixes:
+1. Added --force flag for docker container removal for FORK jobs on job cancel
+
 ## 1.2.1 - 2022-07-25
 
 Fixes and preview feature release
