@@ -45,10 +45,7 @@ public class GetSystemAsJobs
 //        sysClient.addDefaultHeader("X-TAPIS-TENANT", "tacc");
         sysClient.addDefaultHeader("X-TAPIS-USER", "testuser2");
         sysClient.addDefaultHeader("X-TAPIS-TENANT", "dev");
-        Boolean returnCreds = Boolean.TRUE;
-        Boolean checkExec   = Boolean.FALSE;
-        AuthnMethod  defaultAuthMethod = null;
-        var sys = sysClient.getSystem(args[0], returnCreds, defaultAuthMethod, checkExec);
+        var sys = sysClient.getSystemWithCredentials(args[0]);
         System.out.println(sys.toString());
     }
 }
