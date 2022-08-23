@@ -21,6 +21,7 @@ Fixes and preview feature release
 
 ### Bug fixes:
 1. Added --force flag for docker container removal for FORK jobs on job cancel
+2. Jobs OpenAPI spec schema fixed
 
 ## 1.2.1 - 2022-07-25
 
