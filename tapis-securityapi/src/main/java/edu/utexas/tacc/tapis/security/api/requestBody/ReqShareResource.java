@@ -10,6 +10,7 @@ public final class ReqShareResource
 {
     public String grantor;
     public String grantee;
+    public String tenant;
     public String resourceType;
     public String resourceId1;
     public String resourceId2;  // can be null
@@ -26,6 +27,8 @@ public final class ReqShareResource
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "grantor");
         if (StringUtils.isBlank(grantee)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "grantee");
+        if (StringUtils.isBlank(tenant)) 
+            return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "tenant");
         if (StringUtils.isBlank(resourceType)) 
             return MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "shareResource", "resourceType");
         if (StringUtils.isBlank(resourceId1))

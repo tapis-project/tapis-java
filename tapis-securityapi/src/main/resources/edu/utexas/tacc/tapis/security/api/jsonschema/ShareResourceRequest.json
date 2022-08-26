@@ -11,6 +11,9 @@
           "grantee": {
             "type": "string"
           },
+          "tenant": {
+            "type": "string"
+          },
           "resourceType": {
             "type": "string"
           },
@@ -27,6 +30,7 @@
     "required": [
         "grantor",
         "grantee",
+        "tenant",
         "resourceType",
         "resourceId1",
         "privilege"

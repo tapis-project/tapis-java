@@ -135,16 +135,15 @@ public class ShareResource
                           + "users or to any user, respectively.\n\n"
                           + ""
                           + "The payload for this request includes these values, with all "
-                          + "except resourceId2 required:\n\n"
+                          + "except *resourceId2* required:\n\n"
                           + ""
                           + "   - grantor\n"
                           + "   - grantee\n"
+                          + "   - tenant\n"
                           + "   - resourceType\n"
                           + "   - resourceId1\n"
                           + "   - resourceId2\n"
                           + "   - privilege\n\n"
-                          + ""
-                          + "The grantor and grantee are always in the OBO tenant.\n\n"
                           + ""
                           + "If the share already exists, then this call has no effect. "
                           + "For the request to be authorized, the requestor must be "
@@ -202,6 +201,7 @@ public class ShareResource
         var skShare = new SkShare();
         skShare.setGrantor(payload.grantor);
         skShare.setGrantee(payload.grantee);
+        skShare.setTenant(payload.tenant);
         skShare.setResourceType(payload.resourceType);
         skShare.setResourceId1(payload.resourceId1);
         skShare.setResourceId2(payload.resourceId2);
@@ -213,13 +213,14 @@ public class ShareResource
         // obo tenant and user are referenced.  JWTValidateRequestFilter guarantees 
         // that service tokens always have both obo values assigned. 
         var threadContext = TapisThreadLocal.tapisThreadContext.get();
-        skShare.setTenant(threadContext.getOboTenantId());
         skShare.setCreatedBy(threadContext.getJwtUser());
         skShare.setCreatedByTenant(threadContext.getJwtTenantId());
+        var oboUser   = threadContext.getOboUser();
+        var oboTenant = threadContext.getOboTenantId();
         
         // ------------------------- Check Authz ------------------------------
         // Authorization passed if a null response is returned.
-        Response resp = SKCheckAuthz.configure(skShare.getTenant(), skShare.getGrantor())
+        Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
                             .setCheckIsService()
                             .check(prettyPrint);
         if (resp != null) return resp;
@@ -263,11 +264,11 @@ public class ShareResource
     @Operation(
             description = "Get a filtered list of shared resources. "
                           + "Query parameters are used to restrict the returned shares. "
-                          + "The *grantor*, *grantee*, *resourceType*, *resourceId1*, "
+                          + "The *grantor*, *grantee*, *tenant*, *resourceType*, *resourceId1*, "
                           + "*resourceId2*, *privilege*, *createdBy* and *createdByTenant* "
                           + "parameters are used to match values in shared resource objects. "
                           + "Other query parameters are used to control how matching is "
-                          + "performed.\n\n"
+                          + "performed.  The *tenant* parameter is required.\n\n"
                           + ""
                           + "If resourceId1 or resourceId2 end with a percent sign (%) "
                           + "wildcard then the search results will include all shares with "
@@ -311,6 +312,7 @@ public class ShareResource
         )
     public Response getShares(@DefaultValue("") @QueryParam("grantor")         String grantor,
                               @DefaultValue("") @QueryParam("grantee")         String grantee,
+                              @DefaultValue("") @QueryParam("tenant")          String tenant,  // required
                               @DefaultValue("") @QueryParam("resourceType")    String resourceType,
                               @DefaultValue("") @QueryParam("resourceId1")     String resourceId1,
                               @DefaultValue("") @QueryParam("resourceId2")     String resourceId2,
@@ -337,9 +339,9 @@ public class ShareResource
         
         // Convert empty strings to null and sanitize input.
         var inputFilter = new SkShareInputFilter();
-        inputFilter.setTenant(oboTenant); // should never be null
         inputFilter.setGrantor(StringUtils.stripToNull(grantor));
         inputFilter.setGrantee(StringUtils.stripToNull(grantee));
+        inputFilter.setTenant(StringUtils.stripToNull(tenant));  // checked for null below
         inputFilter.setResourceType(StringUtils.stripToNull(resourceType));
         inputFilter.setResourceId1(StringUtils.stripToNull(resourceId1));
         inputFilter.setResourceId2(StringUtils.stripToNull(resourceId2));
@@ -350,6 +352,12 @@ public class ShareResource
         inputFilter.setRequireNullId2(requireNullId2);
         inputFilter.setId(id);
 
+        // We don't allow cross tenant queries.
+        if (inputFilter.getTenant() == null) {
+            var r = new RespBasic("Missing input parameter: tenant");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "tenant"), prettyPrint, r)).build();
+        }
         // ------------------------- Check Authz ------------------------------
         // Authorization passed if a null response is returned.
         Response resp = SKCheckAuthz.configure(oboTenant, oboUser)
@@ -364,7 +372,8 @@ public class ShareResource
         try {list = getShareImpl().getShares(inputFilter);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
-                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser(),
+                                         inputFilter.getTenant());
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
@@ -388,8 +397,8 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Get a shared resource by ID. "
-                          + "The shared resource is returned only if it's in the tenant "
-                          + "on whose behalf the service is making the call.\n\n"
+                          + "The shared resource is deleted only if it's in the tenant "
+                          + "specified in the required *tenant* query parameter.\n\n"
                           + ""
                           + "For the request to be authorized, the requestor must be "
                           + "a Tapis service."
@@ -414,6 +423,7 @@ public class ShareResource
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
     public Response getShare(@PathParam("id") int id,
+                             @DefaultValue("") @QueryParam("tenant") String tenant,  // required
                              @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
     {
         // Trace this request.
@@ -429,6 +439,14 @@ public class ShareResource
             var r = new RespBasic("Invalid share id: " + id + ".");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", id), prettyPrint, r)).build();
+        }
+        
+        // Make sure we have an actual tenant string.
+        tenant = StringUtils.stripToNull(tenant);
+        if (tenant == null) {
+            var r = new RespBasic("Missing tenant query parameter.");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", "tenant"), prettyPrint, r)).build();
         }
         
         // Get obo information.
@@ -447,10 +465,11 @@ public class ShareResource
         // Retrieve the shared resource objects that meet the filter criteria.
         // A non-null list is always returned unless there's an exception.
         SkShare skShare = null;
-        try {skShare = getShareImpl().getShare(oboTenant, id);}
+        try {skShare = getShareImpl().getShare(tenant, id);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
-                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser(),
+                                         tenant);
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
@@ -478,7 +497,7 @@ public class ShareResource
     @Operation(
             description = "Delete a shared resource by ID. "
                           + "The shared resource is deleted only if it's in the tenant "
-                          + "on whose behalf the service is making the call. The "
+                          + "specified in the required *tenant* query parameter. The "
                           + "calling service must also be the same as the orginal "
                           + "service that created the share.\n\n"
                           + ""
@@ -507,6 +526,7 @@ public class ShareResource
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
     public Response deleteShareById(@PathParam("id") int id,
+                                    @DefaultValue("") @QueryParam("tenant") String tenant,  // required
                                     @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
     {
         // Trace this request.
@@ -522,6 +542,14 @@ public class ShareResource
             var r = new RespBasic("Invalid share id: " + id + ".");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "deleteShare", id), prettyPrint, r)).build();
+        }
+        
+        // Make sure we have an actual tenant string.
+        tenant = StringUtils.stripToNull(tenant);
+        if (tenant == null) {
+            var r = new RespBasic("Missing tenant query parameter.");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "Share", "tenant"), prettyPrint, r)).build();
         }
         
         // Get obo information.
@@ -542,10 +570,10 @@ public class ShareResource
         // Retrieve the shared resource objects that meet the filter criteria.
         // A non-null list is always returned unless there's an exception.
         int rows = 0;
-        try {rows = getShareImpl().deleteShare(oboTenant, id, jwtTenant, jwtUser);}
+        try {rows = getShareImpl().deleteShare(tenant, id, jwtTenant, jwtUser);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_DELETE_BY_ID_ERROR", oboTenant, oboUser,
-                                         jwtTenant, jwtUser, id);
+                                         jwtTenant, jwtUser, id, tenant);
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
@@ -574,13 +602,13 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Delete a single shared resource by unique attribute selection. "
-                          + "The *grantee*, *resourceType*, "
+                          + "The *grantor*, *grantee*, *tenant*, *resourceType*, "
                           + "*resourceId1* and *privilege* parameters are mandatory; "
                           + "*resourceId2* is optional and assumed to be NULL if not "
                           + "provided.\n\n"
                           + ""
                           + "The shared resource is deleted only if it's in the tenant "
-                          + "on whose behalf the service is making the call. The "
+                          + "specified in the required *tenant* query parameter. The "
                           + "calling service must also be the same as the orginal service "
                           + "that granted the share.\n\n"
                           + ""
@@ -608,7 +636,9 @@ public class ShareResource
                      content = @Content(schema = @Schema(
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
-    public Response deleteShare(@DefaultValue("") @QueryParam("grantee") String grantee,
+    public Response deleteShare(@DefaultValue("") @QueryParam("grantor")      String grantor,
+                                @DefaultValue("") @QueryParam("grantee")      String grantee,
+                                @DefaultValue("") @QueryParam("tenant")       String tenant,
                                 @DefaultValue("") @QueryParam("resourceType") String resourceType,
                                 @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
                                 @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
@@ -632,9 +662,9 @@ public class ShareResource
 
         // Package input parameters. 
         var sel = new SkShareDeleteSelector();
-        sel.setTenant(oboTenant);
-        sel.setGrantor(oboUser);
+        sel.setGrantor(StringUtils.stripToNull(grantor));
         sel.setGrantee(StringUtils.stripToNull(grantee));
+        sel.setTenant(StringUtils.stripToNull(tenant));
         sel.setResourceType(StringUtils.stripToNull(resourceType));
         sel.setResourceId1(StringUtils.stripToNull(resourceId1));
         sel.setResourceId2(StringUtils.stripToNull(resourceId2)); 
@@ -643,10 +673,20 @@ public class ShareResource
         sel.setCreatedByTenant(jwtTenant);
         
         // Validate inputs. Only id2 can be null.
+        if (sel.getGrantor() == null) {
+            var r = new RespBasic("Missing input parameter: grantor");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "grantor"), prettyPrint, r)).build();
+        }
         if (sel.getGrantee() == null) {
             var r = new RespBasic("Missing input parameter: grantee");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "grantee"), prettyPrint, r)).build();
+        }
+        if (sel.getTenant() == null) {
+            var r = new RespBasic("Missing input parameter: tenant");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "tenant"), prettyPrint, r)).build();
         }
         if (sel.getResourceType() == null) {
             var r = new RespBasic("Missing input parameter: resourceType");
@@ -678,7 +718,7 @@ public class ShareResource
         try {rows = getShareImpl().deleteShare(sel);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_DELETE_ERROR", oboTenant, oboUser,
-                                         jwtTenant, jwtUser, grantee);
+                                         jwtTenant, jwtUser, grantee, grantor, tenant);
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
@@ -708,11 +748,11 @@ public class ShareResource
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             description = "Determine if a user has been granted a specific privilege "
-                          + "on a specific resource. The *grantee*, *resourceType*, "
+                          + "on a specific resource. The *grantee*, *tenant*, *resourceType*, "
                           + "*resourceId1* and *privilege* parameters are mandatory; "
                           + "*resourceId2* is optional and assumed to be NULL if not "
-                          + "provided. Privilege matching is performed for the user and "
-                          + "tenant on behalf of whom the call is being made.\n\n"
+                          + "provided. Privilege matching is performed for the grantee "
+                          + "and tenant specified in the query parameters.\n\n"
                           + ""
                           + "True is returned if the user has been granted the privilege, "
                           + "false otherwise.\n\n"
@@ -748,6 +788,7 @@ public class ShareResource
                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
         )
     public Response hasPrivilege(@DefaultValue("") @QueryParam("grantee") String grantee,
+                                 @DefaultValue("") @QueryParam("tenant") String tenant,
                                  @DefaultValue("") @QueryParam("resourceType") String resourceType,
                                  @DefaultValue("") @QueryParam("resourceId1")  String resourceId1,
                                  @DefaultValue("") @QueryParam("resourceId2")  String resourceId2,
@@ -771,8 +812,8 @@ public class ShareResource
 
         // Package input parameters. 
         var sel = new SkSharePrivilegeSelector();
-        sel.setTenant(oboTenant);
         sel.setGrantee(StringUtils.stripToNull(grantee));
+        sel.setTenant(StringUtils.stripToNull(tenant));
         sel.setResourceType(StringUtils.stripToNull(resourceType));
         sel.setResourceId1(StringUtils.stripToNull(resourceId1));
         sel.setResourceId2(StringUtils.stripToNull(resourceId2)); 
@@ -783,6 +824,11 @@ public class ShareResource
             var r = new RespBasic("Missing input parameter: grantee");
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
                     MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "grantee"), prettyPrint, r)).build();
+        }
+        if (sel.getTenant() == null) {
+            var r = new RespBasic("Missing input parameter: tenant");
+            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(
+                    MsgUtils.getMsg("TAPIS_NOT_FOUND", "hasPrivilege", "tenant"), prettyPrint, r)).build();
         }
         if (sel.getResourceType() == null) {
             var r = new RespBasic("Missing input parameter: resourceType");
@@ -814,7 +860,8 @@ public class ShareResource
         try {hasPrivilege = getShareImpl().hasPrivilege(sel);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("SK_SHARE_RETRIEVAL_ERROR", oboTenant, oboUser,
-                                         threadContext.getJwtTenantId(), threadContext.getJwtUser());
+                                         threadContext.getJwtTenantId(), threadContext.getJwtUser(),
+                                         sel.getTenant());
             return getExceptionResponse(e, msg, prettyPrint);
         }
         
