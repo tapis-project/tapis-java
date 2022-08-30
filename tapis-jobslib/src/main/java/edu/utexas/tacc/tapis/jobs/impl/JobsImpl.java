@@ -44,14 +44,17 @@ import edu.utexas.tacc.tapis.security.client.gen.model.SkShareList;
 import edu.utexas.tacc.tapis.security.client.model.SKShareDeleteShareParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareGetSharesParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareHasPrivilegeParms;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 
 
 public final class JobsImpl 
@@ -630,20 +633,15 @@ public final class JobsImpl
     {
     	 
     	boolean shareFlag = false;
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, user, tenant);
-         }
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, user);
-             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-         };
+    	SKClient skClient = getSKClient();
+    	
          
          SKShareHasPrivilegeParms skParams = new SKShareHasPrivilegeParms();
          skParams.setGrantee(user);
          skParams.setResourceId1(jobUuid);
          skParams.setResourceType(jobResourceShareType);
          skParams.setPrivilege(privilege);
+         skParams.setTenant(tenant);
          
          try {
 				shareFlag = skClient.hasPrivilege(skParams);
@@ -844,14 +842,8 @@ public final class JobsImpl
     public void createShareJob(JobShared jobShared) throws TapisException 
     
     {
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, jobShared.getCreatedby(), jobShared.getTenant());
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", jobShared.getTenant(), jobShared.getCreatedby());
-             throw new TapisException(msg, e);
-         };
-         
+    	 SKClient skClient = getSKClient();
+    	 
          validateNewSharedJob(jobShared);
          
          ReqShareResource resourceShared = new ReqShareResource();
@@ -861,6 +853,8 @@ public final class JobsImpl
          resourceShared.setResourceId2(null);
          resourceShared.setPrivilege(jobShared.getJobPermission().name());
          resourceShared.setGrantor(jobShared.getGrantor());
+         resourceShared.setTenant(jobShared.getTenant());
+         
          
          String url = "";
          
@@ -874,26 +868,22 @@ public final class JobsImpl
 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
 		 }
     }
+   
     /* ---------------------------------------------------------------------- */
     /* deleteShareJob:                                                        */
     /* ---------------------------------------------------------------------- */
     public void deleteShareJob(JobShared js, String tenant, String grantor) throws TapisException 
     
     {
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, grantor, tenant);
-         } catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, grantor);
-             throw new TapisException(msg, e);
-         };
-         
+    	 SKClient skClient = getSKClient();
+        
         
          SKShareDeleteShareParms param = new SKShareDeleteShareParms();
          param.setGrantee(js.getGrantee());
          param.setResourceId1(js.getJobUuid());
          param.setResourceType(js.getJobResource().name());
          param.setPrivilege(JobTapisPermission.READ.name());
+         param.setTenant(tenant);
          
          try {
 			int i = skClient.deleteShare(param);
@@ -962,17 +952,12 @@ public final class JobsImpl
      throws TapisImplException 
     
     {
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, obouser, tenant);
-         }
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, obouser);
-             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-         };
+    	 SKClient skClient = getSKClient();
+         
          
          SKShareGetSharesParms params = new SKShareGetSharesParms();
          params.setResourceId1(jobUuid);
+         params.setTenant(tenant);
          SkShareList skShareList = null;
        
          try {
@@ -1009,20 +994,13 @@ public final class JobsImpl
     		                             String grantor, String tenant) 
      throws TapisImplException 
     {
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, obouser, tenant);
-         }
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, grantor);
-             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-         };
+    	 SKClient skClient = getSKClient();
          
          SKShareGetSharesParms params = new SKShareGetSharesParms();
          params.setGrantee(grantee);
          params.setGrantor(grantor);
          params.setResourceId1(jobUuid);
-               
+         params.setTenant(tenant);      
          SkShareList skShareList = null;
        
          try {
@@ -1058,17 +1036,12 @@ public final class JobsImpl
     public  List<JobShared> getSharesJob(String user,String tenant) throws TapisImplException 
     
     {
-    	 SKClient skClient = null;
-         try {
-             skClient = getServiceClient(SKClient.class, user, tenant);
-         }
-         catch (Exception e) {
-             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", tenant, user);
-             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
-         };
+    	 SKClient skClient = getSKClient();
+      
          
          SKShareGetSharesParms params = new SKShareGetSharesParms();
          params.setGrantee(user);
+         params.setTenant(tenant);
          
         
          SkShareList skShareList = null;
@@ -1238,6 +1211,26 @@ public final class JobsImpl
         
         // Delete a specific subscription.
         return notifClient.deleteSubscriptionByUUID(uuid);
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSKClient:                                                           */
+    /* ---------------------------------------------------------------------- */
+   
+     SKClient getSKClient() throws TapisImplException{
+    	SKClient skClient = null;
+	   	 TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+	   	 String siteId = threadContext.getSiteId();
+	   	 String svcTenant = TenantManager.getInstance().getSiteAdminTenantId(siteId);
+	        try {
+	            skClient = getServiceClient(SKClient.class, TapisConstants.JOBS_SERVICE, svcTenant);
+	        } catch (Exception e) {
+	            String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "SK", "getClient", svcTenant, TapisConstants.JOBS_SERVICE);
+	            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+	        };
+        
+    	return skClient;
     }
 
     /* -----------------------------------------------------------------------------*/
