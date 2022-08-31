@@ -2301,6 +2301,12 @@ public final class SubmitContext
         _job.setMpiCmd(_submitReq.getMpiCmd());
         _job.setCmdPrefix(_submitReq.getCmdPrefix());
         
+        // Set the shared context information.
+        if (_sharedAppCtx.isSharingEnabled()) {
+            _job.setSharedAppCtx(true);
+            _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
+        }
+        
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));
         
