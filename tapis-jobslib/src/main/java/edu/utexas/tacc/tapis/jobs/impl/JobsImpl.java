@@ -675,7 +675,8 @@ public final class JobsImpl
         if(skipTapisAuthorization == true) {
         	impersonationId = job.getOwner();
         }
-        List<FileInfo> outputList = dataLocator.getJobOutputListings(jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
+        List<FileInfo> outputList = dataLocator.getJobOutputListings(
+                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
                
         return outputList;
     }

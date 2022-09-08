@@ -508,12 +508,13 @@ public final class JobFileManager
             } 
             else 
             {
-                // We need to filter each and every file, so we need
-                // to retrieve the output directory file listing.
-                // Get the client from the context now to catch errors early.
+                // We need to filter each and every file, so we need to retrieve 
+                // the output directory file listing.  Get the client from the 
+                // context now to catch errors early.  We also set the 
                 FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
+                listSubtree.setSharedAppCtx(_shareArchiveSystemDir);
                 var fileList = listSubtree.list();
                 
                 // Apply the excludes list first since it has precedence, then
