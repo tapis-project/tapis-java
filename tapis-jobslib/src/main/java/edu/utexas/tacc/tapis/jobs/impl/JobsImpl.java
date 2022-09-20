@@ -670,7 +670,7 @@ public final class JobsImpl
         // We checked if the job is shared within the method getJobByUuid(). We never return the value of the check. 
         // So, we need to check it again here if the job is shared and accordingly set the impersonationId
         
-        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege);
+        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || job.isSharedAppCtx();
         String impersonationId =  null;
         if(skipTapisAuthorization == true) {
         	impersonationId = job.getOwner();
