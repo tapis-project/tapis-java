@@ -9,6 +9,13 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.2.2 - 2022-09-22
+
+Fixes and preview feature release
+### New features:
+
+### Bug fixes:
+1. Allow JobOutput listing for jobs that ran in shared app context
 
 ## 1.2.2 - 2022-08-23
 
