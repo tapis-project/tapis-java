@@ -275,12 +275,21 @@ public class JobOutputDownloadResource extends AbstractResource{
        
        // ------------------------- Locate the output download path and download the file/zipped folder --------------------------
        String mtype = MediaType.APPLICATION_OCTET_STREAM;
+      
+       JobOutputInfo jobOutputFilesinfo = null;
+	   try {
+		   jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), 
+				  outputPath);
+	   } catch (TapisImplException e) {
+		   _log.error(e.getMessage(), e);
+           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	   }
        
-       DataLocator dataLocator = new DataLocator(job);
        boolean skipTapisAuthorization = false;
 	   try {
 			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name()) || job.isSharedAppCtx();
+					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name()) ||  jobsImpl.checkSharedAppCtx(job, jobOutputFilesinfo);
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -291,10 +300,9 @@ public class JobOutputDownloadResource extends AbstractResource{
 	   if(skipTapisAuthorization == true) {
 		   impersonationId = job.getOwner();
 	   }
+	   
+       DataLocator dataLocator = new DataLocator(job);
        try {
-    	  JobOutputInfo jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), 
-    			  outputPath);
-    	       	   
     	  if(jobOutputFilesinfo != null) {
     		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), 
     				   threadContext.getOboUser(), compress, impersonationId);
