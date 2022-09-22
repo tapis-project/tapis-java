@@ -52,7 +52,7 @@ public class DataLocator {
     	 String systemId = "";
     	 String systemUrl = "";
     	 JobOutputInfo jobOutputInfo = null;
-    	
+    	    	
     	 // archiveSytemDir and archiveSystemId always have values set
     	 if(_job.getStatus() == JobStatusType.FINISHED || 
     	    (_job.getStatus()== JobStatusType.FAILED && 
@@ -61,11 +61,14 @@ public class DataLocator {
     		systemId = _job.getArchiveSystemId();
     		systemUrl = makeSystemUrl( _job.getArchiveSystemDir(), pathName);
     		_log.debug("Archive Path URL: " + systemUrl);
-    		jobOutputInfo =  new JobOutputInfo(systemId,systemId, systemUrl);
+    		
+    		final boolean isArchiveSystem = true;
+    		jobOutputInfo =  new JobOutputInfo(systemId, systemId, systemUrl, isArchiveSystem);
     	 } else {
     		 systemId = _job.getExecSystemId();
     		 systemUrl = makeSystemUrl( _job.getExecSystemOutputDir(), pathName);
-     		jobOutputInfo =  new JobOutputInfo(systemId,systemId, systemUrl);
+    		 final boolean isArchiveSystem = false;
+     		jobOutputInfo =  new JobOutputInfo(systemId, systemId, systemUrl, isArchiveSystem);
     	 }
     	 
     	 return jobOutputInfo ;

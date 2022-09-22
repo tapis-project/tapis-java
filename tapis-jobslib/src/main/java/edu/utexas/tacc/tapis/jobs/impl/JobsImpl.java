@@ -24,6 +24,7 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobShareListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
@@ -670,7 +671,7 @@ public final class JobsImpl
         // We checked if the job is shared within the method getJobByUuid(). We never return the value of the check. 
         // So, we need to check it again here if the job is shared and accordingly set the impersonationId
         
-        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege);
+        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || checkSharedAppCtx(job, jobOutputFilesinfo);
         String impersonationId =  null;
         if(skipTapisAuthorization == true) {
         	impersonationId = job.getOwner();
@@ -679,6 +680,45 @@ public final class JobsImpl
                 jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
                
         return outputList;
+    }
+    
+    
+    /* ---------------------------------------------------------------------- */
+    /* checkSharedAppCtx:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * 
+     * @param job
+     * @param jobOutputFilesinfo
+     * @return true if job has shared app context and exec or archive system path are shared
+     */
+    public boolean checkSharedAppCtx(Job job, JobOutputInfo jobOutputFilesinfo) {
+    	
+    	boolean isSharedAppPathAllowed = false;
+    	
+    	// check if job ran on shared app context.
+    	if (!job.isSharedAppCtx())
+    		return isSharedAppPathAllowed;
+    	
+    	List<JobSharedAppCtxEnum> sharedAppCtxAttribs = job.getSharedAppCtxAttribs();
+    	
+    	// check if job output files are in the archive system
+    	if (jobOutputFilesinfo.isArchiveSystem()){
+    		// check if archive system and archive dir path are shared in the shared app context.
+    		if(sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID) 
+    		   && sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR)){
+    			  isSharedAppPathAllowed = true;
+    		}
+    	} else {
+    		// check if exec system and exec system dir path are shared in the shared app context.
+    		// note we are not checking input dir as we are interested only in job output files
+    		if(sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID) 
+    		   && sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR)) {
+    			 isSharedAppPathAllowed = true;
+    		}
+    	}	
+    	
+    	return isSharedAppPathAllowed;
     }
     
     /* ---------------------------------------------------------------------- */
