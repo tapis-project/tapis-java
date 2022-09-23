@@ -670,14 +670,15 @@ public final class JobsImpl
         
         // We checked if the job is shared within the method getJobByUuid(). We never return the value of the check. 
         // So, we need to check it again here if the job is shared and accordingly set the impersonationId
+        boolean isSharedAppCtx = checkSharedAppCtx(job, jobOutputFilesinfo);
         
-        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || checkSharedAppCtx(job, jobOutputFilesinfo);
+        boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || isSharedAppCtx;
         String impersonationId =  null;
         if(skipTapisAuthorization == true) {
         	impersonationId = job.getOwner();
         }
         List<FileInfo> outputList = dataLocator.getJobOutputListings(
-                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId);
+                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId, isSharedAppCtx);
                
         return outputList;
     }
