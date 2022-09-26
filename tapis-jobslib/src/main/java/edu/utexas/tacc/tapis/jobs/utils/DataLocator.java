@@ -113,7 +113,7 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, 
                                               String tenant, String user, 
-    		                                  boolean compress, String impersonationId) 
+    		                                  boolean compress, String impersonationId, boolean isSharedAppCtx) 
       throws TapisImplException
      {
     	 // Get the File Service client 
@@ -122,7 +122,7 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		 StreamedFile streamFromFiles = null;
 		 try {
-			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId);
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId, isSharedAppCtx);
 			
 		} catch (TapisClientException e) {
 			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 

@@ -285,11 +285,13 @@ public class JobOutputDownloadResource extends AbstractResource{
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
+	   
+	   boolean isSharedAppCtx = jobsImpl.checkSharedAppCtx(job, jobOutputFilesinfo);
        
        boolean skipTapisAuthorization = false;
 	   try {
 			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
-					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name()) ||  jobsImpl.checkSharedAppCtx(job, jobOutputFilesinfo);
+					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name()) || isSharedAppCtx ;
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
@@ -305,7 +307,7 @@ public class JobOutputDownloadResource extends AbstractResource{
        try {
     	  if(jobOutputFilesinfo != null) {
     		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), 
-    				   threadContext.getOboUser(), compress, impersonationId);
+    				   threadContext.getOboUser(), compress, impersonationId,isSharedAppCtx );
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)
