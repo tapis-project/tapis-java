@@ -43,6 +43,7 @@ public class ReqSubmitJob
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
+    private String                  notes;  
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
@@ -325,6 +326,14 @@ public class ReqSubmitJob
 
     public String getCmdPrefix() {
         return cmdPrefix;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public void setCmdPrefix(String cmdPrefix) {

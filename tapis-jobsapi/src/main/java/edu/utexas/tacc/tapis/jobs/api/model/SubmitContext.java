@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -20,6 +19,8 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
@@ -405,6 +406,9 @@ public final class SubmitContext
         
         // Merge app subscriptions into request subscription list.
         mergeSubscriptions();
+        
+        // Assign and validate optional notes.
+        validateNotes();
         
         // Merge and validate input files. Array inputs should be processed 
         // after the single inputs.  Array inputs get expanded into single 
@@ -2216,6 +2220,31 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* validateNotes:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    private void validateNotes() throws TapisImplException
+    {
+        // Canonicalize and implement priority replacement semantics.
+        var notes = StringUtils.stripToNull(_submitReq.getNotes());
+        // TODO: notes type in Apps needs to be changed to String.
+        if (notes == null) notes = StringUtils.stripToNull(_app.getNotes().toString());
+        
+        // Make sure we have valid json since this a user constructed string.
+        if (notes == null) notes = Job.EMPTY_JSON;
+          else {
+            // Make sure we have a valid json object.
+            try {TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);}
+                catch (Exception e) {
+                    String msg = MsgUtils.getMsg("TAPIS_JSON_PARSE_ERROR", "ReqSubmit.notes", e.getMessage());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+          }
+        
+        // The non-null canonicalized string is always saved.
+        _submitReq.setNotes(notes);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* populateJob:                                                                 */
     /* ---------------------------------------------------------------------------- */
     /** By the time we get here the only fields that set in the job object are those
@@ -2306,6 +2335,9 @@ public final class SubmitContext
             _job.setSharedAppCtx(true);
             _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
         }
+        
+        // Notes can be null or a json object.
+        _job.setNotes(_submitReq.getNotes());
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));

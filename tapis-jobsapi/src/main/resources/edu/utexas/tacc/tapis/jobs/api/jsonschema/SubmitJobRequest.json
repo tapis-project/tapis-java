@@ -155,6 +155,11 @@
             "type": ["string", "null"],
             "minLength": 1,
             "maxLength": 126
+          },
+          "notes": {
+            "$comment": "User notes in JSON format",
+            "type": "string",
+            "maxLength": 65536
           }
         },
     "required": [

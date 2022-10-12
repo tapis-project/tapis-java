@@ -1333,6 +1333,9 @@ public final class JobsDao
           // Shared application context.
           pstmt.setBoolean(40, job.isSharedAppCtx());
           
+          // Notes is non-null json.
+          pstmt.setString(41, job.getNotes());
+          
           // Shared application context attributes.
           var attribs = job.getSharedAppCtxAttribs();
           Array attribsArray;
@@ -3046,6 +3049,9 @@ public final class JobsDao
                     obj.setSharedAppCtxAttribs(attribsList);
                 }
 	        }
+	        
+	        // Notes non-null json value.
+	        obj.setNotes(rs.getString(62));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

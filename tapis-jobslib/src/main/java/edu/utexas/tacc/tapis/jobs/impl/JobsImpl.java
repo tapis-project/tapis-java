@@ -580,11 +580,11 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobStatusByUuid:                                                    */
     /* ---------------------------------------------------------------------- */
-    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, String tenant, String jobResourceShareType, String privilege) 
+    public JobStatusDTO getJobStatusByUuid(String jobUuid, String user, 
+                                           String tenant, String jobResourceShareType, 
+                                           String privilege) 
      throws TapisImplException
     {  
-    
-        
         // ----- Get the job status, job owner, createdby, createdby tenant and visible information
         JobStatusDTO jobstatus = null;
         boolean checkShare = false;
@@ -600,7 +600,6 @@ public final class JobsImpl
                checkShare = true;
          }
            
-        
         // ----- Share Authorization checks.
         if(checkShare) {    
 	        /**
@@ -621,13 +620,10 @@ public final class JobsImpl
         // Could be null if not found.
         return jobstatus;
     }
-
-   
     
     /* ---------------------------------------------------------------------- */
     /* isJobShared:                                                           */
     /* ---------------------------------------------------------------------- */
-    
     public boolean isJobShared(String jobUuid, String user, String tenant, 
     		String jobResourceShareType, String privilege ) 
     		throws TapisImplException 
@@ -658,11 +654,11 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobOutputList:                                                      */
     /* ---------------------------------------------------------------------- */
-    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, String pathName, int limit, int skip, 
-    		String jobResourceShareType, String privilege) 
+    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, 
+                                           String pathName, int limit, int skip, 
+    		                               String jobResourceShareType, String privilege) 
      throws TapisImplException
     {
-        
         // ----- Get the job output files list.
         DataLocator dataLocator = new DataLocator(job);
         
@@ -682,7 +678,6 @@ public final class JobsImpl
                
         return outputList;
     }
-    
     
     /* ---------------------------------------------------------------------- */
     /* checkSharedAppCtx:                                                     */
@@ -725,17 +720,15 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobOutputDownloadInfo:                                              */
     /* ---------------------------------------------------------------------- */
-    public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) throws TapisImplException
+    public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) 
+     throws TapisImplException
     {
-       
-        
         // ----- Download Info for the job output files.
         DataLocator dataLocator = new DataLocator(job);
         
         JobOutputInfo jobOutputFilesinfo = dataLocator.getJobOutputSystemInfo(pathName);
        
         return jobOutputFilesinfo;   
-       
     }
     
     /* ---------------------------------------------------------------------- */
@@ -771,7 +764,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobEventsSummary:                                                   */
     /* ---------------------------------------------------------------------- */
-    public List<JobHistoryDisplayDTO> getJobEventsSummary(List<JobEvent> jobEvents, String user, String tenant, JobStatusDTO jobstatus) 
+    public List<JobHistoryDisplayDTO> getJobEventsSummary(List<JobEvent> jobEvents, String user, 
+                                                          String tenant, JobStatusDTO jobstatus) 
      throws TapisImplException
     {   
 
@@ -877,12 +871,10 @@ public final class JobsImpl
         return true;
     }
     
-    
     /* ---------------------------------------------------------------------- */
     /* createShareJob:                                                        */
     /* ---------------------------------------------------------------------- */
     public void createShareJob(JobShared jobShared) throws TapisException 
-    
     {
     	 SKClient skClient = getSKClient();
     	 
@@ -1028,7 +1020,6 @@ public final class JobsImpl
        return jobShareList; 
     }
     
-    
     /* ---------------------------------------------------------------------- */
     /* getSharesJob:                                                          */
     /* ---------------------------------------------------------------------- */
@@ -1070,7 +1061,6 @@ public final class JobsImpl
          
        return jobShareList; 
     }
-    
     
     /* ---------------------------------------------------------------------- */
     /* getSharesJob:                                                          */

@@ -141,6 +141,8 @@ public final class Job
     private boolean             sharedAppCtx;
     private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
     
+    private String              notes = EMPTY_JSON; // Should never be null.
+    
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
     
@@ -443,6 +445,10 @@ public final class Job
         }
         if (jobType == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
+            throw new JobException(msg);
+        }
+        if (notes == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "notes");
             throw new JobException(msg);
         }
         
@@ -972,6 +978,14 @@ public final class Job
 
     public void setSharedAppCtxAttribs(List<JobSharedAppCtxEnum> sharedAppCtxAttribs) {
         this.sharedAppCtxAttribs = sharedAppCtxAttribs;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.
