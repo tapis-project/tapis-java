@@ -294,6 +294,7 @@ public final class JobParmSetMarshaller
         jobArg.setName(appArg.getName());
         jobArg.setDescription(appArg.getDescription());
         jobArg.setArg(appArg.getArg());
+//        jobArg.setMeta(appArg.getMeta());  // TODO: uncomment **************
         return jobArg;
     }
     
@@ -416,6 +417,14 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* mergeJobArgs:                                                                */
     /* ---------------------------------------------------------------------------- */
+    /** The sourceArg is a reqArg and the targetArg is an appArg that has already been
+     * converted into a JobArgSpec.  The targetArg is already in the result list and
+     * this method performs in-place replacement of appArg values with those from
+     * the reqArg.
+     * 
+     * @param sourceArg reqArg
+     * @param targetArg a converted appArg that we may modify
+     */
     private void mergeJobArgs(JobArgSpec sourceArg, JobArgSpec targetArg)
     {
         // The request flag always assigns the target flag, which is always null.
@@ -424,6 +433,8 @@ public final class JobParmSetMarshaller
         // Conditional replacement.
         if (!StringUtils.isBlank(sourceArg.getArg())) 
             targetArg.setArg(sourceArg.getArg());
+        if (!StringUtils.isBlank(sourceArg.getMeta()))
+            targetArg.setMeta(sourceArg.getMeta());
         
         // Append a non-empty source description to an existing target description.
         // Otherwise, just assign the target description the non-empty source description.

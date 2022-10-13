@@ -237,7 +237,8 @@
                 "name": { "type": "string", "minLength": 1, "maxLength": 80 },
                 "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
                 "include": { "type": "boolean" },
-                "arg": { "type": "string", "minLength": 1 }
+                "arg": { "type": "string", "minLength": 1 },
+                "meta": { "type": "string", "minLength": 1, "maxLength": 8096 }
             }
         }
     }
