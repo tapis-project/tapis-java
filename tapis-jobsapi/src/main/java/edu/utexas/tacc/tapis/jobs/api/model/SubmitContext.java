@@ -2336,7 +2336,7 @@ public final class SubmitContext
             _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
         }
         
-        // Notes can be null or a json object.
+        // Notes is a non-null json object.
         _job.setNotes(_submitReq.getNotes());
         
         // Assign tapisQueue now that the job object is completely initialized.

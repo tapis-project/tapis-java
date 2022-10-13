@@ -552,6 +552,7 @@ public final class JobParmSetMarshaller
                 if (appKeys != null) appKeys.add(appKv.getKey());
                 kv.setKey(appKv.getKey());
                 kv.setValue(appKv.getValue());
+//                kv.setDescription(appKv.getDescription);  TODO: uncomment *******************
                 kvList.add(kv);
             }
         }
@@ -576,6 +577,7 @@ public final class JobParmSetMarshaller
                 var kv = new KeyValuePair();
                 kv.setKey(sysKv.getKey());
                 kv.setValue(sysKv.getValue());
+//              kv.setDescription(sysKv.getDescription);  TODO: uncomment *******************                
                 kvList.add(kv);
             }
         }
