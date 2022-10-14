@@ -1,12 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.model.submit;
 
+import edu.utexas.tacc.tapis.jobs.model.Job;
+
 public class JobArgSpec 
 {
     private String  name;
     private String  description;
     private Boolean include;
     private String  arg;
-    private String  meta;
+    private String  notes;
     
     public String getName() {
         return name;
@@ -32,10 +34,10 @@ public class JobArgSpec
     public void setArg(String arg) {
         this.arg = arg;
     }
-    public String getMeta() {
-        return meta;
+    public String getNotes() {
+        return notes;
     }
-    public void setMeta(String meta) {
-        this.meta = meta;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

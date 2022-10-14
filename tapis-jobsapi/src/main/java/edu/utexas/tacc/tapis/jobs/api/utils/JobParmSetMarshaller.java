@@ -294,7 +294,7 @@ public final class JobParmSetMarshaller
         jobArg.setName(appArg.getName());
         jobArg.setDescription(appArg.getDescription());
         jobArg.setArg(appArg.getArg());
-//        jobArg.setMeta(appArg.getMeta());  // TODO: uncomment **************
+//        jobArg.setNotes(appArg.getNotes());  // TODO: uncomment **************
         return jobArg;
     }
     
@@ -433,8 +433,8 @@ public final class JobParmSetMarshaller
         // Conditional replacement.
         if (!StringUtils.isBlank(sourceArg.getArg())) 
             targetArg.setArg(sourceArg.getArg());
-        if (!StringUtils.isBlank(sourceArg.getMeta()))
-            targetArg.setMeta(sourceArg.getMeta());
+        if (!StringUtils.isBlank(sourceArg.getNotes()))
+            targetArg.setNotes(sourceArg.getNotes());
         
         // Append a non-empty source description to an existing target description.
         // Otherwise, just assign the target description the non-empty source description.
