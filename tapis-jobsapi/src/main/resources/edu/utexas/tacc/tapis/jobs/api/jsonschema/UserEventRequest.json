@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/UserEventRequest",
+    "description": "Schema for job user event request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "eventDetail": {
+            "$comment": "Information about this event.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16384
+          }
+        },
+    "required": [
+        "eventDetail"
+    ]
+}

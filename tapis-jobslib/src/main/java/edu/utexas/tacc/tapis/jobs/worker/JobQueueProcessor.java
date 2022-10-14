@@ -309,17 +309,6 @@ final class JobQueueProcessor
 	  jobCtx.setFinalMessage(null);
   }
  
-//  /* ---------------------------------------------------------------------- */
-//  /* getJobNotifications:                                                   */
-//  /* ---------------------------------------------------------------------- */
-//  private List<Notification> getJobNotifications(Job job) 
-//   throws AloeException
-//  {
-//      // Retrieve all notifications attached to this job.
-//      NotificationDao notifDao = new NotificationDao(JobDao.getDataSource());
-//      return notifDao.getNotificationsByAssociatedUUID(job.getUuid());
-//  }
-  
   /* ---------------------------------------------------------------------- */
   /* processJob:                                                            */
   /* ---------------------------------------------------------------------- */

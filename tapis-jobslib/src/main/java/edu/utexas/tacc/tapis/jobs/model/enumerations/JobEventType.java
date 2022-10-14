@@ -18,7 +18,8 @@ public enum JobEventType
     JOB_ARCHIVE_TRANSACTION_ID("A request to archive job output files has been submitted."),
     JOB_SUBSCRIPTION("A change to the job's subscriptions has occurred."),
     JOB_SHARE_EVENT("A request to share/unshare a job has been submitted"),
-    JOB_ERROR_MESSAGE("The job experienced an error.");
+    JOB_ERROR_MESSAGE("The job experienced an error."),
+    JOB_USER_EVENT("A user generated event was sent <user> to a job <uuid>.");
 	
     private final String description;
     

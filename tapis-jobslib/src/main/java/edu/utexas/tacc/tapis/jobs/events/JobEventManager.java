@@ -370,6 +370,44 @@ public final class JobEventManager
         return jobEvent;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* recordUserEvent:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Write a User event to database.  
+     * 
+     * The connection parameter can be null if the event insertion is not to 
+     * be part of an in-progress transaction. 
+     * 
+     * @param jobUuid the job targeted by the event
+     * @param tenant the job tenant
+     * @param sender the tapis user that sent the event
+     * @param eventDetail the user provided body of the event
+     * @param conn existing connection or null
+     * @throws TapisException on error
+     */
+    public JobEvent recordUserEvent(String jobUuid, String tenant, String sender,
+                                    String eventDetail, Connection conn)
+     throws TapisException
+    {
+        // Create the Job event.
+        var jobEvent = new JobEvent();
+        jobEvent.setEvent(JobEventType.JOB_USER_EVENT);
+        jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
+        jobEvent.setEventDetail(eventDetail);
+        
+        // Fill in placeholders in the event description.
+        var desc = jobEvent.getEvent().getDescription();
+        desc = desc.replace("<user>", sender);
+        desc = desc.replace("<uuid>", jobUuid);
+        jobEvent.setDescription(desc);
+        
+        // Save in db and send to notifications service asynchronously.
+        _jobEventsDao.createEvent(jobEvent, conn);
+        postEventToNotificationService(jobEvent);
+        return jobEvent;
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqUserEvent;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
@@ -37,16 +38,19 @@ import edu.utexas.tacc.tapis.jobs.dao.JobResubmitDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
+import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -68,6 +72,8 @@ public class JobSubmitResource
     // Json schema resource files.
     private static final String FILE_JOB_SUBMIT_REQUEST = 
         "/edu/utexas/tacc/tapis/jobs/api/jsonschema/SubmitJobRequest.json";
+    private static final String FILE_USER_EVENT_REQUEST = 
+            "/edu/utexas/tacc/tapis/jobs/api/jsonschema/UserEventRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -348,6 +354,149 @@ public class JobSubmitResource
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
+     }
+     
+     /* ---------------------------------------------------------------------------- */
+     /* sendEvent:                                                                   */
+     /* ---------------------------------------------------------------------------- */
+     @POST
+     @Path("/{jobUuid}/sendEvent")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     @Operation(
+             description = "Send a user event to an active job. The job must be in"
+                           + " the same tenant as the caller, but no other authorization is needed."
+                           + " If the job has terminated the request will be rejected. The caller"
+                           + " must specify a payload of non-empty string data. Subscribers that"
+                           + " register interest in events of type JOB_USER_EVENT will receive"
+                           + " a notification as a result of this call."
+                           + "",
+             tags = "jobs",
+             security = {@SecurityRequirement(name = "TapisJWT")},
+             requestBody = 
+                 @RequestBody(
+                     required = true,
+                     content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqUserEvent.class))),
+             responses = 
+                 {
+                  @ApiResponse(responseCode = "200", description = "Event created.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "400", description = "Input error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "401", description = "Not authorized.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "403", description = "Forbidden.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                  @ApiResponse(responseCode = "500", description = "Server error.",
+                      content = @Content(schema = @Schema(
+                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+     )
+     public Response sendEvent(@PathParam("jobUuid") String jobUuid,
+                               @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
+                               InputStream payloadStream)
+     {
+       // Trace this request.
+       if (_log.isTraceEnabled()) {
+         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "sendEvent", 
+                                      "  " + _request.getRequestURL());
+         _log.trace(msg);
+       }
+       
+       // ------------------------- Validate Payload -------------------------
+       // Read the payload into a string.
+       String json = null;
+       try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+         catch (Exception e) {
+           String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job send event", e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         }
+       
+       // ------------------------- Input Processing -------------------------
+       // Parse and validate the json in the request payload, which must exist.
+       ReqUserEvent payload = null;
+       try {payload = getPayload(json, FILE_USER_EVENT_REQUEST, ReqUserEvent.class);} 
+       catch (Exception e) {
+           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "sendEvent", e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+
+       // ------------------------- Create Context ---------------------------
+       // Validate the threadlocal content here so no subsequent code on this request needs to.
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       if (!threadContext.validate()) {
+           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+           _log.error(msg);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Inspect Job ------------------------------
+       // Retrieve the target job.
+       Job job = null;
+       try {
+           final boolean throwNotFound = true;
+           var jobsDao = new JobsDao();
+           job = jobsDao.getJobByUUID(jobUuid, throwNotFound);
+       }
+       catch (TapisNotFoundException e) {
+           _log.error(e.getMessage(), e);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       }
+       catch (Exception e) {
+           _log.error(e.getMessage(), e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+       }
+       
+       // Make sure the job is in the same tenant as the requestor.  Note that this restriction
+       // applies even to services, which shouldn't be sending user events anyway.
+       if (!job.getTenant().equals(threadContext.getJwtTenantId())) {
+           String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getJwtTenantId(),
+                                        job.getTenant());
+           _log.error(msg);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+
+       // Don't send events to terminated jobs. The job could terminate in the window between 
+       // performing this check and sending the event.  This is not a big deal since we are
+       // only adding an event to the job history and, possibly, sending notifications.
+       if (job.getStatus().isTerminal()) {
+           String msg = MsgUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
+           _log.error(msg);
+           return Response.status(Status.BAD_REQUEST).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // ------------------------- Send Event -------------------------------
+       final var eventName = JobEventType.JOB_USER_EVENT.name();
+       JobEvent event = null;
+       try {
+           // Create and send a user event to the job.
+           event = JobEventManager.getInstance().recordUserEvent(jobUuid, threadContext.getJwtTenantId(), 
+                                         threadContext.getJwtUser(), payload.getEventDetail(), null);
+       }
+       catch (Exception e) {
+           String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+       }
+       
+       // Success.
+       RespBasic r = new RespBasic(event.getDescription());
+       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+               MsgUtils.getMsg("TAPIS_CREATED", "event", eventName), prettyPrint, r)).build();
      }
      
      /* **************************************************************************** */
