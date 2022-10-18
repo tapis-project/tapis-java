@@ -43,13 +43,16 @@ public class ReqSubmitJob
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
-    private String                  notes;  
+    private Object                  notes;  
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
     
     // Temporary storage for hpc queue name during request processing.
     private transient String        hpcQueueName;
+    
+    // Convert the incoming notes object to a string once.
+    private transient String        notesAsString;
 
 	@Override
 	public String validate() 
@@ -328,11 +331,11 @@ public class ReqSubmitJob
         return cmdPrefix;
     }
 
-    public String getNotes() {
+    public Object getNotes() {
         return notes;
     }
 
-    public void setNotes(String notes) {
+    public void setNotes(Object notes) {
         this.notes = notes;
     }
 
@@ -352,5 +355,14 @@ public class ReqSubmitJob
 
     public void setHpcQueueName(String hpcQueueName) {
         this.hpcQueueName = hpcQueueName;
+    }
+
+    @Schema(hidden = true)
+    public String getNotesAsString() {
+        return notesAsString;
+    }
+
+    public void setNotesAsString(String notesAsString) {
+        this.notesAsString = notesAsString;
     }
 }

@@ -158,8 +158,7 @@
           },
           "notes": {
             "$comment": "User notes in JSON format",
-            "type": "string",
-            "maxLength": 65536
+            "type": "object"
           }
         },
     "required": [

@@ -294,7 +294,8 @@ public final class JobParmSetMarshaller
         jobArg.setName(appArg.getName());
         jobArg.setDescription(appArg.getDescription());
         jobArg.setArg(appArg.getArg());
-//        jobArg.setNotes(appArg.getNotes());  // TODO: uncomment **************
+        if (appArg.getNotes() != null)
+            jobArg.setNotes(appArg.getNotes().toString());  
         return jobArg;
     }
     
@@ -433,7 +434,7 @@ public final class JobParmSetMarshaller
         // Conditional replacement.
         if (!StringUtils.isBlank(sourceArg.getArg())) 
             targetArg.setArg(sourceArg.getArg());
-        if (!StringUtils.isBlank(sourceArg.getNotes()))
+        if (sourceArg.getNotes() != null)
             targetArg.setNotes(sourceArg.getNotes());
         
         // Append a non-empty source description to an existing target description.
@@ -452,22 +453,31 @@ public final class JobParmSetMarshaller
     private void validateScratchList(List<ScratchArgSpec> scratchList, ArgTypeEnum argType)
      throws TapisImplException
     {
-        // Make sure all arguments are either complete or able to be removed.  
-        // Incomplete arguments that originated in the app are removable if their
-        // inputMode is INCLUDE_BY_DEFAULT.  All other incomplete arguments cause
-        // an error.  A null input mode indicates the argument originated from 
-        // the job request.
+        // Final scrubbing of scratch list and argument values.
         var it = scratchList.listIterator();
         while (it.hasNext()) {
+            // Make sure all arguments are either complete or able to be removed.  
+            // Incomplete arguments that originated in the app are removable if their
+            // inputMode is INCLUDE_BY_DEFAULT.  All other incomplete arguments cause
+            // an error.  A null input mode indicates the argument originated from 
+            // the job request.
             var elem = it.next();
             if (StringUtils.isBlank(elem._jobArg.getArg()))
                 if (elem._inputMode == ArgInputModeEnum.INCLUDE_BY_DEFAULT) {
                     it.remove();
+                    continue; // no further processing needed for removed args
                 }
                 else {
                     String msg = MsgUtils.getMsg("JOBS_MISSING_ARG", elem._jobArg.getName(), argType);
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
+            
+            // Make sure notes field is a well-formed json object and convert it to string.
+            // We skip elements without notes.
+            if (elem._jobArg.getNotes() != null) {
+                var json = JobsApiUtils.convertInputObjectToString(elem._jobArg.getNotes());
+                elem._jobArg.setNotes(json);
+            }
         }
     }
     
@@ -552,7 +562,7 @@ public final class JobParmSetMarshaller
                 if (appKeys != null) appKeys.add(appKv.getKey());
                 kv.setKey(appKv.getKey());
                 kv.setValue(appKv.getValue());
-//                kv.setDescription(appKv.getDescription);  TODO: uncomment *******************
+                kv.setDescription(appKv.getDescription());
                 kvList.add(kv);
             }
         }
@@ -577,7 +587,7 @@ public final class JobParmSetMarshaller
                 var kv = new KeyValuePair();
                 kv.setKey(sysKv.getKey());
                 kv.setValue(sysKv.getValue());
-//              kv.setDescription(sysKv.getDescription);  TODO: uncomment *******************                
+                kv.setDescription(sysKv.getDescription());                
                 kvList.add(kv);
             }
         }

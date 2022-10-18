@@ -1333,9 +1333,6 @@ public final class JobsDao
           // Shared application context.
           pstmt.setBoolean(40, job.isSharedAppCtx());
           
-          // Notes is non-null json.
-          pstmt.setString(41, job.getNotes());
-          
           // Shared application context attributes.
           var attribs = job.getSharedAppCtxAttribs();
           Array attribsArray;
@@ -1348,6 +1345,9 @@ public final class JobsDao
             }
           pstmt.setArray(41, attribsArray);
               
+          // Notes is non-null json.
+          pstmt.setString(42, job.getNotes());
+          
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));

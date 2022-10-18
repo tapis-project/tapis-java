@@ -659,7 +659,7 @@ public class JobSubscriptionResource
              deleted = jobsImpl.deleteJobSubscription(uuid, oboUser, oboTenant);
          }
          catch (Exception e) {
-             String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", "", oboUser, oboTenant,  // TODO: **
+             String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", "", oboUser, oboTenant,  
                                           e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).

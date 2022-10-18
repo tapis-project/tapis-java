@@ -447,7 +447,7 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
             throw new JobException(msg);
         }
-        if (notes == null) {
+        if (StringUtils.isBlank(notes)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "notes");
             throw new JobException(msg);
         }
@@ -985,7 +985,7 @@ public final class Job
     }
 
     public void setNotes(String notes) {
-        this.notes = notes;
+        if (notes != null) this.notes = notes;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.

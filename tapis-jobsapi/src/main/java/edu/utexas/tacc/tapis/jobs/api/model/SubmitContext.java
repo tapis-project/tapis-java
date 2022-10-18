@@ -20,8 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
@@ -34,6 +32,7 @@ import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
+import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
@@ -2224,24 +2223,12 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void validateNotes() throws TapisImplException
     {
-        // Canonicalize and implement priority replacement semantics.
-        var notes = StringUtils.stripToNull(_submitReq.getNotes());
-        // TODO: notes type in Apps needs to be changed to String.
-        if (notes == null) notes = StringUtils.stripToNull(_app.getNotes().toString());
+        // See if there are any notes in the request or, if not, the app.
+        Object notes = _submitReq.getNotes();
+        if (notes == null) notes = _app.getNotes();
         
-        // Make sure we have valid json since this a user constructed string.
-        if (notes == null) notes = Job.EMPTY_JSON;
-          else {
-            // Make sure we have a valid json object.
-            try {TapisGsonUtils.getGson().fromJson(notes, JsonObject.class);}
-                catch (Exception e) {
-                    String msg = MsgUtils.getMsg("TAPIS_JSON_PARSE_ERROR", "ReqSubmit.notes", e.getMessage());
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
-          }
-        
-        // The non-null canonicalized string is always saved.
-        _submitReq.setNotes(notes);
+        // This utility method can throw exceptions with correctly assigned response codes.
+        _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2336,8 +2323,8 @@ public final class SubmitContext
             _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
         }
         
-        // Notes is a non-null json object.
-        _job.setNotes(_submitReq.getNotes());
+        // Notes always has a well-formed json string representation of a json object.
+        _job.setNotes(_submitReq.getNotesAsString()); 
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));
