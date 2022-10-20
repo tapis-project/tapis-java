@@ -145,6 +145,7 @@ public class JobSubscriptionResource
                            + "- JOB_SUBSCRIPTION - a change to the job's subscriptions has occurred\n"
                            + "- JOB_SHARE_EVENT - a job resource has been shared or unshared\n"
                            + "- JOB_ERROR_MESSAGE - the job experienced an error\n"
+                           + "- JOB_USER_EVENT - user generated events\n"
                            + "- ALL - all job event categories\n"
                            + "",
              tags = "subscriptions",
