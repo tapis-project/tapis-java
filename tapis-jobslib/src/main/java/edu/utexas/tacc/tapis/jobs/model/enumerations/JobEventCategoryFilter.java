@@ -19,6 +19,7 @@ public enum JobEventCategoryFilter
     JOB_SUBSCRIPTION("A change to the job's subscriptions has occurred."),
     JOB_SHARE_EVENT("A job resource has been shared or unshared."),
     JOB_ERROR_MESSAGE("The job experienced an error."),
+    JOB_USER_EVENT("A user generated event was sent to a job."),
     ALL("All job event categories.");
     
     private final String description;

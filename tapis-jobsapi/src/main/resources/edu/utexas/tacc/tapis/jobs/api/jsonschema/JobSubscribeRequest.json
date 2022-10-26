@@ -24,7 +24,7 @@
           "eventCategoryFilter": {
             "$comment": "The category of job events to which this subscription applies",
             "type": "string", "minLength": 1, "maxLength": 64,
-            "enum": [ "JOB_NEW_STATUS", "JOB_INPUT_TRANSACTION_ID", "JOB_ARCHIVE_TRANSACTION_ID", "JOB_SUBSCRIPTION", "JOB_SHARE_EVENT", "JOB_ERROR_MESSAGE", "ALL"]
+            "enum": [ "JOB_NEW_STATUS", "JOB_INPUT_TRANSACTION_ID", "JOB_ARCHIVE_TRANSACTION_ID", "JOB_SUBSCRIPTION", "JOB_SHARE_EVENT", "JOB_ERROR_MESSAGE", "JOB_USER_EVENT", "ALL"]
           },
           "deliveryTargets": {
             "$comment": "Notification receivers",
