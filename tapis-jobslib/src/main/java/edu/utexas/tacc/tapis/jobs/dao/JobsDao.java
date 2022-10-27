@@ -3157,6 +3157,8 @@ public final class JobsDao
 		        return col.in(valList);
 		      case NIN:
 		        return col.notIn(valList);
+		      case CONTAINS:
+		    	  return  textArrayOverlaps(col, valList.toArray());  
 		      case BETWEEN:
 		        return col.between(valList.get(0), valList.get(1));
 		      case NBETWEEN:
@@ -3164,7 +3166,17 @@ public final class JobsDao
 		    }
 			return null;
 		}
-
+	   
+	  /*
+	   * Implement the array overlap construct in jooq.
+	   * Given a column as a Field<T[]> and a java array create a jooq condition that
+	   * returns true if column contains any of the values in the array.
+	   */
+	  private static <T> Condition textArrayOverlaps(Field<T[]> col, T[] array)
+	  {
+	    return DSL.condition("{0} && {1}::text[]", col, DSL.array(array));
+	  }
+	  
 	private void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) 
 	throws TapisException {
 			var dataType = col.getDataType();
