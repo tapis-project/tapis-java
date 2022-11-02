@@ -1748,7 +1748,7 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.JobUUID.name(),    _job.getUuid());
         _macros.put(JobTemplateVariables.Tenant.name(),     _submitReq.getTenant());
         _macros.put(JobTemplateVariables.JobOwner.name(),   _submitReq.getOwner());
-        _macros.put(JobTemplateVariables.EffeciveUserId.name(), _execSystem.getEffectiveUserId());
+        _macros.put(JobTemplateVariables.EffectiveUserId.name(), _execSystem.getEffectiveUserId());
         
         _macros.put(JobTemplateVariables.AppId.name(),      _submitReq.getAppId());
         _macros.put(JobTemplateVariables.AppVersion.name(), _submitReq.getAppVersion());
