@@ -167,7 +167,7 @@ public final class JobsImpl
         }
         catch (Exception e)
         {        
-           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", "", user, tenant, e);
            _log.error(msg, e);
            throw new IllegalArgumentException(msg);
               
@@ -209,7 +209,7 @@ public final class JobsImpl
         try { 
         	searchAST = ASTParser.parse(sqlSearchStr); 
         } catch (Exception e){
-           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+           String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", sqlSearchStr, user, tenant, e);
            _log.error(msg, e);
            throw new IllegalArgumentException(msg);
         }
@@ -259,7 +259,7 @@ public final class JobsImpl
           }
           catch (Exception e)
           {
-            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", "", user, tenant, e);;
             _log.error(msg, e);
             throw new IllegalArgumentException(msg);
           }
@@ -302,7 +302,7 @@ public final class JobsImpl
         try { searchAST = ASTParser.parse(sqlSearchStr); }
         catch (Exception e)
         {
-          String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());;//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+          String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", sqlSearchStr, user, tenant, e);
           _log.error(msg, e);
           throw new IllegalArgumentException(msg);
         }
@@ -353,7 +353,7 @@ public final class JobsImpl
           }
           catch (Exception e)
           {
-            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());
+            String msg = MsgUtils.getMsg("JOBS_SEARCH_ERROR", "", user, tenant, e);
             _log.error(msg, e);
             throw new IllegalArgumentException(msg);
           }
@@ -392,7 +392,7 @@ public final class JobsImpl
         try { searchAST = ASTParser.parse(sqlSearchStr); }
         catch (Exception e)
         {
-          String msg =  MsgUtils.getMsg("JOBS_SEARCH_ERROR", user, e.getMessage());//TODO LibUtils.getMsgAuth("SYSLIB_SEARCH_ERROR", rUser, e.getMessage());
+          String msg =  MsgUtils.getMsg("JOBS_SEARCH_ERROR", sqlSearchStr, user, tenant, e);
           _log.error(msg, e);
           throw new IllegalArgumentException(msg);
         }

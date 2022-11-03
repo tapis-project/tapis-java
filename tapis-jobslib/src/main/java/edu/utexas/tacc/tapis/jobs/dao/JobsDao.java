@@ -54,6 +54,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
@@ -3134,9 +3136,14 @@ public final class JobsDao
 
 	@SuppressWarnings("unchecked")
 	private Condition createCondition(Field col, SearchOperator op, String val) {
+		    boolean negateContains = true;
 			List<String> valList = Collections.emptyList();
-		    if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
-		    switch (op) {
+			SearchOperator op1 = op;
+			if (SearchUtils.listOpSet.contains(op)) valList = SearchUtils.getValueList(val);
+		    // If operator is IN or NIN and column type is array then handle it as CONTAINS or NCONTAINS
+		    if ((col.getDataType().getSQLType() == Types.ARRAY) && SearchOperator.IN.equals(op)) op1 = CONTAINS;
+		    if ((col.getDataType().getSQLType() == Types.ARRAY) && SearchOperator.NIN.equals(op)) op1 = NCONTAINS;
+		    switch (op1) {
 		      case EQ:
 		        return col.eq(val);
 		      case NEQ:
@@ -3158,7 +3165,10 @@ public final class JobsDao
 		      case NIN:
 		        return col.notIn(valList);
 		      case CONTAINS:
-		    	  return  textArrayOverlaps(col, valList.toArray());  
+		    	  negateContains = false;
+		    	  return  textArrayOverlaps(col, valList.toArray(),negateContains );  
+		      case NCONTAINS: 
+		    	   return  textArrayOverlaps(col, valList.toArray(),negateContains);
 		      case BETWEEN:
 		        return col.between(valList.get(0), valList.get(1));
 		      case NBETWEEN:
@@ -3172,9 +3182,12 @@ public final class JobsDao
 	   * Given a column as a Field<T[]> and a java array create a jooq condition that
 	   * returns true if column contains any of the values in the array.
 	   */
-	  private static <T> Condition textArrayOverlaps(Field<T[]> col, T[] array)
+	  private static <T> Condition textArrayOverlaps(Field<T[]> col, T[] array, boolean negate)
 	  {
-	    return DSL.condition("{0} && {1}::text[]", col, DSL.array(array));
+		  Condition cond = DSL.condition("{0} && {1}::text[]", col, DSL.array(array));
+		  if (negate) return cond.not();
+		  else return cond;
+	    
 	  }
 	  
 	private void checkConditionValidity(Field<?> col, SearchOperator op, String valStr) 
@@ -3199,7 +3212,7 @@ public final class JobsDao
 		    // Check that value (or values for op that takes a list) are compatible with sqlType
 		    if (!SearchUtils.validateTypeAndValueList(sqlType, op, valStr, sqlTypeName, Tables.JOBS.getName(), col.getName()))
 		    {
-		      String msg = MsgUtils.getMsg("SYSLIB_DB_INVALID_SEARCH_VALUE", op.name(), sqlTypeName, valStr, Tables.JOBS.getName(), col.getName());
+		      String msg = MsgUtils.getMsg("SEARCH_DB_INVALID_SEARCH_VALUE", op.name(), sqlTypeName, valStr, Tables.JOBS.getName(), col.getName());
 		      throw new TapisException(msg);
 		    }
 		  }
