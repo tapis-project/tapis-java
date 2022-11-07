@@ -190,7 +190,7 @@ public final class JobEventsDao
   {
       // ------------------------- Complete Input ----------------------
       // Fill in Job fields that we assure.
-      jobEvent.setCreated(Instant.now());
+      if (jobEvent.getCreated() == null) jobEvent.setCreated(Instant.now());
       
       // ------------------------- Check Input -------------------------
       if (StringUtils.isBlank(jobEvent.getJobUuid())) {

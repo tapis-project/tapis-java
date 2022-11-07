@@ -10,6 +10,7 @@ import com.rabbitmq.client.BuiltinExchangeType;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.BlockedJobActivity;
@@ -291,8 +292,20 @@ final class JobQueueProcessor
     // field in the database with this finalMessage. 
     Job job = jobCtx.getJob();
     if (job != null) {
+        // Always log the final event message and save it in the job.
     	_log.error(finalMessage);
     	jobCtx.getJobsDao().updateLastMessageWithFinalMessage(finalMessage, job);
+    	
+    	// Only send final events on failed jobs.
+    	if (job.getStatus() == JobStatusType.FAILED)
+            try {
+                JobEventManager.getInstance().recordFinalMessageEvent(
+                                 job.getUuid(), job.getTenant(), finalMessage);
+            } catch (Exception e) {
+                // Log error and move on.
+                String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+                _log.error(msg, e);
+            }
     }
   }
   

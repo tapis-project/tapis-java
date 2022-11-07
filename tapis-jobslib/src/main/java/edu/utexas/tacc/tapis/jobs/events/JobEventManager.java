@@ -38,6 +38,9 @@ public final class JobEventManager
     private static final String SUBSCRIPTION_ADDENDUM = " A subscription was ";
     private static final String SUBSCRIPTION_ADDENDUM_MULTI = " One or more subscriptions were ";
     
+    // Detail value for job final messages.
+    private static final String FINAL_MSG_DETAIL = "FINAL_MESSAGE";
+    
     /* ********************************************************************** */
     /*                                Enums                                   */
     /* ********************************************************************** */
@@ -247,6 +250,35 @@ public final class JobEventManager
 		return jobEvent;
    }
    
+   /* ---------------------------------------------------------------------- */
+   /* recordErrorEvent:                                                      */
+   /* ---------------------------------------------------------------------- */
+   /** Write Job significant error event to database.  
+    * 
+    * @param jobUuid the job that generated the event
+    * @param tenant the job tenant
+    * @param status current job status
+    * @param message the event message
+    * @throws TapisException on error
+    */
+   public JobEvent recordErrorEvent(String jobUuid, String tenant, JobStatusType status, 
+                                    String message) 
+     throws TapisException
+   {
+       // Create the Job event.
+       var jobEvent = new JobEvent();
+       jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
+       jobEvent.setJobUuid(jobUuid);
+       jobEvent.setTenant(tenant);
+       jobEvent.setEventDetail(status.name());
+       jobEvent.setDescription(message);
+       
+       // Save in db and send to notifications service asynchronously.
+       _jobEventsDao.createEvent(jobEvent, null);
+       postEventToNotificationService(jobEvent);
+       return jobEvent;
+   }
+   
     /* ---------------------------------------------------------------------- */
     /* recordErrorEvent:                                                      */
     /* ---------------------------------------------------------------------- */
@@ -363,6 +395,38 @@ public final class JobEventManager
         var desc = jobEvent.getEvent().getDescription();
         desc += "  " + numSubscriptions + " subscription(s) created with job submission.";
         jobEvent.setDescription(desc);
+        
+        // Save in db and send to notifications service asynchronously.
+        _jobEventsDao.createEvent(jobEvent, null);
+        postEventToNotificationService(jobEvent);
+        return jobEvent;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* recordFinalMessageEvent:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** Write Job subscription event to database.  
+     * 
+     * The connection parameter can be null if the event insertion is not to 
+     * be part of an in-progress transaction. 
+     * 
+     * @param jobUuid the job that generated the event
+     * @param tenant the job tenant
+     * @param finalMsg the job's final message
+     * @param conn existing connection or null
+     * @throws TapisException on error
+     */
+    public JobEvent recordFinalMessageEvent(String jobUuid, String tenant,
+                                            String finalMsg)
+     throws TapisException
+    {
+        // Create the Job event.
+        var jobEvent = new JobEvent();
+        jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
+        jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
+        jobEvent.setEventDetail(FINAL_MSG_DETAIL);
+        jobEvent.setDescription(finalMsg);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
