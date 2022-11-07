@@ -113,7 +113,7 @@ public class JobOutputDownloadResource extends AbstractResource{
      @Path("/{jobUuid}/output/download/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_OCTET_STREAM)
      @Operation(
-             description = "Download job's output files for previously submitted job by its UUID. The job must be in a terminal state - FINISHED or FAILED.  \n\n"
+             description = "Download job's output files for previously submitted job by its UUID. The job must be in a terminal state (FINISHED or FAILED or CANCELLED).  \n\n"
                            + "The caller must be the job owner, creator or a tenant administrator.\n"
             		       + "The URL must ends with '/' even if there is no outputPath is specified. "
                            + "",
