@@ -63,8 +63,14 @@ public class JobHistoryDisplayDTO {
     			transferSummary.addProperty("completeTransfers",transferTask.getCompleteTransfers());
     			transferSummary.addProperty("totalTransfers",transferTask.getTotalTransfers());
     			transferSummary.addProperty("created",transferTask.getCreated().toString());
-    			transferSummary.addProperty("startTime",transferTask.getStartTime().toString());
-    			transferSummary.addProperty("endTime",transferTask.getEndTime().toString());
+    			if (transferTask.getStartTime() == null) 
+    				transferSummary.addProperty("startTime","");
+    			else
+    				transferSummary.addProperty("startTime",transferTask.getStartTime().toString());
+    			if (transferTask.getEndTime() == null) 
+    				transferSummary.addProperty("endTime","");
+    			else 
+    				transferSummary.addProperty("endTime",transferTask.getEndTime().toString());
     			transferSummary.addProperty("errorMessage",transferTask.getErrorMessage());
     			
     			
