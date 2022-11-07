@@ -139,7 +139,20 @@ public class JobSubmitResource
             		       + "  - stage application code\n"
             		       + "  - launch application\n"
             		       + "  - monitor application\n"
-            		       + "  - archive application output\n"
+            		       + "  - archive application output\n\n"
+                           + ""
+                           + "At a minimum, the job name, application ID and application version must be "
+                           + "specified in the request payload. The optional parameters available in a job "
+                           + "request provide great flexibility but must be considered in the context of "
+                           + "the application and system definitions. The actual values used during job "
+                           + "execution are a combination of the values in this request and those specified in "
+                           + "the job's application and system definitions. It's often desirable to keep the "
+                           + "submission request simple by specifying common values in these other two "
+                           + "definitions. "
+                           + ""
+                           + "See the "
+                           + "[Job Submission Request](https://tapis.readthedocs.io/en/latest/technical/jobs.html#the-job-submission-request) "
+                           + "documentation for details."
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -188,7 +201,7 @@ public class JobSubmitResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      @Operation(
-             description = "Resubmit a job for execution using the original parameters.  "
+             description = "Resubmit a job for execution using the job's original parameters.  "
                            + "The main phases of job execution are:\n\n"
                            + ""
                            + "  - validate input\n"
@@ -197,7 +210,14 @@ public class JobSubmitResource
                            + "  - stage application code\n"
                            + "  - launch application\n"
                            + "  - monitor application\n"
-                           + "  - archive application output\n"
+                           + "  - archive application output\n\n"
+                           + ""
+                           + "When a job is submitted its request payload is captured and available "
+                           + "for resubmission using this API. The resubmitted job is assigned a new "
+                           + "UUID and does not reference or have any special access to the original "
+                           + "job's information once the orginal job's request is copied. The resubmitted "
+                           + "job's execution can differ from the original job's if the application, system "
+                           + "or other aspects of the execution environment have changed."
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
