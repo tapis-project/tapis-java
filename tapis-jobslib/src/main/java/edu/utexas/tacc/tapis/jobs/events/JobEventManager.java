@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.events;
 import java.sql.Connection;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,11 @@ public final class JobEventManager
     
     // Detail value for job final messages.
     private static final String FINAL_MSG_DETAIL = "FINAL_MESSAGE";
+    private static final String DEFAULT_FINAL_MSG = "Last job message.";
+    
+    // DB field limits.
+    private static final int MAX_EVENT_DETAIL = 16384;
+    private static final int MAX_EVENT_DESCRIPTION = 16384;
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -271,6 +277,9 @@ public final class JobEventManager
        jobEvent.setJobUuid(jobUuid);
        jobEvent.setTenant(tenant);
        jobEvent.setEventDetail(status.name());
+       
+       // Truncate messages that are too long.
+       
        jobEvent.setDescription(message);
        
        // Save in db and send to notifications service asynchronously.
@@ -426,6 +435,11 @@ public final class JobEventManager
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
         jobEvent.setEventDetail(FINAL_MSG_DETAIL);
+        
+        // Always assign description.
+        if (StringUtils.isBlank(finalMsg)) finalMsg = DEFAULT_FINAL_MSG;
+        if (finalMsg.length() > MAX_EVENT_DESCRIPTION)
+            finalMsg = finalMsg.substring(0, MAX_EVENT_DESCRIPTION - 1);
         jobEvent.setDescription(finalMsg);
         
         // Save in db and send to notifications service asynchronously.
@@ -440,7 +454,8 @@ public final class JobEventManager
     /** Write a User event to database.  
      * 
      * The connection parameter can be null if the event insertion is not to 
-     * be part of an in-progress transaction. 
+     * be part of an in-progress transaction.  The eventDetail length must
+     * have been verified by the caller to be between 1 and MAX_EVENT_DETAIL. 
      * 
      * @param jobUuid the job targeted by the event
      * @param tenant the job tenant
