@@ -6,10 +6,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import com.google.gson.JsonObject;
 
+import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper;
 import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.security.secrets.SecretTypeDetector;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -31,6 +34,9 @@ public class SkExport
     private static final int    START_SECRETS_LEN = START_SECRETS.length();
     private static final String END_SECRETS  = "\n]";
     private static final int    OUTPUT_BUFLEN = 8192;
+    
+    // We split vault paths on slashes.
+    private static final Pattern SPLIT_PATTERN = Pattern.compile("/");
 
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -55,8 +61,11 @@ public class SkExport
     /* ********************************************************************** */
     /*                                 Records                                */
     /* ********************************************************************** */
-    // Wrapper for secret info.
+    // Wrapper for raw secret info.
     private record SecretInfo(SecretType type, String path, String secret) {}
+    
+    // Wrapper for processed SecretInfo records.
+    private record SecretOutput(String key, String value) {}
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -112,6 +121,9 @@ public class SkExport
         
         // Walk the Vault source tree and discover all tapis secrets.
         processSourceTree(TAPIS_SECRET_ROOT);
+        
+        // Put the raw data into the user-specified output format.
+        var outputRecs = calculateOutputRecs();
         
         // Output.
         writeResults();
@@ -261,20 +273,278 @@ public class SkExport
      */
     private boolean skipStore(String secretPath, SecretTypeWrapper resultType)
     {
-        // Is this a full dump of all secrets?
-        if (!_parms.skipUserSecrets) return false;
-        
-        // Determine if this is a user secret.
+        // Always parse the path.
         var secretType = SecretTypeDetector.detectType(secretPath);
         if (secretType == null) {
             _numUnknownPaths++;
             return true; // skip
         }
+        
+        // Pass back the result secret type.
+        resultType._secretType = secretType;
+        
+        // Is this a full dump of all secrets?
+        if (!_parms.skipUserSecrets) return false;
+        
+        // Determine if this is a user-initiated secret.
         if (secretType == SecretType.System || secretType == SecretType.User) 
             return true; // skip
         
         // Don't skip writing this secret.
         return false;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* calculateOutputRecs:                                                   */
+    /* ---------------------------------------------------------------------- */
+    private List<SecretOutput> calculateOutputRecs()
+    {
+        // Estimate the output list size based on the number of raw secrets.
+        var olist = new ArrayList<SecretOutput>(2*_secretRecs.size());
+        
+        // Each raw record can create one or more output records.
+        for (var srec : _secretRecs) {
+            // Parse json record and add record(s) to output list.
+            switch (srec.type) {
+                case ServicePwd:   getServicePwdOutputRec(srec, olist); break;
+                case DBCredential: getDBCredentialOutputRec(srec, olist); break;
+                case JWTSigning:   getJWTSigningOutputRec(srec, olist); break;
+                case System:       getSystemOutputRec(srec, olist); break;
+                case User:         getUserOutputRec(srec, olist); break;
+                default:
+            }
+        }
+        
+        // Return the list.
+        return olist;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getServicePwdOutputRec:                                                */
+    /* ---------------------------------------------------------------------- */
+    private void getServicePwdOutputRec(SecretInfo srec, List<SecretOutput> olist)
+    {
+        // The easy case is when we return Vault's output as is.
+        if (_parms.rawDump) {
+            olist.add(getRawDumpOutputRec(srec));
+            return;
+        }
+        
+        // Construct the key string based on the user-selected output format.
+        // Split the path into segments.  We know the split is valid since it 
+        // already passed muster in SecretTypeDetector. The service name is 
+        // at index 4.
+        var parts = SPLIT_PATTERN.split(srec.path(), 0);
+        String keyPrefix = SecretType.ServicePwd.name().toUpperCase() + "_" +
+                           parts[4].toUpperCase(); 
+        addSingleSecret(keyPrefix, srec.secret(), olist, "password");
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getDBCredentialOutputRec:                                              */
+    /* ---------------------------------------------------------------------- */
+    private void getDBCredentialOutputRec(SecretInfo srec, List<SecretOutput> olist)
+    {
+        // The easy case is when we return Vault's output as is.
+        if (_parms.rawDump) {
+            olist.add(getRawDumpOutputRec(srec));
+            return;
+        }
+        
+        // Construct the key string based on the user-selected output format.
+        // Split the path into segments.  We know the split is valid since it 
+        // already passed muster in SecretTypeDetector. The service name is 
+        // at index 2, dbhost at 4, dbname at 6, dbuser at 8. 
+        var parts = SPLIT_PATTERN.split(srec.path(), 0);
+        String keyPrefix = SecretType.DBCredential.name().toUpperCase() + "_" +
+                           parts[2].toUpperCase() + "_" + 
+                           parts[4].toUpperCase() + "_" +
+                           parts[6].toUpperCase() + "_" +
+                           parts[8].toUpperCase(); 
+        addSingleSecret(keyPrefix, srec.secret(), olist, "password");    
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getJWTSigningOutputRec:                                                */
+    /* ---------------------------------------------------------------------- */
+    private void getJWTSigningOutputRec(SecretInfo srec, List<SecretOutput> olist)
+    {
+        // The easy case is when we return Vault's output as is.
+        if (_parms.rawDump) {
+            olist.add(getRawDumpOutputRec(srec));
+            return;
+        }
+        
+        // Construct the key string based on the user-selected output format.
+        // Split the path into segments.  We know the split is valid since it 
+        // already passed muster in SecretTypeDetector. The tenant name is 
+        // at index 2. 
+        var parts = SPLIT_PATTERN.split(srec.path(), 0);
+        
+        // Process both public and private keys.
+        String keyPrefix = SecretType.JWTSigning.name().toUpperCase() + "_" +
+                          parts[2].toUpperCase(); 
+        addKeyPair(keyPrefix, srec.secret(), olist);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getSystemOutputRec:                                                    */
+    /* ---------------------------------------------------------------------- */
+    private void getSystemOutputRec(SecretInfo srec, List<SecretOutput> olist)
+    {
+        // The easy case is when we return Vault's output as is.
+        if (_parms.rawDump) {
+            olist.add(getRawDumpOutputRec(srec));
+            return;
+        }
+        
+        // Construct the key string based on the user-selected output format.
+        // Split the path into segments.  We know the split is valid since it 
+        // already passed muster in SecretTypeDetector. The tenant name is 
+        // at index 2, the system id at 4.  
+        var parts = SPLIT_PATTERN.split(srec.path(), 0);
+        
+        // Set the key prefix.
+        String keyPrefix = SecretType.System.name().toUpperCase() + "_" +
+                           parts[2].toUpperCase() + "_" + 
+                           parts[4].toUpperCase() + "_";
+        
+        // We need to know if we are using a dynamic or static user to complete the key.
+        String keyType, key;
+        if ("dynamicUserId".equals(parts[5])) {
+            // Capture the authn type and the static dynamic user string.
+            keyType = parts[6];
+            key = keyPrefix + "DYNAMICUSERID";
+        } else {
+            // Capture the authn type and user.
+            keyType = parts[7];
+            key = keyPrefix + parts[6].toUpperCase();
+        }
+        
+        // Lock down the key type.
+        SecretPathMapper.KeyType keyTypeEnum = null;
+        try {keyTypeEnum = SecretPathMapper.KeyType.valueOf(keyType);}
+            catch (Exception e) {
+                out(srec.path() + " has invalid keyType: " + keyType + ".\n" + e.toString());
+                return;
+            }
+        
+        // Assign the value based on the key type.
+        switch (keyTypeEnum) {
+            case sshkey:
+            case cert:
+                addKeyPair(key, srec.secret(), olist);
+            break;
+            
+            case password:
+                addSingleSecret(key, srec.secret(), olist, "password");
+            break;
+            
+            case accesskey:
+                addDynamicSecrets(key, srec.secret(), olist);
+            break;
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getUserOutputRec:                                                      */
+    /* ---------------------------------------------------------------------- */
+    private void getUserOutputRec(SecretInfo srec, List<SecretOutput> olist)
+    {
+        // The easy case is when we return Vault's output as is.
+        if (_parms.rawDump) {
+            olist.add(getRawDumpOutputRec(srec));
+            return;
+        }
+        
+        // Construct the key string based on the user-selected output format.
+        // Split the path into segments.  We know the split is valid since it 
+        // already passed muster in SecretTypeDetector. The tenant name is 
+        // at index 2, user at 4, secretName at 6.
+        var parts = SPLIT_PATTERN.split(srec.path(), 0);
+        String keyPrefix = SecretType.User.name().toUpperCase() + "_" +
+                           parts[2].toUpperCase() + "_" +
+                           parts[4].toUpperCase() + "_" +
+                           parts[6].toUpperCase();
+        addDynamicSecrets(keyPrefix, srec.secret(), olist);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addSingleSecret:                                                       */
+    /* ---------------------------------------------------------------------- */
+    private void addSingleSecret(String keyPrefix, String rawSecret, 
+                                 List<SecretOutput> olist, String secretName)
+    {
+        // The keys are at the top level in the json object.
+        // We process the private key first.
+        String value = null;
+        JsonObject jsonObj = null;
+        if (rawSecret != null) {
+            jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
+            value = jsonObj.get(secretName).toString();
+        }
+        if (value == null) value = "";
+        
+        // Construct the record.
+        olist.add(new SecretOutput(keyPrefix + "_" + secretName.toUpperCase(), value));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addKeyPair:                                                            */
+    /* ---------------------------------------------------------------------- */
+    private void addKeyPair(String keyPrefix, String rawSecret, List<SecretOutput> olist)
+    {
+        // The keys are at the top level in the json object.
+        // We process the private key first.
+        String value = null;
+        JsonObject jsonObj = null;
+        if (rawSecret != null) {
+            jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
+            value = jsonObj.get("privateKey").toString();
+        }
+        if (value == null) value = "";
+        
+        // Construct the record.
+        olist.add(new SecretOutput(keyPrefix + "_PRIVATEKEY", value));
+        
+        // Next process the public key.
+        if (jsonObj != null) value = jsonObj.get("publicKey").toString();
+        if (value == null) value = "";
+        
+        // Construct the record.
+        olist.add(new SecretOutput(keyPrefix + "_PUBLICKEY", value));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addDynamicSecrets:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private void addDynamicSecrets(String keyPrefix, String rawSecret, List<SecretOutput> olist)
+    {
+        // Dynamically discover the individual values associated with this 
+        // user secret.  Since the keys are user chosen, we may have to transform 
+        // them to avoid illegal characters in target context (e.g., env variables).
+        // First let's see if there's any secret.
+        if (rawSecret == null) {
+            olist.add(new SecretOutput(keyPrefix, ""));
+            return;
+        }
+        
+        // The keys are at the top level in the json object.
+        // We process the private key first.
+        JsonObject jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
+        for (var entry : jsonObj.entrySet()) {
+            var key = entry.getKey();
+            var val = entry.getValue().getAsString();
+            olist.add(new SecretOutput(keyPrefix + "_" + key.toUpperCase(), val));
+        }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getRawDumpOutputRec:                                                   */
+    /* ---------------------------------------------------------------------- */
+    private SecretOutput getRawDumpOutputRec(SecretInfo srec)
+    {
+        return new SecretOutput(srec.path(), srec.secret());
     }
     
     /* ---------------------------------------------------------------------- */
