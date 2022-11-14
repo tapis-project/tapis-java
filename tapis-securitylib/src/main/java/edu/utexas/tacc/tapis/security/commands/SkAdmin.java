@@ -965,7 +965,6 @@ public class SkAdmin
             if (map == null) {
                 map = new HashMap<String,String>();
                 _kubeSecretMap.put(kubeSecretName, map);
-                
             }
             
             // Add the key/value pair to the secret.
