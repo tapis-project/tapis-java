@@ -8,10 +8,10 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.TreeSet;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.google.gson.JsonObject;
 
+import edu.utexas.tacc.tapis.security.secrets.SecretType;
+import edu.utexas.tacc.tapis.security.secrets.SecretTypeDetector;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 /** Export secrets from Vault in either raw or deployment ready formats.
@@ -42,14 +42,21 @@ public class SkExport
     private final HttpClient           _httpClient;
     
     // Raw secrets information.
-    private final ArrayList<Pair<String,String>> _rawSecrets;
+    private final ArrayList<SecretInfo> _secretRecs;
     
     // Progress counters.
     private int                        _numListings;
     private int                        _numReads;
+    private int                        _numUnknownPaths;
     
     // Result reporting lists.
     private final TreeSet<String>      _failedReads;   // Number of secrets paths that could not be read.
+    
+    /* ********************************************************************** */
+    /*                                 Records                                */
+    /* ********************************************************************** */
+    // Wrapper for secret info.
+    private record SecretInfo(SecretType type, String path, String secret) {}
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -69,7 +76,7 @@ public class SkExport
         _parms = parms;
         _httpClient  = HttpClient.newHttpClient();
         _failedReads = new TreeSet<String>();
-        _rawSecrets  = new ArrayList<>(256);
+        _secretRecs  = new ArrayList<>(256);
     }
 
     /* ********************************************************************** */
@@ -103,7 +110,7 @@ public class SkExport
         // Check status of Vault.
         checkVaultStatus();
         
-        // Walk the source tree and discover all tapis secrets.
+        // Walk the Vault source tree and discover all tapis secrets.
         processSourceTree(TAPIS_SECRET_ROOT);
         
         // Output.
@@ -187,10 +194,12 @@ public class SkExport
         
         // Do we care about this path?
         // We may not need to export all secrets.
-        if (skipStore(curpath)) return;
+        var typeWrapper = new SecretTypeWrapper(); 
+        if (skipStore(curpath, typeWrapper)) return;
         
-        // Just collect the path and secret.
-        _rawSecrets.add(Pair.of(curpath, secretText));
+        // Collect the path and secret.
+        var r = new SecretInfo(typeWrapper._secretType, curpath, secretText);
+        _secretRecs.add(r);
         
         // Accumulate the secrets written.
         if (_numReads % 500 == 0) 
@@ -247,17 +256,22 @@ public class SkExport
     /** Based on the output settings determine whether we ignore this record. 
      * 
      * @param secretPath the path of the secret.
+     * @param resultType output variable that captures the secret type.
      * @return true if secret should be skipped, false to store and process.
      */
-    private boolean skipStore(String secretPath)
+    private boolean skipStore(String secretPath, SecretTypeWrapper resultType)
     {
         // Is this a full dump of all secrets?
         if (!_parms.skipUserSecrets) return false;
         
         // Determine if this is a user secret.
-        String[] segments = secretPath.split("/");
-        if (segments.length < 4) return false;
-        if ("system".equals(segments[3])) return true; // skip
+        var secretType = SecretTypeDetector.detectType(secretPath);
+        if (secretType == null) {
+            _numUnknownPaths++;
+            return true; // skip
+        }
+        if (secretType == SecretType.System || secretType == SecretType.User) 
+            return true; // skip
         
         // Don't skip writing this secret.
         return false;
@@ -330,10 +344,14 @@ public class SkExport
         // in the user-specified format.
         String secrets = writeSecrets();
         
+        // Did we encounter unknown paths?
+        var unknownPathMsg = _numUnknownPaths == 0 ? "" : " <-- INVESTIGATE";
+        
         // Print summary information.
-        var numWrites = _rawSecrets.size();
+        var numWrites = _secretRecs.size();
         out("\n-------------------------------------------------");
         out("Attempted listings = " + _numListings + ", attempted reads = " + _numReads);
+        out("Unknown paths encountered = " + _numUnknownPaths + unknownPathMsg);
         out("Secrets written = " + numWrites + ", secrets skipped = " + (_numReads - numWrites));
         if (!_failedReads.isEmpty()) {
             out("\n-------------------------------------------------");
@@ -368,16 +386,16 @@ public class SkExport
         //
         // When raw output is not requested, the key is converted into a string derived 
         // from the raw path and appropriate for use as an environment variable name. 
-        for (var pair: _rawSecrets) {
+        for (var rec: _secretRecs) {
             // Use the raw path or convert it to an env variable name.
-            String key = _parms.rawDump ? pair.getLeft() : makeKey(pair.getLeft());
+            String key = _parms.rawDump ? rec.path() : makeKey(rec.path());
             
             // Format the json payload.
             if (secrets.length() != START_SECRETS_LEN) secrets.append(",");
             secrets.append("\n{\"key\": \"");
             secrets.append(key);
             secrets.append("\",\"value\":");
-            secrets.append(pair.getRight());
+            secrets.append(rec.secret());
             secrets.append("}");
         }
         
@@ -392,5 +410,13 @@ public class SkExport
     private String makeKey(String rawPath)
     {
         return null;
+    }
+    
+    /* ********************************************************************** */
+    /*                             Private Methods                            */
+    /* ********************************************************************** */
+    // Temporary holder for a secret type.
+    private static final class SecretTypeWrapper {
+        private SecretType _secretType;
     }
 }
