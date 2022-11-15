@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import com.google.gson.JsonObject;
 
+import edu.utexas.tacc.tapis.security.commands.aux.export.SkExportParameters.OutputFormat;
 import edu.utexas.tacc.tapis.security.secrets.SecretPathMapper;
 import edu.utexas.tacc.tapis.security.secrets.SecretType;
 import edu.utexas.tacc.tapis.security.secrets.SecretTypeDetector;
@@ -37,6 +38,9 @@ public class SkExport
     
     // We split vault paths on slashes.
     private static final Pattern SPLIT_PATTERN = Pattern.compile("/");
+    
+    // We sanitize by removing all characters not in this character class.
+    private static final Pattern SANITIZER = Pattern.compile("[^a-zA-Z0-9_]");
 
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -122,11 +126,11 @@ public class SkExport
         // Walk the Vault source tree and discover all tapis secrets.
         processSourceTree(TAPIS_SECRET_ROOT);
         
-        // Put the raw data into the user-specified output format.
+        // Put all secrets into a list of records.
         var outputRecs = calculateOutputRecs();
         
-        // Output.
-        writeResults();
+        // Put the raw data into the user-specified output format.
+        writeResults(outputRecs);
     }
     
     /* ********************************************************************** */
@@ -304,7 +308,14 @@ public class SkExport
         
         // Each raw record can create one or more output records.
         for (var srec : _secretRecs) {
-            // Parse json record and add record(s) to output list.
+            // The easy case is when we return Vault's output as is.
+            if (_parms.format != OutputFormat.ENV) {
+                olist.add(getRawDumpOutputRec(srec));
+                continue;
+            }
+            
+            // Parse json record and add record(s) to output list in preparation
+            // for ENV output.  By default the key are sanitized.
             switch (srec.type) {
                 case ServicePwd:   getServicePwdOutputRec(srec, olist); break;
                 case DBCredential: getDBCredentialOutputRec(srec, olist); break;
@@ -324,12 +335,6 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     private void getServicePwdOutputRec(SecretInfo srec, List<SecretOutput> olist)
     {
-        // The easy case is when we return Vault's output as is.
-        if (_parms.rawDump) {
-            olist.add(getRawDumpOutputRec(srec));
-            return;
-        }
-        
         // Construct the key string based on the user-selected output format.
         // Split the path into segments.  We know the split is valid since it 
         // already passed muster in SecretTypeDetector. The service name is 
@@ -337,7 +342,7 @@ public class SkExport
         var parts = SPLIT_PATTERN.split(srec.path(), 0);
         String keyPrefix = SecretType.ServicePwd.name().toUpperCase() + "_" +
                            parts[4].toUpperCase(); 
-        addSingleSecret(keyPrefix, srec.secret(), olist, "password");
+        addDynamicSecrets(keyPrefix, srec.secret(), olist);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -345,12 +350,6 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     private void getDBCredentialOutputRec(SecretInfo srec, List<SecretOutput> olist)
     {
-        // The easy case is when we return Vault's output as is.
-        if (_parms.rawDump) {
-            olist.add(getRawDumpOutputRec(srec));
-            return;
-        }
-        
         // Construct the key string based on the user-selected output format.
         // Split the path into segments.  We know the split is valid since it 
         // already passed muster in SecretTypeDetector. The service name is 
@@ -361,7 +360,7 @@ public class SkExport
                            parts[4].toUpperCase() + "_" +
                            parts[6].toUpperCase() + "_" +
                            parts[8].toUpperCase(); 
-        addSingleSecret(keyPrefix, srec.secret(), olist, "password");    
+        addDynamicSecrets(keyPrefix, srec.secret(), olist);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -369,12 +368,6 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     private void getJWTSigningOutputRec(SecretInfo srec, List<SecretOutput> olist)
     {
-        // The easy case is when we return Vault's output as is.
-        if (_parms.rawDump) {
-            olist.add(getRawDumpOutputRec(srec));
-            return;
-        }
-        
         // Construct the key string based on the user-selected output format.
         // Split the path into segments.  We know the split is valid since it 
         // already passed muster in SecretTypeDetector. The tenant name is 
@@ -383,7 +376,7 @@ public class SkExport
         
         // Process both public and private keys.
         String keyPrefix = SecretType.JWTSigning.name().toUpperCase() + "_" +
-                          parts[2].toUpperCase(); 
+                           parts[2].toUpperCase(); 
         addKeyPair(keyPrefix, srec.secret(), olist);
     }
     
@@ -392,12 +385,6 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     private void getSystemOutputRec(SecretInfo srec, List<SecretOutput> olist)
     {
-        // The easy case is when we return Vault's output as is.
-        if (_parms.rawDump) {
-            olist.add(getRawDumpOutputRec(srec));
-            return;
-        }
-        
         // Construct the key string based on the user-selected output format.
         // Split the path into segments.  We know the split is valid since it 
         // already passed muster in SecretTypeDetector. The tenant name is 
@@ -437,9 +424,6 @@ public class SkExport
             break;
             
             case password:
-                addSingleSecret(key, srec.secret(), olist, "password");
-            break;
-            
             case accesskey:
                 addDynamicSecrets(key, srec.secret(), olist);
             break;
@@ -451,12 +435,6 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     private void getUserOutputRec(SecretInfo srec, List<SecretOutput> olist)
     {
-        // The easy case is when we return Vault's output as is.
-        if (_parms.rawDump) {
-            olist.add(getRawDumpOutputRec(srec));
-            return;
-        }
-        
         // Construct the key string based on the user-selected output format.
         // Split the path into segments.  We know the split is valid since it 
         // already passed muster in SecretTypeDetector. The tenant name is 
@@ -470,56 +448,20 @@ public class SkExport
     }
     
     /* ---------------------------------------------------------------------- */
-    /* addSingleSecret:                                                       */
-    /* ---------------------------------------------------------------------- */
-    private void addSingleSecret(String keyPrefix, String rawSecret, 
-                                 List<SecretOutput> olist, String secretName)
-    {
-        // The keys are at the top level in the json object.
-        // We process the private key first.
-        String value = null;
-        JsonObject jsonObj = null;
-        if (rawSecret != null) {
-            jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
-            value = jsonObj.get(secretName).toString();
-        }
-        if (value == null) value = "";
-        
-        // Construct the record.
-        olist.add(new SecretOutput(keyPrefix + "_" + secretName.toUpperCase(), value));
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* addKeyPair:                                                            */
-    /* ---------------------------------------------------------------------- */
-    private void addKeyPair(String keyPrefix, String rawSecret, List<SecretOutput> olist)
-    {
-        // The keys are at the top level in the json object.
-        // We process the private key first.
-        String value = null;
-        JsonObject jsonObj = null;
-        if (rawSecret != null) {
-            jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
-            value = jsonObj.get("privateKey").toString();
-        }
-        if (value == null) value = "";
-        
-        // Construct the record.
-        olist.add(new SecretOutput(keyPrefix + "_PRIVATEKEY", value));
-        
-        // Next process the public key.
-        if (jsonObj != null) value = jsonObj.get("publicKey").toString();
-        if (value == null) value = "";
-        
-        // Construct the record.
-        olist.add(new SecretOutput(keyPrefix + "_PUBLICKEY", value));
-    }
-    
-    /* ---------------------------------------------------------------------- */
     /* addDynamicSecrets:                                                     */
     /* ---------------------------------------------------------------------- */
+    /** Create an output entry for each key/value pair listed in the Vault
+     * secret text.
+     * 
+     * @param keyPrefix the prefix of the attribute we'll create
+     * @param rawSecret the Vault secret value as json text
+     * @param olist the result accumulator
+     */
     private void addDynamicSecrets(String keyPrefix, String rawSecret, List<SecretOutput> olist)
     {
+        // Replace env unfriendly character in the prefix.
+        if (_parms.sanitizeName) keyPrefix = sanitize(keyPrefix);
+        
         // Dynamically discover the individual values associated with this 
         // user secret.  Since the keys are user chosen, we may have to transform 
         // them to avoid illegal characters in target context (e.g., env variables).
@@ -534,9 +476,75 @@ public class SkExport
         JsonObject jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
         for (var entry : jsonObj.entrySet()) {
             var key = entry.getKey();
+            if (_parms.sanitizeName) key = sanitize(key); 
             var val = entry.getValue().getAsString();
+            if (val == null) val = "";
             olist.add(new SecretOutput(keyPrefix + "_" + key.toUpperCase(), val));
         }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addKeyPair:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** This specialized version of addDynamicSecrets ignores the "key" attribute
+     * that Vault return in add to privateKey and publicKey.  Basically, we
+     * hardcode the two attributes we're interested in and remove extraneous 
+     * quotes from the value string.
+     * 
+     * @param keyPrefix the prefix of the attribute we'll create
+     * @param rawSecret the Vault secret value as json text
+     * @param olist the result accumulator
+     */
+    private void addKeyPair(String keyPrefix, String rawSecret, List<SecretOutput> olist)
+    {
+        // Replace env unfriendly character in the prefix.
+        if (_parms.sanitizeName) keyPrefix = sanitize(keyPrefix);
+        
+        // The keys are at the top level in the json object.
+        // We process the private key first.
+        String value = null;
+        JsonObject jsonObj = null;
+        if (rawSecret != null) {
+            jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
+            value = jsonObj.get("privateKey").toString();
+        }
+        
+        // Massage the value.
+        if (value == null) value = "";
+         else {
+             // For some reason there are double quotes around the secret string.
+             if (value.startsWith("\"")) value = value.substring(1);
+             if (value.endsWith("\"")) value = value.substring(0, value.length()-1);
+         }
+        
+        // Construct the record.
+        olist.add(new SecretOutput(keyPrefix + "_PRIVATEKEY", value));
+        
+        // Next process the public key.
+        if (jsonObj != null) value = jsonObj.get("publicKey").toString();
+        if (value == null) value = "";
+        else {
+            // For some reason there are double quotes around the secret string.
+            if (value.startsWith("\"")) value = value.substring(1);
+            if (value.endsWith("\"")) value = value.substring(0, value.length()-1);
+        }
+        
+        // Construct the record.
+        olist.add(new SecretOutput(keyPrefix + "_PUBLICKEY", value));
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* sanitize:                                                              */
+    /* ---------------------------------------------------------------------- */
+    /** Replace all characters not in the sanitizer character class with underscore.
+     * 
+     * @param s string to be sanitized
+     * @return sanitized string
+     */
+    private String sanitize(String s)
+    {
+        if (s == null) return s;
+        return SANITIZER.matcher(s).replaceAll("_");
     }
     
     /* ---------------------------------------------------------------------- */
@@ -608,11 +616,12 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     /* writeResults:                                                          */
     /* ---------------------------------------------------------------------- */
-    private void writeResults()
+    private void writeResults(List<SecretOutput> olist)
     {
         // Populate a json object will all the secrets
         // in the user-specified format.
-        String secrets = writeSecrets();
+        String secrets = _parms.format == OutputFormat.JSON ? 
+                               writeJsonOutput(olist) : writeEnvOutput(olist);
         
         // Did we encounter unknown paths?
         var unknownPathMsg = _numUnknownPaths == 0 ? "" : " <-- INVESTIGATE";
@@ -637,17 +646,17 @@ public class SkExport
     }
 
     /* ---------------------------------------------------------------------- */
-    /* writeSecrets:                                                          */
+    /* writeJsonOutput:                                                       */
     /* ---------------------------------------------------------------------- */
-    private String writeSecrets()
+    private String writeJsonOutput(List<SecretOutput> olist)
     {
         // Initialize result json string.
         var secrets = new StringBuilder(OUTPUT_BUFLEN);
         secrets.append(START_SECRETS);
         
-        // Write each path/secret pair as json. The secret is itself a json 
-        // object so the result is that secret is nested in the result object.
-        // When raw output is requested, the result ends up looking like this:
+        // Write each path/secret pair as json. The secret is itself a json object 
+        // so the result is that secret is nested in the result object. When raw 
+        // output is requested, the result objects end up looking like this:
         //
         // {
         //    "key": "tapis/service/postgres/dbhost/sk-postgres/dbname/tapissecdb/dbuser/tapis/credentials/passwords",
@@ -656,16 +665,13 @@ public class SkExport
         //
         // When raw output is not requested, the key is converted into a string derived 
         // from the raw path and appropriate for use as an environment variable name. 
-        for (var rec: _secretRecs) {
-            // Use the raw path or convert it to an env variable name.
-            String key = _parms.rawDump ? rec.path() : makeKey(rec.path());
-            
+        for (var rec: olist) {
             // Format the json payload.
             if (secrets.length() != START_SECRETS_LEN) secrets.append(",");
             secrets.append("\n{\"key\": \"");
-            secrets.append(key);
+            secrets.append(rec.key());
             secrets.append("\",\"value\":");
-            secrets.append(rec.secret());
+            secrets.append(rec.value());
             secrets.append("}");
         }
         
@@ -673,15 +679,33 @@ public class SkExport
         secrets.append(END_SECRETS);
         return secrets.toString();
     }
-    
+
     /* ---------------------------------------------------------------------- */
-    /* makeKey:                                                               */
+    /* writeEnvOutput:                                                        */
     /* ---------------------------------------------------------------------- */
-    private String makeKey(String rawPath)
+    private String writeEnvOutput(List<SecretOutput> olist)
     {
-        return null;
+        // Initialize result json string.
+        var secrets = new StringBuilder(OUTPUT_BUFLEN);
+        
+        // Write each path/secret pair in environment variable format. The secret 
+        // key is a name derived from the secret's Vault path and the value is 
+        // the secret itself. The result lines end up looking like this:
+        //
+        //    SOME_ENV_NAME='abcdefg'
+        //
+        for (var rec: olist) {
+            // Format the json payload.
+            secrets.append(rec.key());
+            secrets.append("='");
+            secrets.append(rec.value());
+            secrets.append("'\n");
+        }
+        
+        // Close the secrets outer json object and return.
+        return secrets.toString();
     }
-    
+
     /* ********************************************************************** */
     /*                             Private Methods                            */
     /* ********************************************************************** */

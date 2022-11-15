@@ -14,21 +14,24 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 /** Parse, validate and massage SkExport parameters.  
  *  
  *  Generally, set -skip to avoid non-service created secrets, including user 
- *  and system secrets.  Set -raw to get the path/secret combinations as they
- *  appear in Vault, but not necessarily in a format convenient for deployment.  
- *  Set -q to only output the json secrets.      
+ *  and system secrets.  Set -format to get the path/secret output in JSON as
+ *  they appear in Vault or, alternatively, with generated names suitable for 
+ *  environment variable assignment.  Set -q to only output the json secrets.      
  * 
- *  These settings are useful for development and manual validation of the
- *  secrets that will be captured for new installations.  
+ *  The default settings are useful for development and manual validation of 
+ *  all secrets.  This approach is appropriate for new Tapis installations.
+ *  To avoid outputting user-defined secrets in established installations, 
+ *  specify:      
  *  
- *      -raw 
+ *      -skip 
  * 
- *  These settings are useful for deploying new Tapis instances where only
- *  the secrets referenced in docker compose or kubernetes yml files are 
- *  needed.  These secrets are grouped by service as they are in kubernetes
- *  deployments.
+ *  The settings below are appropriate for deploying new Tapis instances where 
+ *  only the secrets referenced in docker compose or kubernetes yml files are 
+ *  needed.  Summary information is excluded and output is in environment
+ *  variable format (key=value) with the key derived from the Vault path and
+ *  sanitized.
  *  
- *      -skip -q
+ *      -skip -q -format=ENV
  *      
  * @author rcardone
  */
@@ -40,10 +43,10 @@ public class SkExportParameters
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SkExportParameters.class);
     
-    // Output choices.
-    public static final String OUTPUT_TEXT = "text";
-    public static final String OUTPUT_JSON = "json";
-    public static final String OUTPUT_YAML = "yaml";
+    // The JSON format yields a list of json objects containing "key" and "value"
+    // attributes each assigned strings.  The ENV format yields a list of 
+    // "name=value" strings suitable for assigning environment variables.
+    public enum OutputFormat {JSON, ENV}
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -60,9 +63,13 @@ public class SkExportParameters
             usage = "true = skip user secrets (use for new installations)")
     public boolean skipUserSecrets = false;
     
-    @Option(name = "-raw", required = false, aliases = {"--rawdump"}, 
+    @Option(name = "-format", required = false, aliases = {"--format"}, 
             usage = "true = print Vault paths, false = group secrets for deployment")
-    public boolean rawDump = false;
+    public OutputFormat format = OutputFormat.JSON;
+    
+    @Option(name = "-san", required = false, aliases = {"--sanitize"}, 
+            usage = "true replace unsupported characters with underscore when -format=ENV")
+    public boolean sanitizeName = true;
     
     @Option(name = "-q", required = false, aliases = {"--quiet"}, 
             usage = "true = output secrets only, false = output statistics + secrets")
