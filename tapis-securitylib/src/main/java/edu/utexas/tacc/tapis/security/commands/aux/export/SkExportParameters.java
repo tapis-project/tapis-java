@@ -59,21 +59,25 @@ public class SkExportParameters
             usage = "Vault URL including port, ex: http(s)://host:32342")
     public String vurl;
     
-    @Option(name = "-skip", required = false, aliases = {"--skipusersecrets"}, 
-            usage = "true = skip user secrets (use for new installations)")
-    public boolean skipUserSecrets = false;
-    
     @Option(name = "-format", required = false, aliases = {"--format"}, 
-            usage = "true = print Vault paths, false = group secrets for deployment")
-    public OutputFormat format = OutputFormat.JSON;
+            usage = "JSON writes raw Vault data, ENV writes key=value")
+    public OutputFormat format = OutputFormat.ENV;
     
-    @Option(name = "-san", required = false, aliases = {"--sanitize"}, 
-            usage = "true replace unsupported characters with underscore when -format=ENV")
-    public boolean sanitizeName = true;
+    @Option(name = "-noskip", required = false, aliases = {"--noskipusersecrets"}, 
+            usage = "true = skip user secrets (use for new installations)")
+    public boolean noSkipUserSecrets = false;
     
-    @Option(name = "-q", required = false, aliases = {"--quiet"}, 
-            usage = "true = output secrets only, false = output statistics + secrets")
-    public boolean quiet = false;
+    @Option(name = "-nosan", required = false, aliases = {"--nosanitize"}, 
+            usage = "don't replace unsupported characters with underscore when -format=ENV")
+    public boolean noSanitizeName = false;
+    
+    @Option(name = "-quote", required = false, aliases = {"--quoteenv"}, 
+            usage = "enclose secret values in single quotes when -format=ENV")
+    public boolean quoteEnvValues = false;
+    
+    @Option(name = "-v", required = false, aliases = {"--verbose"}, 
+            usage = "output statistics in addtion to secrets")
+    public boolean verbose = false;
     
     @Option(name = "-help", aliases = {"--help"}, 
             usage = "display help information")

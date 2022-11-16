@@ -139,7 +139,7 @@ public class SkExport
     /* ---------------------------------------------------------------------- */
     /* out:                                                                   */
     /* ---------------------------------------------------------------------- */
-    private void out(String s) {if (!_parms.quiet) System.out.println(s);}
+    private void out(String s) {if (_parms.verbose) System.out.println(s);}
     
     /* ---------------------------------------------------------------------- */
     /* processSourceTree:                                                     */
@@ -288,7 +288,7 @@ public class SkExport
         resultType._secretType = secretType;
         
         // Is this a full dump of all secrets?
-        if (!_parms.skipUserSecrets) return false;
+        if (_parms.noSkipUserSecrets) return false;
         
         // Determine if this is a user-initiated secret.
         if (secretType == SecretType.System || secretType == SecretType.User) 
@@ -460,7 +460,7 @@ public class SkExport
     private void addDynamicSecrets(String keyPrefix, String rawSecret, List<SecretOutput> olist)
     {
         // Replace env unfriendly character in the prefix.
-        if (_parms.sanitizeName) keyPrefix = sanitize(keyPrefix);
+        if (!_parms.noSanitizeName) keyPrefix = sanitize(keyPrefix);
         
         // Dynamically discover the individual values associated with this 
         // user secret.  Since the keys are user chosen, we may have to transform 
@@ -476,7 +476,7 @@ public class SkExport
         JsonObject jsonObj = TapisGsonUtils.getGson().fromJson(rawSecret, JsonObject.class);
         for (var entry : jsonObj.entrySet()) {
             var key = entry.getKey();
-            if (_parms.sanitizeName) key = sanitize(key); 
+            if (!_parms.noSanitizeName) key = sanitize(key); 
             var val = entry.getValue().getAsString();
             if (val == null) val = "";
             olist.add(new SecretOutput(keyPrefix + "_" + key.toUpperCase(), val));
@@ -498,7 +498,7 @@ public class SkExport
     private void addKeyPair(String keyPrefix, String rawSecret, List<SecretOutput> olist)
     {
         // Replace env unfriendly character in the prefix.
-        if (_parms.sanitizeName) keyPrefix = sanitize(keyPrefix);
+        if (!_parms.noSanitizeName) keyPrefix = sanitize(keyPrefix);
         
         // The keys are at the top level in the json object.
         // We process the private key first.
@@ -697,9 +697,11 @@ public class SkExport
         for (var rec: olist) {
             // Format the json payload.
             secrets.append(rec.key());
-            secrets.append("='");
+            secrets.append("=");
+            if (_parms.quoteEnvValues) secrets.append("'");
             secrets.append(rec.value());
-            secrets.append("'\n");
+            if (_parms.quoteEnvValues) secrets.append("'");
+            secrets.append("\n");
         }
         
         // Close the secrets outer json object and return.
