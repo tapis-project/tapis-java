@@ -299,8 +299,7 @@ final class JobQueueProcessor
     	// Only send final events on failed jobs.
     	if (job.getStatus() == JobStatusType.FAILED)
             try {
-                JobEventManager.getInstance().recordFinalMessageEvent(
-                                 job.getUuid(), job.getTenant(), finalMessage);
+                JobEventManager.getInstance().recordFinalMessageEvent(job, finalMessage);
             } catch (Exception e) {
                 // Log error and move on.
                 String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());

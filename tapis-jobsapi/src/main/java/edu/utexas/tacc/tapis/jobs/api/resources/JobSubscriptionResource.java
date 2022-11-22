@@ -262,8 +262,10 @@ public class JobSubscriptionResource
        
        // ------------------------- Event Processing -------------------------
        // Best effort processing.
+       final int newSubscriptions = 1;
        var eventMgr = JobEventManager.getInstance();
-       try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.added);}
+       try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.added,
+                                             newSubscriptions);}
            catch (Exception e) {
                String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
                                             dto.getTenant(), e.getMessage());
@@ -564,7 +566,8 @@ public class JobSubscriptionResource
          // Best effort processing.
          if (deleted > 0) {
              var eventMgr = JobEventManager.getInstance();
-             try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed);}
+             try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed,
+                                                   deleted);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
                                                   dto.getTenant(), e.getMessage());
@@ -671,7 +674,8 @@ public class JobSubscriptionResource
          // Best effort processing.
          if (deleted > 0) {
              var eventMgr = JobEventManager.getInstance();
-             try {eventMgr.recordSubscriptionEvent(dto.getJobUuid(), dto.getTenant(), SubscriptionActions.removed);}
+             try {eventMgr.recordSubscriptionEvent(dto.getJobUuid(), dto.getTenant(), SubscriptionActions.removed,
+                                                   deleted);}
                  catch (Exception e) {
                      String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", dto.getJobUuid(), dto.getOwner(),
                                                   dto.getTenant(), e.getMessage());

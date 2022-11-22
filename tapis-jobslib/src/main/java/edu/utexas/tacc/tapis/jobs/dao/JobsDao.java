@@ -1,5 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
+
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -54,8 +57,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
@@ -1357,7 +1358,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          eventMgr.recordStatusEvent(job.getUuid(), job.getTenant(), job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(job, job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -1454,6 +1455,83 @@ public final class JobsDao
 	      return result;
 	}
 	
+    /* ---------------------------------------------------------------------- */
+    /* getStatusByUUIDSafe:                                                   */
+    /* ---------------------------------------------------------------------- */
+	/** This method returns the job name and job owner in a JobNameOwner object.
+	 * If for any reason the query fails, an empty object is returned with both
+	 * values null.  
+	 * 
+	 * This method never throws an exception.
+	 * 
+	 * @param uuid
+	 * @return
+	 */
+    public JobNameOwner getNameOwnerByUUIDSafe(String uuid)
+    {
+          // ---------------------- Initialize Result ----------------------
+          // Container for job name and owner.
+          var result = new JobNameOwner();  
+        
+          // ------------------------- Check Input -------------------------
+          if (StringUtils.isBlank(uuid)) {
+              String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getNameOwnerByUUIDSafe", "uuid");
+              _log.error(msg);
+              return result;
+          }
+          
+          // ------------------------- Call SQL ----------------------------
+          Connection conn = null;
+          try
+          {
+              // Get a database connection.
+              conn = getConnection();
+              
+              // Get the select command.
+              String sql = SqlStatements.SELECT_JOBS_NAME_OWNER_BY_UUID;
+              
+              // Prepare the statement and fill in the placeholders.
+              PreparedStatement pstmt = conn.prepareStatement(sql);
+              pstmt.setString(1, uuid);
+                          
+              // Issue the call for the 1 row result set.
+              ResultSet rs = pstmt.executeQuery();
+              if (rs.next()) {
+                  result.name  = rs.getString(1);
+                  result.owner = rs.getString(2);
+              }
+              
+              // Close the result and statement.
+              rs.close();
+              pstmt.close();
+        
+              // Commit the transaction.
+              conn.commit();
+          }
+          catch (Exception e)
+          {
+              // Rollback transaction.
+              try {if (conn != null) conn.rollback();}
+                  catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+              
+              String msg = MsgUtils.getMsg("DB_SELECT_UUID_ERROR", "getStatusByUUID", uuid, e.getMessage());
+              _log.error(msg, e);
+          }
+          finally {
+              // Always return the connection back to the connection pool.
+              try {if (conn != null) conn.close();}
+                catch (Exception e) 
+                {
+                  // If commit worked, we can swallow the exception.  
+                  // If not, the commit exception will be thrown.
+                  String msg = MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE");
+                  _log.error(msg, e);
+                }
+          }
+          
+          return result;
+    }
+    
 	/* ---------------------------------------------------------------------- */
     /* setJobVisibility:                                                      */
     /* ---------------------------------------------------------------------- */
@@ -2487,7 +2565,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(job.getUuid(), job.getTenant(), newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(job, newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();
@@ -3328,29 +3406,6 @@ public final class JobsDao
 		    }
 		  }
 		  
-    /* ********************************************************************** */
-    /*                          JobTransferInfo class                         */
-    /* ********************************************************************** */
-	// Container for file transfer information.
-	public static final class JobTransferInfo
-	{
-	    public String inputTransactionId;
-	    public String inputCorrelationId;
-        public String archiveTransactionId;
-	    public String archiveCorrelationId;
-	}
-
-	/* ************************************* */
-    /*            Initialize Jobs Map        */
-    /* ************************************* */ 
-    public static Map<String,String> initializeJobFieldMap(){
-        // Map<String,String> jmap = new HashMap<String,String>(80);
-        Map<String, String> jmap;
-		jmap = getDBJobColumnAndType(JOBS_TABLENAME);
-		        
-        return Collections.unmodifiableMap(jmap);
-    }
-    
     /* ---------------------------------------------------------------------- */
     /* getDBJobColumnAndType:                                                 */
     /* ---------------------------------------------------------------------- */
@@ -3428,6 +3483,39 @@ public final class JobsDao
         }
         return jmap;
         
+    }
+    
+    /* ************************************* */
+    /*            Initialize Jobs Map        */
+    /* ************************************* */ 
+    public static Map<String,String> initializeJobFieldMap(){
+        // Map<String,String> jmap = new HashMap<String,String>(80);
+        Map<String, String> jmap;
+        jmap = getDBJobColumnAndType(JOBS_TABLENAME);
+                
+        return Collections.unmodifiableMap(jmap);
+    }
+    
+    /* ********************************************************************** */
+    /*                          JobTransferInfo class                         */
+    /* ********************************************************************** */
+    // Container for file transfer information.
+    public static final class JobTransferInfo
+    {
+        public String inputTransactionId;
+        public String inputCorrelationId;
+        public String archiveTransactionId;
+        public String archiveCorrelationId;
+    }
+
+    /* ********************************************************************** */
+    /*                           JobNameOwner class                           */
+    /* ********************************************************************** */
+    // Container for job name and owner information.
+    public static final class JobNameOwner
+    {
+        public String name;
+        public String owner;
     }
 }
     

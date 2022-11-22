@@ -308,11 +308,9 @@ public final class PollingMonitor
         var eventMgr = JobEventManager.getInstance();
         try {
             if (job.getStatus() == JobStatusType.STAGING_INPUTS)
-               eventMgr.recordStagingInputsEvent(job.getUuid(), job.getTenant(), 
-                                                 transferStatus, transferId);
+               eventMgr.recordStagingInputsEvent(job, transferStatus, transferId);
             else if (job.getStatus() == JobStatusType.ARCHIVING)
-                eventMgr.recordArchivingEvent(job.getUuid(), job.getTenant(), 
-                                              transferStatus, transferId);
+                eventMgr.recordArchivingEvent(job, transferStatus, transferId);
         } catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                          job.getOwner(), job.getTenant(), e.getMessage());

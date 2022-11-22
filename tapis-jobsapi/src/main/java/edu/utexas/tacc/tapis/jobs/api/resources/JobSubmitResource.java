@@ -726,8 +726,7 @@ public class JobSubmitResource
          // Record the event in the database and send notifications to the 
          // just established subscribers.
          try {
-            JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(
-                                              job.getUuid(), job.getTenant(), count);
+            JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count);
          } catch (Exception e) {
              String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                           job.getOwner(), job.getTenant(), e.getMessage());

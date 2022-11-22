@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
 import edu.utexas.tacc.tapis.jobs.dao.JobEventsDao;
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
@@ -40,11 +42,9 @@ public final class JobEventManager
     private static final String SUBSCRIPTION_ADDENDUM_MULTI = " One or more subscriptions were ";
     
     // Detail value for job final messages.
-    private static final String FINAL_MSG_DETAIL = "FINAL_MESSAGE";
-    private static final String DEFAULT_FINAL_MSG = "Last job message.";
+    private static final String DEFAULT_FINAL_MSG = "Final job message.";
     
     // DB field limits.
-    private static final int MAX_EVENT_DETAIL = 16384;
     private static final int MAX_EVENT_DESCRIPTION = 16384;
     
     /* ********************************************************************** */
@@ -56,6 +56,7 @@ public final class JobEventManager
     /*                                Fields                                  */
     /* ********************************************************************** */
     private final JobEventsDao _jobEventsDao;
+    private final JobsDao      _jobsDao;
     
     /* ********************************************************************** */
     /*                       SingletonInitializer class                       */
@@ -78,6 +79,10 @@ public final class JobEventManager
             catch (Exception e) {
                 throw new TapisRuntimeException(e.getMessage(), e);
             }
+        try {_jobsDao = new JobsDao();}
+            catch (Exception e) {
+                throw new TapisRuntimeException(e.getMessage(), e);
+            }
     }
     
     /* ********************************************************************** */
@@ -96,28 +101,30 @@ public final class JobEventManager
      * The connection parameter can be null if the event insertion is not to 
      * be part of an in-progress transaction. 
      * 
-     * @param jobUuid the job that generated the event
-     * @param tenant the job tenant
+     * @param job the job that generated the event
      * @param newStatus required new status
      * @param oldStatus optional previous status
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStatusEvent(String jobUuid, String tenant, JobStatusType newStatus, 
+    public JobEvent recordStatusEvent(Job job, JobStatusType newStatus, 
                                       JobStatusType oldStatus, Connection conn)
      throws TapisException
     {
         // Create the Job event.
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);
-        jobEvent.setJobUuid(jobUuid);
-        jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(newStatus.name());
+        jobEvent.setJobUuid(job.getUuid());
+        jobEvent.setTenant(job.getTenant());
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription() + newStatus.name() + ".";
         if (oldStatus != null) desc += OLD_STATUS_ADDENDUM + oldStatus.name() + ".";
         jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getNewStatusEventDetail(job, newStatus, oldStatus);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
@@ -133,31 +140,34 @@ public final class JobEventManager
      * The connection parameter can be null if the event insertion is not to 
      * be part of an in-progress transaction. 
      * 
-     * @param jobUuid the job that generated the event
-     * @param tenant the job tenant
-     * @param status current job status
+     * @param job the job that generated the event
+     * @param transferStatus status of transfer as reported by Files
      * @param transactionId transaction id from the Files service
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStagingInputsEvent(String jobUuid, String tenant,  
-                                             TransferStatusEnum transferStatus, 
+    public JobEvent recordStagingInputsEvent(Job job, TransferStatusEnum transferStatus, 
                                              String transactionId)
      throws TapisException
     {
         // Create the Job event.
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_INPUT_TRANSACTION_ID);
-        jobEvent.setJobUuid(jobUuid);
-        jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(transferStatus.name());
+        jobEvent.setJobUuid(job.getUuid());
+        jobEvent.setTenant(job.getTenant());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
-        desc += " Files service transaction " + transactionId + " in state " +
-                transferStatus.name() + " for job " + jobUuid + " in tenant " + tenant + ".";
+        desc += " Files service staging transaction " + transactionId + " in state " +
+                transferStatus.name() + " for job " + job.getUuid() + 
+                " in tenant " + job.getTenant() + ".";
         jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getTransferEventDetail(job, transferStatus,
+                                                           transactionId);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -173,31 +183,34 @@ public final class JobEventManager
      * The connection parameter can be null if the event insertion is not to 
      * be part of an in-progress transaction. 
      * 
-     * @param jobUuid the job that generated the event
-     * @param tenant the job tenant
-     * @param status current job status
+     * @param job the job that generated the event
+     * @param transferStatus status of transfer as reported by Files
      * @param transactionId transaction id from the Files service
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordArchivingEvent(String jobUuid, String tenant,  
-                                         TransferStatusEnum transferStatus, 
+    public JobEvent recordArchivingEvent(Job job, TransferStatusEnum transferStatus, 
                                          String transactionId)
      throws TapisException
     {
         // Create the Job event.
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ARCHIVE_TRANSACTION_ID);
-        jobEvent.setJobUuid(jobUuid);
-        jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(transferStatus.name());
+        jobEvent.setJobUuid(job.getUuid());
+        jobEvent.setTenant(job.getTenant());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
-        desc += " Files service transaction " + transactionId + " in state " +
-                transferStatus.name() + " for job " + jobUuid + " in tenant " + tenant + ".";
+        desc += " Files service archiving transaction " + transactionId + " in state " +
+                transferStatus.name() + " for job " + job.getUuid() + 
+                " in tenant " + job.getTenant() + ".";
         jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getTransferEventDetail(job, transferStatus,
+                                                           transactionId);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -209,7 +222,7 @@ public final class JobEventManager
     /* recordShareEvent:                                                      */
     /* ---------------------------------------------------------------------- */
     public JobEvent recordShareEvent(String jobUuid, String tenant, String resourceType, 
-                                     String event, String grantee, String grantor)	
+                                     String shareType, String grantee, String grantor)	
      throws TapisException
     {
 		// Create the Job event.
@@ -217,12 +230,17 @@ public final class JobEventManager
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(jobUuid);
 		jobEvent.setTenant(tenant);
-		jobEvent.setEventDetail(event); // ex."SHARE_JOB_HISTORY_READ"
 		
 		// Can we augment the standard event description?
 		var desc = jobEvent.getEvent().getDescription();
-		desc += " Grantor " + grantor + " shares the job resource " + resourceType + " with grantee " + grantee + ".";
+		desc += " Grantor " + grantor + " shared job resource " + resourceType + " with grantee " + grantee + ".";
 		jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+		// shareType example: "SHARE_JOB_HISTORY_READ"
+        var detail = JobEventDetail.getShareEventDetail(jobUuid, tenant, resourceType,
+                                                        shareType, grantee, grantor, _jobsDao);
+        jobEvent.setEventDetail(detail);
 		
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
@@ -233,7 +251,7 @@ public final class JobEventManager
    /* ---------------------------------------------------------------------- */
    /* recordUnShareEvent:                                                    */
    /* ---------------------------------------------------------------------- */
-   public JobEvent recordUnShareEvent(JobShared js, String event)
+   public JobEvent recordUnShareEvent(JobShared js, String shareType)
 		   throws TapisException
    {
 		// Create the Job event.
@@ -241,15 +259,19 @@ public final class JobEventManager
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(js.getJobUuid());
 		jobEvent.setTenant(js.getTenant());
-		jobEvent.setEventDetail(event);// ex."UNSHARE_ResourceType_Priviledge"
 		
 		// Can we augment the standard event description?
 		var desc = jobEvent.getEvent().getDescription();
-		desc += " Grantor " + js.getCreatedby() + " unshares the job  " 
-		        + js.getJobUuid() + " resource " + js.getJobResource().name() 
-		        + " with grantee " + js.getGrantee() + " in tenant "+ js.getTenant() + ".";
+		desc += " Grantor " + js.getGrantor() + " unshared job resource " 
+		        + js.getJobResource().name() + " with grantee " + js.getGrantee() + ".";
 		jobEvent.setDescription(desc);
 		
+        // Fill in the event details as a JSON object.
+        // shareType example: "UNSHARE_ResourceType_Priviledge"
+        var detail = JobEventDetail.getShareEventDetail(js.getJobUuid(), js.getTenant(), 
+                js.getJobResource().name(), shareType, js.getGrantee(), js.getGrantor(), _jobsDao);
+        jobEvent.setEventDetail(detail);
+        
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
 		postEventToNotificationService(jobEvent);
@@ -276,11 +298,15 @@ public final class JobEventManager
        jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
        jobEvent.setJobUuid(jobUuid);
        jobEvent.setTenant(tenant);
-       jobEvent.setEventDetail(status.name());
        
        // Truncate messages that are too long.
-       
+       if (message.length() > MAX_EVENT_DESCRIPTION) 
+           message = message.substring(0, MAX_EVENT_DESCRIPTION);
        jobEvent.setDescription(message);
+       
+       // Fill in the event details as a JSON object.
+       var detail = JobEventDetail.getErrorEventDetail(jobUuid, status, _jobsDao);
+       jobEvent.setEventDetail(detail);
        
        // Save in db and send to notifications service asynchronously.
        _jobEventsDao.createEvent(jobEvent, null);
@@ -303,7 +329,7 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordErrorEvent(String jobUuid, String tenant, JobStatusType status, 
+    public JobEvent recordErrorEvent(String jobUuid, String tenant, JobStatusType status,
                                      List<String> messages, Connection conn) 
       throws TapisException
     {
@@ -312,7 +338,6 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(status.name());
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
@@ -329,7 +354,15 @@ public final class JobEventManager
         }
         stackMessages.append("]");
         desc += NEW_ERROR_ADDENDUM + stackMessages.toString();
+        
+        // Truncate messages that are too long.
+        if (desc.length() > MAX_EVENT_DESCRIPTION) 
+            desc = desc.substring(0, MAX_EVENT_DESCRIPTION);
         jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getErrorEventDetail(jobUuid, status, _jobsDao);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
@@ -352,7 +385,8 @@ public final class JobEventManager
      * @throws TapisException on error
      */
     public JobEvent recordSubscriptionEvent(String jobUuid, String tenant, 
-                                            SubscriptionActions action)
+                                            SubscriptionActions action,
+                                            int numSubscriptions)
      throws TapisException
     {
         // Create the Job event.
@@ -369,6 +403,11 @@ public final class JobEventManager
           else desc += SUBSCRIPTION_ADDENDUM_MULTI + action.name() + ".";
         jobEvent.setDescription(desc);
         
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getSubscriptionEventDetail(jobUuid, tenant, 
+                            SubscriptionActions.added, numSubscriptions, _jobsDao);
+        jobEvent.setEventDetail(detail);
+        
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
         postEventToNotificationService(jobEvent);
@@ -383,27 +422,27 @@ public final class JobEventManager
      * The connection parameter can be null if the event insertion is not to 
      * be part of an in-progress transaction. 
      * 
-     * @param jobUuid the job that generated the event
-     * @param tenant the job tenant
-     * @param action added or removed
-     * @param conn existing connection or null
+     * @param job the job that generated the event
      * @throws TapisException on error
      */
-    public JobEvent recordJobSubmitSubscriptionsEvent(String jobUuid, String tenant,
-                                                      int numSubscriptions)
+    public JobEvent recordJobSubmitSubscriptionsEvent(Job job, int numSubscriptions)
      throws TapisException
     {
         // Create the Job event.
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_SUBSCRIPTION);
-        jobEvent.setJobUuid(jobUuid);
-        jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(SubscriptionActions.added.name().toUpperCase());
+        jobEvent.setJobUuid(job.getUuid());
+        jobEvent.setTenant(job.getTenant());
         
         // Can we augment the standard event description?
         var desc = jobEvent.getEvent().getDescription();
         desc += "  " + numSubscriptions + " subscription(s) created with job submission.";
         jobEvent.setDescription(desc);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getSubmitSubscriptionEventDetail(
+                       job, SubscriptionActions.added, numSubscriptions);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -419,28 +458,29 @@ public final class JobEventManager
      * The connection parameter can be null if the event insertion is not to 
      * be part of an in-progress transaction. 
      * 
-     * @param jobUuid the job that generated the event
-     * @param tenant the job tenant
+     * @param job the job that generated the event
      * @param finalMsg the job's final message
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordFinalMessageEvent(String jobUuid, String tenant,
-                                            String finalMsg)
+    public JobEvent recordFinalMessageEvent(Job job, String finalMsg)
      throws TapisException
     {
         // Create the Job event.
         var jobEvent = new JobEvent();
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
-        jobEvent.setJobUuid(jobUuid);
-        jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(FINAL_MSG_DETAIL);
+        jobEvent.setJobUuid(job.getUuid());
+        jobEvent.setTenant(job.getTenant());
         
         // Always assign description.
         if (StringUtils.isBlank(finalMsg)) finalMsg = DEFAULT_FINAL_MSG;
         if (finalMsg.length() > MAX_EVENT_DESCRIPTION)
-            finalMsg = finalMsg.substring(0, MAX_EVENT_DESCRIPTION - 1);
+            finalMsg = finalMsg.substring(0, MAX_EVENT_DESCRIPTION);
         jobEvent.setDescription(finalMsg);
+        
+        // Fill in the event details as a JSON object.
+        var detail = JobEventDetail.getFinalEventDetail(job);
+        jobEvent.setEventDetail(detail);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -473,7 +513,7 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_USER_EVENT);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(eventDetail);
+        jobEvent.setEventDetail(eventDetail);  // length checked by json schema 
         
         // Fill in placeholders in the event description.
         var desc = jobEvent.getEvent().getDescription();

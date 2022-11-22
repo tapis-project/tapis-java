@@ -78,6 +78,9 @@ public class SqlStatements
     public static final String SELECT_JOBS_STATUS_BY_UUID =
             "SELECT status FROM jobs WHERE uuid = ?";
     
+    public static final String SELECT_JOBS_NAME_OWNER_BY_UUID =
+            "SELECT name, owner FROM jobs WHERE uuid = ?";
+    
     // All of the job fields except:
     // 
     //	- id, ended, blocked_count, 12 remote_*, visible
