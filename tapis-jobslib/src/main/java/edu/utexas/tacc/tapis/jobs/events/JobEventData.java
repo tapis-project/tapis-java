@@ -14,62 +14,64 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * 
  * @author rcardone
  */
-public final class JobEventDetail 
+public final class JobEventData 
 {
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* getTransferEventDetail:                                                */
+    /* getTransferEventData:                                                  */
     /* ---------------------------------------------------------------------- */
-    static String getTransferEventDetail(Job job, TransferStatusEnum transferStatus,
-                                          String transactionId)
+    static String getTransferEventData(Job job, String msg, 
+                                       TransferStatusEnum transferStatus,
+                                       String transactionId)
     {
-        var d = new JobTransferDetail();
-        d.setBaseFields(job);
+        var d = new JobTransferData();
+        d.setBaseFields(job, msg);
         if (transferStatus != null) d.transferStatus = transferStatus.name();
         d.transactionId = transactionId;
         return TapisGsonUtils.getGson().toJson(d);
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getErrorEventDetail:                                                   */
+    /* getErrorEventData:                                                     */
     /* ---------------------------------------------------------------------- */
-    static String getErrorEventDetail(String jobUuid, JobStatusType status,
-                                      JobsDao jobsDao)
+    static String getErrorEventData(String jobUuid, String msg,
+                                    JobStatusType status, JobsDao jobsDao)
     {
         // Get the name and owner from the database. The result is
         // never null but the fields contained within can be null.
         var nameOwner = jobsDao.getNameOwnerByUUIDSafe(jobUuid);
         
-        var d = new JobErrorDetail();
+        var d = new JobErrorData();
         d.jobUuid  = jobUuid;
         d.jobName  = nameOwner.name;
         d.jobOwner = nameOwner.owner;
+        d.message  = msg;
         if (status != null) d.jobStatus = status.name();
         return TapisGsonUtils.getGson().toJson(d);
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getNewStatusEventDetail:                                               */
+    /* getNewStatusEventData:                                                 */
     /* ---------------------------------------------------------------------- */
-    static String getNewStatusEventDetail(Job job, JobStatusType newStatus, 
-                                          JobStatusType oldStatus)
+    static String getNewStatusEventData(Job job, String msg, JobStatusType newStatus, 
+                                        JobStatusType oldStatus)
     {
-        var d = new JobNewStatusDetail();
-        d.setBaseFields(job);
+        var d = new JobNewStatusData();
+        d.setBaseFields(job, msg);
         if (newStatus != null) d.newJobStatus = newStatus.name();
         if (oldStatus != null) d.oldJobStatus = oldStatus.name();
         return TapisGsonUtils.getGson().toJson(d);
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getFinalEventDetail:                                                   */
+    /* getFinalEventData:                                                     */
     /* ---------------------------------------------------------------------- */
-    static String getFinalEventDetail(Job job)
+    static String getFinalEventData(Job job, String msg)
     {
-        var d = new JobFinalDetail();
-        d.setBaseFields(job);
+        var d = new JobFinalData();
+        d.setBaseFields(job, msg);
         d.jobStatus    = job.getStatus().name();
         d.blockedCount = job.getBlockedCount();
         d.remoteJobId  = job.getRemoteJobId();
@@ -84,42 +86,44 @@ public final class JobEventDetail
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getSubmitSubscriptionEventDetail:                                      */
+    /* getSubmitSubscriptionEventData:                                        */
     /* ---------------------------------------------------------------------- */
-    static String getSubmitSubscriptionEventDetail(Job job, SubscriptionActions action, 
+    static String getSubmitSubscriptionEventData(Job job, String msg, 
+                                                   SubscriptionActions action, 
                                                    int numSubscriptions)
     {
-        var d = new JobSubscriptionDetail();
-        d.setBaseFields(job);
+        var d = new JobSubscriptionData();
+        d.setBaseFields(job, msg);
         if (action != null) d.action = action.name();
         d.numSubscriptions = numSubscriptions;
         return TapisGsonUtils.getGson().toJson(d);
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getSubscriptionEventDetail:                                            */
+    /* getSubscriptionEventData:                                              */
     /* ---------------------------------------------------------------------- */
-    static String getSubscriptionEventDetail(String jobUuid, String tenant, 
-                                             SubscriptionActions action, 
+    static String getSubscriptionEventData(String jobUuid, String tenant, 
+                                             String msg, SubscriptionActions action, 
                                              int numSubscriptions, JobsDao jobsDao)
     {
         // Get the name and owner from the database. The result is
         // never null but the fields contained within can be null.
         var nameOwner = jobsDao.getNameOwnerByUUIDSafe(jobUuid);
         
-        var d = new JobSubscriptionDetail();
+        var d = new JobSubscriptionData();
         d.jobUuid  = jobUuid;
         d.jobName  = nameOwner.name;
         d.jobOwner = nameOwner.owner;
+        d.message  = msg;
         if (action != null) d.action = action.name();
         d.numSubscriptions = numSubscriptions;
         return TapisGsonUtils.getGson().toJson(d);
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getShareEventDetail:                                                   */
+    /* getShareEventData:                                                     */
     /* ---------------------------------------------------------------------- */
-    static String getShareEventDetail(String jobUuid, String tenant, 
+    static String getShareEventData(String jobUuid, String tenant, String msg,
                                       String resourceType, String shareType, 
                                       String grantee, String grantor, JobsDao jobsDao)
     {
@@ -127,10 +131,11 @@ public final class JobEventDetail
         // never null but the fields contained within can be null.
         var nameOwner = jobsDao.getNameOwnerByUUIDSafe(jobUuid);
         
-        var d = new JobShareDetail();
-        d.jobUuid  = jobUuid;
-        d.jobName  = nameOwner.name;
-        d.jobOwner = nameOwner.owner;
+        var d = new JobShareData();
+        d.jobUuid      = jobUuid;
+        d.jobName      = nameOwner.name;
+        d.jobOwner     = nameOwner.owner;
+        d.message      = msg; 
         d.resourceType = resourceType;
         d.shareType    = shareType;
         d.grantee      = grantee;
@@ -139,46 +144,48 @@ public final class JobEventDetail
     }
     
     /* ********************************************************************** */
-    /*                         JobBaseDetail class                            */
+    /*                          JobBaseData class                             */
     /* ********************************************************************** */
-    public static class JobBaseDetail 
+    public static class JobBaseData 
     {
         public String jobName;
         public String jobUuid;
         public String jobOwner;
+        public String message;
         
-        void setBaseFields(Job job)
+        void setBaseFields(Job job, String msg)
         {
-            jobName     = job.getName();
-            jobUuid     = job.getUuid();
-            jobOwner    = job.getOwner();
+            jobName  = job.getName();
+            jobUuid  = job.getUuid();
+            jobOwner = job.getOwner();
+            message  = msg;
         }
     }
 
     /* ********************************************************************** */
-    /*                        JobTransferDetail class                         */
+    /*                         JobTransferData class                          */
     /* ********************************************************************** */
-    public static class JobTransferDetail 
-     extends JobBaseDetail
+    public static class JobTransferData 
+     extends JobBaseData
     {
         String transferStatus;
         String transactionId;
     }
 
     /* ********************************************************************** */
-    /*                       JobErrorDetail class                             */
+    /*                         JobErrorData class                             */
     /* ********************************************************************** */
-    public static class JobErrorDetail 
-     extends JobBaseDetail
+    public static class JobErrorData 
+     extends JobBaseData
     {
        public String jobStatus;
     }
     
     /* ********************************************************************** */
-    /*                       JobFinalDetail class                             */
+    /*                         JobFinalData class                             */
     /* ********************************************************************** */
-    public static class JobFinalDetail 
-     extends JobBaseDetail
+    public static class JobFinalData 
+     extends JobBaseData
    {
        public String jobStatus;
        public int    blockedCount;
@@ -193,30 +200,30 @@ public final class JobEventDetail
    }
     
     /* ********************************************************************** */
-    /*                       JobSubscriptionDetail class                      */
+    /*                         JobSubscriptionData class                      */
     /* ********************************************************************** */
-    public static class JobSubscriptionDetail 
-     extends JobBaseDetail
+    public static class JobSubscriptionData 
+     extends JobBaseData
     {
        public String action;
        public int    numSubscriptions;
     }
     
     /* ********************************************************************** */
-    /*                       JobNewStatusDetail class                         */
+    /*                        JobNewStatusData class                          */
     /* ********************************************************************** */
-    public static class JobNewStatusDetail 
-     extends JobBaseDetail
+    public static class JobNewStatusData 
+     extends JobBaseData
    {
        public String newJobStatus;
        public String oldJobStatus;
    }
 
     /* ********************************************************************** */
-    /*                          JobShareDetail class                          */
+    /*                           JobShareData class                           */
     /* ********************************************************************** */
-    public static class JobShareDetail 
-     extends JobBaseDetail
+    public static class JobShareData 
+     extends JobBaseData
    {
        public String resourceType;
        public String shareType;

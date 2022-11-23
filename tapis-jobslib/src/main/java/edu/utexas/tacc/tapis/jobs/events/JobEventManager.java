@@ -42,10 +42,12 @@ public final class JobEventManager
     private static final String SUBSCRIPTION_ADDENDUM_MULTI = " One or more subscriptions were ";
     
     // Detail value for job final messages.
+    private static final String FINAL_MSG_DETAIL = "FINAL_MESSAGE";
     private static final String DEFAULT_FINAL_MSG = "Final job message.";
     
-    // DB field limits.
-    private static final int MAX_EVENT_DESCRIPTION = 16384;
+    // DB field limits. Messages end up in the 16k description field,
+    // so we leave room for other event data.
+    private static final int MAX_EVENT_MESSAGE = 16384 - 1024; 
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -116,15 +118,15 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_NEW_STATUS);
         jobEvent.setJobUuid(job.getUuid());
         jobEvent.setTenant(job.getTenant());
+        jobEvent.setEventDetail(newStatus.name());
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription() + newStatus.name() + ".";
-        if (oldStatus != null) desc += OLD_STATUS_ADDENDUM + oldStatus.name() + ".";
-        jobEvent.setDescription(desc);
+        var msg = jobEvent.getEvent().getDescription() + newStatus.name() + ".";
+        if (oldStatus != null) msg += OLD_STATUS_ADDENDUM + oldStatus.name() + ".";
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getNewStatusEventDetail(job, newStatus, oldStatus);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getNewStatusEventData(job, msg, newStatus, oldStatus);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
@@ -155,19 +157,19 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_INPUT_TRANSACTION_ID);
         jobEvent.setJobUuid(job.getUuid());
         jobEvent.setTenant(job.getTenant());
+        jobEvent.setEventDetail(transferStatus.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription();
-        desc += " Files service staging transaction " + transactionId + " in state " +
+        var msg = jobEvent.getEvent().getDescription();
+        msg += " Files service staging transaction " + transactionId + " in state " +
                 transferStatus.name() + " for job " + job.getUuid() + 
                 " in tenant " + job.getTenant() + ".";
-        jobEvent.setDescription(desc);
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getTransferEventDetail(job, transferStatus,
-                                                           transactionId);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getTransferEventData(job, msg, transferStatus,
+                                                     transactionId);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -198,19 +200,19 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_ARCHIVE_TRANSACTION_ID);
         jobEvent.setJobUuid(job.getUuid());
         jobEvent.setTenant(job.getTenant());
+        jobEvent.setEventDetail(transferStatus.name());
         jobEvent.setOthUuid(transactionId);
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription();
-        desc += " Files service archiving transaction " + transactionId + " in state " +
+        var msg = jobEvent.getEvent().getDescription();
+        msg += " Files service archiving transaction " + transactionId + " in state " +
                 transferStatus.name() + " for job " + job.getUuid() + 
                 " in tenant " + job.getTenant() + ".";
-        jobEvent.setDescription(desc);
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getTransferEventDetail(job, transferStatus,
-                                                           transactionId);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getTransferEventData(job, msg, transferStatus,
+                                                     transactionId);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -230,17 +232,17 @@ public final class JobEventManager
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(jobUuid);
 		jobEvent.setTenant(tenant);
+		jobEvent.setEventDetail(shareType); // ex."SHARE_JOB_HISTORY_READ"
 		
 		// Can we augment the standard event description?
-		var desc = jobEvent.getEvent().getDescription();
-		desc += " Grantor " + grantor + " shared job resource " + resourceType + " with grantee " + grantee + ".";
-		jobEvent.setDescription(desc);
+		var msg = jobEvent.getEvent().getDescription();
+		msg += " Grantor " + grantor + " shared job resource " + resourceType + " with grantee " + grantee + ".";
         
         // Fill in the event details as a JSON object.
 		// shareType example: "SHARE_JOB_HISTORY_READ"
-        var detail = JobEventDetail.getShareEventDetail(jobUuid, tenant, resourceType,
-                                                        shareType, grantee, grantor, _jobsDao);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getShareEventData(jobUuid, tenant, msg, resourceType,
+                                                  shareType, grantee, grantor, _jobsDao);
+        jobEvent.setDescription(data);
 		
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
@@ -259,18 +261,18 @@ public final class JobEventManager
 		jobEvent.setEvent(JobEventType.JOB_SHARE_EVENT);
 		jobEvent.setJobUuid(js.getJobUuid());
 		jobEvent.setTenant(js.getTenant());
+		jobEvent.setEventDetail(shareType);// ex."UNSHARE_ResourceType_Priviledge"
 		
 		// Can we augment the standard event description?
-		var desc = jobEvent.getEvent().getDescription();
-		desc += " Grantor " + js.getGrantor() + " unshared job resource " 
+		var msg = jobEvent.getEvent().getDescription();
+		msg += " Grantor " + js.getGrantor() + " unshared job resource " 
 		        + js.getJobResource().name() + " with grantee " + js.getGrantee() + ".";
-		jobEvent.setDescription(desc);
 		
         // Fill in the event details as a JSON object.
         // shareType example: "UNSHARE_ResourceType_Priviledge"
-        var detail = JobEventDetail.getShareEventDetail(js.getJobUuid(), js.getTenant(), 
-                js.getJobResource().name(), shareType, js.getGrantee(), js.getGrantor(), _jobsDao);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getShareEventData(js.getJobUuid(), js.getTenant(), msg,
+                    js.getJobResource().name(), shareType, js.getGrantee(), js.getGrantor(), _jobsDao);
+        jobEvent.setDescription(data);
         
 		// Save in db.
 		_jobEventsDao.createEvent(jobEvent, null);
@@ -298,15 +300,15 @@ public final class JobEventManager
        jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
        jobEvent.setJobUuid(jobUuid);
        jobEvent.setTenant(tenant);
+       jobEvent.setEventDetail(status.name());
        
        // Truncate messages that are too long.
-       if (message.length() > MAX_EVENT_DESCRIPTION) 
-           message = message.substring(0, MAX_EVENT_DESCRIPTION);
-       jobEvent.setDescription(message);
+       if (message.length() > MAX_EVENT_MESSAGE) 
+           message = message.substring(0, MAX_EVENT_MESSAGE);
        
        // Fill in the event details as a JSON object.
-       var detail = JobEventDetail.getErrorEventDetail(jobUuid, status, _jobsDao);
-       jobEvent.setEventDetail(detail);
+       var data = JobEventData.getErrorEventData(jobUuid, message, status, _jobsDao);
+       jobEvent.setDescription(data);
        
        // Save in db and send to notifications service asynchronously.
        _jobEventsDao.createEvent(jobEvent, null);
@@ -338,31 +340,31 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
+        jobEvent.setEventDetail(status.name());
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription();
+        var msg = jobEvent.getEvent().getDescription();
         StringBuilder stackMessages = new StringBuilder();
         stackMessages.append("[");
         if (!messages.isEmpty()) {
             int i = 1;
-            for (var msg : messages) {
+            for (var curmsg : messages) {
                 if (i != 1) stackMessages.append(" ");
                 stackMessages.append(i++);
                 stackMessages.append(". ");
-                stackMessages.append(msg);
+                stackMessages.append(curmsg);
             }
         }
         stackMessages.append("]");
-        desc += NEW_ERROR_ADDENDUM + stackMessages.toString();
+        msg += NEW_ERROR_ADDENDUM + stackMessages.toString();
         
         // Truncate messages that are too long.
-        if (desc.length() > MAX_EVENT_DESCRIPTION) 
-            desc = desc.substring(0, MAX_EVENT_DESCRIPTION);
-        jobEvent.setDescription(desc);
+        if (msg.length() > MAX_EVENT_MESSAGE) 
+            msg = msg.substring(0, MAX_EVENT_MESSAGE);
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getErrorEventDetail(jobUuid, status, _jobsDao);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getErrorEventData(jobUuid, msg, status, _jobsDao);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);
@@ -397,16 +399,15 @@ public final class JobEventManager
         jobEvent.setEventDetail(action.name());
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription();
+        var msg = jobEvent.getEvent().getDescription();
         if (action == SubscriptionActions.added)  
-            desc += SUBSCRIPTION_ADDENDUM + action.name() + ".";
-          else desc += SUBSCRIPTION_ADDENDUM_MULTI + action.name() + ".";
-        jobEvent.setDescription(desc);
+            msg += SUBSCRIPTION_ADDENDUM + action.name() + ".";
+          else msg += SUBSCRIPTION_ADDENDUM_MULTI + action.name() + ".";
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getSubscriptionEventDetail(jobUuid, tenant, 
+        var data = JobEventData.getSubscriptionEventData(jobUuid, tenant, msg,
                             SubscriptionActions.added, numSubscriptions, _jobsDao);
-        jobEvent.setEventDetail(detail);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -433,16 +434,16 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_SUBSCRIPTION);
         jobEvent.setJobUuid(job.getUuid());
         jobEvent.setTenant(job.getTenant());
+        jobEvent.setEventDetail(SubscriptionActions.added.name().toUpperCase());
         
         // Can we augment the standard event description?
-        var desc = jobEvent.getEvent().getDescription();
-        desc += "  " + numSubscriptions + " subscription(s) created with job submission.";
-        jobEvent.setDescription(desc);
+        var msg = jobEvent.getEvent().getDescription();
+        msg += "  " + numSubscriptions + " subscription(s) created with job submission.";
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getSubmitSubscriptionEventDetail(
-                       job, SubscriptionActions.added, numSubscriptions);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getSubmitSubscriptionEventData(
+                       job, msg, SubscriptionActions.added, numSubscriptions);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -471,16 +472,16 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_ERROR_MESSAGE);
         jobEvent.setJobUuid(job.getUuid());
         jobEvent.setTenant(job.getTenant());
+        jobEvent.setEventDetail(FINAL_MSG_DETAIL);
         
         // Always assign description.
         if (StringUtils.isBlank(finalMsg)) finalMsg = DEFAULT_FINAL_MSG;
-        if (finalMsg.length() > MAX_EVENT_DESCRIPTION)
-            finalMsg = finalMsg.substring(0, MAX_EVENT_DESCRIPTION);
-        jobEvent.setDescription(finalMsg);
+        if (finalMsg.length() > MAX_EVENT_MESSAGE)
+            finalMsg = finalMsg.substring(0, MAX_EVENT_MESSAGE);
         
         // Fill in the event details as a JSON object.
-        var detail = JobEventDetail.getFinalEventDetail(job);
-        jobEvent.setEventDetail(detail);
+        var data = JobEventData.getFinalEventData(job, finalMsg);
+        jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, null);
@@ -491,21 +492,22 @@ public final class JobEventManager
     /* ---------------------------------------------------------------------- */
     /* recordUserEvent:                                                       */
     /* ---------------------------------------------------------------------- */
-    /** Write a User event to database.  
+    /** Write a User event to database and notification service.  
      * 
      * The connection parameter can be null if the event insertion is not to 
-     * be part of an in-progress transaction.  The eventDetail length must
-     * have been verified by the caller to be between 1 and MAX_EVENT_DETAIL. 
+     * be part of an in-progress transaction.  The eventData and eventDetail 
+     * lengths are checked during json deserialization.
      * 
      * @param jobUuid the job targeted by the event
      * @param tenant the job tenant
      * @param sender the tapis user that sent the event
-     * @param eventDetail the user provided body of the event
+     * @param eventData the user provided body of the event
+     * @param eventDetail the event subtype or key
      * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordUserEvent(String jobUuid, String tenant, String sender,
-                                    String eventDetail, Connection conn)
+                                    String eventData, String eventDetail, Connection conn)
      throws TapisException
     {
         // Create the Job event.
@@ -513,13 +515,8 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_USER_EVENT);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setEventDetail(eventDetail);  // length checked by json schema 
-        
-        // Fill in placeholders in the event description.
-        var desc = jobEvent.getEvent().getDescription();
-        desc = desc.replace("<user>", sender);
-        desc = desc.replace("<uuid>", jobUuid);
-        jobEvent.setDescription(desc);
+        jobEvent.setDescription(eventData);
+        jobEvent.setEventDetail(eventDetail); 
         
         // Save in db and send to notifications service asynchronously.
         _jobEventsDao.createEvent(jobEvent, conn);

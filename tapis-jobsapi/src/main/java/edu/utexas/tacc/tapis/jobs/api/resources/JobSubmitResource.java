@@ -387,9 +387,13 @@ public class JobSubmitResource
              description = "Send a user event to an active job. The job must be in"
                            + " the same tenant as the caller, but no other authorization is needed."
                            + " If the job has terminated the request will be rejected. The caller"
-                           + " must specify a payload of non-empty string data. Subscribers that"
-                           + " register interest in events of type JOB_USER_EVENT will receive"
-                           + " a notification as a result of this call."
+                           + " must specify a payload of non-empty string data in the *eventData*"
+                           + " field. The *eventDetail* field can be set to further qualify the type"
+                           + " of user event, which is useful when filtering events. If not provided"
+                           + " the *eventDetail* defaults to \"DEFAULT\".\n\n"
+                           + ""
+                           + "Subscribers that register interest in events of type JOB_USER_EVENT"
+                           + " will receive a notification as a result of this call."
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},
@@ -504,7 +508,7 @@ public class JobSubmitResource
        try {
            // Create and send a user event to the job.
            event = JobEventManager.getInstance().recordUserEvent(jobUuid, threadContext.getJwtTenantId(), 
-                                         threadContext.getJwtUser(), payload.getEventDetail(), null);
+                         threadContext.getJwtUser(), payload.getEventData(), payload.getEventDetail(), null);
        }
        catch (Exception e) {
            String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
