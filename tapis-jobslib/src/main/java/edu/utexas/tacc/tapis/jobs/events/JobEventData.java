@@ -58,11 +58,20 @@ public final class JobEventData
     static String getNewStatusEventData(Job job, String msg, JobStatusType newStatus, 
                                         JobStatusType oldStatus)
     {
-        var d = new JobNewStatusData();
-        d.setBaseFields(job, msg);
-        if (newStatus != null) d.newJobStatus = newStatus.name();
-        if (oldStatus != null) d.oldJobStatus = oldStatus.name();
-        return TapisGsonUtils.getGson().toJson(d);
+        if (newStatus != null && newStatus.isTerminal()) {
+            var d = new JobTerminalStatusData();
+            d.setExtendedFields(job, msg);
+            d.newJobStatus = newStatus.name();
+            if (oldStatus != null) d.oldJobStatus = oldStatus.name();
+            return TapisGsonUtils.getGson().toJson(d);
+        }
+        else {
+            var d = new JobNewStatusData();
+            d.setBaseFields(job, msg);
+            if (newStatus != null) d.newJobStatus = newStatus.name();
+            if (oldStatus != null) d.oldJobStatus = oldStatus.name();
+            return TapisGsonUtils.getGson().toJson(d);
+        }
     }
 
     /* ---------------------------------------------------------------------- */
@@ -71,17 +80,8 @@ public final class JobEventData
     static String getFinalEventData(Job job, String msg)
     {
         var d = new JobFinalData();
-        d.setBaseFields(job, msg);
+        d.setExtendedFields(job, msg);
         d.jobStatus    = job.getStatus().name();
-        d.blockedCount = job.getBlockedCount();
-        d.remoteJobId  = job.getRemoteJobId();
-        d.remoteJobId2 = job.getRemoteJobId2();
-        if (job.getRemoteOutcome() != null) d.remoteOutcome = job.getRemoteOutcome().name();
-        d.remoteResultInfo = job.getRemoteResultInfo();
-        d.remoteQueue      = job.getRemoteQueue();
-        if (job.getRemoteSubmitted() != null) d.remoteSubmitted = job.getRemoteSubmitted().toString();
-        if (job.getRemoteStarted() != null)   d.remoteSubmitted = job.getRemoteStarted().toString(); 
-        if (job.getRemoteEnded() != null)     d.remoteSubmitted = job.getRemoteEnded().toString(); 
         return TapisGsonUtils.getGson().toJson(d);
     }
 
@@ -163,6 +163,37 @@ public final class JobEventData
     }
 
     /* ********************************************************************** */
+    /*                      JobExtendedData class                             */
+    /* ********************************************************************** */
+    public static class JobExtendedData
+     extends JobBaseData
+    {
+        public int    blockedCount;
+        public String remoteJobId;
+        public String remoteJobId2;
+        public String remoteOutcome;
+        public String remoteResultInfo;
+        public String remoteQueue;
+        public String remoteSubmitted;
+        public String remoteStarted;
+        public String remoteEnded;
+        
+        void setExtendedFields(Job job, String msg)
+        {
+            setBaseFields(job, msg);
+            blockedCount = job.getBlockedCount();
+            remoteJobId  = job.getRemoteJobId();
+            remoteJobId2 = job.getRemoteJobId2();
+            if (job.getRemoteOutcome() != null) remoteOutcome = job.getRemoteOutcome().name();
+            remoteResultInfo = job.getRemoteResultInfo();
+            remoteQueue      = job.getRemoteQueue();
+            if (job.getRemoteSubmitted() != null) remoteSubmitted = job.getRemoteSubmitted().toString();
+            if (job.getRemoteStarted() != null)   remoteSubmitted = job.getRemoteStarted().toString(); 
+            if (job.getRemoteEnded() != null)     remoteSubmitted = job.getRemoteEnded().toString(); 
+        }
+    }
+    
+    /* ********************************************************************** */
     /*                         JobTransferData class                          */
     /* ********************************************************************** */
     public static class JobTransferData 
@@ -185,18 +216,9 @@ public final class JobEventData
     /*                         JobFinalData class                             */
     /* ********************************************************************** */
     public static class JobFinalData 
-     extends JobBaseData
+     extends JobExtendedData
    {
        public String jobStatus;
-       public int    blockedCount;
-       public String remoteJobId;
-       public String remoteJobId2;
-       public String remoteOutcome;
-       public String remoteResultInfo;
-       public String remoteQueue;
-       public String remoteSubmitted;
-       public String remoteStarted;
-       public String remoteEnded;
    }
     
     /* ********************************************************************** */
@@ -214,20 +236,32 @@ public final class JobEventData
     /* ********************************************************************** */
     public static class JobNewStatusData 
      extends JobBaseData
-   {
+    {
        public String newJobStatus;
        public String oldJobStatus;
-   }
+    }
+
+    /* ********************************************************************** */
+    /*                      JobTerminalStatusData class                       */
+    /* ********************************************************************** */
+    public static class JobTerminalStatusData 
+     extends JobExtendedData
+    {
+       public String newJobStatus;
+       public String oldJobStatus;
+    }
 
     /* ********************************************************************** */
     /*                           JobShareData class                           */
     /* ********************************************************************** */
     public static class JobShareData 
      extends JobBaseData
-   {
+    {
        public String resourceType;
        public String shareType;
        public String grantor;
        public String grantee;
-   }
+    }
+    
+    
 }
