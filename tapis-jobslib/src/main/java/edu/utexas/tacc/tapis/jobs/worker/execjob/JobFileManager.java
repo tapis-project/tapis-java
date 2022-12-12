@@ -985,7 +985,11 @@ public final class JobFileManager
             buf.append(", dst: ");
             buf.append(element.getDestinationURI());
             buf.append(", optional=");
-            buf.append(element.getOptional());        
+            buf.append(element.getOptional());
+            buf.append(", srcSharedCtx=");
+            buf.append(element.getSrcSharedAppCtx());
+            buf.append(", dstSharedCtx=");
+            buf.append(element.getDestSharedAppCtx());
         }
         return buf.toString();
     }
