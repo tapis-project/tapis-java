@@ -232,6 +232,8 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
         
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
@@ -272,7 +274,9 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
-        
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
+
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
