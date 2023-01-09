@@ -14,8 +14,9 @@ import edu.utexas.tacc.tapis.shared.model.NotifDeliveryTarget.DeliveryMethod;
 public class ReqSubscribe 
  implements IReqBody
 {
-    // Default ttl is 1 week.
+    // Default ttl is 1 week and the maximum is 4 weeks.
     public static final Integer DEFAULT_TTL_MINUTES = 10080; // 60*24*7
+    public static final Integer MAX_TTL_MINUTES = DEFAULT_TTL_MINUTES * 4;
     
     // Informational values.
     private String  description;
