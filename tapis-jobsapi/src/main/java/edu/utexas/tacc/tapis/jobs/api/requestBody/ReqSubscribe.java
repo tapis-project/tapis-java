@@ -76,7 +76,8 @@ public class ReqSubscribe
         }
         
         // Assign ttl if necessary.
-        if (ttlMinutes == null || ttlMinutes < 1) ttlMinutes = DEFAULT_TTL_MINUTES; 
+        if (ttlMinutes == null || ttlMinutes < 1) ttlMinutes = DEFAULT_TTL_MINUTES;
+        if (ttlMinutes > MAX_TTL_MINUTES) ttlMinutes = MAX_TTL_MINUTES;
         
         // Success.
         return null; 
