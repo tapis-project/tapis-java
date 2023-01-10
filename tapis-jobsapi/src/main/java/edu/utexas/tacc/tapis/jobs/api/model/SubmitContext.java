@@ -1091,14 +1091,21 @@ public final class SubmitContext
         }
         
         // By this point, all inputs specified in the request are accounted for and complete.
-        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
-        // any REQUIRED and FIXED app inputs that were not referenced by the request input and
-        // add them to the request.  This will guarantee that all non-optional app inputs
-        // are included.
+        // Incomplete OPTIONAL inputs that had a reqInput match have been removed, but those
+        // not referenced in reqInput are still here and need to be skipped.
+        // 
+        // In general, we have to collect any complete REQUIRED and FIXED app inputs that were 
+        // not referenced by the request input and add them to the request.  This will guarantee 
+        // that all non-optional app inputs are included.
         for (var appInput : appInputs) {
             // Skip already merged inputs or, in the case of incomplete optional inputs,
             // already removed inputs.
             if (processedAppInputNames.contains(appInput.getName())) continue;
+            
+            // Skip incomplete optional inputs.
+            if ((appInput.getInputMode() == null || appInput.getInputMode() == FileInputModeEnum.OPTIONAL) && 
+                skipIncompleteFileInputs(appInput)) 
+               continue;
             
             // Create a new request input from the REQUIRED or FIXED app input.
             var reqInput = JobFileInput.importAppInput(appInput);
@@ -1322,6 +1329,26 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* skipIncompleteFileInputs:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine whether an app's fileInput definition is complete, used for
+     * OPTIONAL input processing.
+     * 
+     * @param appInput file input from an app definition
+     * @return true when input is incomplete and should be skipped, false otherwise.
+     */
+    private boolean skipIncompleteFileInputs(AppFileInput appInput)
+    {
+        // Skip incomplete inputs.
+        if (StringUtils.isBlank(appInput.getSourceUrl()) ||
+            StringUtils.isBlank(appInput.getTargetPath()))
+            return true;
+        
+        // Continue processing the input.
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* resolveFileInputArrays:                                                      */
     /* ---------------------------------------------------------------------------- */
     private void resolveFileInputArrays() throws TapisImplException
@@ -1400,14 +1427,21 @@ public final class SubmitContext
         }
         
         // By this point, all inputs specified in the request are accounted for and complete.
-        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
-        // any REQUIRED and FIXED app inputs that were not referenced by a request input and
-        // add them to the request.  This will guarantee that all non-optional app inputs
-        // are included.
+        // Incomplete OPTIONAL inputs that had a reqArray match have been removed, but those
+        // not referenced in reqArray are still here and need to be skipped.
+        // 
+        // In general, we have to collect any complete REQUIRED and FIXED app inputs that were 
+        // not referenced by the request input and add them to the request.  This will guarantee 
+        // that all non-optional app inputs are included.
         for (var appArray : appArrays) {
             // Skip already merged inputs or, in the case of incomplete optional inputs,
             // already removed inputs.
             if (processedAppInputNames.contains(appArray.getName())) continue;
+            
+            // Skip incomplete optional input arrays.
+            if ((appArray.getInputMode() == null || appArray.getInputMode() == FileInputModeEnum.OPTIONAL) && 
+                skipIncompleteFileInputArrays(appArray)) 
+               continue;
             
             // Create a new request input from the REQUIRED or FIXED app input.
             var reqArray = JobFileInputArray.importAppInputArray(appArray);
@@ -1602,6 +1636,26 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         sanitizePath(reqInput.getTargetDir(), "fileInputArrays.targetDir");
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* skipIncompleteFileInputArrays:                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine whether an app's fileInputArray definition is complete, used for
+     * OPTIONAL input processing.
+     * 
+     * @param appArray file input from an app definition
+     * @return true when input is incomplete and should be skipped, false otherwise.
+     */
+    private boolean skipIncompleteFileInputArrays(AppFileInputArray appArray)
+    {
+        // Skip incomplete inputs.
+        if (appArray.getSourceUrls() == null || appArray.getSourceUrls().isEmpty() ||
+            StringUtils.isBlank(appArray.getTargetDir()))
+            return true;
+        
+        // Continue processing the input.
+        return false;
     }
     
     /* ---------------------------------------------------------------------------- */
