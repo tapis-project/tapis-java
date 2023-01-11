@@ -46,7 +46,7 @@ public final class MacroResolver
     /*                                    Fields                                    */
     /* **************************************************************************** */
     // Used to access host environment variables.
-    private final TapisSystem _execSystem;
+    private final TapisSystem        _targetSystem;
     private final Map<String,String> _macros;
     
     // Cache of environment variable values retrieved from the execution system.
@@ -60,17 +60,17 @@ public final class MacroResolver
     /* ---------------------------------------------------------------------------- */
     /* constructor:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    /** The execSystem will be used to retrieve environment variable values from the
-     * execution system as the job's authenticated user.  If execSystem is null, then
-     * retrieval is skipped and HOST_EVAL function won't be replaced.  execSystem is
-     * not null during normal job processing.
+    /** The target system will be used to retrieve environment variable values from the
+     * actual system as the job's authenticated user.  If target system is null, then
+     * retrieval is skipped and HOST_EVAL function won't be replaced.  The execSystem 
+     * and archiveSystem is not null during normal job processing.
      * 
-     * @param execSystem the execution system or null for testing
+     * @param targetSystem the execution system or null for testing
      * @param macros non-null mapping of resolved macro names to their values
      */
-    public MacroResolver(TapisSystem execSystem, Map<String,String> macros)
+    public MacroResolver(TapisSystem targetSystem, Map<String,String> macros)
     {
-        _execSystem = execSystem;
+        _targetSystem = targetSystem;
         _macros = macros;
     }
     
@@ -91,7 +91,7 @@ public final class MacroResolver
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
-            var id = _execSystem == null ? "null" : _execSystem.getId();
+            var id = _targetSystem == null ? "null" : _targetSystem.getId();
             _log.debug(MsgUtils.getMsg("TAPIS_JOBS_RESOLVING_MACRO_EXPR", text, id));
         }
         
@@ -180,7 +180,7 @@ public final class MacroResolver
     private String replaceHostEval(String text) throws TapisException
     {
         // Do we need to evaluate a host environment variable?
-        if (_execSystem == null || !text.startsWith(HOST_EVAL_PREFIX)) return text;
+        if (_targetSystem == null || !text.startsWith(HOST_EVAL_PREFIX)) return text;
         
         // Parse the text.
         var m = _hostEvalPattern.matcher(text);
@@ -221,7 +221,7 @@ public final class MacroResolver
         
         // Run the command on the host system and cache results.
         String cmd = "echo " + varName;
-        var runCmd = new TapisRunCommand(_execSystem);
+        var runCmd = new TapisRunCommand(_targetSystem);
         int rc = runCmd.execute(cmd, true); // connection automatically closed
         runCmd.logNonZeroExitCode();
         result = runCmd.getOutAsString();

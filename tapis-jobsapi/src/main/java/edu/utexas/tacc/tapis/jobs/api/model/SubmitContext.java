@@ -128,7 +128,8 @@ public final class SubmitContext
     // Shared application context is initialized after the application is loaded.
     private JobSharedAppCtx _sharedAppCtx;
     
-    // Macro values.
+    // Macro values.  The resolver is configured ONLY for the execution system.
+    // If you need to access the archive system, use a different resolver.
     private final TreeMap<String,String> _macros = new TreeMap<String,String>();
     private MacroResolver _macroResolver;
     
@@ -1889,7 +1890,10 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
                 }
             if (!_macros.containsKey(JobTemplateVariables.ArchiveSystemDir.name())) {
-                _submitReq.setArchiveSystemDir(resolveMacros(_submitReq.getArchiveSystemDir()));
+                // Use a resolver that targets the archive system, not the usually one that
+                // that target's the exec system.
+                var archiveMacroResolver = new MacroResolver(_archiveSystem, _macros);
+                _submitReq.setArchiveSystemDir(archiveMacroResolver.resolve(_submitReq.getArchiveSystemDir()));
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             }
         } 
