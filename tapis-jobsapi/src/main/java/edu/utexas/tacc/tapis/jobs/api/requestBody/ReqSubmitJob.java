@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
@@ -59,7 +60,10 @@ public class ReqSubmitJob
 	{
 	    // Validate all subscription requests.
 	    if (subscriptions != null) 
-	        for (var req : subscriptions) req.validate();
+	        for (var req : subscriptions) {
+	            var msg = req.validate();
+	            if (msg != null) return msg;
+	        }
 	    
 		// Success.
 		return null; 
