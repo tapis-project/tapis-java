@@ -19,7 +19,7 @@
           "ttlMinutes": {
             "$comment": "Time-to-live in minutes for this subscription",
             "type": "integer",
-            "minimum": 1
+            "minimum": 0
           },
           "eventCategoryFilter": {
             "$comment": "The category of job events to which this subscription applies",
