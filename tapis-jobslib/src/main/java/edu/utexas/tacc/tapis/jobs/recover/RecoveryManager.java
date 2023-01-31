@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.JobRecoveryDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobRecoveryExpiredException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -769,7 +770,20 @@ public final class RecoveryManager
                 String msg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", 
                                              jobUuid, JobStatusType.FAILED.name());
                 _log.error(msg, e);
+                
+                // Skip notification attempt if we run into trouble here.
+                return;
             }
+        
+        // Best effort event recording and notification.
+        try {
+            JobEventManager.getInstance().recordErrorEvent(
+                                          jobUuid, tenantId, JobStatusType.FAILED, message);
+        } catch (Exception e) {
+            // Log error and move on.
+            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+            _log.error(msg, e);
+        }
     }
 
     /* ---------------------------------------------------------------------- */

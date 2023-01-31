@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.model.submit;
 
+import java.util.HashSet;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
@@ -15,6 +16,10 @@ public class JobFileInputArray
     
     @Schema(hidden = true)
     private boolean      optional = false;
+    @Schema(hidden = true)
+    private boolean      srcSharedAppCtx = false;
+    @Schema(hidden = true)
+    private boolean      destSharedAppCtx = false;
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
@@ -34,11 +39,14 @@ public class JobFileInputArray
         // leaving only FF (i.e., neither list is null (or 
         // empty).  So they both have non-zero sizes.
         if (sourceUrls.size() != urls.size()) return false;
-        for (int i = 0; i < sourceUrls.size(); i++)
-            if (!sourceUrls.get(i).equals(urls.get(i))) return false;
+        
+        // Let's disregard order when matching.
+        var urlSet = new HashSet<String>(urls);
+        for (var srcUrl : sourceUrls)
+            if (!urlSet.contains(srcUrl)) return false;
             
         // The two non-empty lists are the same size and
-        // they contain the same strings in the same order.
+        // they contain the same strings, order independent.
         return true;
     }
     
@@ -87,5 +95,21 @@ public class JobFileInputArray
     @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
+    }
+    @Schema(hidden = true)
+    public boolean isSrcSharedAppCtx() {
+        return srcSharedAppCtx;
+    }
+    @Schema(hidden = true)
+    public void setSrcSharedAppCtx(boolean srcSharedAppCtx) {
+        this.srcSharedAppCtx = srcSharedAppCtx;
+    }
+    @Schema(hidden = true)
+    public boolean isDestSharedAppCtx() {
+        return destSharedAppCtx;
+    }
+    @Schema(hidden = true)
+    public void setDestSharedAppCtx(boolean destSharedAppCtx) {
+        this.destSharedAppCtx = destSharedAppCtx;
     }
 }

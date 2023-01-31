@@ -130,7 +130,7 @@
           "subscriptions": {
             "$comment": "Subscribe to the job's events",
             "type": "array",
-            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/shared/jsonschema/defs/TapisDefinitions.json#/$defs/NotificationSubscription"},
+            "items": {"$ref": "resource:///edu/utexas/tacc/tapis/jobs/api/jsonschema/JobSubscribeRequest.json"},
             "uniqueItems": true
           },
           "tags": {
@@ -155,6 +155,10 @@
             "type": ["string", "null"],
             "minLength": 1,
             "maxLength": 126
+          },
+          "notes": {
+            "$comment": "User notes in JSON format",
+            "type": "object"
           }
         },
     "required": [
@@ -232,7 +236,8 @@
                 "name": { "type": "string", "minLength": 1, "maxLength": 80 },
                 "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
                 "include": { "type": "boolean" },
-                "arg": { "type": "string", "minLength": 1 }
+                "arg": { "type": "string", "minLength": 1 },
+                "notes": { "type": "object" }
             }
         }
     }

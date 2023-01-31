@@ -351,9 +351,9 @@ public abstract class AbstractQueueReader
           String exchangeName = getExchangeName();
           
           // Create the exchange.
-          boolean durable = true;
-          boolean autodelete = false;
-          try {channel.exchangeDeclare(exchangeName, getExchangeType().getType(), durable, autodelete,
+          final boolean durable = true;
+          final boolean autoDelete = false;
+          try {channel.exchangeDeclare(exchangeName, getExchangeType().getType(), durable, autoDelete,
                                        qm.getExchangeArgs(getExchangeUse()));}
             catch (IOException e) {
                 String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR",
@@ -364,9 +364,7 @@ public abstract class AbstractQueueReader
             }
           
           // Create the queue with the configured name.
-          durable = true;
-          boolean exclusive = false;
-          boolean autoDelete = false;
+          final boolean exclusive = false;
           String queueName = getQueueName();
           try {channel.queueDeclare(queueName, durable, exclusive, autoDelete, null);}
               catch (IOException e) {

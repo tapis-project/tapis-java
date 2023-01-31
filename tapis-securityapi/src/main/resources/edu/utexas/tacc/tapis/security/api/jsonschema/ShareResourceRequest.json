@@ -5,7 +5,13 @@
     "additionalProperties": false,
     "type": "object",
         "properties": {
+          "grantor": {
+            "type": "string"
+          },
           "grantee": {
+            "type": "string"
+          },
+          "tenant": {
             "type": "string"
           },
           "resourceType": {
@@ -22,11 +28,11 @@
           }
         },
     "required": [
+        "grantor",
         "grantee",
+        "tenant",
         "resourceType",
         "resourceId1",
         "privilege"
     ]
 }
-
-

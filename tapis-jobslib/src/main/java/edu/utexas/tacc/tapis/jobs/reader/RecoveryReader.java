@@ -14,6 +14,7 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobRecoveryDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -370,7 +371,7 @@ public final class RecoveryReader
     private void initReaderEnv()
      throws JobException
     {
-        // Already initiailized, but assigned for convenience.
+        // Already initialized, but assigned for convenience.
         var parms = RuntimeParameters.getInstance();
         
         // Enable more detailed SSH logging if the node name is not null.
@@ -546,7 +547,20 @@ public final class RecoveryReader
                     // log msg that we tried to send email notice to CICSupport
                     _log.error(msg+" Failed to send support Email alert. Email client failed with exception. ", ae);
                 }
+                
+                // Don't bother with notification.
+                return;
             }
+
+        // Best effort event recording and notification.
+        try {
+            JobEventManager.getInstance().recordErrorEvent(
+                                          jobUuid, tenantId, JobStatusType.FAILED, failMsg);
+        } catch (Exception e) {
+            // Log error and move on.
+            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+            _log.error(msg, e);
+        }
     }
     
     /* ---------------------------------------------------------------------- */

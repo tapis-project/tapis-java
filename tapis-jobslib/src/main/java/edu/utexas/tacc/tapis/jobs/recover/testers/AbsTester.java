@@ -64,10 +64,22 @@ public abstract class AbsTester
         SystemsClient client = 
             ServiceClients.getInstance().getClient(username, tenant, SystemsClient.class);
             
-        // Lookup the system.
-        Boolean returnCreds = Boolean.TRUE;
-        Boolean requireExecPerm = Boolean.FALSE;
-        return client.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);
+        // Lookup the system.  By assuming a shared application context we maximize our 
+        // chances for success.  This assumption is safe for the following reasons:
+        //
+        //   If the user was unable to connect or authenticate to the actual host,
+        //   they must have already been able to retrieve the system definition.  If
+        //   they were able to retrieve the definition without being in a shared
+        //   application context, then they should still be able to do so when 
+        //   sharing is specified.  If sharing was required, we're covered.
+        //
+        final boolean returnCreds = true;
+        final boolean requireExecPerm = false;
+        final String  selectAll = "allAttributes";
+        final String  impersonationId = null;
+        final boolean sharedAppCtx = true;
+        return client.getSystem(systemId, authnMethod, requireExecPerm, selectAll,
+                                returnCreds, impersonationId, sharedAppCtx);
     }
 
     /* ---------------------------------------------------------------------- */

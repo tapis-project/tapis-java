@@ -62,7 +62,7 @@ public class UpdateSystemCreds
         
         // Update the credentials.
         var sysClient = new SystemsClient(props.getProperty("BASE_URL"), props.getProperty("USER_JWT"));
-        sysClient.updateUserCredential(args[1], args[2], SystemsClient.buildReqPostCredential(creds));
+        sysClient.updateUserCredential(args[1], args[2], creds);
         sysClient.close();
     }
 }

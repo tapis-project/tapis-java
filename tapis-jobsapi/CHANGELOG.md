@@ -9,6 +9,72 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.2.2 - 2022-09-22
+
+Fixes and preview feature release
+### New features:
+
+### Bug fixes:
+1. Allow JobOutput listing for jobs that ran in shared app context
+
+## 1.2.2 - 2022-08-23
+
+Fixes and preview feature release
+
+### Breaking Changes:
+
+
+### New features:
+
+### Bug fixes:
+1. Added --force flag for docker container removal for FORK jobs on job cancel
+2. Jobs OpenAPI spec schema fixed
+
+## 1.2.1 - 2022-07-25
+
+Fixes and preview feature release
+
+### Breaking Changes:
+1. Changed jobuuid parameter to jobUuid in resubmission APIs for consistency. 
+
+### New features:
+1. Job subscription APIs
+2. Job event generation and transmission
+3. Job shared history, resubmit request and output APIs
+4. Updated 3rd party libraries
+
+### Bug fixes:
+1. Better test for batchqueue assignment to avoid NPE
+
+-----------------------
+
+## 1.2.0 - 2022-05-31
+
+Maintenance release
+
+### Breaking Changes:
+- Refer to renamed notification subscription classes in shared library.
+
+### New features:
+
+### Bug fixes:
+
+-----------------------
+
+## 1.1.3 - 2022-05-09
+
+Maintenance release
+
+### Breaking Changes:
+- none.
+
+### New features:
+1. Adjust JVM memory options and other deployment file clean up.
+2. Improve JWT validation and authentication logging.
+
+### Bug fixes:
+
+-----------------------
 
 ## 1.1.2 - 2022-03-04
 

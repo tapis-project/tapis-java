@@ -18,8 +18,8 @@ import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequest;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTaskRequestElement;
+import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransfer;
+import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
@@ -73,6 +73,11 @@ public final class JobFileManager
     private final JobExecutionContext _jobCtx;
     private final Job                 _job;
     
+    // Unpack shared context directory settings
+    private final boolean             _shareExecSystemExecDir;
+    private final boolean             _shareExecSystemOutputDir;
+    private final boolean             _shareArchiveSystemDir;
+    
     // Derived path prefix value removed before filtering.
     private String                    _filterIgnorePrefix;
     
@@ -86,6 +91,10 @@ public final class JobFileManager
     {
         _jobCtx = ctx;
         _job = ctx.getJob();
+        
+        _shareExecSystemExecDir   = ctx.getJobSharedAppCtx().isSharingExecSystemExecDir();
+        _shareExecSystemOutputDir = ctx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
+        _shareArchiveSystemDir    = ctx.getJobSharedAppCtx().isSharingArchiveSystemDir();
     }
     
     /* ********************************************************************** */
@@ -115,8 +124,9 @@ public final class JobFileManager
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
         try {
+            var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemExecDir();
             filesClient.mkdir(ioTargets.getExecTarget().systemId, 
-                              ioTargets.getExecTarget().dir);
+                              ioTargets.getExecTarget().dir, sharedAppCtx);
         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                          ioTargets.getExecTarget().host,
@@ -136,8 +146,9 @@ public final class JobFileManager
         if (!createdSet.contains(execSysOutputDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemOutputDir();
                 filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
-                                  _job.getExecSystemOutputDir());
+                                  _job.getExecSystemOutputDir(), sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getOutputTarget().host,
@@ -157,8 +168,9 @@ public final class JobFileManager
         if (!createdSet.contains(execSysInputDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingExecSystemInputDir();
                 filesClient.mkdir(ioTargets.getInputTarget().systemId, 
-                                 ioTargets.getInputTarget().dir);
+                                 ioTargets.getInputTarget().dir, sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
@@ -178,8 +190,9 @@ public final class JobFileManager
         if (!createdSet.contains(archiveSysDirKey)) {
             // Create the directory on the system.
             try {
+                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().isSharingArchiveSystemDir();
                 filesClient.mkdir(_job.getArchiveSystemId(), 
-                                  _job.getArchiveSystemDir());
+                                  _job.getArchiveSystemDir(), sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              _jobCtx.getArchiveSystem().getHost(),
@@ -219,6 +232,8 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
         
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
@@ -259,7 +274,9 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
-        
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
+
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
@@ -422,7 +439,7 @@ public final class JobFileManager
         if (fileInputs.isEmpty()) return NO_FILE_INPUTS;
         
         // Create the list of elements to send to files.
-        var tasks = new TransferTaskRequest();
+        var tasks = new ReqTransfer();
         
         // Assign each input task.
         for (var fileInput : fileInputs) {
@@ -430,11 +447,15 @@ public final class JobFileManager
             if (fileInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
                 continue;
             
-            // Assign the task.
-            var task = new TransferTaskRequestElement().
+            // Assign the task.  Input files have already been assigned their
+            // sharing attributes during submission.  For details, see
+            // SubmitContext.calculateDirectorySharing().
+            var task = new ReqTransferElement().
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
-            task.setOptional(fileInput.isOptional());;
+            task.setOptional(fileInput.isOptional());
+            task.setSrcSharedAppCtx(fileInput.isSrcSharedAppCtx());
+            task.setDestSharedAppCtx(fileInput.isDestSharedAppCtx());
             tasks.addElementsItem(task);
         }
         
@@ -469,7 +490,7 @@ public final class JobFileManager
         
         // -------------------- Assign Transfer Tasks --------------------
         // Create the list of elements to send to files.
-        var tasks = new TransferTaskRequest();
+        var tasks = new ReqTransfer();
         
         // Add the tapis generated files to the task.
         if (archiveFilter.getIncludeLaunchFiles()) addLaunchFiles(tasks);
@@ -482,19 +503,22 @@ public final class JobFileManager
             {
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
-                var task = new TransferTaskRequestElement().
+                var task = new ReqTransferElement().
                         sourceURI(makeExecSysOutputUrl("")).
                         destinationURI(makeArchiveSysUrl(""));
+                task.setSrcSharedAppCtx(_shareExecSystemOutputDir);
+                task.setDestSharedAppCtx(_shareArchiveSystemDir);
                 tasks.addElementsItem(task);
             } 
             else 
             {
-                // We need to filter each and every file, so we need
-                // to retrieve the output directory file listing.
-                // Get the client from the context now to catch errors early.
+                // We need to filter each and every file, so we need to retrieve 
+                // the output directory file listing.  Get the client from the 
+                // context now to catch errors early.  We also set the 
                 FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
+                listSubtree.setSharedAppCtx(_shareArchiveSystemDir);
                 var fileList = listSubtree.list();
                 
                 // Apply the excludes list first since it has precedence, then
@@ -515,7 +539,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* submitTransferTask:                                                    */
     /* ---------------------------------------------------------------------- */
-    private String submitTransferTask(TransferTaskRequest tasks, String tag, 
+    private String submitTransferTask(ReqTransfer tasks, String tag,
                                       JobTransferPhase phase)
      throws TapisException
     {
@@ -563,21 +587,25 @@ public final class JobFileManager
      * 
      * @param tasks the task collection into which new transfer tasks are inserted
      */
-    private void addLaunchFiles(TransferTaskRequest tasks)
+    private void addLaunchFiles(ReqTransfer tasks)
     {
         // There's nothing to do if the exec and archive 
         // directories are same and on the same system.
         if (_job.isArchiveSameAsExec()) return;
         
         // Assign the tasks for the two generated files.
-        var task = new TransferTaskRequestElement().
+        var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
+        task.setSrcSharedAppCtx(_shareExecSystemExecDir);
+        task.setDestSharedAppCtx(_shareArchiveSystemDir);
         tasks.addElementsItem(task);
         if (_jobCtx.usesEnvFile()) {
-            task = new TransferTaskRequestElement().
+            task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
+            task.setSrcSharedAppCtx(_shareExecSystemExecDir);
+            task.setDestSharedAppCtx(_shareArchiveSystemDir);
             tasks.addElementsItem(task);
         }
     }
@@ -590,14 +618,16 @@ public final class JobFileManager
      * @param tasks the archive tasks
      * @param fileList the filtered list of files in the job's output directory
      */
-    private void addOutputFiles(TransferTaskRequest tasks, List<FileInfo> fileList)
+    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList)
     {
         // Add each output file as a task element.
         for (var f : fileList) {
             var relativePath = getOutputRelativePath(f.getPath());
-            var task = new TransferTaskRequestElement().
+            var task = new ReqTransferElement().
                     sourceURI(makeExecSysOutputUrl(relativePath)).
                     destinationURI(makeArchiveSysUrl(relativePath));
+            task.setSrcSharedAppCtx(_shareExecSystemOutputDir);
+            task.setDestSharedAppCtx(_shareArchiveSystemDir);
             tasks.addElementsItem(task);
         }
     }
@@ -772,7 +802,7 @@ public final class JobFileManager
      * @return the new, non-null transfer id generated by Files
      * @throws TapisImplException 
      */
-    private String createTransferTask(FilesClient filesClient, TransferTaskRequest tasks) 
+    private String createTransferTask(FilesClient filesClient, ReqTransfer tasks)
      throws TapisException
     {
         // Tracing.
@@ -945,7 +975,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* printTasks:                                                            */
     /* ---------------------------------------------------------------------- */
-    private String printTasks(TransferTaskRequest tasks)
+    private String printTasks(ReqTransfer tasks)
     {
         var buf = new StringBuilder(1024);
         buf.append("Requesting TransferTask with tag ");
@@ -959,7 +989,11 @@ public final class JobFileManager
             buf.append(", dst: ");
             buf.append(element.getDestinationURI());
             buf.append(", optional=");
-            buf.append(element.getOptional());        
+            buf.append(element.getOptional());
+            buf.append(", srcSharedCtx=");
+            buf.append(element.getSrcSharedAppCtx());
+            buf.append(", dstSharedCtx=");
+            buf.append(element.getDestSharedAppCtx());
         }
         return buf.toString();
     }

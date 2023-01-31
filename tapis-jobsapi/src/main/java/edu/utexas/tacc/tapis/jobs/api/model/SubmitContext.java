@@ -29,8 +29,10 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller.ArgTypeEnum;
+import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTemplateVariables;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
@@ -38,6 +40,8 @@ import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -45,11 +49,11 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
-import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
+import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
@@ -60,6 +64,38 @@ import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
+/** This class orchestrates the job submission process, which includes incorporating
+ * and validating file, application and system information.  
+ * 
+ * Shared Application Context 
+ * --------------------------
+ * When the application specified in the job request is retrieved and its sharedAppCtx
+ * flag is set, then the job will execute in a shared application context.  This means
+ * that zero or more of the application fields listed below will have their Tapis 
+ * authorization checking suspended during job execution. 
+ * 
+ * 1. execSystemId
+ * 2. execSystemExecDir
+ * 3. execSystemInputDir
+ * 4. execSystemOutputDir
+ * 5. archiveSystemId
+ * 6. archiveSystemDir
+ * 7. fileInputs sourceUrl
+ * 8. fileInputs targetPath
+ * 
+ * The procedure for determining whether authorization is suspended on each field
+ * is as follows:
+ * 
+ *  1) If the field is not set in the application, authorization will not be suspended.
+ *  2) Otherwise, if the field's value is not changed in job request, then authorization 
+ *     will be suspended.
+ *     
+ * This procedure guarantees that for the fields listed above, authorization will only
+ * be suspended if they are assigned a value in the application definition and that 
+ * value is not changed by the job request.
+ *      
+ * @author rcardone
+ */
 public final class SubmitContext 
 {
     /* **************************************************************************** */
@@ -89,7 +125,11 @@ public final class SubmitContext
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
     
-    // Macro values.
+    // Shared application context is initialized after the application is loaded.
+    private JobSharedAppCtx _sharedAppCtx;
+    
+    // Macro values.  The resolver is configured ONLY for the execution system.
+    // If you need to access the archive system, use a different resolver.
     private final TreeMap<String,String> _macros = new TreeMap<String,String>();
     private MacroResolver _macroResolver;
     
@@ -263,6 +303,9 @@ public final class SubmitContext
         
         // Check that the runtime has appropriate options selected.
         validateApp(_app);
+        
+        // Always establish our shared application context.
+        _sharedAppCtx = new JobSharedAppCtx(_app);
     }
 
     /* **************************************************************************** */
@@ -291,7 +334,7 @@ public final class SubmitContext
         // Resolve constraints before resolving systems.
         resolveConstraints();
         
-        // Resolve all systems.
+        // Resolve all systems and their sharing attributes.
         resolveSystems();
         
         // Resolve job type.
@@ -301,7 +344,7 @@ public final class SubmitContext
         // from the system, app and request definitions.
         resolveParameterSet();
         
-        // Resolve directory assignments.
+        // Resolve directory assignments and their sharing attributes.
         resolveDirectoryPathNames();
         
         // Resolve MPI and command prefix values.
@@ -363,6 +406,9 @@ public final class SubmitContext
         
         // Merge app subscriptions into request subscription list.
         mergeSubscriptions();
+        
+        // Assign and validate optional notes.
+        validateNotes();
         
         // Merge and validate input files. Array inputs should be processed 
         // after the single inputs.  Array inputs get expanded into single 
@@ -476,6 +522,8 @@ public final class SubmitContext
             _submitReq.setDynamicExecSystem(Job.DEFAULT_DYNAMIC_EXEC_SYSTEM);
         
         // Dynamic execution system selection must be explicitly specified.
+        // The _execSystem field is always filled in after this code block.
+        // Static system selection includes calculating the sharing attribute.
         boolean isDynamicExecSystem = _submitReq.getDynamicExecSystem();
         if (isDynamicExecSystem) resolveDynamicExecSystem(systemsClient);
           else resolveStaticExecSystem(systemsClient);
@@ -499,11 +547,13 @@ public final class SubmitContext
         }
         
         // --------------------- DTN System ----------------------
-        // Load the dtn system if one is specified.
+        // Load the dtn system if one is specified.  Note that the DTN is defined in the
+        // execution system definition so it inherits the sharing attribute of that system.
         if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                             requireExecPerm, LoadSystemTypes.dtn);
+                                             requireExecPerm, LoadSystemTypes.dtn, 
+                                             _sharedAppCtx.isSharingExecSystemId()); // exec system sharing
            if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
                                             _dtnSystem.getId());
@@ -527,18 +577,27 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
             _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
         
-        // Only the last case has an archive system different from the exec system.
-        if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) {
+        // Assign the default archive system if it's still blank.
+        if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) 
             _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
+        
+        // Determine the shared application context attribute.  By this time
+        // the request archive system has been assigned, though that system
+        // may not be loaded yet.
+        _sharedAppCtx.calcArchiveSystemId(_submitReq.getArchiveSystemId(), 
+                                          _app.getJobAttributes().getArchiveSystemId(),
+                                          _submitReq.getExecSystemId());
+                
+        // Assign the archive system object if it's the same as the execution system.
+        if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId()))
             _archiveSystem = _execSystem;
-        }
-        else if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId())) {
-            _archiveSystem = _execSystem;
-        }
         else {
+            // Load the archive system if it's different from the execution system,
+            // which is the same as saying that it hasn't been assigned yet.
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
-                                                 requireExecPerm, LoadSystemTypes.archive); 
+                                                 requireExecPerm, LoadSystemTypes.archive,
+                                                 _sharedAppCtx.isSharingArchiveSystemId()); 
         }
     }
     
@@ -564,16 +623,20 @@ public final class SubmitContext
             execSystemId = _app.getJobAttributes().getExecSystemId();
             _submitReq.setExecSystemId(execSystemId);
         }
-                
+        
         // Abort if we can't determine the exec system id.
         if (StringUtils.isBlank(execSystemId)) {
             String msg = MsgUtils.getMsg("TAPIS_JOBS_MISSING_SYSTEM", "execution");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
+        // Determine the shared application context attribute.
+        _sharedAppCtx.calcExecSystemId(execSystemId, _app.getJobAttributes().getExecSystemId());
+                
         // Load the system.
         boolean requireExecPerm = true;
-        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, LoadSystemTypes.execution);
+        _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, 
+                                           LoadSystemTypes.execution, _sharedAppCtx.isSharingExecSystemId());
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
@@ -741,8 +804,54 @@ public final class SubmitContext
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
+        // Assign the sharing attributes for all four directories.
+        calculateDirectorySharing(useDTN);
+        
         // Detect ".." segments in path early. 
         sanitizeDirectoryPathnames();
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateDirectorySharing:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    private void calculateDirectorySharing(boolean useDTN)
+    {
+        // Don't waste a lot time...
+        if (!_sharedAppCtx.isSharingEnabled()) return;
+        
+        // Are we accessing the input directory in a shared context?
+        var defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_INPUT_DIR :
+                                  Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR,
+                                         _submitReq.getExecSystemInputDir(),
+                                         _app.getJobAttributes().getExecSystemInputDir(), 
+                                         defaultDir);
+
+        // Are we accessing the exec directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_EXEC_DIR :
+                              Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR,
+                                         _submitReq.getExecSystemExecDir(),
+                                         _app.getJobAttributes().getExecSystemExecDir(), 
+                                         defaultDir);
+        
+        // Are we accessing the output directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR :
+                              Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
+        _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR,
+                                         _submitReq.getExecSystemOutputDir(),
+                                         _app.getJobAttributes().getExecSystemOutputDir(), 
+                                         defaultDir);
+
+        // Are we accessing the archive directory in a shared context?
+        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR :
+                              Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
+        _sharedAppCtx.calcArchiveDirSharing(_submitReq.getArchiveSystemDir(),
+                                            _app.getJobAttributes().getArchiveSystemDir(),
+                                            _submitReq.getArchiveSystemId(),
+                                            _app.getJobAttributes().getArchiveSystemId(),
+                                            _submitReq.getExecSystemId(),
+                                            defaultDir);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -883,13 +992,22 @@ public final class SubmitContext
      * 
      * Request fields guaranteed to be assigned:
      *  - subscriptions
+     * @throws TapisImplException on conversion failures
      */
-    private void mergeSubscriptions()
+    private void mergeSubscriptions() throws TapisImplException
     {
+        // Add all app subscription requests to the job request's list.
+        // Either or both may be empty. By the end of this method the
+        // job request's subscription's list will be non-null.
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
         if (_app.getJobAttributes().getSubscriptions() != null) 
             for (var appSub : _app.getJobAttributes().getSubscriptions()) {
-                NotificationSubscription reqSub = new NotificationSubscription(appSub);
+                ReqSubscribe reqSub ;
+                try {reqSub = new ReqSubscribe(appSub);}
+                    catch (Exception e) {
+                        throw new TapisImplException(e.getMessage(), 
+                                                     Status.BAD_REQUEST.getStatusCode());
+                    }
                 subscriptions.add(reqSub);
             }
     }
@@ -974,17 +1092,32 @@ public final class SubmitContext
         }
         
         // By this point, all inputs specified in the request are accounted for and complete.
-        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
-        // any REQUIRED and FIXED app inputs that were not referenced by the request input and
-        // add them to the request.  This will guarantee that all non-optional app inputs
-        // are included.
+        // Incomplete OPTIONAL inputs that had a reqInput match have been removed, but those
+        // not referenced in reqInput are still here and need to be skipped.
+        // 
+        // In general, we have to collect any complete REQUIRED and FIXED app inputs that were 
+        // not referenced by the request input and add them to the request.  This will guarantee 
+        // that all non-optional app inputs are included.
         for (var appInput : appInputs) {
             // Skip already merged inputs or, in the case of incomplete optional inputs,
             // already removed inputs.
             if (processedAppInputNames.contains(appInput.getName())) continue;
             
+            // Skip incomplete optional inputs.
+            if ((appInput.getInputMode() == null || appInput.getInputMode() == FileInputModeEnum.OPTIONAL) && 
+                skipIncompleteFileInputs(appInput)) 
+               continue;
+            
             // Create a new request input from the REQUIRED or FIXED app input.
             var reqInput = JobFileInput.importAppInput(appInput);
+            
+            // Assign the shared app context flags.  The source flag is set only if the
+            // tapis protocol is used; the destination is always on the execution system,
+            // so we just check that the execution system input directory is shared.
+            calculateSrcSharedCtx(reqInput, reqInput.getSourceUrl());
+            reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+            
+            // Canonicalize paths and derive other values.
             completeRequestFileInput(reqInput);
             
             // Add the input object to the request and record its name.
@@ -1048,6 +1181,7 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        calculateSrcSharedCtx(reqInput, appDef.getSourceUrl());
         
         // Calculate the target if necessary.
         if (StringUtils.isBlank(reqInput.getTargetPath()))
@@ -1062,6 +1196,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
@@ -1114,6 +1249,7 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        calculateSrcSharedCtx(reqInput, appDef.getSourceUrl());
         
         // ---- targetPath
         if (StringUtils.isBlank(reqInput.getTargetPath()))
@@ -1131,6 +1267,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1190,6 +1327,26 @@ public final class SubmitContext
         // Set the automount default value if needed.
         if (reqInput.getAutoMountLocal() == null) 
             reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* skipIncompleteFileInputs:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine whether an app's fileInput definition is complete, used for
+     * OPTIONAL input processing.
+     * 
+     * @param appInput file input from an app definition
+     * @return true when input is incomplete and should be skipped, false otherwise.
+     */
+    private boolean skipIncompleteFileInputs(AppFileInput appInput)
+    {
+        // Skip incomplete inputs.
+        if (StringUtils.isBlank(appInput.getSourceUrl()) ||
+            StringUtils.isBlank(appInput.getTargetPath()))
+            return true;
+        
+        // Continue processing the input.
+        return false;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1271,18 +1428,32 @@ public final class SubmitContext
         }
         
         // By this point, all inputs specified in the request are accounted for and complete.
-        // Incomplete OPTIONAL inputs have been removed.  The only task left is to collect
-        // any REQUIRED and FIXED app inputs that were not referenced by a request input and
-        // add them to the request.  This will guarantee that all non-optional app inputs
-        // are included.
+        // Incomplete OPTIONAL inputs that had a reqArray match have been removed, but those
+        // not referenced in reqArray are still here and need to be skipped.
+        // 
+        // In general, we have to collect any complete REQUIRED and FIXED app inputs that were 
+        // not referenced by the request input and add them to the request.  This will guarantee 
+        // that all non-optional app inputs are included.
         for (var appArray : appArrays) {
             // Skip already merged inputs or, in the case of incomplete optional inputs,
             // already removed inputs.
             if (processedAppInputNames.contains(appArray.getName())) continue;
             
+            // Skip incomplete optional input arrays.
+            if ((appArray.getInputMode() == null || appArray.getInputMode() == FileInputModeEnum.OPTIONAL) && 
+                skipIncompleteFileInputArrays(appArray)) 
+               continue;
+            
             // Create a new request input from the REQUIRED or FIXED app input.
             var reqArray = JobFileInputArray.importAppInputArray(appArray);
             completeRequestFileInputArray(reqArray);
+            
+            // Always assign the shared app context flags since there is no possibility
+            // that the app definition can be overridden.  The final determination of
+            // the shared context setting for each source file is handled by the 
+            // marshaling method below.
+            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(true);
+            reqArray.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
             
             // Add the request to the list and update list of processed names.
             // We rely on Apps to not allow duplicate named input arrays.
@@ -1292,7 +1463,7 @@ public final class SubmitContext
         
         // Add the array inputs to the JobFileInput list, which is the only list saved
         // in the job record.  This method also calculates the path name of each target
-        // file/directory based on each source url.
+        // file/directory based on each source url and the shared ctx flags.
         if (!reqArrays.isEmpty()) marshallFileInputArrays(reqArrays);
     }
     
@@ -1338,6 +1509,7 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        calculateSrcSharedCtxArray(reqInput, appDef.getSourceUrls());
         
         // Calculate the target if necessary.
         if (StringUtils.isBlank(reqInput.getTargetDir()))
@@ -1352,6 +1524,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1388,9 +1561,9 @@ public final class SubmitContext
         // ---- sourceUrls
         if (reqInput.emptySourceUrls())
             reqInput.setSourceUrls(appDef.getSourceUrls());
-        else if (!reqInput.getSourceUrls().equals(appDef.getSourceUrls())) {
+        else if (!reqInput.equalSourceUrls​(appDef.getSourceUrls())) {
             String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
-                                         "sourceUrl", reqInput.getName());
+                                         "sourceUrls", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         // The app definition should not allow this, but we doublecheck.
@@ -1398,6 +1571,7 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        calculateSrcSharedCtxArray(reqInput, appDef.getSourceUrls());
         
         // ---- targetDir
         if (StringUtils.isBlank(reqInput.getTargetDir()))
@@ -1407,6 +1581,7 @@ public final class SubmitContext
                                          "targetDir", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        
         // Designate the execSystemInputDir as the default when asterisk is used.
         if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
         // The app definition should not allow this, but we doublecheck.
@@ -1415,6 +1590,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1464,6 +1640,26 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* skipIncompleteFileInputArrays:                                               */
+    /* ---------------------------------------------------------------------------- */
+    /** Determine whether an app's fileInputArray definition is complete, used for
+     * OPTIONAL input processing.
+     * 
+     * @param appArray file input from an app definition
+     * @return true when input is incomplete and should be skipped, false otherwise.
+     */
+    private boolean skipIncompleteFileInputArrays(AppFileInputArray appArray)
+    {
+        // Skip incomplete inputs.
+        if (appArray.getSourceUrls() == null || appArray.getSourceUrls().isEmpty() ||
+            StringUtils.isBlank(appArray.getTargetDir()))
+            return true;
+        
+        // Continue processing the input.
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* marshallFileInputArrays:                                                     */
     /* ---------------------------------------------------------------------------- */
     /** Each of the sourceUrls in each of the input arrays is marshalled into a 
@@ -1471,7 +1667,10 @@ public final class SubmitContext
      * 
      * The goal is for the generated JobFileInput objects so contain as little 
      * redundancy as possible while maintaining traceability back to their original
-     * user-specified array. 
+     * user-specified array.
+     * 
+     * Final assignment of shared application context settings is performed here
+     * for inputs specified in arrays.
      * 
      * @param arrays non-null list of input array objects
      */
@@ -1528,11 +1727,65 @@ public final class SubmitContext
                 String target = Path.of(curArray.getTargetDir(), 
                                         TapisUtils.extractFilename(reqInput.getSourceUrl())).toString();
                 reqInput.setTargetPath(target);
+                
+                // Set the shared context flags.
+                if (curArray.isSrcSharedAppCtx() &&
+                    reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
+                   reqInput.setSrcSharedAppCtx(true);
+                reqInput.setDestSharedAppCtx(curArray.isDestSharedAppCtx());
             
                 // Save the new object in the 
                 _submitReq.getFileInputs().add(reqInput);
             }
         }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateSrcSharedCtx:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the source file input shared flag only if we are in a shared app context
+     * and the request's effective source url string is the same as the one specified
+     * in the application.  No action is taken unless both conditions are satisfied.  
+     * 
+     * The request source url must be non-null by the time this method is called.
+     * 
+     * @param reqInput input request with non-null sourceUrl
+     * @param appSource input source url from app definition, could be null
+     */
+    private void calculateSrcSharedCtx(JobFileInput reqInput, String appSource)
+    {
+        // Are we in a shared app context?
+        if (!_sharedAppCtx.isSharingEnabled()) return;
+        
+        // Only tapis urls involve systems and share checking.
+        if (!reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
+            return;
+        
+        // Only set the shared flag if the app source is in effect.
+        if (reqInput.getSourceUrl().equals(appSource)) 
+            reqInput.setSrcSharedAppCtx(true);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* calculateSrcSharedCtxArray:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Set the source file array shared flag only if we are in a shared app context
+     * and the request's effective source url array is the same as the one specified
+     * in the application.  No action is taken unless both conditions are satisfied.  
+     * 
+     * The request source url must be non-null by the time this method is called.
+     * 
+     * @param reqInput input request with non-null sourceUrl array
+     * @param appSources input source urls from app definition, could be null
+     */
+    private void calculateSrcSharedCtxArray(JobFileInputArray reqArray, List<String> appSources)
+    {
+        // Are we in a shared app context?
+        if (!_sharedAppCtx.isSharingEnabled()) return;
+
+        // Only set the shared flag if the app and request sources exactly match.
+        if (reqArray.equalSourceUrls​(appSources)) 
+            reqArray.setSrcSharedAppCtx(true);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1550,7 +1803,7 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.JobUUID.name(),    _job.getUuid());
         _macros.put(JobTemplateVariables.Tenant.name(),     _submitReq.getTenant());
         _macros.put(JobTemplateVariables.JobOwner.name(),   _submitReq.getOwner());
-        _macros.put(JobTemplateVariables.EffeciveUserId.name(), _execSystem.getEffectiveUserId());
+        _macros.put(JobTemplateVariables.EffectiveUserId.name(), _execSystem.getEffectiveUserId());
         
         _macros.put(JobTemplateVariables.AppId.name(),      _submitReq.getAppId());
         _macros.put(JobTemplateVariables.AppVersion.name(), _submitReq.getAppVersion());
@@ -1637,7 +1890,10 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
                 }
             if (!_macros.containsKey(JobTemplateVariables.ArchiveSystemDir.name())) {
-                _submitReq.setArchiveSystemDir(resolveMacros(_submitReq.getArchiveSystemDir()));
+                // Use a resolver that targets the archive system, not the usually one that
+                // that target's the exec system.
+                var archiveMacroResolver = new MacroResolver(_archiveSystem, _macros);
+                _submitReq.setArchiveSystemDir(archiveMacroResolver.resolve(_submitReq.getArchiveSystemDir()));
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             }
         } 
@@ -1719,14 +1975,18 @@ public final class SubmitContext
     private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                              String systemId, 
                                              boolean requireExecPerm,
-                                             LoadSystemTypes systemType) 
+                                             LoadSystemTypes systemType,
+                                             boolean sharedAppCtx) 
       throws TapisImplException
     {
         // Load the system definition.
         TapisSystem system = null;
-        boolean returnCreds = true;
-        AuthnMethod authnMethod = null;
-        try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
+        final boolean returnCreds = true;
+        final AuthnMethod authnMethod = null;
+        final String selectAll = "allAttributes";
+        final String impersonationId = null;
+        try {system = systemsClient.getSystem(systemId, authnMethod, requireExecPerm, selectAll, 
+                                              returnCreds, impersonationId, sharedAppCtx);} 
         catch (TapisClientException e) {
             // Determine why we failed.
             String msg;
@@ -1823,7 +2083,7 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Does this job even use a queue?
-        if (!_execSystem.getCanRunBatch()) return;
+        if (!JobType.BATCH.name().equals(_submitReq.getJobType())) return;
         
         // Get the queue definition which is guaranteed to exist.
         var queueName = _submitReq.getExecSystemLogicalQueue();
@@ -1955,7 +2215,7 @@ public final class SubmitContext
             }
         }
     }
-
+    
     /* ---------------------------------------------------------------------------- */
     /* validateSchedulerProfile:                                                    */
     /* ---------------------------------------------------------------------------- */
@@ -2014,6 +2274,19 @@ public final class SubmitContext
                 }
             _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _submitReq.getTenant()));
         }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateNotes:                                                               */
+    /* ---------------------------------------------------------------------------- */
+    private void validateNotes() throws TapisImplException
+    {
+        // See if there are any notes in the request or, if not, the app.
+        Object notes = _submitReq.getNotes();
+        if (notes == null) notes = _app.getNotes();
+        
+        // This utility method can throw exceptions with correctly assigned response codes.
+        _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2101,6 +2374,15 @@ public final class SubmitContext
         _job.setMpi(_submitReq.getIsMpi());
         _job.setMpiCmd(_submitReq.getMpiCmd());
         _job.setCmdPrefix(_submitReq.getCmdPrefix());
+        
+        // Set the shared context information.
+        if (_sharedAppCtx.isSharingEnabled()) {
+            _job.setSharedAppCtx(true);
+            _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
+        }
+        
+        // Notes always has a well-formed json string representation of a json object.
+        _job.setNotes(_submitReq.getNotesAsString()); 
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));

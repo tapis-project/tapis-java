@@ -6,6 +6,7 @@ public class JobArgSpec
     private String  description;
     private Boolean include;
     private String  arg;
+    private Object  notes;
     
     public String getName() {
         return name;
@@ -30,5 +31,11 @@ public class JobArgSpec
     }
     public void setArg(String arg) {
         this.arg = arg;
+    }
+    public Object getNotes() {
+        return notes;
+    }
+    public void setNotes(Object notes) {
+        this.notes = notes;
     }
 }

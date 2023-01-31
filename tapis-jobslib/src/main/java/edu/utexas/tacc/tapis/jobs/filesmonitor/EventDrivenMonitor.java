@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.filesmonitor;
 
-import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 

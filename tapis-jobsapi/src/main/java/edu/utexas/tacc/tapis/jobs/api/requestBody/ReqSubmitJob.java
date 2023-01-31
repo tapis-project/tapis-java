@@ -3,10 +3,10 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
-import edu.utexas.tacc.tapis.shared.model.NotificationSubscription;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqSubmitJob 
@@ -40,22 +40,33 @@ public class ReqSubmitJob
     private JobParameterSet 	    parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
-    private List<NotificationSubscription> subscriptions;     // assigned on first get
+    private List<ReqSubscribe>      subscriptions;            // assigned on first get
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
+    private Object                  notes;  
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
     
     // Temporary storage for hpc queue name during request processing.
     private transient String        hpcQueueName;
+    
+    // Convert the incoming notes object to a string once.
+    private transient String        notesAsString;
 
 	@Override
 	public String validate() 
 	{
+	    // Validate all subscription requests.
+	    if (subscriptions != null) 
+	        for (var req : subscriptions) {
+	            var msg = req.validate();
+	            if (msg != null) return msg;
+	        }
+	    
 		// Success.
-		return null; // json schema validation is sufficient
+		return null; 
 	}
 	
 	/** --------------- Constraint Processing --------------- 
@@ -286,12 +297,12 @@ public class ReqSubmitJob
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public List<NotificationSubscription> getSubscriptions() {
-	    if (subscriptions == null) subscriptions = new ArrayList<NotificationSubscription>();
+	public List<ReqSubscribe> getSubscriptions() {
+	    if (subscriptions == null) subscriptions = new ArrayList<ReqSubscribe>();
 		return subscriptions;
 	}
 
-	public void setSubscriptions(List<NotificationSubscription> subscriptions) {
+	public void setSubscriptions(List<ReqSubscribe> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 
@@ -324,6 +335,14 @@ public class ReqSubmitJob
         return cmdPrefix;
     }
 
+    public Object getNotes() {
+        return notes;
+    }
+
+    public void setNotes(Object notes) {
+        this.notes = notes;
+    }
+
     public void setCmdPrefix(String cmdPrefix) {
         this.cmdPrefix = cmdPrefix;
     }
@@ -340,5 +359,14 @@ public class ReqSubmitJob
 
     public void setHpcQueueName(String hpcQueueName) {
         this.hpcQueueName = hpcQueueName;
+    }
+
+    @Schema(hidden = true)
+    public String getNotesAsString() {
+        return notesAsString;
+    }
+
+    public void setNotesAsString(String notesAsString) {
+        this.notesAsString = notesAsString;
     }
 }

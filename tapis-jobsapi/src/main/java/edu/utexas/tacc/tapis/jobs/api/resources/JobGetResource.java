@@ -26,6 +26,8 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -163,20 +165,18 @@ public class JobGetResource
        Job job = null;
        try {
            var jobsImpl = JobsImpl.getInstance();
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId());
-       }
-       catch (TapisImplException e) {
+           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
+        		   JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
+       } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
-       }
-       catch (Exception e) {
+       } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
        }
-
+        
        // ------------------------- Process Results --------------------------
        // Adjust status based on whether we found the job.
        if (job == null) {

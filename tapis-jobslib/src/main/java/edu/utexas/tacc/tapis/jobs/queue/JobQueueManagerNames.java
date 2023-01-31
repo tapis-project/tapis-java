@@ -30,6 +30,12 @@ public class JobQueueManagerNames
   private static final String RECOVERY_QUEUE_SUFFIX = "recovery.Queue";
   private static final String RECOVERY_QUEUE_NAME = TAPIS_JOBQ_PREFIX + RECOVERY_QUEUE_SUFFIX;
   
+  // Recovery exchange and queue name components.
+  private static final String EVENT_EXCHANGE_SUFFIX = "event.Exchange";
+  private static final String EVENT_EXCHANGE_NAME = TAPIS_JOBQ_PREFIX + EVENT_EXCHANGE_SUFFIX;
+  private static final String EVENT_QUEUE_SUFFIX = "event.Queue";
+  private static final String EVENT_QUEUE_NAME = TAPIS_JOBQ_PREFIX + EVENT_QUEUE_SUFFIX;
+  
   // Components for command topic exchange and queue names.
   private static final String CMD_TOPIC_PREFIX = TAPIS_JOBQ_PREFIX + "cmd.";
   private static final String TOPIC_CMD_EXCHANGE_NAME = CMD_TOPIC_PREFIX + "Exchange";
@@ -84,18 +90,26 @@ public class JobQueueManagerNames
   /* getRecoveryExchangeName:                                               */
   /* ---------------------------------------------------------------------- */
   /** Create the global exchange name used to communicate with
-   * the tenant's recovery queue.  This exchanges captures messages that
-   * have either:
-   * 
-   *    - Been rejected (basic.reject or basic.nack) with requeue=false,
-   *    - Have their TTL expires, or
-   *    - Would have caused a queue length limit to be exceeded.
+   * the tenant's recovery queue.
    * 
    * @return the tenant recovery exchange name
    */
   public static String getRecoveryExchangeName()
   {
     return RECOVERY_EXCHANGE_NAME;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getEventExchangeName:                                                  */
+  /* ---------------------------------------------------------------------- */
+  /** Create the multi-tenant exchange name used to communicate with
+   * the event reader that processes outgoing events.
+   * 
+   * @return the event exchange name
+   */
+  public static String getEventExchangeName()
+  {
+    return EVENT_EXCHANGE_NAME;
   }
   
   /* ---------------------------------------------------------------------- */
@@ -139,6 +153,19 @@ public class JobQueueManagerNames
   public static String getRecoveryQueueName()
   {
     return RECOVERY_QUEUE_NAME;
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* getEventQueueName:                                                     */
+  /* ---------------------------------------------------------------------- */
+  /** Create the multi-tenant topic queue name used to collect events to be
+   * sent to the notifications service.
+   * 
+   * @return the event queue name
+   */
+  public static String getEventQueueName()
+  {
+    return EVENT_QUEUE_NAME;
   }
   
   /* ---------------------------------------------------------------------- */

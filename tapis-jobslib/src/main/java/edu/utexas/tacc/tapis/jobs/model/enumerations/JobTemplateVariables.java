@@ -14,7 +14,7 @@ public enum JobTemplateVariables
 	JobUUID,
 	Tenant,
 	JobOwner,
-	EffeciveUserId,
+	EffectiveUserId,
 	
 	AppId,
 	AppVersion,

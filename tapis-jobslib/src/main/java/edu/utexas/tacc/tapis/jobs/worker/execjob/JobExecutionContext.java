@@ -14,6 +14,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.monitors.JobMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
@@ -59,6 +60,7 @@ public final class JobExecutionContext
     /* ********************************************************************** */
     // The job to run.
     private final Job                _job;
+    private JobSharedAppCtx          _jobSharedAppCtx;
     
 	// Cached dao's used throughout this file and by clients.
     private final JobsDao            _jobsDao;
@@ -98,6 +100,7 @@ public final class JobExecutionContext
             throw new TapisRuntimeException(msg);
         }
         _job = job;
+        _jobSharedAppCtx = new JobSharedAppCtx(job);
         _jobsDao = jobDao;
         
         // Cross reference the job and its context.
@@ -116,7 +119,8 @@ public final class JobExecutionContext
         // Load the execution system on first use.
         if (_executionSystem == null) {
             _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                   _job.getExecSystemId(), true, LoadSystemTypes.execution);
+                                   _job.getExecSystemId(), true, LoadSystemTypes.execution,
+                                   _jobSharedAppCtx.isSharingExecSystemId());
         }
         
         return _executionSystem;
@@ -134,7 +138,8 @@ public final class JobExecutionContext
                 _archiveSystem = _executionSystem;
             if (_archiveSystem == null)    
                 _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                                     _job.getArchiveSystemId(), false, LoadSystemTypes.archive);
+                                     _job.getArchiveSystemId(), false, LoadSystemTypes.archive,
+                                     _jobSharedAppCtx.isSharingArchiveSystemId());
         }
         
         return _archiveSystem;
@@ -152,7 +157,8 @@ public final class JobExecutionContext
         // Load the execution system on first use.
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
-                             _job.getDtnSystemId(), false, LoadSystemTypes.dtn);
+                             _job.getDtnSystemId(), false, LoadSystemTypes.dtn,
+                             _jobSharedAppCtx.isSharingExecSystemId());
         }
         
         return _dtnSystem;
@@ -455,6 +461,7 @@ public final class JobExecutionContext
     /*                              Accessors                                 */
     /* ********************************************************************** */
     public Job getJob() {return _job;}
+    public JobSharedAppCtx getJobSharedAppCtx() {return _jobSharedAppCtx;}
     
     public void setExecutionSystem(TapisSystem executionSystem) 
        {_executionSystem = executionSystem;}
@@ -543,14 +550,18 @@ public final class JobExecutionContext
     private TapisSystem loadSystemDefinition(SystemsClient systemsClient,
                                              String systemId,
                                              boolean requireExecPerm,
-                                             LoadSystemTypes loadType) 
+                                             LoadSystemTypes loadType,
+                                             boolean sharedAppCtx) 
       throws TapisException
     {
         // Load the system definition.
         TapisSystem system = null;
-        boolean returnCreds = true;
-        AuthnMethod authnMethod = null;
-        try {system = systemsClient.getSystem(systemId, returnCreds, authnMethod, requireExecPerm);} 
+        final boolean returnCreds = true;
+        final AuthnMethod authnMethod = null;
+        final String selectAll = "allAttributes";
+        final String impersonationId = null;
+        try {system = systemsClient.getSystem(systemId, authnMethod, requireExecPerm, selectAll, 
+                                              returnCreds, impersonationId, sharedAppCtx);} 
         catch (TapisClientException e) {
             // Look for a recoverable error in the exception chain. Recoverable
             // exceptions are those that might indicate a transient network

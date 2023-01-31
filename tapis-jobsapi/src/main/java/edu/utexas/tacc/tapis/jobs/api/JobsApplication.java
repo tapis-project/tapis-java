@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                      contact = @Contact(name = "CICSupport", 
                                         email = "cicsupport@tacc.utexas.edu")),
         tags = {@Tag(name = "jobs", description = "manage job execution and data"),
+                @Tag(name = "subscriptions", description = "manage job subscriptions"),
                 @Tag(name = "general", description = "informational endpoints")},
         servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
         externalDocs = @ExternalDocumentation(description = "Tapis Home",

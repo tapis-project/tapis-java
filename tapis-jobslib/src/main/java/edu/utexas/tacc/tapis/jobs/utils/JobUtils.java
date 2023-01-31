@@ -7,10 +7,16 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
+import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobUtils 
@@ -20,7 +26,10 @@ public final class JobUtils
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobUtils.class);
-
+    
+    // Job subscription category wildcard character.
+    public static final String EVENT_CATEGORY_WILDCARD = "*";
+    
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
@@ -145,4 +154,76 @@ public final class JobUtils
         return s.substring(index + 1);
     }
 
+
+    /* ---------------------------------------------------------------------------- */
+    /* getNotificationsClient:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Get a new or cached Notifications service client.  The input parameter is
+     * the tenant id of the administrator tenant at the local site.    
+     * 
+     * @param jobTenantId - the tenant id of the job
+     * @return the client
+     * @throws TapisImplException
+     */
+    public static NotificationsClient getNotificationsClient(String jobTenantId) 
+     throws TapisException
+    {
+        // Get the application client for this user@tenant.
+        NotificationsClient client = null;
+        var user = TapisConstants.SERVICE_NAME_JOBS;
+        try {
+            client = ServiceClients.getInstance().getClient(
+                     user, jobTenantId, NotificationsClient.class);
+        }
+        catch (Exception e) {
+            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", "Notifications", 
+                                         jobTenantId, user);
+            throw new TapisException(msg, e);
+        }
+
+        return client;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* makeNotifTypeFilter:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Create a token that can be used as an event type or a subscription typeFilter.
+     * The generic token contains 3 components:
+     * 
+     *     service.category.eventDetail
+     * 
+     * For job subscriptions, concrete tokens always look like one of these:
+     * 
+     *     jobs.<jobEventCategoryFilter>.*
+     *     jobs.*.*   // when ALL category is used
+     *     
+     * @param jobEventType the 2nd component in a job subscription type filter
+     * @return the 3 part type filter string
+     */
+    public static String makeNotifTypeFilter(JobEventCategoryFilter filter, String detail)
+    {
+        String f = filter.name();
+        if (f.equals(JobEventCategoryFilter.ALL.name())) f = EVENT_CATEGORY_WILDCARD; 
+        return TapisConstants.SERVICE_NAME_JOBS  + "." + f + "." + detail;
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* makeNotifTypeToken:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Create a token that can be used as an event type or a subscription typeFilter.
+     * The generic token contains 3 components:
+     * 
+     *     service.category.eventDetail
+     * 
+     * For job events, the tokens always look like this:
+     * 
+     *     jobs.<jobEventType>.<eventDetail>
+     *     
+     * @param jobEventType the 2nd component in a job subscription type filter
+     * @return the 3 part type filter string
+     */
+    public static String makeNotifTypeToken(JobEventType jobEventType, String detail)
+    {
+        return TapisConstants.SERVICE_NAME_JOBS + "." + jobEventType.name() + "." + detail;
+    }
 }

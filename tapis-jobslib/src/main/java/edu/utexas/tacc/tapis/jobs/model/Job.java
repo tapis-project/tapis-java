@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -34,7 +35,6 @@ public final class Job
 	public static final int DEFAULT_MAX_MINUTES = 10;
 	public static final int MAX_LAST_MESSAGE_LEN = 16384;
 	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
-	public static final Boolean DEFAULT_USE_DTN = Boolean.TRUE;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
@@ -136,6 +136,11 @@ public final class Job
     private boolean             isMpi;
     private String              mpiCmd;
     private String              cmdPrefix;
+    
+    private boolean             sharedAppCtx;
+    private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
+    
+    private String              notes = EMPTY_JSON; // Should never be null.
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -439,6 +444,10 @@ public final class Job
         }
         if (jobType == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
+            throw new JobException(msg);
+        }
+        if (StringUtils.isBlank(notes)) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "notes");
             throw new JobException(msg);
         }
         
@@ -952,6 +961,30 @@ public final class Job
 
     public void setCmdPrefix(String cmdPrefix) {
         this.cmdPrefix = cmdPrefix;
+    }
+
+    public boolean isSharedAppCtx() {
+        return sharedAppCtx;
+    }
+
+    public void setSharedAppCtx(boolean sharedAppCtx) {
+        this.sharedAppCtx = sharedAppCtx;
+    }
+
+    public List<JobSharedAppCtxEnum> getSharedAppCtxAttribs() {
+        return sharedAppCtxAttribs;
+    }
+
+    public void setSharedAppCtxAttribs(List<JobSharedAppCtxEnum> sharedAppCtxAttribs) {
+        this.sharedAppCtxAttribs = sharedAppCtxAttribs;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        if (notes != null) this.notes = notes;
     }
 
     // Get the current cmdMsg value and atomically set the field to null.

@@ -31,7 +31,7 @@ public class JobHistoryDisplayDTO {
     private String        transferTaskUuid;
     private JsonObject 	  transferSummary;
     
-    public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant) throws TapisImplException{
+    public JobHistoryDisplayDTO(JobEvent jobEvent, String user, String tenant, String impersonationId) throws TapisImplException{
     	
     	setEvent(jobEvent.getEvent().name());
     	setEventDetail(jobEvent.getEventDetail());
@@ -48,10 +48,11 @@ public class JobHistoryDisplayDTO {
     		TransferTask transferTask = null;
     		
     		try {
-    			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid());
+    			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid(), impersonationId);
+    			
 			} catch (TapisClientException e) {
 				String msg = MsgUtils.getMsg("FILES_TRANSFER_HISTORY_RETRIEVE_ERROR", 
-						jobEvent.getOthUuid(), jobEvent.getJobUuid(),e.getCode());
+						jobEvent.getOthUuid(), jobEvent.getJobUuid(),user, tenant,e.getCode());
 	            throw new TapisImplException(msg, e, e.getCode());
 			}
     		if (transferTask!= null) {
@@ -62,8 +63,14 @@ public class JobHistoryDisplayDTO {
     			transferSummary.addProperty("completeTransfers",transferTask.getCompleteTransfers());
     			transferSummary.addProperty("totalTransfers",transferTask.getTotalTransfers());
     			transferSummary.addProperty("created",transferTask.getCreated().toString());
-    			transferSummary.addProperty("startTime",transferTask.getStartTime().toString());
-    			transferSummary.addProperty("endTime",transferTask.getEndTime().toString());
+    			if (transferTask.getStartTime() == null) 
+    				transferSummary.addProperty("startTime","");
+    			else
+    				transferSummary.addProperty("startTime",transferTask.getStartTime().toString());
+    			if (transferTask.getEndTime() == null) 
+    				transferSummary.addProperty("endTime","");
+    			else 
+    				transferSummary.addProperty("endTime",transferTask.getEndTime().toString());
     			transferSummary.addProperty("errorMessage",transferTask.getErrorMessage());
     			
     			

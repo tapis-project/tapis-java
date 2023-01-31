@@ -81,7 +81,7 @@ public final class TenantInit
         final String site = RuntimeParameters.getInstance().getSiteId();
         final String siteAdminTenant = TenantManager.getInstance().getSiteAdminTenantId(site);
         
-        // One time initialization for tenants service.
+        // One time initialization for tenants service at primary site.
         initializeTenantServiceRole(siteAdminTenant);
         
         // Inspect each tenant.
@@ -90,6 +90,9 @@ public final class TenantInit
         	// The tenant id is the key.
         	String tenantId = entry.getKey();
         	Tenant tenant   = entry.getValue();
+        	
+        	// Skip processing for tenants owned by remote sites.
+        	if (!site.equals(tenant.getSiteId())) continue;
         	
         	// Guarantee that there's at least one administrator id in each tenant.
         	// Administrators are users assigned the $!tenant_admin role. 
@@ -111,6 +114,10 @@ public final class TenantInit
         final String primaryTenant = TapisConstants.PRIMARY_SITE_TENANT;
         final String tenantService = TapisConstants.SERVICE_NAME_TENANTS;
         final String roleName = UserImpl.TENANT_CREATOR_ROLE;
+        
+        // Associate sites do not need to assign the tenant creator role
+        // since they cannot create JWTs in the primary site admin tenant.
+        if (!primaryTenant.equals(siteAdminTenant)) return;
         
         // Get the list of all users with the tenant creator role.
         List<String> creators = null;
@@ -215,6 +222,11 @@ public final class TenantInit
             _log.warn(msg);
             return;
         }
+        
+        // We don't want to give any service authenticator the role in the site-admin tenant.
+        // The authenticator role allows the service to create user JWTs, which are not 
+        // allowed in the site-admin tenant.
+        if (tenant.equals(siteAdminTenant)) return;
         
         // The role is always owned by tokens@<site-admin>, always defined in the
         // site-admin tenant, and always assigned to services in the site-admin tenant.

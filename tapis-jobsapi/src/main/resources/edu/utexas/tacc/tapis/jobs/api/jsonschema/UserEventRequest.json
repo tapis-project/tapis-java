@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://tapis.tacc.utexas.edu/UserEventRequest",
+    "description": "Schema for job user event request",
+    "additionalProperties": false,
+    "type": "object",
+        "properties": {
+          "eventData": {
+            "$comment": "This event's structured or unstructured data.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16384
+          },
+          "eventDetail": {
+            "$comment": "Event key used for filtering, default=DEFAULT.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+    "required": [
+        "eventData"
+    ]
+}

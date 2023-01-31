@@ -46,6 +46,9 @@ public final class SkShareDao
   // just after reading from the database.
   private static final String TAPIS_NULL = "[TAPIS-NULL]";
   
+  // Interpret a trailing wildcard as an sql wildcard in LIKE clauses.  
+  private static final String RESOURCE_WILDCARD = "%";
+  
   /* ********************************************************************** */
   /*                              Constructors                              */
   /* ********************************************************************** */
@@ -308,8 +311,8 @@ public final class SkShareDao
       if (grantor != null) {whereParms.add("grantor"); buf.append("AND grantor = ? ");}
       appendGranteeClause(buf, grantee, whereParms, includePublicGrantees);
       if (resourceType != null) {whereParms.add("resourceType"); buf.append("AND resource_type = ? ");}
-      if (resourceId1 != null) {whereParms.add("resourceId1"); buf.append("AND resource_id1 = ? ");}
-      if (resourceId2 != null) {whereParms.add("resourceId2"); buf.append("AND resource_id2 = ? ");}
+      if (resourceId1 != null) {whereParms.add("resourceId1"); buf.append(getWhereClause("resource_id1", resourceId1));}
+      if (resourceId2 != null) {whereParms.add("resourceId2"); buf.append(getWhereClause("resource_id2", resourceId2));}
         else if (requireNullId2) buf.append("AND resource_id2 = '" + TAPIS_NULL + "' ");
       if (privilege != null) {whereParms.add("privilege"); buf.append("AND privilege = ? ");}
       if (createdBy != null) {whereParms.add("createdBy"); buf.append("AND createdby = ? ");}
@@ -630,6 +633,28 @@ public final class SkShareDao
   /*                             Private Methods                            */
   /* ********************************************************************** */
   /* ---------------------------------------------------------------------- */
+  /* getWhereClause:                                                        */
+  /* ---------------------------------------------------------------------- */
+  /** Determine if the value ends with the wildcard character and, if so, 
+   * generate a LIKE clause.  Otherwise, generate an equality clause.
+   * 
+   * Note that a degenerate edge case is when the searchValue is contains
+   * only wildcard values.  This has the same effect as "don't care", which
+   * is usually expressed by not assigning any searchValue to the dbField.
+   * We allow the degenerate form because it's harmless.
+   * 
+   * @param dbField name of a table column
+   * @param searchValue a value that may terminate with a wildcard
+   * @return an equality or LIKE where clause 
+   */
+  private String getWhereClause(String dbField, String searchValue)
+  {
+      if (searchValue.endsWith(RESOURCE_WILDCARD))
+          return  "AND " + dbField + " LIKE ? ";
+      else return "AND " + dbField + " = ? ";
+  }
+  
+  /* ---------------------------------------------------------------------- */
   /* appendGranteeClause:                                                   */
   /* ---------------------------------------------------------------------- */
   /** Special case logic that assigns the grantee clause based on the grantee
@@ -650,15 +675,15 @@ public final class SkShareDao
           // No restrictions on grantee mean no clause is appended at all.
           // Otherwise, we filter out the public pseudo-grantees.
           if (!includePublicGrantees)
-              buf.append("AND grantee NOT IN (\"~public\", \"~public_no_authn\") ");
+              buf.append("AND grantee NOT IN ('~public', '~public_no_authn') ");
       } else {
           // A grantee is specified, so we determine the exact filter required.
           if (includePublicGrantees) {
               // Handle the special case when the user specifies a public grantee.
               if (PUBLIC_GRANTEE.equals(grantee) || PUBLIC_NO_AUTHN_GRANTEE.equals(grantee))
-                  buf.append("AND grantee IN (\"~public\", \"~public_no_authn\") ");
+                  buf.append("AND grantee IN ('~public', '~public_no_authn') ");
               else {
-                  buf.append("AND grantee IN (?, \"~public\", \"~public_no_authn\") ");
+                  buf.append("AND grantee IN (?, '~public', '~public_no_authn') ");
                   whereParms.add("grantee"); // Make sure the ? gets replaced.
               }
           } else {

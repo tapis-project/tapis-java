@@ -14,6 +14,7 @@ public final class JobEvent
     private String        eventDetail;
     private String        othUuid;
     private String        description;
+    private String        tenant;
 
     @Override
     public String toString() {return TapisUtils.toString(this);}
@@ -72,5 +73,13 @@ public final class JobEvent
 
     public void setEventDetail(String eventDetail) {
         this.eventDetail = eventDetail;
+    }
+
+    public String getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(String tenant) {
+        this.tenant = tenant;
     }
 }

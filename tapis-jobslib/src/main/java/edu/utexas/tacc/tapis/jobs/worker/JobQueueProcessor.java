@@ -10,10 +10,12 @@ import com.rabbitmq.client.BuiltinExchangeType;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
+import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.BlockedJobActivity;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
@@ -291,8 +293,19 @@ final class JobQueueProcessor
     // field in the database with this finalMessage. 
     Job job = jobCtx.getJob();
     if (job != null) {
+        // Always log the final event message and save it in the job.
     	_log.error(finalMessage);
     	jobCtx.getJobsDao().updateLastMessageWithFinalMessage(finalMessage, job);
+    	
+    	// Only send final events on failed jobs.
+    	if (job.getStatus() == JobStatusType.FAILED)
+            try {
+                JobEventManager.getInstance().recordFinalMessageEvent(job, finalMessage);
+            } catch (Exception e) {
+                // Log error and move on.
+                String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+                _log.error(msg, e);
+            }
     }
   }
   
@@ -309,17 +322,6 @@ final class JobQueueProcessor
 	  jobCtx.setFinalMessage(null);
   }
  
-//  /* ---------------------------------------------------------------------- */
-//  /* getJobNotifications:                                                   */
-//  /* ---------------------------------------------------------------------- */
-//  private List<Notification> getJobNotifications(Job job) 
-//   throws AloeException
-//  {
-//      // Retrieve all notifications attached to this job.
-//      NotificationDao notifDao = new NotificationDao(JobDao.getDataSource());
-//      return notifDao.getNotificationsByAssociatedUUID(job.getUuid());
-//  }
-  
   /* ---------------------------------------------------------------------- */
   /* processJob:                                                            */
   /* ---------------------------------------------------------------------- */
@@ -365,6 +367,10 @@ final class JobQueueProcessor
       
       // Batch job validation
       try {validateBatchParameters(jobCtx);}
+          catch (Exception e) {throw JobUtils.tapisify(e, e.getMessage());}
+      
+      // Make sure a launcher is defined for the job type and runtime.
+      try {validateLauncher(jobCtx);}
           catch (Exception e) {throw JobUtils.tapisify(e, e.getMessage());}
       
       // Set the default return code to cause a positive ack to rabbitmq.
@@ -727,6 +733,20 @@ final class JobQueueProcessor
                                        app.getId(), logicalQueue.getName());
           throw new TapisException(msg);
       }
+  }
+  
+  /* ---------------------------------------------------------------------- */
+  /* validateLauncher:                                                      */
+  /* ---------------------------------------------------------------------- */
+  /** Make sure there is a launcher defined for the app and runtime.
+   * 
+   * @param jobCtx current job context
+   * @throws TapisException if batch job does not have an hpc queue defined 
+   */
+  private void validateLauncher(JobExecutionContext jobCtx) 
+   throws TapisException
+  {
+      JobLauncherFactory.getInstance(jobCtx);
   }
   
   /* ---------------------------------------------------------------------- */

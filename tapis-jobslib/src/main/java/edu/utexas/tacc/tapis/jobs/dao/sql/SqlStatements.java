@@ -31,22 +31,13 @@ public class SqlStatements
         	+ "remote_checks_failed, remote_last_status_check, "
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-        	+ "is_mpi, mpi_cmd, cmd_prefix"
+        	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes"
             + " FROM jobs ORDER BY id";
-    
-    public static final String SELECT_JOBS_BY_USERNAME =
-        "SELECT uuid, tenant, name, owner, status, "
-         	+ "created, ended, last_updated, app_id,"
-           	+ "app_version, exec_system_id, archive_system_id, "
-           	+ "remote_started "
-            + " FROM jobs "
-           	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
-           	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
     
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
-        	+ "last_message, created, ended, last_updated, uuid, app_id, app_version, "
-        	+ "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
+            + "last_message, created, ended, last_updated, uuid, app_id, app_version, "
+            + "archive_on_app_error, dynamic_exec_system, exec_system_id, exec_system_exec_dir, "
             + "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
             + "archive_system_id, archive_system_dir, "
             + "dtn_system_id, dtn_mount_source_path, dtn_mount_point, "
@@ -58,10 +49,27 @@ public class SqlStatements
             + "remote_checks_failed, remote_last_status_check, "
             + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
             + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-            + "is_mpi, mpi_cmd, cmd_prefix"
+            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes"
             + " FROM jobs"
             + " WHERE uuid = ?";
-    
+        
+    public static final String SELECT_JOBS_BY_USERNAME =
+        "SELECT uuid, tenant, name, owner, status, "
+         	+ "created, ended, last_updated, app_id,"
+           	+ "app_version, exec_system_id, archive_system_id, "
+           	+ "remote_started "
+            + " FROM jobs "
+           	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
+           	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
+   
+    public static final String SELECT_JOBS_LIST_DTO_BY_UUID =
+        "SELECT uuid, tenant, name, owner, status, "
+          	+ "created, ended, last_updated, app_id,"
+          	+ "app_version, exec_system_id, archive_system_id, "
+           	+ "remote_started "
+            + " FROM jobs "
+          	+ " WHERE visible = ? AND uuid = ? ";
+               
     public static final String SELECT_JOBS_STATUS_INFO_BY_UUID =
             "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
             + " FROM jobs"
@@ -69,6 +77,9 @@ public class SqlStatements
     
     public static final String SELECT_JOBS_STATUS_BY_UUID =
             "SELECT status FROM jobs WHERE uuid = ?";
+    
+    public static final String SELECT_JOBS_NAME_OWNER_BY_UUID =
+            "SELECT name, owner FROM jobs WHERE uuid = ?";
     
     // All of the job fields except:
     // 
@@ -82,18 +93,22 @@ public class SqlStatements
             + "exec_system_input_dir, exec_system_output_dir, exec_system_logical_queue, "
             + "archive_system_id, archive_system_dir, "
             + "dtn_system_id, dtn_mount_source_path, dtn_mount_point, "
-            + "node_count, cores_per_node, memory_mb, max_minutes, file_inputs, parameter_set, "
-            + "exec_system_constraints, subscriptions, "
+            + "node_count, cores_per_node, memory_mb, max_minutes, "
+            + "file_inputs, parameter_set, exec_system_constraints, subscriptions, "
             + "tapis_queue, createdby, createdby_tenant, tags, job_type, "
-            + "is_mpi, mpi_cmd, cmd_prefix) "
+            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, "
+            + "notes) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
     		+ "?, ?, ?, "
     		+ "?, ?, "
     		+ "?, ?, ?, "
-    		+ "?, ?, ?, ?, ?::json, ?::json, ?, ?::json, ?, ?, ?, ?, ?, "
-    		+ "?, ?, ?)"; 
+    		+ "?, ?, ?, ?, "
+    		+ "?::json, ?::json, ?, ?::json, "
+    		+ "?, ?, ?, ?, ?, "
+    		+ "?, ?, ?, ?, ?, "
+    		+ "?::json)"; 
 
     public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
         "SELECT status FROM jobs WHERE tenant = ? AND uuid = ? FOR UPDATE";
@@ -181,7 +196,7 @@ public class SqlStatements
     public static final String SELECT_JOBRESUBMIT_BY_UUID =
         "SELECT id, job_uuid, job_definition"
         + " FROM job_resubmit"
-        + " WHERE uuid = ?";
+        + " WHERE job_uuid = ?";
         
     public static final String CREATE_JOBRESUBMIT =
         "INSERT INTO job_resubmit (job_uuid, job_definition) "
@@ -257,16 +272,17 @@ public class SqlStatements
     /* job_events table:                                                      */
     /* ---------------------------------------------------------------------- */
     public static final String CREATE_JOB_EVENT = 
-        "INSERT INTO job_events (event, created, job_uuid, event_detail, oth_uuid, description) "
-        + "VALUES (?::job_event_enum, ?, ?, ?, ?, ?)";
+        "INSERT INTO job_events (event, created, job_uuid, event_detail, oth_uuid, description, tenant) "
+        + "VALUES (?::job_event_enum, ?, ?, ?, ?, ?, ?)";
     
     public static final String SELECT_JOBEVENTS =
-        "SELECT id, event, created, job_uuid, event_detail, oth_uuid, description"
+        "SELECT id, event, created, job_uuid, event_detail, oth_uuid, description, tenant"
         + " FROM job_events ORDER BY id";
     public static final String SELECT_JOBEVENTS_BY_JOB_UUID =
-            "SELECT id, event, created, job_uuid, event_detail, oth_uuid, description"
+            "SELECT id, event, created, job_uuid, event_detail, oth_uuid, description, tenant"
             + " FROM job_events "
             + " WHERE job_uuid = ? "		
             + " ORDER BY id  LIMIT ? OFFSET ?";
     
-}
+}	
+	
