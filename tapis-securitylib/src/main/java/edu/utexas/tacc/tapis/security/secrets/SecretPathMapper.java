@@ -256,7 +256,7 @@ public final class SecretPathMapper
                     "/user/" + _parms.getSysUser() + "/accesskey/" +
                     _parms.getSecretName();
         } else if (keyType == KeyType.token) {
-          // Token pair case.
+          // Access and refresh token pair case.
           return "secret/tapis/tenant/" + tenant + "/system/" + _parms.getSysId() +
                   "/user/" + _parms.getSysUser() + "/token/" +
                   _parms.getSecretName();
