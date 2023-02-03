@@ -536,8 +536,8 @@ public final class SubmitContext
         // Make sure the execution system allows command prefixes if a command prefix is present on
         // the job or application
         if (_execSystem.getEnableCmdPrefix() == null || !_execSystem.getEnableCmdPrefix()) {
-            if(!StringUtils.isEmpty(_submitReq.getCmdPrefix()) ||
-                    !StringUtils.isEmpty(_app.getJobAttributes().getCmdPrefix()) ) {
+            if(!StringUtils.isBlank(_submitReq.getCmdPrefix()) ||
+                    !StringUtils.isBlank(_app.getJobAttributes().getCmdPrefix()) ) {
                 String msg = MsgUtils.getMsg("JOBS_CMD_PREFIX_NOT_ENABLED_FOR_SYSTEM", _execSystem.getId());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
