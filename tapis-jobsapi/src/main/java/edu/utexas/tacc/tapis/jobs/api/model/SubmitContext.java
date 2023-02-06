@@ -533,6 +533,15 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_INVALID_EXEC_SYSTEM", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        // Make sure the execution system allows command prefixes if a command prefix is present on
+        // the job or application
+        if (_execSystem.getEnableCmdPrefix() == null || !_execSystem.getEnableCmdPrefix()) {
+            if(!StringUtils.isBlank(_submitReq.getCmdPrefix()) ||
+                    !StringUtils.isBlank(_app.getJobAttributes().getCmdPrefix()) ) {
+                String msg = MsgUtils.getMsg("JOBS_CMD_PREFIX_NOT_ENABLED_FOR_SYSTEM", _execSystem.getId());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+        }
         // Make sure a job working directory is defined.
         if (StringUtils.isBlank(_execSystem.getJobWorkingDir())) {
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_WORKING_DIR", _execSystem.getId());
