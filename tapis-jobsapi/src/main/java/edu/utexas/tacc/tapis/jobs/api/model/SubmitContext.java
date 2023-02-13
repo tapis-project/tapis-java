@@ -1912,7 +1912,12 @@ public final class SubmitContext
         catch (Exception e) {
             throw new TapisImplException(e.getMessage(), e, Status.INTERNAL_SERVER_ERROR.getStatusCode());
         }
-    }
+
+        // Special case macro resolution.  The substitutions here happen after all 
+        // the other substitutions have been resolved, so simple, non-recursive 
+        // substitution is all that's needed.  _submitReq is directly updated.
+        resolveSchedulerOptionMacros();
+}
     
     /* ---------------------------------------------------------------------------- */
     /* resolveMacros:                                                               */
@@ -1939,6 +1944,36 @@ public final class SubmitContext
     {
         if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
         return _macroResolver;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* resolveSchedulerOptionMacros:                                                */
+    /* ---------------------------------------------------------------------------- */
+    /** Resolve macros in certain distinguished fields if those fields are assigned
+     * values.
+     */
+    private void resolveSchedulerOptionMacros()
+    {
+        // Get the parameter set.
+        var parmset = _submitReq.getParameterSet();
+        if (parmset == null) return;
+        
+        // Get the scheduler options.
+        var schedOptions = parmset.getSchedulerOptions();
+        if (schedOptions == null) return;
+        
+        // Iterate through the options looking for the 
+        // ones that might contain macros.
+        for (var argSpec : schedOptions) {
+            var arg = argSpec.getArg();
+            if (arg == null) continue; // shouldn't happen
+            
+            // We only perform macro substitution on specific arguments.
+            // The substitution is simple and non-recursive because the 
+            // replacement value does not itself contain macros.
+            if (arg.startsWith("--job-name ") || arg.startsWith("-J "))
+               argSpec.setArg(replaceMacros(arg));
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
