@@ -32,12 +32,14 @@ import com.google.gson.JsonSyntaxException;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearch;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchAllAttributes;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchSelectAttributes;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobListUtils;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobListType;
+import edu.utexas.tacc.tapis.jobs.utils.SelectTuple;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJSONException;
@@ -205,11 +207,26 @@ public class JobSearchResource extends AbstractResource {
       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
       
       List<String> selectList = srchParms.getSelectList();
+      
+      var jobsImpl = JobsImpl.getInstance();
+      SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
+      _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
+      if(!selectValid.getValidFlag()) {
+    	  String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+          _log.error(msg);
+          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
+      }
+      
       boolean allAttributesInResponse = false;
+      boolean summaryAttributesInResponse = false;
       // Check if user requested all attributes of each job in the search result response
-      if ((!selectList.isEmpty() ) && selectList.contains("allAttributes") ) {
+      if ((!selectList.isEmpty()) && selectList.contains("allAttributes") ) {
    	   allAttributesInResponse = true;
    	   _log.debug("allAttributesInResponse is set to true");
+      } else {
+    	  if (selectList.isEmpty() || ((!selectList.isEmpty()) && selectList.contains("summaryAttributes"))) {
+    	  summaryAttributesInResponse = true;
+    	  }
       } 
       
       //Get the computeTotal, default is false
@@ -227,7 +244,7 @@ public class JobSearchResource extends AbstractResource {
    	   sharedWithMe = true;
       }
             
-      var jobsImpl = JobsImpl.getInstance();
+     
       
       // summary attributes
       List<JobListDTO> jobSummaryList = new ArrayList<JobListDTO>();
@@ -298,9 +315,9 @@ public class JobSearchResource extends AbstractResource {
       
       int diffLimit = 0;
       int diffSkip = 0;
-      // Case 1. User did not specify allattributes in the select list and select list is empty
+      // Case 1. User did not specify allAttributes in the select list and select list is empty
       // Default summary attributes will be returned
-      if(allAttributesInResponse == false && selectList.isEmpty()){
+      if( summaryAttributesInResponse == true){
     	  
     	  // Get the user's jobs in which the user is the owner (no shared jobs)
     	  if((listType.equals(JobListType.MY_JOBS.name())) || (listType.equals(JobListType.ALL_JOBS.name()))) {
@@ -367,7 +384,8 @@ public class JobSearchResource extends AbstractResource {
 	       if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobSummaryList.size();
 	       
 	       
-	       RespJobSearch r = new RespJobSearch(jobSummaryList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+	       RespJobSearch r = new RespJobSearch(jobSummaryList, srchParms.getLimit(), srchParms.getOrderBy(),
+	    		   srchParms.getSkip(), srchParms.getStartAfter(),totalCount);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
 	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build(); 
       
@@ -431,13 +449,17 @@ public class JobSearchResource extends AbstractResource {
       if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobs.size();
       
       // customize the response
-      if(!selectList.isEmpty() && !selectList.contains("allAttributes") && !selectList.contains("summaryAttributes") ) {
-   	  //TODO selectable fields
+      if(!selectList.isEmpty() && summaryAttributesInResponse == false && allAttributesInResponse == false ) {
+   	  	  RespJobSearchSelectAttributes r = new RespJobSearchSelectAttributes (jobs, selectList, srchParms.getLimit(),
+    			  srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
+          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                  MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
    	   
       }
       // ------------------------- Process Results --------------------------
       // Success.
-      RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobs,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
+      RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobs, srchParms.getLimit(), srchParms.getOrderBy(), 
+    		  srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
 }
