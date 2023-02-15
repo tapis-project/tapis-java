@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobOutputList;
-import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
