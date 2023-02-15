@@ -2,9 +2,11 @@ package edu.utexas.tacc.tapis.jobs.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
+import edu.utexas.tacc.tapis.jobs.utils.SelectTuple;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
@@ -369,7 +372,43 @@ public final class JobsImpl
         // Could be null if not found.
         return jobList;
     }
+     
+    /* ---------------------------------------------------------------------- */
+    /* getJobKeyList:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /*
+     * Get the jobs table field name
+     */
+    public Set<String> getJobKeyList(){
+    	Set<String> jobKeySet = JobsDao.JOB_REQ_DB_MAP.keySet();
+    	return jobKeySet;
+    }
     
+    /* ---------------------------------------------------------------------- */
+    /* checkSelectListValidity:                                               */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * Check the select list validity specified in the search end-point
+     * @param selectList
+     * @return
+     */
+    public SelectTuple checkSelectListValidity(List<String> selectList) {
+    	
+    	SelectTuple inValidTuple = new SelectTuple(true,"str");;
+    	Set<String>jobKeyList = getJobKeyList();
+    	//_log.debug("getJobKeyList: " +jobKeyList.toString() );
+    	
+    	for(String key : selectList) {
+    		//_log.debug("contains: " + jobKeyList.contains(SearchUtils.camelCaseToSnakeCase(key)));
+    		if (!jobKeyList.contains(SearchUtils.camelCaseToSnakeCase(key)) && !key.equals("allAttributes") && !key.equals("summaryAttributes")) {
+    			//_log.debug("select camel case to snake case key:"+ SearchUtils.camelCaseToSnakeCase(key));
+    			inValidTuple = new SelectTuple(false,key);
+    			break;
+    		}
+    		
+    	}
+    	return inValidTuple;
+    }
     /* ---------------------------------------------------------------------- */
     /* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
     /* ---------------------------------------------------------------------- */
