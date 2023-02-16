@@ -505,6 +505,7 @@ public class JobSearchResource extends AbstractResource {
    		 		@QueryParam("orderBy") String orderBy,
    		 		@QueryParam("computeTotal") boolean computeTotal,
    		 		@QueryParam("select") String select,InputStream payloadStream,
+   		 	    @DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                               
     {
@@ -572,14 +573,30 @@ public class JobSearchResource extends AbstractResource {
      
      if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
      List<String> selectList = srchParms.getSelectList();
-     boolean allAttributesInResponse = false;
-     if ((!selectList.isEmpty() ) && selectList.contains("allAttributes") ) {
-  	   allAttributesInResponse = true;
-  	   _log.debug("allAttributesInResponse is set to true");
-     } ;
-     computeTotal = srchParms.getComputeTotal();
      
      var jobsImpl = JobsImpl.getInstance();
+     SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
+     _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
+     if(!selectValid.getValidFlag()) {
+   	      msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
+     }
+     
+     boolean allAttributesInResponse = false;
+     boolean summaryAttributesInResponse = false;
+     // Check if user requested all attributes of each job in the search result response
+     if ((!selectList.isEmpty()) && selectList.contains("allAttributes") ) {
+  	   allAttributesInResponse = true;
+  	   _log.debug("allAttributesInResponse is set to true");
+     } else {
+   	  if (selectList.isEmpty() || ((!selectList.isEmpty()) && selectList.contains("summaryAttributes"))) {
+   	  summaryAttributesInResponse = true;
+   	  }
+     } 
+     computeTotal = srchParms.getComputeTotal();
+     
+    // var jobsImpl = JobsImpl.getInstance();
      
      // summary attributes
      List<JobListDTO> jobSummaryList = null;
@@ -598,7 +615,7 @@ public class JobSearchResource extends AbstractResource {
 		}
 	 }
      
-     if(allAttributesInResponse == false && selectList.isEmpty() ) {
+     if(summaryAttributesInResponse == true) {
 	       try {
 	          
 	         jobSummaryList = jobsImpl.getJobSearchListByUsernameUsingSqlSearchStr(threadContext.getOboUser(), 
@@ -657,9 +674,11 @@ public class JobSearchResource extends AbstractResource {
      if (computeTotal && srchParms.getLimit() <= 0) totalCount = jobs.size();
      
      // customize the response
-     if(!selectList.isEmpty() && !selectList.contains("allAttributes") 
-    		 && !selectList.contains("summaryAttributes") ) {
-  	  //TODO selectable fields
+     if(!selectList.isEmpty() && summaryAttributesInResponse == false && allAttributesInResponse == false ) {
+  	  	  RespJobSearchSelectAttributes r = new RespJobSearchSelectAttributes (jobs, selectList, srchParms.getLimit(),
+   			  srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+                 MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
   	   
      }
      // ------------------------- Process Results --------------------------
