@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.jooq.Catalog;
-import org.jooq.Sequence;
 import org.jooq.Table;
 import org.jooq.impl.SchemaImpl;
 
@@ -77,24 +76,14 @@ public class Public extends SchemaImpl {
     }
 
     @Override
-    public final List<Sequence<?>> getSequences() {
-        return Arrays.<Sequence<?>>asList(
-            Sequences.JOB_BLOCKED_ID_SEQ,
-            Sequences.JOB_EVENTS_ID_SEQ,
-            Sequences.JOB_QUEUES_ID_SEQ,
-            Sequences.JOB_RECOVERY_ID_SEQ,
-            Sequences.JOB_RESUBMIT_ID_SEQ,
-            Sequences.JOBS_ID_SEQ);
-    }
-
-    @Override
     public final List<Table<?>> getTables() {
-        return Arrays.<Table<?>>asList(
+        return Arrays.asList(
             JobBlocked.JOB_BLOCKED,
             JobEvents.JOB_EVENTS,
             JobQueues.JOB_QUEUES,
             JobRecovery.JOB_RECOVERY,
             JobResubmit.JOB_RESUBMIT,
-            Jobs.JOBS);
+            Jobs.JOBS
+        );
     }
 }

@@ -27,7 +27,9 @@ public enum JobEventEnum implements EnumType {
 
     JOB_SHARE_EVENT("JOB_SHARE_EVENT"),
 
-    JOB_SUBSCRIPTION("JOB_SUBSCRIPTION");
+    JOB_SUBSCRIPTION("JOB_SUBSCRIPTION"),
+
+    JOB_USER_EVENT("JOB_USER_EVENT");
 
     private final String literal;
 
@@ -53,5 +55,12 @@ public enum JobEventEnum implements EnumType {
     @Override
     public String getLiteral() {
         return literal;
+    }
+
+    /**
+     * Lookup a value of this EnumType by its literal
+     */
+    public static JobEventEnum lookupLiteral(String literal) {
+        return EnumType.lookupLiteral(JobEventEnum.class, literal);
     }
 }

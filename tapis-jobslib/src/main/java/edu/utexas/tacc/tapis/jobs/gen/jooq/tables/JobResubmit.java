@@ -11,15 +11,19 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobResubmitRecord;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Function3;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
+import org.jooq.Records;
 import org.jooq.Row3;
 import org.jooq.Schema;
+import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -100,12 +104,12 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_RESUBMIT_JOB_UUID_IDX);
+        return Arrays.asList(Indexes.JOB_RESUBMIT_JOB_UUID_IDX);
     }
 
     @Override
@@ -119,11 +123,6 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobResubmitRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobResubmitRecord>>asList(Keys.JOB_RESUBMIT_PKEY);
-    }
-
-    @Override
     public JobResubmit as(String alias) {
         return new JobResubmit(DSL.name(alias), this);
     }
@@ -131,6 +130,11 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
     @Override
     public JobResubmit as(Name alias) {
         return new JobResubmit(alias, this);
+    }
+
+    @Override
+    public JobResubmit as(Table<?> alias) {
+        return new JobResubmit(alias.getQualifiedName(), this);
     }
 
     /**
@@ -149,6 +153,14 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
         return new JobResubmit(name, null);
     }
 
+    /**
+     * Rename this table
+     */
+    @Override
+    public JobResubmit rename(Table<?> name) {
+        return new JobResubmit(name.getQualifiedName(), null);
+    }
+
     // -------------------------------------------------------------------------
     // Row3 type methods
     // -------------------------------------------------------------------------
@@ -156,5 +168,20 @@ public class JobResubmit extends TableImpl<JobResubmitRecord> {
     @Override
     public Row3<Integer, String, String> fieldsRow() {
         return (Row3) super.fieldsRow();
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     */
+    public <U> SelectField<U> mapping(Function3<? super Integer, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(Records.mapping(from));
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Class,
+     * Function)}.
+     */
+    public <U> SelectField<U> mapping(Class<U> toType, Function3<? super Integer, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(toType, Records.mapping(from));
     }
 }

@@ -145,7 +145,7 @@
                     <userType>com.google.gson.JsonElement</userType>
                     <binding>edu.utexas.tacc.tapis.jobs.dao.JSONBToJsonElementBinding</binding>
                     <!-- Match only certain columns, no need to filter on type -->
-                    <includeExpression>(jobs\.files_inputs|jobs\.parameter_set|jobs\.subscriptions)</includeExpression>
+                    <includeExpression>(jobs\.files_inputs|jobs\.parameter_set|jobs\.subscriptions|jobs\.notes)</includeExpression>
                     <includeTypes>.*</includeTypes>
                   </forcedType>
                   <!-- ****************************************** -->

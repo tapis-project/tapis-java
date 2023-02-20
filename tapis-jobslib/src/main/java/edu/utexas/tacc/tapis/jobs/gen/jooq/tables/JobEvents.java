@@ -14,15 +14,19 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Function8;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
-import org.jooq.Row7;
+import org.jooq.Records;
+import org.jooq.Row8;
 import org.jooq.Schema;
+import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -89,6 +93,11 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
      */
     public final TableField<JobEventsRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(16384).nullable(false), this, "");
 
+    /**
+     * The column <code>public.job_events.tenant</code>.
+     */
+    public final TableField<JobEventsRecord, String> TENANT = createField(DSL.name("tenant"), SQLDataType.VARCHAR(24).nullable(false).defaultValue(DSL.field("'unknown'::character varying", SQLDataType.VARCHAR)), this, "");
+
     private JobEvents(Name alias, Table<JobEventsRecord> aliased) {
         this(alias, aliased, null);
     }
@@ -124,12 +133,12 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_EVENTS_CREATED_IDX, Indexes.JOB_EVENTS_EVENT_DETAIL_IDX, Indexes.JOB_EVENTS_EVENT_IDX, Indexes.JOB_EVENTS_JOB_UUID_IDX);
+        return Arrays.asList(Indexes.JOB_EVENTS_CREATED_IDX, Indexes.JOB_EVENTS_EVENT_DETAIL_IDX, Indexes.JOB_EVENTS_EVENT_IDX, Indexes.JOB_EVENTS_JOB_UUID_IDX);
     }
 
     @Override
@@ -143,11 +152,6 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobEventsRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobEventsRecord>>asList(Keys.JOB_EVENTS_PKEY);
-    }
-
-    @Override
     public JobEvents as(String alias) {
         return new JobEvents(DSL.name(alias), this);
     }
@@ -155,6 +159,11 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
     @Override
     public JobEvents as(Name alias) {
         return new JobEvents(alias, this);
+    }
+
+    @Override
+    public JobEvents as(Table<?> alias) {
+        return new JobEvents(alias.getQualifiedName(), this);
     }
 
     /**
@@ -173,12 +182,35 @@ public class JobEvents extends TableImpl<JobEventsRecord> {
         return new JobEvents(name, null);
     }
 
+    /**
+     * Rename this table
+     */
+    @Override
+    public JobEvents rename(Table<?> name) {
+        return new JobEvents(name.getQualifiedName(), null);
+    }
+
     // -------------------------------------------------------------------------
-    // Row7 type methods
+    // Row8 type methods
     // -------------------------------------------------------------------------
 
     @Override
-    public Row7<Long, JobEventType, LocalDateTime, String, String, String, String> fieldsRow() {
-        return (Row7) super.fieldsRow();
+    public Row8<Long, JobEventType, LocalDateTime, String, String, String, String, String> fieldsRow() {
+        return (Row8) super.fieldsRow();
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     */
+    public <U> SelectField<U> mapping(Function8<? super Long, ? super JobEventType, ? super LocalDateTime, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(Records.mapping(from));
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Class,
+     * Function)}.
+     */
+    public <U> SelectField<U> mapping(Class<U> toType, Function8<? super Long, ? super JobEventType, ? super LocalDateTime, ? super String, ? super String, ? super String, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(toType, Records.mapping(from));
     }
 }

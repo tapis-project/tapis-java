@@ -852,6 +852,48 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         return (String) get(58);
     }
 
+    /**
+     * Setter for <code>public.jobs.shared_app_ctx</code>.
+     */
+    public void setSharedAppCtx(Boolean value) {
+        set(59, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.shared_app_ctx</code>.
+     */
+    public Boolean getSharedAppCtx() {
+        return (Boolean) get(59);
+    }
+
+    /**
+     * Setter for <code>public.jobs.shared_app_ctx_attribs</code>.
+     */
+    public void setSharedAppCtxAttribs(String[] value) {
+        set(60, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.shared_app_ctx_attribs</code>.
+     */
+    public String[] getSharedAppCtxAttribs() {
+        return (String[]) get(60);
+    }
+
+    /**
+     * Setter for <code>public.jobs.notes</code>.
+     */
+    public void setNotes(JsonElement value) {
+        set(61, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.notes</code>.
+     */
+    public JsonElement getNotes() {
+        return (JsonElement) get(61);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -875,7 +917,7 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Create a detached, initialised JobsRecord
      */
-    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix) {
+    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix, Boolean sharedAppCtx, String[] sharedAppCtxAttribs, JsonElement notes) {
         super(Jobs.JOBS);
 
         setId(id);
@@ -937,5 +979,8 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         setIsMpi(isMpi);
         setMpiCmd(mpiCmd);
         setCmdPrefix(cmdPrefix);
+        setSharedAppCtx(sharedAppCtx);
+        setSharedAppCtxAttribs(sharedAppCtxAttribs);
+        setNotes(notes);
     }
 }
