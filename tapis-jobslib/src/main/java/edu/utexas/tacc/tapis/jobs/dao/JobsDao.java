@@ -454,7 +454,8 @@ public final class JobsDao
 	/* getJobsSearchListCountByUsernameUsingSqlSearchStr                      */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings("rawtypes")
-	public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, List<OrderBy> orderByList) 
+	public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
+			List<OrderBy> orderByList, boolean sharedWithMe) 
 			  throws TapisException
 	{
 		int listsize = orderByList.size();
@@ -472,8 +473,16 @@ public final class JobsDao
         }
       	 
         
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
-      	if(searchAST != null) {
+        //Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        
+        Condition whereCondition = null;
+        if(sharedWithMe) {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true)); // username is not the owner
+        } else {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
+      	     
+        if(searchAST != null) {
       		Condition astCondition = createConditionFromAst(searchAST);
             if (astCondition != null) whereCondition = whereCondition.and(astCondition);
             
@@ -684,7 +693,7 @@ public final class JobsDao
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(
 	                         String username, String tenant, ASTNode searchAST, 
-			                 List<OrderBy> orderByList,Integer limit, Integer skip) 
+			                 List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
      throws TapisException
 	{
 		 // Initialize result.
@@ -708,7 +717,13 @@ public final class JobsDao
         	}
         }
       	 
-        Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        //Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        Condition whereCondition  = null;
+        if(shared) {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+        } else {
+        	whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
       	if(searchAST != null) {
       		Condition astCondition = createConditionFromAst(searchAST);
             if (astCondition != null) whereCondition = whereCondition.and(astCondition);
@@ -939,7 +954,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public List<Job> getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String username, String tenant, ASTNode searchAST, 
-			List<OrderBy> orderByList,Integer limit, Integer skip) 
+			List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -963,9 +978,15 @@ public final class JobsDao
         	}
         	
         }
+        Condition whereCondition = null;
       	 
-       	Condition whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
-      	if(searchAST != null) {
+        if(shared) {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.VISIBLE.eq(true));
+      	} else {
+      		whereCondition = (Tables.JOBS.TENANT.eq(tenant)).and(Tables.JOBS.OWNER.eq(username)).and(Tables.JOBS.VISIBLE.eq(true));
+        }
+      	
+       	if(searchAST != null) {
       		Condition astCondition = createConditionFromAst(searchAST);
             if (astCondition != null) whereCondition = whereCondition.and(astCondition);
             
