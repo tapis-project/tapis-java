@@ -65,4 +65,23 @@ public class JobListUtils {
 		 }
     	return diffSkip;
     }
+    /* ---------------------------------------------------------------------------- */
+    /* computeSkip                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    public static int computeSkipSqlStr(String listType, String obouser, String obotenant, String sqlStr, List<OrderBy> orderbyList, 
+    		int skip, boolean notShared) throws TapisImplException {
+    	int diffSkip = 0;
+    	int totalCountOwner = 0;
+    	if(!listType.equals(JobListType.SHARED_JOBS.name())) {
+ 		   //totalCountOwner = JobListUtils.computeTotalCount(obouser, obotenant, sqlStr, orderbyList, notShared);
+ 		   var jobsImpl = JobsImpl.getInstance();
+ 	       totalCountOwner = jobsImpl.getJobsSearchListCountByUsernameUsingSqlSearchStr(obouser, obotenant, sqlStr, orderbyList, notShared);
+	  	   if(totalCountOwner <= skip) {
+ 			   diffSkip = skip - totalCountOwner;
+ 		   }
+		 } else {
+			  diffSkip = skip; 
+		 }
+    	return diffSkip;
+    }
 }

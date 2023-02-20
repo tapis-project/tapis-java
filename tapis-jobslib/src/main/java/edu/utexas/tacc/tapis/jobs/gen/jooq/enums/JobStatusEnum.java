@@ -68,4 +68,11 @@ public enum JobStatusEnum implements EnumType {
     public String getLiteral() {
         return literal;
     }
+
+    /**
+     * Lookup a value of this EnumType by its literal
+     */
+    public static JobStatusEnum lookupLiteral(String literal) {
+        return EnumType.lookupLiteral(JobStatusEnum.class, literal);
+    }
 }

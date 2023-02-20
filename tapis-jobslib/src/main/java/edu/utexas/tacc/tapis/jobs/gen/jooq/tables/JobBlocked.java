@@ -14,15 +14,19 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Function6;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
+import org.jooq.Records;
 import org.jooq.Row6;
 import org.jooq.Schema;
+import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -119,12 +123,12 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_BLOCKED_JOB_UUID_IDX, Indexes.JOB_BLOCKED_RECOVERY_ID_IDX);
+        return Arrays.asList(Indexes.JOB_BLOCKED_JOB_UUID_IDX, Indexes.JOB_BLOCKED_RECOVERY_ID_IDX);
     }
 
     @Override
@@ -138,17 +142,15 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobBlockedRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobBlockedRecord>>asList(Keys.JOB_BLOCKED_PKEY);
-    }
-
-    @Override
     public List<ForeignKey<JobBlockedRecord, ?>> getReferences() {
-        return Arrays.<ForeignKey<JobBlockedRecord, ?>>asList(Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
+        return Arrays.asList(Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
     }
 
     private transient JobRecovery _jobRecovery;
 
+    /**
+     * Get the implicit join path to the <code>public.job_recovery</code> table.
+     */
     public JobRecovery jobRecovery() {
         if (_jobRecovery == null)
             _jobRecovery = new JobRecovery(this, Keys.JOB_BLOCKED__JOB_BLOCKED_RECOVERY_ID_FKEY);
@@ -164,6 +166,11 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
     @Override
     public JobBlocked as(Name alias) {
         return new JobBlocked(alias, this);
+    }
+
+    @Override
+    public JobBlocked as(Table<?> alias) {
+        return new JobBlocked(alias.getQualifiedName(), this);
     }
 
     /**
@@ -182,6 +189,14 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
         return new JobBlocked(name, null);
     }
 
+    /**
+     * Rename this table
+     */
+    @Override
+    public JobBlocked rename(Table<?> name) {
+        return new JobBlocked(name.getQualifiedName(), null);
+    }
+
     // -------------------------------------------------------------------------
     // Row6 type methods
     // -------------------------------------------------------------------------
@@ -189,5 +204,20 @@ public class JobBlocked extends TableImpl<JobBlockedRecord> {
     @Override
     public Row6<Integer, Integer, LocalDateTime, JobStatusType, String, String> fieldsRow() {
         return (Row6) super.fieldsRow();
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     */
+    public <U> SelectField<U> mapping(Function6<? super Integer, ? super Integer, ? super LocalDateTime, ? super JobStatusType, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(Records.mapping(from));
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Class,
+     * Function)}.
+     */
+    public <U> SelectField<U> mapping(Class<U> toType, Function6<? super Integer, ? super Integer, ? super LocalDateTime, ? super JobStatusType, ? super String, ? super String, ? extends U> from) {
+        return convertFrom(toType, Records.mapping(from));
     }
 }

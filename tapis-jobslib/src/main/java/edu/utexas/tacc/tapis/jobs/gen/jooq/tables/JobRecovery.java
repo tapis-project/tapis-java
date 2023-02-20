@@ -12,15 +12,19 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobRecoveryRecord;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Function12;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
+import org.jooq.Records;
 import org.jooq.Row12;
 import org.jooq.Schema;
+import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -146,12 +150,12 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_RECOVERY_NEXT_ATTEMPT_IDX, Indexes.JOB_RECOVERY_TENANT_HASH_IDX);
+        return Arrays.asList(Indexes.JOB_RECOVERY_NEXT_ATTEMPT_IDX, Indexes.JOB_RECOVERY_TENANT_HASH_IDX);
     }
 
     @Override
@@ -165,11 +169,6 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobRecoveryRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobRecoveryRecord>>asList(Keys.JOB_RECOVERY_PKEY);
-    }
-
-    @Override
     public JobRecovery as(String alias) {
         return new JobRecovery(DSL.name(alias), this);
     }
@@ -177,6 +176,11 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
     @Override
     public JobRecovery as(Name alias) {
         return new JobRecovery(alias, this);
+    }
+
+    @Override
+    public JobRecovery as(Table<?> alias) {
+        return new JobRecovery(alias.getQualifiedName(), this);
     }
 
     /**
@@ -195,6 +199,14 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
         return new JobRecovery(name, null);
     }
 
+    /**
+     * Rename this table
+     */
+    @Override
+    public JobRecovery rename(Table<?> name) {
+        return new JobRecovery(name.getQualifiedName(), null);
+    }
+
     // -------------------------------------------------------------------------
     // Row12 type methods
     // -------------------------------------------------------------------------
@@ -202,5 +214,20 @@ public class JobRecovery extends TableImpl<JobRecoveryRecord> {
     @Override
     public Row12<Integer, String, String, String, String, String, String, Integer, LocalDateTime, LocalDateTime, LocalDateTime, String> fieldsRow() {
         return (Row12) super.fieldsRow();
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     */
+    public <U> SelectField<U> mapping(Function12<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? extends U> from) {
+        return convertFrom(Records.mapping(from));
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Class,
+     * Function)}.
+     */
+    public <U> SelectField<U> mapping(Class<U> toType, Function12<? super Integer, ? super String, ? super String, ? super String, ? super String, ? super String, ? super String, ? super Integer, ? super LocalDateTime, ? super LocalDateTime, ? super LocalDateTime, ? super String, ? extends U> from) {
+        return convertFrom(toType, Records.mapping(from));
     }
 }

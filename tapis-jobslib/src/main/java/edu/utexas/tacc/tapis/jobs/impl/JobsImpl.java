@@ -194,7 +194,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
    
     public int getJobsSearchListCountByUsernameUsingSqlSearchStr(String user, String tenant, 
-    		String sqlSearchStr, List<OrderBy> orderByList) 
+    		String sqlSearchStr, List<OrderBy> orderByList, boolean sharedWithMe) 
     		throws TapisImplException
     {
     	// ----- Check input.
@@ -221,7 +221,7 @@ public final class JobsImpl
 
        // Count all allowed jobs matching the search conditions
        try {
-		 count =  getJobsDao().getJobsSearchListCountByUsernameUsingSqlSearchStr(user, tenant, searchAST, orderByList) ;
+		 count =  getJobsDao().getJobsSearchListCountByUsernameUsingSqlSearchStr(user, tenant, searchAST, orderByList,sharedWithMe) ;
 	   } catch (TapisException e) {
 		 String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_COUNT_ERROR", user, tenant);
          throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -283,7 +283,7 @@ public final class JobsImpl
     /* getJobSearchListByUsernameUsingSqlSearchStr:                           */
     /* ---------------------------------------------------------------------- */
     public List<JobListDTO> getJobSearchListByUsernameUsingSqlSearchStr(String user, String tenant, 
-    		String sqlSearchStr, List<OrderBy> orderByList, Integer limit,Integer skip) 
+    		String sqlSearchStr, List<OrderBy> orderByList, Integer limit,Integer skip,boolean sharedWithMe) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -313,7 +313,7 @@ public final class JobsImpl
         // ----- Get the job list.
         List<JobListDTO> jobList = null;
         try {jobList = getJobsDao().getJobSearchListByUsernameUsingSqlSearchStr(user, tenant, searchAST,
-        		orderByList, limit, skip);}
+        		orderByList, limit, skip,sharedWithMe);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -413,7 +413,7 @@ public final class JobsImpl
     /* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
     /* ---------------------------------------------------------------------- */
     public List<Job>  getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String user, String tenant,
-    		String sqlSearchStr , List<OrderBy> orderByList, Integer limit,Integer skip) 
+    		String sqlSearchStr , List<OrderBy> orderByList, Integer limit,Integer skip, boolean sharedWithMe) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -438,7 +438,7 @@ public final class JobsImpl
      
         // ----- Get the job list.
         List<Job> jobList = null;
-        try {jobList = getJobsDao().getJobSearchAllAttributesByUsernameUsingSqlSearchStr(user, tenant, searchAST,orderByList,limit,skip);}
+        try {jobList = getJobsDao().getJobSearchAllAttributesByUsernameUsingSqlSearchStr(user, tenant, searchAST,orderByList,limit,skip, sharedWithMe);}
         catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_SEARCHLIST_ERROR", user, tenant, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
@@ -1108,38 +1108,41 @@ public final class JobsImpl
     
     {
     	 SKClient skClient = getSKClient();
+    	 List<JobShared> jobShareList = new ArrayList<JobShared>();
       
-         
-         SKShareGetSharesParms params = new SKShareGetSharesParms();
-         params.setGrantee(user);
-         params.setTenant(tenant);
+         for(JobResourceShare resourceType:JobResourceShare.values()) {
+	         SKShareGetSharesParms params = new SKShareGetSharesParms();
+	         params.setGrantee(user);
+	         params.setTenant(tenant);
+	         params.setResourceType(resourceType.name());
          
         
-         SkShareList skShareList = null;
+	         SkShareList skShareList = null;
        
-         try {
- 			skShareList = skClient.getShares(params);
- 		 } catch (TapisClientException e) {
- 			 String msg = MsgUtils.getMsg("JOBS_SHARE_SK_RETRIEVE_ERROR" , user, tenant, e);
- 	         _log.error(msg, e);
- 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
- 		}
+	         try {
+	 			skShareList = skClient.getShares(params);
+	 		 } catch (TapisClientException e) {
+	 			 String msg = MsgUtils.getMsg("JOBS_SHARE_SK_RETRIEVE_ERROR" , user, tenant, e);
+	 	         _log.error(msg, e);
+	 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+	 		}
          
-         // Convert from SK representation to local representation
-         List<JobShared> jobShareList = new ArrayList<JobShared>();
-         for(SkShare sks: skShareList.getShares()) {
-        	 JobShared js = new JobShared();
-           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
-        	 js.setCreated(sks.getCreated().toInstant());
-        	 js.setJobUuid(sks.getResourceId1());
-        	 js.setCreatedby(sks.getGrantor());
-        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
-        	 js.setTenant(sks.getTenant());
-        	 js.setUserSharedWith(sks.getGrantee());
-        	 js.setId(sks.getId());
-        	 jobShareList.add(js);
+	         // Convert from SK representation to local representation
+	        
+	         _log.debug("skShareList: "+ skShareList.getShares().toString());
+	         for(SkShare sks: skShareList.getShares()) {
+	        	 JobShared js = new JobShared();
+	           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));
+	        	 js.setCreated(sks.getCreated().toInstant());
+	        	 js.setJobUuid(sks.getResourceId1());
+	        	 js.setCreatedby(sks.getGrantor());
+	        	 js.setJobPermission(JobTapisPermission.valueOf(sks.getPrivilege()));
+	        	 js.setTenant(sks.getTenant());
+	        	 js.setUserSharedWith(sks.getGrantee());
+	        	 js.setId(sks.getId());
+	        	 jobShareList.add(js);
+	         }
          }
-         
        return jobShareList; 
     }
     

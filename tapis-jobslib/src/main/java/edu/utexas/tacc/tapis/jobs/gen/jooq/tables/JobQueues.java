@@ -12,15 +12,19 @@ import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobQueuesRecord;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Function7;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Record;
+import org.jooq.Records;
 import org.jooq.Row7;
 import org.jooq.Schema;
+import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -121,12 +125,12 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOB_QUEUES_NAME_IDX, Indexes.JOB_QUEUES_PRIORITY_IDX, Indexes.JOB_QUEUES_UUID_IDX);
+        return Arrays.asList(Indexes.JOB_QUEUES_NAME_IDX, Indexes.JOB_QUEUES_PRIORITY_IDX, Indexes.JOB_QUEUES_UUID_IDX);
     }
 
     @Override
@@ -140,11 +144,6 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobQueuesRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobQueuesRecord>>asList(Keys.JOB_QUEUES_PKEY);
-    }
-
-    @Override
     public JobQueues as(String alias) {
         return new JobQueues(DSL.name(alias), this);
     }
@@ -152,6 +151,11 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
     @Override
     public JobQueues as(Name alias) {
         return new JobQueues(alias, this);
+    }
+
+    @Override
+    public JobQueues as(Table<?> alias) {
+        return new JobQueues(alias.getQualifiedName(), this);
     }
 
     /**
@@ -170,6 +174,14 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
         return new JobQueues(name, null);
     }
 
+    /**
+     * Rename this table
+     */
+    @Override
+    public JobQueues rename(Table<?> name) {
+        return new JobQueues(name.getQualifiedName(), null);
+    }
+
     // -------------------------------------------------------------------------
     // Row7 type methods
     // -------------------------------------------------------------------------
@@ -177,5 +189,20 @@ public class JobQueues extends TableImpl<JobQueuesRecord> {
     @Override
     public Row7<Integer, String, Integer, String, String, LocalDateTime, LocalDateTime> fieldsRow() {
         return (Row7) super.fieldsRow();
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     */
+    public <U> SelectField<U> mapping(Function7<? super Integer, ? super String, ? super Integer, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+        return convertFrom(Records.mapping(from));
+    }
+
+    /**
+     * Convenience mapping calling {@link SelectField#convertFrom(Class,
+     * Function)}.
+     */
+    public <U> SelectField<U> mapping(Class<U> toType, Function7<? super Integer, ? super String, ? super Integer, ? super String, ? super String, ? super LocalDateTime, ? super LocalDateTime, ? extends U> from) {
+        return convertFrom(toType, Records.mapping(from));
     }
 }

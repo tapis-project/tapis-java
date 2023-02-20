@@ -356,6 +356,21 @@ public class Jobs extends TableImpl<JobsRecord> {
      */
     public final TableField<JobsRecord, String> CMD_PREFIX = createField(DSL.name("cmd_prefix"), SQLDataType.VARCHAR(126), this, "");
 
+    /**
+     * The column <code>public.jobs.shared_app_ctx</code>.
+     */
+    public final TableField<JobsRecord, Boolean> SHARED_APP_CTX = createField(DSL.name("shared_app_ctx"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("false", SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.jobs.shared_app_ctx_attribs</code>.
+     */
+    public final TableField<JobsRecord, String[]> SHARED_APP_CTX_ATTRIBS = createField(DSL.name("shared_app_ctx_attribs"), SQLDataType.CLOB.getArrayDataType(), this, "");
+
+    /**
+     * The column <code>public.jobs.notes</code>.
+     */
+    public final TableField<JobsRecord, JsonElement> NOTES = createField(DSL.name("notes"), SQLDataType.JSONB.nullable(false).defaultValue(DSL.field("'{}'::json", SQLDataType.JSONB)), this, "", new JSONBToJsonElementBinding());
+
     private Jobs(Name alias, Table<JobsRecord> aliased) {
         this(alias, aliased, null);
     }
@@ -391,12 +406,12 @@ public class Jobs extends TableImpl<JobsRecord> {
 
     @Override
     public Schema getSchema() {
-        return Public.PUBLIC;
+        return aliased() ? null : Public.PUBLIC;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.<Index>asList(Indexes.JOBS_APP_ID_IDX, Indexes.JOBS_ARCHIVE_SYSTEM_IDX, Indexes.JOBS_CREATED_IDX, Indexes.JOBS_DTN_SYSTEM_IDX, Indexes.JOBS_EXEC_SYSTEM_IDX, Indexes.JOBS_STATUS_IDX, Indexes.JOBS_TAGS_IDX, Indexes.JOBS_TENANT_CREATEDBY_IDX, Indexes.JOBS_TENANT_OWNER_IDX, Indexes.JOBS_UUID_IDX);
+        return Arrays.asList(Indexes.JOBS_APP_ID_IDX, Indexes.JOBS_ARCHIVE_SYSTEM_IDX, Indexes.JOBS_CREATED_IDX, Indexes.JOBS_DTN_SYSTEM_IDX, Indexes.JOBS_EXEC_SYSTEM_IDX, Indexes.JOBS_STATUS_IDX, Indexes.JOBS_TAGS_IDX, Indexes.JOBS_TENANT_CREATEDBY_IDX, Indexes.JOBS_TENANT_OWNER_IDX, Indexes.JOBS_UUID_IDX);
     }
 
     @Override
@@ -410,11 +425,6 @@ public class Jobs extends TableImpl<JobsRecord> {
     }
 
     @Override
-    public List<UniqueKey<JobsRecord>> getKeys() {
-        return Arrays.<UniqueKey<JobsRecord>>asList(Keys.JOBS_PKEY);
-    }
-
-    @Override
     public Jobs as(String alias) {
         return new Jobs(DSL.name(alias), this);
     }
@@ -422,6 +432,11 @@ public class Jobs extends TableImpl<JobsRecord> {
     @Override
     public Jobs as(Name alias) {
         return new Jobs(alias, this);
+    }
+
+    @Override
+    public Jobs as(Table<?> alias) {
+        return new Jobs(alias.getQualifiedName(), this);
     }
 
     /**
@@ -438,5 +453,13 @@ public class Jobs extends TableImpl<JobsRecord> {
     @Override
     public Jobs rename(Name name) {
         return new Jobs(name, null);
+    }
+
+    /**
+     * Rename this table
+     */
+    @Override
+    public Jobs rename(Table<?> name) {
+        return new Jobs(name.getQualifiedName(), null);
     }
 }
