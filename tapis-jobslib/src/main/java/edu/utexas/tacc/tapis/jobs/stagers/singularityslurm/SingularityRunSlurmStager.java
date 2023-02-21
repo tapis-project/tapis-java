@@ -113,22 +113,33 @@ public final class SingularityRunSlurmStager
         // Make sure we retrieve the profile.
         var profile = _jobCtx.getSchedulerProfile(_slurmRunCmd.getTapisProfile());
 
-        // Check that we have work to do.
-        String loadCmd = profile.getModuleLoadCommand();
-        var modules = profile.getModulesToLoad();
-        if (StringUtils.isBlank(loadCmd) || 
-            (modules == null) || 
-            modules.isEmpty())
-           return;
+        // Get the array of module load specs.
+        var specs = profile.getModuleLoads();
+        if (specs == null || specs.isEmpty()) return;
         
-        // Put in the required spacing.
-        if (!loadCmd.endsWith(" ")) loadCmd += " ";
+        // Iterate through the list of specs.
+        for (var spec : specs) {
+            // There has to be a load command.
+            var loadCmd = spec.getModuleLoadCommand();
+            if (StringUtils.isBlank(loadCmd)) continue;
+            
+            // We allow commands that don't require module parameters.
+            var modules = spec.getModulesToLoad();
+            if (modules == null || modules.isEmpty()) {
+                _cmd.append(loadCmd + "\n");
+                continue;
+            }
+            
+            // Put in the required spacing.
+            if (!loadCmd.endsWith(" ")) loadCmd += " ";
+            
+            // Create a module load command for each specified module.
+            for (var module : modules)
+                if (StringUtils.isNotBlank(module)) 
+                    _cmd.append(loadCmd + module + "\n");
+        }
         
-        // Add each module to the command string
-        // and end with a blank line.
-        for (var module : modules)
-            if (StringUtils.isNotBlank(module)) 
-                _cmd.append(loadCmd + module + "\n");
+        // End with a blank line.
         _cmd.append("\n");
     }
     
