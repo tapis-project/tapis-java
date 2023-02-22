@@ -22,6 +22,7 @@ public final class DockerNativeLauncher
 
     // Regex to test docker container id.
     private static final Pattern _nonEmptyAlphaNumeric = Pattern.compile("[a-zA-Z0-9]+");
+    private static final Pattern _wsDelimitedWords = Pattern.compile("\\s+");
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -85,6 +86,7 @@ public final class DockerNativeLauncher
         if (exitStatus == 0) {
             cid = result.trim();
             if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
+               else cid = extractCID(cid);
             if (_log.isDebugEnabled()) {
                 String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
                                              _job.getUuid(), cid, exitStatus);
@@ -115,5 +117,29 @@ public final class DockerNativeLauncher
     private String getRemoteIdCommand()
     {
         return JobExecutionUtils.getDockerCidCommand(_job.getUuid());
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* extractCID:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Get the last whitespace delimited word in a result string with any quotes 
+     * removed.  This should extract just the container id from any text docker 
+     * dumps to stdout screen on a docker run call.
+     * 
+     * @param s non-null, non-empty, non-whitespace-only string
+     * @return the last word without any single quotes
+     */
+    private String extractCID(String s)
+    {
+        // Get rid of single quotes.
+        s = s.replace("'", "");
+        String[] array = _wsDelimitedWords.split(s);
+        if (array.length == 0) return UNKNOWN_CONTAINER_ID;
+        
+        // Only return a well-formed CID.
+        var cid = array[array.length-1];
+        if (cid.length() == 64 && _nonEmptyAlphaNumeric.matcher(cid).matches())
+            return cid;
+        return UNKNOWN_CONTAINER_ID;
     }
 }
