@@ -9,7 +9,43 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.2.2 - 2022-09-22
+## 1.3.0 - 2023-03-03
+
+### New features:
+1. Added listing of shared jobs in POST end-point
+2. Enhanced SchedulerProfile format
+3. Added search endpoint
+
+### Bug fixes:
+1. Increased timeout to 10 minutes on job submission calls.
+2. Improved docker output parsing
+3. Various simple bug fixes
+
+-----------------------
+## 1.2.4 - 2023-02-07
+
+### New features:
+1. Allow macro substitution in scheduler's job name field
+2. Support for Systems enableCmdPrefix flag
+3. Improved job search using a query parameter
+
+-----------------------
+## 1.2.3 - 2022-09-22
+
+### New features:
+1. Application shared context support 
+2. Added Description field to KeyValuePair
+3. JOB_USER_EVENT implemented
+4. Improved Job submit livedocs
+5. Allowed 0 ttlMinutes in subscriptions
+6. Tightened job subscription checking
+7. Added notes field to job
+
+### Bug fixes:
+1. Various simple bug fixes
+
+-----------------------
+## 1.2.2 - 2022-08-23
 
 Fixes and preview feature release
 ### New features:
