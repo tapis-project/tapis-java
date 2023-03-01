@@ -12,9 +12,9 @@ https://tapis-project.github.io/live-docs
 ## 1.3.0 - 2023-03-03
 
 ### New features:
-1. Added listing of shared jobs in POST end-point
+1. Added listing of shared jobs in POST search end-point
 2. Enhanced SchedulerProfile format
-3. Added search endpoint
+3. Added select feature to search endpoints
 
 ### Bug fixes:
 1. Increased timeout to 10 minutes on job submission calls.
