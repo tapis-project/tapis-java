@@ -8,6 +8,29 @@ https://tapis.readthedocs.io/en/latest/technical/security.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+
+-----------------------
+## 1.3.0 - 2023-03-03
+
+Maintenance release
+
+-----------------------
+## 1.2.4 - 2023-02-07
+
+### New features:
+Initial Globus support.
+
+-----------------------
+## 1.2.3 - 2022-09-22
+
+SKExport implemented.
+
+-----------------------
+
+## 1.2.2 - 2022-08-23
+
+Maintenance release
+
 -----------------------
 
 ## 1.2.1 - 2022-07-25
