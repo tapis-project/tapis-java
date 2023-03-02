@@ -120,7 +120,7 @@ public final class JobExecutionContext
         if (_executionSystem == null) {
             _executionSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                                    _job.getExecSystemId(), true, LoadSystemTypes.execution,
-                                   _jobSharedAppCtx.isSharingExecSystemId());
+                                   _jobSharedAppCtx.getSharingExecSystemAppOwner());
         }
         
         return _executionSystem;
@@ -139,7 +139,7 @@ public final class JobExecutionContext
             if (_archiveSystem == null)    
                 _archiveSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                                      _job.getArchiveSystemId(), false, LoadSystemTypes.archive,
-                                     _jobSharedAppCtx.isSharingArchiveSystemId());
+                                     _jobSharedAppCtx.getSharingArchiveSystemAppOwner());
         }
         
         return _archiveSystem;
@@ -158,7 +158,7 @@ public final class JobExecutionContext
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                              _job.getDtnSystemId(), false, LoadSystemTypes.dtn,
-                             _jobSharedAppCtx.isSharingExecSystemId());
+                             _jobSharedAppCtx.getSharingExecSystemAppOwner());
         }
         
         return _dtnSystem;
@@ -551,7 +551,7 @@ public final class JobExecutionContext
                                              String systemId,
                                              boolean requireExecPerm,
                                              LoadSystemTypes loadType,
-                                             boolean sharedAppCtx) 
+                                             String sharedAppCtx) 
       throws TapisException
     {
         // Load the system definition.

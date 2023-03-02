@@ -79,7 +79,7 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, 
                                                 String user, int limit, int skip,
-    		                                    String impersonationId, boolean isSharedAppCtx) 
+    		                                    String impersonationId, String sharedAppCtx) 
       throws TapisImplException
      {
     	 List<FileInfo> outputList = null;
@@ -92,7 +92,7 @@ public class DataLocator {
 		        
          try {
         	outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), 
-        	                                   limit, skip, recursiveFlag, impersonationId, isSharedAppCtx);
+        	                                   limit, skip, recursiveFlag, impersonationId, sharedAppCtx);
          } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 
             		jobOutputInfo.getSystemId(),  jobOutputInfo.getSystemUrl(), 
@@ -113,7 +113,7 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      public StreamedFile getJobOutputDownload(JobOutputInfo jobOutputInfo, 
                                               String tenant, String user, 
-    		                                  boolean compress, String impersonationId, boolean isSharedAppCtx) 
+    		                                  boolean compress, String impersonationId, String sharedAppCtx) 
       throws TapisImplException
      {
     	 // Get the File Service client 
@@ -122,7 +122,7 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		 StreamedFile streamFromFiles = null;
 		 try {
-			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId, isSharedAppCtx);
+			 streamFromFiles=filesClient.getFileContents(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), compress, impersonationId, sharedAppCtx);
 			
 		} catch (TapisClientException e) {
 			String msg = MsgUtils.getMsg("FILES_REMOTE_FILESDOWNLOAD_ERROR", 

@@ -562,7 +562,7 @@ public final class SubmitContext
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
                                              requireExecPerm, LoadSystemTypes.dtn, 
-                                             _sharedAppCtx.isSharingExecSystemId()); // exec system sharing
+                                             _sharedAppCtx.getSharingExecSystemAppOwner()); // exec system sharing
            if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
                                             _dtnSystem.getId());
@@ -606,7 +606,7 @@ public final class SubmitContext
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
                                                  requireExecPerm, LoadSystemTypes.archive,
-                                                 _sharedAppCtx.isSharingArchiveSystemId()); 
+                                                 _sharedAppCtx.getSharingArchiveSystemAppOwner()); 
         }
     }
     
@@ -645,7 +645,7 @@ public final class SubmitContext
         // Load the system.
         boolean requireExecPerm = true;
         _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, 
-                                           LoadSystemTypes.execution, _sharedAppCtx.isSharingExecSystemId());
+                                           LoadSystemTypes.execution, _sharedAppCtx.getSharingExecSystemAppOwner());
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
@@ -1124,7 +1124,7 @@ public final class SubmitContext
             // tapis protocol is used; the destination is always on the execution system,
             // so we just check that the execution system input directory is shared.
             calculateSrcSharedCtx(reqInput, reqInput.getSourceUrl());
-            reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+            reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
             
             // Canonicalize paths and derive other values.
             completeRequestFileInput(reqInput);
@@ -1205,7 +1205,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
@@ -1276,7 +1276,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1461,8 +1461,8 @@ public final class SubmitContext
             // that the app definition can be overridden.  The final determination of
             // the shared context setting for each source file is handled by the 
             // marshaling method below.
-            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(true);
-            reqArray.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
+            reqArray.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
             
             // Add the request to the list and update list of processed names.
             // We rely on Apps to not allow duplicate named input arrays.
@@ -1533,7 +1533,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1599,7 +1599,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1738,9 +1738,9 @@ public final class SubmitContext
                 reqInput.setTargetPath(target);
                 
                 // Set the shared context flags.
-                if (curArray.isSrcSharedAppCtx() &&
+                if (!StringUtils.isBlank(curArray.isSrcSharedAppCtx()) &&
                     reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
-                   reqInput.setSrcSharedAppCtx(true);
+                    reqInput.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
                 reqInput.setDestSharedAppCtx(curArray.isDestSharedAppCtx());
             
                 // Save the new object in the 
@@ -1772,7 +1772,7 @@ public final class SubmitContext
         
         // Only set the shared flag if the app source is in effect.
         if (reqInput.getSourceUrl().equals(appSource)) 
-            reqInput.setSrcSharedAppCtx(true);
+            reqInput.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1794,7 +1794,7 @@ public final class SubmitContext
 
         // Only set the shared flag if the app and request sources exactly match.
         if (reqArray.equalSourceUrls​(appSources)) 
-            reqArray.setSrcSharedAppCtx(true);
+            reqArray.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2020,7 +2020,7 @@ public final class SubmitContext
                                              String systemId, 
                                              boolean requireExecPerm,
                                              LoadSystemTypes systemType,
-                                             boolean sharedAppCtx) 
+                                             String sharedAppCtx) 
       throws TapisImplException
     {
         // Load the system definition.
@@ -2421,7 +2421,7 @@ public final class SubmitContext
         
         // Set the shared context information.
         if (_sharedAppCtx.isSharingEnabled()) {
-            _job.setSharedAppCtx(true);
+            _job.setSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
             _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
         }
         

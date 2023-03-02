@@ -77,7 +77,7 @@ public abstract class AbsTester
         final boolean requireExecPerm = false;
         final String  selectAll = "allAttributes";
         final String  impersonationId = null;
-        final boolean sharedAppCtx = true;
+        final String sharedAppCtx = ""; //TODO original=true
         return client.getSystem(systemId, authnMethod, requireExecPerm, selectAll,
                                 returnCreds, impersonationId, sharedAppCtx);
     }

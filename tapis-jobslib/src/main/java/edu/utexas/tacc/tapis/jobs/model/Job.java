@@ -137,7 +137,7 @@ public final class Job
     private String              mpiCmd;
     private String              cmdPrefix;
     
-    private boolean             sharedAppCtx;
+    private String              sharedAppCtx;
     private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
     
     private String              notes = EMPTY_JSON; // Should never be null.
@@ -963,11 +963,11 @@ public final class Job
         this.cmdPrefix = cmdPrefix;
     }
 
-    public boolean isSharedAppCtx() {
+    public String getSharedAppCtx() {
         return sharedAppCtx;
     }
 
-    public void setSharedAppCtx(boolean sharedAppCtx) {
+    public void setSharedAppCtx(String sharedAppCtx) {
         this.sharedAppCtx = sharedAppCtx;
     }
 

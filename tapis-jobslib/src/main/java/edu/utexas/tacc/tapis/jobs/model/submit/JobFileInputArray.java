@@ -17,9 +17,9 @@ public class JobFileInputArray
     @Schema(hidden = true)
     private boolean      optional = false;
     @Schema(hidden = true)
-    private boolean      srcSharedAppCtx = false;
+    private String      srcSharedAppCtx = "";
     @Schema(hidden = true)
-    private boolean      destSharedAppCtx = false;
+    private String     destSharedAppCtx = "";
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
@@ -97,19 +97,19 @@ public class JobFileInputArray
         this.optional = optional;
     }
     @Schema(hidden = true)
-    public boolean isSrcSharedAppCtx() {
+    public String isSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
     @Schema(hidden = true)
-    public void setSrcSharedAppCtx(boolean srcSharedAppCtx) {
+    public void setSrcSharedAppCtx(String srcSharedAppCtx) {
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
     @Schema(hidden = true)
-    public boolean isDestSharedAppCtx() {
+    public String isDestSharedAppCtx() {
         return destSharedAppCtx;
     }
     @Schema(hidden = true)
-    public void setDestSharedAppCtx(boolean destSharedAppCtx) {
+    public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }
 }

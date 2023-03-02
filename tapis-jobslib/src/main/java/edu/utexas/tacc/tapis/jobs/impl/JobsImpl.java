@@ -707,13 +707,18 @@ public final class JobsImpl
         // So, we need to check it again here if the job is shared and accordingly set the impersonationId
         boolean isSharedAppCtx = checkSharedAppCtx(job, jobOutputFilesinfo);
         
+        String sharedAppCtx = "";
+        if (isSharedAppCtx == true) {
+        	sharedAppCtx = job.getSharedAppCtx();
+        }
+        
         boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || isSharedAppCtx;
         String impersonationId =  null;
         if(skipTapisAuthorization == true) {
         	impersonationId = job.getOwner();
         }
         List<FileInfo> outputList = dataLocator.getJobOutputListings(
-                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId, isSharedAppCtx);
+                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId, sharedAppCtx);
                
         return outputList;
     }
@@ -732,7 +737,7 @@ public final class JobsImpl
     	boolean isSharedAppPathAllowed = false;
     	
     	// check if job ran on shared app context.
-    	if (!job.isSharedAppCtx())
+    	if (StringUtils.isBlank(job.getSharedAppCtx()))
     		return isSharedAppPathAllowed;
     	
     	List<JobSharedAppCtxEnum> sharedAppCtxAttribs = job.getSharedAppCtxAttribs();

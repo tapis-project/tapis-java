@@ -1355,7 +1355,7 @@ public final class JobsDao
           pstmt.setString(39,  job.getCmdPrefix());             // could be null
           
           // Shared application context.
-          pstmt.setBoolean(40, job.isSharedAppCtx());
+          pstmt.setString(40, job.getSharedAppCtx());
           
           // Shared application context attributes.
           var attribs = job.getSharedAppCtxAttribs();
@@ -3140,7 +3140,7 @@ public final class JobsDao
 	        obj.setCmdPrefix(rs.getString(59));
 	        
 	        // Shared application context.
-	        obj.setSharedAppCtx(rs.getBoolean(60));
+	        obj.setSharedAppCtx(rs.getString(60));
 	        Array attribArray = rs.getArray(61);
 	        if (attribArray != null) {
 	            var stringArray = (String[])attribArray.getArray();

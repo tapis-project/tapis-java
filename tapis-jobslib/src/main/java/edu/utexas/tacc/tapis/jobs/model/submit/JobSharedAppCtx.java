@@ -22,7 +22,7 @@ public final class JobSharedAppCtx
         SAC_ARCHIVE_SYSTEM_ID,
         SAC_ARCHIVE_SYSTEM_DIR
     }
-
+    private static String NOT_SHARED_APP_OWNER = ""; 
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -30,6 +30,7 @@ public final class JobSharedAppCtx
     // and the field set is initialized only when sharing is in effect.
     private boolean                   _sharingEnabled;
     private List<JobSharedAppCtxEnum> _sharedAppCtxAttribs; // null when not sharing
+    private String _sharedAppOwner="";
     
     /* **************************************************************************** */
     /*                                Constructors                                  */
@@ -44,10 +45,12 @@ public final class JobSharedAppCtx
     public JobSharedAppCtx(TapisApp app)
     {
         // No need to do anything when not a shared application.
-        if (app.getSharedAppCtx() == null) return;
+        
+        if (StringUtils.isAllBlank(app.getSharedAppCtx())) return;
 
         // Assign the flag and initialize the set if we are sharing.
-        _sharingEnabled = app.getSharedAppCtx();
+        _sharingEnabled = !StringUtils.isBlank(app.getSharedAppCtx());
+        _sharedAppOwner = app.getSharedAppCtx();
         if (_sharingEnabled) {
             final int capacity = 6;
             _sharedAppCtxAttribs = new ArrayList<JobSharedAppCtxEnum>(capacity);
@@ -64,8 +67,9 @@ public final class JobSharedAppCtx
     public JobSharedAppCtx(Job job)
     {
         // Read only access.
-        _sharingEnabled = job.isSharedAppCtx();
+        _sharingEnabled = !StringUtils.isBlank(job.getSharedAppCtx());
         _sharedAppCtxAttribs = job.getSharedAppCtxAttribs();
+        _sharedAppOwner=job.getSharedAppCtx();
     }
     
     /* **************************************************************************** */
@@ -202,13 +206,23 @@ public final class JobSharedAppCtx
     /* isSharingExecSystemId:                                                       */
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemId() 
-    {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);}
-    
+    { return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);}
+   
+    public String getSharingExecSystemAppOwner() {
+    	if(isSharingExecSystemId()) {return _sharedAppOwner; }
+    	else
+    		return NOT_SHARED_APP_OWNER;
+    }
     /* ---------------------------------------------------------------------------- */
     /* isSharingExecSystemExecDir:                                                  */
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemExecDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR);}
+    
+    public String getSharingExecSystemExecDirAppOwner() {
+    	if(isSharingExecSystemExecDir()) {return _sharedAppOwner; }
+    	else {return NOT_SHARED_APP_OWNER;}
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* isSharingExecSystemInputDir:                                                 */
@@ -216,11 +230,21 @@ public final class JobSharedAppCtx
     public boolean isSharingExecSystemInputDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);}
     
+    public String getSharingExecSystemInputDirAppOwner() {
+    	if(isSharingExecSystemInputDir()) {return _sharedAppOwner;}
+    	else { return NOT_SHARED_APP_OWNER; }
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* isSharingExecSystemOutputDir:                                                */
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemOutputDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR);}
+    
+    public String getSharingExecSystemOutputDirAppOwner() {
+    	if(isSharingExecSystemOutputDir()) { return _sharedAppOwner; }
+    	else { return NOT_SHARED_APP_OWNER;}
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* isSharingArchiveSystemId:                                                    */
@@ -228,15 +252,26 @@ public final class JobSharedAppCtx
     public boolean isSharingArchiveSystemId() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_ID);}
     
+    public String getSharingArchiveSystemAppOwner() {
+    	if(isSharingArchiveSystemId()) { return _sharedAppOwner;}
+    	else { return NOT_SHARED_APP_OWNER;}
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* isSharingArchiveSystemDir:                                                   */
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingArchiveSystemDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR);}
     
+    public String getSharingArchiveSystemDirAppOwner() {
+    	if(isSharingArchiveSystemDir()) {return _sharedAppOwner;}
+    	else { return NOT_SHARED_APP_OWNER;}
+    }
+    
     /* **************************************************************************** */
     /*                                  Accessors                                   */
     /* **************************************************************************** */
     public boolean isSharingEnabled() {return _sharingEnabled;}
+    public String getSharedAppOwner() {return _sharedAppOwner;} 
     public List<JobSharedAppCtxEnum> getSharedAppCtxResources() {return _sharedAppCtxAttribs;}
 }
